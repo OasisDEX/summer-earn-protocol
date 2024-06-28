@@ -48,14 +48,16 @@ function subtract(Percentage a, Percentage b) pure returns (Percentage) {
 function multiply(Percentage a, Percentage b) pure returns (Percentage) {
     return
         Percentage.wrap(
-            (Percentage.unwrap(a) * Percentage.unwrap(b)) / PERCENTAGE_FACTOR
+            (Percentage.unwrap(a) * Percentage.unwrap(b)) /
+                Percentage.unwrap(PERCENTAGE_100)
         );
 }
 
 function divide(Percentage a, Percentage b) pure returns (Percentage) {
     return
         Percentage.wrap(
-            (Percentage.unwrap(a) * PERCENTAGE_FACTOR) / Percentage.unwrap(b)
+            (Percentage.unwrap(a) * Percentage.unwrap(PERCENTAGE_100)) /
+                Percentage.unwrap(b)
         );
 }
 

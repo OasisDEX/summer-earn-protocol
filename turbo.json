@@ -49,8 +49,8 @@
     "deploy:staging": {
       "dependsOn": ["cicheck", "^deploy:staging"]
     },
-    "coverage:total": {
-      "dependsOn": ["test", "test:integration", "^coverage:total"]
+    "coverage": {
+      "dependsOn": ["test", "test:integration", "^coverage"]
     }
   }
 }
