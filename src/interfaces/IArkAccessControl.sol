@@ -10,15 +10,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  */
 interface IArkAccessControl {
     /**
-     * ERRORS
-     */
-    error CallerIsNotGovernor(address caller);
-    error CallerIsNotKeeper(address caller);
-    error CallerIsNotCommander(address caller);
-    error CallerIsNotAdmin(address caller);
-    error CallerIsNotRoleAdmin(address caller);
-
-    /**
      * FUNCTIONS
      */
 

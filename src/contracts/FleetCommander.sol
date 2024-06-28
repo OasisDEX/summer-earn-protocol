@@ -11,8 +11,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626 {
     using SafeERC20 for IERC20;
 
-    /// @inheritdoc IFleetCommander
-    mapping(address => ArkConfiguration) public arks;
+    mapping(address => ArkConfiguration) private _arks;
     uint256 public totalQueuedFunds;
     uint256 public minFundsQueueBalance;
     uint256 public lastRebalanceTime;
@@ -26,6 +25,12 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         _setupArks(params.initialArks);
         minFundsQueueBalance = params.initialFundsQueueBalance;
         rebalanceCooldown = params.initialRebalanceCooldown;
+    }
+
+    /* PUBLIC - ACCESSORS */
+    /// @inheritdoc IFleetCommander
+    function arks(address _address) external view override returns (ArkConfiguration memory) {
+        return _arks[_address];
     }
 
     /* PUBLIC - USER */
@@ -61,6 +66,6 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
     function _board(address ark, uint256 amount) internal {}
     function _disembark(address ark, uint256 amount) internal {}
     function _move(address fromArk, address toArk, uint256 amount) internal {}
-    function _setupArks(ArkConfiguration[] memory _arks) internal {}
+    function _setupArks(ArkConfiguration[] memory _arkConfigurations) internal {}
     function _addArk(address ark, uint256 maxAllocation) internal {}
 }

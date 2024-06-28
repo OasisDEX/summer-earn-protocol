@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../interfaces/IArkAccessControl.sol";
+import "../errors/ArkAccessControlErrors.sol";
 
 /**
  * @title ArkAccessControl
@@ -53,17 +54,23 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
     }
 
     modifier onlyGovernor() {
-        require(hasRole(GOVERNOR_ROLE, msg.sender), "Caller is not a governor");
+        if (!hasRole(GOVERNOR_ROLE, msg.sender)) {
+            revert CallerIsNotGovernor(msg.sender);
+        }
         _;
     }
 
     modifier onlyKeeper() {
-        require(hasRole(KEEPER_ROLE, msg.sender), "Caller is not a keeper");
+        if (!hasRole(KEEPER_ROLE, msg.sender)) {
+            revert CallerIsNotKeeper(msg.sender);
+        }
         _;
     }
 
     modifier onlyCommander() {
-        require(hasRole(COMMANDER_ROLE, msg.sender), "Caller is not a commander");
+        if (!hasRole(COMMANDER_ROLE, msg.sender)) {
+            revert CallerIsNotCommander(msg.sender);
+        }
         _;
     }
 

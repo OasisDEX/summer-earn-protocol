@@ -8,14 +8,14 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @custom:see IArk
  */
-abstract contract BaseArk is IArk, ArkAccessControl {
+abstract contract Ark is IArk, ArkAccessControl {
     address public raft;
     uint256 public depositCap;
     IERC20 public token;
 
-    constructor(ArkParams memory params) ArkAccessControl(params.governor) {
-        raft = params.raft;
-        token = IERC20(params.token);
+    constructor(ArkParams memory _params) ArkAccessControl(_params.governor) {
+        raft = _params.raft;
+        token = IERC20(_params.token);
     }
 
     /* PUBLIC */
