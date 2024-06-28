@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @custom:see IArk
  */
-abstract contract BaseArk is IArk, ArkAccessControl {
+abstract contract Ark is IArk, ArkAccessControl {
     address public raft;
     uint256 public depositCap;
     IERC20 public token;

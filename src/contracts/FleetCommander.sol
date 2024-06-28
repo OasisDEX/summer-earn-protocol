@@ -11,7 +11,6 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626 {
     using SafeERC20 for IERC20;
 
-
     mapping(address => ArkConfiguration) private _arks;
     uint256 public totalQueuedFunds;
     uint256 public minFundsQueueBalance;
