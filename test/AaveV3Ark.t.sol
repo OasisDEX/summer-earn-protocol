@@ -15,8 +15,7 @@ contract AaveV3ArkTest is Test {
     IPoolV3 public aaveV3Pool;
     ERC20Mock public mockToken;
 
-    event Board(address indexed token, uint256 amount, address indexed onBehalfOf);
-
+    event Boarded(address indexed commander, address token, uint256 amount);
 
     function setUp() public {
         mockToken = new ERC20Mock();
@@ -32,7 +31,8 @@ contract AaveV3ArkTest is Test {
 
         // Arrange
         uint256 amount = 1000 * 10**18;
-        mockToken.mint(address(this), amount);
+        mockToken.mint(commander, amount);
+        vm.prank(commander);
         mockToken.approve(address(ark), amount);
 
         vm.mockCall(
@@ -45,6 +45,10 @@ contract AaveV3ArkTest is Test {
             address(aaveV3Pool),
             abi.encodeWithSelector(aaveV3Pool.supply.selector, address(mockToken), amount, address(ark), 0)
         );
+
+        // Expect the Boarded event to be emitted
+        vm.expectEmit(true, true, false, true);
+        emit Boarded(commander, address(mockToken), amount);
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
