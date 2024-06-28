@@ -4,19 +4,9 @@ pragma solidity 0.8.26;
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IArkAccessControl} from "./IArkAccessControl.sol";
 import "../types/Percentage.sol";
+import "../types/ArkTypes.sol";
 
 interface IArk is IArkAccessControl {
-    /* STRUCTS */
-
-    /**
-     * @notice Configuration parameters for the Ark contract
-     */
-    struct ArkParams {
-        address governor;
-        address raft;
-        address token;
-    }
-
     /* EVENTS */
     event Harvested(uint256 amount);
     event Boarded(address indexed commander, uint256 amount);

@@ -13,9 +13,9 @@ abstract contract BaseArk is IArk, ArkAccessControl {
     uint256 public depositCap;
     IERC20 public token;
 
-    constructor(ArkParams memory params) ArkAccessControl(params.governor) {
-        raft = params.raft;
-        token = IERC20(params.token);
+    constructor(ArkParams memory _params) ArkAccessControl(_params.governor) {
+        raft = _params.raft;
+        token = IERC20(_params.token);
     }
 
     /* PUBLIC */
