@@ -1,4 +1,87 @@
-cache/
-out/
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# next.js
+.next/
+out/
+build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env
+.env.local
+.env.test
+.env.development.local
+.env.test.local
+.env.production.local
+
+# turbo
+.turbo
+
+# vercel
+.vercel
+
+# JetBrains files
 .idea
+
+# all dist & artifacts folders
+dist
+artifacts
+
+# tsbuildinfo
+*.tsbuildinfo
+
+# geneated GraphQL types
+/**/types/graphql/*.ts
+
+# other generated files
+/packages/**/src/generated/
+
+# nx files
+.nx
+
+# sst
+.sst
+.build
+
+# opennext
+.open-next
+
+# local env files
+.env*.local
+
+# editors configs
+.vscode
+
+# private http envs
+*.private.env.json
+
+# CDK Contexts
+cdk.context.json
+
+# foundry
+packages/contracts-protocol/cache/
+packages/contracts-protocol/out/
+packages/contracts-protocol/forge-out/
+packages/contracts-protocol/target/
+packages/contracts-protocol/build/
+packages/contracts-protocol/lib/forge-std
+packages/contracts-protocol/lib/openzeppelin-contracts
+
+# rays-dashboard specific
+/apps/rays-dashboard/types/generated

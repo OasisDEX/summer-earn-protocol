@@ -1,0 +1,97 @@
+name: CI
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  build:
+    name: Build and Integration Test
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    env:
+      CONFIG_URL: ${{ secrets.CONFIG_URL }}
+      CONFIG_URL_RAYS: ${{ secrets.CONFIG_URL_RAYS }}
+      BORROW_DB_READ_CONNECTION_STRING: ${{ secrets.BORROW_DB_READ_CONNECTION_STRING }}
+      CONTENTFUL_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
+      CONTENTFUL_PREVIEW_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_PREVIEW_ACCESS_TOKEN }}
+      CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
+      MIXPANEL_KEY: ${{ secrets.MIXPANEL_KEY }}
+      NEXT_PUBLIC_MIXPANEL_KEY: ${{ secrets.NEXT_PUBLIC_MIXPANEL_KEY }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Cache turbo build setup
+        uses: actions/cache@v3
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 8.14.1
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Establish VPN connection
+        run: |
+          sudo apt update
+          sudo apt install -y openvpn openvpn-systemd-resolved
+          echo 'Configuring the VPN...'
+          echo "${{ secrets.VPN_CONFIG }}" > vpn-config.ovpn
+          echo "${{ secrets.VPN_USERNAME }}" > vpn-credentials.txt
+          echo "${{ secrets.VPN_PASSWORD }}" >> vpn-credentials.txt
+          echo 'Connecting to the VPN...'
+          sudo openvpn --config vpn-config.ovpn --auth-user-pass vpn-credentials.txt --daemon
+          sleep 10
+
+      - name: Check VPN connection
+        env:
+          BORROW_DB_READ_DB: ${{ secrets.BORROW_DB_READ_DB }}
+          BORROW_DB_READ_HOST: ${{ secrets.BORROW_DB_READ_HOST }}
+          BORROW_DB_READ_USER: ${{ secrets.BORROW_DB_READ_USER }}
+          BORROW_DB_READ_PASSWORD: ${{ secrets.BORROW_DB_READ_PASSWORD }}
+          PGCONNECT_TIMEOUT: 10
+        run: |
+          echo 'Checking the VPN connection...'
+          sudo systemctl start postgresql.service
+          PGPASSWORD=$BORROW_DB_READ_PASSWORD /usr/bin/psql -d $BORROW_DB_READ_DB -U $BORROW_DB_READ_USER -h $BORROW_DB_READ_HOST -c 'SELECT 1;' > /dev/null
+          STATUS_CODE=$?
+          if ! [[ "$STATUS_CODE" = 0 ]]; then
+            echo 'VPN connection failed'
+            exit 1
+          fi
+          echo 'VPN connected!'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Prebuild
+        run: pnpm prebuild
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test:integration
+        env:
+          ONE_INCH_API_KEY: ${{ secrets.ONE_INCH_API_KEY }}
+          ONE_INCH_API_VERSION: ${{ secrets.ONE_INCH_API_VERSION }}
+          ONE_INCH_API_URL: ${{ secrets.ONE_INCH_API_URL }}
+          ONE_INCH_API_SPOT_KEY: ${{ secrets.ONE_INCH_API_SPOT_KEY }}
+          ONE_INCH_API_SPOT_VERSION: ${{ secrets.ONE_INCH_API_SPOT_VERSION }}
+          ONE_INCH_API_SPOT_URL: ${{ secrets.ONE_INCH_API_SPOT_URL }}
+          ONE_INCH_ALLOWED_SWAP_PROTOCOLS: ${{ secrets.ONE_INCH_ALLOWED_SWAP_PROTOCOLS }}
+          ONE_INCH_SWAP_CHAIN_IDS: ${{ secrets.ONE_INCH_SWAP_CHAIN_IDS }}
+          MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
+
+      - name: Coverage
+        run: pnpm coverage:total

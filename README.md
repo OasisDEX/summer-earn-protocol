@@ -1,66 +1,57 @@
-## Foundry
+# Summerfi Earn Protocol
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## TLDR;
 
-Foundry consists of:
+### Initialize the repository
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+```bash
+$ pnpm i
+```
 
-## Documentation
+### Install Foundry
 
-https://book.getfoundry.sh/
+```bash
+$ curl -L https://foundry.paradigm.xyz | bash
+$ foundryup
+```
 
-## Usage
+Restart your terminal after running the above commands.
+
+## Structure
+
+### Packages
+
+- `contracts-protocol`: Core contracts for the Summer Earn Protocol
+- `eslint-config`: Base `eslint` configurations
+- `jest-config`: Base `jest` configurations
+- `tenderly-utils`: Utility functions for interacting with Tenderly API
+- `typescript-config`: Base `tsconfig.json`s configurations
+
+## Commands
 
 ### Build
 
-```shell
-$ forge build
-```
-
-### Test
+To build all apps and packages, run the following command:
 
 ```shell
-$ forge test
+pnpm build
 ```
 
-### Format
+### Develop
+
+To develop all apps and packages, run the following command:
 
 ```shell
-$ forge fmt
+pnpm dev
 ```
 
-### Gas Snapshots
+## Useful Links
 
-```shell
-$ forge snapshot
-```
+Learn more about the power of Turborepo:
 
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
+- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
+- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
+- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
+- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
+- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)

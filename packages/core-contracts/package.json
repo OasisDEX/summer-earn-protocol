@@ -1,0 +1,27 @@
+{
+  "name": "@summerfi/core-contracts",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.d.ts"
+    },
+    "./abis/*": {
+      "import": "./src/abis/*",
+      "types": "./src/abis/*"
+    }
+  },
+  "scripts": {
+    "test": "forge test",
+    "build": "forge build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@summerfi/eslint-config": "workspace:*",
+    "@summerfi/jest-config": "workspace:*",
+    "@summerfi/typescript-config": "workspace:*"
+  }
+}
