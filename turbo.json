@@ -1,0 +1,56 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "globalEnv": ["NODE_ENV"],
+  "pipeline": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "prebuild": {
+      "dependsOn": ["^prebuild", "^prebuild:nocache"],
+      "outputs": ["src/types/graphql/generated.ts", "src/generated"]
+    },
+    "prebuild:nocache": {
+      "dependsOn": ["^prebuild:nocache"],
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["prebuild", "^build"],
+      "outputs": ["dist/**", "artifacts/**"]
+    },
+    "test": {
+      "dependsOn": ["prebuild", "build", "^test"]
+    },
+    "test:integration": {
+      "dependsOn": ["prebuild", "build", "^test:integration"]
+    },
+    "lint": {
+      "dependsOn": ["prebuild", "build", "^lint"]
+    },
+    "format": {
+      "dependsOn": ["prebuild", "build", "^format"]
+    },
+    "check-circular": {
+      "dependsOn": ["prebuild", "build", "^check-circular"]
+    },
+    "cicheck": {
+      "dependsOn": [
+        "prebuild",
+        "build",
+        "test",
+        "test:integration",
+        "lint",
+        "check-circular",
+        "format",
+        "coverage:total"
+      ]
+    },
+    "deploy:staging": {
+      "dependsOn": ["cicheck", "^deploy:staging"]
+    },
+    "coverage": {
+      "dependsOn": ["test", "test:integration", "^coverage"]
+    }
+  }
+}

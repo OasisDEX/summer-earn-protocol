@@ -1,0 +1,10 @@
+{
+  // by using a separate tsconfig for build, we can set main tsconfig to
+  // include tests and use module paths in tests but build without tests
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,41 @@
+# This is a basic workflow that is manually triggered
+
+name: Merge DEV -> Main
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "greet"
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: git config
+        run: |
+          git config user.name ${{ github.actor }}
+
+      - name: Merge dev -> main
+        shell: bash
+        run: |
+          git checkout main
+          git pull origin main
+          git checkout main
+          git merge --ff-only dev
+          git push origin main
+          git status
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}

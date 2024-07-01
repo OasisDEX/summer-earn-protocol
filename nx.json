@@ -1,0 +1,18 @@
+{
+  "affected": {
+    "defaultBase": "master"
+  },
+  "cli": {
+    "warnings": {
+      "versionMismatch": false
+    },
+    "packageManager": "yarn",
+    "analytics": false
+  },
+  "generators": {},
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "targetDefaults": {},
+
+  "parallel": 1,
+  "plugins": []
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "jest", "jest-extended"],
+    "rootDir": ".",
+    "baseUrl": "."
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "ES2022",
+      "target": "ES2022"
+    }
+  }
+}

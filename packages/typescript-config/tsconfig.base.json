@@ -1,0 +1,63 @@
+{
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2022"],
+    "target": "es2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "incremental": true,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "allowUnreachableCode": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "jest", "jest-extended"]
+  },
+  "references": [
+    {
+      "path": "../serverless-shared/tsconfig.json"
+    },
+    {
+      "path": "../prices-subgraph/tsconfig.json"
+    },
+    {
+      "path": "../automation-subgraph/tsconfig.json"
+    },
+    {
+      "path": "../aave-spark-subgraph/tsconfig.json"
+    },
+    {
+      "path": "../ajna-subgraph/tsconfig.json"
+    },
+    {
+      "path": "../morpho-blue-subgraph/tsconfig.json"
+    },
+    {
+      "path": "../morpho-blue-external-api-client/tsconfig.json"
+    },
+    {
+      "path": "../triggers-calculations/tsconfig.json"
+    },
+    {
+      "path": "../triggers-shared/tsconfig.json"
+    },
+    {
+      "path": "../abstractions/tsconfig.json"
+    },
+    {
+      "path": "../redis-cache/tsconfig.json"
+    },
+    {
+      "path": "../defi-llama-client/tsconfig.json"
+    },
+    {
+      "path": "../rays-db/tsconfig.build.json"
+    }
+  ]
+}
