@@ -6,3 +6,4 @@ error CallerIsNotKeeper(address caller);
 error CallerIsNotCommander(address caller);
 error CallerIsNotAdmin(address caller);
 error CallerIsNotRoleAdmin(address caller);
+error CallerIsNotCommanderOrArk(address caller);

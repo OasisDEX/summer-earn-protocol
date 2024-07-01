@@ -10,7 +10,7 @@ interface IArk is IArkAccessControl {
     /* EVENTS */
     event Harvested(uint256 amount);
     event Boarded(address indexed commander, address token, uint256 amount);
-    event Disembarked(address indexed commander, uint256 amount);
+    event Disembarked(address indexed commander, address token, uint256 amount);
     event Moved(address indexed commander, uint256 amount, address indexed newArk);
     event DepositCapUpdated(uint256 newCap);
     event RaftUpdated(address newRaft);
