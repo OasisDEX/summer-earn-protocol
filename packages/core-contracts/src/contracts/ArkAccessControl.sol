@@ -10,10 +10,11 @@ import "../errors/ArkAccessControlErrors.sol";
  * @notice Defines the specific roles for Ark contracts and the
  *         helper functions to manage them and to enforce the access control
  *
- * @dev In particular 3 main roles are defined:
+ * @dev In particular 4 main roles are defined:
  *   - Governor: in charge of setting the parameters of the system and also has the power to manage the different Fleet Commander roles
  *   - Keeper: in charge of rebalancing the funds between the different Arks through the Fleet Commander
  *   - Commander: is the fleet commander contract itself and couples an Ark to specific Fleet Commander
+ *   - Ark: is the ark itself. Useful for inter-ark operations.
  */
 contract ArkAccessControl is IArkAccessControl, AccessControl {
     /**
@@ -23,6 +24,7 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
     bytes32 public constant COMMANDER_ROLE = keccak256("COMMANDER_ROLE");
+    bytes32 public constant ARK_ROLE = keccak256("ARK_ROLE");
 
     /**
      * CONSTRUCTOR
@@ -34,6 +36,7 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
     constructor(address governor) {
         _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
+        _grantRole(ARK_ROLE, address(this));
     }
 
     /**
@@ -73,6 +76,13 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
     modifier onlyCommander() {
         if (!hasRole(COMMANDER_ROLE, msg.sender)) {
             revert CallerIsNotCommander(msg.sender);
+        }
+        _;
+    }
+
+    modifier onlyCommanderOrArk() {
+        if (!hasRole(COMMANDER_ROLE, msg.sender) && !hasRole(ARK_ROLE, msg.sender)) {
+            revert CallerIsNotCommanderOrArk(msg.sender);
         }
         _;
     }

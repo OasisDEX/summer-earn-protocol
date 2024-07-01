@@ -9,8 +9,8 @@ import "../types/ArkTypes.sol";
 interface IArk is IArkAccessControl {
     /* EVENTS */
     event Harvested(uint256 amount);
-    event Boarded(address indexed commander, uint256 amount);
-    event Disembarked(address indexed commander, uint256 amount);
+    event Boarded(address indexed commander, address token, uint256 amount);
+    event Disembarked(address indexed commander, address token, uint256 amount);
     event Moved(
         address indexed commander,
         uint256 amount,
