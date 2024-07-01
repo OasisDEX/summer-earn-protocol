@@ -64,8 +64,6 @@ contract AaveV3ArkTest is Test {
         // Arrange
         uint256 amount = 1000 * 10**18;
         mockToken.mint(address(ark), amount);
-        //        vm.prank(address(ark));
-        //        mockToken.approve(address(ark), amount);
 
         vm.mockCall(
             address(aaveV3Pool),
