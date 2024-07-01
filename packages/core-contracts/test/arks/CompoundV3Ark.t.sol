@@ -2,8 +2,8 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../src/contracts/arks/CompoundV3Ark.sol";
-import "../src/errors/ArkAccessControlErrors.sol";
+import "../../src/contracts/arks/CompoundV3Ark.sol";
+import "../../src/errors/ArkAccessControlErrors.sol";
 import "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
 contract CompoundV3ArkTest is Test {
@@ -11,7 +11,7 @@ contract CompoundV3ArkTest is Test {
     address public governor = address(1);
     address public commander = address(4);
     address public raft = address(2);
-    address constant public cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3; // Replace with actual Comet address
+    address constant public cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     CometMainInterface public comet;
     ERC20Mock public mockToken;
 

@@ -12,7 +12,7 @@ contract CompoundV3Ark is Ark {
     CometMainInterface public comet;
 
     constructor(address _comet, ArkParams memory _params) Ark(_params) {
-        comet = IComet(_comet);
+        comet = CometMainInterface(_comet);
     }
 
     function board(uint256 amount) external override onlyCommanderOrArk {
