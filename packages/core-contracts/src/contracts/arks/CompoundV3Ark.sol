@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import "../Ark.sol";
 import {CometMainInterface} from "../../interfaces/compound-v3/CometMainInterface.sol";
 import {IArk} from "../../interfaces/IArk.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;
@@ -15,18 +15,12 @@ contract CompoundV3Ark is Ark {
         comet = CometMainInterface(_comet);
     }
 
-    function board(uint256 amount) external override onlyCommander {
-        token.safeTransferFrom(msg.sender, address(this), amount);
+    function _board(uint256 amount) internal override {
         token.approve(address(comet), amount);
         comet.supply(address(token), amount);
-
-        emit Boarded(msg.sender, address(token), amount);
     }
 
-    function disembark(uint256 amount) external override onlyCommander {
+    function _disembark(uint256 amount) internal override {
         comet.withdraw(address(token), amount);
-        token.safeTransfer(msg.sender, amount);
-
-        emit Disembarked(msg.sender, address(token), amount);
     }
 }

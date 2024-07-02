@@ -4,10 +4,10 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/errors/ArkAccessControlErrors.sol";
-import "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import "../../src/contracts/ArkEvents.sol";
+import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import "../../src/interfaces/IArkEvents.sol";
 
-contract CompoundV3ArkTest is Test, ArkEvents  {
+contract CompoundV3ArkTest is Test, IArkEvents  {
     CompoundV3Ark public ark;
     address public governor = address(1);
     address public commander = address(4);
