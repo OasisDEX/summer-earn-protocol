@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
 import "../../src/errors/ArkAccessControlErrors.sol";
 import "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import "../src/contracts/ArkEvents.sol";
+import "../../src/contracts/ArkEvents.sol";
 
 contract AaveV3ArkTest is Test, ArkEvents {
     AaveV3Ark public ark;

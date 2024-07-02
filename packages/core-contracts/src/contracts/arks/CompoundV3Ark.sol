@@ -15,7 +15,7 @@ contract CompoundV3Ark is Ark {
         comet = CometMainInterface(_comet);
     }
 
-    function board(uint256 amount) external override onlyCommanderOrArk {
+    function board(uint256 amount) external override onlyCommander {
         token.safeTransferFrom(msg.sender, address(this), amount);
         token.approve(address(comet), amount);
         comet.supply(address(token), amount);
@@ -23,18 +23,10 @@ contract CompoundV3Ark is Ark {
         emit Boarded(msg.sender, address(token), amount);
     }
 
-    function disembark(uint256 amount) external override onlyCommanderOrArk {
+    function disembark(uint256 amount) external override onlyCommander {
         comet.withdraw(address(token), amount);
         token.safeTransfer(msg.sender, amount);
 
         emit Disembarked(msg.sender, address(token), amount);
-    }
-
-    function move(uint256 amount, address nextArk) external override onlyCommanderOrArk {
-        comet.withdraw(address(token), amount);
-        token.approve(nextArk, amount);
-        IArk(nextArk).board(amount);
-
-        emit Moved(msg.sender, amount, address(nextArk));
     }
 }
