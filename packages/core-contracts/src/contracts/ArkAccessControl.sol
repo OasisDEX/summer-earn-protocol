@@ -31,7 +31,7 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
     /**
      * @param governor The account that will be granted the Governor role
      */
-    constructor(address governor, address ark) {
+    constructor(address governor) {
         _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
     }

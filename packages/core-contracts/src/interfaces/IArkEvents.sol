@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-contract ArkEvents {
+interface IArkEvents {
     event Harvested(uint256 amount);
     event Boarded(address indexed commander, address token, uint256 amount);
     event Disembarked(address indexed commander, address token, uint256 amount);
