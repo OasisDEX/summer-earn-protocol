@@ -4,16 +4,17 @@ pragma solidity 0.8.26;
 import "./ArkAccessControl.sol";
 import "../interfaces/IArk.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./ArkEvents.sol";
 
 /**
  * @custom:see IArk
  */
-abstract contract Ark is IArk, ArkAccessControl {
+abstract contract Ark is IArk, ArkAccessControl, ArkEvents {
     address public raft;
     uint256 public depositCap;
     IERC20 public token;
 
-    constructor(ArkParams memory _params) ArkAccessControl(_params.governor) {
+    constructor(ArkParams memory _params) ArkAccessControl(_params.governor, address(this)) {
         raft = _params.raft;
         token = IERC20(_params.token);
     }
@@ -25,7 +26,6 @@ abstract contract Ark is IArk, ArkAccessControl {
     /* EXTERNAL - COMMANDER */
     function board(uint256 amount) external virtual;
     function disembark(uint256 amount) external virtual;
-    function move(uint256 amount, address newArk) external virtual;
 
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
