@@ -5,9 +5,9 @@ import {Test, console} from "forge-std/Test.sol";
 import "../src/contracts/arks/AaveV3Ark.sol";
 import "../src/errors/ArkAccessControlErrors.sol";
 import "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import "../src/contracts/ArkEvents.sol";
+import "../src/interfaces/IArkEvents.sol";
 
-contract AaveV3ArkTest is Test, ArkEvents {
+contract AaveV3ArkTest is Test, IArkEvents {
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
     address public governor = address(1);
