@@ -10,7 +10,8 @@ import {IFleetCommanderAccessControl} from "../interfaces/IFleetCommanderAccessC
  *         helper functions to manage them and to enforce the access control
  *
  * @dev In particular 2 main roles are defined:
- *   - Governor: in charge of setting the parameters of the system and also has the power to manage the different Fleet Commander roles
+ *   - Governor: in charge of setting the parameters of the system and also has the power to
+ *                 manage the different Fleet Commander roles
  *   - Keeper: in charge of rebalancing the funds between the different Arks through the Fleet Commander
  */
 contract FleetCommanderAccessControl is IFleetCommanderAccessControl, AccessControl {
