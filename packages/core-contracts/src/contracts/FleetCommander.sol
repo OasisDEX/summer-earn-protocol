@@ -4,6 +4,8 @@ pragma solidity 0.8.26;
 import {IERC20, ERC20, SafeERC20, ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import "../libraries/PercentageUtils.sol";
+import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 import "../errors/FleetCommanderErrors.sol";
 
 /**
@@ -11,12 +13,15 @@ import "../errors/FleetCommanderErrors.sol";
  */
 contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626 {
     using SafeERC20 for IERC20;
+    using PercentageUtils for uint256;
 
     mapping(address => ArkConfiguration) private _arks;
     uint256 public fundsQueueBalance;
     uint256 public minFundsQueueBalance;
     uint256 public lastRebalanceTime;
     uint256 public rebalanceCooldown;
+    Percentage public minPositionWithdrawalPercentage;
+    Percentage public maxBufferWithdrawalPercentage;
 
     constructor(FleetCommanderParams memory params)
         ERC4626(IERC20(params.asset))
@@ -26,6 +31,8 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         _setupArks(params.initialArks);
         minFundsQueueBalance = params.initialFundsQueueBalance;
         rebalanceCooldown = params.initialRebalanceCooldown;
+        minPositionWithdrawalPercentage = params.initialMinimumPositionWithdrawal;
+        maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
     }
 
     /* PUBLIC - ACCESSORS */
@@ -40,6 +47,7 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         override(ERC4626, IFleetCommander)
         returns (uint256)
     {
+        _validateWithdrawal(assets);
         super.withdraw(assets, receiver, owner);
 
         uint256 prevQueueBalance = fundsQueueBalance;
@@ -66,8 +74,7 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
 
     /* EXTERNAL - KEEPER */
     function rebalance(bytes calldata data) external onlyKeeper {}
-    function commitFundsQueue(bytes calldata data) external onlyKeeper {}
-    function refillFundsQueue(bytes calldata data) external onlyKeeper {}
+    function adjustFundsQueue(bytes calldata data) external onlyKeeper {}
 
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
@@ -81,6 +88,11 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
     /* PUBLIC - FEES */
     function mintSharesAsFees() public {}
 
+    /* PUBLIC - ERC20 */
+    function transfer(address to, uint256 value) public pure override(IERC20, ERC20) returns (bool)  {
+        revert FleetCommanderTransfersDisabled();
+    }
+
     /* INTERNAL - REBALANCE */
     function _rebalance(bytes calldata data) internal {}
 
@@ -91,8 +103,16 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
     function _setupArks(ArkConfiguration[] memory _arkConfigurations) internal {}
     function _addArk(address ark, uint256 maxAllocation) internal {}
 
-    /* INTERNAL - ERC20 */
-    function transfer(address, uint256) public pure override(IERC20, ERC20) returns (bool) {
-        revert FleetCommanderTransfersDisabled();
+    /* INTERNAL - VALIDATIONS */
+    function _validateWithdrawal(uint256 assets) internal view {
+        uint256 userPosition = maxWithdraw(msg.sender);
+
+        if (assets >= (userPosition * minPositionWithdrawalPercentage)) {
+            revert WithdrawalAmountIsBelowMinThreshold();
+        }
+
+        if (assets <= (bufferBalance * maxBufferWithdrawalPercentage)) {
+            revert WithdrawalAmountExceedsMaxBufferLimit();
+        }
     }
 }

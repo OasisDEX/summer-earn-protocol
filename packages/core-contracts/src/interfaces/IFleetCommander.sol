@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IFleetCommanderAccessControl} from "./IFleetCommanderAccessControl.sol";
 import "../types/Percentage.sol";
+import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 
 interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
     /* STRUCTS */
@@ -22,21 +23,6 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
         address fromArk;
         address toArk;
         uint256 amount;
-    }
-
-    /**
-     * @notice Configuration parameters for the FleetCommander contract
-     *
-     * @dev Used to prevent stack too deep error
-     */
-    struct FleetCommanderParams {
-        address governor;
-        ArkConfiguration[] initialArks;
-        uint256 initialFundsQueueBalance;
-        uint256 initialRebalanceCooldown;
-        address asset;
-        string name;
-        string symbol;
     }
 
     /* EVENTS */
@@ -62,8 +48,7 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
 
     /* FUNCTIONS - EXTERNAL - KEEPER */
     function rebalance(bytes calldata data) external;
-    function commitFundsQueue(bytes calldata data) external;
-    function refillFundsQueue(bytes calldata data) external;
+    function adjustFundsQueue(bytes calldata data) external;
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external;
