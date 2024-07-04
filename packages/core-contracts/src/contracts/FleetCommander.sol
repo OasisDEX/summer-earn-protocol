@@ -57,7 +57,9 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
 
         return assets;
     }
+
     function forceWithdraw(uint256 assets, address receiver, address owner) public returns (uint256) {}
+
     function deposit(uint256 assets, address receiver) public override(ERC4626, IFleetCommander) returns (uint256) {
         super.deposit(assets, receiver);
 
