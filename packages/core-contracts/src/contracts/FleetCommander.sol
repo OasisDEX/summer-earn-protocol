@@ -104,8 +104,8 @@ contract FleetCommander is
     ) internal {}
     function _addArk(address ark, uint256 maxAllocation) internal {}
 
-    /* INTERNAL - ERC4626 */
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+    /* INTERNAL - ERC20 */
+    function transfer(address to, uint256 value) public override returns(bool) {
         revert FleetCommanderTransfersDisabled();
     }
 }
