@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {IERC20, ERC20, SafeERC20, ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import "../errors/FleetCommanderErrors.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -39,13 +40,15 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         override(ERC4626, IFleetCommander)
         returns (uint256)
     {
-        super.withdraw(assets, receiver);
+        super.withdraw(assets, receiver, owner);
 
         uint256 prevQueueBalance = fundsQueueBalance;
         uint256 newQueueBalance = fundsQueueBalance - assets;
         fundsQueueBalance = newQueueBalance;
 
-        emit FundsQueueBalanceUpdated(msg.sender, prevBalance, newQueueBalance);
+        emit FundsQueueBalanceUpdated(msg.sender, prevQueueBalance, newQueueBalance);
+
+        return assets;
     }
 
     function forceWithdraw(uint256 assets, address receiver, address owner) public returns (uint256) {}
@@ -54,10 +57,11 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         super.deposit(assets, receiver);
 
         uint256 prevQueueBalance = fundsQueueBalance;
-        uint256 newQueueBalance = fundsQueueBalance + assets;
-        fundsQueueBalance = newQueueBalance;
+        fundsQueueBalance = fundsQueueBalance + assets;
 
-        emit FundsQueueBalanceUpdated(msg.sender, prevBalance, newQueueBalance);
+        emit FundsQueueBalanceUpdated(msg.sender, prevQueueBalance, fundsQueueBalance);
+
+        return assets;
     }
 
     /* EXTERNAL - KEEPER */
@@ -88,7 +92,7 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
     function _addArk(address ark, uint256 maxAllocation) internal {}
 
     /* INTERNAL - ERC20 */
-    function transfer(address to, uint256 value) public override returns (bool) {
+    function transfer(address, uint256) public pure override(IERC20, ERC20) returns (bool) {
         revert FleetCommanderTransfersDisabled();
     }
 }

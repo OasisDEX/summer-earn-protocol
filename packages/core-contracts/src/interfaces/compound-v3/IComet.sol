@@ -5,6 +5,6 @@ interface IComet {
     event Supply(address indexed from, address indexed dst, uint256 amount);
     event Withdraw(address indexed src, address indexed to, uint256 amount);
 
-    function supply(address asset, uint256 amount) external virtual;
-    function withdraw(address asset, uint256 amount) external virtual;
+    function supply(address asset, uint256 amount) external;
+    function withdraw(address asset, uint256 amount) external;
 }
