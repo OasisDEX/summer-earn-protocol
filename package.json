@@ -12,8 +12,6 @@
     "cicheck": "turbo run cicheck --cache-dir=.turbo --filter=./packages/* && pnpm run coverage:total",
     "cicheck:dev": "turbo run cicheck --cache-dir=.turbo --output-logs=new-only --concurrency=100% --continue",
     "graph": "pnpm dlx nx graph",
-    "lint": "pnpm run lint:sol && pnpm run prettier:check",
-    "lint:sol": "forge fmt --check && pnpm solhint {script,src,test}/**/*.sol\",",
     "format": "prettier --check \"./**/*.{ts,tsx,js,jsx,json}\"",
     "format:fix": "prettier --write \"./**/*.{ts,tsx,js,jsx,json}\"",
     "coverage": "turbo run coverage --cache-dir=.turbo"
