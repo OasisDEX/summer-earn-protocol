@@ -26,13 +26,13 @@ abstract contract Ark is IArk, ArkAccessControl {
     function harvest() public {}
 
     /* EXTERNAL - COMMANDER */
-    function board(uint256 amount) external {
+    function board(uint256 amount) external onlyCommander {
         token.safeTransferFrom(msg.sender, address(this), amount);
         _board(amount);
 
         emit Boarded(msg.sender, address(token), amount);
     }
-    function disembark(uint256 amount) external {
+    function disembark(uint256 amount) external onlyCommander {
         _disembark(amount);
         token.safeTransfer(msg.sender, amount);
 
