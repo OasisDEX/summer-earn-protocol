@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
       - name: Prebuild
         run: pnpm prebuild
 
@@ -49,6 +54,3 @@ jobs:
 
       - name: Format
         run: pnpm format
-
-      - name: Coverage
-        run: pnpm coverage:total

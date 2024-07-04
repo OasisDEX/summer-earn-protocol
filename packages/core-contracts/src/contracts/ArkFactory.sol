@@ -13,10 +13,10 @@ contract ArkFactory is IArkFactory, ArkAccessControl {
     address public raft;
     address public aaveV3Pool;
 
-    constructor(
-        ArkFactoryParams memory _params
-    // TODO: Refactor to create ArkFactoryAccessControl.sol
-    ) ArkAccessControl(_params.governor) {
+    constructor(ArkFactoryParams memory _params)
+        // TODO: Refactor to create ArkFactoryAccessControl.sol
+        ArkAccessControl(_params.governor)
+    {
         governor = _params.governor;
         raft = _params.raft;
         aaveV3Pool = _params.aaveV3Pool;
@@ -24,18 +24,9 @@ contract ArkFactory is IArkFactory, ArkAccessControl {
 
     // NOTE: Do we want specific factory methods or a more generic one (scalable)
     function createAaveV3Ark(address _token) external returns (address) {
-        ArkParams memory params = ArkParams({
-            governor: governor,
-            raft: raft,
-            token: _token
-        });
+        ArkParams memory params = ArkParams({governor: governor, raft: raft, token: _token});
         AaveV3Ark newArk = new AaveV3Ark(aaveV3Pool, params);
-        emit ArkCreated(
-            address(newArk),
-            params.raft,
-            params.token,
-            "AaveV3Ark"
-        );
+        emit ArkCreated(address(newArk), params.raft, params.token, "AaveV3Ark");
 
         return address(newArk);
     }

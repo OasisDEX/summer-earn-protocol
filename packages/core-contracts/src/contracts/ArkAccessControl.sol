@@ -11,7 +11,8 @@ import "../errors/ArkAccessControlErrors.sol";
  *         helper functions to manage them and to enforce the access control
  *
  * @dev In particular 3 main roles are defined:
- *   - Governor: in charge of setting the parameters of the system and also has the power to manage the different Fleet Commander roles
+ *   - Governor: in charge of setting the parameters of the system and also has the power
+ *                 to manage the different Fleet Commander roles
  *   - Keeper: in charge of rebalancing the funds between the different Arks through the Fleet Commander
  *   - Commander: is the fleet commander contract itself and couples an Ark to specific Fleet Commander
  */
@@ -47,10 +48,7 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
     }
 
     modifier onlyRoleAdmin() {
-        if (
-            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-            !hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || !hasRole(GOVERNOR_ROLE, msg.sender)) {
             revert CallerIsNotRoleAdmin(msg.sender);
         }
         _;

@@ -13,7 +13,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
     address public governor = address(1);
     address public commander = address(4);
     address public raft = address(2);
-    address constant public aaveV3PoolAddress = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    address public constant aaveV3PoolAddress = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     IPoolV3 public aaveV3Pool;
     ERC20Mock public mockToken;
 
@@ -31,7 +31,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         ark.grantCommanderRole(commander);
 
         // Arrange
-        uint256 amount = 1000 * 10**18;
+        uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(commander, amount);
         vm.prank(commander);
         mockToken.approve(address(ark), amount);
@@ -61,7 +61,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         ark.grantCommanderRole(commander);
 
         // Arrange
-        uint256 amount = 1000 * 10**18;
+        uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(address(ark), amount);
 
         vm.mockCall(
