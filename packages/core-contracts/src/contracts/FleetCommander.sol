@@ -55,7 +55,9 @@ contract FleetCommander is
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(ERC4626, IFleetCommander) returns (uint256) {}
+    ) public override(ERC4626, IFleetCommander) returns (uint256) {
+
+    }
 
     /* EXTERNAL - KEEPER */
     function rebalance(bytes calldata data) external onlyKeeper {}
@@ -89,4 +91,9 @@ contract FleetCommander is
         ArkConfiguration[] memory _arkConfigurations
     ) internal {}
     function _addArk(address ark, uint256 maxAllocation) internal {}
+
+    /* INTERNAL - ERC4626 */
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) {
+        revert FleetCommanderTransfersDisabled();
+    }
 }
