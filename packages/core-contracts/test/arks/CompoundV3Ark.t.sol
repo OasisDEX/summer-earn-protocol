@@ -13,12 +13,12 @@ contract CompoundV3ArkTest is Test, IArkEvents  {
     address public commander = address(4);
     address public raft = address(2);
     address constant public cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
-    CometMainInterface public comet;
+    IComet public comet;
     ERC20Mock public mockToken;
 
     function setUp() public {
         mockToken = new ERC20Mock();
-        comet = CometMainInterface(cometAddress);
+        comet = IComet(cometAddress);
 
         ArkParams memory params = ArkParams({governor: governor, raft: raft, token: address(mockToken)});
         ark = new CompoundV3Ark(address(comet), params);

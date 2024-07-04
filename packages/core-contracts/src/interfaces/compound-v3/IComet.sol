@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-/**
- * @title Compound's Comet Main Interface (without Ext)
- * @notice An efficient monolithic money market protocol
- * @author Compound
- */
-abstract contract CometMainInterface {
+interface IComet {
     event Supply(address indexed from, address indexed dst, uint amount);
     event Withdraw(address indexed src, address indexed to, uint amount);
 
