@@ -25,7 +25,7 @@ contract ArkFactoryTest is Test {
     }
 
     function testCreateAaveV3Ark() public {
-        vm.prank(governor);
+        vm.prank(governor); // Set msg.sender to governor
         address newArk = arkFactory.createAaveV3Ark(testToken);
 
         assertTrue(newArk != address(0));

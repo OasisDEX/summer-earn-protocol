@@ -10,10 +10,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  */
 interface IArkAccessControl {
     /**
-     * FUNCTIONS
-     */
-
-    /**
      * @notice Grants the Admin role to a given account
      *
      * @param account The account to which the Admin role will be granted

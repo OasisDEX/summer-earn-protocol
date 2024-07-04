@@ -15,6 +15,7 @@ contract ArkFactory is IArkFactory, ArkAccessControl {
 
     constructor(
         ArkFactoryParams memory _params
+    // TODO: Refactor to create ArkFactoryAccessControl.sol
     ) ArkAccessControl(_params.governor) {
         governor = _params.governor;
         raft = _params.raft;
