@@ -59,6 +59,8 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
     event FeeAddressUpdated(address newAddress);
     event ArkAdded(address indexed ark, uint256 maxAllocation);
 
+    event FundsQueueBalanceUpdated(address indexed user, uint256 prevBalance, uint256 newBalance);
+
     /**
      * @notice The ark configuration for a given ark (by address).
      */

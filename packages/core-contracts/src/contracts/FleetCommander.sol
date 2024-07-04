@@ -16,7 +16,7 @@ contract FleetCommander is
     using SafeERC20 for IERC20;
 
     mapping(address => ArkConfiguration) private _arks;
-    uint256 public totalQueuedFunds;
+    uint256 public fundsQueueBalance;
     uint256 public minFundsQueueBalance;
     uint256 public lastRebalanceTime;
     uint256 public rebalanceCooldown;
@@ -46,7 +46,14 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public override(ERC4626, IFleetCommander) returns (uint256) {}
+    ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        super.withdraw(assets, receiver);
+
+        uint256 prevQueueBalance = fundsQueueBalance;
+        uint256 newQueueBalance = fundsQueueBalance - assets;
+
+        emit FundsQueueBalanceUpdated(msg.sender, prevBalance, newQueueBalance);
+    }
     function forceWithdraw(
         uint256 assets,
         address receiver,
@@ -56,7 +63,12 @@ contract FleetCommander is
         uint256 assets,
         address receiver
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        super.deposit(assets, receiver);
 
+        uint256 prevQueueBalance = fundsQueueBalance;
+        uint256 newQueueBalance = fundsQueueBalance + assets;
+
+        emit FundsQueueBalanceUpdated(msg.sender, prevBalance, newQueueBalance);
     }
 
     /* EXTERNAL - KEEPER */
@@ -93,7 +105,7 @@ contract FleetCommander is
     function _addArk(address ark, uint256 maxAllocation) internal {}
 
     /* INTERNAL - ERC4626 */
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) {
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
         revert FleetCommanderTransfersDisabled();
     }
 }
