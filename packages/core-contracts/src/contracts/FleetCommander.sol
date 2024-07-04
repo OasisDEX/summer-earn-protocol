@@ -51,6 +51,7 @@ contract FleetCommander is
 
         uint256 prevQueueBalance = fundsQueueBalance;
         uint256 newQueueBalance = fundsQueueBalance - assets;
+        fundsQueueBalance = newQueueBalance;
 
         emit FundsQueueBalanceUpdated(msg.sender, prevBalance, newQueueBalance);
     }
@@ -67,6 +68,7 @@ contract FleetCommander is
 
         uint256 prevQueueBalance = fundsQueueBalance;
         uint256 newQueueBalance = fundsQueueBalance + assets;
+        fundsQueueBalance = newQueueBalance;
 
         emit FundsQueueBalanceUpdated(msg.sender, prevBalance, newQueueBalance);
     }
