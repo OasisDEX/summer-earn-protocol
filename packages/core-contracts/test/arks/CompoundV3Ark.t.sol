@@ -2,28 +2,26 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../src/contracts/arks/AaveV3Ark.sol";
-import "../src/errors/ArkAccessControlErrors.sol";
+import "../../src/contracts/arks/CompoundV3Ark.sol";
+import "../../src/errors/ArkAccessControlErrors.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "../src/interfaces/IArkEvents.sol";
+import "../../src/interfaces/IArkEvents.sol";
 
-contract AaveV3ArkTest is Test, IArkEvents {
-    AaveV3Ark public ark;
-    AaveV3Ark public nextArk;
+contract CompoundV3ArkTest is Test, IArkEvents  {
+    CompoundV3Ark public ark;
     address public governor = address(1);
     address public commander = address(4);
     address public raft = address(2);
-    address constant public aaveV3PoolAddress = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
-    IPoolV3 public aaveV3Pool;
+    address constant public cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+    IComet public comet;
     ERC20Mock public mockToken;
 
     function setUp() public {
         mockToken = new ERC20Mock();
-        aaveV3Pool = IPoolV3(aaveV3PoolAddress);
+        comet = IComet(cometAddress);
 
         ArkParams memory params = ArkParams({governor: governor, raft: raft, token: address(mockToken)});
-        ark = new AaveV3Ark(address(aaveV3Pool), params);
-        nextArk = new AaveV3Ark(address(aaveV3Pool), params);
+        ark = new CompoundV3Ark(address(comet), params);
     }
 
     function testBoard() public {
@@ -37,14 +35,14 @@ contract AaveV3ArkTest is Test, IArkEvents {
         mockToken.approve(address(ark), amount);
 
         vm.mockCall(
-            address(aaveV3Pool),
-            abi.encodeWithSelector(aaveV3Pool.supply.selector, address(mockToken), amount, address(this), 0),
+            address(comet),
+            abi.encodeWithSelector(comet.supply.selector, address(mockToken), amount),
             abi.encode()
         );
 
         vm.expectCall(
-            address(aaveV3Pool),
-            abi.encodeWithSelector(aaveV3Pool.supply.selector, address(mockToken), amount, address(ark), 0)
+            address(comet),
+            abi.encodeWithSelector(comet.supply.selector, address(mockToken), amount)
         );
 
         // Expect the Boarded event to be emitted
@@ -65,14 +63,14 @@ contract AaveV3ArkTest is Test, IArkEvents {
         mockToken.mint(address(ark), amount);
 
         vm.mockCall(
-            address(aaveV3Pool),
-            abi.encodeWithSelector(aaveV3Pool.withdraw.selector, address(mockToken), amount, commander),
+            address(comet),
+            abi.encodeWithSelector(comet.withdraw.selector, address(mockToken), amount),
             abi.encode(amount)
         );
 
         vm.expectCall(
-            address(aaveV3Pool),
-            abi.encodeWithSelector(aaveV3Pool.withdraw.selector, address(mockToken), amount, commander)
+            address(comet),
+            abi.encodeWithSelector(comet.withdraw.selector, address(mockToken), amount)
         );
 
         // Expect the Disembarked event to be emitted
