@@ -47,10 +47,7 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
     }
 
     modifier onlyRoleAdmin() {
-        if (
-            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-            !hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || !hasRole(GOVERNOR_ROLE, msg.sender)) {
             revert CallerIsNotRoleAdmin(msg.sender);
         }
         _;

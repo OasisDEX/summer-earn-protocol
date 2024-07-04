@@ -41,20 +41,9 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
 
     /* EVENTS */
     event Rebalanced(address indexed keeper, RebalanceEventData[] rebalances);
-    event QueuedFundsCommitted(
-        address indexed keeper,
-        uint256 prevBalance,
-        uint256 newBalance
-    );
-    event FundsQueueRefilled(
-        address indexed keeper,
-        uint256 prevBalance,
-        uint256 newBalance
-    );
-    event MinFundsQueueBalanceUpdated(
-        address indexed keeper,
-        uint256 newBalance
-    );
+    event QueuedFundsCommitted(address indexed keeper, uint256 prevBalance, uint256 newBalance);
+    event FundsQueueRefilled(address indexed keeper, uint256 prevBalance, uint256 newBalance);
+    event MinFundsQueueBalanceUpdated(address indexed keeper, uint256 newBalance);
     event DepositCapUpdated(uint256 newCap);
     event FeeAddressUpdated(address newAddress);
     event ArkAdded(address indexed ark, uint256 maxAllocation);
@@ -64,25 +53,12 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
     /**
      * @notice The ark configuration for a given ark (by address).
      */
-    function arks(
-        address arkAddress
-    ) external view returns (ArkConfiguration memory);
+    function arks(address arkAddress) external view returns (ArkConfiguration memory);
 
     /* FUNCTIONS - PUBLIC - USER */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external override returns (uint256);
-    function forceWithdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external returns (uint256);
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) external override returns (uint256);
+    function withdraw(uint256 assets, address receiver, address owner) external override returns (uint256);
+    function forceWithdraw(uint256 assets, address receiver, address owner) external returns (uint256);
+    function deposit(uint256 assets, address receiver) external override returns (uint256);
 
     /* FUNCTIONS - EXTERNAL - KEEPER */
     function rebalance(bytes calldata data) external;

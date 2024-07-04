@@ -32,6 +32,7 @@ abstract contract Ark is IArk, ArkAccessControl {
 
         emit Boarded(msg.sender, address(token), amount);
     }
+
     function disembark(uint256 amount) external onlyCommander {
         _disembark(amount);
         token.safeTransfer(msg.sender, amount);
