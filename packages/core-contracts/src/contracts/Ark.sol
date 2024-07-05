@@ -20,7 +20,9 @@ abstract contract Ark is IArk, ArkAccessControl {
     constructor(
         ArkParams memory _params
     ) ArkAccessControl(_params.configurationManager) {
-        IConfigurationManager manager = IConfigurationManager(_params.configurationManager);
+        IConfigurationManager manager = IConfigurationManager(
+            _params.configurationManager
+        );
         raft = manager.raft();
         token = IERC20(_params.token);
     }
