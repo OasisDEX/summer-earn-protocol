@@ -3,6 +3,8 @@ src = "src"
 out = "out"
 libs = ["lib"]
 solc = "0.8.26"
+cbor_metadata = true
+fs_permissions = [{ access = "read", path = "./scripts/config.json"}]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
@@ -13,3 +15,6 @@ base = "${BASE_RPC_URL}"
 [etherscan]
 sepolia = { key = "7KB7N6WAQJFFC2F5UP98RBTESZ11EK8X8W}" }
 base = { key = ""  }
+#                   Paste TENDERLY_ACCESS_TOKEN            Chain ID         Verifier URL: RPC_URL/verify/etherscan
+unknown_chain = { key = "${TENDERLY_ACCESS_KEY}", chain = 84537357, url = "${TENDERLY_VIRTUAL_TESTNET_RPC_URL}/verify/etherscan" }
+

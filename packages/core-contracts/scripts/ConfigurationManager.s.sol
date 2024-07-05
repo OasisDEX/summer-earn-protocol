@@ -5,9 +5,9 @@ import "forge-std/Script.sol";
 import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
-import {BaseDeploymentScript} from "./BaseDeploymentScript.s.sol";
+import {DeploymentScript} from "./DeploymentScript.s.sol";
 
-contract ConfigurationManagerDeploy is BaseDeploymentScript {
+contract ConfigurationManagerDeploy is DeploymentScript {
     function run() external {
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
