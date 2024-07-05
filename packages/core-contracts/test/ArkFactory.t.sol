@@ -16,7 +16,11 @@ contract ArkFactoryTest is Test {
     address public testToken = address(4);
 
     function setUp() public {
-        ArkFactoryParams memory params = ArkFactoryParams({governor: governor, raft: raft, aaveV3Pool: aaveV3Pool});
+        ArkFactoryParams memory params = ArkFactoryParams({
+            governor: governor,
+            raft: raft,
+            aaveV3Pool: aaveV3Pool
+        });
         arkFactory = new ArkFactory(params);
     }
 
@@ -62,7 +66,9 @@ contract ArkFactoryTest is Test {
         address newRaft = address(5);
 
         vm.prank(address(7)); // Set msg.sender to a non-governor address
-        vm.expectRevert(abi.encodeWithSelector(CallerIsNotGovernor.selector, address(7)));
+        vm.expectRevert(
+            abi.encodeWithSelector(CallerIsNotGovernor.selector, address(7))
+        );
         arkFactory.setRaft(newRaft);
     }
 
@@ -70,7 +76,9 @@ contract ArkFactoryTest is Test {
         address newGovernor = address(6);
 
         vm.prank(address(7)); // Set msg.sender to a non-governor address
-        vm.expectRevert(abi.encodeWithSelector(CallerIsNotGovernor.selector, address(7)));
+        vm.expectRevert(
+            abi.encodeWithSelector(CallerIsNotGovernor.selector, address(7))
+        );
         arkFactory.setGovernor(newGovernor);
     }
 }
