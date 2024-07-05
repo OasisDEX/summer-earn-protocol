@@ -19,6 +19,8 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
     uint256 public lastRebalanceTime;
     uint256 public rebalanceCooldown;
 
+    uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
+
     constructor(FleetCommanderParams memory params)
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
@@ -39,14 +41,12 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         override(ERC4626, IFleetCommander)
         returns (uint256)
     {
-        super.withdraw(assets, receiver, owner);
-
         uint256 prevQueueBalance = fundsQueueBalance;
         uint256 newQueueBalance = fundsQueueBalance - assets;
         fundsQueueBalance = newQueueBalance;
 
         emit FundsQueueBalanceUpdated(msg.sender, prevQueueBalance, newQueueBalance);
-
+        super.withdraw(assets, receiver, owner);
         return assets;
     }
 
@@ -66,6 +66,13 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
     /* EXTERNAL - KEEPER */
     function rebalance(bytes calldata data) external onlyKeeper {
         RebalanceEventData[] memory rebalanceData = abi.decode(data, (RebalanceEventData[]));
+
+        if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
+            revert FleetCommanderRebalanceTooManyOperations(rebalanceData.length);
+        }
+        if (rebalanceData.length == 0) {
+            revert FleetCommanderRebalanceNoOperations();
+        }
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             _reallocateAssets(rebalanceData[i]);
         }
@@ -73,6 +80,16 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
     }
 
     function _reallocateAssets(RebalanceEventData memory data) internal {
+        if (data.toArk == address(0)) {
+            revert FleetCommanderArkNotFound(data.toArk);
+        }
+        if (data.fromArk == address(0)) {
+            revert FleetCommanderArkNotFound(data.fromArk);
+        }
+        if (data.amount == 0) {
+            revert FleetCommanderRebalanceAmountZero(data.toArk);
+        }
+
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
         uint256 targetArkRate = toArk.rate();
@@ -80,10 +97,6 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
 
         if (targetArkRate < sourceArkRate) {
             revert FleetCommanderTargetArkRateTooLow(data.toArk, targetArkRate, sourceArkRate);
-        }
-
-        if (data.toArk == address(0)) {
-            revert FleetCommanderArkNotFound(data.toArk);
         }
 
         ArkConfiguration memory targetArkConfiguration = _arks[data.toArk];
