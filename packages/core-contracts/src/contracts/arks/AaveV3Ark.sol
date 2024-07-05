@@ -13,17 +13,22 @@ contract AaveV3Ark is Ark {
 
     constructor(address _aaveV3Pool, ArkParams memory _params) Ark(_params) {
         aaveV3Pool = IPoolV3(_aaveV3Pool);
-        IPoolAddressesProvider aaveV3AddressesProvider = aaveV3Pool.ADDRESSES_PROVIDER();
-        aaveV3DataProvider = IPoolDataProvider(aaveV3AddressesProvider.getPoolDataProvider());
+        IPoolAddressesProvider aaveV3AddressesProvider = aaveV3Pool
+            .ADDRESSES_PROVIDER();
+        aaveV3DataProvider = IPoolDataProvider(
+            aaveV3AddressesProvider.getPoolDataProvider()
+        );
     }
 
     function rate() public view override returns (uint256) {
-        (,,,, uint256 liquidityRate,,,,,,,) = aaveV3DataProvider.getReserveData(address(token));
+        (, , , , uint256 liquidityRate, , , , , , , ) = aaveV3DataProvider
+            .getReserveData(address(token));
         return liquidityRate;
     }
 
     function totalAssets() public view override returns (uint256) {
-        (uint256 currentATokenBalance,,,,,,,,) = aaveV3DataProvider.getUserReserveData(address(token), address(this));
+        (uint256 currentATokenBalance, , , , , , , , ) = aaveV3DataProvider
+            .getUserReserveData(address(token), address(this));
         return currentATokenBalance;
     }
 

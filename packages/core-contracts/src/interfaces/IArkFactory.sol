@@ -5,7 +5,12 @@ import {IArkAccessControl} from "./IArkAccessControl.sol";
 
 interface IArkFactory is IArkAccessControl {
     /* EVENTS */
-    event ArkCreated(address indexed arkAddress, address raft, address token, string arkType);
+    event ArkCreated(
+        address indexed arkAddress,
+        address raft,
+        address token,
+        string arkType
+    );
     event RaftUpdated(address newRaft);
     event GovernorUpdated(address newGovernor);
 

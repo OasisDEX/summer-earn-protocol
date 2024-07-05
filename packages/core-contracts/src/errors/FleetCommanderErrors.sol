@@ -5,7 +5,11 @@ pragma solidity 0.8.26;
 error FleetCommanderTransfersDisabled();
 error FleetCommanderArkNotFound(address ark);
 error FleetCommanderCantRebalanceToArk(address ark);
-error FleetCommanderTargetArkRateTooLow(address ark, uint256 targetRate, uint256 currentRate);
+error FleetCommanderTargetArkRateTooLow(
+    address ark,
+    uint256 targetRate,
+    uint256 currentRate
+);
 error FleetCommanderRebalanceNoOperations();
 error FleetCommanderRebalanceTooManyOperations(uint256 operationsCount);
 error FleetCommanderRebalanceAmountZero(address ark);

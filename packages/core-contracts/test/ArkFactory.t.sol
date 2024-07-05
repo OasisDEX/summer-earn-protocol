@@ -18,7 +18,11 @@ contract ArkFactoryTest is Test {
     address public aaveV3DataProvider = address(6);
 
     function setUp() public {
-        ArkFactoryParams memory params = ArkFactoryParams({governor: governor, raft: raft, aaveV3Pool: aaveV3Pool});
+        ArkFactoryParams memory params = ArkFactoryParams({
+            governor: governor,
+            raft: raft,
+            aaveV3Pool: aaveV3Pool
+        });
         arkFactory = new ArkFactory(params);
     }
 
@@ -26,12 +30,18 @@ contract ArkFactoryTest is Test {
         vm.prank(governor); // Set msg.sender to governor
         vm.mockCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector),
+            abi.encodeWithSelector(
+                IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector
+            ),
             abi.encode(aaveAddressProvider)
         );
         vm.mockCall(
             address(aaveAddressProvider),
-            abi.encodeWithSelector(IPoolAddressesProvider(aaveAddressProvider).getPoolDataProvider.selector),
+            abi.encodeWithSelector(
+                IPoolAddressesProvider(aaveAddressProvider)
+                    .getPoolDataProvider
+                    .selector
+            ),
             abi.encode(aaveV3DataProvider)
         );
         address newArk = arkFactory.createAaveV3Ark(testToken);
@@ -74,7 +84,9 @@ contract ArkFactoryTest is Test {
         address newRaft = address(5);
 
         vm.prank(address(7)); // Set msg.sender to a non-governor address
-        vm.expectRevert(abi.encodeWithSelector(CallerIsNotGovernor.selector, address(7)));
+        vm.expectRevert(
+            abi.encodeWithSelector(CallerIsNotGovernor.selector, address(7))
+        );
         arkFactory.setRaft(newRaft);
     }
 
@@ -82,7 +94,9 @@ contract ArkFactoryTest is Test {
         address newGovernor = address(6);
 
         vm.prank(address(7)); // Set msg.sender to a non-governor address
-        vm.expectRevert(abi.encodeWithSelector(CallerIsNotGovernor.selector, address(7)));
+        vm.expectRevert(
+            abi.encodeWithSelector(CallerIsNotGovernor.selector, address(7))
+        );
         arkFactory.setGovernor(newGovernor);
     }
 }

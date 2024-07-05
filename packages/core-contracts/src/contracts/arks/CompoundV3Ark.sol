@@ -23,7 +23,12 @@ contract CompoundV3Ark is Ark {
         supplyRate = supplyRatePerSecond * SECONDS_PER_YEAR * WAD_TO_RAY;
     }
 
-    function totalAssets() public view override returns (uint256 suppliedAssets) {
+    function totalAssets()
+        public
+        view
+        override
+        returns (uint256 suppliedAssets)
+    {
         suppliedAssets = comet.balanceOf(address(this));
     }
 
