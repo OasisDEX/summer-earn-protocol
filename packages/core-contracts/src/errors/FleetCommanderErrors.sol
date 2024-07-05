@@ -9,3 +9,5 @@ error FleetCommanderTargetArkRateTooLow(address ark, uint256 targetRate, uint256
 error FleetCommanderRebalanceNoOperations();
 error FleetCommanderRebalanceTooManyOperations(uint256 operationsCount);
 error FleetCommanderRebalanceAmountZero(address ark);
+error WithdrawalAmountIsBelowMinThreshold();
+error WithdrawalAmountExceedsMaxBufferLimit();

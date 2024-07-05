@@ -1,5 +1,5 @@
 {
-  "name": "@summerfi/core-contracts",
+  "name": "@summerfi/earn-protocol-contracts",
   "version": "0.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,15 +18,11 @@
     "build": "forge build",
     "coverage": "forge coverage",
     "coverage:lcov": "forge coverage --report lcov",
-    "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",
-    "format": "forge fmt",
-    "lint": "pnpm run lint:sol",
-    "lint:sol": "forge fmt --check && pnpm solhint {script,src,test}/**/*.sol"
+    "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info"
   },
   "devDependencies": {
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
-    "@summerfi/typescript-config": "workspace:*",
-    "solhint": "^5.0.1"
+    "@summerfi/typescript-config": "workspace:*"
   }
 }

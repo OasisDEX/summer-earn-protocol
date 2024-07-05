@@ -4,71 +4,111 @@ pragma solidity 0.8.26;
 import {IERC20, ERC20, SafeERC20, ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import "../libraries/PercentageUtils.sol";
+import {FleetCommanderParams, ArkConfiguration} from "../types/FleetCommanderTypes.sol";
 import "../errors/FleetCommanderErrors.sol";
 import {IArk} from "../interfaces/IArk.sol";
 
 /**
  * @custom:see IFleetCommander
  */
-contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626 {
+contract FleetCommander is
+    IFleetCommander,
+    FleetCommanderAccessControl,
+    ERC4626
+{
     using SafeERC20 for IERC20;
+    using PercentageUtils for uint256;
 
-    mapping(address => ArkConfiguration) internal _arks;
-    uint256 public fundsQueueBalance;
-    uint256 public minFundsQueueBalance;
+    mapping(address => ArkConfiguration) private _arks;
+    uint256 public fundsBufferBalance;
+    uint256 public minFundsBufferBalance;
     uint256 public lastRebalanceTime;
     uint256 public rebalanceCooldown;
+    Percentage public minPositionWithdrawalPercentage;
+    Percentage public maxBufferWithdrawalPercentage;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
-    constructor(FleetCommanderParams memory params)
+    constructor(
+        FleetCommanderParams memory params
+    )
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         FleetCommanderAccessControl(params.governor)
     {
         _setupArks(params.initialArks);
-        minFundsQueueBalance = params.initialFundsQueueBalance;
+        minFundsBufferBalance = params.initialFundsBufferBalance;
         rebalanceCooldown = params.initialRebalanceCooldown;
+        minPositionWithdrawalPercentage = params
+            .initialMinimumPositionWithdrawal;
+        maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
+    }
+
+    /* PUBLIC - ACCESSORS */
+    /// @inheritdoc IFleetCommander
+    function arks(
+        address _address
+    ) external view override returns (ArkConfiguration memory) {
+        return _arks[_address];
     }
 
     /* PUBLIC - USER */
-    function arks(address arkAddress) external view returns (ArkConfiguration memory) {
-        return _arks[arkAddress];
-    }
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        _validateWithdrawal(assets, owner);
 
-    function withdraw(uint256 assets, address receiver, address owner)
-        public
-        override(ERC4626, IFleetCommander)
-        returns (uint256)
-    {
-        uint256 prevQueueBalance = fundsQueueBalance;
-        uint256 newQueueBalance = fundsQueueBalance - assets;
-        fundsQueueBalance = newQueueBalance;
-
-        emit FundsQueueBalanceUpdated(msg.sender, prevQueueBalance, newQueueBalance);
+        uint256 prevQueueBalance = fundsBufferBalance;
+        fundsBufferBalance = fundsBufferBalance - assets;
         super.withdraw(assets, receiver, owner);
+
+        emit FundsBufferBalanceUpdated(
+            msg.sender,
+            prevQueueBalance,
+            fundsBufferBalance
+        );
+
         return assets;
     }
 
-    function forceWithdraw(uint256 assets, address receiver, address owner) public returns (uint256) {}
+    function forceWithdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public returns (uint256) {}
 
-    function deposit(uint256 assets, address receiver) public override(ERC4626, IFleetCommander) returns (uint256) {
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) public override(ERC4626, IFleetCommander) returns (uint256) {
         super.deposit(assets, receiver);
 
-        uint256 prevQueueBalance = fundsQueueBalance;
-        fundsQueueBalance = fundsQueueBalance + assets;
+        uint256 prevQueueBalance = fundsBufferBalance;
+        fundsBufferBalance = fundsBufferBalance + assets;
 
-        emit FundsQueueBalanceUpdated(msg.sender, prevQueueBalance, fundsQueueBalance);
+        emit FundsBufferBalanceUpdated(
+            msg.sender,
+            prevQueueBalance,
+            fundsBufferBalance
+        );
 
         return assets;
     }
 
     /* EXTERNAL - KEEPER */
     function rebalance(bytes calldata data) external onlyKeeper {
-        RebalanceEventData[] memory rebalanceData = abi.decode(data, (RebalanceEventData[]));
+        RebalanceEventData[] memory rebalanceData = abi.decode(
+            data,
+            (RebalanceEventData[])
+        );
 
         if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
-            revert FleetCommanderRebalanceTooManyOperations(rebalanceData.length);
+            revert FleetCommanderRebalanceTooManyOperations(
+                rebalanceData.length
+            );
         }
         if (rebalanceData.length == 0) {
             revert FleetCommanderRebalanceNoOperations();
@@ -96,12 +136,19 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         uint256 sourceArkRate = fromArk.rate();
 
         if (targetArkRate < sourceArkRate) {
-            revert FleetCommanderTargetArkRateTooLow(data.toArk, targetArkRate, sourceArkRate);
+            revert FleetCommanderTargetArkRateTooLow(
+                data.toArk,
+                targetArkRate,
+                sourceArkRate
+            );
         }
 
         ArkConfiguration memory targetArkConfiguration = _arks[data.toArk];
 
-        if (targetArkConfiguration.ark == address(0) && targetArkConfiguration.maxAllocation == 0) {
+        if (
+            targetArkConfiguration.ark == address(0) &&
+            targetArkConfiguration.maxAllocation == 0
+        ) {
             revert FleetCommanderArkNotFound(data.toArk);
         }
 
@@ -120,9 +167,7 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         _board(address(toArk), amount);
     }
 
-    function commitFundsQueue(bytes calldata data) external onlyKeeper {}
-
-    function refillFundsQueue(bytes calldata data) external onlyKeeper {}
+    function adjustBuffer(bytes calldata data) external onlyKeeper {}
 
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
@@ -131,9 +176,11 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
 
     function addArk(address ark, uint256 maxAllocation) external onlyGovernor {}
 
-    function setMinFundsQueueBalance(uint256 newBalance) external onlyGovernor {}
+    function setMinBufferBalance(uint256 newBalance) external onlyGovernor {}
 
-    function updateRebalanceCooldown(uint256 newCooldown) external onlyGovernor {}
+    function updateRebalanceCooldown(
+        uint256 newCooldown
+    ) external onlyGovernor {}
 
     function forceRebalance(bytes calldata data) external onlyGovernor {}
 
@@ -141,6 +188,14 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
 
     /* PUBLIC - FEES */
     function mintSharesAsFees() public {}
+
+    /* PUBLIC - ERC20 */
+    function transfer(
+        address,
+        uint256
+    ) public pure override(IERC20, ERC20) returns (bool) {
+        revert FleetCommanderTransfersDisabled();
+    }
 
     /* INTERNAL - REBALANCE */
     function _rebalance(bytes calldata data) internal {}
@@ -154,7 +209,10 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
 
     function _setupArks(ArkConfiguration[] memory _arkConfigurations) internal {
         for (uint256 i = 0; i < _arkConfigurations.length; i++) {
-            _addArk(_arkConfigurations[i].ark, _arkConfigurations[i].maxAllocation);
+            _addArk(
+                _arkConfigurations[i].ark,
+                _arkConfigurations[i].maxAllocation
+            );
         }
     }
 
@@ -163,8 +221,26 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         emit ArkAdded(ark, maxAllocation);
     }
 
-    /* INTERNAL - ERC20 */
-    function transfer(address, uint256) public pure override(IERC20, ERC20) returns (bool) {
-        revert FleetCommanderTransfersDisabled();
+    /* INTERNAL - VALIDATIONS */
+    function _validateWithdrawal(uint256 assets, address owner) internal view {
+        uint256 userPosition = maxWithdraw(owner);
+
+        // assets needs to be increased by 100 to work with fromFraction
+        Percentage userWithdrawalPercentage = PercentageUtils.fromFraction(
+            assets * 100,
+            userPosition
+        );
+        if (userWithdrawalPercentage < minPositionWithdrawalPercentage) {
+            revert WithdrawalAmountIsBelowMinThreshold();
+        }
+
+        Percentage bufferWithdrawalPercentage = PercentageUtils.fromFraction(
+            assets * 100,
+            fundsBufferBalance
+        );
+
+        if (bufferWithdrawalPercentage > maxBufferWithdrawalPercentage) {
+            revert WithdrawalAmountExceedsMaxBufferLimit();
+        }
     }
 }
