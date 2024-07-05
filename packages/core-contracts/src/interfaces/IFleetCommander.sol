@@ -80,8 +80,6 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
 
     function addArk(address ark, uint256 maxAllocation) external;
 
-    function setMinFundsQueueBalance(uint256 newBalance) external;
-
     function updateRebalanceCooldown(uint256 newCooldown) external;
 
     function forceRebalance(bytes calldata data) external;

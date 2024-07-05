@@ -21,10 +21,12 @@ contract FleetCommanderTest is Test {
 
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](2);
         initialArks[0] = ArkConfiguration({
-            maxAllocation: PercentageUtils.fromDecimalPercentage(50)
+            ark: address(1),
+            maxAllocation: 5000000
         });
         initialArks[1] = ArkConfiguration({
-            maxAllocation: PercentageUtils.fromDecimalPercentage(50)
+            ark: address(2),
+            maxAllocation: 5000000
         });
 
         FleetCommanderParams memory params = FleetCommanderParams({
