@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-
 /**
  * @title IArkAccessControl
- * @notice Defines the specific roles for Ark contracts and the
- *         helper functions to manage them and to enforce the access control
+ * @notice Defines the specific roles for Ark contracts and
+ *         helper functions that manage them and enforce access control
  */
 interface IArkAccessControl {
     /**

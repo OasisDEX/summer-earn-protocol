@@ -35,7 +35,7 @@ contract FleetCommander is
     )
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
-        FleetCommanderAccessControl(params.governor)
+        FleetCommanderAccessControl(params.configurationManager)
     {
         _setupArks(params.initialArks);
         minFundsBufferBalance = params.initialFundsBufferBalance;

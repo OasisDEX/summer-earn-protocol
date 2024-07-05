@@ -5,6 +5,9 @@ import {Test, console} from "forge-std/Test.sol";
 import "../src/contracts/FleetCommander.sol";
 import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
+import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 
 contract FleetCommanderTest is Test {
     using PercentageUtils for uint256;
@@ -19,6 +22,10 @@ contract FleetCommanderTest is Test {
     function setUp() public {
         mockToken = new ERC20Mock();
 
+        IConfigurationManager configurationManager = new ConfigurationManager(
+            ConfigurationManagerParams({governor: governor, raft: raft})
+        );
+
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](2);
         initialArks[0] = ArkConfiguration({
             ark: address(1),
@@ -30,7 +37,7 @@ contract FleetCommanderTest is Test {
         });
 
         FleetCommanderParams memory params = FleetCommanderParams({
-            governor: governor,
+            configurationManager: address(configurationManager),
             initialArks: initialArks,
             initialFundsBufferBalance: 10000 * 10 ** 18,
             initialRebalanceCooldown: 0,

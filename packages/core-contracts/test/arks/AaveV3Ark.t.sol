@@ -3,9 +3,12 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
-import "../../src/errors/ArkAccessControlErrors.sol";
+import "../../src/errors/AccessControlErrors.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "../../src/interfaces/IArkEvents.sol";
+import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents {
     AaveV3Ark public ark;
@@ -26,9 +29,12 @@ contract AaveV3ArkTest is Test, IArkEvents {
         mockToken = new ERC20Mock();
         aaveV3Pool = IPoolV3(aaveV3PoolAddress);
 
+        IConfigurationManager configurationManager = new ConfigurationManager(
+            ConfigurationManagerParams({governor: governor, raft: raft})
+        );
+
         ArkParams memory params = ArkParams({
-            governor: governor,
-            raft: raft,
+            configurationManager: address(configurationManager),
             token: address(mockToken)
         });
         vm.mockCall(
