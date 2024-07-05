@@ -12,14 +12,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 abstract contract Ark is IArk, ArkAccessControl {
     using SafeERC20 for IERC20;
 
-    IConfigurationManager public configurationManager;
+    address public raft;
     uint256 public depositCap;
     IERC20 public token;
 
     constructor(
         ArkParams memory _params
     ) ArkAccessControl(_params.configurationManager) {
-        configurationManager = IConfigurationManager(configurationManager);
+        IConfigurationManager manager = IConfigurationManager(configurationManager);
+        raft = manager.raft();
         token = IERC20(_params.token);
     }
 
