@@ -18,5 +18,4 @@ interface IArk is IArkAccessControl, IArkEvents {
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external;
-    function setRaft(address newRaft) external;
 }

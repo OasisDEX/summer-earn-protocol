@@ -3,11 +3,12 @@ pragma solidity 0.8.26;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerAccessControl} from "./ConfigurationManagerAccessControl.sol";
 
 /**
  * @custom:see IConfigurationManager
  */
-contract ConfigurationManager is IConfigurationManager {
+contract ConfigurationManager is IConfigurationManager, ConfigurationManagerAccessControl {
     /**
      * @notice The governor contract address which is authorised to call protected methods
      */
@@ -19,9 +20,9 @@ contract ConfigurationManager is IConfigurationManager {
      */
     address public raft;
 
-    constructor(ConfigurationManager memory params) {
-        governor = params.governor;
-        raft = params.raft;
+    constructor(ConfigurationManagerParams memory _params) ConfigurationManagerAccessControl(_params.governor) {
+        governor = _params.governor;
+        raft = _params.raft;
     }
 
     function setGovernor(address newGovernor) public onlyGovernor {

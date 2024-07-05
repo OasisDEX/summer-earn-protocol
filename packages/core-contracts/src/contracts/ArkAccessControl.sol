@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../interfaces/IArkAccessControl.sol";
 import "../errors/AccessControlErrors.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
  * @title ArkAccessControl
@@ -30,11 +31,12 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
      */
 
     /**
-     * @param governor The account that will be granted the Governor role
+     * @param configurationManager The configuration manager address
      */
-    constructor(address governor) {
-        _grantRole(DEFAULT_ADMIN_ROLE, governor);
-        _grantRole(GOVERNOR_ROLE, governor);
+    constructor(address configurationManager) {
+        IConfigurationManager manager = IConfigurationManager(configurationManager);
+        _grantRole(DEFAULT_ADMIN_ROLE, manager.governor());
+        _grantRole(GOVERNOR_ROLE, manager.governor());
     }
 
     /**

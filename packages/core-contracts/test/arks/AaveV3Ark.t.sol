@@ -12,7 +12,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
     AaveV3Ark public nextArk;
     address public governor = address(1);
     address public commander = address(4);
-    address public raft = address(2);
+    address public configurationManager = address(2);
     address public constant aaveV3PoolAddress = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     IPoolV3 public aaveV3Pool;
     ERC20Mock public mockToken;
@@ -21,7 +21,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         mockToken = new ERC20Mock();
         aaveV3Pool = IPoolV3(aaveV3PoolAddress);
 
-        ArkParams memory params = ArkParams({governor: governor, raft: raft, token: address(mockToken)});
+        ArkParams memory params = ArkParams({configurationManager: configurationManager, token: address(mockToken)});
         ark = new AaveV3Ark(address(aaveV3Pool), params);
         nextArk = new AaveV3Ark(address(aaveV3Pool), params);
     }

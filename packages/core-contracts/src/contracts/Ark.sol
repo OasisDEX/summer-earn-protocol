@@ -12,12 +12,12 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 abstract contract Ark is IArk, ArkAccessControl {
     using SafeERC20 for IERC20;
 
-    address public raft;
+    IConfigurationManager public configurationManager;
     uint256 public depositCap;
     IERC20 public token;
 
-    constructor(ArkParams memory _params) ArkAccessControl(_params.governor) {
-        raft = _params.raft;
+    constructor(ArkParams memory _params) ArkAccessControl(_params.configurationManager) {
+        configurationManager = IConfigurationManager(configurationManager);
         token = IERC20(_params.token);
     }
 
@@ -42,7 +42,6 @@ abstract contract Ark is IArk, ArkAccessControl {
 
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
-    function setRaft(address newRaft) external onlyGovernor {}
 
     /* INTERNAL */
     function _board(uint256 amount) internal virtual;
