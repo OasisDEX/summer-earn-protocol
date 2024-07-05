@@ -22,7 +22,7 @@ contract AaveV3Ark is Ark {
         return liquidityRate;
     }
 
-    function balance() public view override returns (uint256) {
+    function totalAssets() public view override returns (uint256) {
         (uint256 currentATokenBalance,,,,,,,,) = aaveV3DataProvider.getUserReserveData(address(token), address(this));
         return currentATokenBalance;
     }

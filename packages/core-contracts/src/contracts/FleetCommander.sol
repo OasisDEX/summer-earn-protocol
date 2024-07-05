@@ -29,7 +29,6 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         rebalanceCooldown = params.initialRebalanceCooldown;
     }
 
-
     /* PUBLIC - USER */
     function arks(address arkAddress) external view returns (ArkConfiguration memory) {
         return _arks[arkAddress];
@@ -98,7 +97,7 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         }
 
         uint256 amount = data.amount;
-        uint256 currentAmount = toArk.balance();
+        uint256 currentAmount = toArk.totalAssets();
         uint256 targetAmount = currentAmount + amount;
         if (targetAmount > targetArkConfiguration.maxAllocation) {
             revert FleetCommanderCantRebalanceToArk(data.toArk);

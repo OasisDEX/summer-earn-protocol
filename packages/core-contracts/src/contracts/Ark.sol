@@ -22,7 +22,7 @@ abstract contract Ark is IArk, ArkAccessControl {
     }
 
     /* PUBLIC */
-    function balance() public view virtual returns (uint256) {}
+    function totalAssets() public view virtual returns (uint256) {}
 
     function rate() public view virtual returns (uint256) {}
 
