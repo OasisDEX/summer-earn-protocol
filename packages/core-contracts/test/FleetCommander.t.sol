@@ -20,8 +20,12 @@ contract FleetCommanderTest is Test {
         mockToken = new ERC20Mock();
 
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](2);
-        initialArks[0] = ArkConfiguration({maxAllocation: PercentageUtils.fromDecimalPercentage(50)});
-        initialArks[1] = ArkConfiguration({maxAllocation: PercentageUtils.fromDecimalPercentage(50)});
+        initialArks[0] = ArkConfiguration({
+            maxAllocation: PercentageUtils.fromDecimalPercentage(50)
+        });
+        initialArks[1] = ArkConfiguration({
+            maxAllocation: PercentageUtils.fromDecimalPercentage(50)
+        });
 
         FleetCommanderParams memory params = FleetCommanderParams({
             governor: governor,
@@ -31,8 +35,10 @@ contract FleetCommanderTest is Test {
             asset: address(mockToken),
             name: fleetName,
             symbol: string(abi.encodePacked(mockToken.symbol(), "-SUM")),
-            initialMinimumPositionWithdrawal: PercentageUtils.fromDecimalPercentage(2),
-            initialMaximumBufferWithdrawal: PercentageUtils.fromDecimalPercentage(20)
+            initialMinimumPositionWithdrawal: PercentageUtils
+                .fromDecimalPercentage(2),
+            initialMaximumBufferWithdrawal: PercentageUtils
+                .fromDecimalPercentage(20)
         });
         fleetCommander = new FleetCommander(params);
     }
