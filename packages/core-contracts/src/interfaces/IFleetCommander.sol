@@ -57,21 +57,31 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
 
     /* FUNCTIONS - PUBLIC - USER */
     function withdraw(uint256 assets, address receiver, address owner) external override returns (uint256);
+
     function forceWithdraw(uint256 assets, address receiver, address owner) external returns (uint256);
+
     function deposit(uint256 assets, address receiver) external override returns (uint256);
 
     /* FUNCTIONS - EXTERNAL - KEEPER */
     function rebalance(bytes calldata data) external;
+
     function commitFundsQueue(bytes calldata data) external;
+
     function refillFundsQueue(bytes calldata data) external;
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external;
+
     function setFeeAddress(address newAddress) external;
+
     function addArk(address ark, uint256 maxAllocation) external;
+
     function setMinFundsQueueBalance(uint256 newBalance) external;
+
     function updateRebalanceCooldown(uint256 newCooldown) external;
+
     function forceRebalance(bytes calldata data) external;
+
     function emergencyShutdown() external;
 
     /* FUNCTIONS - PUBLIC - FEES */

@@ -5,8 +5,6 @@ import {IERC20, ERC20, SafeERC20, ERC4626} from "@openzeppelin/contracts/token/E
 import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import "../errors/FleetCommanderErrors.sol";
-import {PercentageUtils} from "../libraries/PercentageUtils.sol";
-import {Percentage} from "../types/Percentage.sol";
 import {IArk} from "../interfaces/IArk.sol";
 
 /**
@@ -69,21 +67,16 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         return assets;
     }
 
-    struct RebalanceData {
-        address fromArk;
-        address toArk;
-        uint256 amount;
-    }
-
     /* EXTERNAL - KEEPER */
     function rebalance(bytes calldata data) external onlyKeeper {
-        RebalanceData[] memory rebalanceData = abi.decode(data, (RebalanceData[]));
+        RebalanceEventData[] memory rebalanceData = abi.decode(data, (RebalanceEventData[]));
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             _reallocateAssets(rebalanceData[i]);
         }
+        emit Rebalanced(msg.sender, rebalanceData);
     }
 
-    function _reallocateAssets(RebalanceData memory data) internal {
+    function _reallocateAssets(RebalanceEventData memory data) internal {
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
         uint256 targetArkRate = toArk.rate();
