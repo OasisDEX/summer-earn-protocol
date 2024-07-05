@@ -22,10 +22,9 @@ contract FleetCommanderTest is Test {
     function setUp() public {
         mockToken = new ERC20Mock();
 
-        IConfigurationManager configurationManager = new ConfigurationManager(ConfigurationManagerParams({
-            governor: governor,
-            raft: raft
-        }));
+        IConfigurationManager configurationManager = new ConfigurationManager(
+            ConfigurationManagerParams({governor: governor, raft: raft})
+        );
 
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](2);
         initialArks[0] = ArkConfiguration({

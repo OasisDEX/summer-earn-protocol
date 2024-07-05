@@ -8,7 +8,10 @@ import "../errors/AccessControlErrors.sol";
 /**
  * @custom:see IConfigurationManagerAccessControl
  */
-contract ConfigurationManagerAccessControl is IConfigurationManagerAccessControl, AccessControl {
+contract ConfigurationManagerAccessControl is
+    IConfigurationManagerAccessControl,
+    AccessControl
+{
     /**
      * @dev The Governor role is in charge of setting the parameters of the system
      *      and also has the power to manage the different Fleet Commander roles
@@ -16,8 +19,8 @@ contract ConfigurationManagerAccessControl is IConfigurationManagerAccessControl
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
     /**
- * CONSTRUCTOR
- */
+     * CONSTRUCTOR
+     */
 
     /**
      * @param governor The account that will be granted the Governor role
@@ -28,7 +31,7 @@ contract ConfigurationManagerAccessControl is IConfigurationManagerAccessControl
     }
 
     /**
- * @dev Modifier to check that the caller has the Admin role
+     * @dev Modifier to check that the caller has the Admin role
      */
     modifier onlyAdmin() {
         if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
@@ -38,7 +41,10 @@ contract ConfigurationManagerAccessControl is IConfigurationManagerAccessControl
     }
 
     modifier onlyRoleAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || !hasRole(GOVERNOR_ROLE, msg.sender)) {
+        if (
+            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
+            !hasRole(GOVERNOR_ROLE, msg.sender)
+        ) {
             revert CallerIsNotRoleAdmin(msg.sender);
         }
         _;

@@ -24,12 +24,14 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         mockToken = new ERC20Mock();
         comet = IComet(cometAddress);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(ConfigurationManagerParams({
-            governor: governor,
-            raft: raft
-        }));
+        IConfigurationManager configurationManager = new ConfigurationManager(
+            ConfigurationManagerParams({governor: governor, raft: raft})
+        );
 
-        ArkParams memory params = ArkParams({configurationManager: address(configurationManager), token: address(mockToken)});
+        ArkParams memory params = ArkParams({
+            configurationManager: address(configurationManager),
+            token: address(mockToken)
+        });
         ark = new CompoundV3Ark(address(comet), params);
     }
 

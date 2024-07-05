@@ -16,7 +16,9 @@ abstract contract Ark is IArk, ArkAccessControl {
     uint256 public depositCap;
     IERC20 public token;
 
-    constructor(ArkParams memory _params) ArkAccessControl(_params.configurationManager) {
+    constructor(
+        ArkParams memory _params
+    ) ArkAccessControl(_params.configurationManager) {
         configurationManager = IConfigurationManager(configurationManager);
         token = IERC20(_params.token);
     }

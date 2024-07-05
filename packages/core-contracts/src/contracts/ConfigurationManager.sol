@@ -8,7 +8,10 @@ import {ConfigurationManagerAccessControl} from "./ConfigurationManagerAccessCon
 /**
  * @custom:see IConfigurationManager
  */
-contract ConfigurationManager is IConfigurationManager, ConfigurationManagerAccessControl {
+contract ConfigurationManager is
+    IConfigurationManager,
+    ConfigurationManagerAccessControl
+{
     /**
      * @notice The governor contract address which is authorised to call protected methods
      */
@@ -20,7 +23,9 @@ contract ConfigurationManager is IConfigurationManager, ConfigurationManagerAcce
      */
     address public raft;
 
-    constructor(ConfigurationManagerParams memory _params) ConfigurationManagerAccessControl(_params.governor) {
+    constructor(
+        ConfigurationManagerParams memory _params
+    ) ConfigurationManagerAccessControl(_params.governor) {
         governor = _params.governor;
         raft = _params.raft;
     }
@@ -36,5 +41,4 @@ contract ConfigurationManager is IConfigurationManager, ConfigurationManagerAcce
 
         emit RaftUpdated(newRaft);
     }
-
 }

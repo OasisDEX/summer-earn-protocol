@@ -40,7 +40,9 @@ contract FleetCommanderAccessControl is
      * @param configurationManager The address of the ConfigurationManager.sol contract
      */
     constructor(address configurationManager) {
-        IConfigurationManager manager = IConfigurationManager(configurationManager);
+        IConfigurationManager manager = IConfigurationManager(
+            configurationManager
+        );
         _grantRole(DEFAULT_ADMIN_ROLE, manager.governor());
         _grantRole(GOVERNOR_ROLE, manager.governor());
     }

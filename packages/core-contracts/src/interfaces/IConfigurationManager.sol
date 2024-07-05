@@ -8,7 +8,10 @@ import {IConfigurationManagerEvents} from "./IConfigurationManagerEvents.sol";
  * @title IConfigurationManager
  * @notice Defines the setters for system-wide parameters
  */
-interface IConfigurationManager is IConfigurationManagerAccessControl, IConfigurationManagerEvents {
+interface IConfigurationManager is
+    IConfigurationManagerAccessControl,
+    IConfigurationManagerEvents
+{
     function governor() external returns (address);
     function raft() external returns (address);
     function setGovernor(address newGovernor) external;

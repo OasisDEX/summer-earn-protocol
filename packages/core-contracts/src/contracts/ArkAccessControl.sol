@@ -34,7 +34,9 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
      * @param configurationManager The configuration manager address
      */
     constructor(address configurationManager) {
-        IConfigurationManager manager = IConfigurationManager(configurationManager);
+        IConfigurationManager manager = IConfigurationManager(
+            configurationManager
+        );
         _grantRole(DEFAULT_ADMIN_ROLE, manager.governor());
         _grantRole(GOVERNOR_ROLE, manager.governor());
     }
