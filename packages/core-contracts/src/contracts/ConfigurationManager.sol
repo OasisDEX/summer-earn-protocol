@@ -30,13 +30,13 @@ contract ConfigurationManager is
         raft = _params.raft;
     }
 
-    function setGovernor(address newGovernor) public onlyGovernor {
+    function setGovernor(address newGovernor) external onlyGovernor {
         governor = newGovernor;
 
         emit GovernorUpdated(newGovernor);
     }
 
-    function setRaft(address newRaft) public onlyGovernor {
+    function setRaft(address newRaft) external onlyGovernor {
         raft = newRaft;
 
         emit RaftUpdated(newRaft);

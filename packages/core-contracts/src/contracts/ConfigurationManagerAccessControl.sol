@@ -30,26 +30,6 @@ contract ConfigurationManagerAccessControl is
         _grantRole(GOVERNOR_ROLE, governor);
     }
 
-    /**
-     * @dev Modifier to check that the caller has the Admin role
-     */
-    modifier onlyAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
-            revert CallerIsNotAdmin(msg.sender);
-        }
-        _;
-    }
-
-    modifier onlyRoleAdmin() {
-        if (
-            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-            !hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotRoleAdmin(msg.sender);
-        }
-        _;
-    }
-
     modifier onlyGovernor() {
         if (!hasRole(GOVERNOR_ROLE, msg.sender)) {
             revert CallerIsNotGovernor(msg.sender);
@@ -58,22 +38,22 @@ contract ConfigurationManagerAccessControl is
     }
 
     /* @inheritdoc IConfigurationManagerAccessControl */
-    function grantAdminRole(address account) external onlyAdmin {
+    function grantAdminRole(address account) external {
         grantRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IConfigurationManagerAccessControl */
-    function revokeAdminRole(address account) external onlyAdmin {
+    function revokeAdminRole(address account) external {
         revokeRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IConfigurationManagerAccessControl */
-    function grantGovernorRole(address account) external onlyRoleAdmin {
+    function grantGovernorRole(address account) external {
         grantRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IConfigurationManagerAccessControl */
-    function revokeGovernorRole(address account) external onlyRoleAdmin {
+    function revokeGovernorRole(address account) external {
         revokeRole(GOVERNOR_ROLE, account);
     }
 }

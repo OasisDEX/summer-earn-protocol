@@ -48,29 +48,6 @@ contract FleetCommanderAccessControl is
     }
 
     /**
-     * @dev Modifier to check that the caller has the Admin role
-     */
-    modifier onlyAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
-            revert CallerIsNotAdmin(msg.sender);
-        }
-        _;
-    }
-
-    /**
-     * @dev Modifier to check that the caller has the Role Admin role
-     */
-    modifier onlyRoleAdmin() {
-        if (
-            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-            !hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotRoleAdmin(msg.sender);
-        }
-        _;
-    }
-
-    /**
      * @dev Modifier to check that the caller has the Governor role
      */
     modifier onlyGovernor() {
@@ -95,32 +72,32 @@ contract FleetCommanderAccessControl is
      */
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function grantAdminRole(address account) external onlyAdmin {
+    function grantAdminRole(address account) external {
         grantRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function revokeAdminRole(address account) external onlyAdmin {
+    function revokeAdminRole(address account) external {
         revokeRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function grantGovernorRole(address account) external onlyRoleAdmin {
+    function grantGovernorRole(address account) external {
         grantRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function revokeGovernorRole(address account) external onlyRoleAdmin {
+    function revokeGovernorRole(address account) external {
         revokeRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function grantKeeperRole(address account) external onlyRoleAdmin {
+    function grantKeeperRole(address account) external {
         grantRole(KEEPER_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function revokeKeeperRole(address account) external onlyRoleAdmin {
+    function revokeKeeperRole(address account) external {
         revokeRole(KEEPER_ROLE, account);
     }
 }

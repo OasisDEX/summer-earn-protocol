@@ -5,6 +5,7 @@ import "./ArkAccessControl.sol";
 import "../interfaces/IArk.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
  * @custom:see IArk
@@ -19,7 +20,7 @@ abstract contract Ark is IArk, ArkAccessControl {
     constructor(
         ArkParams memory _params
     ) ArkAccessControl(_params.configurationManager) {
-        IConfigurationManager manager = IConfigurationManager(configurationManager);
+        IConfigurationManager manager = IConfigurationManager(_params.configurationManager);
         raft = manager.raft();
         token = IERC20(_params.token);
     }
