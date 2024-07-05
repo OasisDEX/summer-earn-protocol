@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IFleetCommanderAccessControl} from "../interfaces/IFleetCommanderAccessControl.sol";
+import "../errors/AccessControlErrors.sol";
 
 /**
  * @title FleetCommanderAccessControl

@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../interfaces/IArkAccessControl.sol";
-import "../errors/ArkAccessControlErrors.sol";
+import "../errors/AccessControlErrors.sol";
 
 /**
  * @title ArkAccessControl
