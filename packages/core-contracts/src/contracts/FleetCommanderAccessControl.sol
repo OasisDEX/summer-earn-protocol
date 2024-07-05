@@ -14,10 +14,7 @@ import {IFleetCommanderAccessControl} from "../interfaces/IFleetCommanderAccessC
  *                 manage the different Fleet Commander roles
  *   - Keeper: in charge of rebalancing the funds between the different Arks through the Fleet Commander
  */
-contract FleetCommanderAccessControl is
-    IFleetCommanderAccessControl,
-    AccessControl
-{
+contract FleetCommanderAccessControl is IFleetCommanderAccessControl, AccessControl {
     /**
      * @dev The Governor role is in charge of setting the parameters of the system
      *      and also has the power to manage the different Fleet Commander roles
@@ -56,10 +53,7 @@ contract FleetCommanderAccessControl is
      * @dev Modifier to check that the caller has the Role Admin role
      */
     modifier onlyRoleAdmin() {
-        if (
-            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-            !hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || !hasRole(GOVERNOR_ROLE, msg.sender)) {
             revert CallerIsNotRoleAdmin(msg.sender);
         }
         _;
