@@ -14,7 +14,6 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
     using SafeERC20 for IERC20;
 
     mapping(address => ArkConfiguration) internal _arks;
-    ArkConfiguration[] public arkConfigurations;
     uint256 public fundsQueueBalance;
     uint256 public minFundsQueueBalance;
     uint256 public lastRebalanceTime;
