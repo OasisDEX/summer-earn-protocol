@@ -29,8 +29,6 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         rebalanceCooldown = params.initialRebalanceCooldown;
     }
 
-    /* PUBLIC - ACCESSORS */
-    /// @inheritdoc IFleetCommander
 
     /* PUBLIC - USER */
     function arks(address arkAddress) external view returns (ArkConfiguration memory) {
