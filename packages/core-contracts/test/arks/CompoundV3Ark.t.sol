@@ -3,9 +3,12 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/CompoundV3Ark.sol";
-import "../../src/errors/ArkAccessControlErrors.sol";
+import "../../src/errors/AccessControlErrors.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "../../src/interfaces/IArkEvents.sol";
+import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
@@ -21,9 +24,12 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         mockToken = new ERC20Mock();
         comet = IComet(cometAddress);
 
+        IConfigurationManager configurationManager = new ConfigurationManager(
+            ConfigurationManagerParams({governor: governor, raft: raft})
+        );
+
         ArkParams memory params = ArkParams({
-            governor: governor,
-            raft: raft,
+            configurationManager: address(configurationManager),
             token: address(mockToken)
         });
         ark = new CompoundV3Ark(address(comet), params);

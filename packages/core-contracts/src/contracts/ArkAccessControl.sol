@@ -3,7 +3,8 @@ pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../interfaces/IArkAccessControl.sol";
-import "../errors/ArkAccessControlErrors.sol";
+import "../errors/AccessControlErrors.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
  * @title ArkAccessControl
@@ -30,33 +31,19 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
      */
 
     /**
-     * @param governor The account that will be granted the Governor role
+     * @param configurationManager The configuration manager address
      */
-    constructor(address governor) {
-        _grantRole(DEFAULT_ADMIN_ROLE, governor);
-        _grantRole(GOVERNOR_ROLE, governor);
+    constructor(address configurationManager) {
+        IConfigurationManager manager = IConfigurationManager(
+            configurationManager
+        );
+        _grantRole(DEFAULT_ADMIN_ROLE, manager.governor());
+        _grantRole(GOVERNOR_ROLE, manager.governor());
     }
 
     /**
      * @dev Modifier to check that the caller has the Admin role
      */
-    modifier onlyAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
-            revert CallerIsNotAdmin(msg.sender);
-        }
-        _;
-    }
-
-    modifier onlyRoleAdmin() {
-        if (
-            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-            !hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotRoleAdmin(msg.sender);
-        }
-        _;
-    }
-
     modifier onlyGovernor() {
         if (!hasRole(GOVERNOR_ROLE, msg.sender)) {
             revert CallerIsNotGovernor(msg.sender);
@@ -79,42 +66,42 @@ contract ArkAccessControl is IArkAccessControl, AccessControl {
     }
 
     /* @inheritdoc IArkAccessControl */
-    function grantAdminRole(address account) external onlyAdmin {
+    function grantAdminRole(address account) external {
         grantRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IArkAccessControl */
-    function revokeAdminRole(address account) external onlyAdmin {
+    function revokeAdminRole(address account) external {
         revokeRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IArkAccessControl */
-    function grantGovernorRole(address account) external onlyRoleAdmin {
+    function grantGovernorRole(address account) external {
         grantRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IArkAccessControl */
-    function revokeGovernorRole(address account) external onlyRoleAdmin {
+    function revokeGovernorRole(address account) external {
         revokeRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IArkAccessControl */
-    function grantKeeperRole(address account) external onlyRoleAdmin {
+    function grantKeeperRole(address account) external {
         grantRole(KEEPER_ROLE, account);
     }
 
     /* @inheritdoc IArkAccessControl */
-    function revokeKeeperRole(address account) external onlyRoleAdmin {
+    function revokeKeeperRole(address account) external {
         revokeRole(KEEPER_ROLE, account);
     }
 
     /* @inheritdoc IArkAccessControl */
-    function grantCommanderRole(address account) external onlyRoleAdmin {
+    function grantCommanderRole(address account) external {
         grantRole(COMMANDER_ROLE, account);
     }
 
     /* @inheritdoc IArkAccessControl */
-    function revokeCommanderRole(address account) external onlyRoleAdmin {
+    function revokeCommanderRole(address account) external {
         revokeRole(COMMANDER_ROLE, account);
     }
 }

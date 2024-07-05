@@ -5,7 +5,6 @@ pragma solidity 0.8.26;
  * @notice Configuration parameters for the Ark contract
  */
 struct ArkParams {
-    address governor;
-    address raft;
+    address configurationManager;
     address token;
 }
