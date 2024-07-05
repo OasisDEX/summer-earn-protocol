@@ -9,6 +9,9 @@ import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 import {BaseDeploymentScript} from "./BaseDeploymentScript.s.sol";
 
 contract FleetCommanderDeploy is BaseDeploymentScript {
+    address public constant USDC_BASE_TOKEN = 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913;
+    address[] public constant ARK_ADDRESSES = [address(1), address(2)];
+
     function run() external {
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
 
@@ -16,11 +19,11 @@ contract FleetCommanderDeploy is BaseDeploymentScript {
 
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](2);
         initialArks[0] = ArkConfiguration({
-            ark: address(1),
+            ark: ARK_ADDRESSES[0],
             maxAllocation: 5000000
         });
         initialArks[1] = ArkConfiguration({
-            ark: address(2),
+            ark: ARK_ADDRESSES[1],
             maxAllocation: 5000000
         });
 
@@ -29,7 +32,7 @@ contract FleetCommanderDeploy is BaseDeploymentScript {
             initialArks: initialArks,
             initialMinFundsBufferBalance: 50 * 10 ** 6,
             initialRebalanceCooldown: 3 minutes,
-            asset: USDC,
+            asset: USDC_BASE_TOKEN,
             name: "FleetCommander_BaseUSDC",
             symbol: "FCBUSD",
             initialMinimumPositionWithdrawal: PercentageUtils
