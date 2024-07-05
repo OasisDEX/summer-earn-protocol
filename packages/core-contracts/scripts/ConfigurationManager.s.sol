@@ -2,16 +2,21 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Script.sol";
-import "../src/contracts/ERC721NFT.sol";
+import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
+import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
+import {BaseDeploymentScript} from "./BaseDeploymentScript.s.sol";
 
-contract ConfigurationManagerDeploy is Script {
-    address public constant GOVERNOR = 0xBc2e8Db797e7461D45dee36654DB3600b7D65ca2;
-
+contract ConfigurationManagerDeploy is BaseDeploymentScript {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
-        new ERC721NFT("NFT_Test", "TUT", GOVERNOR);
+        IConfigurationManager manager = new ConfigurationManager(
+            ConfigurationManagerParams({governor: GOVERNOR, raft: RAFT})
+        );
+        console.log("Deployed Configuration Manager Address");
+        console.log(address(manager));
 
         vm.stopBroadcast();
     }

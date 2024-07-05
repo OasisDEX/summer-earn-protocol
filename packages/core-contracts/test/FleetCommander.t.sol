@@ -39,7 +39,7 @@ contract FleetCommanderTest is Test {
         FleetCommanderParams memory params = FleetCommanderParams({
             configurationManager: address(configurationManager),
             initialArks: initialArks,
-            initialFundsBufferBalance: 10000 * 10 ** 18,
+            initialMinFundsBufferBalance: 10000 * 10 ** 18,
             initialRebalanceCooldown: 0,
             asset: address(mockToken),
             name: fleetName,

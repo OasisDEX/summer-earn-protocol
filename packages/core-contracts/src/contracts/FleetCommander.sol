@@ -38,7 +38,7 @@ contract FleetCommander is
         FleetCommanderAccessControl(params.configurationManager)
     {
         _setupArks(params.initialArks);
-        minFundsBufferBalance = params.initialFundsBufferBalance;
+        minFundsBufferBalance = params.initialMinFundsBufferBalance;
         rebalanceCooldown = params.initialRebalanceCooldown;
         minPositionWithdrawalPercentage = params
             .initialMinimumPositionWithdrawal;
