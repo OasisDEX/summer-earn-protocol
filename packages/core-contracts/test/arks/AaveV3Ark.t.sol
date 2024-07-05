@@ -14,8 +14,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
     address public governor = address(1);
-    address public raft = address(3);
     address public commander = address(4);
+    address public raft = address(2);
     address public constant aaveV3PoolAddress = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     IPoolV3 public aaveV3Pool;
     ERC20Mock public mockToken;
@@ -46,13 +46,25 @@ contract AaveV3ArkTest is Test, IArkEvents {
 
         vm.mockCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(aaveV3Pool.supply.selector, address(mockToken), amount, address(this), 0),
+            abi.encodeWithSelector(
+                aaveV3Pool.supply.selector,
+                address(mockToken),
+                amount,
+                address(this),
+                0
+            ),
             abi.encode()
         );
 
         vm.expectCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(aaveV3Pool.supply.selector, address(mockToken), amount, address(ark), 0)
+            abi.encodeWithSelector(
+                aaveV3Pool.supply.selector,
+                address(mockToken),
+                amount,
+                address(ark),
+                0
+            )
         );
 
         // Expect the Boarded event to be emitted
@@ -74,13 +86,23 @@ contract AaveV3ArkTest is Test, IArkEvents {
 
         vm.mockCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(aaveV3Pool.withdraw.selector, address(mockToken), amount, commander),
+            abi.encodeWithSelector(
+                aaveV3Pool.withdraw.selector,
+                address(mockToken),
+                amount,
+                commander
+            ),
             abi.encode(amount)
         );
 
         vm.expectCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(aaveV3Pool.withdraw.selector, address(mockToken), amount, commander)
+            abi.encodeWithSelector(
+                aaveV3Pool.withdraw.selector,
+                address(mockToken),
+                amount,
+                commander
+            )
         );
 
         // Expect the Disembarked event to be emitted

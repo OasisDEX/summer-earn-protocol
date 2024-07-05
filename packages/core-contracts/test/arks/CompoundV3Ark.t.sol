@@ -13,9 +13,10 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
     address public governor = address(1);
-    address public raft = address(3);
     address public commander = address(4);
-    address public constant cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+    address public raft = address(2);
+    address public constant cometAddress =
+        0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     IComet public comet;
     ERC20Mock public mockToken;
 
@@ -43,10 +44,23 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         mockToken.approve(address(ark), amount);
 
         vm.mockCall(
-            address(comet), abi.encodeWithSelector(comet.supply.selector, address(mockToken), amount), abi.encode()
+            address(comet),
+            abi.encodeWithSelector(
+                comet.supply.selector,
+                address(mockToken),
+                amount
+            ),
+            abi.encode()
         );
 
-        vm.expectCall(address(comet), abi.encodeWithSelector(comet.supply.selector, address(mockToken), amount));
+        vm.expectCall(
+            address(comet),
+            abi.encodeWithSelector(
+                comet.supply.selector,
+                address(mockToken),
+                amount
+            )
+        );
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -67,11 +81,22 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         vm.mockCall(
             address(comet),
-            abi.encodeWithSelector(comet.withdraw.selector, address(mockToken), amount),
+            abi.encodeWithSelector(
+                comet.withdraw.selector,
+                address(mockToken),
+                amount
+            ),
             abi.encode(amount)
         );
 
-        vm.expectCall(address(comet), abi.encodeWithSelector(comet.withdraw.selector, address(mockToken), amount));
+        vm.expectCall(
+            address(comet),
+            abi.encodeWithSelector(
+                comet.withdraw.selector,
+                address(mockToken),
+                amount
+            )
+        );
 
         // Expect the Disembarked event to be emitted
         vm.expectEmit();
