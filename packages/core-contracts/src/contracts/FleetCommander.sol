@@ -5,6 +5,9 @@ import {IERC20, ERC20, SafeERC20, ERC4626} from "@openzeppelin/contracts/token/E
 import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import "../errors/FleetCommanderErrors.sol";
+import {PercentageUtils} from "../libraries/PercentageUtils.sol";
+import {Percentage} from "../types/Percentage.sol";
+import {IArk} from "../interfaces/IArk.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -12,7 +15,8 @@ import "../errors/FleetCommanderErrors.sol";
 contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626 {
     using SafeERC20 for IERC20;
 
-    mapping(address => ArkConfiguration) private _arks;
+    mapping(address => ArkConfiguration) internal _arks;
+    ArkConfiguration[] public arkConfigurations;
     uint256 public fundsQueueBalance;
     uint256 public minFundsQueueBalance;
     uint256 public lastRebalanceTime;
@@ -30,11 +34,12 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
 
     /* PUBLIC - ACCESSORS */
     /// @inheritdoc IFleetCommander
-    function arks(address _address) external view override returns (ArkConfiguration memory) {
-        return _arks[_address];
-    }
 
     /* PUBLIC - USER */
+    function arks(address arkAddress) external view returns (ArkConfiguration memory) {
+        return _arks[arkAddress];
+    }
+
     function withdraw(uint256 assets, address receiver, address owner)
         public
         override(ERC4626, IFleetCommander)
@@ -64,18 +69,72 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
         return assets;
     }
 
+    struct RebalanceData {
+        address fromArk;
+        address toArk;
+        uint256 amount;
+    }
+
     /* EXTERNAL - KEEPER */
-    function rebalance(bytes calldata data) external onlyKeeper {}
+    function rebalance(bytes calldata data) external onlyKeeper {
+        RebalanceData[] memory rebalanceData = abi.decode(data, (RebalanceData[]));
+        for (uint256 i = 0; i < rebalanceData.length; i++) {
+            _reallocateAssets(rebalanceData[i]);
+        }
+    }
+
+    function _reallocateAssets(RebalanceData memory data) internal {
+        IArk toArk = IArk(data.toArk);
+        IArk fromArk = IArk(data.fromArk);
+        uint256 targetArkRate = toArk.rate();
+        uint256 sourceArkRate = fromArk.rate();
+
+        if (targetArkRate < sourceArkRate) {
+            revert FleetCommanderTargetArkRateTooLow(data.toArk, targetArkRate, sourceArkRate);
+        }
+
+        if (data.toArk == address(0)) {
+            revert FleetCommanderArkNotFound(data.toArk);
+        }
+
+        ArkConfiguration memory targetArkConfiguration = _arks[data.toArk];
+
+        if (targetArkConfiguration.ark == address(0) && targetArkConfiguration.maxAllocation == 0) {
+            revert FleetCommanderArkNotFound(data.toArk);
+        }
+
+        if (targetArkConfiguration.maxAllocation == 0) {
+            revert FleetCommanderCantRebalanceToArk(data.toArk);
+        }
+
+        uint256 amount = data.amount;
+        uint256 currentAmount = toArk.balance();
+        uint256 targetAmount = currentAmount + amount;
+        if (targetAmount > targetArkConfiguration.maxAllocation) {
+            revert FleetCommanderCantRebalanceToArk(data.toArk);
+        }
+
+        _disembark(address(fromArk), amount);
+        _board(address(toArk), amount);
+    }
+
     function commitFundsQueue(bytes calldata data) external onlyKeeper {}
+
     function refillFundsQueue(bytes calldata data) external onlyKeeper {}
 
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
+
     function setFeeAddress(address newAddress) external onlyGovernor {}
+
     function addArk(address ark, uint256 maxAllocation) external onlyGovernor {}
+
     function setMinFundsQueueBalance(uint256 newBalance) external onlyGovernor {}
+
     function updateRebalanceCooldown(uint256 newCooldown) external onlyGovernor {}
+
     function forceRebalance(bytes calldata data) external onlyGovernor {}
+
     function emergencyShutdown() external onlyGovernor {}
 
     /* PUBLIC - FEES */
@@ -86,10 +145,21 @@ contract FleetCommander is IFleetCommander, FleetCommanderAccessControl, ERC4626
 
     /* INTERNAL - ARK */
     function _board(address ark, uint256 amount) internal {}
+
     function _disembark(address ark, uint256 amount) internal {}
+
     function _move(address fromArk, address toArk, uint256 amount) internal {}
-    function _setupArks(ArkConfiguration[] memory _arkConfigurations) internal {}
-    function _addArk(address ark, uint256 maxAllocation) internal {}
+
+    function _setupArks(ArkConfiguration[] memory _arkConfigurations) internal {
+        for (uint256 i = 0; i < _arkConfigurations.length; i++) {
+            _addArk(_arkConfigurations[i].ark, _arkConfigurations[i].maxAllocation);
+        }
+    }
+
+    function _addArk(address ark, uint256 maxAllocation) internal {
+        _arks[ark] = ArkConfiguration(ark, maxAllocation);
+        emit ArkAdded(ark, maxAllocation);
+    }
 
     /* INTERNAL - ERC20 */
     function transfer(address, uint256) public pure override(IERC20, ERC20) returns (bool) {

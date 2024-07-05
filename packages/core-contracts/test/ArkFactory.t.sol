@@ -14,6 +14,8 @@ contract ArkFactoryTest is Test {
     address public raft = address(2);
     address public aaveV3Pool = address(3);
     address public testToken = address(4);
+    address public aaveAddressProvider = address(5);
+    address public aaveV3DataProvider = address(6);
 
     function setUp() public {
         ArkFactoryParams memory params = ArkFactoryParams({governor: governor, raft: raft, aaveV3Pool: aaveV3Pool});
@@ -22,6 +24,16 @@ contract ArkFactoryTest is Test {
 
     function testCreateAaveV3Ark() public {
         vm.prank(governor); // Set msg.sender to governor
+        vm.mockCall(
+            address(aaveV3Pool),
+            abi.encodeWithSelector(IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector),
+            abi.encode(aaveAddressProvider)
+        );
+        vm.mockCall(
+            address(aaveAddressProvider),
+            abi.encodeWithSelector(IPoolAddressesProvider(aaveAddressProvider).getPoolDataProvider.selector),
+            abi.encode(aaveV3DataProvider)
+        );
         address newArk = arkFactory.createAaveV3Ark(testToken);
 
         assertTrue(newArk != address(0));

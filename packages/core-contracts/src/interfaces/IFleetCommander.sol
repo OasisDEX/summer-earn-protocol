@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IFleetCommanderAccessControl} from "./IFleetCommanderAccessControl.sol";
-import "../types/Percentage.sol";
 
 interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
     /* STRUCTS */
@@ -12,7 +11,8 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
      * @notice Configuration of an Ark added to the FleetCommander
      */
     struct ArkConfiguration {
-        Percentage maxAllocation; // Max allocation as a percentage (see Percentage.sol for more details)
+        address ark; // Ark address
+        uint256 maxAllocation; // Max allocation as token balance
     }
 
     /**

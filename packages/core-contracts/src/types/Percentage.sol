@@ -22,7 +22,8 @@ using {
     lessOrEqualThan as <=,
     lessThan as <,
     greaterOrEqualThan as >=,
-    greaterThan as >
+    greaterThan as >,
+    equalTo as ==
 } for Percentage global;
 
 /* The number of decimals used for the slippage percentage */
@@ -67,4 +68,8 @@ function greaterOrEqualThan(Percentage a, Percentage b) pure returns (bool) {
 
 function greaterThan(Percentage a, Percentage b) pure returns (bool) {
     return Percentage.unwrap(a) > Percentage.unwrap(b);
+}
+
+function equalTo(Percentage a, Percentage b) pure returns (bool) {
+    return Percentage.unwrap(a) == Percentage.unwrap(b);
 }
