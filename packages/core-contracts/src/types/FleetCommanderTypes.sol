@@ -14,7 +14,7 @@ struct ArkConfiguration {
  * @notice Configuration parameters for the FleetCommander contract
  */
 struct FleetCommanderParams {
-    address governor;
+    address configurationManager;
     ArkConfiguration[] initialArks;
     uint256 initialFundsBufferBalance;
     uint256 initialRebalanceCooldown;

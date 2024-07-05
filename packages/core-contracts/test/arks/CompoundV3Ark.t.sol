@@ -6,12 +6,15 @@ import "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/errors/AccessControlErrors.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "../../src/interfaces/IArkEvents.sol";
+import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
     address public governor = address(1);
+    address public raft = address(3);
     address public commander = address(4);
-    address public configurationManager = address(2);
     address public constant cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     IComet public comet;
     ERC20Mock public mockToken;
@@ -20,7 +23,12 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         mockToken = new ERC20Mock();
         comet = IComet(cometAddress);
 
-        ArkParams memory params = ArkParams({configurationManager: configurationManager, token: address(mockToken)});
+        IConfigurationManager configurationManager = new ConfigurationManager(ConfigurationManagerParams({
+            governor: governor,
+            raft: raft
+        }));
+
+        ArkParams memory params = ArkParams({configurationManager: address(configurationManager), token: address(mockToken)});
         ark = new CompoundV3Ark(address(comet), params);
     }
 

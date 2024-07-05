@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IFleetCommanderAccessControl} from "../interfaces/IFleetCommanderAccessControl.sol";
 import "../errors/AccessControlErrors.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
  * @title FleetCommanderAccessControl
@@ -33,11 +34,12 @@ contract FleetCommanderAccessControl is IFleetCommanderAccessControl, AccessCont
      */
 
     /**
-     * @param governor The account that will be granted the Governor role
+     * @param configurationManager The address of the ConfigurationManager.sol contract
      */
-    constructor(address governor) {
-        _grantRole(DEFAULT_ADMIN_ROLE, governor);
-        _grantRole(GOVERNOR_ROLE, governor);
+    constructor(address configurationManager) {
+        IConfigurationManager manager = IConfigurationManager(configurationManager);
+        _grantRole(DEFAULT_ADMIN_ROLE, manager.governor());
+        _grantRole(GOVERNOR_ROLE, manager.governor());
     }
 
     /**

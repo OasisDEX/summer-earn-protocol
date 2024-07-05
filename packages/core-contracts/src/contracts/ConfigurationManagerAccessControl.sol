@@ -50,4 +50,24 @@ contract ConfigurationManagerAccessControl is IConfigurationManagerAccessControl
         }
         _;
     }
+
+    /* @inheritdoc IConfigurationManagerAccessControl */
+    function grantAdminRole(address account) external onlyAdmin {
+        grantRole(DEFAULT_ADMIN_ROLE, account);
+    }
+
+    /* @inheritdoc IConfigurationManagerAccessControl */
+    function revokeAdminRole(address account) external onlyAdmin {
+        revokeRole(DEFAULT_ADMIN_ROLE, account);
+    }
+
+    /* @inheritdoc IConfigurationManagerAccessControl */
+    function grantGovernorRole(address account) external onlyRoleAdmin {
+        grantRole(GOVERNOR_ROLE, account);
+    }
+
+    /* @inheritdoc IConfigurationManagerAccessControl */
+    function revokeGovernorRole(address account) external onlyRoleAdmin {
+        revokeRole(GOVERNOR_ROLE, account);
+    }
 }
