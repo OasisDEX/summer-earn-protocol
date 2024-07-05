@@ -9,8 +9,11 @@ import "./IArkEvents.sol";
 
 interface IArk is IArkAccessControl, IArkEvents {
     /* FUNCTIONS - PUBLIC */
+
+    /// @notice Returns the current underlying balance of the Ark (token precision)
     function balance() external view returns (uint256);
 
+    /// @notice Returns the current rate of the Ark (RAY precision)
     function rate() external view returns (uint256);
 
     function harvest() external;
