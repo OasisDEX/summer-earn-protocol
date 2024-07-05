@@ -28,7 +28,10 @@ abstract contract Ark is IArk, ArkAccessControl {
     }
 
     /* PUBLIC */
-    function balance() public view returns (uint256) {}
+    function totalAssets() public view virtual returns (uint256) {}
+
+    function rate() public view virtual returns (uint256) {}
+
     function harvest() public {}
 
     /* EXTERNAL - COMMANDER */
@@ -49,7 +52,10 @@ abstract contract Ark is IArk, ArkAccessControl {
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
 
+    function setRaft(address newRaft) external onlyGovernor {}
+
     /* INTERNAL */
     function _board(uint256 amount) internal virtual;
+
     function _disembark(uint256 amount) internal virtual;
 }

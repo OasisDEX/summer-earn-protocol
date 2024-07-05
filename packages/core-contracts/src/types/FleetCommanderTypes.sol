@@ -7,7 +7,8 @@ import "./Percentage.sol";
  * @notice Configuration of an Ark added to the FleetCommander
  */
 struct ArkConfiguration {
-    Percentage maxAllocation; // Max allocation as a percentage (see Percentage.sol for more details)
+    address ark; // Ark address
+    uint256 maxAllocation; // Max allocation as token balance
 }
 
 /**

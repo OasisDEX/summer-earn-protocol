@@ -7,6 +7,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import "../libraries/PercentageUtils.sol";
 import {FleetCommanderParams, ArkConfiguration} from "../types/FleetCommanderTypes.sol";
 import "../errors/FleetCommanderErrors.sol";
+import {IArk} from "../interfaces/IArk.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -26,6 +27,8 @@ contract FleetCommander is
     uint256 public rebalanceCooldown;
     Percentage public minPositionWithdrawalPercentage;
     Percentage public maxBufferWithdrawalPercentage;
+
+    uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
     constructor(
         FleetCommanderParams memory params
@@ -57,10 +60,10 @@ contract FleetCommander is
         address owner
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
         _validateWithdrawal(assets, owner);
-        super.withdraw(assets, receiver, owner);
 
         uint256 prevQueueBalance = fundsBufferBalance;
         fundsBufferBalance = fundsBufferBalance - assets;
+        super.withdraw(assets, receiver, owner);
 
         emit FundsBufferBalanceUpdated(
             msg.sender,
@@ -96,18 +99,91 @@ contract FleetCommander is
     }
 
     /* EXTERNAL - KEEPER */
-    function rebalance(bytes calldata data) external onlyKeeper {}
+    function rebalance(bytes calldata data) external onlyKeeper {
+        RebalanceEventData[] memory rebalanceData = abi.decode(
+            data,
+            (RebalanceEventData[])
+        );
+
+        if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
+            revert FleetCommanderRebalanceTooManyOperations(
+                rebalanceData.length
+            );
+        }
+        if (rebalanceData.length == 0) {
+            revert FleetCommanderRebalanceNoOperations();
+        }
+        for (uint256 i = 0; i < rebalanceData.length; i++) {
+            _reallocateAssets(rebalanceData[i]);
+        }
+        emit Rebalanced(msg.sender, rebalanceData);
+    }
+
+    function _reallocateAssets(RebalanceEventData memory data) internal {
+        if (data.toArk == address(0)) {
+            revert FleetCommanderArkNotFound(data.toArk);
+        }
+        if (data.fromArk == address(0)) {
+            revert FleetCommanderArkNotFound(data.fromArk);
+        }
+        if (data.amount == 0) {
+            revert FleetCommanderRebalanceAmountZero(data.toArk);
+        }
+
+        IArk toArk = IArk(data.toArk);
+        IArk fromArk = IArk(data.fromArk);
+        uint256 targetArkRate = toArk.rate();
+        uint256 sourceArkRate = fromArk.rate();
+
+        if (targetArkRate < sourceArkRate) {
+            revert FleetCommanderTargetArkRateTooLow(
+                data.toArk,
+                targetArkRate,
+                sourceArkRate
+            );
+        }
+
+        ArkConfiguration memory targetArkConfiguration = _arks[data.toArk];
+
+        if (
+            targetArkConfiguration.ark == address(0) &&
+            targetArkConfiguration.maxAllocation == 0
+        ) {
+            revert FleetCommanderArkNotFound(data.toArk);
+        }
+
+        if (targetArkConfiguration.maxAllocation == 0) {
+            revert FleetCommanderCantRebalanceToArk(data.toArk);
+        }
+
+        uint256 amount = data.amount;
+        uint256 currentAmount = toArk.totalAssets();
+        uint256 targetAmount = currentAmount + amount;
+        if (targetAmount > targetArkConfiguration.maxAllocation) {
+            revert FleetCommanderCantRebalanceToArk(data.toArk);
+        }
+
+        _disembark(address(fromArk), amount);
+        _board(address(toArk), amount);
+    }
+
     function adjustBuffer(bytes calldata data) external onlyKeeper {}
 
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
+
     function setFeeAddress(address newAddress) external onlyGovernor {}
+
     function addArk(address ark, uint256 maxAllocation) external onlyGovernor {}
+
     function setMinBufferBalance(uint256 newBalance) external onlyGovernor {}
+
     function updateRebalanceCooldown(
         uint256 newCooldown
     ) external onlyGovernor {}
+
     function forceRebalance(bytes calldata data) external onlyGovernor {}
+
     function emergencyShutdown() external onlyGovernor {}
 
     /* PUBLIC - FEES */
@@ -126,12 +202,24 @@ contract FleetCommander is
 
     /* INTERNAL - ARK */
     function _board(address ark, uint256 amount) internal {}
+
     function _disembark(address ark, uint256 amount) internal {}
+
     function _move(address fromArk, address toArk, uint256 amount) internal {}
-    function _setupArks(
-        ArkConfiguration[] memory _arkConfigurations
-    ) internal {}
-    function _addArk(address ark, uint256 maxAllocation) internal {}
+
+    function _setupArks(ArkConfiguration[] memory _arkConfigurations) internal {
+        for (uint256 i = 0; i < _arkConfigurations.length; i++) {
+            _addArk(
+                _arkConfigurations[i].ark,
+                _arkConfigurations[i].maxAllocation
+            );
+        }
+    }
+
+    function _addArk(address ark, uint256 maxAllocation) internal {
+        _arks[ark] = ArkConfiguration(ark, maxAllocation);
+        emit ArkAdded(ark, maxAllocation);
+    }
 
     /* INTERNAL - VALIDATIONS */
     function _validateWithdrawal(uint256 assets, address owner) internal view {

@@ -18,6 +18,10 @@ contract AaveV3ArkTest is Test, IArkEvents {
     address public raft = address(2);
     address public constant aaveV3PoolAddress =
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    address public aaveAddressProvider =
+        0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
+    address public aaveV3DataProvider =
+        0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3;
     IPoolV3 public aaveV3Pool;
     ERC20Mock public mockToken;
 
@@ -33,6 +37,22 @@ contract AaveV3ArkTest is Test, IArkEvents {
             configurationManager: address(configurationManager),
             token: address(mockToken)
         });
+        vm.mockCall(
+            address(aaveV3Pool),
+            abi.encodeWithSelector(
+                IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector
+            ),
+            abi.encode(aaveAddressProvider)
+        );
+        vm.mockCall(
+            address(aaveAddressProvider),
+            abi.encodeWithSelector(
+                IPoolAddressesProvider(aaveAddressProvider)
+                    .getPoolDataProvider
+                    .selector
+            ),
+            abi.encode(aaveV3DataProvider)
+        );
         ark = new AaveV3Ark(address(aaveV3Pool), params);
         nextArk = new AaveV3Ark(address(aaveV3Pool), params);
     }

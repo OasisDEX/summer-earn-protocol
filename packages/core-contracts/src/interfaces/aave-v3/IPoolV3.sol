@@ -41,4 +41,13 @@ interface IPoolV3 {
         uint256 amount,
         address to
     ) external returns (uint256);
+
+    /**
+     * @notice Returns the PoolAddressesProvider connected to this contract
+     * @return The address of the PoolAddressesProvider
+     */
+    function ADDRESSES_PROVIDER()
+        external
+        view
+        returns (IPoolAddressesProvider);
 }
