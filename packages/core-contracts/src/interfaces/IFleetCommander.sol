@@ -36,7 +36,11 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
     event DepositCapUpdated(uint256 newCap);
     event FeeAddressUpdated(address newAddress);
     event ArkAdded(address indexed ark, uint256 maxAllocation);
-
+    event ArkRemoved(address indexed ark);
+    event ArkMaxAllocationUpdated(
+        address indexed ark,
+        uint256 newMaxAllocation
+    );
     event FundsBufferBalanceUpdated(
         address indexed user,
         uint256 prevBalance,
@@ -79,6 +83,10 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
     function setFeeAddress(address newAddress) external;
 
     function addArk(address ark, uint256 maxAllocation) external;
+
+    function removeArk(address ark) external;
+
+    function setMaxAllocation(address ark, uint256 newMaxAllocation) external;
 
     function updateRebalanceCooldown(uint256 newCooldown) external;
 

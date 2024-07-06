@@ -15,3 +15,6 @@ error FleetCommanderRebalanceTooManyOperations(uint256 operationsCount);
 error FleetCommanderRebalanceAmountZero(address ark);
 error WithdrawalAmountIsBelowMinThreshold();
 error WithdrawalAmountExceedsMaxBufferLimit();
+error FleetCommanderArkAlreadyExists(address ark);
+error FleetCommanderArkMaxAllocationZero(address ark);
+error FleetCommanderInvalidArkAddress();

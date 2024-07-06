@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IERC20, ERC20, SafeERC20, ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import "../libraries/PercentageUtils.sol";
@@ -21,6 +21,7 @@ contract FleetCommander is
     using PercentageUtils for uint256;
 
     mapping(address => ArkConfiguration) private _arks;
+    address[] private _activeArks;
     uint256 public fundsBufferBalance;
     uint256 public minFundsBufferBalance;
     uint256 public lastRebalanceTime;
@@ -96,6 +97,18 @@ contract FleetCommander is
         );
 
         return assets;
+    }
+
+    function totalAssets()
+        public
+        view
+        override(ERC4626, IERC4626)
+        returns (uint256 total)
+    {
+        total = 0;
+        for (uint256 i = 0; i < _activeArks.length; i++) {
+            total += IArk(_activeArks[i]).totalAssets();
+        }
     }
 
     /* EXTERNAL - KEEPER */
@@ -174,7 +187,46 @@ contract FleetCommander is
 
     function setFeeAddress(address newAddress) external onlyGovernor {}
 
-    function addArk(address ark, uint256 maxAllocation) external onlyGovernor {}
+    function addArk(address ark, uint256 maxAllocation) external onlyGovernor {
+        _addArk(ark, maxAllocation);
+    }
+
+    function removeArk(address ark) external onlyGovernor {
+        _removeArk(ark);
+    }
+
+    function setMaxAllocation(
+        address ark,
+        uint256 newMaxAllocation
+    ) external onlyGovernor {
+        if (newMaxAllocation == 0) {
+            revert FleetCommanderArkMaxAllocationZero(ark);
+        }
+        if (_arks[ark].ark == address(0)) {
+            revert FleetCommanderArkNotFound(ark);
+        }
+
+        uint256 oldMaxAllocation = _arks[ark].maxAllocation;
+        _arks[ark].maxAllocation = newMaxAllocation;
+
+        // Update _activeArks if necessary
+        bool wasActive = oldMaxAllocation > 0;
+        bool isNowActive = newMaxAllocation > 0;
+
+        if (!wasActive && isNowActive) {
+            _activeArks.push(ark);
+        } else if (wasActive && !isNowActive) {
+            for (uint256 i = 0; i < _activeArks.length; i++) {
+                if (_activeArks[i] == ark) {
+                    _activeArks[i] = _activeArks[_activeArks.length - 1];
+                    _activeArks.pop();
+                    break;
+                }
+            }
+        }
+
+        emit ArkMaxAllocationUpdated(ark, newMaxAllocation);
+    }
 
     function setMinBufferBalance(uint256 newBalance) external onlyGovernor {}
 
@@ -217,8 +269,37 @@ contract FleetCommander is
     }
 
     function _addArk(address ark, uint256 maxAllocation) internal {
+        if (ark == address(0)) {
+            revert FleetCommanderInvalidArkAddress();
+        }
+        if (_arks[ark].ark != address(0)) {
+            revert FleetCommanderArkAlreadyExists(ark);
+        }
+        if (maxAllocation == 0) {
+            revert FleetCommanderArkMaxAllocationZero(ark);
+        }
+
         _arks[ark] = ArkConfiguration(ark, maxAllocation);
+        _activeArks.push(ark);
         emit ArkAdded(ark, maxAllocation);
+    }
+
+    function _removeArk(address ark) internal {
+        if (_arks[ark].ark == address(0)) {
+            revert FleetCommanderArkNotFound(ark);
+        }
+
+        // Remove from _activeArks if present
+        for (uint256 i = 0; i < _activeArks.length; i++) {
+            if (_activeArks[i] == ark) {
+                _activeArks[i] = _activeArks[_activeArks.length - 1];
+                _activeArks.pop();
+                break;
+            }
+        }
+
+        delete _arks[ark];
+        emit ArkRemoved(ark);
     }
 
     /* INTERNAL - VALIDATIONS */
