@@ -109,6 +109,7 @@ contract FleetCommander is
         for (uint256 i = 0; i < _activeArks.length; i++) {
             total += IArk(_activeArks[i]).totalAssets();
         }
+        total += IERC20(asset()).balanceOf(address(this));
     }
 
     /* EXTERNAL - KEEPER */
