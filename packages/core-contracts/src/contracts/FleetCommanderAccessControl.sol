@@ -3,6 +3,8 @@ pragma solidity 0.8.26;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IFleetCommanderAccessControl} from "../interfaces/IFleetCommanderAccessControl.sol";
+import "../errors/AccessControlErrors.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
  * @title FleetCommanderAccessControl
@@ -35,34 +37,14 @@ contract FleetCommanderAccessControl is
      */
 
     /**
-     * @param governor The account that will be granted the Governor role
+     * @param configurationManager The address of the ConfigurationManager.sol contract
      */
-    constructor(address governor) {
-        _grantRole(DEFAULT_ADMIN_ROLE, governor);
-        _grantRole(GOVERNOR_ROLE, governor);
-    }
-
-    /**
-     * @dev Modifier to check that the caller has the Admin role
-     */
-    modifier onlyAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
-            revert CallerIsNotAdmin(msg.sender);
-        }
-        _;
-    }
-
-    /**
-     * @dev Modifier to check that the caller has the Role Admin role
-     */
-    modifier onlyRoleAdmin() {
-        if (
-            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-            !hasRole(GOVERNOR_ROLE, msg.sender)
-        ) {
-            revert CallerIsNotRoleAdmin(msg.sender);
-        }
-        _;
+    constructor(address configurationManager) {
+        IConfigurationManager manager = IConfigurationManager(
+            configurationManager
+        );
+        _grantRole(DEFAULT_ADMIN_ROLE, manager.governor());
+        _grantRole(GOVERNOR_ROLE, manager.governor());
     }
 
     /**
@@ -90,32 +72,32 @@ contract FleetCommanderAccessControl is
      */
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function grantAdminRole(address account) external onlyAdmin {
+    function grantAdminRole(address account) external {
         grantRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function revokeAdminRole(address account) external onlyAdmin {
+    function revokeAdminRole(address account) external {
         revokeRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function grantGovernorRole(address account) external onlyRoleAdmin {
+    function grantGovernorRole(address account) external {
         grantRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function revokeGovernorRole(address account) external onlyRoleAdmin {
+    function revokeGovernorRole(address account) external {
         revokeRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function grantKeeperRole(address account) external onlyRoleAdmin {
+    function grantKeeperRole(address account) external {
         grantRole(KEEPER_ROLE, account);
     }
 
     /* @inheritdoc IFleetCommanderAccessControl */
-    function revokeKeeperRole(address account) external onlyRoleAdmin {
+    function revokeKeeperRole(address account) external {
         revokeRole(KEEPER_ROLE, account);
     }
 }
