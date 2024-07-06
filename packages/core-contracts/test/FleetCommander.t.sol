@@ -5,8 +5,9 @@ import {Test, console} from "forge-std/Test.sol";
 import "../src/contracts/FleetCommander.sol";
 import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ArkTestHelpers} from "./helpers/ArkHelpers.sol";
 
-contract FleetCommanderTest is Test {
+contract FleetCommanderTest is Test, ArkTestHelpers {
     using PercentageUtils for uint256;
 
     FleetCommander public fleetCommander;
@@ -51,6 +52,8 @@ contract FleetCommanderTest is Test {
 
         vm.prank(mockUser);
         mockToken.approve(address(fleetCommander), amount);
+        mockArkTotalAssets(address(1), 0);
+        mockArkTotalAssets(address(2), 0);
 
         vm.prank(mockUser);
         fleetCommander.deposit(amount, mockUser);
@@ -65,6 +68,9 @@ contract FleetCommanderTest is Test {
 
         vm.prank(mockUser);
         mockToken.approve(address(fleetCommander), amount);
+        // since the funds do not leave the queue in this test we do not need to mock the total assets
+        mockArkTotalAssets(address(1), 0);
+        mockArkTotalAssets(address(2), 0);
 
         vm.prank(mockUser);
         fleetCommander.deposit(amount, mockUser);
