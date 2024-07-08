@@ -113,12 +113,15 @@ contract FleetCommander is
     }
 
     /* EXTERNAL - KEEPER */
-    function rebalance(bytes calldata data) external onlyKeeper {
-        RebalanceEventData[] memory rebalanceData = abi.decode(
-            data,
-            (RebalanceEventData[])
-        );
-
+    function rebalance(
+        RebalanceData[] calldata rebalanceData
+    ) external onlyKeeper {
+        if (block.timestamp < lastRebalanceTime + rebalanceCooldown) {
+            revert FleetCommanderRebalanceCooldownNotElapsed(
+                rebalanceCooldown,
+                lastRebalanceTime
+            );
+        }
         if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
             revert FleetCommanderRebalanceTooManyOperations(
                 rebalanceData.length
@@ -130,10 +133,11 @@ contract FleetCommander is
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             _reallocateAssets(rebalanceData[i]);
         }
+        lastRebalanceTime = block.timestamp;
         emit Rebalanced(msg.sender, rebalanceData);
     }
 
-    function _reallocateAssets(RebalanceEventData memory data) internal {
+    function _reallocateAssets(RebalanceData memory data) internal {
         if (data.toArk == address(0)) {
             revert FleetCommanderArkNotFound(data.toArk);
         }

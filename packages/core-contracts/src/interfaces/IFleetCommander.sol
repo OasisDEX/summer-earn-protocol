@@ -15,7 +15,7 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
      * @param toArk The address of the Ark to which assets are moved
      * @param amount The amount of assets being moved
      */
-    struct RebalanceEventData {
+    struct RebalanceData {
         address fromArk;
         address toArk;
         uint256 amount;
@@ -25,9 +25,9 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
     /**
      * @notice Emitted when a rebalance operation is completed
      * @param keeper The address of the keeper who initiated the rebalance
-     * @param rebalances An array of RebalanceEventData structs detailing the rebalance operations
+     * @param rebalances An array of RebalanceData structs detailing the rebalance operations
      */
-    event Rebalanced(address indexed keeper, RebalanceEventData[] rebalances);
+    event Rebalanced(address indexed keeper, RebalanceData[] rebalances);
 
     /**
      * @notice Emitted when queued funds are committed
@@ -160,9 +160,9 @@ interface IFleetCommander is IFleetCommanderAccessControl, IERC4626 {
     /* FUNCTIONS - EXTERNAL - KEEPER */
     /**
      * @notice Rebalances the assets across Arks
-     * @param data Encoded rebalance instructions
+     * @param data Array of typed rebalance data struct
      */
-    function rebalance(bytes calldata data) external;
+    function rebalance(RebalanceData[] calldata data) external;
 
     /**
      * @notice Adjusts the buffer of funds
