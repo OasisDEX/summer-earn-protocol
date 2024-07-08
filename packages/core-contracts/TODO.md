@@ -1,4 +1,7 @@
-TODO: Refactor core-contracts to Ark / Protocol domain
-TODO: ArkFactory for each protocol? 
-~~TODO: Shall we use upgrade-ability?~~
-TODO: Remove or disconnect an ark?
+- TODO: Refactor core-contracts to Ark / Protocol domain
+- TODO: ArkFactory for each protocol? 
+- ~~TODO: Shall we use upgrade-ability?~~
+- TODO: Remove or disconnect an ark?
+- TODO: In `FleetCommander` - check if we want to handle this `  uint256 amountToMove = (data.amount < remainingExcess)` as is - or validate offchain data - how to handle this? Maybe some buffor we always go below buffor - or maybe we should leave it as is?
+- TODO: In `FleetCommander` make the rebalance from buffor more explicitely visible - maybe add a comment or a function? 
+- TODO: implement erc4626 methods in fleet commander - `maxDeposit`,`maxWithdraw`,`previewMint`,`previewWithdraw`,`maxRedeem`,`previewRedeem`,`convertToShares`,`convertToAssets` -> https://ethereum.org/en/developers/docs/standards/tokens/erc-4626/ ![image](https://ethereum.org/_next/image/?url=%2Fcontent%2Fdevelopers%2Fdocs%2Fstandards%2Ftokens%2Ferc-4626%2Fmap-of-erc-4626.png&w=828&q=75)

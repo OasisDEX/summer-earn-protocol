@@ -18,4 +18,11 @@ contract ArkTestHelpers is Test {
             abi.encode(returnValue)
         );
     }
+
+    /// @notice Mocks the return value of `rate` for a given Ark contract
+    /// @param ark The address of the Ark contract whose `rate` function is to be mocked
+    /// @param rate The value to return when `rate` is called
+    function mockArkRate(address ark, uint256 rate) internal {
+        vm.mockCall(ark, abi.encodeWithSignature("rate()"), abi.encode(rate));
+    }
 }

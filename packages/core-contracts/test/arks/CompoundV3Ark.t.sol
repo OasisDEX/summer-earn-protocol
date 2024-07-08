@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/errors/AccessControlErrors.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "../../src/interfaces/IArkEvents.sol";
+import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
