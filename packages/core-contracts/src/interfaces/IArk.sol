@@ -5,7 +5,7 @@ import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.s
 import {IArkAccessControl} from "./IArkAccessControl.sol";
 import "../types/Percentage.sol";
 import "../types/ArkTypes.sol";
-import "./IArkEvents.sol";
+import "../events/IArkEvents.sol";
 
 interface IArk is IArkAccessControl, IArkEvents {
     /* FUNCTIONS - PUBLIC */
