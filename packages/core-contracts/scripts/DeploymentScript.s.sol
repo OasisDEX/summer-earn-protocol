@@ -7,11 +7,6 @@ import "forge-std/StdJson.sol";
 contract DeploymentScript is Script {
     using stdJson for string;
 
-    address public constant GOVERNOR =
-        0xAb1a4Ae0F851700CC42442c588f458B553cB2620;
-    address public constant RAFT = 0xAb1a4Ae0F851700CC42442c588f458B553cB2620;
-    address public constant CONFIGURATION_MANAGER =
-        0x8aD75eFF83EbcB2E343b1b8d76eFBC796Cf38594;
     uint256 private constant ANVIL_DEFAULT_PRIVATE_KEY =
         0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
@@ -25,6 +20,9 @@ contract DeploymentScript is Script {
     }
 
     struct Config {
+        address governor;
+        address raft;
+        address configurationManager;
         address usdcToken;
         address aaveV3Pool;
         address compoundV3Pool;
@@ -34,21 +32,39 @@ contract DeploymentScript is Script {
         string memory network
     ) internal view returns (Config memory) {
         string memory json = vm.readFile("scripts/config.json");
+
+        // Governance configuration
+        string memory governorPath = string(
+            abi.encodePacked(".", network, ".governor")
+        );
+        address governor = json.readAddress(governorPath);
+        string memory raftPath = string(
+            abi.encodePacked(".", network, ".raft")
+        );
+        address raft = json.readAddress(raftPath);
+        string memory configurationManagerPath = string(
+            abi.encodePacked(".", network, ".configurationManager")
+        );
+        address configurationManager = json.readAddress(configurationManagerPath);
+
+        // Tokens
         string memory usdcTokenPath = string(
             abi.encodePacked(".", network, ".usdcToken")
         );
+        address usdcToken = json.readAddress(usdcTokenPath);
+
+        // Protocols
         string memory aaveV3PoolPath = string(
             abi.encodePacked(".", network, ".aaveV3Pool")
         );
+        address aaveV3Pool = json.readAddress(aaveV3PoolPath);
+
         string memory compoundPoolPath = string(
             abi.encodePacked(".", network, ".compound.usdcToken")
         );
-
-        address usdcToken = json.readAddress(usdcTokenPath);
-        address aaveV3Pool = json.readAddress(aaveV3PoolPath);
         address compoundV3Pool = json.readAddress(compoundPoolPath);
 
-        return Config(usdcToken, aaveV3Pool, compoundV3Pool);
+        return Config(governor, raft, configurationManager, usdcToken, aaveV3Pool, compoundV3Pool);
     }
 
     function _getTokenAndNetwork()
