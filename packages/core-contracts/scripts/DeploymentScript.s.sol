@@ -10,6 +10,19 @@ contract DeploymentScript is Script {
     uint256 private constant ANVIL_DEFAULT_PRIVATE_KEY =
         0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
+    string public network;
+    address public customToken;
+    Config public config;
+
+    constructor() {
+        (string memory _network, address _customToken) = _getTokenAndNetwork();
+        Config memory _config = _readConfig(network);
+
+        network = _network;
+        customToken = _customToken;
+        config = _config;
+    }
+
     function _getDeployerPrivateKey() internal view returns (uint256) {
         uint256 chainId = block.chainid;
         if (chainId == 31337) {

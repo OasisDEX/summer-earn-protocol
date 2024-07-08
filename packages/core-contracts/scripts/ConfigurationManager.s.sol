@@ -13,7 +13,7 @@ contract ConfigurationManagerDeploy is DeploymentScript {
         vm.startBroadcast(deployerPrivateKey);
 
         IConfigurationManager manager = new ConfigurationManager(
-            ConfigurationManagerParams({governor: GOVERNOR, raft: RAFT})
+            ConfigurationManagerParams({governor: config.governor, raft: config.raft})
         );
         console.log("Deployed Configuration Manager Address");
         console.log(address(manager));

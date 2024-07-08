@@ -9,9 +9,6 @@ import {IArk} from "../src/interfaces/IArk.sol";
 
 contract AaveV3ArkDeploy is DeploymentScript {
     function run() external {
-        (string memory network, address customToken) = _getTokenAndNetwork();
-        Config memory config = _readConfig(network);
-
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
@@ -20,7 +17,7 @@ contract AaveV3ArkDeploy is DeploymentScript {
             : customToken;
 
         ArkParams memory params = ArkParams({
-            configurationManager: CONFIGURATION_MANAGER,
+            configurationManager: config.configurationManager,
             token: arkAssetToken
         });
 
