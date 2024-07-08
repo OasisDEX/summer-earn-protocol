@@ -9,8 +9,8 @@ interface ICooldownEnforcerEvents {
     /** EVENTS */
 
     /**
-     *
-     * @param newCooldown New rebalance cooldown period
+     * @param previousCooldown The previous cooldown period in seconds.
+     * @param newCooldown The new cooldown period in seconds.
      */
     event CooldownUpdated(uint256 previousCooldown, uint256 newCooldown);
 }
