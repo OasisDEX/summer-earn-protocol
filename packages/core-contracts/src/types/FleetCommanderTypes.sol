@@ -25,3 +25,15 @@ struct FleetCommanderParams {
     Percentage initialMinimumPositionWithdrawal;
     Percentage initialMaximumBufferWithdrawal;
 }
+
+/**
+ * @notice Data structure for the rebalance event
+ * @param fromArk The address of the Ark from which assets are moved
+ * @param toArk The address of the Ark to which assets are moved
+ * @param amount The amount of assets being moved
+ */
+struct RebalanceData {
+    address fromArk;
+    address toArk;
+    uint256 amount;
+}

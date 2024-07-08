@@ -22,3 +22,7 @@ error FleetCommanderRebalanceCooldownNotElapsed(
     uint256 rebalanceCooldown,
     uint256 lastRebalanceTimestamp
 );
+error FleetCommanderNoFundsMoved();
+error FleetCommanderNoExcessFunds();
+error FleetCommanderInvalidSourceArk(address ark);
+error FleetCommanderMovedMoreThanAvailable();

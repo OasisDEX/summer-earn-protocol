@@ -4,10 +4,11 @@ pragma solidity 0.8.26;
 import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import "../libraries/PercentageUtils.sol";
-import {FleetCommanderParams, ArkConfiguration} from "../types/FleetCommanderTypes.sol";
-import "../errors/FleetCommanderErrors.sol";
+import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
+import "../errors/FleetCommanderErrors.sol";
+import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import "../libraries/PercentageUtils.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -116,20 +117,7 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper {
-        if (block.timestamp < lastRebalanceTime + rebalanceCooldown) {
-            revert FleetCommanderRebalanceCooldownNotElapsed(
-                rebalanceCooldown,
-                lastRebalanceTime
-            );
-        }
-        if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
-            revert FleetCommanderRebalanceTooManyOperations(
-                rebalanceData.length
-            );
-        }
-        if (rebalanceData.length == 0) {
-            revert FleetCommanderRebalanceNoOperations();
-        }
+        _validateRebalanceData(rebalanceData);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             _reallocateAssets(rebalanceData[i]);
         }
@@ -137,55 +125,125 @@ contract FleetCommander is
         emit Rebalanced(msg.sender, rebalanceData);
     }
 
-    function _reallocateAssets(RebalanceData memory data) internal {
-        if (data.toArk == address(0)) {
-            revert FleetCommanderArkNotFound(data.toArk);
-        }
-        if (data.fromArk == address(0)) {
-            revert FleetCommanderArkNotFound(data.fromArk);
-        }
-        if (data.amount == 0) {
-            revert FleetCommanderRebalanceAmountZero(data.toArk);
-        }
-
+    function _reallocateAssets(
+        RebalanceData memory data
+    ) internal returns (uint256) {
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
-        uint256 targetArkRate = toArk.rate();
-        uint256 sourceArkRate = fromArk.rate();
+        uint256 amount = data.amount;
 
-        if (targetArkRate < sourceArkRate) {
-            revert FleetCommanderTargetArkRateTooLow(
-                data.toArk,
-                targetArkRate,
-                sourceArkRate
-            );
+        if (address(toArk) == address(0)) {
+            revert FleetCommanderArkNotFound(address(toArk));
         }
-
-        ArkConfiguration memory targetArkConfiguration = _arks[data.toArk];
+        ArkConfiguration memory targetArkConfiguration = _arks[address(toArk)];
 
         if (
-            targetArkConfiguration.ark == address(0) &&
+            targetArkConfiguration.ark == address(0) ||
             targetArkConfiguration.maxAllocation == 0
         ) {
-            revert FleetCommanderArkNotFound(data.toArk);
+            revert FleetCommanderArkNotFound(address(toArk));
+        }
+
+        if (address(fromArk) == address(0)) {
+            revert FleetCommanderArkNotFound(address(fromArk));
+        }
+
+        if (amount == 0) {
+            revert FleetCommanderRebalanceAmountZero(address(toArk));
         }
 
         if (targetArkConfiguration.maxAllocation == 0) {
-            revert FleetCommanderCantRebalanceToArk(data.toArk);
+            revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
-        uint256 amount = data.amount;
+        if (address(fromArk) != address(this)) {
+            uint256 targetArkRate = toArk.rate();
+            uint256 sourceArkRate = fromArk.rate();
+
+            if (targetArkRate < sourceArkRate) {
+                revert FleetCommanderTargetArkRateTooLow(
+                    address(toArk),
+                    targetArkRate,
+                    sourceArkRate
+                );
+            }
+        }
+
         uint256 currentAmount = toArk.totalAssets();
-        uint256 targetAmount = currentAmount + amount;
-        if (targetAmount > targetArkConfiguration.maxAllocation) {
-            revert FleetCommanderCantRebalanceToArk(data.toArk);
+        uint256 availableSpace;
+        if (currentAmount < targetArkConfiguration.maxAllocation) {
+            availableSpace =
+                targetArkConfiguration.maxAllocation -
+                currentAmount;
+            amount = (amount < availableSpace) ? amount : availableSpace;
+        } else {
+            // If currentAmount >= maxAllocation, we can't add more funds
+            revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
-        _disembark(address(fromArk), amount);
-        _board(address(toArk), amount);
+        if (address(fromArk) == address(this)) {
+            // rebalance from the funds buffer
+            _board(address(toArk), amount);
+        } else {
+            // rebalance from one ark to another
+            _disembark(address(fromArk), amount);
+            _board(address(toArk), amount);
+        }
+
+        return amount;
     }
 
-    function adjustBuffer(bytes calldata data) external onlyKeeper {}
+    function adjustBuffer(
+        RebalanceData[] calldata rebalanceData
+    ) external onlyKeeper {
+        _validateRebalanceData(rebalanceData);
+
+        uint256 excessFunds = 0;
+        if (fundsBufferBalance > minFundsBufferBalance) {
+            excessFunds = fundsBufferBalance - minFundsBufferBalance;
+        } else {
+            revert FleetCommanderNoExcessFunds();
+        }
+
+        uint256 totalMoved = 0;
+        for (
+            uint256 i = 0;
+            i < rebalanceData.length && totalMoved < excessFunds;
+            i++
+        ) {
+            RebalanceData memory data = rebalanceData[i];
+            if (data.fromArk != address(this)) {
+                revert FleetCommanderInvalidSourceArk(data.fromArk);
+            }
+
+            uint256 remainingExcess = excessFunds - totalMoved;
+            uint256 amountToMove = (data.amount < remainingExcess)
+                ? data.amount
+                : remainingExcess;
+
+            RebalanceData memory adjustedData = RebalanceData({
+                fromArk: data.fromArk,
+                toArk: data.toArk,
+                amount: amountToMove
+            });
+
+            uint256 moved = _reallocateAssets(adjustedData);
+            totalMoved += moved;
+        }
+
+        if (totalMoved == 0) {
+            revert FleetCommanderNoFundsMoved();
+        }
+
+        if (totalMoved < excessFunds) {
+            revert FleetCommanderMovedMoreThanAvailable();
+        }
+
+        fundsBufferBalance -= totalMoved;
+        lastRebalanceTime = block.timestamp;
+
+        emit FleetCommanderBufferAdjusted(msg.sender, totalMoved);
+    }
 
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
@@ -256,6 +314,25 @@ contract FleetCommander is
 
     /* INTERNAL - REBALANCE */
     function _rebalance(bytes calldata data) internal {}
+
+    function _validateRebalanceData(
+        RebalanceData[] calldata rebalanceData
+    ) internal view {
+        if (block.timestamp < lastRebalanceTime + rebalanceCooldown) {
+            revert FleetCommanderRebalanceCooldownNotElapsed(
+                rebalanceCooldown,
+                lastRebalanceTime
+            );
+        }
+        if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
+            revert FleetCommanderRebalanceTooManyOperations(
+                rebalanceData.length
+            );
+        }
+        if (rebalanceData.length == 0) {
+            revert FleetCommanderRebalanceNoOperations();
+        }
+    }
 
     /* INTERNAL - ARK */
     function _board(address ark, uint256 amount) internal {}
