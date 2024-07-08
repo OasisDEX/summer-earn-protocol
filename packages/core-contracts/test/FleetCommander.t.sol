@@ -16,7 +16,7 @@ import {ArkMock} from "../src/contracts/test/ArkMock.sol";
 /**
  * @title FleetCommanderTest
  * @dev Comprehensive test suite for the FleetCommander contract
- * 
+ *
  * @dev TODO : add more tests
  *
  * Test coverage:
