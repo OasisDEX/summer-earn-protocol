@@ -58,7 +58,9 @@ contract DeploymentScript is Script {
         string memory configurationManagerPath = string(
             abi.encodePacked(".", network, ".configurationManager")
         );
-        address configurationManager = json.readAddress(configurationManagerPath);
+        address configurationManager = json.readAddress(
+            configurationManagerPath
+        );
 
         // Tokens
         string memory usdcTokenPath = string(
@@ -76,7 +78,15 @@ contract DeploymentScript is Script {
         );
         address compoundV3Pool = json.readAddress(compoundPoolPath);
 
-        return Config(governor, raft, configurationManager, usdcToken, aaveV3Pool, compoundV3Pool);
+        return
+            Config(
+                governor,
+                raft,
+                configurationManager,
+                usdcToken,
+                aaveV3Pool,
+                compoundV3Pool
+            );
     }
 
     function _getTokenAndNetwork()

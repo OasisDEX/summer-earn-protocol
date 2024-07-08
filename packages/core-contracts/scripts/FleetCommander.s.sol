@@ -18,7 +18,11 @@ contract FleetCommanderDeploy is BaseDeploymentScript {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        (string memory fleetName, string memory fleetSymbol, ArkConfiguration[] memory initialArks) = _loadInitialArkConfigurations();
+        (
+            string memory fleetName,
+            string memory fleetSymbol,
+            ArkConfiguration[] memory initialArks
+        ) = _loadInitialArkConfigurations();
 
         FleetCommanderParams memory params = FleetCommanderParams({
             configurationManager: CONFIGURATION_MANAGER,
@@ -41,7 +45,10 @@ contract FleetCommanderDeploy is BaseDeploymentScript {
         vm.stopBroadcast();
     }
 
-    function _loadInitialArkConfigurations() internal returns(string, string, ArkConfiguration[]) {
+    function _loadInitialArkConfigurations()
+        internal
+        returns (string, string, ArkConfiguration[])
+    {
         string memory fleetDefinitionPath = _getFleetDefinitionPath();
         string memory json = vm.readFile(fleetDefinitionPath);
 
@@ -61,7 +68,10 @@ contract FleetCommanderDeploy is BaseDeploymentScript {
         string memory symbol = json.readString(symbolPath);
 
         bytes memory parsedJson = vm.parseJson(arksPath);
-        ArkConfiguration[] memory initialArks = abi.decode(parsedJson, (ArkConfiguration[]));
+        ArkConfiguration[] memory initialArks = abi.decode(
+            parsedJson,
+            (ArkConfiguration[])
+        );
 
         return (fleetName, symbol, initialArks);
     }
