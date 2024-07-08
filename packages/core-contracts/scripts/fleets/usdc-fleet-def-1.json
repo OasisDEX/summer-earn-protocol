@@ -1,0 +1,17 @@
+{
+  "base": {
+    "fleetName": "FleetCommander_BaseUSDC_1",
+    "symbol": "FCBUSD",
+    "arks": [
+      {
+        "ark": "0x0000000000000000000000000000000000000001",
+        "maxAllocation": 5000000
+      },
+      {
+        "ark": "0x0000000000000000000000000000000000000002",
+        "maxAllocation": 5000000
+      }
+    ]
+  },
+
+}

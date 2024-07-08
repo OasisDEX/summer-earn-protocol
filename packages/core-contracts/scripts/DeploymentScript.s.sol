@@ -64,7 +64,6 @@ contract DeploymentScript is Script {
         string memory usdcTokenPath = string(
             abi.encodePacked(".", network, ".usdcToken")
         );
-        address usdcToken = json.readAddress(usdcTokenPath);
 
         // Protocols
         string memory aaveV3PoolPath = string(

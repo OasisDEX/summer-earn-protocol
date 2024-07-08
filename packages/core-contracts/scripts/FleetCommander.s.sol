@@ -18,24 +18,16 @@ contract FleetCommanderDeploy is BaseDeploymentScript {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        ArkConfiguration[] memory initialArks = new ArkConfiguration[](2);
-        initialArks[0] = ArkConfiguration({
-            ark: ARK_ADDRESSES[0],
-            maxAllocation: 5000000
-        });
-        initialArks[1] = ArkConfiguration({
-            ark: ARK_ADDRESSES[1],
-            maxAllocation: 5000000
-        });
+        (string memory fleetName, string memory fleetSymbol, ArkConfiguration[] memory initialArks) = _loadInitialArkConfigurations();
 
         FleetCommanderParams memory params = FleetCommanderParams({
             configurationManager: CONFIGURATION_MANAGER,
             initialArks: initialArks,
             initialMinFundsBufferBalance: 50 * 10 ** 6,
             initialRebalanceCooldown: 3 minutes,
-            asset: USDC_BASE_TOKEN,
-            name: "FleetCommander_BaseUSDC",
-            symbol: "FCBUSD",
+            asset: config.usdcToken,
+            name: fleetName,
+            symbol: fleetSymbol,
             initialMinimumPositionWithdrawal: PercentageUtils
                 .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils
@@ -47,5 +39,41 @@ contract FleetCommanderDeploy is BaseDeploymentScript {
         console.log(address(commander));
 
         vm.stopBroadcast();
+    }
+
+    function _loadInitialArkConfigurations() internal returns(string, string, ArkConfiguration[]) {
+        string memory fleetDefinitionPath = _getFleetDefinitionPath();
+        string memory json = vm.readFile(fleetDefinitionPath);
+
+        // Paths
+        string memory fleetNamePath = string(
+            abi.encodePacked(".", network, ".fleetName")
+        );
+        string memory symbolPath = string(
+            abi.encodePacked(".", network, ".symbol")
+        );
+        string memory arksPath = string(
+            abi.encodePacked(".", network, ".arks")
+        );
+
+        // Read
+        string memory fleetName = json.readString(fleetNamePath);
+        string memory symbol = json.readString(symbolPath);
+
+        bytes memory parsedJson = vm.parseJson(arksPath);
+        ArkConfiguration[] memory initialArks = abi.decode(parsedJson, (ArkConfiguration[]));
+
+        return (fleetName, symbol, initialArks);
+    }
+
+    function _getFleetDefinitionPath() internal returns (string) {
+        string memory _definitionPath;
+        try vm.envString("DEF_PATH") returns (string definitionPath) {
+            _definitionPath = definitionPath;
+        } catch {
+            revert("No definition path supplied");
+        }
+
+        return _definitionPath;
     }
 }
