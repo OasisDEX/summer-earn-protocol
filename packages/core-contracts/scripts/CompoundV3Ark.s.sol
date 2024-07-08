@@ -15,7 +15,9 @@ contract CompoundV3ArkDeploy is DeploymentScript {
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
-        address arkAssetToken = customToken == address(0) ? config.usdcToken : customToken;
+        address arkAssetToken = customToken == address(0)
+            ? config.usdcToken
+            : customToken;
 
         ArkParams memory params = ArkParams({
             configurationManager: CONFIGURATION_MANAGER,

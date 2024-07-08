@@ -8,11 +8,12 @@ contract DeploymentScript is Script {
     using stdJson for string;
 
     address public constant GOVERNOR =
-    0xAb1a4Ae0F851700CC42442c588f458B553cB2620;
+        0xAb1a4Ae0F851700CC42442c588f458B553cB2620;
     address public constant RAFT = 0xAb1a4Ae0F851700CC42442c588f458B553cB2620;
-    address public constant CONFIGURATION_MANAGER = 0x8aD75eFF83EbcB2E343b1b8d76eFBC796Cf38594;
+    address public constant CONFIGURATION_MANAGER =
+        0x8aD75eFF83EbcB2E343b1b8d76eFBC796Cf38594;
     uint256 private constant ANVIL_DEFAULT_PRIVATE_KEY =
-    0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+        0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
     function _getDeployerPrivateKey() internal view returns (uint256) {
         uint256 chainId = block.chainid;
@@ -29,11 +30,19 @@ contract DeploymentScript is Script {
         address compoundV3Pool;
     }
 
-    function _readConfig(string memory network) internal view returns (Config memory) {
+    function _readConfig(
+        string memory network
+    ) internal view returns (Config memory) {
         string memory json = vm.readFile("scripts/config.json");
-        string memory usdcTokenPath = string(abi.encodePacked(".", network, ".usdcToken"));
-        string memory aaveV3PoolPath = string(abi.encodePacked(".", network, ".aaveV3Pool"));
-        string memory compoundPoolPath = string(abi.encodePacked(".", network, ".compound.usdcToken"));
+        string memory usdcTokenPath = string(
+            abi.encodePacked(".", network, ".usdcToken")
+        );
+        string memory aaveV3PoolPath = string(
+            abi.encodePacked(".", network, ".aaveV3Pool")
+        );
+        string memory compoundPoolPath = string(
+            abi.encodePacked(".", network, ".compound.usdcToken")
+        );
 
         address usdcToken = json.readAddress(usdcTokenPath);
         address aaveV3Pool = json.readAddress(aaveV3PoolPath);
@@ -42,7 +51,11 @@ contract DeploymentScript is Script {
         return Config(usdcToken, aaveV3Pool, compoundV3Pool);
     }
 
-    function _getTokenAndNetwork() internal view returns (string memory, address) {
+    function _getTokenAndNetwork()
+        internal
+        view
+        returns (string memory, address)
+    {
         string memory network = vm.envString("NETWORK");
         address customToken;
         try vm.envAddress("TOKEN") returns (address token) {

@@ -9,7 +9,8 @@ import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 import {DeploymentScript} from "./DeploymentScript.s.sol";
 
 contract FleetCommanderDeploy is BaseDeploymentScript {
-    address public constant USDC_BASE_TOKEN = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address public constant USDC_BASE_TOKEN =
+        0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address[] public ARK_ADDRESSES = [address(1), address(2)];
 
     function run() external {
