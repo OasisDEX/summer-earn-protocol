@@ -27,7 +27,7 @@ const spawnDevnet = () => {
       console.error(`stderr: ${stderr}`)
     }
 
-    const newDevNetUrl = stderr.trim();
+    const newDevNetUrl = stderr.trim()
 
     const fundCommand = `curl ${newDevNetUrl} -X POST -H "Content-Type: application/json" -d '{
       "jsonrpc": "2.0",
