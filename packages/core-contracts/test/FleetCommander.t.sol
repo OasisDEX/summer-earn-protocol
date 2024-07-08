@@ -5,8 +5,12 @@ import {Test, console} from "forge-std/Test.sol";
 import "../src/contracts/FleetCommander.sol";
 import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ArkTestHelpers} from "./helpers/ArkHelpers.sol";
+import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
+import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 
-contract FleetCommanderTest is Test {
+contract FleetCommanderTest is Test, ArkTestHelpers {
     using PercentageUtils for uint256;
 
     FleetCommander public fleetCommander;
@@ -19,6 +23,10 @@ contract FleetCommanderTest is Test {
     function setUp() public {
         mockToken = new ERC20Mock();
 
+        IConfigurationManager configurationManager = new ConfigurationManager(
+            ConfigurationManagerParams({governor: governor, raft: raft})
+        );
+
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](2);
         initialArks[0] = ArkConfiguration({
             ark: address(1),
@@ -30,7 +38,7 @@ contract FleetCommanderTest is Test {
         });
 
         FleetCommanderParams memory params = FleetCommanderParams({
-            governor: governor,
+            configurationManager: address(configurationManager),
             initialArks: initialArks,
             initialFundsBufferBalance: 10000 * 10 ** 18,
             initialRebalanceCooldown: 0,
@@ -51,6 +59,8 @@ contract FleetCommanderTest is Test {
 
         vm.prank(mockUser);
         mockToken.approve(address(fleetCommander), amount);
+        mockArkTotalAssets(address(1), 0);
+        mockArkTotalAssets(address(2), 0);
 
         vm.prank(mockUser);
         fleetCommander.deposit(amount, mockUser);
@@ -65,6 +75,9 @@ contract FleetCommanderTest is Test {
 
         vm.prank(mockUser);
         mockToken.approve(address(fleetCommander), amount);
+        // since the funds do not leave the queue in this test we do not need to mock the total assets
+        mockArkTotalAssets(address(1), 0);
+        mockArkTotalAssets(address(2), 0);
 
         vm.prank(mockUser);
         fleetCommander.deposit(amount, mockUser);
