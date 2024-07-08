@@ -18,16 +18,7 @@ contract ArkMock is Ark {
         return IERC20(token).balanceOf(address(this));
     }
 
-    function _board(uint256 amount) internal override {
-        // Simulate boarding by simply transferring tokens to the contract
-        require(
-            IERC20(token).transferFrom(msg.sender, address(this), amount),
-            "Transfer failed"
-        );
-    }
+    function _board(uint256 amount) internal override {}
 
-    function _disembark(uint256 amount) internal override {
-        // Simulate disembarking by transferring tokens back to the sender
-        require(IERC20(token).transfer(msg.sender, amount), "Transfer failed");
-    }
+    function _disembark(uint256 amount) internal override {}
 }

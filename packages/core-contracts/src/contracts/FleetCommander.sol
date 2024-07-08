@@ -244,7 +244,6 @@ contract FleetCommander is
             revert FleetCommanderMovedMoreThanAvailable();
         }
 
-        fundsBufferBalance -= totalMoved;
         lastRebalanceTime = block.timestamp;
 
         emit FleetCommanderBufferAdjusted(msg.sender, totalMoved);
@@ -343,9 +342,16 @@ contract FleetCommander is
     }
 
     /* INTERNAL - ARK */
-    function _board(address ark, uint256 amount) internal {}
+    function _board(address ark, uint256 amount) internal {
+        fundsBufferBalance -= amount;
+        IERC20(asset()).approve(ark, amount);
+        IArk(ark).board(amount);
+    }
 
-    function _disembark(address ark, uint256 amount) internal {}
+    function _disembark(address ark, uint256 amount) internal {
+        fundsBufferBalance += amount;
+        IArk(ark).disembark(amount);
+    }
 
     function _move(address fromArk, address toArk, uint256 amount) internal {}
 

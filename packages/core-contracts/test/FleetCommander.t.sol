@@ -113,8 +113,21 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         });
         fleetCommander = new FleetCommander(params);
 
-        vm.prank(governor);
+        vm.startPrank(governor);
         fleetCommander.grantRole(keccak256("KEEPER_ROLE"), keeper);
+        mockArk1.grantRole(
+            keccak256("COMMANDER_ROLE"),
+            address(fleetCommander)
+        );
+        mockArk2.grantRole(
+            keccak256("COMMANDER_ROLE"),
+            address(fleetCommander)
+        );
+        mockArk3.grantRole(
+            keccak256("COMMANDER_ROLE"),
+            address(fleetCommander)
+        );
+        vm.stopPrank();
     }
 
     function testDeposit() public {
@@ -178,8 +191,6 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         mockToken.mint(address(fleetCommander), initialBufferBalance);
 
         // Mock Ark behavior
-        mockArkTotalAssets(ark1, 0);
-        mockArkTotalAssets(ark2, 0);
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
 
@@ -299,7 +310,6 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         // Mock token balance
         mockToken.mint(address(fleetCommander), initialBufferBalance);
 
-        mockArkTotalAssets(ark1, 0);
         mockArkRate(ark1, 105);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
@@ -319,8 +329,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
             minBufferBalance,
             "Buffer balance should be equal to minBufferBalance"
         );
-        // mockArkTotalAssets(ark1, initialBufferBalance);
-        // mockArkTotalAssets(ark2, 0);
+
         assertEq(
             fleetCommander.totalAssets(),
             initialBufferBalance,
@@ -345,8 +354,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         );
 
         mockToken.mint(address(fleetCommander), initialBufferBalance);
-        mockArkTotalAssets(ark1, 5000 * 10 ** 6);
-        mockArkTotalAssets(ark2, 5000 * 10 ** 6);
+        mockToken.mint(ark1, 5000 * 10 ** 6);
+        mockToken.mint(ark2, 5000 * 10 ** 6);
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
 
@@ -395,9 +404,10 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         );
 
         mockToken.mint(address(fleetCommander), initialBufferBalance);
-        mockArkTotalAssets(ark1, ark1IntitialBalance);
-        mockArkTotalAssets(ark2, ark2IntitialBalance);
-        mockArkTotalAssets(ark3, ark3IntitialBalance);
+        mockToken.mint(ark1, ark1IntitialBalance);
+        mockToken.mint(ark2, ark2IntitialBalance);
+        mockToken.mint(ark3, ark3IntitialBalance);
+
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
         mockArkRate(ark3, 115);
@@ -545,13 +555,13 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
     function testRebalanceCooldownNotElapsed() public {
         // Arrange
-
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
             amount: 1000 * 10 ** 6
         });
+        mockToken.mint(ark1, 5000 * 10 ** 6);
 
         // First rebalance
         vm.prank(keeper);
