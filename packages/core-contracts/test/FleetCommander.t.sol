@@ -13,6 +13,18 @@ import {ArkParams} from "../src/types/ArkTypes.sol";
 import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderRebalanceCooldownNotElapsed} from "../src/errors/FleetCommanderErrors.sol";
 import {ArkMock} from "../src/contracts/test/ArkMock.sol";
 
+/**
+ * @title FleetCommanderTest
+ * @dev Comprehensive test suite for the FleetCommander contract
+ * 
+ * @dev TODO : add more tests
+ *
+ * Test coverage:
+ * - Basic operations (deposit, withdraw)
+ * - Buffer adjustment
+ * - Rebalancing operations
+ * - Error cases and edge scenarios
+ */
 contract FleetCommanderTest is Test, ArkTestHelpers {
     using PercentageUtils for uint256;
 
@@ -21,21 +33,25 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
     address public raft = address(2);
     address public mockUser = address(3);
     address public keeper = address(4);
-    address ark_1 = address(10);
-    address ark_2 = address(11);
-    address ark_3 = address(12);
-    address invalid_ark = address(999);
+
+    address ark1 = address(10);
+    address ark2 = address(11);
+    address ark3 = address(12);
+
+    address invalidArk = address(999);
+
     ERC20Mock public mockToken;
     ArkMock public mockArk1;
     ArkMock public mockArk2;
     ArkMock public mockArk3;
+
     string public fleetName = "OK_Fleet";
 
     uint256 public BUFFER_BALANCE_SLOT = uint256(8);
     uint256 public MIN_BUFFER_BALANCE_SLOT = uint256(6);
 
-    uint256 ARK_1_MAX_ALLOCATION = 10000 * 10 ** 6;
-    uint256 ARK_2_MAX_ALLOCATION = 15000 * 10 ** 6;
+    uint256 ark1_MAX_ALLOCATION = 10000 * 10 ** 6;
+    uint256 ark2_MAX_ALLOCATION = 15000 * 10 ** 6;
 
     function setUp() public {
         mockToken = new ERC20Mock();
@@ -43,7 +59,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         IConfigurationManager configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({governor: governor, raft: raft})
         );
-        // Instantiate ArkMock contracts for ark_1 and ark_2
+        // Instantiate ArkMock contracts for ark1 and ark2
         mockArk1 = new ArkMock(
             ArkParams({
                 token: address(mockToken),
@@ -65,21 +81,21 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
             })
         );
 
-        ark_1 = address(mockArk1);
-        ark_2 = address(mockArk2);
-        ark_3 = address(mockArk3);
+        ark1 = address(mockArk1);
+        ark2 = address(mockArk2);
+        ark3 = address(mockArk3);
 
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](3);
         initialArks[0] = ArkConfiguration({
-            ark: ark_1,
-            maxAllocation: ARK_1_MAX_ALLOCATION
+            ark: ark1,
+            maxAllocation: ark1_MAX_ALLOCATION
         });
         initialArks[1] = ArkConfiguration({
-            ark: ark_2,
-            maxAllocation: ARK_2_MAX_ALLOCATION
+            ark: ark2,
+            maxAllocation: ark2_MAX_ALLOCATION
         });
         initialArks[2] = ArkConfiguration({
-            ark: ark_3,
+            ark: ark3,
             maxAllocation: 10000 * 10 ** 6
         });
         FleetCommanderParams memory params = FleetCommanderParams({
@@ -107,8 +123,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
         vm.prank(mockUser);
         mockToken.approve(address(fleetCommander), amount);
-        mockArkTotalAssets(ark_1, 0);
-        mockArkTotalAssets(ark_2, 0);
+        mockArkTotalAssets(ark1, 0);
+        mockArkTotalAssets(ark2, 0);
 
         vm.prank(mockUser);
         fleetCommander.deposit(amount, mockUser);
@@ -124,8 +140,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         vm.prank(mockUser);
         mockToken.approve(address(fleetCommander), amount);
         // since the funds do not leave the queue in this test we do not need to mock the total assets
-        mockArkTotalAssets(ark_1, 0);
-        mockArkTotalAssets(ark_2, 0);
+        mockArkTotalAssets(ark1, 0);
+        mockArkTotalAssets(ark2, 0);
 
         vm.prank(mockUser);
         fleetCommander.deposit(amount, mockUser);
@@ -162,21 +178,21 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         mockToken.mint(address(fleetCommander), initialBufferBalance);
 
         // Mock Ark behavior
-        mockArkTotalAssets(ark_1, 0);
-        mockArkTotalAssets(ark_2, 0);
-        mockArkRate(ark_1, 105);
-        mockArkRate(ark_2, 110);
+        mockArkTotalAssets(ark1, 0);
+        mockArkTotalAssets(ark2, 0);
+        mockArkRate(ark1, 105);
+        mockArkRate(ark2, 110);
 
         // Prepare rebalance data
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
             fromArk: address(fleetCommander),
-            toArk: ark_1,
+            toArk: ark1,
             amount: 3000 * 10 ** 6
         });
         rebalanceData[1] = RebalanceData({
             fromArk: address(fleetCommander),
-            toArk: ark_2,
+            toArk: ark2,
             amount: 2000 * 10 ** 6
         });
 
@@ -216,7 +232,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: address(fleetCommander),
-            toArk: ark_1,
+            toArk: ark1,
             amount: 1000 * 10 ** 6
         });
 
@@ -247,8 +263,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark_1, // Invalid source, should be FleetCommander
-            toArk: ark_2,
+            fromArk: ark1, // Invalid source, should be FleetCommander
+            toArk: ark2,
             amount: 1000 * 10 ** 6
         });
 
@@ -257,7 +273,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         vm.expectRevert(
             abi.encodeWithSelector(
                 FleetCommanderInvalidSourceArk.selector,
-                ark_1
+                ark1
             )
         );
         fleetCommander.adjustBuffer(rebalanceData);
@@ -283,13 +299,13 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         // Mock token balance
         mockToken.mint(address(fleetCommander), initialBufferBalance);
 
-        mockArkTotalAssets(ark_1, 0);
-        mockArkRate(ark_1, 105);
+        mockArkTotalAssets(ark1, 0);
+        mockArkRate(ark1, 105);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: address(fleetCommander),
-            toArk: ark_1,
+            toArk: ark1,
             amount: 3000 * 10 ** 6 // More than excess funds
         });
 
@@ -303,8 +319,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
             minBufferBalance,
             "Buffer balance should be equal to minBufferBalance"
         );
-        // mockArkTotalAssets(ark_1, initialBufferBalance);
-        // mockArkTotalAssets(ark_2, 0);
+        // mockArkTotalAssets(ark1, initialBufferBalance);
+        // mockArkTotalAssets(ark2, 0);
         assertEq(
             fleetCommander.totalAssets(),
             initialBufferBalance,
@@ -329,15 +345,15 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         );
 
         mockToken.mint(address(fleetCommander), initialBufferBalance);
-        mockArkTotalAssets(ark_1, 5000 * 10 ** 6);
-        mockArkTotalAssets(ark_2, 5000 * 10 ** 6);
-        mockArkRate(ark_1, 105);
-        mockArkRate(ark_2, 110);
+        mockArkTotalAssets(ark1, 5000 * 10 ** 6);
+        mockArkTotalAssets(ark2, 5000 * 10 ** 6);
+        mockArkRate(ark1, 105);
+        mockArkRate(ark2, 110);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark_1,
-            toArk: ark_2,
+            fromArk: ark1,
+            toArk: ark2,
             amount: 1000 * 10 ** 6
         });
 
@@ -379,22 +395,22 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         );
 
         mockToken.mint(address(fleetCommander), initialBufferBalance);
-        mockArkTotalAssets(ark_1, ark1IntitialBalance);
-        mockArkTotalAssets(ark_2, ark2IntitialBalance);
-        mockArkTotalAssets(ark_3, ark3IntitialBalance);
-        mockArkRate(ark_1, 105);
-        mockArkRate(ark_2, 110);
-        mockArkRate(ark_3, 115);
+        mockArkTotalAssets(ark1, ark1IntitialBalance);
+        mockArkTotalAssets(ark2, ark2IntitialBalance);
+        mockArkTotalAssets(ark3, ark3IntitialBalance);
+        mockArkRate(ark1, 105);
+        mockArkRate(ark2, 110);
+        mockArkRate(ark3, 115);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark_1,
-            toArk: ark_2,
+            fromArk: ark1,
+            toArk: ark2,
             amount: 1000 * 10 ** 6
         });
         rebalanceData[1] = RebalanceData({
-            fromArk: ark_1,
-            toArk: ark_3,
+            fromArk: ark1,
+            toArk: ark3,
             amount: 500 * 10 ** 6
         });
 
@@ -421,8 +437,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
     function testRebalanceInvalidSourceArk() public {
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: invalid_ark, // Invalid source
-            toArk: ark_2,
+            fromArk: invalidArk, // Invalid source
+            toArk: ark2,
             amount: 1000 * 10 ** 6
         });
 
@@ -431,7 +447,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "FleetCommanderArkNotFound(address)",
-                invalid_ark
+                invalidArk
             )
         );
         fleetCommander.rebalance(rebalanceData);
@@ -440,7 +456,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
     function testRebalanceInvalidTargetArk() public {
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark_1,
+            fromArk: ark1,
             toArk: address(this), // Invalid target
             amount: 1000 * 10 ** 6
         });
@@ -459,8 +475,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
     function testRebalanceZeroAmount() public {
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark_1,
-            toArk: ark_2,
+            fromArk: ark1,
+            toArk: ark2,
             amount: 0 // Zero amount
         });
 
@@ -469,7 +485,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "FleetCommanderRebalanceAmountZero(address)",
-                ark_2
+                ark2
             )
         );
         fleetCommander.rebalance(rebalanceData);
@@ -477,15 +493,15 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
     function testRebalanceExceedMaxAllocation() public {
         // Arrange
-        mockArkTotalAssets(ark_1, 5000 * 10 ** 6);
-        mockArkTotalAssets(ark_2, ARK_2_MAX_ALLOCATION); // Already at max allocation
-        mockArkRate(ark_1, 105);
-        mockArkRate(ark_2, 110);
+        mockArkTotalAssets(ark1, 5000 * 10 ** 6);
+        mockArkTotalAssets(ark2, ark2_MAX_ALLOCATION); // Already at max allocation
+        mockArkRate(ark1, 105);
+        mockArkRate(ark2, 110);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark_1,
-            toArk: ark_2,
+            fromArk: ark1,
+            toArk: ark2,
             amount: 1000 * 10 ** 6
         });
 
@@ -494,7 +510,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "FleetCommanderCantRebalanceToArk(address)",
-                ark_2
+                ark2
             )
         );
         fleetCommander.rebalance(rebalanceData);
@@ -502,15 +518,15 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
     function testRebalanceLowerRate() public {
         // Arrange
-        mockArkTotalAssets(ark_1, 5000 * 10 ** 6);
-        mockArkTotalAssets(ark_2, 5000 * 10 ** 6);
-        mockArkRate(ark_1, 110);
-        mockArkRate(ark_2, 105); // Lower rate than source
+        mockArkTotalAssets(ark1, 5000 * 10 ** 6);
+        mockArkTotalAssets(ark2, 5000 * 10 ** 6);
+        mockArkRate(ark1, 110);
+        mockArkRate(ark2, 105); // Lower rate than source
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark_1,
-            toArk: ark_2,
+            fromArk: ark1,
+            toArk: ark2,
             amount: 1000 * 10 ** 6
         });
 
@@ -519,7 +535,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "FleetCommanderTargetArkRateTooLow(address,uint256,uint256)",
-                ark_2,
+                ark2,
                 105,
                 110
             )
@@ -532,8 +548,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark_1,
-            toArk: ark_2,
+            fromArk: ark1,
+            toArk: ark2,
             amount: 1000 * 10 ** 6
         });
 
