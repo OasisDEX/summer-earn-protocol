@@ -5,6 +5,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "require": "./dist/index.js",
       "import": "./src/index.ts",
       "types": "./src/index.d.ts"
     }
