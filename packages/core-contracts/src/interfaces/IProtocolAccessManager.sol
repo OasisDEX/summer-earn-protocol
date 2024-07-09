@@ -48,4 +48,9 @@ interface IProtocolAccessManager {
      * @param account The account from which the Keeper role will be revoked
      */
     function revokeKeeperRole(address account) external;
+
+    /**
+     * @notice Returns whether the access manager is valid
+     */
+    function isValidAccessManager() external returns (bool);
 }

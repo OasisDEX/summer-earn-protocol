@@ -64,31 +64,52 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
 
     /* @inheritdoc IProtocolAccessControl */
     function grantAdminRole(address account) external onlyAdmin {
-        grantRole(DEFAULT_ADMIN_ROLE, account);
+        _grantRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IProtocolAccessControl */
     function revokeAdminRole(address account) external onlyAdmin {
-        revokeRole(DEFAULT_ADMIN_ROLE, account);
+        _revokeRole(DEFAULT_ADMIN_ROLE, account);
     }
 
     /* @inheritdoc IProtocolAccessControl */
     function grantGovernorRole(address account) external onlyAdmin {
-        grantRole(GOVERNOR_ROLE, account);
+        _grantRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IProtocolAccessControl */
     function revokeGovernorRole(address account) external onlyAdmin {
-        revokeRole(GOVERNOR_ROLE, account);
+        _revokeRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IProtocolAccessControl */
     function grantKeeperRole(address account) external onlyGovernor {
-        grantRole(KEEPER_ROLE, account);
+        _grantRole(KEEPER_ROLE, account);
     }
 
     /* @inheritdoc IProtocolAccessControl */
     function revokeKeeperRole(address account) external onlyGovernor {
-        revokeRole(KEEPER_ROLE, account);
+        _revokeRole(KEEPER_ROLE, account);
+    }
+
+    /*
+     * @dev Disabled generally to rely on specific role grant methods
+     * and our own modifiers
+     */
+    function grantRole(bytes32, address) public view override {
+        revert DirectGrantIsDisabled(msg.sender);
+    }
+
+    /*
+     * @dev Disabled generally to rely on specific role grant methods
+     * and our own modifiers
+     */
+    function revokeRole(bytes32, address) public view override {
+        revert DirectRevokeIsDisabled(msg.sender);
+    }
+
+    /* @inheritdoc IProtocolAccessControl */
+    function isValidAccessManager() external pure returns (bool) {
+        return true;
     }
 }
