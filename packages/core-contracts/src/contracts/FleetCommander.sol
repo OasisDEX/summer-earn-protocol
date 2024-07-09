@@ -2,22 +2,23 @@
 pragma solidity 0.8.26;
 
 import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
-import "../errors/FleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
+import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @custom:see IFleetCommander
  */
 contract FleetCommander is
     IFleetCommander,
-    FleetCommanderAccessControl,
-    ERC4626
+    ERC4626,
+    ProtocolAccessManaged,
+    CooldownEnforcer
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -26,8 +27,6 @@ contract FleetCommander is
     address[] private _activeArks;
     uint256 public fundsBufferBalance;
     uint256 public minFundsBufferBalance;
-    uint256 public lastRebalanceTime;
-    uint256 public rebalanceCooldown;
     Percentage public minPositionWithdrawalPercentage;
     Percentage public maxBufferWithdrawalPercentage;
 
@@ -38,11 +37,12 @@ contract FleetCommander is
     )
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
-        FleetCommanderAccessControl(params.configurationManager)
+        ProtocolAccessManaged(params.accessManager)
+        CooldownEnforcer(params.initialRebalanceCooldown, false)
     {
         _setupArks(params.initialArks);
-        minFundsBufferBalance = params.initialMinFundsBufferBalance;
-        rebalanceCooldown = params.initialRebalanceCooldown;
+
+        minFundsBufferBalance = params.initialFundsBufferBalance;
         minPositionWithdrawalPercentage = params
             .initialMinimumPositionWithdrawal;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
@@ -117,12 +117,11 @@ contract FleetCommander is
     /* EXTERNAL - KEEPER */
     function rebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper {
+    ) external onlyKeeper enforceCooldown {
         _validateRebalanceData(rebalanceData);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             _reallocateAssets(rebalanceData[i]);
         }
-        lastRebalanceTime = block.timestamp;
         emit Rebalanced(msg.sender, rebalanceData);
     }
 
@@ -200,7 +199,7 @@ contract FleetCommander is
 
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper {
+    ) external onlyKeeper enforceCooldown {
         _validateRebalanceData(rebalanceData);
 
         uint256 excessFunds = 0;
@@ -243,8 +242,6 @@ contract FleetCommander is
         if (totalMoved > excessFunds) {
             revert FleetCommanderMovedMoreThanAvailable();
         }
-
-        lastRebalanceTime = block.timestamp;
 
         emit FleetCommanderBufferAdjusted(msg.sender, totalMoved);
     }
@@ -300,8 +297,7 @@ contract FleetCommander is
     function updateRebalanceCooldown(
         uint256 newCooldown
     ) external onlyGovernor {
-        rebalanceCooldown = newCooldown;
-        emit RebalanceCooldownUpdated(newCooldown);
+        _updateCooldown(newCooldown);
     }
 
     function forceRebalance(bytes calldata data) external onlyGovernor {}
@@ -324,13 +320,7 @@ contract FleetCommander is
 
     function _validateRebalanceData(
         RebalanceData[] calldata rebalanceData
-    ) internal view {
-        if (block.timestamp < lastRebalanceTime + rebalanceCooldown) {
-            revert FleetCommanderRebalanceCooldownNotElapsed(
-                rebalanceCooldown,
-                lastRebalanceTime
-            );
-        }
+    ) internal pure {
         if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
             revert FleetCommanderRebalanceTooManyOperations(
                 rebalanceData.length

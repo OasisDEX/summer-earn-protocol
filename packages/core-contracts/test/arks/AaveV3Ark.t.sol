@@ -9,6 +9,8 @@ import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents {
     AaveV3Ark public ark;
@@ -29,11 +31,19 @@ contract AaveV3ArkTest is Test, IArkEvents {
         mockToken = new ERC20Mock();
         aaveV3Pool = IPoolV3(aaveV3PoolAddress);
 
+        IProtocolAccessManager accessManager = new ProtocolAccessManager(
+            governor
+        );
+
         IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({governor: governor, raft: raft})
+            ConfigurationManagerParams({
+                accessManager: address(accessManager),
+                raft: raft
+            })
         );
 
         ArkParams memory params = ArkParams({
+            accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken)
         });
@@ -55,6 +65,12 @@ contract AaveV3ArkTest is Test, IArkEvents {
         );
         ark = new AaveV3Ark(address(aaveV3Pool), params);
         nextArk = new AaveV3Ark(address(aaveV3Pool), params);
+
+        // Permissioning
+        vm.startPrank(governor);
+        ark.grantCommanderRole(commander);
+        nextArk.grantCommanderRole(commander);
+        vm.stopPrank();
     }
 
     function testBoard() public {

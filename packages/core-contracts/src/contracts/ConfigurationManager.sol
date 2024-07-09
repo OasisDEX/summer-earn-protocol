@@ -3,20 +3,12 @@ pragma solidity 0.8.26;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
-import {ConfigurationManagerAccessControl} from "./ConfigurationManagerAccessControl.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
 /**
  * @custom:see IConfigurationManager
  */
-contract ConfigurationManager is
-    IConfigurationManager,
-    ConfigurationManagerAccessControl
-{
-    /**
-     * @notice The governor contract address which is authorised to call protected methods
-     */
-    address public governor;
-
+contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     /**
      * @notice The Rewards And Farmed Tokens contract. It is where rewards and farmed tokens are
      *         sent for processing
@@ -25,15 +17,8 @@ contract ConfigurationManager is
 
     constructor(
         ConfigurationManagerParams memory _params
-    ) ConfigurationManagerAccessControl(_params.governor) {
-        governor = _params.governor;
+    ) ProtocolAccessManaged(_params.accessManager) {
         raft = _params.raft;
-    }
-
-    function setGovernor(address newGovernor) external onlyGovernor {
-        governor = newGovernor;
-
-        emit GovernorUpdated(newGovernor);
     }
 
     function setRaft(address newRaft) external onlyGovernor {

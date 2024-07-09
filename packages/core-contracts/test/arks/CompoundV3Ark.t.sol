@@ -9,6 +9,8 @@ import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
@@ -24,15 +26,27 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         mockToken = new ERC20Mock();
         comet = IComet(cometAddress);
 
+        IProtocolAccessManager accessManager = new ProtocolAccessManager(
+            governor
+        );
+
         IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({governor: governor, raft: raft})
+            ConfigurationManagerParams({
+                accessManager: address(accessManager),
+                raft: raft
+            })
         );
 
         ArkParams memory params = ArkParams({
+            accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken)
         });
         ark = new CompoundV3Ark(address(comet), params);
+
+        // Permissioning
+        vm.prank(governor);
+        ark.grantCommanderRole(commander);
     }
 
     function testBoard() public {
