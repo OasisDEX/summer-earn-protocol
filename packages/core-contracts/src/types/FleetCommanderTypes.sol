@@ -16,6 +16,7 @@ struct ArkConfiguration {
  */
 struct FleetCommanderParams {
     address configurationManager;
+    address accessManager;
     ArkConfiguration[] initialArks;
     uint256 initialFundsBufferBalance;
     uint256 initialRebalanceCooldown;

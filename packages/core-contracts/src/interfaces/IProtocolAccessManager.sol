@@ -1,18 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-
 /**
- * @title IFleetCommanderAccessControl
- * @notice Defines the specific roles for the FleetCommander contract and
- *         helper functions to manage them and enforce access control
+ * @title IProtocolAccessManager
+ * @notice Defines system roles and provides role based access control for
+ *         contracts that adopt it
  */
-interface IFleetCommanderAccessControl {
-    /**
-     * FUNCTIONS
-     */
-
+interface IProtocolAccessManager {
     /**
      * @notice Grants the Admin role to a given account
      *

@@ -10,6 +10,8 @@ import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
+import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderRebalanceCooldownNotElapsed} from "../src/errors/FleetCommanderErrors.sol";
 import {ArkMock} from "../src/contracts/test/ArkMock.sol";
 
@@ -56,12 +58,20 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
     function setUp() public {
         mockToken = new ERC20Mock();
 
+        IProtocolAccessManager accessManager = new ProtocolAccessManager(
+            governor
+        );
+
         IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({governor: governor, raft: raft})
+            ConfigurationManagerParams({
+                accessManager: address(accessManager),
+                raft: raft
+            })
         );
         // Instantiate ArkMock contracts for ark1 and ark2
         mockArk1 = new ArkMock(
             ArkParams({
+                accessManager: address(accessManager),
                 token: address(mockToken),
                 configurationManager: address(configurationManager)
             })
@@ -69,6 +79,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
         mockArk2 = new ArkMock(
             ArkParams({
+                accessManager: address(accessManager),
                 token: address(mockToken),
                 configurationManager: address(configurationManager)
             })
@@ -76,6 +87,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
         mockArk3 = new ArkMock(
             ArkParams({
+                accessManager: address(accessManager),
                 token: address(mockToken),
                 configurationManager: address(configurationManager)
             })
@@ -99,6 +111,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
             maxAllocation: 10000 * 10 ** 6
         });
         FleetCommanderParams memory params = FleetCommanderParams({
+            accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             initialArks: initialArks,
             initialFundsBufferBalance: 10000 * 10 ** 6,
@@ -114,19 +127,10 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander = new FleetCommander(params);
 
         vm.startPrank(governor);
-        fleetCommander.grantRole(keccak256("KEEPER_ROLE"), keeper);
-        mockArk1.grantRole(
-            keccak256("COMMANDER_ROLE"),
-            address(fleetCommander)
-        );
-        mockArk2.grantRole(
-            keccak256("COMMANDER_ROLE"),
-            address(fleetCommander)
-        );
-        mockArk3.grantRole(
-            keccak256("COMMANDER_ROLE"),
-            address(fleetCommander)
-        );
+        accessManager.grantKeeperRole(keeper);
+        mockArk1.grantCommanderRole(address(fleetCommander));
+        mockArk2.grantCommanderRole(address(fleetCommander));
+        mockArk3.grantCommanderRole(address(fleetCommander));
         vm.stopPrank();
     }
 

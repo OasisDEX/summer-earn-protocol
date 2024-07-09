@@ -2,23 +2,18 @@
 pragma solidity 0.8.26;
 
 import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
-import "../errors/FleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @custom:see IFleetCommander
  */
-contract FleetCommander is
-    IFleetCommander,
-    FleetCommanderAccessControl,
-    ERC4626
-{
+contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
@@ -34,18 +29,18 @@ contract FleetCommander is
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
     constructor(
-        FleetCommanderParams memory params
+        FleetCommanderParams memory _params
     )
-        ERC4626(IERC20(params.asset))
-        ERC20(params.name, params.symbol)
-        FleetCommanderAccessControl(params.configurationManager)
+        ERC4626(IERC20(_params.asset))
+        ERC20(_params.name, _params.symbol)
+        ProtocolAccessManaged(_params.accessManager)
     {
-        _setupArks(params.initialArks);
-        minFundsBufferBalance = params.initialFundsBufferBalance;
-        rebalanceCooldown = params.initialRebalanceCooldown;
-        minPositionWithdrawalPercentage = params
+        _setupArks(_params.initialArks);
+        minFundsBufferBalance = _params.initialFundsBufferBalance;
+        rebalanceCooldown = _params.initialRebalanceCooldown;
+        minPositionWithdrawalPercentage = _params
             .initialMinimumPositionWithdrawal;
-        maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
+        maxBufferWithdrawalPercentage = _params.initialMaximumBufferWithdrawal;
     }
 
     /* PUBLIC - ACCESSORS */

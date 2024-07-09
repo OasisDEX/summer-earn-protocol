@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../Ark.sol";
+import {Ark} from "../Ark.sol";
 import {IArk} from "../../interfaces/IArk.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ArkParams} from "../../types/ArkTypes.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+// TODO: Move this to test directory
 
 contract ArkMock is Ark {
     constructor(ArkParams memory _params) Ark(_params) {}
 
-    function rate() public view override returns (uint256) {
+    function rate() public pure override returns (uint256) {
         // Mock implementation, returns a fixed rate
         return 1e24;
     }
