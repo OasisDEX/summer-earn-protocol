@@ -16,7 +16,6 @@ import "../libraries/PercentageUtils.sol";
  */
 contract FleetCommander is
     IFleetCommander,
-    FleetCommanderAccessControl,
     ERC4626,
     ProtocolAccessManaged,
     CooldownEnforcer
