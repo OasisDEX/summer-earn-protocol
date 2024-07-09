@@ -24,8 +24,8 @@ const request = axios.create({
 })
 
 export const spawnDevnet = async () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { TENDERLY_TEMPLATE, TENDERLY_PROJECT, TENDERLY_ACCOUNT, DEPLOYER_ADDRESS, FUND_AMOUNT } =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     process.env as any
 
   if (!TENDERLY_TEMPLATE || !TENDERLY_PROJECT || !TENDERLY_ACCOUNT) {
