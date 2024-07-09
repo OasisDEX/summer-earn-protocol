@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "./ArkAccessControl.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import "../interfaces/IArk.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
  * @custom:see IArk
  */
-abstract contract Ark is IArk, ArkAccessControl {
+abstract contract Ark is IArk, ArkAccessManaged {
     using SafeERC20 for IERC20;
 
     address public raft;
@@ -19,7 +20,7 @@ abstract contract Ark is IArk, ArkAccessControl {
 
     constructor(
         ArkParams memory _params
-    ) ArkAccessControl(_params.configurationManager) {
+    ) ArkAccessManaged(_params.accessManager) {
         IConfigurationManager manager = IConfigurationManager(
             _params.configurationManager
         );

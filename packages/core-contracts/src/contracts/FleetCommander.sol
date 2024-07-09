@@ -2,13 +2,13 @@
 pragma solidity 0.8.26;
 
 import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {FleetCommanderAccessControl} from "./FleetCommanderAccessControl.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
-import "../errors/FleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
+import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
 
 /**
@@ -16,8 +16,8 @@ import "../libraries/PercentageUtils.sol";
  */
 contract FleetCommander is
     IFleetCommander,
-    FleetCommanderAccessControl,
     ERC4626,
+    ProtocolAccessManaged,
     CooldownEnforcer
 {
     using SafeERC20 for IERC20;
@@ -35,9 +35,9 @@ contract FleetCommander is
     constructor(
         FleetCommanderParams memory params
     )
-        FleetCommanderAccessControl(params.configurationManager)
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
+        ProtocolAccessManaged(params.accessManager)
         CooldownEnforcer(params.initialRebalanceCooldown, false)
     {
         _setupArks(params.initialArks);

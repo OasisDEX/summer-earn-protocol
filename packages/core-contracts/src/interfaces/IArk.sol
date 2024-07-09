@@ -2,12 +2,12 @@
 pragma solidity 0.8.26;
 
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {IArkAccessControl} from "./IArkAccessControl.sol";
+import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 import "../types/Percentage.sol";
 import "../types/ArkTypes.sol";
 import "../events/IArkEvents.sol";
 
-interface IArk is IArkAccessControl, IArkEvents {
+interface IArk is IArkAccessManaged, IArkEvents {
     /* FUNCTIONS - PUBLIC */
 
     /// @notice Returns the current underlying balance of the Ark (token precision)

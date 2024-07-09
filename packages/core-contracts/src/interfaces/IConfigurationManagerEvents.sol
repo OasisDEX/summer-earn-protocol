@@ -2,6 +2,5 @@
 pragma solidity 0.8.26;
 
 interface IConfigurationManagerEvents {
-    event GovernorUpdated(address newGovernor);
     event RaftUpdated(address newRaft);
 }

@@ -2,17 +2,12 @@
 pragma solidity 0.8.26;
 
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {IFleetCommanderAccessControl} from "./IFleetCommanderAccessControl.sol";
 import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 
 /// @title IFleetCommander Interface
 /// @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
-interface IFleetCommander is
-    IFleetCommanderEvents,
-    IFleetCommanderAccessControl,
-    IERC4626
-{
+interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
      * @notice Retrieves the ark configuration for a given ark address
      * @param arkAddress The address of the ark
