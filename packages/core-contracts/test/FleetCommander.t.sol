@@ -119,7 +119,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             initialArks: initialArks,
-            initialMinFundsBufferBalance: 10000 * 10 ** 6,
+            initialMinimumFundsBufferBalance: 10000 * 10 ** 6,
             initialRebalanceCooldown: 0,
             asset: address(mockToken),
             name: fleetName,
