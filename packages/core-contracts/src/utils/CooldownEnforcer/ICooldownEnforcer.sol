@@ -1,18 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ICooldownEnforcerErrors} from "./ICooldownEnforcerErrors.sol";
-import {ICooldownEnforcerEvents} from "./ICooldownEnforcerEvents.sol";
-
 /**
  * @title ICooldownEnforcer
  * @notice Enforces a cooldown period between actions. It provides the basic management for a cooldown
            period, allows to update the cooldown period and provides a modifier to enforce the cooldown.
  */
-interface ICooldownEnforcer is
-    ICooldownEnforcerErrors,
-    ICooldownEnforcerEvents
-{
+interface ICooldownEnforcer {
     /** VIEW FUNCTIONS */
 
     /**

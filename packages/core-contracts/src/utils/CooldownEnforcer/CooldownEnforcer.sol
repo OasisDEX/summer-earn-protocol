@@ -3,6 +3,9 @@ pragma solidity 0.8.26;
 
 import {ICooldownEnforcer} from "./ICooldownEnforcer.sol";
 
+import "./ICooldownEnforcerErrors.sol";
+import "./ICooldownEnforcerEvents.sol";
+
 /**
  * @title CooldownEnforcer
  * @custom:see ICooldownEnforcer

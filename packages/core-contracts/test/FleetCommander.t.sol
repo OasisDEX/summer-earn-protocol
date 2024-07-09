@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 import "../src/contracts/FleetCommander.sol";
 import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -11,7 +11,47 @@ import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderRebalanceCooldownNotElapsed} from "../src/errors/FleetCommanderErrors.sol";
+import {CooldownNotElapsed} from "../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
 import {ArkMock} from "../src/contracts/test/ArkMock.sol";
+
+contract FleetCommanderStorageWriter is Test {
+    using stdStorage for StdStorage;
+
+    address public fleetCommander;
+
+    uint256 public FundsBufferBalanceSlot;
+    uint256 public MinFundsBufferBalanceSlot;
+
+    constructor(address fleetCommander_) {
+        fleetCommander = fleetCommander_;
+
+        FundsBufferBalanceSlot = stdstore
+            .target(fleetCommander)
+            .sig(FleetCommander(fleetCommander).fundsBufferBalance.selector)
+            .find();
+
+        MinFundsBufferBalanceSlot = stdstore
+            .target(fleetCommander)
+            .sig(FleetCommander(fleetCommander).minFundsBufferBalance.selector)
+            .find();
+    }
+
+    function setFundsBufferBalance(uint256 value) public {
+        vm.store(
+            fleetCommander,
+            bytes32(FundsBufferBalanceSlot),
+            bytes32(value)
+        );
+    }
+
+    function setMinFundsBufferBalance(uint256 value) public {
+        vm.store(
+            fleetCommander,
+            bytes32(MinFundsBufferBalanceSlot),
+            bytes32(value)
+        );
+    }
+}
 
 /**
  * @title FleetCommanderTest
@@ -29,6 +69,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
     using PercentageUtils for uint256;
 
     FleetCommander public fleetCommander;
+    FleetCommanderStorageWriter public fleetCommanderStorageWriter;
     address public governor = address(1);
     address public raft = address(2);
     address public mockUser = address(3);
@@ -47,8 +88,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
 
     string public fleetName = "OK_Fleet";
 
-    uint256 public BUFFER_BALANCE_SLOT = uint256(8);
-    uint256 public MIN_BUFFER_BALANCE_SLOT = uint256(6);
+    uint256 public BUFFER_BALANCE_SLOT;
+    uint256 public MIN_BUFFER_BALANCE_SLOT;
 
     uint256 ark1_MAX_ALLOCATION = 10000 * 10 ** 6;
     uint256 ark2_MAX_ALLOCATION = 15000 * 10 ** 6;
@@ -112,6 +153,9 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
                 .fromDecimalPercentage(20)
         });
         fleetCommander = new FleetCommander(params);
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
+            address(fleetCommander)
+        );
 
         vm.startPrank(governor);
         fleetCommander.grantRole(keccak256("KEEPER_ROLE"), keeper);
@@ -176,16 +220,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
         // Set initial buffer balance and min buffer balance
-        vm.store(
-            address(fleetCommander),
-            bytes32(BUFFER_BALANCE_SLOT),
-            bytes32(initialBufferBalance)
-        ); // Slot for fundsBufferBalance
-        vm.store(
-            address(fleetCommander),
-            bytes32(MIN_BUFFER_BALANCE_SLOT),
-            bytes32(minBufferBalance)
-        ); // Slot for minFundsBufferBalance
+        fleetCommanderStorageWriter.setFundsBufferBalance(initialBufferBalance);
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
 
         // Mock token balance
         mockToken.mint(address(fleetCommander), initialBufferBalance);
@@ -229,16 +265,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         uint256 bufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
-        vm.store(
-            address(fleetCommander),
-            bytes32(BUFFER_BALANCE_SLOT),
-            bytes32(bufferBalance)
-        ); // Slot for fundsBufferBalance
-        vm.store(
-            address(fleetCommander),
-            bytes32(MIN_BUFFER_BALANCE_SLOT),
-            bytes32(bufferBalance)
-        ); // Slot for minFundsBufferBalance
+        fleetCommanderStorageWriter.setFundsBufferBalance(bufferBalance);
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(bufferBalance);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -261,16 +289,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
-        vm.store(
-            address(fleetCommander),
-            bytes32(BUFFER_BALANCE_SLOT),
-            bytes32(bufferBalance)
-        ); // Slot for fundsBufferBalance
-        vm.store(
-            address(fleetCommander),
-            bytes32(MIN_BUFFER_BALANCE_SLOT),
-            bytes32(minBufferBalance)
-        ); // Slot for minFundsBufferBalance
+        fleetCommanderStorageWriter.setFundsBufferBalance(bufferBalance);
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -296,16 +316,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
-        vm.store(
-            address(fleetCommander),
-            bytes32(BUFFER_BALANCE_SLOT),
-            bytes32(initialBufferBalance)
-        ); // Slot for fundsBufferBalance
-        vm.store(
-            address(fleetCommander),
-            bytes32(MIN_BUFFER_BALANCE_SLOT),
-            bytes32(minBufferBalance)
-        ); // Slot for minFundsBufferBalance
+        fleetCommanderStorageWriter.setFundsBufferBalance(initialBufferBalance);
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
 
         // Mock token balance
         mockToken.mint(address(fleetCommander), initialBufferBalance);
@@ -342,16 +354,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
-        vm.store(
-            address(fleetCommander),
-            bytes32(BUFFER_BALANCE_SLOT),
-            bytes32(initialBufferBalance)
-        );
-        vm.store(
-            address(fleetCommander),
-            bytes32(MIN_BUFFER_BALANCE_SLOT),
-            bytes32(minBufferBalance)
-        );
+        fleetCommanderStorageWriter.setFundsBufferBalance(initialBufferBalance);
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
 
         mockToken.mint(address(fleetCommander), initialBufferBalance);
         mockToken.mint(ark1, 5000 * 10 ** 6);
@@ -392,16 +396,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         uint256 ark2IntitialBalance = 2500 * 10 ** 6;
         uint256 ark3IntitialBalance = 2500 * 10 ** 6;
 
-        vm.store(
-            address(fleetCommander),
-            bytes32(BUFFER_BALANCE_SLOT),
-            bytes32(initialBufferBalance)
-        );
-        vm.store(
-            address(fleetCommander),
-            bytes32(MIN_BUFFER_BALANCE_SLOT),
-            bytes32(minBufferBalance)
-        );
+        fleetCommanderStorageWriter.setFundsBufferBalance(initialBufferBalance);
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
 
         mockToken.mint(address(fleetCommander), initialBufferBalance);
         mockToken.mint(ark1, ark1IntitialBalance);
@@ -572,14 +568,16 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander.updateRebalanceCooldown(cooldown);
 
         // Try to rebalance again immediately
-        vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(
-                FleetCommanderRebalanceCooldownNotElapsed.selector,
+                CooldownNotElapsed.selector,
+                fleetCommander.getLastActionTimestamp(),
                 cooldown,
                 block.timestamp
             )
         );
+
+        vm.prank(keeper);
         fleetCommander.rebalance(rebalanceData);
 
         // Advance time and try again

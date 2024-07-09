@@ -3,8 +3,8 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {CooldownEnforcer} from "../../src/utils/CooldownEnforcer/CooldownEnforcer.sol";
-import {ICooldownEnforcerErrors} from "../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
-import {ICooldownEnforcerEvents} from "../../src/utils/CooldownEnforcer/ICooldownEnforcerEvents.sol";
+import "../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
+import "../../src/utils/CooldownEnforcer/ICooldownEnforcerEvents.sol";
 
 /** Mock contract to use the abstract contract CooldownEnforcer */
 contract CooldownEnforcerMock is CooldownEnforcer {
@@ -24,11 +24,7 @@ contract CooldownEnforcerMock is CooldownEnforcer {
     }
 }
 
-contract CooldownEnforcerTest is
-    Test,
-    ICooldownEnforcerErrors,
-    ICooldownEnforcerEvents
-{
+contract CooldownEnforcerTest is Test {
     CooldownEnforcerMock public cooldownEnforcerInitialCooldown;
     CooldownEnforcerMock public cooldownEnforcerNotInitialCooldown;
 
