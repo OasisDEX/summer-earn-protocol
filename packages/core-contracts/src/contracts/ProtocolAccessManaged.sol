@@ -18,7 +18,11 @@ contract ProtocolAccessManaged {
             revert InvalidAccessManagerAddress(address(0));
         }
 
-        if (!IERC165(accessManager).supportsInterface(type(IProtocolAccessManager).interfaceId)) {
+        if (
+            !IERC165(accessManager).supportsInterface(
+                type(IProtocolAccessManager).interfaceId
+            )
+        ) {
             revert InvalidAccessManagerAddress(accessManager);
         }
 

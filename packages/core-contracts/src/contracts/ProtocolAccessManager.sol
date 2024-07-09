@@ -65,8 +65,12 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
     }
 
     // Override supportsInterface to include IProtocolAccessManager
-    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
-        return interfaceId == type(IProtocolAccessManager).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override returns (bool) {
+        return
+            interfaceId == type(IProtocolAccessManager).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /* @inheritdoc IProtocolAccessControl */
