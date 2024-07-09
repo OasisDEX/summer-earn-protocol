@@ -101,9 +101,4 @@ interface IFleetCommanderEvents {
         address indexed keeper,
         uint256 totalMoved
     );
-    /**
-     *
-     * @param newCooldown New rebalance cooldown period
-     */
-    event RebalanceCooldownUpdated(uint256 newCooldown);
 }

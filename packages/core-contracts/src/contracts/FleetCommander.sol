@@ -7,13 +7,20 @@ import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/Fl
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
 
 /**
  * @custom:see IFleetCommander
  */
-contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
+contract FleetCommander is
+    IFleetCommander,
+    FleetCommanderAccessControl,
+    ERC4626,
+    ProtocolAccessManaged,
+    CooldownEnforcer
+{
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
@@ -21,8 +28,6 @@ contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
     address[] private _activeArks;
     uint256 public fundsBufferBalance;
     uint256 public minFundsBufferBalance;
-    uint256 public lastRebalanceTime;
-    uint256 public rebalanceCooldown;
     Percentage public minPositionWithdrawalPercentage;
     Percentage public maxBufferWithdrawalPercentage;
 
@@ -34,10 +39,11 @@ contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         ProtocolAccessManaged(params.accessManager)
+        CooldownEnforcer(params.initialRebalanceCooldown, false)
     {
         _setupArks(params.initialArks);
+
         minFundsBufferBalance = params.initialFundsBufferBalance;
-        rebalanceCooldown = params.initialRebalanceCooldown;
         minPositionWithdrawalPercentage = params
             .initialMinimumPositionWithdrawal;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
@@ -112,12 +118,11 @@ contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
     /* EXTERNAL - KEEPER */
     function rebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper {
+    ) external onlyKeeper enforceCooldown {
         _validateRebalanceData(rebalanceData);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             _reallocateAssets(rebalanceData[i]);
         }
-        lastRebalanceTime = block.timestamp;
         emit Rebalanced(msg.sender, rebalanceData);
     }
 
@@ -195,7 +200,7 @@ contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
 
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper {
+    ) external onlyKeeper enforceCooldown {
         _validateRebalanceData(rebalanceData);
 
         uint256 excessFunds = 0;
@@ -238,8 +243,6 @@ contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
         if (totalMoved > excessFunds) {
             revert FleetCommanderMovedMoreThanAvailable();
         }
-
-        lastRebalanceTime = block.timestamp;
 
         emit FleetCommanderBufferAdjusted(msg.sender, totalMoved);
     }
@@ -295,8 +298,7 @@ contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
     function updateRebalanceCooldown(
         uint256 newCooldown
     ) external onlyGovernor {
-        rebalanceCooldown = newCooldown;
-        emit RebalanceCooldownUpdated(newCooldown);
+        _updateCooldown(newCooldown);
     }
 
     function forceRebalance(bytes calldata data) external onlyGovernor {}
@@ -319,13 +321,7 @@ contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
 
     function _validateRebalanceData(
         RebalanceData[] calldata rebalanceData
-    ) internal view {
-        if (block.timestamp < lastRebalanceTime + rebalanceCooldown) {
-            revert FleetCommanderRebalanceCooldownNotElapsed(
-                rebalanceCooldown,
-                lastRebalanceTime
-            );
-        }
+    ) internal pure {
         if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
             revert FleetCommanderRebalanceTooManyOperations(
                 rebalanceData.length

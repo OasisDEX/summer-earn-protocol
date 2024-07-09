@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Ark} from "../Ark.sol";
-import {IArk} from "../../interfaces/IArk.sol";
-import {ArkParams} from "../../types/ArkTypes.sol";
+import {Ark, ArkParams} from "../../src/contracts/Ark.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-// TODO: Move this to test directory
 
 contract ArkMock is Ark {
     constructor(ArkParams memory _params) Ark(_params) {}
