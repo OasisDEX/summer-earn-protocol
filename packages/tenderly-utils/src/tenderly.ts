@@ -3,7 +3,7 @@ import { ethers, JsonRpcProvider } from 'ethers'
 import { IAccountGuardAbi, IAccountImplementationAbi } from './abis'
 import { NetworkName, tokenAddresses } from './utils'
 import { getTokenDecimals } from './getTokenDecimals'
-import { exec } from "child_process";
+import { exec } from 'child_process'
 // TODO: use 'viem' instead of Ethers.js
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,11 +25,12 @@ const request = axios.create({
 
 export const spawnDevnet = async () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { TENDERLY_TEMPLATE, TENDERLY_PROJECT, TENDERLY_ACCOUNT, DEPLOYER_ADDRESS, FUND_AMOUNT } = process.env as any
+  const { TENDERLY_TEMPLATE, TENDERLY_PROJECT, TENDERLY_ACCOUNT, DEPLOYER_ADDRESS, FUND_AMOUNT } =
+    process.env as any
 
   if (!TENDERLY_TEMPLATE || !TENDERLY_PROJECT || !TENDERLY_ACCOUNT) {
     console.error(
-        'Please set TENDERLY_TEMPLATE, TENDERLY_PROJECT and TENDERLY_ACCOUNT in your .env file',
+      'Please set TENDERLY_TEMPLATE, TENDERLY_PROJECT and TENDERLY_ACCOUNT in your .env file',
     )
     process.exit(1)
   }
@@ -47,7 +48,7 @@ export const spawnDevnet = async () => {
 
     const newDevNetUrl = stderr.trim()
 
-    const ONE_ETH =  '0xDE0B6B3A7640000';
+    const ONE_ETH = '0xDE0B6B3A7640000'
     const fundCommand = `curl ${newDevNetUrl} -X POST -H "Content-Type: application/json" -d '{
       "jsonrpc": "2.0",
       "method": "tenderly_setBalance",
@@ -66,7 +67,6 @@ export const spawnDevnet = async () => {
     })
   })
 }
-
 
 export const createFork = async ({
   network,

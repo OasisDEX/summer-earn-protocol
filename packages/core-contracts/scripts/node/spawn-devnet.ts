@@ -1,4 +1,4 @@
 import 'dotenv/config'
-import { spawnDevnet } from "@summerfi/tenderly-utils";
+import { spawnDevnet } from '@summerfi/tenderly-utils'
 
 spawnDevnet()
