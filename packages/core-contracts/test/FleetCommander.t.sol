@@ -12,7 +12,7 @@ import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../src/errors/FleetCommanderErrors.sol";
 import {CooldownNotElapsed} from "../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
-import {ArkMock} from "../src/contracts/test/ArkMock.sol";
+import {ArkMock} from "../test/mocks/ArkMock.sol";
 
 import {FleetCommanderStorageWriter} from "./helpers/FleetCommanderStorageWriter.sol";
 
