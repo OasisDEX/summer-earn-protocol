@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import "../src/contracts/FleetCommander.sol";
 import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -14,44 +14,7 @@ import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../sr
 import {CooldownNotElapsed} from "../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
 import {ArkMock} from "../src/contracts/test/ArkMock.sol";
 
-contract FleetCommanderStorageWriter is Test {
-    using stdStorage for StdStorage;
-
-    address public fleetCommander;
-
-    uint256 public FundsBufferBalanceSlot;
-    uint256 public MinFundsBufferBalanceSlot;
-
-    constructor(address fleetCommander_) {
-        fleetCommander = fleetCommander_;
-
-        FundsBufferBalanceSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).fundsBufferBalance.selector)
-            .find();
-
-        MinFundsBufferBalanceSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).minFundsBufferBalance.selector)
-            .find();
-    }
-
-    function setFundsBufferBalance(uint256 value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(FundsBufferBalanceSlot),
-            bytes32(value)
-        );
-    }
-
-    function setMinFundsBufferBalance(uint256 value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(MinFundsBufferBalanceSlot),
-            bytes32(value)
-        );
-    }
-}
+import {FleetCommanderStorageWriter} from "./helpers/FleetCommanderStorageWriter.sol";
 
 /**
  * @title FleetCommanderTest

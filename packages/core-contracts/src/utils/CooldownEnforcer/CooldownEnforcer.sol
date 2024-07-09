@@ -55,8 +55,12 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
                 block.timestamp
             );
         }
-        _;
+
+        // Update the last action timestamp to the current block timestamp
+        // before executing the function so it acts as a reentrancy guard
+        // by not allowing a second call to execute
         _lastActionTimestamp = block.timestamp;
+        _;
     }
 
     /** VIEW FUNCTIONS */
