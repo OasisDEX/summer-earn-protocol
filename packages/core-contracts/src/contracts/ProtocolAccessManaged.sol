@@ -3,12 +3,12 @@ pragma solidity 0.8.26;
 
 import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../errors/AccessControlErrors.sol";
 
-// TODO: Make upgradeable
-
 /**
- * @custom:see IAccessManaged
+ * @title ProtocolAccessManaged
+ * @notice Defines shared modifiers for all managed contracts
  */
 contract ProtocolAccessManaged {
     ProtocolAccessManager internal _accessManager;
@@ -18,13 +18,7 @@ contract ProtocolAccessManaged {
             revert InvalidAccessManagerAddress(address(0));
         }
 
-        IProtocolAccessManager manager = IProtocolAccessManager(accessManager);
-
-        try manager.isValidAccessManager() returns (bool result) {
-            if (!result) {
-                revert InvalidAccessManagerAddress(accessManager);
-            }
-        } catch {
+        if (!IERC165(accessManager).supportsInterface(type(IProtocolAccessManager).interfaceId)) {
             revert InvalidAccessManagerAddress(accessManager);
         }
 

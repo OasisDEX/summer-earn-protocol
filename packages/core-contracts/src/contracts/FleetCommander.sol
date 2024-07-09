@@ -29,18 +29,18 @@ contract FleetCommander is IFleetCommander, ERC4626, ProtocolAccessManaged {
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
     constructor(
-        FleetCommanderParams memory _params
+        FleetCommanderParams memory params
     )
-        ERC4626(IERC20(_params.asset))
-        ERC20(_params.name, _params.symbol)
-        ProtocolAccessManaged(_params.accessManager)
+        ERC4626(IERC20(params.asset))
+        ERC20(params.name, params.symbol)
+        ProtocolAccessManaged(params.accessManager)
     {
-        _setupArks(_params.initialArks);
-        minFundsBufferBalance = _params.initialFundsBufferBalance;
-        rebalanceCooldown = _params.initialRebalanceCooldown;
-        minPositionWithdrawalPercentage = _params
+        _setupArks(params.initialArks);
+        minFundsBufferBalance = params.initialFundsBufferBalance;
+        rebalanceCooldown = params.initialRebalanceCooldown;
+        minPositionWithdrawalPercentage = params
             .initialMinimumPositionWithdrawal;
-        maxBufferWithdrawalPercentage = _params.initialMaximumBufferWithdrawal;
+        maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
     }
 
     /* PUBLIC - ACCESSORS */

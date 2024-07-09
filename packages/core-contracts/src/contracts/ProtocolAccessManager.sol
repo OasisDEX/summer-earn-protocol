@@ -3,6 +3,8 @@ pragma solidity 0.8.26;
 
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../errors/AccessControlErrors.sol";
 
 /**
@@ -62,6 +64,11 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
         _;
     }
 
+    // Override supportsInterface to include IProtocolAccessManager
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(IProtocolAccessManager).interfaceId || super.supportsInterface(interfaceId);
+    }
+
     /* @inheritdoc IProtocolAccessControl */
     function grantAdminRole(address account) external onlyAdmin {
         _grantRole(DEFAULT_ADMIN_ROLE, account);
@@ -106,10 +113,5 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
      */
     function revokeRole(bytes32, address) public view override {
         revert DirectRevokeIsDisabled(msg.sender);
-    }
-
-    /* @inheritdoc IProtocolAccessControl */
-    function isValidAccessManager() external pure returns (bool) {
-        return true;
     }
 }
