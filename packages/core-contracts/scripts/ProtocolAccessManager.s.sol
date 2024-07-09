@@ -12,7 +12,9 @@ contract ProtocolAccessManagerDeploy is DeploymentScript {
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
-        IProtocolAccessManager manager = new ProtocolAccessManager(config.governor);
+        IProtocolAccessManager manager = new ProtocolAccessManager(
+            config.governor
+        );
         console.log("Deployed Protocol Access Manager Address");
         console.log(address(manager));
 

@@ -50,11 +50,27 @@ contract DeploymentScript is Script {
         Config memory _config;
         _config.governor = _readAddressFromJson(json, _network_, "governor");
         _config.raft = _readAddressFromJson(json, _network_, "raft");
-        _config.protocolAccessManager = _readAddressFromJson(json, _network_, "protocolAccessManager");
-        _config.configurationManager = _readAddressFromJson(json, _network_, "configurationManager");
+        _config.protocolAccessManager = _readAddressFromJson(
+            json,
+            _network_,
+            "protocolAccessManager"
+        );
+        _config.configurationManager = _readAddressFromJson(
+            json,
+            _network_,
+            "configurationManager"
+        );
         _config.usdcToken = _readAddressFromJson(json, _network_, "usdcToken");
-        _config.aaveV3Pool = _readAddressFromJson(json, _network_, "aaveV3Pool");
-        _config.compoundV3Pool = _readAddressFromJson(json, _network_, "compound.usdcToken");
+        _config.aaveV3Pool = _readAddressFromJson(
+            json,
+            _network_,
+            "aaveV3Pool"
+        );
+        _config.compoundV3Pool = _readAddressFromJson(
+            json,
+            _network_,
+            "compound.usdcToken"
+        );
 
         return _config;
     }

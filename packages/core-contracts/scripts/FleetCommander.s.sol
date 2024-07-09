@@ -61,9 +61,16 @@ contract FleetCommanderDeploy is DeploymentScript {
         string memory key = string(abi.encodePacked(".", network));
         bytes memory jsonByNetwork = json.parseRaw(key);
 
-        FleetDefinition memory fleetDefinition = abi.decode(jsonByNetwork, (FleetDefinition));
+        FleetDefinition memory fleetDefinition = abi.decode(
+            jsonByNetwork,
+            (FleetDefinition)
+        );
 
-        return (fleetDefinition.fleetName, fleetDefinition.symbol, fleetDefinition.arks);
+        return (
+            fleetDefinition.fleetName,
+            fleetDefinition.symbol,
+            fleetDefinition.arks
+        );
     }
 
     function _getFleetDefinitionPath() internal view returns (string memory) {
