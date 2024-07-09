@@ -16,7 +16,7 @@ contract DeploymentScript is Script {
 
     constructor() {
         (string memory _network, address _customToken) = _getTokenAndNetwork();
-        Config memory _config = _readConfig(network);
+        Config memory _config = _readConfig(_network);
 
         network = _network;
         customToken = _customToken;
@@ -35,6 +35,7 @@ contract DeploymentScript is Script {
     struct Config {
         address governor;
         address raft;
+        address protocolAccessManager;
         address configurationManager;
         address usdcToken;
         address aaveV3Pool;
@@ -42,51 +43,29 @@ contract DeploymentScript is Script {
     }
 
     function _readConfig(
-        string memory network
+        string memory _network_
     ) internal view returns (Config memory) {
         string memory json = vm.readFile("scripts/config.json");
 
-        // Governance configuration
-        string memory governorPath = string(
-            abi.encodePacked(".", network, ".governor")
-        );
-        address governor = json.readAddress(governorPath);
-        string memory raftPath = string(
-            abi.encodePacked(".", network, ".raft")
-        );
-        address raft = json.readAddress(raftPath);
-        string memory configurationManagerPath = string(
-            abi.encodePacked(".", network, ".configurationManager")
-        );
-        address configurationManager = json.readAddress(
-            configurationManagerPath
-        );
+        Config memory _config;
+        _config.governor = _readAddressFromJson(json, _network_, "governor");
+        _config.raft = _readAddressFromJson(json, _network_, "raft");
+        _config.protocolAccessManager = _readAddressFromJson(json, _network_, "protocolAccessManager");
+        _config.configurationManager = _readAddressFromJson(json, _network_, "configurationManager");
+        _config.usdcToken = _readAddressFromJson(json, _network_, "usdcToken");
+        _config.aaveV3Pool = _readAddressFromJson(json, _network_, "aaveV3Pool");
+        _config.compoundV3Pool = _readAddressFromJson(json, _network_, "compound.usdcToken");
 
-        // Tokens
-        string memory usdcTokenPath = string(
-            abi.encodePacked(".", network, ".usdcToken")
-        );
+        return _config;
+    }
 
-        // Protocols
-        string memory aaveV3PoolPath = string(
-            abi.encodePacked(".", network, ".aaveV3Pool")
-        );
-        address aaveV3Pool = json.readAddress(aaveV3PoolPath);
-
-        string memory compoundPoolPath = string(
-            abi.encodePacked(".", network, ".compound.usdcToken")
-        );
-        address compoundV3Pool = json.readAddress(compoundPoolPath);
-
-        return
-            Config(
-                governor,
-                raft,
-                configurationManager,
-                usdcToken,
-                aaveV3Pool,
-                compoundV3Pool
-            );
+    function _readAddressFromJson(
+        string memory json,
+        string memory _network_,
+        string memory key
+    ) internal pure returns (address) {
+        string memory path = string(abi.encodePacked(".", _network_, ".", key));
+        return json.readAddress(path);
     }
 
     function _getTokenAndNetwork()
@@ -94,14 +73,14 @@ contract DeploymentScript is Script {
         view
         returns (string memory, address)
     {
-        string memory network = vm.envString("NETWORK");
-        address customToken;
+        string memory _network = vm.envString("NETWORK");
+        address _customToken;
         try vm.envAddress("TOKEN") returns (address token) {
-            customToken = token;
+            _customToken = token;
         } catch {
-            customToken = address(0);
+            _customToken = address(0);
         }
 
-        return (network, customToken);
+        return (_network, _customToken);
     }
 }

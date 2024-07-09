@@ -14,7 +14,7 @@ contract ConfigurationManagerDeploy is DeploymentScript {
 
         IConfigurationManager manager = new ConfigurationManager(
             ConfigurationManagerParams({
-                governor: config.governor,
+                accessManager: config.protocolAccessManager,
                 raft: config.raft
             })
         );

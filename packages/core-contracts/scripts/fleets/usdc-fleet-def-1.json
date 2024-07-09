@@ -4,12 +4,12 @@
     "symbol": "FCBUSD",
     "arks": [
       {
-        "ark": "0x0000000000000000000000000000000000000001",
-        "maxAllocation": 5000000
+        "ark": "0x675b2F51FAe37801a70aA4D335AB1f4Adc443Fd1",
+        "maxAllocation": 5000000000
       },
       {
-        "ark": "0x0000000000000000000000000000000000000002",
-        "maxAllocation": 5000000
+        "ark": "0x77554F2077714741E38a229699e0Cc128249CcbB",
+        "maxAllocation": 5000000000
       }
     ]
   }

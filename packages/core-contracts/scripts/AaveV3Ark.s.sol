@@ -17,6 +17,7 @@ contract AaveV3ArkDeploy is DeploymentScript {
             : customToken;
 
         ArkParams memory params = ArkParams({
+            accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
             token: arkAssetToken
         });
