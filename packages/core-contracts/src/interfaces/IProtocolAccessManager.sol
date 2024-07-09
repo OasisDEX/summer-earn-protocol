@@ -3,8 +3,8 @@ pragma solidity 0.8.26;
 
 /**
  * @title IProtocolAccessManager
- * @notice Defines system roles and provides role based access control for
- *         contracts that adopt it
+ * @notice Defines system roles and provides role based remote-access control for
+ *         contracts that inherit from ProtocolAccessManaged contract
  */
 interface IProtocolAccessManager {
     /**
