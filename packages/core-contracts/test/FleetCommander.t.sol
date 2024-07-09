@@ -10,7 +10,7 @@ import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
-import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderRebalanceCooldownNotElapsed} from "../src/errors/FleetCommanderErrors.sol";
+import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../src/errors/FleetCommanderErrors.sol";
 import {CooldownNotElapsed} from "../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
 import {ArkMock} from "../src/contracts/test/ArkMock.sol";
 
