@@ -7,7 +7,7 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import "../../src/errors/FleetCommanderErrors.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
-import {FleetCommanderHelpers} from "../helpers/FleetCommanderHelpers.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderHelpers.sol";
 
 /**
  * @title Withdraw test suite for FleetCommander
@@ -19,7 +19,7 @@ import {FleetCommanderHelpers} from "../helpers/FleetCommanderHelpers.sol";
  * - Withdraw
  * - Error cases and edge scenarios
  */
-contract Withdraw is Test, ArkTestHelpers, FleetCommanderHelpers {
+contract Withdraw is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 depositAmount = 1000 * 10 ** 6;
 
     function setUp() public {

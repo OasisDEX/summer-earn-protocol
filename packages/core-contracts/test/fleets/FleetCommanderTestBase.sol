@@ -14,7 +14,7 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {FleetCommanderStorageWriter} from "./FleetCommanderStorageWriter.sol";
 
-abstract contract FleetCommanderHelpers {
+abstract contract FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     IProtocolAccessManager public accessManager;

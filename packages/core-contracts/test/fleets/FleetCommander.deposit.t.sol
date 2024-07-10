@@ -6,7 +6,7 @@ import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
-import {FleetCommanderHelpers} from "../helpers/FleetCommanderHelpers.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderHelpers.sol";
 
 /**
  * @title Deposit test suite for FleetCommander
@@ -18,7 +18,7 @@ import {FleetCommanderHelpers} from "../helpers/FleetCommanderHelpers.sol";
  * - Deposit
  * - Error cases and edge scenarios
  */
-contract Deposit is Test, ArkTestHelpers, FleetCommanderHelpers {
+contract Deposit is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
         fleetCommander = new FleetCommander(defaultFleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
@@ -35,6 +35,9 @@ contract Deposit is Test, ArkTestHelpers, FleetCommanderHelpers {
 
     function test_Deposit() public {
         uint256 amount = 1000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
+
+        fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
         mockToken.mint(mockUser, amount);
 
         vm.prank(mockUser);

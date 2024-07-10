@@ -101,4 +101,9 @@ interface IFleetCommanderEvents {
         address indexed keeper,
         uint256 totalMoved
     );
+    /**
+     *
+     * @param newBalance New minimum funds buffer balance
+     */
+    event FleetCommanderMinFundsBufferBalanceUpdated(uint256 newBalance);
 }
