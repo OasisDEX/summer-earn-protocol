@@ -16,6 +16,7 @@
   "scripts": {
     "test": "forge test",
     "build": "forge build",
+    "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
     "coverage": "forge coverage",
     "coverage:lcov": "forge coverage --report lcov",
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info"
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
+    "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*"
   }
 }
