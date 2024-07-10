@@ -54,5 +54,13 @@ jobs:
         run: pnpm format
 
       - name: Generate coverage report
-        run: pnpm coverage:report
+        run: pnpm coverage:lcov
         working-directory: packages/core-contracts
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./packages/core-contracts/lcov.info
+          flags: unittests
+          name: codecov-umbrella
