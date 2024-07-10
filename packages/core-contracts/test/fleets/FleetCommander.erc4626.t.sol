@@ -2,60 +2,30 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {FleetCommander} from "../src/contracts/FleetCommander.sol";
-import {PercentageUtils, Percentage} from "../src/libraries/PercentageUtils.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {PercentageUtils, Percentage} from "../../src/libraries/PercentageUtils.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ArkTestHelpers} from "./helpers/ArkHelpers.sol";
-import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
-import {ArkParams} from "../src/types/ArkTypes.sol";
-import {ArkConfiguration, FleetCommanderParams, RebalanceData} from "../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../src/errors/FleetCommanderErrors.sol";
-import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
-import {CooldownNotElapsed} from "../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
-import {ArkMock} from "../test/mocks/ArkMock.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {FleetCommanderParams, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 
-import {FleetCommanderStorageWriter} from "./helpers/FleetCommanderStorageWriter.sol";
+import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title ERC4626 methods test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's ERC4626 methods
  */
-contract FleetCommanderTest is Test, ArkTestHelpers, FleetCommanderTestBase {
-//    using PercentageUtils for uint256;
-//
-//    FleetCommander public fleetCommander;
-//    FleetCommanderStorageWriter public fleetCommanderStorageWriter;
-//    address public governor = address(1);
-//    address public raft = address(2);
-//    address public mockUser = address(3);
-//    address public mockUser2 = address(5);
-//    address public keeper = address(4);
-//
-//    address ark1 = address(10);
-//    address ark2 = address(11);
-//    address ark3 = address(12);
-//
-//    address invalidArk = address(999);
-//
-//    ERC20Mock public mockToken;
-//    ArkMock public mockArk1;
-//    ArkMock public mockArk2;
-//    ArkMock public mockArk3;
-//
-//    string public fleetName = "OK_Fleet";
-//
-//    uint256 public BUFFER_BALANCE_SLOT;
-//    uint256 public MIN_BUFFER_BALANCE_SLOT;
-//
-//    uint256 ark1_MAX_ALLOCATION = 10000 * 10 ** 6;
-//    uint256 ark2_MAX_ALLOCATION = 15000 * 10 ** 6;
+contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
+    using PercentageUtils for uint256;
 
     function setUp() public {
-        fleetCommander = new FleetCommander(defaultFleetCommanderParams);
+        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
+        // but you can create and initialize your own custom fleet if you wish.
+        fleetCommander = new FleetCommander(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );

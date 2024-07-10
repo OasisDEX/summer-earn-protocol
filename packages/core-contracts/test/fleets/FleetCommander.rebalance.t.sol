@@ -9,7 +9,7 @@ import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../..
 import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
-import {FleetCommanderTestBase} from "./FleetCommanderHelpers.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title Rebalance test suite for FleetCommander
@@ -21,9 +21,11 @@ import {FleetCommanderTestBase} from "./FleetCommanderHelpers.sol";
  * - Rebalancing operations
  * - Error cases and edge scenarios
  */
-contract Rebalance is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        fleetCommander = new FleetCommander(defaultFleetCommanderParams);
+        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
+        // but you can create and initialize your own custom fleet if you wish.
+        fleetCommander = new FleetCommander(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );

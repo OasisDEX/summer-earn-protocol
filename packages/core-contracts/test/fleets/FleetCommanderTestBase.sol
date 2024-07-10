@@ -12,7 +12,7 @@ import {ArkConfiguration, FleetCommanderParams} from "../../src/types/FleetComma
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
-import {FleetCommanderStorageWriter} from "./FleetCommanderStorageWriter.sol";
+import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 
 abstract contract FleetCommanderTestBase {
     using PercentageUtils for uint256;
@@ -20,7 +20,7 @@ abstract contract FleetCommanderTestBase {
     IProtocolAccessManager public accessManager;
     FleetCommanderStorageWriter public fleetCommanderStorageWriter;
     FleetCommander public fleetCommander;
-    FleetCommanderParams public defaultFleetCommanderParams;
+    FleetCommanderParams public fleetCommanderParams;
     address public governor = address(1);
     address public raft = address(2);
     address public mockUser = address(3);
@@ -99,7 +99,7 @@ abstract contract FleetCommanderTestBase {
             ark: ark3,
             maxAllocation: 10000 * 10 ** 6
         });
-        defaultFleetCommanderParams = FleetCommanderParams({
+        fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             initialArks: initialArks,
@@ -111,7 +111,8 @@ abstract contract FleetCommanderTestBase {
             initialMinimumPositionWithdrawal: PercentageUtils
                 .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils
-                .fromDecimalPercentage(20)
+                .fromDecimalPercentage(20),
+            depositCap: 100000000 * 10 ** 6
         });
     }
 }

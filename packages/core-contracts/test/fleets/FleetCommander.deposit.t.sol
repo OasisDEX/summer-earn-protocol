@@ -6,7 +6,7 @@ import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
-import {FleetCommanderTestBase} from "./FleetCommanderHelpers.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title Deposit test suite for FleetCommander
@@ -18,9 +18,11 @@ import {FleetCommanderTestBase} from "./FleetCommanderHelpers.sol";
  * - Deposit
  * - Error cases and edge scenarios
  */
-contract Deposit is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        fleetCommander = new FleetCommander(defaultFleetCommanderParams);
+        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
+        // but you can create and initialize your own custom fleet if you wish.
+        fleetCommander = new FleetCommander(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );

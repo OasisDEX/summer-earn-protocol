@@ -8,7 +8,7 @@ import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../../src/errors/FleetCommanderErrors.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
-import {FleetCommanderTestBase} from "./FleetCommanderHelpers.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title Buffer test suite for FleetCommander
@@ -21,9 +21,11 @@ import {FleetCommanderTestBase} from "./FleetCommanderHelpers.sol";
  * - Buffer adjustment
  * - Error cases and edge scenarios
  */
-contract Buffer is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        fleetCommander = new FleetCommander(defaultFleetCommanderParams);
+        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
+        // but you can create and initialize your own custom fleet if you wish.
+        fleetCommander = new FleetCommander(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );
