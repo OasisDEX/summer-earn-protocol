@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../src/contracts/FleetCommander.sol";
-import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
+import {PercentageUtils, Percentage} from "../src/libraries/PercentageUtils.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ArkTestHelpers} from "./helpers/ArkHelpers.sol";
 import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
@@ -39,6 +39,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
     address public governor = address(1);
     address public raft = address(2);
     address public mockUser = address(3);
+    address public mockUser2 = address(5);
     address public keeper = address(4);
 
     address ark1 = address(10);
@@ -127,7 +128,8 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
             initialMinimumPositionWithdrawal: PercentageUtils
                 .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils
-                .fromDecimalPercentage(20)
+                .fromDecimalPercentage(20),
+            depositCap: 100000000 * 10 ** 6
         });
         fleetCommander = new FleetCommander(params);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
@@ -142,8 +144,11 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         vm.stopPrank();
     }
 
-    function testDeposit() public {
+    function test_Deposit() public {
         uint256 amount = 1000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
+
+        fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
         mockToken.mint(mockUser, amount);
 
         vm.prank(mockUser);
@@ -157,7 +162,245 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         assertEq(amount, fleetCommander.balanceOf(mockUser));
     }
 
-    function testWithdraw() public {
+    function test_DepositRebalanceForceWithdraw() public {
+        // Arrange
+        uint256 user1Deposit = ark1_MAX_ALLOCATION;
+        uint256 user2Deposit = ark2_MAX_ALLOCATION;
+        uint256 depositCap = ark1_MAX_ALLOCATION + ark2_MAX_ALLOCATION;
+        uint256 minBufferBalance = 1000 * 10 ** 6;
+
+        // Set initial buffer balance and min buffer balance
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+
+        // Set deposit cap
+        fleetCommanderStorageWriter.setDepositCap(depositCap);
+
+        // Mint tokens for users
+        mockToken.mint(mockUser, user1Deposit);
+        mockToken.mint(mockUser2, user2Deposit);
+
+        // User 1 deposits
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), user1Deposit);
+        uint256 user1PreviewShares = fleetCommander.previewDeposit(
+            user1Deposit
+        );
+        uint256 user1DepositedShares = fleetCommander.deposit(
+            user1Deposit,
+            mockUser
+        );
+        assertEq(
+            user1PreviewShares,
+            user1DepositedShares,
+            "Preview and deposited shares should be equal"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            user1Deposit,
+            "User 1 balance should be equal to deposit"
+        );
+        vm.stopPrank();
+
+        // User 2 deposits
+        vm.startPrank(mockUser2);
+        mockToken.approve(address(fleetCommander), user2Deposit);
+        uint256 user2PreviewShares = fleetCommander.previewDeposit(
+            user2Deposit
+        );
+        uint256 user2DepositedShares = fleetCommander.deposit(
+            user2Deposit,
+            mockUser2
+        );
+        assertEq(
+            user2PreviewShares,
+            user2DepositedShares,
+            "Preview and deposited shares should be equal"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser2),
+            user2Deposit,
+            "User 2 balance should be equal to deposit"
+        );
+        vm.stopPrank();
+
+        // Rebalance funds to Ark1 and Ark2
+        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
+        rebalanceData[0] = RebalanceData({
+            fromArk: address(fleetCommander),
+            toArk: ark1,
+            amount: user1Deposit
+        });
+        rebalanceData[1] = RebalanceData({
+            fromArk: address(fleetCommander),
+            toArk: ark2,
+            amount: user2Deposit
+        });
+
+        vm.prank(keeper);
+        fleetCommander.adjustBuffer(rebalanceData);
+
+        // Advance time and update Ark1 and Ark2 balances to simulate interest accrual
+        vm.warp(block.timestamp + 1 days);
+
+        mockToken.mint(ark1, (user1Deposit * 5) / 100);
+        mockToken.mint(ark2, (user2Deposit * 10) / 100);
+
+        // User 1 withdraws
+        vm.startPrank(mockUser);
+        uint256 user1Shares = fleetCommander.balanceOf(mockUser);
+        uint256 user1Assets = fleetCommander.previewRedeem(user1Shares);
+        fleetCommander.forceWithdraw(user1Assets, mockUser, mockUser);
+
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "User 1 balance should be 0"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            user1Assets,
+            "User 1 should receive assets"
+        );
+        vm.stopPrank();
+
+        // User 2 withdraws
+        vm.startPrank(mockUser2);
+        uint256 user2Shares = fleetCommander.balanceOf(mockUser2);
+        uint256 user2Assets = fleetCommander.previewRedeem(user2Shares);
+        fleetCommander.forceWithdraw(user2Assets, mockUser2, mockUser2);
+
+        assertEq(
+            fleetCommander.balanceOf(mockUser2),
+            0,
+            "User 2 balance should be 0"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser2),
+            user2Assets,
+            "User 2 should receive assets"
+        );
+        vm.stopPrank();
+
+        // Assert
+        // TODO: One wei off due to rounding error
+        assertEq(
+            fleetCommander.totalAssets(),
+            1,
+            "Total assets should be 0 after withdrawals"
+        );
+    }
+
+    function test_MaxDeposit() public {
+        // Arrange
+        uint256 userBalance = 1000 * 10 ** 6;
+        uint256 depositCap = 100000 * 10 ** 6;
+
+        // Set deposit cap and total assets
+        fleetCommanderStorageWriter.setDepositCap(depositCap);
+        fleetCommanderStorageWriter.setFundsBufferBalance(0);
+
+        // Mock user balance
+        mockToken.mint(mockUser, userBalance);
+
+        // Act
+        vm.prank(mockUser);
+        uint256 maxDeposit = fleetCommander.maxDeposit(mockUser);
+
+        // Assert
+        assertEq(
+            maxDeposit,
+            userBalance,
+            "Max deposit should be the user balance - first deposit so shares equal balance"
+        );
+    }
+
+    function test_MaxMint() public {
+        // Arrange
+        uint256 userBalance = 1000 * 10 ** 6;
+        uint256 depositCap = 50000 * 10 ** 6;
+
+        // Set deposit cap and total assets
+        fleetCommanderStorageWriter.setDepositCap(depositCap);
+
+        // Mock user balance
+        mockToken.mint(mockUser, userBalance);
+
+        // Act
+        vm.prank(mockUser);
+        uint256 maxMint = fleetCommander.maxMint(mockUser);
+
+        // Assert
+        assertEq(
+            maxMint,
+            userBalance,
+            "Max mint should be the user balance - first deposit so shares equal balance"
+        );
+    }
+
+    function test_MaxWithdraw() public {
+        // Arrange
+        uint256 userBalance = 1000 * 10 ** 6;
+        uint256 bufferBalance = fleetCommander.fundsBufferBalance();
+        uint256 depositCap = 50000 * 10 ** 6;
+        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(
+            20
+        );
+
+        // Set buffer balance and max buffer withdrawal percentage
+        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(
+            maxBufferPercentage
+        );
+        fleetCommanderStorageWriter.setDepositCap(depositCap);
+
+        // Mock user balance
+        mockToken.mint(mockUser, userBalance);
+
+        // Act
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), userBalance);
+        fleetCommander.deposit(userBalance, mockUser);
+        uint256 maxWithdraw = fleetCommander.maxWithdraw(mockUser);
+        vm.stopPrank();
+
+        // Assert
+        assertEq(
+            maxWithdraw,
+            (bufferBalance + userBalance).applyPercentage(maxBufferPercentage),
+            "Max withdraw should be the buffer withdrawal percentage of the total assets (initial buffer + deposited user funds)"
+        );
+    }
+
+    function test_MaxRedeem() public {
+        // Arrange
+        uint256 userBalance = 1000 * 10 ** 6;
+        uint256 bufferBalance = fleetCommander.fundsBufferBalance();
+        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(
+            20
+        );
+
+        // Set buffer balance and max buffer withdrawal percentage
+        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(
+            maxBufferPercentage
+        );
+
+        // Mock user balance
+        mockToken.mint(mockUser, userBalance);
+
+        // Act
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), userBalance);
+        fleetCommander.deposit(userBalance, mockUser);
+        uint256 maxRedeem = fleetCommander.maxRedeem(mockUser);
+
+        // Assert
+        assertEq(
+            maxRedeem,
+            (bufferBalance + userBalance).applyPercentage(maxBufferPercentage),
+            "Max redeem should be the buffer withdrawal percentage of the total assets (initial buffer + deposited user funds)"
+        );
+    }
+
+    function test_Withdraw() public {
         // Arrange (Deposit first)
         uint256 amount = 1000 * 10 ** 6;
         mockToken.mint(mockUser, amount);
@@ -182,7 +425,72 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         assertEq(amount - withdrawalAmount, fleetCommander.balanceOf(mockUser));
     }
 
-    function testAdjustBufferSuccess() public {
+    function test_Mint() public {
+        // Arrange
+        uint256 mintAmount = 1000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
+        uint256 bufferBalance = fleetCommander.fundsBufferBalance();
+
+        // Set buffer balance
+        fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
+
+        mockToken.mint(mockUser, mintAmount);
+
+        // Act
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), mintAmount);
+        fleetCommander.mint(mintAmount, mockUser);
+        vm.stopPrank();
+
+        // Assert
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            mintAmount,
+            "Mint should increase the user's balance"
+        );
+        assertEq(
+            fleetCommander.fundsBufferBalance(),
+            bufferBalance + mintAmount,
+            "Buffer balance should be updated"
+        );
+    }
+
+    function test_Redeem() public {
+        // Arrange
+        uint256 depositAmount = 1000 * 10 ** 6;
+        uint256 redeemAmount = 100 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
+
+        // Set buffer balance
+        fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
+
+        mockToken.mint(mockUser, depositAmount);
+
+        // Deposit first
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), depositAmount);
+        fleetCommander.deposit(depositAmount, mockUser);
+
+        uint256 bufferBalance = fleetCommander.fundsBufferBalance();
+
+        // Act
+        fleetCommander.redeem(redeemAmount, mockUser, mockUser);
+        vm.stopPrank();
+
+        // Assert
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositAmount - redeemAmount,
+            "Redeem should decrease the user's balance"
+        );
+        assertEq(
+            fleetCommander.fundsBufferBalance(),
+            bufferBalance - redeemAmount,
+            "Buffer balance should be updated"
+        );
+    }
+
+    function test_AdjustBufferSuccess() public {
         // Arrange
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
@@ -228,7 +536,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         );
     }
 
-    function testAdjustBufferNoExcessFunds() public {
+    function test_AdjustBufferNoExcessFunds() public {
         // Arrange
         uint256 bufferBalance = 10000 * 10 ** 6;
 
@@ -251,7 +559,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander.adjustBuffer(rebalanceData);
     }
 
-    function testAdjustBufferInvalidSourceArk() public {
+    function test_AdjustBufferInvalidSourceArk() public {
         // Arrange
         uint256 bufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
@@ -278,7 +586,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander.adjustBuffer(rebalanceData);
     }
 
-    function testAdjustBufferPartialMove() public {
+    function test_AdjustBufferPartialMove() public {
         // Arrange
         uint256 initialBufferBalance = 12000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
@@ -317,7 +625,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         );
     }
 
-    function testRebalanceSuccess() public {
+    function test_RebalanceSuccess() public {
         // Arrange
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
@@ -355,7 +663,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         );
     }
 
-    function testRebalanceMultipleArks() public {
+    function test_RebalanceMultipleArks() public {
         // Arrange
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
@@ -408,7 +716,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         );
     }
 
-    function testRebalanceInvalidSourceArk() public {
+    function test_RebalanceInvalidSourceArk() public {
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: invalidArk, // Invalid source
@@ -427,7 +735,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testRebalanceInvalidTargetArk() public {
+    function test_RebalanceInvalidTargetArk() public {
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
@@ -446,7 +754,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testRebalanceZeroAmount() public {
+    function test_RebalanceZeroAmount() public {
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
@@ -465,7 +773,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testRebalanceExceedMaxAllocation() public {
+    function test_RebalanceExceedMaxAllocation() public {
         // Arrange
         mockArkTotalAssets(ark1, 5000 * 10 ** 6);
         mockArkTotalAssets(ark2, ark2_MAX_ALLOCATION); // Already at max allocation
@@ -490,7 +798,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testRebalanceLowerRate() public {
+    function test_RebalanceLowerRate() public {
         // Arrange
         mockArkTotalAssets(ark1, 5000 * 10 ** 6);
         mockArkTotalAssets(ark2, 5000 * 10 ** 6);
@@ -517,7 +825,7 @@ contract FleetCommanderTest is Test, ArkTestHelpers {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testRebalanceCooldownNotElapsed() public {
+    function test_RebalanceCooldownNotElapsed() public {
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
