@@ -44,7 +44,7 @@ contract FleetCommander is
     {
         _setupArks(params.initialArks);
 
-        minFundsBufferBalance = params.initialFundsBufferBalance;
+        minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
         minPositionWithdrawalPercentage = params
             .initialMinimumPositionWithdrawal;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;

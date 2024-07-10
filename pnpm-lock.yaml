@@ -93,6 +93,9 @@ importers:
       '@summerfi/jest-config':
         specifier: workspace:*
         version: link:../jest-config
+      '@summerfi/tenderly-utils':
+        specifier: workspace:*
+        version: link:../tenderly-utils
       '@summerfi/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
