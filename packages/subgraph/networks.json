@@ -1,0 +1,14 @@
+{
+  "base": {
+    "fleetCommanderFactory": {
+      "address": "0xabc...",
+      "startBlock": 123456
+    }
+  },
+  "mainnet": {
+    "fleetCommanderFactory": {
+      "address": "0xabc...",
+      "startBlock": 123456
+    }
+  }
+}

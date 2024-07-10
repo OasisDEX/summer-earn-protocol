@@ -158,6 +158,12 @@ importers:
         specifier: ^29.1.2
         version: 29.1.5(@babel/core@7.24.7)(esbuild@0.20.2)(jest@29.7.0)(typescript@5.5.2)
 
+  packages/subgraph:
+    devDependencies:
+      '@graphprotocol/graph-ts':
+        specifier: ^0.35.1
+        version: 0.35.1
+
   packages/tenderly-utils:
     dependencies:
       '@inquirer/prompts':
@@ -992,6 +998,12 @@ packages:
       '@ethersproject/logger': 5.7.0
       '@ethersproject/properties': 5.7.0
       '@ethersproject/strings': 5.7.0
+    dev: true
+
+  /@graphprotocol/graph-ts@0.35.1:
+    resolution: {integrity: sha512-74CfuQmf7JI76/XCC34FTkMMKeaf+3Pn0FIV3m9KNeaOJ+OI3CvjMIVRhOZdKcJxsFCBGaCCl0eQjh47xTjxKA==}
+    dependencies:
+      assemblyscript: 0.19.10
     dev: true
 
   /@humanwhocodes/config-array@0.11.14:
@@ -2024,6 +2036,14 @@ packages:
       is-shared-array-buffer: 1.0.3
     dev: true
 
+  /assemblyscript@0.19.10:
+    resolution: {integrity: sha512-HavcUBXB3mBTRGJcpvaQjmnmaqKHBGREjSPNsIvnAk2f9dj78y4BkMaSSdvBQYWcDDzsHQjyUC8stICFkD1Odg==}
+    hasBin: true
+    dependencies:
+      binaryen: 101.0.0-nightly.20210723
+      long: 4.0.0
+    dev: true
+
   /ast-module-types@5.0.0:
     resolution: {integrity: sha512-JvqziE0Wc0rXQfma0HZC/aY7URXHFuZV84fJRtP8u+lhp0JYCNd5wJzVXP45t0PH0Mej3ynlzvdyITYIu0G4LQ==}
     engines: {node: '>=14'}
@@ -2141,6 +2161,11 @@ packages:
   /binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
+    dev: true
+
+  /binaryen@101.0.0-nightly.20210723:
+    resolution: {integrity: sha512-eioJNqhHlkguVSbblHOtLqlhtC882SOEPKmNFZaDuz1hzQjolxZ+eu3/kaS10n3sGPONsIZsO7R9fR00UyhEUA==}
+    hasBin: true
     dev: true
 
   /bl@4.1.0:
@@ -4541,6 +4566,10 @@ packages:
     dependencies:
       chalk: 4.1.2
       is-unicode-supported: 0.1.0
+    dev: true
+
+  /long@4.0.0:
+    resolution: {integrity: sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==}
     dev: true
 
   /lru-cache@5.1.1:

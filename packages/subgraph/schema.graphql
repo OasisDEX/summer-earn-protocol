@@ -1,0 +1,8 @@
+type User @entity(immutable: true) {
+  id: Bytes!
+  positions: [Position!]! @derivedFrom(field: "user")
+}
+type Position {
+  id: Bytes!
+  user: User!
+}
