@@ -13,3 +13,4 @@
 -  TODO: add `code quality` badge to the repo
 -  TODO: decide on the deployment scripts - do we go with what we have or `hardhat-ignition`
 - TODO: decide whether want to uni-laterally block grantRole and revokeRole methods in ProtocolAccessManager.sol
+- TODO: organise addresses more effectively and reading from config in /scripts
