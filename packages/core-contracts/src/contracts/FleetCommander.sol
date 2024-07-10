@@ -511,6 +511,7 @@ contract FleetCommander is
         // Remove from _activeArks if present
         for (uint256 i = 0; i < _activeArks.length; i++) {
             if (_activeArks[i] == ark) {
+                _validateArkRemoval(ark);
                 _activeArks[i] = _activeArks[_activeArks.length - 1];
                 _activeArks.pop();
                 break;
@@ -519,6 +520,17 @@ contract FleetCommander is
 
         delete _arks[ark];
         emit ArkRemoved(ark);
+    }
+
+    function _validateArkRemoval(address ark) internal view {
+        IArk _ark = IArk(ark);
+        if (_ark.depositCap() > 0) {
+            revert FleetCommanderArkDepositCapGreaterThanZero(ark);
+        }
+
+        if (_ark.totalAssets() != 0) {
+            revert FleetCommanderArkAssetsNotZero(ark);
+        }
     }
 
     /* INTERNAL - VALIDATIONS */

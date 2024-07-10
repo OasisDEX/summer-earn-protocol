@@ -10,6 +10,9 @@ import "../events/IArkEvents.sol";
 interface IArk is IArkAccessManaged, IArkEvents {
     /* FUNCTIONS - PUBLIC */
 
+    /// @notice Returns latest deposit cap set for this Ark
+    function depositCap() external view returns (uint256);
+
     /// @notice Returns the current underlying balance of the Ark (token precision)
     function totalAssets() external view returns (uint256);
 
