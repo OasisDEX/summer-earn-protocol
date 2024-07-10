@@ -48,9 +48,7 @@ abstract contract FleetCommanderHelpers {
     constructor() {
         mockToken = new ERC20Mock();
 
-        accessManager = new ProtocolAccessManager(
-            governor
-        );
+        accessManager = new ProtocolAccessManager(governor);
 
         IConfigurationManager configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
@@ -111,9 +109,9 @@ abstract contract FleetCommanderHelpers {
             name: fleetName,
             symbol: string(abi.encodePacked(mockToken.symbol(), "-SUM")),
             initialMinimumPositionWithdrawal: PercentageUtils
-        .fromDecimalPercentage(2),
+                .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils
-        .fromDecimalPercentage(20)
+                .fromDecimalPercentage(20)
         });
     }
 }

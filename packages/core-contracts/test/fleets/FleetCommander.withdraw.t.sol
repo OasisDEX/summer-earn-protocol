@@ -58,7 +58,10 @@ contract Withdraw is Test, ArkTestHelpers, FleetCommanderHelpers {
         fleetCommander.withdraw(depositAmount / 10, mockUser, mockUser);
 
         // Assert
-        assertEq(depositAmount - withdrawalAmount, fleetCommander.balanceOf(mockUser));
+        assertEq(
+            depositAmount - withdrawalAmount,
+            fleetCommander.balanceOf(mockUser)
+        );
     }
 
     function test_RevertIfArkDepositCapNotZero() public {
