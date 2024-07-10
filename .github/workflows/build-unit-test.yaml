@@ -52,3 +52,7 @@ jobs:
 
       - name: Format
         run: pnpm format
+
+      - name: Generate coverage report
+        run: pnpm coverage:report
+        working-directory: packages/core-contracts
