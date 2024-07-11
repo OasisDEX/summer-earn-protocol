@@ -19,7 +19,9 @@ contract ProtocolAccessManaged is Initializable {
         _disableInitializers();
     }
 
-    function __ProtocolAccessManaged_init(address accessManager) public onlyInitializing {
+    function __ProtocolAccessManaged_init(
+        address accessManager
+    ) public onlyInitializing {
         if (accessManager == address(0)) {
             revert InvalidAccessManagerAddress(address(0));
         }

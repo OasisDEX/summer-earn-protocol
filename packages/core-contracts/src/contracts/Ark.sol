@@ -59,6 +59,10 @@ abstract contract Ark is IArk, Initializable, ArkAccessManaged {
         emit Disembarked(msg.sender, address(token), amount);
     }
 
+    function setMaxAllocation(
+        uint256 newMaxAllocation
+    ) external onlyCommander {}
+
     /* EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external onlyGovernor {}
 

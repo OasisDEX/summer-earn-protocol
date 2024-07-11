@@ -7,7 +7,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ArkConfiguration, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ArkMock, BaseArkParams} from "../mocks/ArkMock.sol";
@@ -33,6 +33,7 @@ abstract contract FleetCommanderTestBase {
 
     address invalidArk = address(999);
 
+    address[] initialArks;
     ERC20Mock public mockToken;
     ArkMock public mockArk1;
     ArkMock public mockArk2;
@@ -52,29 +53,35 @@ abstract contract FleetCommanderTestBase {
         accessManager = new ProtocolAccessManager(governor);
 
         IConfigurationManager configurationManagerImp = new ConfigurationManager();
-        ConfigurationManager configurationManager = ConfigurationManager(Clones.clone(address(configurationManagerImp)));
-        configurationManager.initialize(ConfigurationManagerParams({
-            accessManager: address(accessManager),
-            raft: raft
-        }));
+        ConfigurationManager configurationManager = ConfigurationManager(
+            Clones.clone(address(configurationManagerImp))
+        );
+        configurationManager.initialize(
+            ConfigurationManagerParams({
+                accessManager: address(accessManager),
+                raft: raft
+            })
+        );
 
         ArkMock mockArkImp = new ArkMock();
         mockArk1 = ArkMock(Clones.clone(address(mockArkImp)));
         mockArk2 = ArkMock(Clones.clone(address(mockArkImp)));
         mockArk3 = ArkMock(Clones.clone(address(mockArkImp)));
 
-        mockArk1.initialize(BaseArkParams({
-            accessManager: address(accessManager),
-            token: address(mockToken),
-            configurationManager: address(configurationManager),
-            maxAllocation: 1000000000
-        }));
+        mockArk1.initialize(
+            BaseArkParams({
+                accessManager: address(accessManager),
+                token: address(mockToken),
+                configurationManager: address(configurationManager),
+                maxAllocation: 10000 * 10 ** 6
+            })
+        );
         mockArk2.initialize(
             BaseArkParams({
                 accessManager: address(accessManager),
                 token: address(mockToken),
                 configurationManager: address(configurationManager),
-                maxAllocation: 1000000000
+                maxAllocation: 10000 * 10 ** 6
             })
         );
         mockArk3.initialize(
@@ -82,7 +89,7 @@ abstract contract FleetCommanderTestBase {
                 accessManager: address(accessManager),
                 token: address(mockToken),
                 configurationManager: address(configurationManager),
-                maxAllocation: 1000000000
+                maxAllocation: 10000 * 10 ** 6
             })
         );
 
@@ -90,23 +97,14 @@ abstract contract FleetCommanderTestBase {
         ark2 = address(mockArk2);
         ark3 = address(mockArk3);
 
-        ArkConfiguration[] memory initialArks = new ArkConfiguration[](3);
-        initialArks[0] = ArkConfiguration({
-            ark: ark1,
-            maxAllocation: ark1_MAX_ALLOCATION
-        });
-        initialArks[1] = ArkConfiguration({
-            ark: ark2,
-            maxAllocation: ark2_MAX_ALLOCATION
-        });
-        initialArks[2] = ArkConfiguration({
-            ark: ark3,
-            maxAllocation: 10000 * 10 ** 6
-        });
+        initialArks = new address[](3);
+        initialArks[0] = address(mockArk1);
+        initialArks[1] = address(mockArk2);
+        initialArks[2] = address(mockArk3);
+
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            initialArks: initialArks,
             initialMinimumFundsBufferBalance: 10000 * 10 ** 6,
             initialRebalanceCooldown: 0,
             asset: address(mockToken),

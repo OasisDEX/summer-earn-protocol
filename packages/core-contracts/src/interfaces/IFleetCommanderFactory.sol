@@ -5,5 +5,8 @@ import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 import {FactoryArkConfig} from "../types/FleetCommanderFactoryTypes.sol";
 
 interface IFleetCommanderFactory {
-    function createFleetCommander(FleetCommanderParams memory params, FactoryArkConfig[] memory newArkConfigs) external;
+    function createFleetCommander(
+        FleetCommanderParams memory params,
+        FactoryArkConfig[] memory newArkConfigs
+    ) external;
 }

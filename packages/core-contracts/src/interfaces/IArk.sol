@@ -34,4 +34,6 @@ interface IArk is IArkEvents {
     function setDepositCap(uint256 newCap) external;
 
     function setRaft(address newRaft) external;
+
+    function setMaxAllocation(uint256 newMaxAllocation) external;
 }

@@ -32,11 +32,15 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         );
 
         IConfigurationManager configurationManagerImp = new ConfigurationManager();
-        ConfigurationManager configurationManager = ConfigurationManager(Clones.clone(address(configurationManagerImp)));
-        configurationManager.initialize(ConfigurationManagerParams({
-            accessManager: address(accessManager),
-            raft: raft
-        }));
+        ConfigurationManager configurationManager = ConfigurationManager(
+            Clones.clone(address(configurationManagerImp))
+        );
+        configurationManager.initialize(
+            ConfigurationManagerParams({
+                accessManager: address(accessManager),
+                raft: raft
+            })
+        );
 
         BaseArkParams memory params = BaseArkParams({
             accessManager: address(accessManager),

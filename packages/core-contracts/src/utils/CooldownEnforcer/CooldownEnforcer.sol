@@ -6,7 +6,6 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import "./ICooldownEnforcerErrors.sol";
 import "./ICooldownEnforcerEvents.sol";
 
-
 /**
  * @title CooldownEnforcer
  * @custom:see ICooldownEnforcer
@@ -39,7 +38,10 @@ abstract contract CooldownEnforcer is ICooldownEnforcer, Initializable {
      * @dev The last action timestamp is set to the current block timestamp if enforceFromNow is true,
      *      otherwise it is set to 0 signaling that the cooldown period has not started yet.
      */
-    function __CooldownEnforcer_init(uint256 cooldown_, bool enforceFromNow) public onlyInitializing {
+    function __CooldownEnforcer_init(
+        uint256 cooldown_,
+        bool enforceFromNow
+    ) public onlyInitializing {
         _cooldown = cooldown_;
 
         if (enforceFromNow) {

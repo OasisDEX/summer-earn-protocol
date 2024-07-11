@@ -26,13 +26,17 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
-        fleetCommander = FleetCommander(Clones.clone(address(fleetCommanderImp)));
+        fleetCommander = FleetCommander(
+            Clones.clone(address(fleetCommanderImp))
+        );
         fleetCommander.initialize(fleetCommanderParams);
+
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );
 
         vm.startPrank(governor);
+        fleetCommander.addArks(initialArks);
         accessManager.grantKeeperRole(keeper);
         mockArk1.grantCommanderRole(address(fleetCommander));
         mockArk2.grantCommanderRole(address(fleetCommander));

@@ -5,9 +5,9 @@ import {BaseArkParams} from "./ArkTypes.sol";
 
 /**
  * @notice Ark configuration for use by Factory when cloning ark
-     */
-    struct FactoryArkConfig {
-        BaseArkParams baseArkParams;
-        bytes specificArkParams;
-        address arkImplementation; // Ark address
-    }
+ */
+struct FactoryArkConfig {
+    BaseArkParams baseArkParams;
+    bytes specificArkParams;
+    address arkImplementation; // Ark address
+}

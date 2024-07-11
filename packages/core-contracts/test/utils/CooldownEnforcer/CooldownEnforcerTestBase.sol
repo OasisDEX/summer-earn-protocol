@@ -22,7 +22,9 @@ abstract contract CooldownEnforcer_TestBase is Test {
         vm.warp(initialTimestamp);
 
         CooldownEnforcerMock cooldownEnforcerImp = new CooldownEnforcerMock();
-        cooldownEnforcer = CooldownEnforcerMock(Clones.clone(address(cooldownEnforcerImp)));
+        cooldownEnforcer = CooldownEnforcerMock(
+            Clones.clone(address(cooldownEnforcerImp))
+        );
         cooldownEnforcer.initialize(initialCooldown, this.enforceFromNow());
 
         snapshotId = vm.snapshot();

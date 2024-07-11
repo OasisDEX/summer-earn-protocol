@@ -37,11 +37,15 @@ contract AaveV3ArkTest is Test, IArkEvents {
         );
 
         IConfigurationManager configurationManagerImp = new ConfigurationManager();
-        ConfigurationManager configurationManager = ConfigurationManager(Clones.clone(address(configurationManagerImp)));
-        configurationManager.initialize(ConfigurationManagerParams({
-            accessManager: address(accessManager),
-            raft: raft
-        }));
+        ConfigurationManager configurationManager = ConfigurationManager(
+            Clones.clone(address(configurationManagerImp))
+        );
+        configurationManager.initialize(
+            ConfigurationManagerParams({
+                accessManager: address(accessManager),
+                raft: raft
+            })
+        );
 
         BaseArkParams memory params = BaseArkParams({
             accessManager: address(accessManager),
@@ -51,12 +55,18 @@ contract AaveV3ArkTest is Test, IArkEvents {
         });
         vm.mockCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector),
+            abi.encodeWithSelector(
+                IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector
+            ),
             abi.encode(aaveAddressProvider)
         );
         vm.mockCall(
             address(aaveAddressProvider),
-            abi.encodeWithSelector(IPoolAddressesProvider(aaveAddressProvider).getPoolDataProvider.selector),
+            abi.encodeWithSelector(
+                IPoolAddressesProvider(aaveAddressProvider)
+                    .getPoolDataProvider
+                    .selector
+            ),
             abi.encode(aaveV3DataProvider)
         );
 

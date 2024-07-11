@@ -9,7 +9,11 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 /**
  * @custom:see IConfigurationManager
  */
-contract ConfigurationManager is Initializable, IConfigurationManager, ProtocolAccessManaged {
+contract ConfigurationManager is
+    Initializable,
+    IConfigurationManager,
+    ProtocolAccessManaged
+{
     /**
      * @notice The Rewards And Farmed Tokens contract. It is where rewards and farmed tokens are
      *         sent for processing
@@ -24,7 +28,9 @@ contract ConfigurationManager is Initializable, IConfigurationManager, ProtocolA
     function initialize(
         ConfigurationManagerParams memory params
     ) public initializer {
-        ProtocolAccessManaged.__ProtocolAccessManaged_init(params.accessManager);
+        ProtocolAccessManaged.__ProtocolAccessManaged_init(
+            params.accessManager
+        );
         raft = params.raft;
     }
 

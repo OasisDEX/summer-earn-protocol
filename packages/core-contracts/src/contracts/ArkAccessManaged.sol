@@ -26,13 +26,14 @@ contract ArkAccessManaged is
     ProtocolAccessManaged,
     AccessControlUpgradeable
 {
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    function __ArkAccessManaged_init(address accessManager) public onlyInitializing {
+    function __ArkAccessManaged_init(
+        address accessManager
+    ) public onlyInitializing {
         ProtocolAccessManaged.__ProtocolAccessManaged_init(accessManager);
         AccessControlUpgradeable.__AccessControl_init();
     }

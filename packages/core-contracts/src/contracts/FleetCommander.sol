@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {IERC20, ERC20Upgradeable, SafeERC20, ERC4626Upgradeable, IERC4626} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
@@ -12,8 +12,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-//import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-//import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -28,8 +26,8 @@ contract FleetCommander is
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
-    mapping(address => ArkConfiguration) private _arks;
     address[] private _activeArks;
+    mapping(address => bool) public _isArkActive;
     uint256 public fundsBufferBalance;
     uint256 public minFundsBufferBalance;
     uint256 public depositCap;
@@ -49,7 +47,7 @@ contract FleetCommander is
         __ProtocolAccessManaged_init(params.accessManager);
         __CooldownEnforcer_init(params.initialRebalanceCooldown, false);
         // TODO: Setup after
-//        _setupArks(params.initialArks);
+        //        _setupArks(params.initialArks);
 
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
         minPositionWithdrawalPercentage = params
@@ -58,12 +56,8 @@ contract FleetCommander is
         depositCap = params.depositCap;
     }
 
-    /* PUBLIC - ACCESSORS */
-    /// @inheritdoc IFleetCommander
-    function arks(
-        address _address
-    ) external view override returns (ArkConfiguration memory) {
-        return _arks[_address];
+    function arks() public view returns (address[] memory) {
+        return _activeArks;
     }
 
     /* PUBLIC - USER */
@@ -287,24 +281,22 @@ contract FleetCommander is
         if (amount == 0) {
             revert FleetCommanderRebalanceAmountZero(address(toArk));
         }
-        ArkConfiguration memory targetArkConfiguration = _arks[address(toArk)];
 
-        if (
-            targetArkConfiguration.ark == address(0) ||
-            targetArkConfiguration.maxAllocation == 0
-        ) {
+        if (!_isArkActive[address(toArk)]) {
             revert FleetCommanderArkNotFound(address(toArk));
         }
 
-        if (targetArkConfiguration.maxAllocation == 0) {
+        uint256 targetArkMaxAllocation = toArk.maxAllocation();
+        if (targetArkMaxAllocation == 0) {
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
         if (address(fromArk) != address(this)) {
-            ArkConfiguration memory sourceArkConfiguration = _arks[
-                address(fromArk)
-            ];
-            if (sourceArkConfiguration.ark == address(0)) {
+            if (address(fromArk) == address(0)) {
+                revert FleetCommanderArkNotFound(address(fromArk));
+            }
+
+            if (!_isArkActive[address(fromArk)]) {
                 revert FleetCommanderArkNotFound(address(fromArk));
             }
 
@@ -322,10 +314,8 @@ contract FleetCommander is
 
         uint256 currentAmount = toArk.totalAssets();
         uint256 availableSpace;
-        if (currentAmount < targetArkConfiguration.maxAllocation) {
-            availableSpace =
-                targetArkConfiguration.maxAllocation -
-                currentAmount;
+        if (currentAmount < targetArkMaxAllocation) {
+            availableSpace = targetArkMaxAllocation - currentAmount;
             amount = (amount < availableSpace) ? amount : availableSpace;
         } else {
             // If currentAmount >= maxAllocation, we can't add more funds
@@ -401,6 +391,12 @@ contract FleetCommander is
 
     function setFeeAddress(address newAddress) external onlyGovernor {}
 
+    function addArks(address[] calldata _arks_) external onlyGovernor {
+        for (uint256 i = 0; i < _arks_.length; i++) {
+            _addArk(_arks_[i], IArk(_arks_[i]).maxAllocation());
+        }
+    }
+
     function addArk(address ark) external onlyGovernor {
         _addArk(ark, IArk(ark).maxAllocation());
     }
@@ -416,12 +412,12 @@ contract FleetCommander is
         if (newMaxAllocation == 0) {
             revert FleetCommanderArkMaxAllocationZero(ark);
         }
-        if (_arks[ark].ark == address(0)) {
+        if (!_isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
 
-        uint256 oldMaxAllocation = _arks[ark].maxAllocation;
-        _arks[ark].maxAllocation = newMaxAllocation;
+        uint256 oldMaxAllocation = IArk(ark).maxAllocation();
+        IArk(ark).setMaxAllocation(newMaxAllocation);
 
         // Update _activeArks if necessary
         bool wasActive = oldMaxAllocation > 0;
@@ -485,33 +481,24 @@ contract FleetCommander is
 
     function _move(address fromArk, address toArk, uint256 amount) internal {}
 
-    function _setupArks(ArkConfiguration[] memory _arkConfigurations) internal {
-        for (uint256 i = 0; i < _arkConfigurations.length; i++) {
-            _addArk(
-                _arkConfigurations[i].ark,
-                _arkConfigurations[i].maxAllocation
-            );
-        }
-    }
-
     function _addArk(address ark, uint256 maxAllocation) internal {
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();
         }
-        if (_arks[ark].ark != address(0)) {
+        if (_isArkActive[ark]) {
             revert FleetCommanderArkAlreadyExists(ark);
         }
         if (maxAllocation == 0) {
             revert FleetCommanderArkMaxAllocationZero(ark);
         }
 
-        _arks[ark] = ArkConfiguration(ark, maxAllocation);
+        _isArkActive[ark] = true;
         _activeArks.push(ark);
         emit ArkAdded(ark, maxAllocation);
     }
 
     function _removeArk(address ark) internal {
-        if (_arks[ark].ark == address(0)) {
+        if (!_isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
 
@@ -525,7 +512,7 @@ contract FleetCommander is
             }
         }
 
-        delete _arks[ark];
+        _isArkActive[ark] = false;
         emit ArkRemoved(ark);
     }
 

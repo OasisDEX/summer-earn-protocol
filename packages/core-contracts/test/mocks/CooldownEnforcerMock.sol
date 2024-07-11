@@ -11,7 +11,10 @@ contract CooldownEnforcerMock is Initializable, CooldownEnforcer {
         _disableInitializers();
     }
 
-    function initialize(uint256 cooldown_, bool enforceFromNow) public initializer {
+    function initialize(
+        uint256 cooldown_,
+        bool enforceFromNow
+    ) public initializer {
         CooldownEnforcer.__CooldownEnforcer_init(cooldown_, enforceFromNow);
     }
 
