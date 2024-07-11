@@ -6,6 +6,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import "../errors/AccessControlErrors.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /**
  * @title ArkAccessControl
@@ -22,12 +23,18 @@ import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 contract ArkAccessManaged is
     IArkAccessManaged,
     ProtocolAccessManaged,
-    AccessControl
+    AccessControl,
+    Initializable
 {
-    /**
-     * @param accessManager The access manager address
-     */
-    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(BaseArkParams memory params) public initializer {
+        ProtocolAccessManaged.initialize(params.accessManager);
+    }
 
     /**
      * @dev Modifier to check that the caller has the Commander role

@@ -5,15 +5,21 @@ import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../errors/AccessControlErrors.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /**
  * @title ProtocolAccessManaged
  * @notice Defines shared modifiers for all managed contracts
  */
-contract ProtocolAccessManaged {
+contract ProtocolAccessManaged is Initializable{
     ProtocolAccessManager internal _accessManager;
 
-    constructor(address accessManager) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address accessManager) public initializer {
         if (accessManager == address(0)) {
             revert InvalidAccessManagerAddress(address(0));
         }

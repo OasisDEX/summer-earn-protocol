@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
+
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {BaseArkParams} from "./Ark.sol";
+
+// TODO
+// Decide how to handle ark Params
+// Refactor Ark's to be initialisable
+
 
 /**
  * @custom:see IFleetCommanderFactory
@@ -16,9 +23,9 @@ contract FleetCommanderFactory is ProtocolAccessManaged {
      * @notice Configuration of an Ark added to the FleetCommander
      */
     struct NewArkConfig {
-        bytes arkParams;
+        BaseArkParams baseArkParams;
+        bytes targetArkParams;
         address implementation; // Ark address
-        uint256 maxAllocation; // Max allocation as token balance // Move this to params
     }
 
     constructor(address _fleetCommanderImplementation_) {
@@ -33,8 +40,13 @@ contract FleetCommanderFactory is ProtocolAccessManaged {
         // Clone Arks
         for (uint256 i = 0; i < newArkConfigs.length; i++) {
             address arkClone = Clones.clone(newArkConfigs[i].implementation);
-            Ark(arkClone).initialize(newArkConfigs[i].arkParams);
 
+            (bool success, ) = arkClone.call(
+                abi.encodeWithSignature("initialize((address,address,address,uint256),bytes)", newArkConfigs[i].baseArkParams, newArkConfigs[i].targetArkParams)
+            );
+            if (!success) {
+                revert("Initialization failed");
+            }
 
             emit ArkCreated(arkClone);
 

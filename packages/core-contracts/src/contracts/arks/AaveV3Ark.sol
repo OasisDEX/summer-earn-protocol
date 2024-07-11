@@ -1,17 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../Ark.sol";
+import {BaseArkParams} from "../Ark.sol";
 import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
 import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
 import {IArk} from "../../interfaces/IArk.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract AaveV3Ark is Ark {
+contract AaveV3Ark is Ark, Initializable {
     IPoolV3 public aaveV3Pool;
     IPoolDataProvider public aaveV3DataProvider;
 
-    constructor(address _aaveV3Pool, ArkParams memory _params) Ark(_params) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(BaseArkParams memory params, bytes memory additionalParams) public initializer {
+        Ark.initialize(params);
+        address _aaveV3Pool = abi.decode(additionalParams, (address));
+
         aaveV3Pool = IPoolV3(_aaveV3Pool);
         IPoolAddressesProvider aaveV3AddressesProvider = aaveV3Pool
             .ADDRESSES_PROVIDER();

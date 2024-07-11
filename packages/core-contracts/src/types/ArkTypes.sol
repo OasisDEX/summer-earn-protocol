@@ -4,8 +4,9 @@ pragma solidity 0.8.26;
 /**
  * @notice Configuration parameters for the Ark contract
  */
-struct ArkParams {
+struct BaseArkParams {
     address accessManager;
     address configurationManager;
     address token;
+    uint256 maxAllocation;
 }

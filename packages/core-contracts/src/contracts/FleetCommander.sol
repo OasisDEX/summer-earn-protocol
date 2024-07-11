@@ -9,6 +9,7 @@ import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
 
@@ -19,7 +20,8 @@ contract FleetCommander is
     IFleetCommander,
     ERC4626,
     ProtocolAccessManaged,
-    CooldownEnforcer
+    CooldownEnforcer,
+    Initializable
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -34,15 +36,14 @@ contract FleetCommander is
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
-    constructor(
-        FleetCommanderParams memory params
-    )
-        ERC4626(IERC20(params.asset))
-        ERC20(params.name, params.symbol)
-        ProtocolAccessManaged(params.accessManager)
-        CooldownEnforcer(params.initialRebalanceCooldown, false)
-    {
-        _setupArks(params.initialArks);
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(FleetCommanderParams memory params) public initializer {
+        // TODO: Setup after
+//        _setupArks(params.initialArks);
 
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
         minPositionWithdrawalPercentage = params
@@ -50,6 +51,24 @@ contract FleetCommander is
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
         depositCap = params.depositCap;
     }
+
+
+//    constructor(
+//        FleetCommanderParams memory params
+//    )
+//        ERC4626(IERC20(params.asset))
+//        ERC20(params.name, params.symbol)
+//        ProtocolAccessManaged(params.accessManager)
+//        CooldownEnforcer(params.initialRebalanceCooldown, false)
+//    {
+//        _setupArks(params.initialArks);
+//
+//        minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
+//        minPositionWithdrawalPercentage = params
+//            .initialMinimumPositionWithdrawal;
+//        maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
+//        depositCap = params.depositCap;
+//    }
 
     /* PUBLIC - ACCESSORS */
     /// @inheritdoc IFleetCommander

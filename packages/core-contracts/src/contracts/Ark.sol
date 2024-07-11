@@ -4,28 +4,36 @@ pragma solidity 0.8.26;
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import "../interfaces/IArk.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IArk} from "../interfaces/IArk.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /**
  * @custom:see IArk
  */
-abstract contract Ark is IArk, ArkAccessManaged {
+abstract contract Ark is IArk, Initializable, ArkAccessManaged {
     using SafeERC20 for IERC20;
 
     address public raft;
     uint256 public depositCap;
+    uint256 public maxAllocation;
     IERC20 public token;
 
-    constructor(
-        ArkParams memory _params
-    ) ArkAccessManaged(_params.accessManager) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(BaseArkParams memory params) public initializer {
+        ArkAccessManaged.initialize(params.accessManager);
+        maxAllocation = params.maxAllocation;
+
         IConfigurationManager manager = IConfigurationManager(
-            _params.configurationManager
+            params.configurationManager
         );
         raft = manager.raft();
-        token = IERC20(_params.token);
+        token = IERC20(params.token);
     }
 
     /* PUBLIC */

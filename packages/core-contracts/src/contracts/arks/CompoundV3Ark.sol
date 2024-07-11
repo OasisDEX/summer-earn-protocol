@@ -1,19 +1,28 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../Ark.sol";
+import {BaseArkParams, Ark} from "../Ark.sol";
 import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {IArk} from "../../interfaces/IArk.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract CompoundV3Ark is Ark {
+contract CompoundV3Ark is Ark, Initializable {
     using SafeERC20 for IERC20;
 
     uint256 public constant SECONDS_PER_YEAR = 31536000;
     uint256 public constant WAD_TO_RAY = 1e9;
     IComet public comet;
 
-    constructor(address _comet, ArkParams memory _params) Ark(_params) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(BaseArkParams memory _params, bytes memory additionalParams) public initializer {
+        Ark.initialize(params);
+        address _comet = abi.decode(additionalParams, (address));
+
         comet = IComet(_comet);
     }
 
