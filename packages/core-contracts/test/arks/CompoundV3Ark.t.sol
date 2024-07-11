@@ -2,15 +2,16 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../../src/contracts/arks/CompoundV3Ark.sol";
+import {BaseArkParams, CompoundV3Ark, IComet} from "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
@@ -30,19 +31,24 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             governor
         );
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                raft: raft
-            })
-        );
+        IConfigurationManager configurationManagerImp = new ConfigurationManager();
+        ConfigurationManager configurationManager = ConfigurationManager(Clones.clone(address(configurationManagerImp)));
+        configurationManager.initialize(ConfigurationManagerParams({
+            accessManager: address(accessManager),
+            raft: raft
+        }));
 
-        ArkParams memory params = ArkParams({
+        BaseArkParams memory params = BaseArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken)
+            token: address(mockToken),
+            maxAllocation: 1000000000
         });
-        ark = new CompoundV3Ark(address(comet), params);
+
+        bytes memory additionalParams = abi.encode(address(comet));
+        CompoundV3Ark arkImp = new CompoundV3Ark();
+        ark = CompoundV3Ark(Clones.clone(address(arkImp)));
+        ark.initialize(params, additionalParams);
 
         // Permissioning
         vm.prank(governor);

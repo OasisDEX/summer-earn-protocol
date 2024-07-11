@@ -84,9 +84,8 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
      * @notice Adds a new Ark
      * @param ark The address of the new Ark
-     * @param maxAllocation The maximum allocation for the new Ark
      */
-    function addArk(address ark, uint256 maxAllocation) external;
+    function addArk(address ark) external;
 
     /**
      * @notice Removes an existing Ark

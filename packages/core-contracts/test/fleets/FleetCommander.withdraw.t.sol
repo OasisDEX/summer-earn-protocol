@@ -8,6 +8,7 @@ import "../../src/errors/FleetCommanderErrors.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
  * @title Withdraw test suite for FleetCommander
@@ -25,7 +26,8 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
-        fleetCommander = new FleetCommander(fleetCommanderParams);
+        fleetCommander = FleetCommander(Clones.clone(address(fleetCommanderImp)));
+        fleetCommander.initialize(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );

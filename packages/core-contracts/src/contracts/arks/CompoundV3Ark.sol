@@ -4,10 +4,11 @@ pragma solidity 0.8.26;
 import {BaseArkParams, Ark} from "../Ark.sol";
 import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {IArk} from "../../interfaces/IArk.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract CompoundV3Ark is Ark, Initializable {
+contract CompoundV3Ark is Initializable, Ark {
     using SafeERC20 for IERC20;
 
     uint256 public constant SECONDS_PER_YEAR = 31536000;
@@ -19,8 +20,8 @@ contract CompoundV3Ark is Ark, Initializable {
         _disableInitializers();
     }
 
-    function initialize(BaseArkParams memory _params, bytes memory additionalParams) public initializer {
-        Ark.initialize(params);
+    function initialize(BaseArkParams memory params, bytes memory additionalParams) public initializer {
+        Ark.__Ark_init(params);
         address _comet = abi.decode(additionalParams, (address));
 
         comet = IComet(_comet);

@@ -2,15 +2,16 @@
 pragma solidity 0.8.26;
 
 import {ICooldownEnforcer} from "./ICooldownEnforcer.sol";
-
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./ICooldownEnforcerErrors.sol";
 import "./ICooldownEnforcerEvents.sol";
+
 
 /**
  * @title CooldownEnforcer
  * @custom:see ICooldownEnforcer
  */
-abstract contract CooldownEnforcer is ICooldownEnforcer {
+abstract contract CooldownEnforcer is ICooldownEnforcer, Initializable {
     /** STATE VARIABLES */
 
     /** Cooldown between actions in seconds */
@@ -20,6 +21,13 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
     uint256 private _lastActionTimestamp;
 
     /** CONSTRUCTOR */
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    /** INITIALIZER */
 
     /**
      * @notice Initializes the cooldown period and sets the last action timestamp to the current block timestamp
@@ -31,7 +39,7 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      * @dev The last action timestamp is set to the current block timestamp if enforceFromNow is true,
      *      otherwise it is set to 0 signaling that the cooldown period has not started yet.
      */
-    constructor(uint256 cooldown_, bool enforceFromNow) {
+    function __CooldownEnforcer_init(uint256 cooldown_, bool enforceFromNow) public onlyInitializing {
         _cooldown = cooldown_;
 
         if (enforceFromNow) {

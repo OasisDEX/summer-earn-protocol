@@ -7,18 +7,19 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ArkConfiguration, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ArkMock} from "../mocks/ArkMock.sol";
+import {ArkMock, BaseArkParams} from "../mocks/ArkMock.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 abstract contract FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     IProtocolAccessManager public accessManager;
     FleetCommanderStorageWriter public fleetCommanderStorageWriter;
+    FleetCommander public fleetCommanderImp;
     FleetCommander public fleetCommander;
     FleetCommanderParams public fleetCommanderParams;
     address public governor = address(1);
@@ -50,35 +51,38 @@ abstract contract FleetCommanderTestBase {
 
         accessManager = new ProtocolAccessManager(governor);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                raft: raft
-            })
-        );
+        IConfigurationManager configurationManagerImp = new ConfigurationManager();
+        ConfigurationManager configurationManager = ConfigurationManager(Clones.clone(address(configurationManagerImp)));
+        configurationManager.initialize(ConfigurationManagerParams({
+            accessManager: address(accessManager),
+            raft: raft
+        }));
 
-        // Instantiate ArkMock contracts for ark1 and ark2
-        mockArk1 = new ArkMock(
-            ArkParams({
+        ArkMock mockArkImp = new ArkMock();
+        mockArk1 = ArkMock(Clones.clone(address(mockArkImp)));
+        mockArk2 = ArkMock(Clones.clone(address(mockArkImp)));
+        mockArk3 = ArkMock(Clones.clone(address(mockArkImp)));
+
+        mockArk1.initialize(BaseArkParams({
+            accessManager: address(accessManager),
+            token: address(mockToken),
+            configurationManager: address(configurationManager),
+            maxAllocation: 1000000000
+        }));
+        mockArk2.initialize(
+            BaseArkParams({
                 accessManager: address(accessManager),
                 token: address(mockToken),
-                configurationManager: address(configurationManager)
+                configurationManager: address(configurationManager),
+                maxAllocation: 1000000000
             })
         );
-
-        mockArk2 = new ArkMock(
-            ArkParams({
+        mockArk3.initialize(
+            BaseArkParams({
                 accessManager: address(accessManager),
                 token: address(mockToken),
-                configurationManager: address(configurationManager)
-            })
-        );
-
-        mockArk3 = new ArkMock(
-            ArkParams({
-                accessManager: address(accessManager),
-                token: address(mockToken),
-                configurationManager: address(configurationManager)
+                configurationManager: address(configurationManager),
+                maxAllocation: 1000000000
             })
         );
 
@@ -114,5 +118,7 @@ abstract contract FleetCommanderTestBase {
                 .fromDecimalPercentage(20),
             depositCap: 100000000 * 10 ** 6
         });
+
+        fleetCommanderImp = new FleetCommander();
     }
 }

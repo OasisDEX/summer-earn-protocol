@@ -7,8 +7,11 @@ import "../types/Percentage.sol";
 import "../types/ArkTypes.sol";
 import "../events/IArkEvents.sol";
 
-interface IArk is IArkAccessManaged, IArkEvents {
+interface IArk is IArkEvents {
     /* FUNCTIONS - PUBLIC */
+
+    /// @notice Returns max allocation for this ark
+    function maxAllocation() external view returns (uint256);
 
     /// @notice Returns latest deposit cap set for this Ark
     function depositCap() external view returns (uint256);

@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {CooldownEnforcerMock} from "../../mocks/CooldownEnforcerMock.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
  * @title CooldownEnforcerTestBase
@@ -20,10 +21,9 @@ abstract contract CooldownEnforcer_TestBase is Test {
     function setUp() public {
         vm.warp(initialTimestamp);
 
-        cooldownEnforcer = new CooldownEnforcerMock(
-            initialCooldown,
-            this.enforceFromNow()
-        );
+        CooldownEnforcerMock cooldownEnforcerImp = new CooldownEnforcerMock();
+        cooldownEnforcer = CooldownEnforcerMock(Clones.clone(address(cooldownEnforcerImp)));
+        cooldownEnforcer.initialize(initialCooldown, this.enforceFromNow());
 
         snapshotId = vm.snapshot();
     }

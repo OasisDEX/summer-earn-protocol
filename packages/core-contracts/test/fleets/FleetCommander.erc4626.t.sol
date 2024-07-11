@@ -9,11 +9,11 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {FleetCommanderParams, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
  * @title ERC4626 methods test suite for FleetCommander
@@ -25,7 +25,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
-        fleetCommander = new FleetCommander(fleetCommanderParams);
+        fleetCommander = FleetCommander(Clones.clone(address(fleetCommanderImp)));
+        fleetCommander.initialize(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );

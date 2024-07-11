@@ -7,7 +7,8 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {BaseArkParams} from "../types/ArkTypes.sol";
 
 /**
  * @custom:see IArk
@@ -25,8 +26,8 @@ abstract contract Ark is IArk, Initializable, ArkAccessManaged {
         _disableInitializers();
     }
 
-    function initialize(BaseArkParams memory params) public initializer {
-        ArkAccessManaged.initialize(params.accessManager);
+    function __Ark_init(BaseArkParams memory params) public onlyInitializing {
+        ArkAccessManaged.__ArkAccessManaged_init(params.accessManager);
         maxAllocation = params.maxAllocation;
 
         IConfigurationManager manager = IConfigurationManager(

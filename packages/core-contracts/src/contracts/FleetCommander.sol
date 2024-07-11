@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {IERC20, ERC20Upgradeable, SafeERC20, ERC4626Upgradeable, IERC4626} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
@@ -9,19 +9,21 @@ import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+//import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+//import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 /**
  * @custom:see IFleetCommander
  */
 contract FleetCommander is
+    Initializable,
     IFleetCommander,
-    ERC4626,
+    ERC4626Upgradeable,
     ProtocolAccessManaged,
-    CooldownEnforcer,
-    Initializable
+    CooldownEnforcer
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -42,6 +44,10 @@ contract FleetCommander is
     }
 
     function initialize(FleetCommanderParams memory params) public initializer {
+        __ERC4626_init(IERC20(params.asset));
+        __ERC20_init(params.name, params.symbol);
+        __ProtocolAccessManaged_init(params.accessManager);
+        __CooldownEnforcer_init(params.initialRebalanceCooldown, false);
         // TODO: Setup after
 //        _setupArks(params.initialArks);
 
@@ -51,24 +57,6 @@ contract FleetCommander is
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
         depositCap = params.depositCap;
     }
-
-
-//    constructor(
-//        FleetCommanderParams memory params
-//    )
-//        ERC4626(IERC20(params.asset))
-//        ERC20(params.name, params.symbol)
-//        ProtocolAccessManaged(params.accessManager)
-//        CooldownEnforcer(params.initialRebalanceCooldown, false)
-//    {
-//        _setupArks(params.initialArks);
-//
-//        minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
-//        minPositionWithdrawalPercentage = params
-//            .initialMinimumPositionWithdrawal;
-//        maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
-//        depositCap = params.depositCap;
-//    }
 
     /* PUBLIC - ACCESSORS */
     /// @inheritdoc IFleetCommander
@@ -83,7 +71,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public override(ERC4626, IFleetCommander) returns (uint256) {
+    ) public override(ERC4626Upgradeable, IFleetCommander) returns (uint256) {
         _validateWithdrawal(assets, owner);
         super.withdraw(assets, receiver, owner);
 
@@ -103,7 +91,7 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public override(ERC4626, IERC4626) returns (uint256) {
+    ) public override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         uint256 assets = super.redeem(shares, receiver, owner);
         _validateWithdrawal(assets, owner);
         uint256 prevQueueBalance = fundsBufferBalance;
@@ -179,7 +167,7 @@ contract FleetCommander is
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(ERC4626, IFleetCommander) returns (uint256) {
+    ) public override(ERC4626Upgradeable, IFleetCommander) returns (uint256) {
         super.deposit(assets, receiver);
 
         uint256 prevQueueBalance = fundsBufferBalance;
@@ -197,7 +185,7 @@ contract FleetCommander is
     function mint(
         uint256 shares,
         address to
-    ) public override(ERC4626, IERC4626) returns (uint256) {
+    ) public override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         uint256 assets = super.mint(shares, to);
         uint256 prevQueueBalance = fundsBufferBalance;
         fundsBufferBalance = fundsBufferBalance + assets;
@@ -214,7 +202,7 @@ contract FleetCommander is
     function totalAssets()
         public
         view
-        override(ERC4626, IERC4626)
+        override(ERC4626Upgradeable, IERC4626)
         returns (uint256 total)
     {
         total = 0;
@@ -227,7 +215,7 @@ contract FleetCommander is
 
     function maxDeposit(
         address owner
-    ) public view override(ERC4626, IERC4626) returns (uint256) {
+    ) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         uint256 maxAssets = totalAssets() > depositCap
             ? 0
             : depositCap - totalAssets();
@@ -237,7 +225,7 @@ contract FleetCommander is
 
     function maxMint(
         address owner
-    ) public view override(ERC4626, IERC4626) returns (uint256) {
+    ) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         uint256 maxAssets = totalAssets() > depositCap
             ? 0
             : depositCap - totalAssets();
@@ -249,7 +237,7 @@ contract FleetCommander is
 
     function maxWithdraw(
         address owner
-    ) public view override(ERC4626, IERC4626) returns (uint256) {
+    ) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         return
             Math.min(
                 fundsBufferBalance.applyPercentage(
@@ -261,7 +249,7 @@ contract FleetCommander is
 
     function maxRedeem(
         address owner
-    ) public view override(ERC4626, IERC4626) returns (uint256) {
+    ) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         return
             Math.min(
                 previewWithdraw(
@@ -413,8 +401,8 @@ contract FleetCommander is
 
     function setFeeAddress(address newAddress) external onlyGovernor {}
 
-    function addArk(address ark, uint256 maxAllocation) external onlyGovernor {
-        _addArk(ark, maxAllocation);
+    function addArk(address ark) external onlyGovernor {
+        _addArk(ark, IArk(ark).maxAllocation());
     }
 
     function removeArk(address ark) external onlyGovernor {
@@ -476,7 +464,7 @@ contract FleetCommander is
     function transfer(
         address,
         uint256
-    ) public pure override(IERC20, ERC20) returns (bool) {
+    ) public pure override(IERC20, ERC20Upgradeable) returns (bool) {
         revert FleetCommanderTransfersDisabled();
     }
 

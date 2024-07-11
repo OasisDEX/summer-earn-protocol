@@ -3,10 +3,10 @@ pragma solidity 0.8.26;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "../errors/AccessControlErrors.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @title ArkAccessControl
@@ -22,9 +22,9 @@ import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.s
  */
 contract ArkAccessManaged is
     IArkAccessManaged,
+    Initializable,
     ProtocolAccessManaged,
-    AccessControl,
-    Initializable
+    AccessControlUpgradeable
 {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -32,8 +32,9 @@ contract ArkAccessManaged is
         _disableInitializers();
     }
 
-    function initialize(BaseArkParams memory params) public initializer {
-        ProtocolAccessManaged.initialize(params.accessManager);
+    function __ArkAccessManaged_init(address accessManager) public onlyInitializing {
+        ProtocolAccessManaged.__ProtocolAccessManaged_init(accessManager);
+        AccessControlUpgradeable.__AccessControl_init();
     }
 
     /**
