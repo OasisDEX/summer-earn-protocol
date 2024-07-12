@@ -1,0 +1,82 @@
+specVersion: 0.0.8
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: FleetCommanderFactory
+    network: base
+    source:
+      abi: FleetCommanderFactory
+      address: "0xa09E82322f351154a155f9e0f9e6ddbc8791C794"
+      startBlock: 16874027
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - AaveLikeBorrow
+        - AaveLikeDeposit
+        - AaveLikeWithdraw
+        - AaveLikeRepay
+        - Token
+      abis:
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+        - name: FleetCommanderFactory
+          file: ./abis/FleetCommander.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+      blockHandlers:
+        - handler: handleOnce
+          filter:
+            kind: once
+      file: ./src/mapping.ts
+templates:
+  - kind: ethereum/contract
+    name: FleetCommanderTemplate
+    network: base
+    source:
+      abi: FleetCommander
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
+        - name: EnsReverseResolver
+          file: ./abis/ens/reverse-resolver.json
+        - name: EnsRegistry
+          file: ./abis/ens/registry.json
+        - name: DefaultReverseNameResolver
+          file: ./abis/ens/default-resolver.json
+      eventHandlers:
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+          receipt: true
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+          receipt: true
+      file: ./src/fleetCommander.ts
