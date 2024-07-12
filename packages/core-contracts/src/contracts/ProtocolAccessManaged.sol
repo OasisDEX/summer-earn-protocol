@@ -59,11 +59,11 @@ contract ProtocolAccessManaged is Initializable {
     }
 
     /**
-     * @dev Modifier to check that the caller has the Factory role
+     * @dev Modifier to check that the caller has the Factory or Governor role
      */
-    modifier onlyFactory() {
+    modifier onlyFactoryOrGovernor() {
         if (
-            !_accessManager.hasRole(_accessManager.FACTORY_ROLE(), msg.sender)
+            !_accessManager.hasRole(_accessManager.FACTORY_ROLE(), msg.sender) && !_accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), msg.sender)
         ) {
             revert CallerIsNotFactory(msg.sender);
         }

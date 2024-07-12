@@ -48,22 +48,6 @@ contract ArkAccessManaged is
         _;
     }
 
-    /**
-     * @dev Modifier to check that the caller has the Governor role or is fleet factory contract
-     */
-    modifier onlyFactoryOrGovernor() {
-        if (
-            !_accessManager.hasRole(
-                _accessManager.GOVERNOR_ROLE(),
-                msg.sender
-            ) &&
-            !_accessManager.hasRole(_accessManager.FACTORY_ROLE(), msg.sender)
-        ) {
-            revert CallerIsNotGovernorOrFactory(msg.sender);
-        }
-        _;
-    }
-
     /* @inheritdoc IArkAccessControl */
     function grantCommanderRole(
         address account

@@ -389,7 +389,7 @@ contract FleetCommander is
 
     function setFeeAddress(address newAddress) external onlyGovernor {}
 
-    function addArks(address[] calldata _arks_) external onlyFactory {
+    function addArks(address[] calldata _arks_) external onlyFactoryOrGovernor {
         for (uint256 i = 0; i < _arks_.length; i++) {
             _addArk(_arks_[i], IArk(_arks_[i]).maxAllocation());
         }

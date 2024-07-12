@@ -86,7 +86,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         vm.stopPrank();
     }
 
-    function testBoard() public {
+    function test_Board() public {
         vm.prank(governor); // Set msg.sender to governor
         ark.grantCommanderRole(commander);
 
@@ -128,7 +128,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         ark.board(amount);
     }
 
-    function testDisembark() public {
+    function test_Disembark() public {
         vm.prank(governor); // Set msg.sender to governor
         ark.grantCommanderRole(commander);
 
