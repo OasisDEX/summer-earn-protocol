@@ -26,8 +26,8 @@ abstract contract Ark is IArk, Initializable, ArkAccessManaged {
         _disableInitializers();
     }
 
-    function __Ark_init(BaseArkParams memory params) public onlyInitializing {
-        ArkAccessManaged.__ArkAccessManaged_init(params.accessManager);
+    function __Ark_init(BaseArkParams memory params) internal onlyInitializing {
+        __ArkAccessManaged_init(params.accessManager);
         maxAllocation = params.maxAllocation;
 
         IConfigurationManager manager = IConfigurationManager(

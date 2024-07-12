@@ -17,6 +17,7 @@ import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 abstract contract FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
+    ConfigurationManager public configurationManager;
     IProtocolAccessManager public accessManager;
     FleetCommanderStorageWriter public fleetCommanderStorageWriter;
     FleetCommander public fleetCommanderImp;
@@ -35,6 +36,7 @@ abstract contract FleetCommanderTestBase {
 
     address[] initialArks;
     ERC20Mock public mockToken;
+    ArkMock public mockArkImp;
     ArkMock public mockArk1;
     ArkMock public mockArk2;
     ArkMock public mockArk3;
@@ -53,7 +55,7 @@ abstract contract FleetCommanderTestBase {
         accessManager = new ProtocolAccessManager(governor);
 
         IConfigurationManager configurationManagerImp = new ConfigurationManager();
-        ConfigurationManager configurationManager = ConfigurationManager(
+        configurationManager = ConfigurationManager(
             Clones.clone(address(configurationManagerImp))
         );
         configurationManager.initialize(
@@ -63,7 +65,7 @@ abstract contract FleetCommanderTestBase {
             })
         );
 
-        ArkMock mockArkImp = new ArkMock();
+        mockArkImp = new ArkMock();
         mockArk1 = ArkMock(Clones.clone(address(mockArkImp)));
         mockArk2 = ArkMock(Clones.clone(address(mockArkImp)));
         mockArk3 = ArkMock(Clones.clone(address(mockArkImp)));
@@ -74,7 +76,8 @@ abstract contract FleetCommanderTestBase {
                 token: address(mockToken),
                 configurationManager: address(configurationManager),
                 maxAllocation: 10000 * 10 ** 6
-            })
+            }),
+            bytes("")
         );
         mockArk2.initialize(
             BaseArkParams({
@@ -82,7 +85,8 @@ abstract contract FleetCommanderTestBase {
                 token: address(mockToken),
                 configurationManager: address(configurationManager),
                 maxAllocation: 10000 * 10 ** 6
-            })
+            }),
+            bytes("")
         );
         mockArk3.initialize(
             BaseArkParams({
@@ -90,7 +94,8 @@ abstract contract FleetCommanderTestBase {
                 token: address(mockToken),
                 configurationManager: address(configurationManager),
                 maxAllocation: 10000 * 10 ** 6
-            })
+            }),
+            bytes("")
         );
 
         ark1 = address(mockArk1);

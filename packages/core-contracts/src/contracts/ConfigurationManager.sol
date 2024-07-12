@@ -28,9 +28,7 @@ contract ConfigurationManager is
     function initialize(
         ConfigurationManagerParams memory params
     ) public initializer {
-        ProtocolAccessManaged.__ProtocolAccessManaged_init(
-            params.accessManager
-        );
+        __ProtocolAccessManaged_init(params.accessManager);
         raft = params.raft;
     }
 

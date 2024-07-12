@@ -29,6 +29,12 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
      */
     bytes32 public constant COMMANDER_ROLE = keccak256("COMMANDER_ROLE");
 
+    /**
+     * @dev The Factory role is assigned to a FleetFactory to allow for
+     *          streamlined fleet creation
+     */
+    bytes32 public constant FACTORY_ROLE = keccak256("FACTORY_ROLE");
+
     constructor(address governor) {
         _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
@@ -101,6 +107,16 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
     /* @inheritdoc IProtocolAccessControl */
     function revokeKeeperRole(address account) external onlyGovernor {
         _revokeRole(KEEPER_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessControl */
+    function grantFactoryRole(address account) external onlyGovernor {
+        _grantRole(FACTORY_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessControl */
+    function revokeFactoryRole(address account) external onlyGovernor {
+        _revokeRole(FACTORY_ROLE, account);
     }
 
     /*

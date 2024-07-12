@@ -48,4 +48,18 @@ interface IProtocolAccessManager {
      * @param account The account from which the Keeper role will be revoked
      */
     function revokeKeeperRole(address account) external;
+
+    /**
+     * @notice Grants the Factory role to a given account
+     *
+     * @param account The account to which the Factory role will be granted
+     */
+    function grantFactoryRole(address account) external;
+
+    /**
+     * @notice Revokes the Factory role from a given account
+     *
+     * @param account The account from which the Factory role will be revoked
+     */
+    function revokeFactoryRole(address account) external;
 }

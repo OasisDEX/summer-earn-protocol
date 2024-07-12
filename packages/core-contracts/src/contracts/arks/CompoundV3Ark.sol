@@ -24,7 +24,7 @@ contract CompoundV3Ark is Initializable, Ark {
         BaseArkParams memory params,
         bytes memory additionalParams
     ) public initializer {
-        Ark.__Ark_init(params);
+        __Ark_init(params);
         address _comet = abi.decode(additionalParams, (address));
 
         comet = IComet(_comet);

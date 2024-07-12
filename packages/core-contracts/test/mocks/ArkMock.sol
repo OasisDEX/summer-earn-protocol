@@ -12,8 +12,11 @@ contract ArkMock is Initializable, Ark {
         _disableInitializers();
     }
 
-    function initialize(BaseArkParams memory params) public initializer {
-        Ark.__Ark_init(params);
+    function initialize(
+        BaseArkParams memory params,
+        bytes memory
+    ) public initializer {
+        __Ark_init(params);
     }
 
     function rate() public pure override returns (uint256) {

@@ -46,8 +46,6 @@ contract FleetCommander is
         __ERC20_init(params.name, params.symbol);
         __ProtocolAccessManaged_init(params.accessManager);
         __CooldownEnforcer_init(params.initialRebalanceCooldown, false);
-        // TODO: Setup after
-        //        _setupArks(params.initialArks);
 
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
         minPositionWithdrawalPercentage = params
@@ -391,7 +389,7 @@ contract FleetCommander is
 
     function setFeeAddress(address newAddress) external onlyGovernor {}
 
-    function addArks(address[] calldata _arks_) external onlyGovernor {
+    function addArks(address[] calldata _arks_) external onlyFactory {
         for (uint256 i = 0; i < _arks_.length; i++) {
             _addArk(_arks_[i], IArk(_arks_[i]).maxAllocation());
         }

@@ -21,11 +21,10 @@ contract ProtocolAccessManaged is Initializable {
 
     function __ProtocolAccessManaged_init(
         address accessManager
-    ) public onlyInitializing {
+    ) internal onlyInitializing {
         if (accessManager == address(0)) {
             revert InvalidAccessManagerAddress(address(0));
         }
-
         if (
             !IERC165(accessManager).supportsInterface(
                 type(IProtocolAccessManager).interfaceId
@@ -55,6 +54,18 @@ contract ProtocolAccessManaged is Initializable {
     modifier onlyKeeper() {
         if (!_accessManager.hasRole(_accessManager.KEEPER_ROLE(), msg.sender)) {
             revert CallerIsNotKeeper(msg.sender);
+        }
+        _;
+    }
+
+    /**
+     * @dev Modifier to check that the caller has the Factory role
+     */
+    modifier onlyFactory() {
+        if (
+            !_accessManager.hasRole(_accessManager.FACTORY_ROLE(), msg.sender)
+        ) {
+            revert CallerIsNotFactory(msg.sender);
         }
         _;
     }

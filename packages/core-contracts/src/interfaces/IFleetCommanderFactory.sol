@@ -8,5 +8,5 @@ interface IFleetCommanderFactory {
     function createFleetCommander(
         FleetCommanderParams memory params,
         FactoryArkConfig[] memory newArkConfigs
-    ) external;
+    ) external returns (address);
 }

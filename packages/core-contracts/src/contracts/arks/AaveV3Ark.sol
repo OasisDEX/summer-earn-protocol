@@ -21,7 +21,7 @@ contract AaveV3Ark is Initializable, Ark {
         BaseArkParams memory params,
         bytes memory additionalParams
     ) public initializer {
-        Ark.__Ark_init(params);
+        __Ark_init(params);
         address _aaveV3Pool = abi.decode(additionalParams, (address));
 
         aaveV3Pool = IPoolV3(_aaveV3Pool);
