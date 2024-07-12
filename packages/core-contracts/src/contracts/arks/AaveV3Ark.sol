@@ -45,6 +45,7 @@ contract AaveV3Ark is Initializable, Ark {
     }
 
     function _board(uint256 amount) internal override {
+        token.approve(address(aaveV3Pool), amount);
         aaveV3Pool.supply(address(token), amount, address(this), 0);
     }
 
