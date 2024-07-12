@@ -22,10 +22,10 @@ contract FleetCommanderStorageWriter is Test {
     constructor(address fleetCommander_) {
         fleetCommander = fleetCommander_;
 
-        FundsBufferBalanceSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).fundsBufferBalance.selector)
-            .find();
+        // FundsBufferBalanceSlot = stdstore
+        //     .target(fleetCommander)
+        //     .sig(FleetCommander(fleetCommander).fundsBufferBalance.selector)
+        //     .find();
 
         MinFundsBufferBalanceSlot = stdstore
             .target(fleetCommander)

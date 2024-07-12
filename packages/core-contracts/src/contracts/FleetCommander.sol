@@ -11,6 +11,7 @@ import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -26,11 +27,11 @@ contract FleetCommander is
 
     mapping(address => ArkConfiguration) private _arks;
     address[] private _activeArks;
-    uint256 public fundsBufferBalance;
     uint256 public minFundsBufferBalance;
     uint256 public depositCap;
     Percentage public minPositionWithdrawalPercentage;
     Percentage public maxBufferWithdrawalPercentage;
+    IArk public bufferArk;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
@@ -49,6 +50,7 @@ contract FleetCommander is
             .initialMinimumPositionWithdrawal;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
         depositCap = params.depositCap;
+        bufferArk = IArk(params.bufferArk);
     }
 
     /* PUBLIC - ACCESSORS */
@@ -65,12 +67,12 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        uint256 prevQueueBalance = bufferArk.totalAssets();
         _validateWithdrawal(assets, owner);
+        _disembark(address(bufferArk), assets);
+
         super.withdraw(assets, receiver, owner);
-
-        uint256 prevQueueBalance = fundsBufferBalance;
-        fundsBufferBalance = fundsBufferBalance - assets;
-
+        uint256 fundsBufferBalance = bufferArk.totalAssets();
         emit FundsBufferBalanceUpdated(
             msg.sender,
             prevQueueBalance,
@@ -85,11 +87,12 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IERC4626) returns (uint256) {
-        uint256 assets = super.redeem(shares, receiver, owner);
+        uint256 prevQueueBalance = bufferArk.totalAssets();
+        uint256 assets = previewRedeem(shares);
         _validateWithdrawal(assets, owner);
-        uint256 prevQueueBalance = fundsBufferBalance;
-        fundsBufferBalance = fundsBufferBalance - assets;
-
+        _disembark(address(bufferArk), assets);
+        super.redeem(shares, receiver, owner);
+        uint256 fundsBufferBalance = bufferArk.totalAssets();
         emit FundsBufferBalanceUpdated(
             msg.sender,
             prevQueueBalance,
@@ -106,8 +109,6 @@ contract FleetCommander is
     ) public override(IFleetCommander) returns (uint256) {
         uint256 totalAssetsToWithdraw = assets;
         uint256 totalSharesToWithdraw = previewWithdraw(totalAssetsToWithdraw);
-        uint256 assetsToWithdrawFromArks = totalAssetsToWithdraw -
-            fundsBufferBalance;
         address[] memory sortedArks = new address[](_activeArks.length);
         uint256[] memory rates = new uint256[](_activeArks.length);
 
@@ -132,15 +133,20 @@ contract FleetCommander is
                 }
             }
         }
-
+        address[] memory allArks = new address[](sortedArks.length + 1);
         for (uint256 i = 0; i < sortedArks.length; i++) {
-            uint256 assetsInArk = IArk(sortedArks[i]).totalAssets();
-            if (assetsInArk >= assetsToWithdrawFromArks) {
-                _disembark(sortedArks[i], assetsToWithdrawFromArks);
+            allArks[i] = sortedArks[i];
+        }
+        allArks[sortedArks.length] = address(bufferArk);
+
+        for (uint256 i = 0; i < allArks.length; i++) {
+            uint256 assetsInArk = IArk(allArks[i]).totalAssets();
+            if (assetsInArk >= assets) {
+                _disembark(allArks[i], assets);
                 break;
             } else if (assetsInArk > 0) {
-                _disembark(sortedArks[i], assetsInArk);
-                assetsToWithdrawFromArks -= assetsInArk;
+                _disembark(allArks[i], assetsInArk);
+                assets -= assetsInArk;
             } else {
                 continue;
             }
@@ -153,7 +159,7 @@ contract FleetCommander is
             totalAssetsToWithdraw,
             totalSharesToWithdraw
         );
-        fundsBufferBalance -= totalAssetsToWithdraw;
+
         return totalAssetsToWithdraw;
     }
 
@@ -161,10 +167,10 @@ contract FleetCommander is
         uint256 assets,
         address receiver
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        uint256 prevQueueBalance = bufferArk.totalAssets();
         super.deposit(assets, receiver);
-
-        uint256 prevQueueBalance = fundsBufferBalance;
-        fundsBufferBalance = fundsBufferBalance + assets;
+        _board(address(bufferArk), assets);
+        uint256 fundsBufferBalance = bufferArk.totalAssets();
 
         emit FundsBufferBalanceUpdated(
             msg.sender,
@@ -179,9 +185,10 @@ contract FleetCommander is
         uint256 shares,
         address to
     ) public override(ERC4626, IERC4626) returns (uint256) {
+        uint256 prevQueueBalance = bufferArk.totalAssets();
         uint256 assets = super.mint(shares, to);
-        uint256 prevQueueBalance = fundsBufferBalance;
-        fundsBufferBalance = fundsBufferBalance + assets;
+        _board(address(bufferArk), assets);
+        uint256 fundsBufferBalance = bufferArk.totalAssets();
 
         emit FundsBufferBalanceUpdated(
             msg.sender,
@@ -199,11 +206,16 @@ contract FleetCommander is
         returns (uint256 total)
     {
         total = 0;
+        IArk[] memory allArks = new IArk[](_activeArks.length + 1);
         for (uint256 i = 0; i < _activeArks.length; i++) {
-            // TODO: are we sure we can make all `totalAssets` calls that will not revert (as per ERC4626)
-            total += IArk(_activeArks[i]).totalAssets();
+            allArks[i] = IArk(_activeArks[i]);
         }
-        total += fundsBufferBalance;
+        allArks[_activeArks.length] = bufferArk;
+        for (uint256 i = 0; i < allArks.length; i++) {
+            // TODO: are we sure we can make all `totalAssets` calls that will not revert (as per ERC4626)
+            total += IArk(allArks[i]).totalAssets();
+        }
+        total += super.totalAssets();
     }
 
     function maxDeposit(
@@ -233,7 +245,7 @@ contract FleetCommander is
     ) public view override(ERC4626, IERC4626) returns (uint256) {
         return
             Math.min(
-                fundsBufferBalance.applyPercentage(
+                bufferArk.totalAssets().applyPercentage(
                     maxBufferWithdrawalPercentage
                 ),
                 previewRedeem(balanceOf(owner))
@@ -246,7 +258,7 @@ contract FleetCommander is
         return
             Math.min(
                 previewWithdraw(
-                    fundsBufferBalance.applyPercentage(
+                    bufferArk.totalAssets().applyPercentage(
                         maxBufferWithdrawalPercentage
                     )
                 ),
@@ -293,7 +305,7 @@ contract FleetCommander is
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
-        if (address(fromArk) != address(this)) {
+        if (address(fromArk) != address(bufferArk)) {
             ArkConfiguration memory sourceArkConfiguration = _arks[
                 address(fromArk)
             ];
@@ -325,14 +337,8 @@ contract FleetCommander is
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
-        if (address(fromArk) == address(this)) {
-            // rebalance from the funds buffer
-            _board(address(toArk), amount);
-        } else {
-            // rebalance from one ark to another
-            _disembark(address(fromArk), amount);
-            _board(address(toArk), amount);
-        }
+        _disembark(address(fromArk), amount);
+        _board(address(toArk), amount);
 
         return amount;
     }
@@ -344,8 +350,8 @@ contract FleetCommander is
 
         uint256 excessFunds = 0;
 
-        if (fundsBufferBalance > minFundsBufferBalance) {
-            excessFunds = fundsBufferBalance - minFundsBufferBalance;
+        if (bufferArk.totalAssets() > minFundsBufferBalance) {
+            excessFunds = bufferArk.totalAssets() - minFundsBufferBalance;
         } else {
             revert FleetCommanderNoExcessFunds();
         }
@@ -357,7 +363,7 @@ contract FleetCommander is
             i++
         ) {
             RebalanceData memory data = rebalanceData[i];
-            if (data.fromArk != address(this)) {
+            if (data.fromArk != address(bufferArk)) {
                 revert FleetCommanderInvalidSourceArk(data.fromArk);
             }
 
@@ -466,13 +472,11 @@ contract FleetCommander is
 
     /* INTERNAL - ARK */
     function _board(address ark, uint256 amount) internal {
-        fundsBufferBalance -= amount;
         IERC20(asset()).approve(ark, amount);
         IArk(ark).board(amount);
     }
 
     function _disembark(address ark, uint256 amount) internal {
-        fundsBufferBalance += amount;
         IArk(ark).disembark(amount);
     }
 

@@ -32,6 +32,7 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArk1.grantCommanderRole(address(fleetCommander));
         mockArk2.grantCommanderRole(address(fleetCommander));
         mockArk3.grantCommanderRole(address(fleetCommander));
+        bufferArk.grantCommanderRole(address(fleetCommander));
         vm.stopPrank();
     }
 

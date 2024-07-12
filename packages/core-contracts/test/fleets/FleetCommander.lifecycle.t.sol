@@ -29,6 +29,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArk1.grantCommanderRole(address(fleetCommander));
         mockArk2.grantCommanderRole(address(fleetCommander));
         mockArk3.grantCommanderRole(address(fleetCommander));
+        bufferArk.grantCommanderRole(address(fleetCommander));
         vm.stopPrank();
     }
 
@@ -96,12 +97,12 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Rebalance funds to Ark1 and Ark2
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(fleetCommander),
+            fromArk: address(bufferArk),
             toArk: ark1,
             amount: user1Deposit
         });
         rebalanceData[1] = RebalanceData({
-            fromArk: address(fleetCommander),
+            fromArk: address(bufferArk),
             toArk: ark2,
             amount: user2Deposit
         });

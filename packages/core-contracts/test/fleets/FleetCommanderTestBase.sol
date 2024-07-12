@@ -13,6 +13,7 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 
 abstract contract FleetCommanderTestBase {
     using PercentageUtils for uint256;
@@ -29,6 +30,7 @@ abstract contract FleetCommanderTestBase {
     address ark1 = address(10);
     address ark2 = address(11);
     address ark3 = address(12);
+    address bufferArkAddress = address(13);
 
     address invalidArk = address(999);
 
@@ -36,6 +38,7 @@ abstract contract FleetCommanderTestBase {
     ArkMock public mockArk1;
     ArkMock public mockArk2;
     ArkMock public mockArk3;
+    BufferArk public bufferArk;
 
     string public fleetName = "OK_Fleet";
 
@@ -81,10 +84,17 @@ abstract contract FleetCommanderTestBase {
                 configurationManager: address(configurationManager)
             })
         );
-
+        bufferArk = new BufferArk(
+            ArkParams({
+                accessManager: address(accessManager),
+                token: address(mockToken),
+                configurationManager: address(configurationManager)
+            })
+        );
         ark1 = address(mockArk1);
         ark2 = address(mockArk2);
         ark3 = address(mockArk3);
+        bufferArkAddress = address(bufferArk);
 
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](3);
         initialArks[0] = ArkConfiguration({
@@ -112,7 +122,8 @@ abstract contract FleetCommanderTestBase {
                 .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils
                 .fromDecimalPercentage(20),
-            depositCap: 100000000 * 10 ** 6
+            depositCap: 100000000 * 10 ** 6,
+            bufferArk: bufferArkAddress
         });
     }
 }
