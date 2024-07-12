@@ -7,228 +7,210 @@ import {
   Entity,
   Bytes,
   Address,
-  BigInt
-} from "@graphprotocol/graph-ts";
+  BigInt,
+} from '@graphprotocol/graph-ts'
 
 export class AnswerUpdated extends ethereum.Event {
   get params(): AnswerUpdated__Params {
-    return new AnswerUpdated__Params(this);
+    return new AnswerUpdated__Params(this)
   }
 }
 
 export class AnswerUpdated__Params {
-  _event: AnswerUpdated;
+  _event: AnswerUpdated
 
   constructor(event: AnswerUpdated) {
-    this._event = event;
+    this._event = event
   }
 
   get current(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
+    return this._event.parameters[0].value.toBigInt()
   }
 
   get roundId(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
+    return this._event.parameters[1].value.toBigInt()
   }
 
   get updatedAt(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
+    return this._event.parameters[2].value.toBigInt()
   }
 }
 
 export class NewRound extends ethereum.Event {
   get params(): NewRound__Params {
-    return new NewRound__Params(this);
+    return new NewRound__Params(this)
   }
 }
 
 export class NewRound__Params {
-  _event: NewRound;
+  _event: NewRound
 
   constructor(event: NewRound) {
-    this._event = event;
+    this._event = event
   }
 
   get roundId(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
+    return this._event.parameters[0].value.toBigInt()
   }
 
   get startedBy(): Address {
-    return this._event.parameters[1].value.toAddress();
+    return this._event.parameters[1].value.toAddress()
   }
 
   get startedAt(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
+    return this._event.parameters[2].value.toBigInt()
   }
 }
 
 export class SdaiOracle extends ethereum.SmartContract {
   static bind(address: Address): SdaiOracle {
-    return new SdaiOracle("SdaiOracle", address);
+    return new SdaiOracle('SdaiOracle', address)
   }
 
   DAI_PRICE_FEED_ADDRESS(): Address {
-    let result = super.call(
-      "DAI_PRICE_FEED_ADDRESS",
-      "DAI_PRICE_FEED_ADDRESS():(address)",
-      []
-    );
+    let result = super.call('DAI_PRICE_FEED_ADDRESS', 'DAI_PRICE_FEED_ADDRESS():(address)', [])
 
-    return result[0].toAddress();
+    return result[0].toAddress()
   }
 
   try_DAI_PRICE_FEED_ADDRESS(): ethereum.CallResult<Address> {
-    let result = super.tryCall(
-      "DAI_PRICE_FEED_ADDRESS",
-      "DAI_PRICE_FEED_ADDRESS():(address)",
-      []
-    );
+    let result = super.tryCall('DAI_PRICE_FEED_ADDRESS', 'DAI_PRICE_FEED_ADDRESS():(address)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddress());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toAddress())
   }
 
   POT_ADDRESS(): Address {
-    let result = super.call("POT_ADDRESS", "POT_ADDRESS():(address)", []);
+    let result = super.call('POT_ADDRESS', 'POT_ADDRESS():(address)', [])
 
-    return result[0].toAddress();
+    return result[0].toAddress()
   }
 
   try_POT_ADDRESS(): ethereum.CallResult<Address> {
-    let result = super.tryCall("POT_ADDRESS", "POT_ADDRESS():(address)", []);
+    let result = super.tryCall('POT_ADDRESS', 'POT_ADDRESS():(address)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddress());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toAddress())
   }
 
   getAnswer(roundId: BigInt): BigInt {
-    let result = super.call("getAnswer", "getAnswer(uint256):(int256)", [
-      ethereum.Value.fromUnsignedBigInt(roundId)
-    ]);
+    let result = super.call('getAnswer', 'getAnswer(uint256):(int256)', [
+      ethereum.Value.fromUnsignedBigInt(roundId),
+    ])
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_getAnswer(roundId: BigInt): ethereum.CallResult<BigInt> {
-    let result = super.tryCall("getAnswer", "getAnswer(uint256):(int256)", [
-      ethereum.Value.fromUnsignedBigInt(roundId)
-    ]);
+    let result = super.tryCall('getAnswer', 'getAnswer(uint256):(int256)', [
+      ethereum.Value.fromUnsignedBigInt(roundId),
+    ])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   getTimestamp(roundId: BigInt): BigInt {
-    let result = super.call("getTimestamp", "getTimestamp(uint256):(uint256)", [
-      ethereum.Value.fromUnsignedBigInt(roundId)
-    ]);
+    let result = super.call('getTimestamp', 'getTimestamp(uint256):(uint256)', [
+      ethereum.Value.fromUnsignedBigInt(roundId),
+    ])
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_getTimestamp(roundId: BigInt): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "getTimestamp",
-      "getTimestamp(uint256):(uint256)",
-      [ethereum.Value.fromUnsignedBigInt(roundId)]
-    );
+    let result = super.tryCall('getTimestamp', 'getTimestamp(uint256):(uint256)', [
+      ethereum.Value.fromUnsignedBigInt(roundId),
+    ])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   latestAnswer(): BigInt {
-    let result = super.call("latestAnswer", "latestAnswer():(int256)", []);
+    let result = super.call('latestAnswer', 'latestAnswer():(int256)', [])
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_latestAnswer(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall("latestAnswer", "latestAnswer():(int256)", []);
+    let result = super.tryCall('latestAnswer', 'latestAnswer():(int256)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   latestRound(): BigInt {
-    let result = super.call("latestRound", "latestRound():(uint256)", []);
+    let result = super.call('latestRound', 'latestRound():(uint256)', [])
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_latestRound(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall("latestRound", "latestRound():(uint256)", []);
+    let result = super.tryCall('latestRound', 'latestRound():(uint256)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   latestTimestamp(): BigInt {
-    let result = super.call(
-      "latestTimestamp",
-      "latestTimestamp():(uint256)",
-      []
-    );
+    let result = super.call('latestTimestamp', 'latestTimestamp():(uint256)', [])
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_latestTimestamp(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "latestTimestamp",
-      "latestTimestamp():(uint256)",
-      []
-    );
+    let result = super.tryCall('latestTimestamp', 'latestTimestamp():(uint256)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 }
 
 export class ConstructorCall extends ethereum.Call {
   get inputs(): ConstructorCall__Inputs {
-    return new ConstructorCall__Inputs(this);
+    return new ConstructorCall__Inputs(this)
   }
 
   get outputs(): ConstructorCall__Outputs {
-    return new ConstructorCall__Outputs(this);
+    return new ConstructorCall__Outputs(this)
   }
 }
 
 export class ConstructorCall__Inputs {
-  _call: ConstructorCall;
+  _call: ConstructorCall
 
   constructor(call: ConstructorCall) {
-    this._call = call;
+    this._call = call
   }
 
   get daiPriceFeed(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 
   get pot(): Address {
-    return this._call.inputValues[1].value.toAddress();
+    return this._call.inputValues[1].value.toAddress()
   }
 }
 
 export class ConstructorCall__Outputs {
-  _call: ConstructorCall;
+  _call: ConstructorCall
 
   constructor(call: ConstructorCall) {
-    this._call = call;
+    this._call = call
   }
 }

@@ -7,26 +7,26 @@ import {
   Entity,
   Bytes,
   Address,
-  BigInt
-} from "@graphprotocol/graph-ts";
+  BigInt,
+} from '@graphprotocol/graph-ts'
 
 export class SusdeOracle extends ethereum.SmartContract {
   static bind(address: Address): SusdeOracle {
-    return new SusdeOracle("SusdeOracle", address);
+    return new SusdeOracle('SusdeOracle', address)
   }
 
   price(): BigInt {
-    let result = super.call("price", "price():(uint256)", []);
+    let result = super.call('price', 'price():(uint256)', [])
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_price(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall("price", "price():(uint256)", []);
+    let result = super.tryCall('price', 'price():(uint256)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 }

@@ -7,112 +7,109 @@ import {
   Entity,
   Bytes,
   Address,
-  BigInt
-} from "@graphprotocol/graph-ts";
+  BigInt,
+} from '@graphprotocol/graph-ts'
 
 export class DefaultReverseNameResolver extends ethereum.SmartContract {
   static bind(address: Address): DefaultReverseNameResolver {
-    return new DefaultReverseNameResolver(
-      "DefaultReverseNameResolver",
-      address
-    );
+    return new DefaultReverseNameResolver('DefaultReverseNameResolver', address)
   }
 
   ens(): Address {
-    let result = super.call("ens", "ens():(address)", []);
+    let result = super.call('ens', 'ens():(address)', [])
 
-    return result[0].toAddress();
+    return result[0].toAddress()
   }
 
   try_ens(): ethereum.CallResult<Address> {
-    let result = super.tryCall("ens", "ens():(address)", []);
+    let result = super.tryCall('ens', 'ens():(address)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddress());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toAddress())
   }
 
   name(param0: Bytes): string {
-    let result = super.call("name", "name(bytes32):(string)", [
-      ethereum.Value.fromFixedBytes(param0)
-    ]);
+    let result = super.call('name', 'name(bytes32):(string)', [
+      ethereum.Value.fromFixedBytes(param0),
+    ])
 
-    return result[0].toString();
+    return result[0].toString()
   }
 
   try_name(param0: Bytes): ethereum.CallResult<string> {
-    let result = super.tryCall("name", "name(bytes32):(string)", [
-      ethereum.Value.fromFixedBytes(param0)
-    ]);
+    let result = super.tryCall('name', 'name(bytes32):(string)', [
+      ethereum.Value.fromFixedBytes(param0),
+    ])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toString());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toString())
   }
 }
 
 export class ConstructorCall extends ethereum.Call {
   get inputs(): ConstructorCall__Inputs {
-    return new ConstructorCall__Inputs(this);
+    return new ConstructorCall__Inputs(this)
   }
 
   get outputs(): ConstructorCall__Outputs {
-    return new ConstructorCall__Outputs(this);
+    return new ConstructorCall__Outputs(this)
   }
 }
 
 export class ConstructorCall__Inputs {
-  _call: ConstructorCall;
+  _call: ConstructorCall
 
   constructor(call: ConstructorCall) {
-    this._call = call;
+    this._call = call
   }
 
   get ensAddr(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 }
 
 export class ConstructorCall__Outputs {
-  _call: ConstructorCall;
+  _call: ConstructorCall
 
   constructor(call: ConstructorCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class SetNameCall extends ethereum.Call {
   get inputs(): SetNameCall__Inputs {
-    return new SetNameCall__Inputs(this);
+    return new SetNameCall__Inputs(this)
   }
 
   get outputs(): SetNameCall__Outputs {
-    return new SetNameCall__Outputs(this);
+    return new SetNameCall__Outputs(this)
   }
 }
 
 export class SetNameCall__Inputs {
-  _call: SetNameCall;
+  _call: SetNameCall
 
   constructor(call: SetNameCall) {
-    this._call = call;
+    this._call = call
   }
 
   get node(): Bytes {
-    return this._call.inputValues[0].value.toBytes();
+    return this._call.inputValues[0].value.toBytes()
   }
 
   get _name(): string {
-    return this._call.inputValues[1].value.toString();
+    return this._call.inputValues[1].value.toString()
   }
 }
 
 export class SetNameCall__Outputs {
-  _call: SetNameCall;
+  _call: SetNameCall
 
   constructor(call: SetNameCall) {
-    this._call = call;
+    this._call = call
   }
 }

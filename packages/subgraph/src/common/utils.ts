@@ -1,66 +1,53 @@
-import * as constants from "../common/constants";
-import { VaultFee } from "../../generated/schema";
-import { getOrCreateYieldAggregator } from "./initializers";
-import { Vault as VaultStore } from "../../generated/schema";
-import { BigInt, Address, ethereum, BigDecimal } from "@graphprotocol/graph-ts";
-import { ERC20 as ERC20Contract } from "../../generated/FleetCommanderFactory/ERC20";
+import * as constants from '../common/constants'
+import { VaultFee } from '../../generated/schema'
+import { getOrCreateYieldAggregator } from './initializers'
+import { Vault as VaultStore } from '../../generated/schema'
+import { BigInt, Address, ethereum, BigDecimal } from '@graphprotocol/graph-ts'
+import { ERC20 as ERC20Contract } from '../../generated/FleetCommanderFactory/ERC20'
 
 export function enumToPrefix(snake: string): string {
-  return snake.toLowerCase().replace("_", "-") + "-";
+  return snake.toLowerCase().replace('_', '-') + '-'
 }
 
 export function prefixID(enumString: string, ID: string): string {
-  return enumToPrefix(enumString) + ID;
+  return enumToPrefix(enumString) + ID
 }
 
-export function readValue<T>(
-  callResult: ethereum.CallResult<T>,
-  defaultValue: T
-): T {
-  return callResult.reverted ? defaultValue : callResult.value;
+export function readValue<T>(callResult: ethereum.CallResult<T>, defaultValue: T): T {
+  return callResult.reverted ? defaultValue : callResult.value
 }
 
 export function getTokenDecimals(tokenAddr: Address): BigDecimal {
-  const token = ERC20Contract.bind(tokenAddr);
+  const token = ERC20Contract.bind(tokenAddr)
 
-  const decimals = readValue<BigInt>(
-    token.try_decimals(),
-    constants.DEFAULT_DECIMALS
-  );
+  const decimals = readValue<BigInt>(token.try_decimals(), constants.DEFAULT_DECIMALS)
 
-  return constants.BIGINT_TEN.pow(decimals.toI32() as u8).toBigDecimal();
+  return constants.BIGINT_TEN.pow(decimals.toI32() as u8).toBigDecimal()
 }
 
-export function createFeeType(
-  feeId: string,
-  feeType: string,
-  feePercentage: BigInt
-): void {
-  const fees = new VaultFee(feeId);
+export function createFeeType(feeId: string, feeType: string, feePercentage: BigInt): void {
+  const fees = new VaultFee(feeId)
 
-  fees.feeType = feeType;
-  fees.feePercentage = feePercentage
-    .toBigDecimal()
-    .div(constants.BIGDECIMAL_HUNDRED);
+  fees.feeType = feeType
+  fees.feePercentage = feePercentage.toBigDecimal().div(constants.BIGDECIMAL_HUNDRED)
 
-  fees.save();
+  fees.save()
 }
-
 
 export function updateProtocolTotalValueLockedUSD(): void {
-  const protocol = getOrCreateYieldAggregator();
-  const vaultIds = protocol._vaults;
+  const protocol = getOrCreateYieldAggregator()
+  const vaultIds = protocol._vaults
 
-  let totalValueLockedUSD = constants.BIGDECIMAL_ZERO;
+  let totalValueLockedUSD = constants.BIGDECIMAL_ZERO
   for (let vaultIdx = 0; vaultIdx < vaultIds.length; vaultIdx++) {
-    const vault = VaultStore.load(vaultIds[vaultIdx]);
+    const vault = VaultStore.load(vaultIds[vaultIdx])
 
-    if (!vault) continue;
-    totalValueLockedUSD = totalValueLockedUSD.plus(vault.totalValueLockedUSD);
+    if (!vault) continue
+    totalValueLockedUSD = totalValueLockedUSD.plus(vault.totalValueLockedUSD)
   }
 
-  protocol.totalValueLockedUSD = totalValueLockedUSD;
-  protocol.save();
+  protocol.totalValueLockedUSD = totalValueLockedUSD
+  protocol.save()
 }
 
 /**
@@ -70,8 +57,8 @@ export function updateProtocolTotalValueLockedUSD(): void {
  * @returns {BigInt} - The amount in WAD units.
  */
 export function formatAmount(amountInBaseUnit: BigInt, decimals: BigInt): BigDecimal {
-  const len = decimals.toI32() + 1;
-  const power = BigDecimal.fromString('10'.padEnd(len, '0'));
+  const len = decimals.toI32() + 1
+  const power = BigDecimal.fromString('10'.padEnd(len, '0'))
 
-  return BigDecimal.fromString(amountInBaseUnit.toString()).div(power);
+  return BigDecimal.fromString(amountInBaseUnit.toString()).div(power)
 }

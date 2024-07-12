@@ -1,41 +1,40 @@
-import { Address, log, BigInt, dataSource, BigDecimal } from '@graphprotocol/graph-ts';
-import { services, addresses, getOneInchOracle } from './addressProvider';
-import { BigIntConstants, BigDecimalConstants } from './constants';
-import { getOrCreateToken } from './initializers';
-import { TokenPrice as TokenPriceEntity } from '../../generated/schema';
-import { FleetCommander as FleetCommanderContract } from "../../generated/templates/FleetCommanderTemplate/FleetCommander";
+import { Address, log, BigInt, dataSource, BigDecimal } from '@graphprotocol/graph-ts'
+import { services, addresses, getOneInchOracle } from './addressProvider'
+import { BigIntConstants, BigDecimalConstants } from './constants'
+import { getOrCreateToken } from './initializers'
+import { TokenPrice as TokenPriceEntity } from '../../generated/schema'
+import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 
 export class TokenPrice {
-  price: BigDecimal;
-  oracle: string;
+  price: BigDecimal
+  oracle: string
 
   constructor(price: BigDecimal, oracle: string) {
-    this.price = price;
-    this.oracle = oracle;
+    this.price = price
+    this.oracle = oracle
   }
 }
 
 export function getTokenPriceInUSD(tokenAddress: Address, blockNumber: BigInt): TokenPrice {
-  const token = getOrCreateToken(tokenAddress);
-  let existingPrice = TokenPriceEntity.load(tokenAddress);
+  const token = getOrCreateToken(tokenAddress)
+  let existingPrice = TokenPriceEntity.load(tokenAddress)
   if (existingPrice == null) {
-    existingPrice = new TokenPriceEntity(tokenAddress);
-  
+    existingPrice = new TokenPriceEntity(tokenAddress)
   } else if (existingPrice && existingPrice.blockNumber.equals(blockNumber)) {
-    return new TokenPrice(existingPrice.price, existingPrice.oracle);
+    return new TokenPrice(existingPrice.price, existingPrice.oracle)
   }
-  const price = _getTokenPriceInUSD(tokenAddress, blockNumber);
-  existingPrice.price = price.price;
-  existingPrice.oracle = price.oracle;
-  existingPrice.blockNumber = blockNumber;
-  existingPrice.token = tokenAddress.toHexString();
-  existingPrice.save();
+  const price = _getTokenPriceInUSD(tokenAddress, blockNumber)
+  existingPrice.price = price.price
+  existingPrice.oracle = price.oracle
+  existingPrice.blockNumber = blockNumber
+  existingPrice.token = tokenAddress.toHexString()
+  existingPrice.save()
 
-  token.lastPriceUSD = price.price;
-  token.lastPriceBlockNumber = blockNumber;
-  token.save();
+  token.lastPriceUSD = price.price
+  token.lastPriceBlockNumber = blockNumber
+  token.save()
 
-  return new TokenPrice(existingPrice.price, existingPrice.oracle);
+  return new TokenPrice(existingPrice.price, existingPrice.oracle)
 }
 
 /**
@@ -45,50 +44,61 @@ export function getTokenPriceInUSD(tokenAddress: Address, blockNumber: BigInt): 
  */
 export function _getTokenPriceInUSD(tokenAddress: Address, blockNumber: BigInt): TokenPrice {
   if (tokenAddress == addresses.SDAI) {
-    const sDaiOracleResult = services.sDaiOracle.try_latestAnswer();
+    const sDaiOracleResult = services.sDaiOracle.try_latestAnswer()
     if (!sDaiOracleResult.reverted) {
       return new TokenPrice(
         sDaiOracleResult.value.toBigDecimal().div(BigDecimalConstants.CHAIN_LINK_PRECISION),
         'sDaiOracle',
-      );
+      )
     }
   }
   if (tokenAddress == addresses.SUSDE) {
-    const susdeOracleResult = services.susdeOracle.try_price();
+    const susdeOracleResult = services.susdeOracle.try_price()
     if (!susdeOracleResult.reverted) {
       return new TokenPrice(
         susdeOracleResult.value.toBigDecimal().div(BigDecimalConstants.MORPHO_PRECISION),
         'susdeOracle',
-      );
+      )
     }
   }
   if (dataSource.network() == 'mainnet') {
-    const referenceToken = getChainlinkReferenceToken(tokenAddress);
-    const chainlinkResult = services.feedRegistry.try_latestRoundData(referenceToken, addresses.USD);
+    const referenceToken = getChainlinkReferenceToken(tokenAddress)
+    const chainlinkResult = services.feedRegistry.try_latestRoundData(referenceToken, addresses.USD)
     if (!chainlinkResult.reverted) {
       // for oraclelesss mode compability
       return new TokenPrice(
-        chainlinkResult.value.getAnswer().toBigDecimal().div(BigDecimalConstants.CHAIN_LINK_PRECISION),
+        chainlinkResult.value
+          .getAnswer()
+          .toBigDecimal()
+          .div(BigDecimalConstants.CHAIN_LINK_PRECISION),
         'chainlink',
-      );
+      )
     }
   }
 
-  const referenceToken = getAaveReferenceToken(tokenAddress);
-  const aaveResult = services.aaveV3Oracle.try_getAssetPrice(referenceToken);
+  const referenceToken = getAaveReferenceToken(tokenAddress)
+  const aaveResult = services.aaveV3Oracle.try_getAssetPrice(referenceToken)
   if (!aaveResult.reverted && aaveResult.value.toBigDecimal().gt(BigDecimalConstants.ZERO)) {
-    return new TokenPrice(aaveResult.value.toBigDecimal().div(BigDecimalConstants.CHAIN_LINK_PRECISION), 'aaveOracle');
+    return new TokenPrice(
+      aaveResult.value.toBigDecimal().div(BigDecimalConstants.CHAIN_LINK_PRECISION),
+      'aaveOracle',
+    )
   }
 
-  const oneInchOracle = getOneInchOracle(blockNumber);
+  const oneInchOracle = getOneInchOracle(blockNumber)
 
   if (oneInchOracle) {
-    const quoteToken = dataSource.network() == 'base' ? addresses.USDC : addresses.USDT;
+    const quoteToken = dataSource.network() == 'base' ? addresses.USDC : addresses.USDT
     const quotePrecision =
-      dataSource.network() == 'base' ? BigIntConstants.USDC_PRECISION : BigIntConstants.USDT_PRECISION;
-    const oneInchResult = oneInchOracle.try_getRate(referenceToken, quoteToken, true);
-    if (!oneInchResult.reverted && oneInchResult.value.toBigDecimal().gt(BigDecimalConstants.ZERO)) {
-      const token = getOrCreateToken(referenceToken);
+      dataSource.network() == 'base'
+        ? BigIntConstants.USDC_PRECISION
+        : BigIntConstants.USDT_PRECISION
+    const oneInchResult = oneInchOracle.try_getRate(referenceToken, quoteToken, true)
+    if (
+      !oneInchResult.reverted &&
+      oneInchResult.value.toBigDecimal().gt(BigDecimalConstants.ZERO)
+    ) {
+      const token = getOrCreateToken(referenceToken)
       // eg for weth (18 decimals) /usdc (6 decimals) we get 2226797259
       // we need to multiply by 10^18 and divide by 10^6 and divide by 10^18 -> 2226.797259
       // for usdbc (6 decimals) /usdc (6 decimals) we get  1000519762896303783
@@ -101,12 +111,12 @@ export function _getTokenPriceInUSD(tokenAddress: Address, blockNumber: BigInt):
           .toBigDecimal()
           .div(BigDecimalConstants.WAD),
         `oneInchOracle-${oneInchOracle._address.toHexString()}`,
-      );
+      )
     } else {
-      log.error('oneInchOracle not found', []);
+      log.error('oneInchOracle not found', [])
     }
   }
-  return new TokenPrice(BigDecimalConstants.ZERO, 'fallback');
+  return new TokenPrice(BigDecimalConstants.ZERO, 'fallback')
 }
 /**
  * Returns the reference token for a given token address.
@@ -117,17 +127,17 @@ export function _getTokenPriceInUSD(tokenAddress: Address, blockNumber: BigInt):
  * @returns {Address} - The reference token address.
  */
 export function getReferenceToken(tokenAddress: Address): Address {
-  let referenceToken = tokenAddress;
+  let referenceToken = tokenAddress
 
   if (tokenAddress.toHexString().toLowerCase() == addresses.WETH.toHexString().toLowerCase()) {
-    referenceToken = addresses.ETH;
+    referenceToken = addresses.ETH
   }
 
   if (tokenAddress.toHexString().toLowerCase() == addresses.WBTC.toHexString().toLowerCase()) {
-    referenceToken = addresses.BTC;
+    referenceToken = addresses.BTC
   }
 
-  return referenceToken;
+  return referenceToken
 }
 
 /**
@@ -138,16 +148,16 @@ export function getReferenceToken(tokenAddress: Address): Address {
  * @returns The Aave reference token address.
  */
 function getAaveReferenceToken(tokenAddress: Address): Address {
-  let referenceToken = tokenAddress;
+  let referenceToken = tokenAddress
 
   if (tokenAddress.toHexString().toLowerCase() == addresses.ETH.toHexString().toLowerCase()) {
-    referenceToken = addresses.WETH;
+    referenceToken = addresses.WETH
   }
   if (tokenAddress.toHexString().toLowerCase() == addresses.BTC.toHexString().toLowerCase()) {
-    referenceToken = addresses.WBTC;
+    referenceToken = addresses.WBTC
   }
 
-  return referenceToken;
+  return referenceToken
 }
 
 /**
@@ -159,15 +169,15 @@ function getAaveReferenceToken(tokenAddress: Address): Address {
  * @returns The reference token address.
  */
 function getChainlinkReferenceToken(tokenAddress: Address): Address {
-  let referenceToken = tokenAddress;
+  let referenceToken = tokenAddress
 
   if (tokenAddress.toHexString().toLowerCase() == addresses.WETH.toHexString().toLowerCase()) {
-    referenceToken = addresses.ETH;
+    referenceToken = addresses.ETH
   }
 
   if (tokenAddress.toHexString().toLowerCase() == addresses.WBTC.toHexString().toLowerCase()) {
-    referenceToken = addresses.BTC;
+    referenceToken = addresses.BTC
   }
 
-  return referenceToken;
+  return referenceToken
 }

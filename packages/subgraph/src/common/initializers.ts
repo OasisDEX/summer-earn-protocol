@@ -1,335 +1,310 @@
 import {
-    Token,
-    Account,
-    YieldAggregator,
-    VaultDailySnapshot,
-    VaultHourlySnapshot,
-    FinancialsDailySnapshot,
-    UsageMetricsDailySnapshot,
-    UsageMetricsHourlySnapshot,
-} from "../../generated/schema";
-import * as utils from "./utils";
-import * as constants from "./constants";
-import { Vault as VaultStore } from "../../generated/schema";
-import { FleetCommander as FleetCommanderContract } from "../../generated/templates/FleetCommanderTemplate/FleetCommander";
-import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
-import { ERC20 as ERC20Contract } from "../../generated/FleetCommanderFactory/ERC20";
-import {FleetCommanderTemplate} from "../../generated/templates";
-
+  Token,
+  Account,
+  YieldAggregator,
+  VaultDailySnapshot,
+  VaultHourlySnapshot,
+  FinancialsDailySnapshot,
+  UsageMetricsDailySnapshot,
+  UsageMetricsHourlySnapshot,
+} from '../../generated/schema'
+import * as utils from './utils'
+import * as constants from './constants'
+import { Vault as VaultStore } from '../../generated/schema'
+import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
+import { ERC20 as ERC20Contract } from '../../generated/FleetCommanderFactory/ERC20'
+import { FleetCommanderTemplate } from '../../generated/templates'
 
 export function getOrCreateAccount(id: string): Account {
-    let account = Account.load(id);
+  let account = Account.load(id)
 
-    if (!account) {
-        account = new Account(id);
-        account.save();
+  if (!account) {
+    account = new Account(id)
+    account.save()
 
-        const protocol = getOrCreateYieldAggregator();
-        protocol.cumulativeUniqueUsers += 1;
-        protocol.save();
-    }
+    const protocol = getOrCreateYieldAggregator()
+    protocol.cumulativeUniqueUsers += 1
+    protocol.save()
+  }
 
-    return account;
+  return account
 }
 
 export function getOrCreateYieldAggregator(): YieldAggregator {
-    let protocol = YieldAggregator.load(constants.PROTOCOL_ID);
-    log.debug("getOrCreateYieldAggregator", []);
-    if (!protocol) {
-        log.debug("Creating new protocol", []);
-        protocol = new YieldAggregator(constants.PROTOCOL_ID);
-        protocol.name = constants.Protocol.NAME;
-        protocol.slug = constants.Protocol.SLUG;
-        protocol.schemaVersion = "1.3.1";
-        protocol.subgraphVersion = "1.0.0";
-        protocol.methodologyVersion = "1.0.0";
-        protocol.network = constants.Protocol.NETWORK;
-        protocol.type = constants.ProtocolType.YIELD;
-        protocol.totalValueLockedUSD = constants.BIGDECIMAL_ZERO;
-        protocol.protocolControlledValueUSD = constants.BIGDECIMAL_ZERO;
-        protocol.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO;
-        protocol.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO;
-        protocol.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO;
-        protocol.cumulativeUniqueUsers = 0;
-        protocol.totalPoolCount = 0;
-        protocol._vaults = [];
-        protocol.save();
-    }
+  let protocol = YieldAggregator.load(constants.PROTOCOL_ID)
+  log.debug('getOrCreateYieldAggregator', [])
+  if (!protocol) {
+    log.debug('Creating new protocol', [])
+    protocol = new YieldAggregator(constants.PROTOCOL_ID)
+    protocol.name = constants.Protocol.NAME
+    protocol.slug = constants.Protocol.SLUG
+    protocol.schemaVersion = '1.3.1'
+    protocol.subgraphVersion = '1.0.0'
+    protocol.methodologyVersion = '1.0.0'
+    protocol.network = constants.Protocol.NETWORK
+    protocol.type = constants.ProtocolType.YIELD
+    protocol.totalValueLockedUSD = constants.BIGDECIMAL_ZERO
+    protocol.protocolControlledValueUSD = constants.BIGDECIMAL_ZERO
+    protocol.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    protocol.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    protocol.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    protocol.cumulativeUniqueUsers = 0
+    protocol.totalPoolCount = 0
+    protocol._vaults = []
+    protocol.save()
+  }
 
-    // protocol.schemaVersion = Versions.getSchemaVersion();
-    // protocol.subgraphVersion = Versions.getSubgraphVersion();
-    // protocol.methodologyVersion = Versions.getMethodologyVersion();
+  // protocol.schemaVersion = Versions.getSchemaVersion();
+  // protocol.subgraphVersion = Versions.getSubgraphVersion();
+  // protocol.methodologyVersion = Versions.getMethodologyVersion();
 
-      return protocol;
+  return protocol
 }
 
 export function getOrCreateToken(address: Address): Token {
-    let token = Token.load(address.toHexString());
+  let token = Token.load(address.toHexString())
 
-    if (!token) {
-        token = new Token(address.toHexString());
+  if (!token) {
+    token = new Token(address.toHexString())
 
-        const contract = ERC20Contract.bind(address);
+    const contract = ERC20Contract.bind(address)
 
-        token.name = utils.readValue<string>(contract.try_name(), "");
-        token.symbol = utils.readValue<string>(contract.try_symbol(), "");
-        token.decimals = utils
-            .readValue<BigInt>(contract.try_decimals(), constants.BIGINT_ZERO)
-            .toI32() as u8;
+    token.name = utils.readValue<string>(contract.try_name(), '')
+    token.symbol = utils.readValue<string>(contract.try_symbol(), '')
+    token.decimals = utils
+      .readValue<BigInt>(contract.try_decimals(), constants.BIGINT_ZERO)
+      .toI32() as u8
 
-        token.save();
-    }
+    token.save()
+  }
 
-    return token;
+  return token
 }
 
-  export function getOrCreateFinancialDailySnapshots(
-    block: ethereum.Block
-  ): FinancialsDailySnapshot {
-    const id = block.timestamp.toI64() / constants.SECONDS_PER_DAY;
-    let financialMetrics = FinancialsDailySnapshot.load(id.toString());
+export function getOrCreateFinancialDailySnapshots(block: ethereum.Block): FinancialsDailySnapshot {
+  const id = block.timestamp.toI64() / constants.SECONDS_PER_DAY
+  let financialMetrics = FinancialsDailySnapshot.load(id.toString())
 
-    if (!financialMetrics) {
-      financialMetrics = new FinancialsDailySnapshot(id.toString());
-      financialMetrics.protocol = constants.PROTOCOL_ID;
+  if (!financialMetrics) {
+    financialMetrics = new FinancialsDailySnapshot(id.toString())
+    financialMetrics.protocol = constants.PROTOCOL_ID
 
-      financialMetrics.totalValueLockedUSD = constants.BIGDECIMAL_ZERO;
-      financialMetrics.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO;
-      financialMetrics.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO;
-      financialMetrics.dailyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO;
-      financialMetrics.cumulativeProtocolSideRevenueUSD =
-        constants.BIGDECIMAL_ZERO;
+    financialMetrics.totalValueLockedUSD = constants.BIGDECIMAL_ZERO
+    financialMetrics.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    financialMetrics.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    financialMetrics.dailyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    financialMetrics.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
 
-      financialMetrics.dailyTotalRevenueUSD = constants.BIGDECIMAL_ZERO;
-      financialMetrics.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO;
+    financialMetrics.dailyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    financialMetrics.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
 
-      financialMetrics.blockNumber = block.number;
-      financialMetrics.timestamp = block.timestamp;
+    financialMetrics.blockNumber = block.number
+    financialMetrics.timestamp = block.timestamp
 
-      financialMetrics.save();
-    }
-
-    return financialMetrics;
+    financialMetrics.save()
   }
 
-  export function getOrCreateUsageMetricsDailySnapshot(
-    block: ethereum.Block
-  ): UsageMetricsDailySnapshot {
-    const id: string = (
-      block.timestamp.toI64() / constants.SECONDS_PER_DAY
-    ).toString();
-    let usageMetrics = UsageMetricsDailySnapshot.load(id);
+  return financialMetrics
+}
 
-    if (!usageMetrics) {
-      usageMetrics = new UsageMetricsDailySnapshot(id);
-      usageMetrics.protocol = constants.PROTOCOL_ID;
+export function getOrCreateUsageMetricsDailySnapshot(
+  block: ethereum.Block,
+): UsageMetricsDailySnapshot {
+  const id: string = (block.timestamp.toI64() / constants.SECONDS_PER_DAY).toString()
+  let usageMetrics = UsageMetricsDailySnapshot.load(id)
 
-      usageMetrics.dailyActiveUsers = 0;
-      usageMetrics.cumulativeUniqueUsers = 0;
-      usageMetrics.dailyTransactionCount = 0;
-      usageMetrics.dailyDepositCount = 0;
-      usageMetrics.dailyWithdrawCount = 0;
+  if (!usageMetrics) {
+    usageMetrics = new UsageMetricsDailySnapshot(id)
+    usageMetrics.protocol = constants.PROTOCOL_ID
 
-      usageMetrics.blockNumber = block.number;
-      usageMetrics.timestamp = block.timestamp;
+    usageMetrics.dailyActiveUsers = 0
+    usageMetrics.cumulativeUniqueUsers = 0
+    usageMetrics.dailyTransactionCount = 0
+    usageMetrics.dailyDepositCount = 0
+    usageMetrics.dailyWithdrawCount = 0
 
-      const protocol = getOrCreateYieldAggregator();
-      usageMetrics.totalPoolCount = protocol.totalPoolCount;
+    usageMetrics.blockNumber = block.number
+    usageMetrics.timestamp = block.timestamp
 
-      usageMetrics.save();
-    }
+    const protocol = getOrCreateYieldAggregator()
+    usageMetrics.totalPoolCount = protocol.totalPoolCount
 
-    return usageMetrics;
+    usageMetrics.save()
   }
 
-  export function getOrCreateUsageMetricsHourlySnapshot(
-    block: ethereum.Block
-  ): UsageMetricsHourlySnapshot {
-    const metricsID: string = (
-      block.timestamp.toI64() / constants.SECONDS_PER_HOUR
-    ).toString();
-    let usageMetrics = UsageMetricsHourlySnapshot.load(metricsID);
+  return usageMetrics
+}
 
-    if (!usageMetrics) {
-      usageMetrics = new UsageMetricsHourlySnapshot(metricsID);
-      usageMetrics.protocol = constants.PROTOCOL_ID;
+export function getOrCreateUsageMetricsHourlySnapshot(
+  block: ethereum.Block,
+): UsageMetricsHourlySnapshot {
+  const metricsID: string = (block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString()
+  let usageMetrics = UsageMetricsHourlySnapshot.load(metricsID)
 
-      usageMetrics.hourlyActiveUsers = 0;
-      usageMetrics.cumulativeUniqueUsers = 0;
-      usageMetrics.hourlyTransactionCount = 0;
-      usageMetrics.hourlyDepositCount = 0;
-      usageMetrics.hourlyWithdrawCount = 0;
+  if (!usageMetrics) {
+    usageMetrics = new UsageMetricsHourlySnapshot(metricsID)
+    usageMetrics.protocol = constants.PROTOCOL_ID
 
-      usageMetrics.blockNumber = block.number;
-      usageMetrics.timestamp = block.timestamp;
+    usageMetrics.hourlyActiveUsers = 0
+    usageMetrics.cumulativeUniqueUsers = 0
+    usageMetrics.hourlyTransactionCount = 0
+    usageMetrics.hourlyDepositCount = 0
+    usageMetrics.hourlyWithdrawCount = 0
 
-      usageMetrics.save();
-    }
+    usageMetrics.blockNumber = block.number
+    usageMetrics.timestamp = block.timestamp
 
-    return usageMetrics;
+    usageMetrics.save()
   }
 
-  export function getOrCreateVaultsDailySnapshots(
-    vault: VaultStore,
-    block: ethereum.Block
-  ): VaultDailySnapshot {
-    const id: string = vault.id
-      .concat("-")
-      .concat((block.timestamp.toI64() / constants.SECONDS_PER_DAY).toString());
-    let vaultSnapshots = VaultDailySnapshot.load(id);
+  return usageMetrics
+}
 
-    if (!vaultSnapshots) {
-      vaultSnapshots = new VaultDailySnapshot(id);
-      vaultSnapshots.protocol = vault.protocol;
-      vaultSnapshots.vault = vault.id;
+export function getOrCreateVaultsDailySnapshots(
+  vault: VaultStore,
+  block: ethereum.Block,
+): VaultDailySnapshot {
+  const id: string = vault.id
+    .concat('-')
+    .concat((block.timestamp.toI64() / constants.SECONDS_PER_DAY).toString())
+  let vaultSnapshots = VaultDailySnapshot.load(id)
 
-      vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD;
-      vaultSnapshots.inputTokenBalance = vault.inputTokenBalance;
-      vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
-        ? vault.outputTokenSupply!
-        : constants.BIGINT_ZERO;
-      vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
-        ? vault.outputTokenPriceUSD!
-        : constants.BIGDECIMAL_ZERO;
-      vaultSnapshots.pricePerShare = vault.pricePerShare
-        ? vault.pricePerShare!
-        : constants.BIGDECIMAL_ZERO;
+  if (!vaultSnapshots) {
+    vaultSnapshots = new VaultDailySnapshot(id)
+    vaultSnapshots.protocol = vault.protocol
+    vaultSnapshots.vault = vault.id
 
-      vaultSnapshots.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO;
-      vaultSnapshots.cumulativeSupplySideRevenueUSD =
-        vault.cumulativeSupplySideRevenueUSD;
+    vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
+    vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
+    vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
+      ? vault.outputTokenSupply!
+      : constants.BIGINT_ZERO
+    vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
+      ? vault.outputTokenPriceUSD!
+      : constants.BIGDECIMAL_ZERO
+    vaultSnapshots.pricePerShare = vault.pricePerShare
+      ? vault.pricePerShare!
+      : constants.BIGDECIMAL_ZERO
 
-      vaultSnapshots.dailyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO;
-      vaultSnapshots.cumulativeProtocolSideRevenueUSD =
-        vault.cumulativeProtocolSideRevenueUSD;
+    vaultSnapshots.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
-      vaultSnapshots.dailyTotalRevenueUSD = constants.BIGDECIMAL_ZERO;
-      vaultSnapshots.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD;
+    vaultSnapshots.dailyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.cumulativeProtocolSideRevenueUSD = vault.cumulativeProtocolSideRevenueUSD
 
-      vaultSnapshots.blockNumber = block.number;
-      vaultSnapshots.timestamp = block.timestamp;
+    vaultSnapshots.dailyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
 
-      vaultSnapshots.save();
-    }
+    vaultSnapshots.blockNumber = block.number
+    vaultSnapshots.timestamp = block.timestamp
 
-    return vaultSnapshots;
+    vaultSnapshots.save()
   }
 
-  export function getOrCreateVaultsHourlySnapshots(
-    vault: VaultStore,
-    block: ethereum.Block
-  ): VaultHourlySnapshot {
-    const id: string = vault.id
-      .concat("-")
-      .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString());
-    let vaultSnapshots = VaultHourlySnapshot.load(id);
+  return vaultSnapshots
+}
 
-    if (!vaultSnapshots) {
-      vaultSnapshots = new VaultHourlySnapshot(id);
-      vaultSnapshots.protocol = vault.protocol;
-      vaultSnapshots.vault = vault.id;
+export function getOrCreateVaultsHourlySnapshots(
+  vault: VaultStore,
+  block: ethereum.Block,
+): VaultHourlySnapshot {
+  const id: string = vault.id
+    .concat('-')
+    .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
+  let vaultSnapshots = VaultHourlySnapshot.load(id)
 
-      vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD;
-      vaultSnapshots.inputTokenBalance = vault.inputTokenBalance;
-      vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
-        ? vault.outputTokenSupply!
-        : constants.BIGINT_ZERO;
-      vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
-        ? vault.outputTokenPriceUSD!
-        : constants.BIGDECIMAL_ZERO;
-      vaultSnapshots.pricePerShare = vault.pricePerShare
-        ? vault.pricePerShare!
-        : constants.BIGDECIMAL_ZERO;
+  if (!vaultSnapshots) {
+    vaultSnapshots = new VaultHourlySnapshot(id)
+    vaultSnapshots.protocol = vault.protocol
+    vaultSnapshots.vault = vault.id
 
-      vaultSnapshots.hourlySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO;
-      vaultSnapshots.cumulativeSupplySideRevenueUSD =
-        vault.cumulativeSupplySideRevenueUSD;
+    vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
+    vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
+    vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
+      ? vault.outputTokenSupply!
+      : constants.BIGINT_ZERO
+    vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
+      ? vault.outputTokenPriceUSD!
+      : constants.BIGDECIMAL_ZERO
+    vaultSnapshots.pricePerShare = vault.pricePerShare
+      ? vault.pricePerShare!
+      : constants.BIGDECIMAL_ZERO
 
-      vaultSnapshots.hourlyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO;
-      vaultSnapshots.cumulativeProtocolSideRevenueUSD =
-        vault.cumulativeProtocolSideRevenueUSD;
+    vaultSnapshots.hourlySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
-      vaultSnapshots.hourlyTotalRevenueUSD = constants.BIGDECIMAL_ZERO;
-      vaultSnapshots.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD;
+    vaultSnapshots.hourlyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.cumulativeProtocolSideRevenueUSD = vault.cumulativeProtocolSideRevenueUSD
 
-      vaultSnapshots.blockNumber = block.number;
-      vaultSnapshots.timestamp = block.timestamp;
+    vaultSnapshots.hourlyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
 
-      vaultSnapshots.save();
-    }
+    vaultSnapshots.blockNumber = block.number
+    vaultSnapshots.timestamp = block.timestamp
 
-    return vaultSnapshots;
+    vaultSnapshots.save()
   }
 
-export function getOrCreateVault(
-    vaultAddress: Address,
-    block: ethereum.Block
-): VaultStore {
-    let vault = VaultStore.load(vaultAddress.toHexString());
+  return vaultSnapshots
+}
 
-    if (!vault) {
-        vault = new VaultStore(vaultAddress.toHexString());
+export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): VaultStore {
+  let vault = VaultStore.load(vaultAddress.toHexString())
 
-        const vaultContract = FleetCommanderContract.bind(vaultAddress);
-        vault.name = utils.readValue<string>(vaultContract.try_name(), "");
-        vault.symbol = utils.readValue<string>(vaultContract.try_symbol(), "");
-        vault.protocol = constants.PROTOCOL_ID;
-        vault.depositLimit = utils.readValue<BigInt>(
-            vaultContract.try_depositCap(),
-            constants.BIGINT_ZERO
-        );
+  if (!vault) {
+    vault = new VaultStore(vaultAddress.toHexString())
 
-        const inputToken = getOrCreateToken(vaultContract.asset());
-        vault.inputToken = inputToken.id;
-        vault.inputTokenBalance = constants.BIGINT_ZERO;
+    const vaultContract = FleetCommanderContract.bind(vaultAddress)
+    vault.name = utils.readValue<string>(vaultContract.try_name(), '')
+    vault.symbol = utils.readValue<string>(vaultContract.try_symbol(), '')
+    vault.protocol = constants.PROTOCOL_ID
+    vault.depositLimit = utils.readValue<BigInt>(
+      vaultContract.try_depositCap(),
+      constants.BIGINT_ZERO,
+    )
 
-        const outputToken = getOrCreateToken(vaultAddress);
-        vault.outputToken = outputToken.id;
-        vault.outputTokenSupply = constants.BIGINT_ZERO;
+    const inputToken = getOrCreateToken(vaultContract.asset())
+    vault.inputToken = inputToken.id
+    vault.inputTokenBalance = constants.BIGINT_ZERO
 
-        vault.outputTokenPriceUSD = constants.BIGDECIMAL_ZERO;
-        vault.pricePerShare = constants.BIGDECIMAL_ZERO;
+    const outputToken = getOrCreateToken(vaultAddress)
+    vault.outputToken = outputToken.id
+    vault.outputTokenSupply = constants.BIGINT_ZERO
 
-        vault.createdBlockNumber = block.number;
-        vault.createdTimestamp = block.timestamp;
+    vault.outputTokenPriceUSD = constants.BIGDECIMAL_ZERO
+    vault.pricePerShare = constants.BIGDECIMAL_ZERO
 
-        vault.totalValueLockedUSD = constants.BIGDECIMAL_ZERO;
+    vault.createdBlockNumber = block.number
+    vault.createdTimestamp = block.timestamp
 
-        vault.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO;
-        vault.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO;
-        vault.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO;
+    vault.totalValueLockedUSD = constants.BIGDECIMAL_ZERO
 
-        //   vault.lastReport = constants.BIGINT_ZERO;
-        //   vault.totalAssets = constants.BIGINT_ZERO;
+    vault.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vault.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vault.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
 
-        const managementFeeId =
-            utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) +
-            vaultAddress.toHexString();
-        const managementFee = BigInt.fromI32(0);
-        utils.createFeeType(
-            managementFeeId,
-            constants.VaultFeeType.MANAGEMENT_FEE,
-            managementFee
-        );
+    //   vault.lastReport = constants.BIGINT_ZERO;
+    //   vault.totalAssets = constants.BIGINT_ZERO;
 
-        const performanceFeeId =
-            utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) +
-            vaultAddress.toHexString();
-        const performanceFee = BigInt.fromI32(0);
-        utils.createFeeType(
-            performanceFeeId,
-            constants.VaultFeeType.PERFORMANCE_FEE,
-            performanceFee
-        );
+    const managementFeeId =
+      utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + vaultAddress.toHexString()
+    const managementFee = BigInt.fromI32(0)
+    utils.createFeeType(managementFeeId, constants.VaultFeeType.MANAGEMENT_FEE, managementFee)
 
-        // utils.updateProtocolAfterNewVault(vaultAddress);
+    const performanceFeeId =
+      utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) + vaultAddress.toHexString()
+    const performanceFee = BigInt.fromI32(0)
+    utils.createFeeType(performanceFeeId, constants.VaultFeeType.PERFORMANCE_FEE, performanceFee)
 
-        vault.fees = [managementFeeId, performanceFeeId];
+    // utils.updateProtocolAfterNewVault(vaultAddress);
 
-        vault.save();
+    vault.fees = [managementFeeId, performanceFeeId]
 
-        FleetCommanderTemplate.create(vaultAddress);
-    }
+    vault.save()
 
-    return vault;
+    FleetCommanderTemplate.create(vaultAddress)
+  }
+
+  return vault
 }

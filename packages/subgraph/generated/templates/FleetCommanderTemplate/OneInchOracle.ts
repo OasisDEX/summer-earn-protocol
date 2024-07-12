@@ -7,321 +7,302 @@ import {
   Entity,
   Bytes,
   Address,
-  BigInt
-} from "@graphprotocol/graph-ts";
+  BigInt,
+} from '@graphprotocol/graph-ts'
 
 export class ConnectorAdded extends ethereum.Event {
   get params(): ConnectorAdded__Params {
-    return new ConnectorAdded__Params(this);
+    return new ConnectorAdded__Params(this)
   }
 }
 
 export class ConnectorAdded__Params {
-  _event: ConnectorAdded;
+  _event: ConnectorAdded
 
   constructor(event: ConnectorAdded) {
-    this._event = event;
+    this._event = event
   }
 
   get connector(): Address {
-    return this._event.parameters[0].value.toAddress();
+    return this._event.parameters[0].value.toAddress()
   }
 }
 
 export class ConnectorRemoved extends ethereum.Event {
   get params(): ConnectorRemoved__Params {
-    return new ConnectorRemoved__Params(this);
+    return new ConnectorRemoved__Params(this)
   }
 }
 
 export class ConnectorRemoved__Params {
-  _event: ConnectorRemoved;
+  _event: ConnectorRemoved
 
   constructor(event: ConnectorRemoved) {
-    this._event = event;
+    this._event = event
   }
 
   get connector(): Address {
-    return this._event.parameters[0].value.toAddress();
+    return this._event.parameters[0].value.toAddress()
   }
 }
 
 export class MultiWrapperUpdated extends ethereum.Event {
   get params(): MultiWrapperUpdated__Params {
-    return new MultiWrapperUpdated__Params(this);
+    return new MultiWrapperUpdated__Params(this)
   }
 }
 
 export class MultiWrapperUpdated__Params {
-  _event: MultiWrapperUpdated;
+  _event: MultiWrapperUpdated
 
   constructor(event: MultiWrapperUpdated) {
-    this._event = event;
+    this._event = event
   }
 
   get multiWrapper(): Address {
-    return this._event.parameters[0].value.toAddress();
+    return this._event.parameters[0].value.toAddress()
   }
 }
 
 export class OracleAdded extends ethereum.Event {
   get params(): OracleAdded__Params {
-    return new OracleAdded__Params(this);
+    return new OracleAdded__Params(this)
   }
 }
 
 export class OracleAdded__Params {
-  _event: OracleAdded;
+  _event: OracleAdded
 
   constructor(event: OracleAdded) {
-    this._event = event;
+    this._event = event
   }
 
   get oracle(): Address {
-    return this._event.parameters[0].value.toAddress();
+    return this._event.parameters[0].value.toAddress()
   }
 
   get oracleType(): i32 {
-    return this._event.parameters[1].value.toI32();
+    return this._event.parameters[1].value.toI32()
   }
 }
 
 export class OracleRemoved extends ethereum.Event {
   get params(): OracleRemoved__Params {
-    return new OracleRemoved__Params(this);
+    return new OracleRemoved__Params(this)
   }
 }
 
 export class OracleRemoved__Params {
-  _event: OracleRemoved;
+  _event: OracleRemoved
 
   constructor(event: OracleRemoved) {
-    this._event = event;
+    this._event = event
   }
 
   get oracle(): Address {
-    return this._event.parameters[0].value.toAddress();
+    return this._event.parameters[0].value.toAddress()
   }
 
   get oracleType(): i32 {
-    return this._event.parameters[1].value.toI32();
+    return this._event.parameters[1].value.toI32()
   }
 }
 
 export class OwnershipTransferred extends ethereum.Event {
   get params(): OwnershipTransferred__Params {
-    return new OwnershipTransferred__Params(this);
+    return new OwnershipTransferred__Params(this)
   }
 }
 
 export class OwnershipTransferred__Params {
-  _event: OwnershipTransferred;
+  _event: OwnershipTransferred
 
   constructor(event: OwnershipTransferred) {
-    this._event = event;
+    this._event = event
   }
 
   get previousOwner(): Address {
-    return this._event.parameters[0].value.toAddress();
+    return this._event.parameters[0].value.toAddress()
   }
 
   get newOwner(): Address {
-    return this._event.parameters[1].value.toAddress();
+    return this._event.parameters[1].value.toAddress()
   }
 }
 
 export class OneInchOracle__oraclesResult {
-  value0: Array<Address>;
-  value1: Array<i32>;
+  value0: Array<Address>
+  value1: Array<i32>
 
   constructor(value0: Array<Address>, value1: Array<i32>) {
-    this.value0 = value0;
-    this.value1 = value1;
+    this.value0 = value0
+    this.value1 = value1
   }
 
   toMap(): TypedMap<string, ethereum.Value> {
-    let map = new TypedMap<string, ethereum.Value>();
-    map.set("value0", ethereum.Value.fromAddressArray(this.value0));
-    map.set("value1", ethereum.Value.fromI32Array(this.value1));
-    return map;
+    let map = new TypedMap<string, ethereum.Value>()
+    map.set('value0', ethereum.Value.fromAddressArray(this.value0))
+    map.set('value1', ethereum.Value.fromI32Array(this.value1))
+    return map
   }
 
   getAllOracles(): Array<Address> {
-    return this.value0;
+    return this.value0
   }
 
   getOracleTypes(): Array<i32> {
-    return this.value1;
+    return this.value1
   }
 }
 
 export class OneInchOracle extends ethereum.SmartContract {
   static bind(address: Address): OneInchOracle {
-    return new OneInchOracle("OneInchOracle", address);
+    return new OneInchOracle('OneInchOracle', address)
   }
 
   connectors(): Array<Address> {
-    let result = super.call("connectors", "connectors():(address[])", []);
+    let result = super.call('connectors', 'connectors():(address[])', [])
 
-    return result[0].toAddressArray();
+    return result[0].toAddressArray()
   }
 
   try_connectors(): ethereum.CallResult<Array<Address>> {
-    let result = super.tryCall("connectors", "connectors():(address[])", []);
+    let result = super.tryCall('connectors', 'connectors():(address[])', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddressArray());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toAddressArray())
   }
 
   getRate(srcToken: Address, dstToken: Address, useWrappers: boolean): BigInt {
-    let result = super.call(
-      "getRate",
-      "getRate(address,address,bool):(uint256)",
-      [
-        ethereum.Value.fromAddress(srcToken),
-        ethereum.Value.fromAddress(dstToken),
-        ethereum.Value.fromBoolean(useWrappers)
-      ]
-    );
+    let result = super.call('getRate', 'getRate(address,address,bool):(uint256)', [
+      ethereum.Value.fromAddress(srcToken),
+      ethereum.Value.fromAddress(dstToken),
+      ethereum.Value.fromBoolean(useWrappers),
+    ])
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_getRate(
     srcToken: Address,
     dstToken: Address,
-    useWrappers: boolean
+    useWrappers: boolean,
   ): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "getRate",
-      "getRate(address,address,bool):(uint256)",
-      [
-        ethereum.Value.fromAddress(srcToken),
-        ethereum.Value.fromAddress(dstToken),
-        ethereum.Value.fromBoolean(useWrappers)
-      ]
-    );
+    let result = super.tryCall('getRate', 'getRate(address,address,bool):(uint256)', [
+      ethereum.Value.fromAddress(srcToken),
+      ethereum.Value.fromAddress(dstToken),
+      ethereum.Value.fromBoolean(useWrappers),
+    ])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   getRateToEth(srcToken: Address, useSrcWrappers: boolean): BigInt {
-    let result = super.call(
-      "getRateToEth",
-      "getRateToEth(address,bool):(uint256)",
-      [
-        ethereum.Value.fromAddress(srcToken),
-        ethereum.Value.fromBoolean(useSrcWrappers)
-      ]
-    );
+    let result = super.call('getRateToEth', 'getRateToEth(address,bool):(uint256)', [
+      ethereum.Value.fromAddress(srcToken),
+      ethereum.Value.fromBoolean(useSrcWrappers),
+    ])
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
-  try_getRateToEth(
-    srcToken: Address,
-    useSrcWrappers: boolean
-  ): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "getRateToEth",
-      "getRateToEth(address,bool):(uint256)",
-      [
-        ethereum.Value.fromAddress(srcToken),
-        ethereum.Value.fromBoolean(useSrcWrappers)
-      ]
-    );
+  try_getRateToEth(srcToken: Address, useSrcWrappers: boolean): ethereum.CallResult<BigInt> {
+    let result = super.tryCall('getRateToEth', 'getRateToEth(address,bool):(uint256)', [
+      ethereum.Value.fromAddress(srcToken),
+      ethereum.Value.fromBoolean(useSrcWrappers),
+    ])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   getRateToEthWithCustomConnectors(
     srcToken: Address,
     useSrcWrappers: boolean,
     customConnectors: Array<Address>,
-    thresholdFilter: BigInt
+    thresholdFilter: BigInt,
   ): BigInt {
     let result = super.call(
-      "getRateToEthWithCustomConnectors",
-      "getRateToEthWithCustomConnectors(address,bool,address[],uint256):(uint256)",
+      'getRateToEthWithCustomConnectors',
+      'getRateToEthWithCustomConnectors(address,bool,address[],uint256):(uint256)',
       [
         ethereum.Value.fromAddress(srcToken),
         ethereum.Value.fromBoolean(useSrcWrappers),
         ethereum.Value.fromAddressArray(customConnectors),
-        ethereum.Value.fromUnsignedBigInt(thresholdFilter)
-      ]
-    );
+        ethereum.Value.fromUnsignedBigInt(thresholdFilter),
+      ],
+    )
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_getRateToEthWithCustomConnectors(
     srcToken: Address,
     useSrcWrappers: boolean,
     customConnectors: Array<Address>,
-    thresholdFilter: BigInt
+    thresholdFilter: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
-      "getRateToEthWithCustomConnectors",
-      "getRateToEthWithCustomConnectors(address,bool,address[],uint256):(uint256)",
+      'getRateToEthWithCustomConnectors',
+      'getRateToEthWithCustomConnectors(address,bool,address[],uint256):(uint256)',
       [
         ethereum.Value.fromAddress(srcToken),
         ethereum.Value.fromBoolean(useSrcWrappers),
         ethereum.Value.fromAddressArray(customConnectors),
-        ethereum.Value.fromUnsignedBigInt(thresholdFilter)
-      ]
-    );
+        ethereum.Value.fromUnsignedBigInt(thresholdFilter),
+      ],
+    )
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   getRateToEthWithThreshold(
     srcToken: Address,
     useSrcWrappers: boolean,
-    thresholdFilter: BigInt
+    thresholdFilter: BigInt,
   ): BigInt {
     let result = super.call(
-      "getRateToEthWithThreshold",
-      "getRateToEthWithThreshold(address,bool,uint256):(uint256)",
+      'getRateToEthWithThreshold',
+      'getRateToEthWithThreshold(address,bool,uint256):(uint256)',
       [
         ethereum.Value.fromAddress(srcToken),
         ethereum.Value.fromBoolean(useSrcWrappers),
-        ethereum.Value.fromUnsignedBigInt(thresholdFilter)
-      ]
-    );
+        ethereum.Value.fromUnsignedBigInt(thresholdFilter),
+      ],
+    )
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_getRateToEthWithThreshold(
     srcToken: Address,
     useSrcWrappers: boolean,
-    thresholdFilter: BigInt
+    thresholdFilter: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
-      "getRateToEthWithThreshold",
-      "getRateToEthWithThreshold(address,bool,uint256):(uint256)",
+      'getRateToEthWithThreshold',
+      'getRateToEthWithThreshold(address,bool,uint256):(uint256)',
       [
         ethereum.Value.fromAddress(srcToken),
         ethereum.Value.fromBoolean(useSrcWrappers),
-        ethereum.Value.fromUnsignedBigInt(thresholdFilter)
-      ]
-    );
+        ethereum.Value.fromUnsignedBigInt(thresholdFilter),
+      ],
+    )
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   getRateWithCustomConnectors(
@@ -329,21 +310,21 @@ export class OneInchOracle extends ethereum.SmartContract {
     dstToken: Address,
     useWrappers: boolean,
     customConnectors: Array<Address>,
-    thresholdFilter: BigInt
+    thresholdFilter: BigInt,
   ): BigInt {
     let result = super.call(
-      "getRateWithCustomConnectors",
-      "getRateWithCustomConnectors(address,address,bool,address[],uint256):(uint256)",
+      'getRateWithCustomConnectors',
+      'getRateWithCustomConnectors(address,address,bool,address[],uint256):(uint256)',
       [
         ethereum.Value.fromAddress(srcToken),
         ethereum.Value.fromAddress(dstToken),
         ethereum.Value.fromBoolean(useWrappers),
         ethereum.Value.fromAddressArray(customConnectors),
-        ethereum.Value.fromUnsignedBigInt(thresholdFilter)
-      ]
-    );
+        ethereum.Value.fromUnsignedBigInt(thresholdFilter),
+      ],
+    )
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_getRateWithCustomConnectors(
@@ -351,383 +332,377 @@ export class OneInchOracle extends ethereum.SmartContract {
     dstToken: Address,
     useWrappers: boolean,
     customConnectors: Array<Address>,
-    thresholdFilter: BigInt
+    thresholdFilter: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
-      "getRateWithCustomConnectors",
-      "getRateWithCustomConnectors(address,address,bool,address[],uint256):(uint256)",
+      'getRateWithCustomConnectors',
+      'getRateWithCustomConnectors(address,address,bool,address[],uint256):(uint256)',
       [
         ethereum.Value.fromAddress(srcToken),
         ethereum.Value.fromAddress(dstToken),
         ethereum.Value.fromBoolean(useWrappers),
         ethereum.Value.fromAddressArray(customConnectors),
-        ethereum.Value.fromUnsignedBigInt(thresholdFilter)
-      ]
-    );
+        ethereum.Value.fromUnsignedBigInt(thresholdFilter),
+      ],
+    )
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   getRateWithThreshold(
     srcToken: Address,
     dstToken: Address,
     useWrappers: boolean,
-    thresholdFilter: BigInt
+    thresholdFilter: BigInt,
   ): BigInt {
     let result = super.call(
-      "getRateWithThreshold",
-      "getRateWithThreshold(address,address,bool,uint256):(uint256)",
+      'getRateWithThreshold',
+      'getRateWithThreshold(address,address,bool,uint256):(uint256)',
       [
         ethereum.Value.fromAddress(srcToken),
         ethereum.Value.fromAddress(dstToken),
         ethereum.Value.fromBoolean(useWrappers),
-        ethereum.Value.fromUnsignedBigInt(thresholdFilter)
-      ]
-    );
+        ethereum.Value.fromUnsignedBigInt(thresholdFilter),
+      ],
+    )
 
-    return result[0].toBigInt();
+    return result[0].toBigInt()
   }
 
   try_getRateWithThreshold(
     srcToken: Address,
     dstToken: Address,
     useWrappers: boolean,
-    thresholdFilter: BigInt
+    thresholdFilter: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
-      "getRateWithThreshold",
-      "getRateWithThreshold(address,address,bool,uint256):(uint256)",
+      'getRateWithThreshold',
+      'getRateWithThreshold(address,address,bool,uint256):(uint256)',
       [
         ethereum.Value.fromAddress(srcToken),
         ethereum.Value.fromAddress(dstToken),
         ethereum.Value.fromBoolean(useWrappers),
-        ethereum.Value.fromUnsignedBigInt(thresholdFilter)
-      ]
-    );
+        ethereum.Value.fromUnsignedBigInt(thresholdFilter),
+      ],
+    )
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toBigInt())
   }
 
   multiWrapper(): Address {
-    let result = super.call("multiWrapper", "multiWrapper():(address)", []);
+    let result = super.call('multiWrapper', 'multiWrapper():(address)', [])
 
-    return result[0].toAddress();
+    return result[0].toAddress()
   }
 
   try_multiWrapper(): ethereum.CallResult<Address> {
-    let result = super.tryCall("multiWrapper", "multiWrapper():(address)", []);
+    let result = super.tryCall('multiWrapper', 'multiWrapper():(address)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddress());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toAddress())
   }
 
   oracles(): OneInchOracle__oraclesResult {
-    let result = super.call("oracles", "oracles():(address[],uint8[])", []);
+    let result = super.call('oracles', 'oracles():(address[],uint8[])', [])
 
-    return new OneInchOracle__oraclesResult(
-      result[0].toAddressArray(),
-      result[1].toI32Array()
-    );
+    return new OneInchOracle__oraclesResult(result[0].toAddressArray(), result[1].toI32Array())
   }
 
   try_oracles(): ethereum.CallResult<OneInchOracle__oraclesResult> {
-    let result = super.tryCall("oracles", "oracles():(address[],uint8[])", []);
+    let result = super.tryCall('oracles', 'oracles():(address[],uint8[])', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
+    let value = result.value
     return ethereum.CallResult.fromValue(
-      new OneInchOracle__oraclesResult(
-        value[0].toAddressArray(),
-        value[1].toI32Array()
-      )
-    );
+      new OneInchOracle__oraclesResult(value[0].toAddressArray(), value[1].toI32Array()),
+    )
   }
 
   owner(): Address {
-    let result = super.call("owner", "owner():(address)", []);
+    let result = super.call('owner', 'owner():(address)', [])
 
-    return result[0].toAddress();
+    return result[0].toAddress()
   }
 
   try_owner(): ethereum.CallResult<Address> {
-    let result = super.tryCall("owner", "owner():(address)", []);
+    let result = super.tryCall('owner', 'owner():(address)', [])
     if (result.reverted) {
-      return new ethereum.CallResult();
+      return new ethereum.CallResult()
     }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddress());
+    let value = result.value
+    return ethereum.CallResult.fromValue(value[0].toAddress())
   }
 }
 
 export class ConstructorCall extends ethereum.Call {
   get inputs(): ConstructorCall__Inputs {
-    return new ConstructorCall__Inputs(this);
+    return new ConstructorCall__Inputs(this)
   }
 
   get outputs(): ConstructorCall__Outputs {
-    return new ConstructorCall__Outputs(this);
+    return new ConstructorCall__Outputs(this)
   }
 }
 
 export class ConstructorCall__Inputs {
-  _call: ConstructorCall;
+  _call: ConstructorCall
 
   constructor(call: ConstructorCall) {
-    this._call = call;
+    this._call = call
   }
 
   get _multiWrapper(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 
   get existingOracles(): Array<Address> {
-    return this._call.inputValues[1].value.toAddressArray();
+    return this._call.inputValues[1].value.toAddressArray()
   }
 
   get oracleTypes(): Array<i32> {
-    return this._call.inputValues[2].value.toI32Array();
+    return this._call.inputValues[2].value.toI32Array()
   }
 
   get existingConnectors(): Array<Address> {
-    return this._call.inputValues[3].value.toAddressArray();
+    return this._call.inputValues[3].value.toAddressArray()
   }
 
   get wBase(): Address {
-    return this._call.inputValues[4].value.toAddress();
+    return this._call.inputValues[4].value.toAddress()
   }
 
   get owner(): Address {
-    return this._call.inputValues[5].value.toAddress();
+    return this._call.inputValues[5].value.toAddress()
   }
 }
 
 export class ConstructorCall__Outputs {
-  _call: ConstructorCall;
+  _call: ConstructorCall
 
   constructor(call: ConstructorCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class AddConnectorCall extends ethereum.Call {
   get inputs(): AddConnectorCall__Inputs {
-    return new AddConnectorCall__Inputs(this);
+    return new AddConnectorCall__Inputs(this)
   }
 
   get outputs(): AddConnectorCall__Outputs {
-    return new AddConnectorCall__Outputs(this);
+    return new AddConnectorCall__Outputs(this)
   }
 }
 
 export class AddConnectorCall__Inputs {
-  _call: AddConnectorCall;
+  _call: AddConnectorCall
 
   constructor(call: AddConnectorCall) {
-    this._call = call;
+    this._call = call
   }
 
   get connector(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 }
 
 export class AddConnectorCall__Outputs {
-  _call: AddConnectorCall;
+  _call: AddConnectorCall
 
   constructor(call: AddConnectorCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class AddOracleCall extends ethereum.Call {
   get inputs(): AddOracleCall__Inputs {
-    return new AddOracleCall__Inputs(this);
+    return new AddOracleCall__Inputs(this)
   }
 
   get outputs(): AddOracleCall__Outputs {
-    return new AddOracleCall__Outputs(this);
+    return new AddOracleCall__Outputs(this)
   }
 }
 
 export class AddOracleCall__Inputs {
-  _call: AddOracleCall;
+  _call: AddOracleCall
 
   constructor(call: AddOracleCall) {
-    this._call = call;
+    this._call = call
   }
 
   get oracle(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 
   get oracleKind(): i32 {
-    return this._call.inputValues[1].value.toI32();
+    return this._call.inputValues[1].value.toI32()
   }
 }
 
 export class AddOracleCall__Outputs {
-  _call: AddOracleCall;
+  _call: AddOracleCall
 
   constructor(call: AddOracleCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class RemoveConnectorCall extends ethereum.Call {
   get inputs(): RemoveConnectorCall__Inputs {
-    return new RemoveConnectorCall__Inputs(this);
+    return new RemoveConnectorCall__Inputs(this)
   }
 
   get outputs(): RemoveConnectorCall__Outputs {
-    return new RemoveConnectorCall__Outputs(this);
+    return new RemoveConnectorCall__Outputs(this)
   }
 }
 
 export class RemoveConnectorCall__Inputs {
-  _call: RemoveConnectorCall;
+  _call: RemoveConnectorCall
 
   constructor(call: RemoveConnectorCall) {
-    this._call = call;
+    this._call = call
   }
 
   get connector(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 }
 
 export class RemoveConnectorCall__Outputs {
-  _call: RemoveConnectorCall;
+  _call: RemoveConnectorCall
 
   constructor(call: RemoveConnectorCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class RemoveOracleCall extends ethereum.Call {
   get inputs(): RemoveOracleCall__Inputs {
-    return new RemoveOracleCall__Inputs(this);
+    return new RemoveOracleCall__Inputs(this)
   }
 
   get outputs(): RemoveOracleCall__Outputs {
-    return new RemoveOracleCall__Outputs(this);
+    return new RemoveOracleCall__Outputs(this)
   }
 }
 
 export class RemoveOracleCall__Inputs {
-  _call: RemoveOracleCall;
+  _call: RemoveOracleCall
 
   constructor(call: RemoveOracleCall) {
-    this._call = call;
+    this._call = call
   }
 
   get oracle(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 
   get oracleKind(): i32 {
-    return this._call.inputValues[1].value.toI32();
+    return this._call.inputValues[1].value.toI32()
   }
 }
 
 export class RemoveOracleCall__Outputs {
-  _call: RemoveOracleCall;
+  _call: RemoveOracleCall
 
   constructor(call: RemoveOracleCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class RenounceOwnershipCall extends ethereum.Call {
   get inputs(): RenounceOwnershipCall__Inputs {
-    return new RenounceOwnershipCall__Inputs(this);
+    return new RenounceOwnershipCall__Inputs(this)
   }
 
   get outputs(): RenounceOwnershipCall__Outputs {
-    return new RenounceOwnershipCall__Outputs(this);
+    return new RenounceOwnershipCall__Outputs(this)
   }
 }
 
 export class RenounceOwnershipCall__Inputs {
-  _call: RenounceOwnershipCall;
+  _call: RenounceOwnershipCall
 
   constructor(call: RenounceOwnershipCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class RenounceOwnershipCall__Outputs {
-  _call: RenounceOwnershipCall;
+  _call: RenounceOwnershipCall
 
   constructor(call: RenounceOwnershipCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class SetMultiWrapperCall extends ethereum.Call {
   get inputs(): SetMultiWrapperCall__Inputs {
-    return new SetMultiWrapperCall__Inputs(this);
+    return new SetMultiWrapperCall__Inputs(this)
   }
 
   get outputs(): SetMultiWrapperCall__Outputs {
-    return new SetMultiWrapperCall__Outputs(this);
+    return new SetMultiWrapperCall__Outputs(this)
   }
 }
 
 export class SetMultiWrapperCall__Inputs {
-  _call: SetMultiWrapperCall;
+  _call: SetMultiWrapperCall
 
   constructor(call: SetMultiWrapperCall) {
-    this._call = call;
+    this._call = call
   }
 
   get _multiWrapper(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 }
 
 export class SetMultiWrapperCall__Outputs {
-  _call: SetMultiWrapperCall;
+  _call: SetMultiWrapperCall
 
   constructor(call: SetMultiWrapperCall) {
-    this._call = call;
+    this._call = call
   }
 }
 
 export class TransferOwnershipCall extends ethereum.Call {
   get inputs(): TransferOwnershipCall__Inputs {
-    return new TransferOwnershipCall__Inputs(this);
+    return new TransferOwnershipCall__Inputs(this)
   }
 
   get outputs(): TransferOwnershipCall__Outputs {
-    return new TransferOwnershipCall__Outputs(this);
+    return new TransferOwnershipCall__Outputs(this)
   }
 }
 
 export class TransferOwnershipCall__Inputs {
-  _call: TransferOwnershipCall;
+  _call: TransferOwnershipCall
 
   constructor(call: TransferOwnershipCall) {
-    this._call = call;
+    this._call = call
   }
 
   get newOwner(): Address {
-    return this._call.inputValues[0].value.toAddress();
+    return this._call.inputValues[0].value.toAddress()
   }
 }
 
 export class TransferOwnershipCall__Outputs {
-  _call: TransferOwnershipCall;
+  _call: TransferOwnershipCall
 
   constructor(call: TransferOwnershipCall) {
-    this._call = call;
+    this._call = call
   }
 }
