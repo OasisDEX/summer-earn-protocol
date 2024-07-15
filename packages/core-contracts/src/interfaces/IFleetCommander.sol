@@ -109,9 +109,11 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Forces a rebalance operation
-     * @param data Encoded force rebalance instructions
+     * @param data Array of typed rebalance data struct
+     *
+     * @dev has no cooldown enforced but only callable by privileged role
      */
-    function forceRebalance(bytes calldata data) external;
+    function forceRebalance(RebalanceData[] calldata data) external;
 
     /**
      * @notice Initiates an emergency shutdown of the FleetCommander
