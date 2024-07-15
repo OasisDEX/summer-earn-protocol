@@ -104,7 +104,7 @@ abstract contract FleetCommanderTestBase {
             configurationManager: address(configurationManager),
             initialArks: initialArks,
             initialMinimumFundsBufferBalance: 10000 * 10 ** 6,
-            initialRebalanceCooldown: 0,
+            initialRebalanceCooldown: 1000,
             asset: address(mockToken),
             name: fleetName,
             symbol: string(abi.encodePacked(mockToken.symbol(), "-SUM")),

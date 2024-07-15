@@ -106,6 +106,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             amount: user2Deposit
         });
 
+        // Advance time to move past cooldown window
+        vm.warp(block.timestamp + 1 days);
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
 
@@ -158,5 +160,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             1,
             "Total assets should be 0 after withdrawals"
         );
+
+        // Set remaining cooldown since last action to zero on force withdrawal
+        assertEq(fleetCommander.getCooldown(), block.timestamp - fleetCommander.getLastActionTimestamp());
     }
 }
