@@ -17,13 +17,14 @@ contract AaveV3Ark is Ark {
     IPoolDataProvider public aaveV3DataProvider;
     IRewardsController public rewardsController;
 
-    constructor(address _aaveV3Pool, ArkParams memory _params) Ark(_params) {
+    constructor(address _aaveV3Pool, address _rewardsController, ArkParams memory _params) Ark(_params) {
         aaveV3Pool = IPoolV3(_aaveV3Pool);
         IPoolAddressesProvider aaveV3AddressesProvider = aaveV3Pool
             .ADDRESSES_PROVIDER();
         aaveV3DataProvider = IPoolDataProvider(
             aaveV3AddressesProvider.getPoolDataProvider()
         );
+        rewardsController = IRewardsController(_rewardsController);
     }
 
     function rate() public view override returns (uint256) {
@@ -43,8 +44,7 @@ contract AaveV3Ark is Ark {
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = aTokenAddress;
 
-        rewardsController.claimRewardsToSelf(incentivizedAssets, type(uint256).max, rewardToken);
-        uint256 claimedRewardsBalance = IERC20(rewardToken).balanceOf(address(this));
+        uint256 claimedRewardsBalance = rewardsController.claimRewardsToSelf(incentivizedAssets, type(uint256).max, rewardToken);
         IERC20(rewardToken).safeTransfer(raft, claimedRewardsBalance);
 
         emit Harvested(claimedRewardsBalance);
