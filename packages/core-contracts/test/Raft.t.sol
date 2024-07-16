@@ -6,12 +6,13 @@ import {IArk} from "../src/interfaces/IArk.sol";
 import {IRaftEvents} from "../src/interfaces/IRaftEvents.sol";
 import {Raft} from "../src/contracts/Raft.sol";
 
-contract RaftTest is Test, IRaftEvents  {
+contract RaftTest is Test, IRaftEvents {
     Raft public raft;
     address public mockArk = address(5);
+    address public mockSwapProvider = address(6);
 
     function setUp() public {
-        raft = new Raft();
+        raft = new Raft(mockSwapProvider);
     }
 
     function test_Harvest() public {
@@ -22,7 +23,7 @@ contract RaftTest is Test, IRaftEvents  {
             mockArk,
             abi.encodeWithSelector(
                 IArk(mockArk).harvest.selector,
-               mockRewardToken
+                mockRewardToken
             ),
             abi.encode()
         );
@@ -33,5 +34,4 @@ contract RaftTest is Test, IRaftEvents  {
         // Act
         raft.harvest(mockArk, mockRewardToken);
     }
-
 }

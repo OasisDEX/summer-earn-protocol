@@ -24,7 +24,8 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
         0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     address public aaveV3DataProvider =
         0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3;
-    address public rewardsController = 0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
+    address public rewardsController =
+        0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
 
     IPoolV3 public aaveV3Pool;
     IERC20 public dai;

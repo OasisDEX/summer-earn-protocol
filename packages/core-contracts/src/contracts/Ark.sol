@@ -34,7 +34,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     function rate() public view virtual returns (uint256) {}
 
     /* EXTERNAL - RAFT */
-    function harvest(address rewardToken) external virtual {}
+    function harvest(address rewardToken) external virtual returns (uint256) {}
 
     /* EXTERNAL - COMMANDER */
     function board(uint256 amount) external onlyCommander {
