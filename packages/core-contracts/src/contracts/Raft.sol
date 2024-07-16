@@ -8,12 +8,14 @@ import {SwapData} from "../types/RaftTypes.sol";
 /**
  * @custom:see IRaft
  */
-contract Raft {
-    function harvestAndSwap(address ark, SwapData calldata swapData) external {
+contract Raft is IRaft {
+    function harvestAndSwap(address ark, address rewardToken, SwapData calldata swapData) external {
 
     }
     function harvest(address ark, address rewardToken) public {
         IArk(ark).harvest(rewardToken);
+
+        emit ArkHarvested(ark, rewardToken);
     }
     function swap(SwapData calldata swapData) public {
 
