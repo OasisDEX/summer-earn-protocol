@@ -4,9 +4,9 @@ pragma solidity 0.8.26;
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import "../interfaces/IArk.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IArk, ArkParams} from "../interfaces/IArk.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @custom:see IArk
@@ -33,7 +33,8 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     function rate() public view virtual returns (uint256) {}
 
-    function harvest() public {}
+    /* EXTERNAL - RAFT */
+    function harvest(address rewardToken) external virtual {}
 
     /* EXTERNAL - COMMANDER */
     function board(uint256 amount) external onlyCommander {

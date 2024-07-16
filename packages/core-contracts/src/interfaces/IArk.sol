@@ -19,7 +19,7 @@ interface IArk is IArkAccessManaged, IArkEvents {
     /// @notice Returns the current rate of the Ark (RAY precision)
     function rate() external view returns (uint256);
 
-    function harvest() external;
+    function harvest(address rewardToken) external;
 
     /* FUNCTIONS - EXTERNAL - COMMANDER */
 
