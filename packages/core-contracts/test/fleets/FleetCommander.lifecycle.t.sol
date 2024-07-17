@@ -162,6 +162,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
 
         // Set remaining cooldown since last action to zero on force withdrawal
-        assertEq(fleetCommander.getCooldown(), block.timestamp - fleetCommander.getLastActionTimestamp());
+        assertEq(
+            fleetCommander.getCooldown(),
+            block.timestamp - fleetCommander.getLastActionTimestamp()
+        );
     }
 }
