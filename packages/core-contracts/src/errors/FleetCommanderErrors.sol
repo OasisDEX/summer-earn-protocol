@@ -21,6 +21,7 @@ error FleetCommanderInvalidArkAddress();
 error FleetCommanderNoFundsMoved();
 error FleetCommanderNoExcessFunds();
 error FleetCommanderInvalidSourceArk(address ark);
+error FleetCommanderInvalidTargetArk(address ark);
 error FleetCommanderMovedMoreThanAvailable();
 error FleetCommanderArkDepositCapGreaterThanZero(address ark);
 error FleetCommanderArkAssetsNotZero(address ark);

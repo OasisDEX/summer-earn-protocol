@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../../src/errors/FleetCommanderErrors.sol";
+import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderNoFundsMoved} from "../../src/errors/FleetCommanderErrors.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -102,7 +102,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(FleetCommanderNoExcessFunds.selector)
+            abi.encodeWithSelector(FleetCommanderNoFundsMoved.selector)
         );
         fleetCommander.adjustBuffer(rebalanceData);
     }
