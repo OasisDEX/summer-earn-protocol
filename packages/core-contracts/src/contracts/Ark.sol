@@ -7,6 +7,7 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IArk, ArkParams} from "../interfaces/IArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../errors/AccessControlErrors.sol";
 
 /**
  * @custom:see IArk
@@ -26,6 +27,16 @@ abstract contract Ark is IArk, ArkAccessManaged {
         );
         raft = manager.raft();
         token = IERC20(_params.token);
+    }
+
+    /**
+    * @dev Modifier to check that the caller is the Raft contract
+     */
+    modifier onlyRaft() {
+        if (msg.sender != raft) {
+            revert CallerIsNotRaft(msg.sender);
+        }
+        _;
     }
 
     /* PUBLIC */
@@ -49,6 +60,13 @@ abstract contract Ark is IArk, ArkAccessManaged {
         token.safeTransfer(msg.sender, amount);
 
         emit Disembarked(msg.sender, address(token), amount);
+    }
+
+    function boardFromRaft(uint256 amount) external onlyRaft {
+        token.safeTransferFrom(raft, address(this), amount);
+        _board(amount);
+
+        emit Boarded(raft, address(token), amount);
     }
 
     /* EXTERNAL - GOVERNANCE */

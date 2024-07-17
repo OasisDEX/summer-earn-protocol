@@ -129,9 +129,9 @@ contract RaftTest is Test, IRaftEvents {
         );
 
         vm.expectEmit();
-        emit RewardReinvested(mockArk, mockRewardToken, rewardAmount, balanceAfterSwap);
+        emit RewardReboarded(mockArk, mockRewardToken, rewardAmount, balanceAfterSwap);
 
         // Act
-        raft.harvestAndReinvest(mockArk, mockRewardToken, swapData);
+        raft.harvestAndReboard(mockArk, mockRewardToken, swapData);
     }
 }

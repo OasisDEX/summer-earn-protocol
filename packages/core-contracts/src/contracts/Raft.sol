@@ -23,26 +23,26 @@ contract Raft is IRaft {
     /**
      * @inheritdoc IRaft
      */
-    function harvestAndReinvest(
+    function harvestAndReboard(
         address ark,
         address rewardToken,
         SwapData calldata swapData
     ) external {
         harvest(ark, rewardToken);
         _swap(ark, swapData);
-        _reinvest(ark, rewardToken);
+        _reboard(ark, rewardToken);
     }
 
     /**
      * @inheritdoc IRaft
      */
-    function swapAndReinvest(
+    function swapAndReboard(
         address ark,
         address rewardToken,
         SwapData calldata swapData
     ) external {
         _swap(ark, swapData);
-        _reinvest(ark, rewardToken);
+        _reboard(ark, rewardToken);
     }
 
     /**
@@ -88,7 +88,7 @@ contract Raft is IRaft {
      * @param ark The address of the Ark contract.
      * @param rewardToken The address of the reward token to be reinvested.
      */
-    function _reinvest(address ark, address rewardToken) internal {
+    function _reboard(address ark, address rewardToken) internal {
         uint256 preSwapRewardBalance = harvestedRewards[ark][rewardToken];
 
         if (preSwapRewardBalance == 0) {
@@ -97,11 +97,11 @@ contract Raft is IRaft {
 
         uint256 balance = IArk(ark).token().balanceOf(address(this));
         IERC20(IArk(ark).token()).approve(ark, balance);
-        IArk(ark).board(balance);
+        IArk(ark).boardFromRaft(balance);
 
         harvestedRewards[ark][rewardToken] = 0;
 
-        emit RewardReinvested(ark, rewardToken, preSwapRewardBalance, balance);
+        emit RewardReboarded(ark, rewardToken, preSwapRewardBalance, balance);
     }
 
     /**

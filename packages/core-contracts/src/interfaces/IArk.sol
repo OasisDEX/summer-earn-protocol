@@ -29,6 +29,10 @@ interface IArk is IArkAccessManaged, IArkEvents {
 
     function disembark(uint256 amount) external;
 
+    /* FUNCTIONS - EXTERNAL - RAFT */
+
+    function boardFromRaft(uint256 amount) external;
+
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external;
 

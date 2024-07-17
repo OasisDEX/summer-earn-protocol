@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 error CallerIsNotGovernor(address caller);
 error CallerIsNotKeeper(address caller);
 error CallerIsNotCommander(address caller);
+error CallerIsNotRaft(address caller);
 error CallerIsNotAdmin(address caller);
 error DirectGrantIsDisabled(address caller);
 error DirectRevokeIsDisabled(address caller);
