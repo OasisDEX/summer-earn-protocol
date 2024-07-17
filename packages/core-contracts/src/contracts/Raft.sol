@@ -6,17 +6,18 @@ import {IArk} from "../interfaces/IArk.sol";
 import {SwapData} from "../types/RaftTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../errors/RaftErrors.sol";
+import "./ArkAccessManaged.sol";
 
 /**
  * @custom:see IRaft
  */
-contract Raft is IRaft {
+contract Raft is IRaft, ArkAccessManaged {
     address public swapProvider;
 
     mapping(address => mapping(address => uint256)) public harvestedRewards;
 
-    constructor(address _swapProvider) {
-        swapProvider = _swapProvider;
+    constructor(address _swapProvider_, address accessManager) ArkAccessManaged(accessManager) {
+        swapProvider = _swapProvider_;
     }
 
     /**
@@ -26,7 +27,7 @@ contract Raft is IRaft {
         address ark,
         address rewardToken,
         SwapData calldata swapData
-    ) external {
+    ) external onlyKeeper {
         harvest(ark, rewardToken);
         _swap(ark, swapData);
         _reboard(ark, rewardToken);
@@ -39,7 +40,7 @@ contract Raft is IRaft {
         address ark,
         address rewardToken,
         SwapData calldata swapData
-    ) external {
+    ) external onlyKeeper {
         _swap(ark, swapData);
         _reboard(ark, rewardToken);
     }

@@ -7,15 +7,27 @@ import {IRaftEvents} from "../src/interfaces/IRaftEvents.sol";
 import {Raft} from "../src/contracts/Raft.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SwapData} from "../src/types/RaftTypes.sol";
+import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 
 contract RaftTest is Test, IRaftEvents {
     Raft public raft;
+
+    address public governor = address(1);
     address public mockArk = address(5);
     address public mockSwapProvider = address(6);
     address public mockToken = address(7);
+    address public keeper = address(8);
 
     function setUp() public {
-        raft = new Raft(mockSwapProvider);
+        IProtocolAccessManager accessManager = new ProtocolAccessManager(
+            governor
+        );
+
+        raft = new Raft(mockSwapProvider, address(accessManager));
+
+        vm.prank(governor);
+        accessManager.grantKeeperRole(keeper);
     }
 
     function test_Harvest() public {
@@ -113,7 +125,7 @@ contract RaftTest is Test, IRaftEvents {
         vm.mockCall(
             mockArk,
             abi.encodeWithSelector(
-                IArk(mockArk).board.selector,
+                IArk(mockArk).boardFromRaft.selector,
                 balanceAfterSwap
             ),
             abi.encode()
@@ -132,6 +144,7 @@ contract RaftTest is Test, IRaftEvents {
         emit RewardReboarded(mockArk, mockRewardToken, rewardAmount, balanceAfterSwap);
 
         // Act
+        vm.prank(keeper);
         raft.harvestAndReboard(mockArk, mockRewardToken, swapData);
     }
 }

@@ -20,6 +20,8 @@ contract RaftTest is Test, IRaftEvents {
     CompoundV3Ark public ark;
     address public governor = address(1);
     address public commander = address(4);
+    address public keeper = address(8);
+
     address public rewardToken = 0xc00e94Cb662C3520282E6f5717214004A7f26888; // COMP Token
     address public constant cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     address public cometRewards = 0x1B0e765F6224C21223AeA2af16c1C46E38885a40;
@@ -32,13 +34,17 @@ contract RaftTest is Test, IRaftEvents {
 
     function setUp() public {
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
-        raft = new Raft(swapProvider);
-
-        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
             governor
         );
+
+        vm.prank(governor);
+        accessManager.grantKeeperRole(keeper);
+
+        raft = new Raft(swapProvider, address(accessManager));
+
+        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
         IConfigurationManager configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
@@ -82,7 +88,7 @@ contract RaftTest is Test, IRaftEvents {
         assertEq(IERC20(rewardToken).balanceOf(address(raft)), 6195000000000000);
     }
 
-    function test_HarvestAndReinvest() public {
+    function test_HarvestAndReboard() public {
         // Arrange
         vm.warp(block.timestamp + 1000000);
 
@@ -104,6 +110,7 @@ contract RaftTest is Test, IRaftEvents {
         emit RewardReboarded(address(ark), rewardToken, rewardAmount, 0);
 
         // Act
+        vm.prank(keeper);
         raft.swapAndReboard(address(ark), rewardToken, SwapData({
             fromAsset: rewardToken,
             amount: rewardAmount,
