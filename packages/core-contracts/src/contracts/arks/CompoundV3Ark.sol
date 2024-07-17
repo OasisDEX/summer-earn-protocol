@@ -4,8 +4,7 @@ pragma solidity 0.8.26;
 import "../Ark.sol";
 import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {IArk} from "../../interfaces/IArk.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
 
 contract CompoundV3Ark is Ark {

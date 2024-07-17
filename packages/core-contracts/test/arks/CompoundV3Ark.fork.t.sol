@@ -2,16 +2,17 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../../src/contracts/arks/CompoundV3Ark.sol";
+import {CompoundV3Ark, ArkParams} from "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "../../src/events/IArkEvents.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {CometMainInterface} from "../../src/interfaces/compound-v3/CometMainInterface.sol";
+import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
@@ -68,7 +69,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Expect comet to emit Supply
         vm.expectEmit();
-        emit CometMainInterface.Supply(address(ark), address(ark), amount);
+        emit IComet.Supply(address(ark), address(ark), amount);
 
         // Expect the Transfer event to be emitted - minted compound tokens
         vm.expectEmit();
