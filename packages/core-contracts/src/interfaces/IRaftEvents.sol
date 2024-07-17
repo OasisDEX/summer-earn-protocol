@@ -14,6 +14,7 @@ interface IRaftEvents {
     event RewardReinvested(
         address indexed ark,
         address indexed rewardToken,
-        uint256 rewardBalance
+        uint256 originalRewardBalance,
+        uint256 amountReinvested
     );
 }

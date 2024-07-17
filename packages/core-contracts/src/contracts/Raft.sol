@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
+import {Test, console} from "forge-std/Test.sol";
 
 import {IRaft} from "../interfaces/IRaft.sol";
 import {IArk} from "../interfaces/IArk.sol";
@@ -29,6 +30,7 @@ contract Raft is IRaft {
     ) external {
         harvest(ark, rewardToken);
         _swap(ark, swapData);
+        _reinvest(ark, rewardToken);
     }
 
     /**
@@ -68,8 +70,7 @@ contract Raft is IRaft {
             revert RewardsSwapFailed(msg.sender);
         }
 
-        uint256 balance = IArk(ark).token().balanceOf(address(this));
-
+        uint256 balance =  IArk(ark).token().balanceOf(address(this));
         if (balance < swapData.receiveAtLeast) {
             revert ReceivedLess(swapData.receiveAtLeast, balance);
         }
@@ -88,17 +89,19 @@ contract Raft is IRaft {
      * @param rewardToken The address of the reward token to be reinvested.
      */
     function _reinvest(address ark, address rewardToken) internal {
-        uint256 rewardBalance = harvestedRewards[ark][rewardToken];
-        if (rewardBalance == 0) {
+        uint256 preSwapRewardBalance = harvestedRewards[ark][rewardToken];
+
+        if (preSwapRewardBalance == 0) {
             revert NoRewardsToReinvest(ark, rewardToken);
         }
 
-        IERC20(rewardToken).approve(ark, rewardBalance);
-        IArk(ark).board(rewardBalance);
+        uint256 balance = IArk(ark).token().balanceOf(address(this));
+        IERC20(IArk(ark).token()).approve(ark, balance);
+        IArk(ark).board(balance);
 
         harvestedRewards[ark][rewardToken] = 0;
 
-        emit RewardReinvested(ark, rewardToken, rewardBalance);
+        emit RewardReinvested(ark, rewardToken, preSwapRewardBalance, balance);
     }
 
     /**
