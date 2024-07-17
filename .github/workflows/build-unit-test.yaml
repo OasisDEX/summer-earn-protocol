@@ -69,7 +69,7 @@ jobs:
       - name: Update Markdown with Dynamic Codecov Badge
         run: |
           BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-          BADGE_URL="https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/${BRANCH_NAME}/graph/badge.svg"
+          BADGE_URL="https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/${BRANCH_NAME}/graph/badge.svg?token=${{ secrets.CODECOV_EMBED_TOKEN }}"
           sed -i "s|https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/main/graph/badge.svg|${BADGE_URL}|g" README.md
         if: github.event_name == 'pull_request'
 
