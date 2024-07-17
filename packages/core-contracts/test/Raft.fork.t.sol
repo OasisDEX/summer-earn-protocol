@@ -23,7 +23,8 @@ contract RaftTest is Test, IRaftEvents {
     address public keeper = address(8);
 
     address public rewardToken = 0xc00e94Cb662C3520282E6f5717214004A7f26888; // COMP Token
-    address public constant cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+    address public constant cometAddress =
+        0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     address public cometRewards = 0x1B0e765F6224C21223AeA2af16c1C46E38885a40;
     IERC20 public usdc;
 
@@ -68,7 +69,6 @@ contract RaftTest is Test, IRaftEvents {
 
         deal(address(usdc), commander, suppliedUsdcAmount);
 
-
         vm.startPrank(commander);
         usdc.approve(address(ark), suppliedUsdcAmount);
         ark.board(suppliedUsdcAmount);
@@ -85,7 +85,10 @@ contract RaftTest is Test, IRaftEvents {
         raft.harvest(address(ark), rewardToken);
 
         // Assert
-        assertEq(IERC20(rewardToken).balanceOf(address(raft)), 6195000000000000);
+        assertEq(
+            IERC20(rewardToken).balanceOf(address(raft)),
+            6195000000000000
+        );
     }
 
     function test_HarvestAndReboard() public {
@@ -99,23 +102,22 @@ contract RaftTest is Test, IRaftEvents {
 
         // Expect events
         vm.expectEmit(true, true, true, true);
-        emit RewardSwapped(
-            rewardToken,
-            address(usdc),
-            rewardAmount,
-            0
-        );
+        emit RewardSwapped(rewardToken, address(usdc), rewardAmount, 0);
 
         vm.expectEmit();
         emit RewardReboarded(address(ark), rewardToken, rewardAmount, 0);
 
         // Act
         vm.prank(keeper);
-        raft.swapAndReboard(address(ark), rewardToken, SwapData({
-            fromAsset: rewardToken,
-            amount: rewardAmount,
-            receiveAtLeast: 0,
-            withData: bytes("")
-        }));
+        raft.swapAndReboard(
+            address(ark),
+            rewardToken,
+            SwapData({
+                fromAsset: rewardToken,
+                amount: rewardAmount,
+                receiveAtLeast: 0,
+                withData: bytes("")
+            })
+        );
     }
 }

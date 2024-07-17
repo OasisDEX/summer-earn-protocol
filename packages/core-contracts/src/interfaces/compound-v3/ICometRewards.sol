@@ -10,4 +10,3 @@ interface ICometRewards {
      */
     function claim(address comet, address src, bool shouldAccrue) external;
 }
-

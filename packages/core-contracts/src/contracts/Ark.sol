@@ -30,7 +30,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     }
 
     /**
-    * @dev Modifier to check that the caller is the Raft contract
+     * @dev Modifier to check that the caller is the Raft contract
      */
     modifier onlyRaft() {
         if (msg.sender != raft) {

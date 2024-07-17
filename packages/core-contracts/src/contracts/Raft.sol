@@ -16,7 +16,10 @@ contract Raft is IRaft, ArkAccessManaged {
 
     mapping(address => mapping(address => uint256)) public harvestedRewards;
 
-    constructor(address _swapProvider_, address accessManager) ArkAccessManaged(accessManager) {
+    constructor(
+        address _swapProvider_,
+        address accessManager
+    ) ArkAccessManaged(accessManager) {
         swapProvider = _swapProvider_;
     }
 
@@ -70,7 +73,7 @@ contract Raft is IRaft, ArkAccessManaged {
             revert RewardsSwapFailed(msg.sender);
         }
 
-        uint256 balance =  IArk(ark).token().balanceOf(address(this));
+        uint256 balance = IArk(ark).token().balanceOf(address(this));
         if (balance < swapData.receiveAtLeast) {
             revert ReceivedLess(swapData.receiveAtLeast, balance);
         }

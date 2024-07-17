@@ -86,9 +86,7 @@ contract RaftTest is Test, IRaftEvents {
 
         vm.mockCall(
             mockArk,
-            abi.encodeWithSelector(
-                IArk(mockArk).token.selector
-            ),
+            abi.encodeWithSelector(IArk(mockArk).token.selector),
             abi.encode(mockToken)
         );
 
@@ -141,7 +139,12 @@ contract RaftTest is Test, IRaftEvents {
         );
 
         vm.expectEmit();
-        emit RewardReboarded(mockArk, mockRewardToken, rewardAmount, balanceAfterSwap);
+        emit RewardReboarded(
+            mockArk,
+            mockRewardToken,
+            rewardAmount,
+            balanceAfterSwap
+        );
 
         // Act
         vm.prank(keeper);

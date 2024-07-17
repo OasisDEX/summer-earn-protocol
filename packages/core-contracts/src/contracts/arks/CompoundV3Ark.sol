@@ -15,7 +15,11 @@ contract CompoundV3Ark is Ark {
     IComet public comet;
     ICometRewards public cometRewards;
 
-    constructor(address _comet, address _cometRewards, ArkParams memory _params) Ark(_params) {
+    constructor(
+        address _comet,
+        address _cometRewards,
+        ArkParams memory _params
+    ) Ark(_params) {
         comet = IComet(_comet);
         cometRewards = ICometRewards(_cometRewards);
     }
@@ -47,12 +51,13 @@ contract CompoundV3Ark is Ark {
     function harvest(address rewardToken) external override returns (uint256) {
         cometRewards.claim(address(comet), address(this), true);
 
-        uint256 claimedRewardsBalance = IERC20(rewardToken).balanceOf(address(this));
+        uint256 claimedRewardsBalance = IERC20(rewardToken).balanceOf(
+            address(this)
+        );
         IERC20(rewardToken).safeTransfer(raft, claimedRewardsBalance);
 
         emit Harvested(claimedRewardsBalance);
 
         return claimedRewardsBalance;
     }
-
 }
