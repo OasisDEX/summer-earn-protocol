@@ -64,3 +64,23 @@ jobs:
           files: ./packages/core-contracts/lcov.info
           flags: unittests
           name: codecov-umbrella
+
+      # New step to update the README.md or any Markdown file with the dynamic badge
+      - name: Update Markdown with Dynamic Codecov Badge
+        run: |
+          BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          BADGE_URL="https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/${BRANCH_NAME}/graph/badge.svg"
+          sed -i "s|https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/main/graph/badge.svg|${BADGE_URL}|g" README.md
+        if: github.event_name == 'pull_request'
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add README.md
+          git commit -m "Update Codecov badge to current branch" -a || echo "No changes to commit"
+          # Use GITHUB_HEAD_REF for PRs, GITHUB_REF for others
+          BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          # Ensure we're pushing to a branch, not a detached HEAD
+          git push origin HEAD:refs/heads/${BRANCH_NAME}
+        if: github.event_name == 'pull_request'
