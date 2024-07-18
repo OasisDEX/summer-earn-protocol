@@ -82,6 +82,34 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             initialBufferBalance,
             "Total assets should remain unchanged"
         );
+
+        RebalanceData[] memory rebalanceBackData = new RebalanceData[](2);
+        rebalanceBackData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: address(fleetCommander),
+            amount: 3000 * 10 ** 6
+        });
+        rebalanceBackData[1] = RebalanceData({
+            fromArk: ark2,
+            toArk: address(fleetCommander),
+            amount: 2000 * 10 ** 6
+        });
+
+        // Act 2
+        vm.prank(keeper);
+        fleetCommander.adjustBuffer(rebalanceBackData);
+
+                // Assert
+        assertEq(
+            fleetCommander.fundsBufferBalance(),
+            minBufferBalance,
+            "Buffer balance should be equal to minBufferBalance"
+        );
+        assertEq(
+            fleetCommander.totalAssets(),
+            initialBufferBalance,
+            "Total assets should remain unchanged"
+        );
     }
 
     function test_AdjustBufferNoExcessFunds() public {

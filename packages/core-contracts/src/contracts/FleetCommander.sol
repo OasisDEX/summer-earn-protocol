@@ -269,8 +269,7 @@ contract FleetCommander is
                 address(toArk) == address(this) ||
                 address(fromArk) == address(this)
             ) {
-                // TODO : add new error
-                revert FleetCommanderArkNotFound(address(toArk));
+                revert FleetCommanderCantRebalanceBuffer();
             }
 
             ArkConfiguration memory targetArkConfiguration = _arks[

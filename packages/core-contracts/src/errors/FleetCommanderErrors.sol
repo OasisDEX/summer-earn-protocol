@@ -25,3 +25,4 @@ error FleetCommanderInvalidTargetArk(address ark);
 error FleetCommanderMovedMoreThanAvailable();
 error FleetCommanderArkDepositCapGreaterThanZero(address ark);
 error FleetCommanderArkAssetsNotZero(address ark);
+error FleetCommanderCantRebalanceBuffer();
