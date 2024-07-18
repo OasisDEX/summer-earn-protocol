@@ -274,53 +274,30 @@ contract FleetCommander is
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
         uint256 amount = data.amount;
-        if (address(toArk) == address(0)) {
-            revert FleetCommanderArkNotFound(address(toArk));
-        }
-        if (address(fromArk) == address(0)) {
-            revert FleetCommanderArkNotFound(address(fromArk));
-        }
-        if (amount == 0) {
-            revert FleetCommanderRebalanceAmountZero(address(toArk));
-        }
+        uint256 toArkMaxAllocation = toArk.maxAllocation();
 
-        if (!_isArkActive[address(toArk)]) {
-            revert FleetCommanderArkNotFound(address(toArk));
-        }
+        if (address(toArk) != address(bufferArk)) {
+            uint256 toArkRate = toArk.rate();
+            uint256 fromArkRate = fromArk.rate();
 
-        uint256 targetArkMaxAllocation = toArk.maxAllocation();
-        if (targetArkMaxAllocation == 0) {
-            revert FleetCommanderCantRebalanceToArk(address(toArk));
-        }
-
-        if (address(fromArk) != address(bufferArk)) {
-            if (address(fromArk) == address(0)) {
-                revert FleetCommanderArkNotFound(address(fromArk));
-            }
-
-            if (!_isArkActive[address(fromArk)]) {
-                revert FleetCommanderArkNotFound(address(fromArk));
-            }
-
-            uint256 targetArkRate = toArk.rate();
-            uint256 sourceArkRate = fromArk.rate();
-
-            if (targetArkRate < sourceArkRate) {
+            if (toArkRate < fromArkRate) {
                 revert FleetCommanderTargetArkRateTooLow(
                     address(toArk),
-                    targetArkRate,
-                    sourceArkRate
+                    toArkRate,
+                    fromArkRate
                 );
             }
         }
 
-        uint256 currentAmount = toArk.totalAssets();
-        uint256 availableSpace;
-        if (currentAmount < targetArkMaxAllocation) {
-            availableSpace = targetArkMaxAllocation - currentAmount;
-            amount = (amount < availableSpace) ? amount : availableSpace;
+        uint256 toArkAllocation = toArk.totalAssets();
+        uint256 availableAllocation;
+        if (toArkAllocation < toArkMaxAllocation) {
+            availableAllocation = toArkMaxAllocation - toArkAllocation;
+            amount = (amount < availableAllocation)
+                ? amount
+                : availableAllocation;
         } else {
-            // If currentAmount >= maxAllocation, we can't add more funds
+            // If toArkAllocation >= maxAllocation, we can't add more funds
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
@@ -540,7 +517,7 @@ contract FleetCommander is
 
     function _validateRebalanceData(
         RebalanceData[] calldata rebalanceData
-    ) internal pure {
+    ) internal view {
         if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
             revert FleetCommanderRebalanceTooManyOperations(
                 rebalanceData.length
@@ -548,6 +525,31 @@ contract FleetCommander is
         }
         if (rebalanceData.length == 0) {
             revert FleetCommanderRebalanceNoOperations();
+        }
+
+        for (uint256 i = 0; i < rebalanceData.length; i++) {
+            if (rebalanceData[i].amount == 0) {
+                revert FleetCommanderRebalanceAmountZero(
+                    rebalanceData[i].toArk
+                );
+            }
+            if (address(rebalanceData[i].toArk) == address(0)) {
+                revert FleetCommanderArkNotFound(rebalanceData[i].toArk);
+            }
+            if (address(rebalanceData[i].fromArk) == address(0)) {
+                revert FleetCommanderArkNotFound(rebalanceData[i].fromArk);
+            }
+            if (!_isArkActive[address(rebalanceData[i].toArk)]) {
+                revert FleetCommanderArkNotActive(rebalanceData[i].toArk);
+            }
+            if (!_isArkActive[address(rebalanceData[i].fromArk)]) {
+                revert FleetCommanderArkNotActive(rebalanceData[i].fromArk);
+            }
+            if (IArk(rebalanceData[i].toArk).maxAllocation() == 0) {
+                revert FleetCommanderCantRebalanceToArk(
+                    address(rebalanceData[i].toArk)
+                );
+            }
         }
     }
 }

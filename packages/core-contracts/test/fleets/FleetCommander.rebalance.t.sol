@@ -144,7 +144,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderArkNotFound(address)",
+                "FleetCommanderArkNotActive(address)",
                 invalidArk
             )
         );
@@ -164,7 +164,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderArkNotFound(address)",
+                "FleetCommanderArkNotActive(address)",
                 address(this)
             )
         );

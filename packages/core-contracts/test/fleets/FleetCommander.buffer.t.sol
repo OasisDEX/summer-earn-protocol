@@ -58,12 +58,12 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Prepare rebalance data
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: bufferArkAddress,
             toArk: ark1,
             amount: 3000 * 10 ** 6
         });
         rebalanceData[1] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: bufferArkAddress,
             toArk: ark2,
             amount: 2000 * 10 ** 6
         });
@@ -95,7 +95,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(fleetCommander),
+            fromArk: address(bufferArkAddress),
             toArk: ark1,
             amount: 1000 * 10 ** 6
         });

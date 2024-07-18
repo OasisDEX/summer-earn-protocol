@@ -97,12 +97,12 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Rebalance funds to Ark1 and Ark2
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: bufferArkAddress,
             toArk: ark1,
             amount: user1Deposit
         });
         rebalanceData[1] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: bufferArkAddress,
             toArk: ark2,
             amount: user2Deposit
         });
