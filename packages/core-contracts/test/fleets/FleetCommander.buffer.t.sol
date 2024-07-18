@@ -71,7 +71,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act
-        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.warp(INITIAL_REBALANCE_COOLDOWN + 1);
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
 
@@ -79,7 +79,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertEq(
             IArk(fleetCommander.bufferArk()).totalAssets(),
             minBufferBalance,
-            "Buffer balance should be equal to minBufferBalance"
+            "Buffer balance should be equal to minBufferBalance - excess funds sent to arks"
         );
         assertEq(
             fleetCommander.totalAssets(),
@@ -110,15 +110,15 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act round 2
-        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.adjustBuffer(rebalanceFromData);
 
         // Assert round 2
         assertEq(
             IArk(fleetCommander.bufferArk()).totalAssets(),
-            minBufferBalance,
-            "Buffer balance should be equal to minBufferBalance"
+            initialBufferBalance,
+            "Buffer balance should be equal to initialBufferBalance - all funds moved back to buffer"
         );
         assertEq(
             fleetCommander.totalAssets(),
