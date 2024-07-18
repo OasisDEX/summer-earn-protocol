@@ -68,6 +68,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
 
@@ -100,6 +101,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(FleetCommanderNoExcessFunds.selector)
@@ -124,6 +126,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -156,6 +159,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
 

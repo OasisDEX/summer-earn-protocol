@@ -89,4 +89,15 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
 
         _cooldown = newCooldown;
     }
+
+    /**
+     * @notice Updates the last action timestamp
+     *
+     * @param lastActionTimestamp The new last action timestamp
+     *
+     * @dev Allows for cooldown period to be skipped (IE after force withdrawal)
+     */
+    function _setLastActionTimestamp(uint256 lastActionTimestamp) internal {
+        _lastActionTimestamp = lastActionTimestamp;
+    }
 }

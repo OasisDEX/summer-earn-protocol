@@ -29,7 +29,6 @@ contract FleetCommander is
     uint256 public fundsBufferBalance;
     uint256 public minFundsBufferBalance;
     uint256 public depositCap;
-    Percentage public minPositionWithdrawalPercentage;
     Percentage public maxBufferWithdrawalPercentage;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
@@ -45,8 +44,6 @@ contract FleetCommander is
         _setupArks(params.initialArks);
 
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
-        minPositionWithdrawalPercentage = params
-            .initialMinimumPositionWithdrawal;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
         depositCap = params.depositCap;
     }
@@ -65,7 +62,6 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
-        _validateWithdrawal(assets, owner);
         super.withdraw(assets, receiver, owner);
 
         uint256 prevQueueBalance = fundsBufferBalance;
@@ -86,7 +82,6 @@ contract FleetCommander is
         address owner
     ) public override(ERC4626, IERC4626) returns (uint256) {
         uint256 assets = super.redeem(shares, receiver, owner);
-        _validateWithdrawal(assets, owner);
         uint256 prevQueueBalance = fundsBufferBalance;
         fundsBufferBalance = fundsBufferBalance - assets;
 
@@ -154,6 +149,9 @@ contract FleetCommander is
             totalSharesToWithdraw
         );
         fundsBufferBalance -= totalAssetsToWithdraw;
+
+        _setLastActionTimestamp(0);
+
         return totalAssetsToWithdraw;
     }
 
@@ -528,6 +526,7 @@ contract FleetCommander is
         emit ArkRemoved(ark);
     }
 
+    /* INTERNAL - VALIDATIONS */
     function _validateArkRemoval(address ark) internal view {
         IArk _ark = IArk(ark);
         if (_ark.depositCap() > 0) {
@@ -536,19 +535,6 @@ contract FleetCommander is
 
         if (_ark.totalAssets() != 0) {
             revert FleetCommanderArkAssetsNotZero(ark);
-        }
-    }
-
-    /* INTERNAL - VALIDATIONS */
-    function _validateWithdrawal(uint256 assets, address owner) internal view {
-        uint256 userPosition = previewRedeem(balanceOf(owner));
-        // assets needs to be increased by 100 to work with fromFraction
-        Percentage userWithdrawalPercentage = PercentageUtils.fromFraction(
-            assets * 100,
-            userPosition
-        );
-        if (userWithdrawalPercentage < minPositionWithdrawalPercentage) {
-            revert WithdrawalAmountIsBelowMinThreshold();
         }
     }
 
