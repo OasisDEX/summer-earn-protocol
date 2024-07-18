@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
+import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /**
  * @title Deposit test suite for FleetCommander
@@ -19,6 +21,9 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Error cases and edge scenarios
  */
 contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+    uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
+    uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
+
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
@@ -34,6 +39,7 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArk3.grantCommanderRole(address(fleetCommander));
         bufferArk.grantCommanderRole(address(fleetCommander));
         vm.stopPrank();
+        fleetCommanderStorageWriter.setDepositCap(MAX_DEPOSIT_CAP);
     }
 
     function test_Deposit() public {
@@ -52,5 +58,165 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.deposit(amount, mockUser);
 
         assertEq(amount, fleetCommander.balanceOf(mockUser));
+    }
+
+    function test_DepositZeroAmount() public {
+        vm.prank(mockUser);
+        fleetCommander.deposit(0, mockUser);
+    }
+
+    // function test_DepositToOtherReceiver() public {
+    //     address receiver = address(0xdeadbeef);
+    //     uint256 amount = DEPOSIT_AMOUNT;
+
+    //     mockToken.mint(mockUser, amount);
+    //     vm.startPrank(mockUser);
+    //     mockToken.approve(address(fleetCommander), amount);
+    //     fleetCommander.deposit(amount, receiver);
+    //     vm.stopPrank();
+
+    //     assertEq(
+    //         fleetCommander.balanceOf(receiver),
+    //         amount,
+    //         "Receiver should have received the shares"
+    //     );
+    //     assertEq(
+    //         fleetCommander.balanceOf(mockUser),
+    //         0,
+    //         "Depositor should not have received any shares"
+    //     );
+    // }
+
+    function test_DepositMultipleTimes() public {
+        uint256 amount = DEPOSIT_AMOUNT;
+        mockToken.mint(mockUser, amount * 3);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), amount * 3);
+
+        fleetCommander.deposit(amount, mockUser);
+        fleetCommander.deposit(amount, mockUser);
+        fleetCommander.deposit(amount, mockUser);
+
+        vm.stopPrank();
+
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            amount * 3,
+            "User should have received correct total shares"
+        );
+    }
+
+    function test_DepositExceedingAllowance() public {
+        uint256 amount = DEPOSIT_AMOUNT;
+        uint256 allowance = amount / 2;
+
+        mockToken.mint(mockUser, amount);
+        vm.prank(mockUser);
+        mockToken.approve(address(fleetCommander), allowance);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC20InsufficientAllowance(address,uint256,uint256)",
+                address(fleetCommander),
+                allowance,
+                amount
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.deposit(amount, mockUser);
+    }
+
+    function test_DepositExceedingBalance() public {
+        uint256 amount = DEPOSIT_AMOUNT;
+        uint256 balance = amount / 2;
+
+        mockToken.mint(mockUser, balance);
+        vm.prank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+        vm.startPrank(mockUser);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxDeposit(address,uint256,uint256)",
+                mockUser,
+                amount,
+                balance
+            )
+        );
+        fleetCommander.deposit(amount, mockUser);
+        vm.stopPrank();
+    }
+
+    function test_DepositUpToDepositCap() public {
+        uint256 depositCap = MAX_DEPOSIT_CAP / 2;
+        fleetCommanderStorageWriter.setDepositCap(depositCap);
+
+        mockToken.mint(mockUser, depositCap);
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), depositCap);
+        fleetCommander.deposit(depositCap, mockUser);
+        vm.stopPrank();
+
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositCap,
+            "User should have received correct shares"
+        );
+    }
+
+    function test_DepositExceedingDepositCap() public {
+        uint256 depositCap = MAX_DEPOSIT_CAP / 2;
+        fleetCommanderStorageWriter.setDepositCap(depositCap);
+
+        uint256 amount = depositCap + 1;
+        mockToken.mint(mockUser, amount);
+        vm.prank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxDeposit(address,uint256,uint256)",
+                mockUser,
+                amount,
+                depositCap
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.deposit(amount, mockUser);
+    }
+
+    function test_DepositEventEmission() public {
+        uint256 amount = DEPOSIT_AMOUNT;
+        mockToken.mint(mockUser, amount);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+
+        vm.expectEmit(true, true, true, true);
+        emit IERC4626.Deposit(mockUser, mockUser, amount, amount);
+        fleetCommander.deposit(amount, mockUser);
+
+        vm.stopPrank();
+    }
+
+    function test_DepositUpdatesBufferBalance() public {
+        uint256 amount = DEPOSIT_AMOUNT;
+        mockToken.mint(mockUser, amount);
+
+        uint256 initialBufferBalance = IArk(fleetCommander.bufferArk())
+            .totalAssets();
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+        fleetCommander.deposit(amount, mockUser);
+        vm.stopPrank();
+
+        uint256 finalBufferBalance = IArk(fleetCommander.bufferArk())
+            .totalAssets();
+        assertEq(
+            finalBufferBalance,
+            initialBufferBalance + amount,
+            "Buffer balance should increase by deposited amount"
+        );
     }
 }

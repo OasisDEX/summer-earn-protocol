@@ -525,7 +525,7 @@ contract FleetCommander is
         }
 
         if (!isMovingToBuffer) {
-            if (initialBufferBalance < minFundsBufferBalance) {
+            if (initialBufferBalance <= minFundsBufferBalance) {
                 revert FleetCommanderNoExcessFunds();
             }
             uint256 excessFunds = initialBufferBalance - minFundsBufferBalance;
