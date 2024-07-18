@@ -150,7 +150,7 @@ contract FleetCommander is
         );
         fundsBufferBalance -= totalAssetsToWithdraw;
 
-        _setLastActionTimestamp(block.timestamp - getCooldown());
+        _setLastActionTimestamp(0);
 
         return totalAssetsToWithdraw;
     }
