@@ -311,46 +311,13 @@ contract FleetCommander is
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
         _validateRebalanceData(rebalanceData);
+        _validateAdjustBufferData(rebalanceData);
 
-        uint256 excessFunds = 0;
+        uint256 totalMoved = _rebalance(rebalanceData);
 
-        if (bufferArk.totalAssets() > minFundsBufferBalance) {
-            excessFunds = bufferArk.totalAssets() - minFundsBufferBalance;
-        } else {
-            revert FleetCommanderNoExcessFunds();
-        }
-
-        uint256 totalMoved = 0;
-        for (
-            uint256 i = 0;
-            i < rebalanceData.length && totalMoved < excessFunds;
-            i++
-        ) {
-            RebalanceData memory data = rebalanceData[i];
-            if (data.fromArk != address(bufferArk)) {
-                revert FleetCommanderInvalidSourceArk(data.fromArk);
-            }
-
-            uint256 remainingExcess = excessFunds - totalMoved;
-            uint256 amountToMove = (data.amount < remainingExcess)
-                ? data.amount
-                : remainingExcess;
-            RebalanceData memory adjustedData = RebalanceData({
-                fromArk: data.fromArk,
-                toArk: data.toArk,
-                amount: amountToMove
-            });
-
-            uint256 moved = _reallocateAssets(adjustedData);
-            totalMoved += moved;
-        }
-
-        if (totalMoved == 0) {
-            revert FleetCommanderNoFundsMoved();
-        }
-
-        if (totalMoved > excessFunds) {
-            revert FleetCommanderMovedMoreThanAvailable();
+        uint256 finalBufferBalance = bufferArk.totalAssets();
+        if (finalBufferBalance < minFundsBufferBalance) {
+            revert FleetCommanderInsufficientBuffer();
         }
 
         emit FleetCommanderBufferAdjusted(msg.sender, totalMoved);
@@ -442,10 +409,12 @@ contract FleetCommander is
     }
 
     /* INTERNAL - REBALANCE */
-    function _rebalance(RebalanceData[] calldata rebalanceData) internal {
+    function _rebalance(
+        RebalanceData[] calldata rebalanceData
+    ) internal returns (uint256 totalMoved) {
         _validateRebalanceData(rebalanceData);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _reallocateAssets(rebalanceData[i]);
+            totalMoved += _reallocateAssets(rebalanceData[i]);
         }
         emit Rebalanced(msg.sender, rebalanceData);
     }
@@ -504,6 +473,17 @@ contract FleetCommander is
     }
 
     /* INTERNAL - VALIDATIONS */
+
+    /**
+     * @notice Validates if an Ark can be safely removed from the Fleet Commander
+     * @dev This function checks two conditions:
+     *      1. The Ark's max allocation must be zero
+     *      2. The Ark must not hold any assets
+     * These conditions ensure that the Ark is effectively decommissioned before removal
+     * @param ark The address of the Ark to be removed
+     * @custom:error FleetCommanderArkMaxAllocationGreaterThanZero Thrown when the Ark's max allocation is not zero
+     * @custom:error FleetCommanderArkAssetsNotZero Thrown when the Ark still holds assets
+     */
     function _validateArkRemoval(address ark) internal view {
         IArk _ark = IArk(ark);
         if (_ark.maxAllocation() > 0) {
@@ -515,6 +495,60 @@ contract FleetCommander is
         }
     }
 
+    /**
+     * @notice Validates the data for adjusting the buffer
+     * @dev This function checks if all operations in the rebalance data are consistent
+     *      (either all moving to buffer or all moving from buffer) and ensures that
+     *      the buffer balance remains above the minimum required balance
+     * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
+     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when operations are inconsistent (all operations need to move funds in one direction)
+     * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
+     * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
+     */
+    function _validateAdjustBufferData(
+        RebalanceData[] calldata rebalanceData
+    ) internal view {
+        bool isMovingToBuffer = rebalanceData[0].toArk == address(bufferArk);
+        uint256 initialBufferBalance = bufferArk.totalAssets();
+        uint256 totalToMove;
+        for (uint256 i = 0; i < rebalanceData.length; i++) {
+            totalToMove += rebalanceData[i].amount;
+            if (isMovingToBuffer) {
+                if (rebalanceData[i].toArk != address(bufferArk)) {
+                    revert FleetCommanderInvalidBufferAdjustment();
+                }
+            } else {
+                if (rebalanceData[i].fromArk != address(bufferArk)) {
+                    revert FleetCommanderInvalidBufferAdjustment();
+                }
+            }
+        }
+
+        if (!isMovingToBuffer) {
+            if (initialBufferBalance < minFundsBufferBalance) {
+                revert FleetCommanderNoExcessFunds();
+            }
+            uint256 excessFunds = initialBufferBalance - minFundsBufferBalance;
+            if (totalToMove > excessFunds) {
+                revert FleetCommanderInsufficientBuffer();
+            }
+        }
+    }
+
+    /**
+     * @notice Validates the rebalance data for correctness and consistency
+     * @dev This function checks various conditions of the rebalance operations:
+     *      - Number of operations is within limits
+     *      - Each operation has valid amounts and addresses
+     *      - Arks involved in the operations are active and have proper allocations
+     * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
+     * @custom:error FleetCommanderRebalanceTooManyOperations Thrown when the number of operations exceeds the maximum allowed
+     * @custom:error FleetCommanderRebalanceNoOperations Thrown when the rebalance data array is empty
+     * @custom:error FleetCommanderRebalanceAmountZero Thrown when one of the amounts to move is zero
+     * @custom:error FleetCommanderArkNotFound Thrown when either the source or destination Ark address is zero
+     * @custom:error FleetCommanderArkNotActive Thrown when either the source or destination Ark is not active
+     * @custom:error FleetCommanderCantRebalanceToArk Thrown when trying to rebalance to an Ark with zero max allocation
+     */
     function _validateRebalanceData(
         RebalanceData[] calldata rebalanceData
     ) internal view {

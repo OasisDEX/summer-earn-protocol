@@ -6,6 +6,8 @@ error FleetCommanderTransfersDisabled();
 error FleetCommanderArkNotFound(address ark);
 error FleetCommanderArkNotActive(address ark);
 error FleetCommanderCantRebalanceToArk(address ark);
+error FleetCommanderInvalidBufferAdjustment();
+error FleetCommanderInsufficientBuffer();
 error FleetCommanderTargetArkRateTooLow(
     address ark,
     uint256 targetRate,

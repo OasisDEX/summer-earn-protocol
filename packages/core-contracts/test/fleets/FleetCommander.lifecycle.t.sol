@@ -38,7 +38,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 user1Deposit = ark1_MAX_ALLOCATION;
         uint256 user2Deposit = ark2_MAX_ALLOCATION;
         uint256 depositCap = ark1_MAX_ALLOCATION + ark2_MAX_ALLOCATION;
-        uint256 minBufferBalance = 1000 * 10 ** 6;
+        uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
         fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
