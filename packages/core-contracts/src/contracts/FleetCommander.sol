@@ -442,7 +442,9 @@ contract FleetCommander is
         _updateCooldown(newCooldown);
     }
 
-    function forceRebalance(RebalanceData[] calldata rebalanceData) external onlyGovernor {
+    function forceRebalance(
+        RebalanceData[] calldata rebalanceData
+    ) external onlyGovernor {
         _rebalance(rebalanceData);
     }
 
