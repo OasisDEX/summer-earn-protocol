@@ -40,7 +40,8 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken)
+            token: address(mockToken),
+            maxAllocation: type(uint256).max
         });
         ark = new CompoundV3Ark(address(comet), params);
 

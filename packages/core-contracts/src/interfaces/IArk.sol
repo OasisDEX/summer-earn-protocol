@@ -10,6 +10,9 @@ import "../events/IArkEvents.sol";
 interface IArk is IArkAccessManaged, IArkEvents {
     /* FUNCTIONS - PUBLIC */
 
+    /// @notice Returns max allocation for this ark
+    function maxAllocation() external view returns (uint256);
+
     /// @notice Returns latest deposit cap set for this Ark
     function depositCap() external view returns (uint256);
 
@@ -31,4 +34,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function setDepositCap(uint256 newCap) external;
 
     function setRaft(address newRaft) external;
+
+    function setMaxAllocation(uint256 newMaxAllocation) external;
 }

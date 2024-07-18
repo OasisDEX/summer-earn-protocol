@@ -45,7 +45,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken)
+            token: address(mockToken),
+            maxAllocation: type(uint256).max
         });
         vm.mockCall(
             address(aaveV3Pool),
