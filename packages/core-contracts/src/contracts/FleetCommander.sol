@@ -310,7 +310,6 @@ contract FleetCommander is
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
-        _validateRebalanceData(rebalanceData);
         _validateAdjustBufferData(rebalanceData);
 
         uint256 totalMoved = _rebalance(rebalanceData);
