@@ -258,11 +258,7 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
-        _validateRebalanceData(rebalanceData);
-        for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _reallocateAssets(rebalanceData[i]);
-        }
-        emit Rebalanced(msg.sender, rebalanceData);
+        _rebalance(rebalanceData);
     }
 
     function _reallocateAssets(
@@ -446,7 +442,11 @@ contract FleetCommander is
         _updateCooldown(newCooldown);
     }
 
-    function forceRebalance(bytes calldata data) external onlyGovernor {}
+    function forceRebalance(
+        RebalanceData[] calldata rebalanceData
+    ) external onlyGovernor {
+        _rebalance(rebalanceData);
+    }
 
     function emergencyShutdown() external onlyGovernor {}
 
@@ -462,7 +462,13 @@ contract FleetCommander is
     }
 
     /* INTERNAL - REBALANCE */
-    function _rebalance(bytes calldata data) internal {}
+    function _rebalance(RebalanceData[] calldata rebalanceData) internal {
+        _validateRebalanceData(rebalanceData);
+        for (uint256 i = 0; i < rebalanceData.length; i++) {
+            _reallocateAssets(rebalanceData[i]);
+        }
+        emit Rebalanced(msg.sender, rebalanceData);
+    }
 
     /* INTERNAL - ARK */
     function _board(address ark, uint256 amount) internal {
