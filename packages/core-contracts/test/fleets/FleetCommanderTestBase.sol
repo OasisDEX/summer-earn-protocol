@@ -45,6 +45,8 @@ abstract contract FleetCommanderTestBase {
     uint256 public BUFFER_BALANCE_SLOT;
     uint256 public MIN_BUFFER_BALANCE_SLOT;
 
+    uint256 public INITIAL_REBALANCE_COOLDOWN = 1000;
+
     uint256 ark1_MAX_ALLOCATION = 10000 * 10 ** 6;
     uint256 ark2_MAX_ALLOCATION = 15000 * 10 ** 6;
 
@@ -114,7 +116,7 @@ abstract contract FleetCommanderTestBase {
             configurationManager: address(configurationManager),
             initialArks: initialArks,
             initialMinimumFundsBufferBalance: 10000 * 10 ** 6,
-            initialRebalanceCooldown: 0,
+            initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             asset: address(mockToken),
             name: fleetName,
             symbol: string(abi.encodePacked(mockToken.symbol(), "-SUM")),

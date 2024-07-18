@@ -107,6 +107,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             amount: user2Deposit
         });
 
+        // Advance time to move past cooldown window
+        vm.warp(block.timestamp + 1 days);
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
 

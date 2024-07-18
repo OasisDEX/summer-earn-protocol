@@ -29,7 +29,6 @@ contract FleetCommander is
     address[] private _activeArks;
     uint256 public minFundsBufferBalance;
     uint256 public depositCap;
-    Percentage public minPositionWithdrawalPercentage;
     Percentage public maxBufferWithdrawalPercentage;
     IArk public bufferArk;
 
@@ -46,8 +45,6 @@ contract FleetCommander is
         _setupArks(params.initialArks);
 
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
-        minPositionWithdrawalPercentage = params
-            .initialMinimumPositionWithdrawal;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
         depositCap = params.depositCap;
         bufferArk = IArk(params.bufferArk);
@@ -68,7 +65,6 @@ contract FleetCommander is
         address owner
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
         uint256 prevQueueBalance = bufferArk.totalAssets();
-        _validateWithdrawal(assets, owner);
         _disembark(address(bufferArk), assets);
 
         super.withdraw(assets, receiver, owner);
@@ -89,7 +85,6 @@ contract FleetCommander is
     ) public override(ERC4626, IERC4626) returns (uint256) {
         uint256 prevQueueBalance = bufferArk.totalAssets();
         uint256 assets = previewRedeem(shares);
-        _validateWithdrawal(assets, owner);
         _disembark(address(bufferArk), assets);
         super.redeem(shares, receiver, owner);
         uint256 fundsBufferBalance = bufferArk.totalAssets();
@@ -159,6 +154,8 @@ contract FleetCommander is
             totalAssetsToWithdraw,
             totalSharesToWithdraw
         );
+
+        _setLastActionTimestamp(0);
 
         return totalAssetsToWithdraw;
     }
@@ -270,11 +267,7 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
-        _validateRebalanceData(rebalanceData);
-        for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _reallocateAssets(rebalanceData[i]);
-        }
-        emit Rebalanced(msg.sender, rebalanceData);
+        _rebalance(rebalanceData);
     }
 
     function _reallocateAssets(
@@ -452,7 +445,11 @@ contract FleetCommander is
         _updateCooldown(newCooldown);
     }
 
-    function forceRebalance(bytes calldata data) external onlyGovernor {}
+    function forceRebalance(
+        RebalanceData[] calldata rebalanceData
+    ) external onlyGovernor {
+        _rebalance(rebalanceData);
+    }
 
     function emergencyShutdown() external onlyGovernor {}
 
@@ -468,7 +465,13 @@ contract FleetCommander is
     }
 
     /* INTERNAL - REBALANCE */
-    function _rebalance(bytes calldata data) internal {}
+    function _rebalance(RebalanceData[] calldata rebalanceData) internal {
+        _validateRebalanceData(rebalanceData);
+        for (uint256 i = 0; i < rebalanceData.length; i++) {
+            _reallocateAssets(rebalanceData[i]);
+        }
+        emit Rebalanced(msg.sender, rebalanceData);
+    }
 
     /* INTERNAL - ARK */
     function _board(address ark, uint256 amount) internal {
@@ -526,6 +529,7 @@ contract FleetCommander is
         emit ArkRemoved(ark);
     }
 
+    /* INTERNAL - VALIDATIONS */
     function _validateArkRemoval(address ark) internal view {
         IArk _ark = IArk(ark);
         if (_ark.depositCap() > 0) {
@@ -534,19 +538,6 @@ contract FleetCommander is
 
         if (_ark.totalAssets() != 0) {
             revert FleetCommanderArkAssetsNotZero(ark);
-        }
-    }
-
-    /* INTERNAL - VALIDATIONS */
-    function _validateWithdrawal(uint256 assets, address owner) internal view {
-        uint256 userPosition = previewRedeem(balanceOf(owner));
-        // assets needs to be increased by 100 to work with fromFraction
-        Percentage userWithdrawalPercentage = PercentageUtils.fromFraction(
-            assets * 100,
-            userPosition
-        );
-        if (userWithdrawalPercentage < minPositionWithdrawalPercentage) {
-            revert WithdrawalAmountIsBelowMinThreshold();
         }
     }
 

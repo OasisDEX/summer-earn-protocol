@@ -61,6 +61,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         fleetCommander.rebalance(rebalanceData);
 
@@ -110,6 +111,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         fleetCommander.rebalance(rebalanceData);
 
@@ -138,6 +140,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -157,6 +160,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -176,6 +180,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -201,6 +206,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -226,6 +232,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -249,6 +256,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockToken.mint(ark1, 5000 * 10 ** 6);
 
         // First rebalance
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         fleetCommander.rebalance(rebalanceData);
 
