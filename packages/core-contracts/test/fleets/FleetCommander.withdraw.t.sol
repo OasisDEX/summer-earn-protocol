@@ -73,13 +73,13 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
     }
 
-    function test_RevertIfArkDepositCapNotZero() public {
+    function test_RevertIfArkMaxAllocationNotZero() public {
         // Act & Assert
         vm.prank(governor);
-        mockArkDepositCap(ark1, 100);
+        mockArkMaxAllocation(ark1, 100);
         vm.expectRevert(
             abi.encodeWithSelector(
-                FleetCommanderArkDepositCapGreaterThanZero.selector,
+                FleetCommanderArkMaxAllocationGreaterThanZero.selector,
                 ark1
             )
         );
@@ -90,6 +90,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.prank(governor);
         mockArkTotalAssets(ark1, 100);
+        mockArkMaxAllocation(ark1, 0);
         vm.expectRevert(
             abi.encodeWithSelector(
                 FleetCommanderArkAssetsNotZero.selector,

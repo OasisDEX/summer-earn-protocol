@@ -498,6 +498,9 @@ contract FleetCommander is
         if (_isArkActive[ark]) {
             revert FleetCommanderArkAlreadyExists(ark);
         }
+        if (IArk(ark).maxAllocation() == 0) {
+            revert FleetCommanderArkMaxAllocationZero(ark);
+        }
 
         _isArkActive[ark] = true;
         _activeArks.push(ark);
@@ -526,8 +529,8 @@ contract FleetCommander is
     /* INTERNAL - VALIDATIONS */
     function _validateArkRemoval(address ark) internal view {
         IArk _ark = IArk(ark);
-        if (_ark.depositCap() > 0) {
-            revert FleetCommanderArkDepositCapGreaterThanZero(ark);
+        if (_ark.maxAllocation() > 0) {
+            revert FleetCommanderArkMaxAllocationGreaterThanZero(ark);
         }
 
         if (_ark.totalAssets() != 0) {
