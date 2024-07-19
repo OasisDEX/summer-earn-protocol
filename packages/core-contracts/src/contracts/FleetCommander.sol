@@ -11,7 +11,6 @@ import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @custom:see IFleetCommander
