@@ -44,11 +44,11 @@ abstract contract Ark is IArk, ArkAccessManaged {
         emit Boarded(msg.sender, address(token), amount);
     }
 
-    function disembark(uint256 amount) external onlyCommander {
+    function disembark(uint256 amount, address target) external onlyCommander {
         _disembark(amount);
-        token.safeTransfer(msg.sender, amount);
+        token.safeTransfer(target, amount);
 
-        emit Disembarked(msg.sender, address(token), amount);
+        emit Disembarked(target, address(token), amount);
     }
 
     function setMaxAllocation(uint256 newMaxAllocation) external onlyCommander {
