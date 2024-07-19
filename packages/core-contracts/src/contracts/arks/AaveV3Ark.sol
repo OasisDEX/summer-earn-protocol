@@ -38,6 +38,6 @@ contract AaveV3Ark is Ark {
     }
 
     function _disembark(uint256 amount) internal override {
-        aaveV3Pool.withdraw(address(token), amount, msg.sender);
+        aaveV3Pool.withdraw(address(token), amount, address(this));
     }
 }
