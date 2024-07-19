@@ -300,9 +300,7 @@ contract FleetCommander is
             // If toArkAllocation >= maxAllocation, we can't add more funds
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
-
-        _disembark(address(fromArk), amount);
-        _board(address(toArk), amount);
+        _move(address(fromArk), address(toArk), amount);
 
         return amount;
     }
@@ -425,10 +423,12 @@ contract FleetCommander is
     }
 
     function _disembark(address ark, uint256 amount) internal {
-        IArk(ark).disembark(amount);
+        IArk(ark).disembark(amount, address(this));
     }
 
-    function _move(address fromArk, address toArk, uint256 amount) internal {}
+    function _move(address fromArk, address toArk, uint256 amount) internal {
+        IArk(fromArk).disembark(amount, toArk);
+    }
 
     function _setupArks(address[] memory _arkAddresses) internal {
         for (uint256 i = 0; i < _arkAddresses.length; i++) {
