@@ -7,6 +7,4 @@ pragma solidity 0.8.26;
 struct SwapData {
     address tokenIn;
     uint256 amountIn;
-    uint256 amountOutMin;
-    uint24 poolFee;
 }
