@@ -5,8 +5,8 @@ pragma solidity 0.8.26;
  * @notice Swap params used by Raft contract
  */
 struct SwapData {
-    address fromAsset;
-    uint256 amount;
-    uint256 receiveAtLeast;
-    bytes withData;
+    address tokenIn;
+    uint256 amountIn;
+    uint256 amountOutMin;
+    uint24 poolFee;
 }

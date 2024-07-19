@@ -6,7 +6,6 @@ import {IArk} from "../src/interfaces/IArk.sol";
 import {IRaftEvents} from "../src/interfaces/IRaftEvents.sol";
 import {Raft} from "../src/contracts/Raft.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SwapData} from "../src/types/RaftTypes.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 
