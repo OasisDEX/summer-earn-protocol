@@ -90,16 +90,6 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
         uint256 bufferBalance = IArk(fleetCommander.bufferArk()).totalAssets();
-        uint256 depositCap = 50000 * 10 ** 6;
-        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(
-            20
-        );
-
-        // Set buffer balance and max buffer withdrawal percentage
-        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(
-            maxBufferPercentage
-        );
-        fleetCommanderStorageWriter.setDepositCap(depositCap);
 
         // Mock user balance
         mockToken.mint(mockUser, userBalance);
@@ -114,8 +104,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Assert
         assertEq(
             maxWithdraw,
-            (bufferBalance + userBalance).applyPercentage(maxBufferPercentage),
-            "Max withdraw should be the buffer withdrawal percentage of the total assets (initial buffer + deposited user funds)"
+            (bufferBalance + userBalance),
+            "Max withdraw should be the the total assets (initial buffer + deposited user funds)"
         );
     }
 
@@ -123,14 +113,6 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
         uint256 bufferBalance = IArk(fleetCommander.bufferArk()).totalAssets();
-        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(
-            20
-        );
-
-        // Set buffer balance and max buffer withdrawal percentage
-        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(
-            maxBufferPercentage
-        );
 
         // Mock user balance
         mockToken.mint(mockUser, userBalance);
@@ -144,7 +126,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Assert
         assertEq(
             maxRedeem,
-            (bufferBalance + userBalance).applyPercentage(maxBufferPercentage),
+            (bufferBalance + userBalance),
             "Max redeem should be the buffer withdrawal percentage of the total assets (initial buffer + deposited user funds)"
         );
     }

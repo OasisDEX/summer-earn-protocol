@@ -14,18 +14,11 @@ contract FleetCommanderStorageWriter is Test {
 
     address public fleetCommander;
 
-    uint256 public FundsBufferBalanceSlot;
     uint256 public MinFundsBufferBalanceSlot;
     uint256 public DepositCapSlot;
-    uint256 public MaxBufferWithdrawalPercentageSlot;
 
     constructor(address fleetCommander_) {
         fleetCommander = fleetCommander_;
-
-        // FundsBufferBalanceSlot = stdstore
-        //     .target(fleetCommander)
-        //     .sig(FleetCommander(fleetCommander).fundsBufferBalance.selector)
-        //     .find();
 
         MinFundsBufferBalanceSlot = stdstore
             .target(fleetCommander)
@@ -36,22 +29,6 @@ contract FleetCommanderStorageWriter is Test {
             .target(fleetCommander)
             .sig(FleetCommander(fleetCommander).depositCap.selector)
             .find();
-        MaxBufferWithdrawalPercentageSlot = stdstore
-            .target(fleetCommander)
-            .sig(
-                FleetCommander(fleetCommander)
-                    .maxBufferWithdrawalPercentage
-                    .selector
-            )
-            .find();
-    }
-
-    function setFundsBufferBalance(uint256 value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(FundsBufferBalanceSlot),
-            bytes32(value)
-        );
     }
 
     function setMinFundsBufferBalance(uint256 value) public {
@@ -64,13 +41,5 @@ contract FleetCommanderStorageWriter is Test {
 
     function setDepositCap(uint256 value) public {
         vm.store(fleetCommander, bytes32(DepositCapSlot), bytes32(value));
-    }
-
-    function setMaxBufferWithdrawalPercentage(Percentage value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(MaxBufferWithdrawalPercentageSlot),
-            bytes32(Percentage.unwrap(value))
-        );
     }
 }

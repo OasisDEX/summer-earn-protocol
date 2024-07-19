@@ -27,3 +27,5 @@ error FleetCommanderInvalidSourceArk(address ark);
 error FleetCommanderMovedMoreThanAvailable();
 error FleetCommanderArkMaxAllocationGreaterThanZero(address ark);
 error FleetCommanderArkAssetsNotZero(address ark);
+error FleetCommanderUnauthorizedWithdrawal(address caller, address owner);
+error FleetCommanderUnauthorizedRedemption(address caller, address owner);
