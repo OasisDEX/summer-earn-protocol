@@ -45,7 +45,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken)
+            token: address(mockToken),
+            maxAllocation: type(uint256).max
         });
         vm.mockCall(
             address(aaveV3Pool),
@@ -150,6 +151,6 @@ contract AaveV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.disembark(amount);
+        ark.disembark(amount, commander);
     }
 }

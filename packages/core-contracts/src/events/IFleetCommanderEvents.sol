@@ -61,9 +61,8 @@ interface IFleetCommanderEvents {
     /**
      * @notice Emitted when a new Ark is added
      * @param ark The address of the newly added Ark
-     * @param maxAllocation The maximum token allocation for the new Ark (token units)
      */
-    event ArkAdded(address indexed ark, uint256 maxAllocation);
+    event ArkAdded(address indexed ark);
 
     /**
      * @notice Emitted when an Ark is removed
