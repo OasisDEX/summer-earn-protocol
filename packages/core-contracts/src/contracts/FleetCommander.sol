@@ -259,7 +259,6 @@ contract FleetCommander is
             // TODO: are we sure we can make all `totalAssets` calls that will not revert (as per ERC4626)
             total += IArk(allArks[i]).totalAssets();
         }
-        total += super.totalAssets();
     }
 
     function maxDeposit(
