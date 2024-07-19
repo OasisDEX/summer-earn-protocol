@@ -294,6 +294,48 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.forceWithdraw(excessAmount, mockUser, mockUser);
     }
 
+    function test_ForceWithdrawByNonOwner() public {
+        address nonOwner = address(0xdeadbeef);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+        vm.prank(nonOwner);
+        fleetCommander.forceWithdraw(DEPOSIT_AMOUNT, nonOwner, mockUser);
+    }
+
+    function test_ForceWithdrawByNonOwnerWithSufficientAllowance() public {
+        address nonOwner = address(0xdeadbeef);
+
+        vm.prank(mockUser);
+        fleetCommander.approve(nonOwner, DEPOSIT_AMOUNT);
+
+        vm.prank(nonOwner);
+        fleetCommander.forceWithdraw(DEPOSIT_AMOUNT - 1, nonOwner, mockUser);
+    }
+
+    function test_ForceWithdrawByNonOwnerWithInsufficientAllowance() public {
+        address nonOwner = address(0xdeadbeef);
+
+        vm.prank(mockUser);
+        fleetCommander.approve(nonOwner, DEPOSIT_AMOUNT - 2);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
+        fleetCommander.forceWithdraw(DEPOSIT_AMOUNT - 1, nonOwner, mockUser);
+    }
+
     function generateRebalanceData(
         address fromArk,
         address toArk,
