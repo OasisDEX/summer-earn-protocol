@@ -6,6 +6,22 @@ import {DataTypes} from "./DataTypes.sol";
 
 interface IPoolV3 {
     /**
+     * @dev Emitted on supply()
+     * @param reserve The address of the underlying asset of the reserve
+     * @param user The address initiating the supply
+     * @param onBehalfOf The beneficiary of the supply, receiving the aTokens
+     * @param amount The amount supplied
+     * @param referralCode The referral code used
+     */
+    event Supply(
+        address indexed reserve,
+        address user,
+        address indexed onBehalfOf,
+        uint256 amount,
+        uint16 indexed referralCode
+    );
+
+    /**
      * @notice Supplies an `amount` of underlying asset into the reserve, receiving in return overlying aTokens.
      * - E.g. User supplies 100 USDC and gets in return 100 aUSDC
      * @param asset The address of the underlying asset to supply

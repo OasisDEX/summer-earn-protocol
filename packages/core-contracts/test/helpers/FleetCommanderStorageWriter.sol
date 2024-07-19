@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {Percentage} from "../../src/libraries/PercentageUtils.sol";
 
 /**
  * @title FleetCommanderStorageWriter
@@ -15,6 +16,8 @@ contract FleetCommanderStorageWriter is Test {
 
     uint256 public FundsBufferBalanceSlot;
     uint256 public MinFundsBufferBalanceSlot;
+    uint256 public DepositCapSlot;
+    uint256 public MaxBufferWithdrawalPercentageSlot;
 
     constructor(address fleetCommander_) {
         fleetCommander = fleetCommander_;
@@ -27,6 +30,19 @@ contract FleetCommanderStorageWriter is Test {
         MinFundsBufferBalanceSlot = stdstore
             .target(fleetCommander)
             .sig(FleetCommander(fleetCommander).minFundsBufferBalance.selector)
+            .find();
+
+        DepositCapSlot = stdstore
+            .target(fleetCommander)
+            .sig(FleetCommander(fleetCommander).depositCap.selector)
+            .find();
+        MaxBufferWithdrawalPercentageSlot = stdstore
+            .target(fleetCommander)
+            .sig(
+                FleetCommander(fleetCommander)
+                    .maxBufferWithdrawalPercentage
+                    .selector
+            )
             .find();
     }
 
@@ -43,6 +59,18 @@ contract FleetCommanderStorageWriter is Test {
             fleetCommander,
             bytes32(MinFundsBufferBalanceSlot),
             bytes32(value)
+        );
+    }
+
+    function setDepositCap(uint256 value) public {
+        vm.store(fleetCommander, bytes32(DepositCapSlot), bytes32(value));
+    }
+
+    function setMaxBufferWithdrawalPercentage(Percentage value) public {
+        vm.store(
+            fleetCommander,
+            bytes32(MaxBufferWithdrawalPercentageSlot),
+            bytes32(Percentage.unwrap(value))
         );
     }
 }

@@ -25,6 +25,7 @@ struct FleetCommanderParams {
     string symbol;
     Percentage initialMinimumPositionWithdrawal;
     Percentage initialMaximumBufferWithdrawal;
+    uint256 depositCap;
 }
 
 /**
