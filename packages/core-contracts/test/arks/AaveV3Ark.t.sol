@@ -130,7 +130,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
                 aaveV3Pool.withdraw.selector,
                 address(mockToken),
                 amount,
-                commander
+                address(ark)
             ),
             abi.encode(amount)
         );
@@ -141,7 +141,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
                 aaveV3Pool.withdraw.selector,
                 address(mockToken),
                 amount,
-                commander
+                address(ark)
             )
         );
 
