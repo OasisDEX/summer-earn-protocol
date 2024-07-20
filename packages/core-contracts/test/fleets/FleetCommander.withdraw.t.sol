@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import "../../src/errors/FleetCommanderErrors.sol";
@@ -35,6 +35,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArk1.grantCommanderRole(address(fleetCommander));
         mockArk2.grantCommanderRole(address(fleetCommander));
         mockArk3.grantCommanderRole(address(fleetCommander));
+        bufferArk.grantCommanderRole(address(fleetCommander));
         vm.stopPrank();
 
         // Arrange (Deposit first)
@@ -52,13 +53,19 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_UserCanWithdrawTokens() public {
         // Arrange - confirm user has deposited
-        assertEq(depositAmount, fleetCommander.balanceOf(mockUser));
+        assertEq(
+            depositAmount,
+            fleetCommander.balanceOf(mockUser),
+            "User has not deposited"
+        );
 
         // Act
         vm.prank(mockUser);
         uint256 withdrawalAmount = depositAmount / 10;
         fleetCommander.withdraw(depositAmount / 10, mockUser, mockUser);
-
+        console.log("deposit amount", depositAmount);
+        console.log("withdrawal amount", withdrawalAmount);
+        console.log("balanceOf(mockUser)", fleetCommander.balanceOf(mockUser));
         // Assert
         assertEq(
             depositAmount - withdrawalAmount,
@@ -66,13 +73,13 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
     }
 
-    function test_RevertIfArkDepositCapNotZero() public {
+    function test_RevertIfArkMaxAllocationNotZero() public {
         // Act & Assert
         vm.prank(governor);
-        mockArkDepositCap(ark1, 100);
+        mockArkMaxAllocation(ark1, 100);
         vm.expectRevert(
             abi.encodeWithSelector(
-                FleetCommanderArkDepositCapGreaterThanZero.selector,
+                FleetCommanderArkMaxAllocationGreaterThanZero.selector,
                 ark1
             )
         );
@@ -83,6 +90,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.prank(governor);
         mockArkTotalAssets(ark1, 100);
+        mockArkMaxAllocation(ark1, 0);
         vm.expectRevert(
             abi.encodeWithSelector(
                 FleetCommanderArkAssetsNotZero.selector,

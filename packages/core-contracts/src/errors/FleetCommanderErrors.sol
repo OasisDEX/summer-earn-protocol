@@ -4,7 +4,10 @@ pragma solidity 0.8.26;
 /// @notice Transfers disabled for legal reasons
 error FleetCommanderTransfersDisabled();
 error FleetCommanderArkNotFound(address ark);
+error FleetCommanderArkNotActive(address ark);
 error FleetCommanderCantRebalanceToArk(address ark);
+error FleetCommanderInvalidBufferAdjustment();
+error FleetCommanderInsufficientBuffer();
 error FleetCommanderTargetArkRateTooLow(
     address ark,
     uint256 targetRate,
@@ -22,5 +25,5 @@ error FleetCommanderNoFundsMoved();
 error FleetCommanderNoExcessFunds();
 error FleetCommanderInvalidSourceArk(address ark);
 error FleetCommanderMovedMoreThanAvailable();
-error FleetCommanderArkDepositCapGreaterThanZero(address ark);
+error FleetCommanderArkMaxAllocationGreaterThanZero(address ark);
 error FleetCommanderArkAssetsNotZero(address ark);

@@ -29,6 +29,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArk1.grantCommanderRole(address(fleetCommander));
         mockArk2.grantCommanderRole(address(fleetCommander));
         mockArk3.grantCommanderRole(address(fleetCommander));
+        bufferArk.grantCommanderRole(address(fleetCommander));
         vm.stopPrank();
     }
 
@@ -37,7 +38,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 user1Deposit = ark1_MAX_ALLOCATION;
         uint256 user2Deposit = ark2_MAX_ALLOCATION;
         uint256 depositCap = ark1_MAX_ALLOCATION + ark2_MAX_ALLOCATION;
-        uint256 minBufferBalance = 1000 * 10 ** 6;
+        uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
         fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
@@ -96,12 +97,12 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Rebalance funds to Ark1 and Ark2
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(fleetCommander),
+            fromArk: bufferArkAddress,
             toArk: ark1,
             amount: user1Deposit
         });
         rebalanceData[1] = RebalanceData({
-            fromArk: address(fleetCommander),
+            fromArk: bufferArkAddress,
             toArk: ark2,
             amount: user2Deposit
         });
