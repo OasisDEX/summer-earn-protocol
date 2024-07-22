@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../errors/AccessControlErrors.sol";
+import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ProtocolAccessManaged
  * @notice Defines shared modifiers for all managed contracts
  */
 contract ProtocolAccessManaged {
+
     ProtocolAccessManager internal _accessManager;
 
     constructor(address accessManager) {
@@ -18,11 +19,7 @@ contract ProtocolAccessManaged {
             revert InvalidAccessManagerAddress(address(0));
         }
 
-        if (
-            !IERC165(accessManager).supportsInterface(
-                type(IProtocolAccessManager).interfaceId
-            )
-        ) {
+        if (!IERC165(accessManager).supportsInterface(type(IProtocolAccessManager).interfaceId)) {
             revert InvalidAccessManagerAddress(accessManager);
         }
 
@@ -33,9 +30,7 @@ contract ProtocolAccessManaged {
      * @dev Modifier to check that the caller has the Governor role
      */
     modifier onlyGovernor() {
-        if (
-            !_accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), msg.sender)
-        ) {
+        if (!_accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), msg.sender)) {
             revert CallerIsNotGovernor(msg.sender);
         }
         _;
@@ -50,4 +45,5 @@ contract ProtocolAccessManaged {
         }
         _;
     }
+
 }

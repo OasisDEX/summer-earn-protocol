@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -19,13 +19,12 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Error cases and edge scenarios
  */
 contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
         fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(address(fleetCommander));
 
         vm.startPrank(governor);
         accessManager.grantKeeperRole(keeper);
@@ -52,4 +51,5 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         assertEq(amount, fleetCommander.balanceOf(mockUser));
     }
+
 }

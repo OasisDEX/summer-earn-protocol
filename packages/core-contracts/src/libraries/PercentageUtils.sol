@@ -9,6 +9,7 @@ import "../types/Percentage.sol";
  *     @notice Utility library to apply a slippage percentage to an input amount
  */
 library PercentageUtils {
+
     /**
      * @notice Adds the percentage to the given amount and returns the result
      *
@@ -17,10 +18,7 @@ library PercentageUtils {
      * @dev It performs the following operation:
      *      (100.0 + percentage) * amount
      */
-    function addPercentage(
-        uint256 amount,
-        Percentage percentage
-    ) internal pure returns (uint256) {
+    function addPercentage(uint256 amount, Percentage percentage) internal pure returns (uint256) {
         return applyPercentage(amount, PERCENTAGE_100 + percentage);
     }
 
@@ -32,10 +30,7 @@ library PercentageUtils {
      * @dev It performs the following operation:
      *       (100.0 - percentage) * amount
      */
-    function subtractPercentage(
-        uint256 amount,
-        Percentage percentage
-    ) internal pure returns (uint256) {
+    function subtractPercentage(uint256 amount, Percentage percentage) internal pure returns (uint256) {
         return applyPercentage(amount, PERCENTAGE_100 - percentage);
     }
 
@@ -47,13 +42,8 @@ library PercentageUtils {
      *
      * @return The amount after the percentage is applied
      */
-    function applyPercentage(
-        uint256 amount,
-        Percentage percentage
-    ) internal pure returns (uint256) {
-        return
-            (amount * Percentage.unwrap(percentage)) /
-            Percentage.unwrap(PERCENTAGE_100);
+    function applyPercentage(uint256 amount, Percentage percentage) internal pure returns (uint256) {
+        return (amount * Percentage.unwrap(percentage)) / Percentage.unwrap(PERCENTAGE_100);
     }
 
     /**
@@ -63,9 +53,7 @@ library PercentageUtils {
      *
      * @return True if the percentage is in range, false otherwise
      */
-    function isPercentageInRange(
-        Percentage percentage
-    ) internal pure returns (bool) {
+    function isPercentageInRange(Percentage percentage) internal pure returns (bool) {
         return percentage <= PERCENTAGE_100;
     }
 
@@ -77,10 +65,7 @@ library PercentageUtils {
      *
      * @return The percentage with `PERCENTAGE_DECIMALS` decimals
      */
-    function fromFraction(
-        uint256 numerator,
-        uint256 denominator
-    ) internal pure returns (Percentage) {
+    function fromFraction(uint256 numerator, uint256 denominator) internal pure returns (Percentage) {
         return Percentage.wrap((numerator * PERCENTAGE_FACTOR) / denominator);
     }
 
@@ -91,9 +76,8 @@ library PercentageUtils {
      *
      * @return The percentage with `PERCENTAGE_DECIMALS` decimals
      */
-    function fromDecimalPercentage(
-        uint256 percentage
-    ) internal pure returns (Percentage) {
+    function fromDecimalPercentage(uint256 percentage) internal pure returns (Percentage) {
         return Percentage.wrap(percentage * PERCENTAGE_FACTOR);
     }
+
 }

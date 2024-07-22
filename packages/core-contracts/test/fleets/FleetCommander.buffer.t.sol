@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+
 import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../../src/errors/FleetCommanderErrors.sol";
+import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -13,7 +14,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 /**
  * @title Buffer test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's fund buffer functionality
-
+ *
  *
  * @dev TODO : add more tests
  *
@@ -22,13 +23,12 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Error cases and edge scenarios
  */
 contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
         fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(address(fleetCommander));
 
         vm.startPrank(governor);
         accessManager.grantKeeperRole(keeper);
@@ -56,16 +56,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Prepare rebalance data
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
-        rebalanceData[0] = RebalanceData({
-            fromArk: address(fleetCommander),
-            toArk: ark1,
-            amount: 3000 * 10 ** 6
-        });
-        rebalanceData[1] = RebalanceData({
-            fromArk: address(fleetCommander),
-            toArk: ark2,
-            amount: 2000 * 10 ** 6
-        });
+        rebalanceData[0] = RebalanceData({fromArk: address(fleetCommander), toArk: ark1, amount: 3000 * 10 ** 6});
+        rebalanceData[1] = RebalanceData({fromArk: address(fleetCommander), toArk: ark2, amount: 2000 * 10 ** 6});
 
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
@@ -74,15 +66,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Assert
         assertEq(
-            fleetCommander.fundsBufferBalance(),
-            minBufferBalance,
-            "Buffer balance should be equal to minBufferBalance"
+            fleetCommander.fundsBufferBalance(), minBufferBalance, "Buffer balance should be equal to minBufferBalance"
         );
-        assertEq(
-            fleetCommander.totalAssets(),
-            initialBufferBalance,
-            "Total assets should remain unchanged"
-        );
+        assertEq(fleetCommander.totalAssets(), initialBufferBalance, "Total assets should remain unchanged");
     }
 
     function test_AdjustBufferNoExcessFunds() public {
@@ -94,18 +80,12 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setMinFundsBufferBalance(bufferBalance);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
-        rebalanceData[0] = RebalanceData({
-            fromArk: address(fleetCommander),
-            toArk: ark1,
-            amount: 1000 * 10 ** 6
-        });
+        rebalanceData[0] = RebalanceData({fromArk: address(fleetCommander), toArk: ark1, amount: 1000 * 10 ** 6});
 
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSelector(FleetCommanderNoExcessFunds.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(FleetCommanderNoExcessFunds.selector));
         fleetCommander.adjustBuffer(rebalanceData);
     }
 
@@ -128,12 +108,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderInvalidSourceArk.selector,
-                ark1
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(FleetCommanderInvalidSourceArk.selector, ark1));
         fleetCommander.adjustBuffer(rebalanceData);
     }
 
@@ -165,15 +140,10 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Assert
         assertEq(
-            fleetCommander.fundsBufferBalance(),
-            minBufferBalance,
-            "Buffer balance should be equal to minBufferBalance"
+            fleetCommander.fundsBufferBalance(), minBufferBalance, "Buffer balance should be equal to minBufferBalance"
         );
 
-        assertEq(
-            fleetCommander.totalAssets(),
-            initialBufferBalance,
-            "Total assets should remain unchanged"
-        );
+        assertEq(fleetCommander.totalAssets(), initialBufferBalance, "Total assets should remain unchanged");
     }
+
 }

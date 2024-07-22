@@ -2,5 +2,7 @@
 pragma solidity 0.8.26;
 
 interface IConfigurationManagerEvents {
+
     event RaftUpdated(address newRaft);
+
 }

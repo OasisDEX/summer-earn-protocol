@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+
 import {FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds} from "../../src/errors/FleetCommanderErrors.sol";
+import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -22,13 +23,12 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Error cases and edge scenarios
  */
 contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
         fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(address(fleetCommander));
 
         vm.startPrank(governor);
         accessManager.grantKeeperRole(keeper);
@@ -53,11 +53,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArkRate(ark2, 110);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
-        rebalanceData[0] = RebalanceData({
-            fromArk: ark1,
-            toArk: ark2,
-            amount: 1000 * 10 ** 6
-        });
+        rebalanceData[0] = RebalanceData({fromArk: ark1, toArk: ark2, amount: 1000 * 10 ** 6});
 
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
@@ -65,15 +61,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
+        assertEq(fleetCommander.fundsBufferBalance(), initialBufferBalance, "Buffer balance should remain unchanged");
         assertEq(
-            fleetCommander.fundsBufferBalance(),
-            initialBufferBalance,
-            "Buffer balance should remain unchanged"
-        );
-        assertEq(
-            fleetCommander.totalAssets(),
-            initialBufferBalance + 10000 * 10 ** 6,
-            "Total assets should remain unchanged"
+            fleetCommander.totalAssets(), initialBufferBalance + 10000 * 10 ** 6, "Total assets should remain unchanged"
         );
     }
 
@@ -99,16 +89,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArkRate(ark3, 115);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
-        rebalanceData[0] = RebalanceData({
-            fromArk: ark1,
-            toArk: ark2,
-            amount: 1000 * 10 ** 6
-        });
-        rebalanceData[1] = RebalanceData({
-            fromArk: ark1,
-            toArk: ark3,
-            amount: 500 * 10 ** 6
-        });
+        rebalanceData[0] = RebalanceData({fromArk: ark1, toArk: ark2, amount: 1000 * 10 ** 6});
+        rebalanceData[1] = RebalanceData({fromArk: ark1, toArk: ark3, amount: 500 * 10 ** 6});
 
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
@@ -116,17 +98,10 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
-        assertEq(
-            fleetCommander.fundsBufferBalance(),
-            initialBufferBalance,
-            "Buffer balance should remain unchanged"
-        );
+        assertEq(fleetCommander.fundsBufferBalance(), initialBufferBalance, "Buffer balance should remain unchanged");
         assertEq(
             fleetCommander.totalAssets(),
-            initialBufferBalance +
-                ark1IntitialBalance +
-                ark2IntitialBalance +
-                ark3IntitialBalance,
+            initialBufferBalance + ark1IntitialBalance + ark2IntitialBalance + ark3IntitialBalance,
             "Total assets should remain unchanged"
         );
     }
@@ -142,12 +117,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderArkNotFound(address)",
-                invalidArk
-            )
-        );
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderArkNotFound(address)", invalidArk));
         fleetCommander.rebalance(rebalanceData);
     }
 
@@ -162,12 +132,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderArkNotFound(address)",
-                address(this)
-            )
-        );
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderArkNotFound(address)", address(this)));
         fleetCommander.rebalance(rebalanceData);
     }
 
@@ -182,12 +147,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderRebalanceAmountZero(address)",
-                ark2
-            )
-        );
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderRebalanceAmountZero(address)", ark2));
         fleetCommander.rebalance(rebalanceData);
     }
 
@@ -199,21 +159,12 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArkRate(ark2, 110);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
-        rebalanceData[0] = RebalanceData({
-            fromArk: ark1,
-            toArk: ark2,
-            amount: 1000 * 10 ** 6
-        });
+        rebalanceData[0] = RebalanceData({fromArk: ark1, toArk: ark2, amount: 1000 * 10 ** 6});
 
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderCantRebalanceToArk(address)",
-                ark2
-            )
-        );
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderCantRebalanceToArk(address)", ark2));
         fleetCommander.rebalance(rebalanceData);
     }
 
@@ -225,22 +176,13 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArkRate(ark2, 105); // Lower rate than source
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
-        rebalanceData[0] = RebalanceData({
-            fromArk: ark1,
-            toArk: ark2,
-            amount: 1000 * 10 ** 6
-        });
+        rebalanceData[0] = RebalanceData({fromArk: ark1, toArk: ark2, amount: 1000 * 10 ** 6});
 
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderTargetArkRateTooLow(address,uint256,uint256)",
-                ark2,
-                105,
-                110
-            )
+            abi.encodeWithSignature("FleetCommanderTargetArkRateTooLow(address,uint256,uint256)", ark2, 105, 110)
         );
         fleetCommander.rebalance(rebalanceData);
     }
@@ -248,11 +190,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RebalanceCooldownNotElapsed() public {
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
-        rebalanceData[0] = RebalanceData({
-            fromArk: ark1,
-            toArk: ark2,
-            amount: 1000 * 10 ** 6
-        });
+        rebalanceData[0] = RebalanceData({fromArk: ark1, toArk: ark2, amount: 1000 * 10 ** 6});
         mockToken.mint(ark1, 5000 * 10 ** 6);
 
         // First rebalance
@@ -267,10 +205,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Try to rebalance again immediately
         vm.expectRevert(
             abi.encodeWithSelector(
-                CooldownNotElapsed.selector,
-                fleetCommander.getLastActionTimestamp(),
-                cooldown,
-                block.timestamp
+                CooldownNotElapsed.selector, fleetCommander.getLastActionTimestamp(), cooldown, block.timestamp
             )
         );
 
@@ -282,4 +217,5 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         fleetCommander.rebalance(rebalanceData); // This should succeed
     }
+
 }

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+
 import "../../src/errors/FleetCommanderErrors.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -20,15 +21,14 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Error cases and edge scenarios
  */
 contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+
     uint256 depositAmount = 1000 * 10 ** 6;
 
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
         fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(address(fleetCommander));
 
         vm.startPrank(governor);
         accessManager.grantKeeperRole(keeper);
@@ -60,22 +60,14 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.withdraw(depositAmount / 10, mockUser, mockUser);
 
         // Assert
-        assertEq(
-            depositAmount - withdrawalAmount,
-            fleetCommander.balanceOf(mockUser)
-        );
+        assertEq(depositAmount - withdrawalAmount, fleetCommander.balanceOf(mockUser));
     }
 
     function test_RevertIfArkDepositCapNotZero() public {
         // Act & Assert
         vm.prank(governor);
         mockArkDepositCap(ark1, 100);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkDepositCapGreaterThanZero.selector,
-                ark1
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(FleetCommanderArkDepositCapGreaterThanZero.selector, ark1));
         fleetCommander.removeArk(ark1);
     }
 
@@ -83,12 +75,8 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.prank(governor);
         mockArkTotalAssets(ark1, 100);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkAssetsNotZero.selector,
-                ark1
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(FleetCommanderArkAssetsNotZero.selector, ark1));
         fleetCommander.removeArk(ark1);
     }
+
 }

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import "../interfaces/IArk.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {ArkAccessManaged} from "./ArkAccessManaged.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -12,18 +13,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * @custom:see IArk
  */
 abstract contract Ark is IArk, ArkAccessManaged {
+
     using SafeERC20 for IERC20;
 
     address public raft;
     uint256 public depositCap;
     IERC20 public token;
 
-    constructor(
-        ArkParams memory _params
-    ) ArkAccessManaged(_params.accessManager) {
-        IConfigurationManager manager = IConfigurationManager(
-            _params.configurationManager
-        );
+    constructor(ArkParams memory _params) ArkAccessManaged(_params.accessManager) {
+        IConfigurationManager manager = IConfigurationManager(_params.configurationManager);
         raft = manager.raft();
         token = IERC20(_params.token);
     }
@@ -59,4 +57,5 @@ abstract contract Ark is IArk, ArkAccessManaged {
     function _board(uint256 amount) internal virtual;
 
     function _disembark(uint256 amount) internal virtual;
+
 }

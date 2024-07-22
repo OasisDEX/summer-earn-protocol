@@ -1,20 +1,23 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {ArkConfiguration, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ArkMock} from "../mocks/ArkMock.sol";
+import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ArkConfiguration, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {ArkMock} from "../mocks/ArkMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 abstract contract FleetCommanderTestBase {
+
     using PercentageUtils for uint256;
 
     IProtocolAccessManager public accessManager;
@@ -52,12 +55,8 @@ abstract contract FleetCommanderTestBase {
 
         accessManager = new ProtocolAccessManager(governor);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                raft: raft
-            })
-        );
+        IConfigurationManager configurationManager =
+            new ConfigurationManager(ConfigurationManagerParams({accessManager: address(accessManager), raft: raft}));
 
         // Instantiate ArkMock contracts for ark1 and ark2
         mockArk1 = new ArkMock(
@@ -89,18 +88,9 @@ abstract contract FleetCommanderTestBase {
         ark3 = address(mockArk3);
 
         ArkConfiguration[] memory initialArks = new ArkConfiguration[](3);
-        initialArks[0] = ArkConfiguration({
-            ark: ark1,
-            maxAllocation: ark1_MAX_ALLOCATION
-        });
-        initialArks[1] = ArkConfiguration({
-            ark: ark2,
-            maxAllocation: ark2_MAX_ALLOCATION
-        });
-        initialArks[2] = ArkConfiguration({
-            ark: ark3,
-            maxAllocation: 10000 * 10 ** 6
-        });
+        initialArks[0] = ArkConfiguration({ark: ark1, maxAllocation: ark1_MAX_ALLOCATION});
+        initialArks[1] = ArkConfiguration({ark: ark2, maxAllocation: ark2_MAX_ALLOCATION});
+        initialArks[2] = ArkConfiguration({ark: ark3, maxAllocation: 10000 * 10 ** 6});
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
@@ -110,11 +100,10 @@ abstract contract FleetCommanderTestBase {
             asset: address(mockToken),
             name: fleetName,
             symbol: string(abi.encodePacked(mockToken.symbol(), "-SUM")),
-            initialMinimumPositionWithdrawal: PercentageUtils
-                .fromDecimalPercentage(2),
-            initialMaximumBufferWithdrawal: PercentageUtils
-                .fromDecimalPercentage(20),
+            initialMinimumPositionWithdrawal: PercentageUtils.fromDecimalPercentage(2),
+            initialMaximumBufferWithdrawal: PercentageUtils.fromDecimalPercentage(20),
             depositCap: 100000000 * 10 ** 6
         });
     }
+
 }

@@ -7,6 +7,7 @@ pragma solidity 0.8.26;
  *         helper functions that manage them and enforce access control
  */
 interface IArkAccessManaged {
+
     /**
      * @notice Grants the Commander role to a given account
      *
@@ -20,4 +21,5 @@ interface IArkAccessManaged {
      * @param account The account from which the Commander role will be revoked
      */
     function revokeCommanderRole(address account) external;
+
 }

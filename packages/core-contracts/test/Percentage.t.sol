@@ -6,6 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import "../src/types/Percentage.sol";
 
 contract PercentageTest is Test {
+
     function testPercentageAddition() public pure {
         Percentage percentageA = Percentage.wrap(10000000);
         Percentage percentageB = Percentage.wrap(20000000);
@@ -69,4 +70,5 @@ contract PercentageTest is Test {
         assertFalse(Percentage.wrap(50000000) > Percentage.wrap(50000000));
         assertFalse(Percentage.wrap(50000000) > Percentage.wrap(60000000));
     }
+
 }

@@ -11,15 +11,24 @@ import "./ICooldownEnforcerEvents.sol";
  * @custom:see ICooldownEnforcer
  */
 abstract contract CooldownEnforcer is ICooldownEnforcer {
-    /** STATE VARIABLES */
 
-    /** Cooldown between actions in seconds */
+    /**
+     * STATE VARIABLES
+     */
+
+    /**
+     * Cooldown between actions in seconds
+     */
     uint256 private _cooldown;
 
-    /** Timestamp of the last action in Epoch time (block timestamp) */
+    /**
+     * Timestamp of the last action in Epoch time (block timestamp)
+     */
     uint256 private _lastActionTimestamp;
 
-    /** CONSTRUCTOR */
+    /**
+     * CONSTRUCTOR
+     */
 
     /**
      * @notice Initializes the cooldown period and sets the last action timestamp to the current block timestamp
@@ -39,7 +48,9 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
         }
     }
 
-    /** MODIFIERS */
+    /**
+     * MODIFIERS
+     */
 
     /**
      * @notice Modifier to enforce the cooldown period between actions.
@@ -49,11 +60,7 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      */
     modifier enforceCooldown() {
         if (block.timestamp - _lastActionTimestamp < _cooldown) {
-            revert CooldownNotElapsed(
-                _lastActionTimestamp,
-                _cooldown,
-                block.timestamp
-            );
+            revert CooldownNotElapsed(_lastActionTimestamp, _cooldown, block.timestamp);
         }
 
         // Update the last action timestamp to the current block timestamp
@@ -63,7 +70,9 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
         _;
     }
 
-    /** VIEW FUNCTIONS */
+    /**
+     * VIEW FUNCTIONS
+     */
 
     /// @inheritdoc ICooldownEnforcer
     function getCooldown() public view returns (uint256) {
@@ -75,7 +84,9 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
         return _lastActionTimestamp;
     }
 
-    /** INTERNAL STATE CHANGE FUNCTIONS */
+    /**
+     * INTERNAL STATE CHANGE FUNCTIONS
+     */
 
     /**
      * @notice Updates the cooldown period.
@@ -100,4 +111,5 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
     function _setLastActionTimestamp(uint256 lastActionTimestamp) internal {
         _lastActionTimestamp = lastActionTimestamp;
     }
+
 }

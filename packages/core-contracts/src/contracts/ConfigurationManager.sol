@@ -9,15 +9,14 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
  * @custom:see IConfigurationManager
  */
 contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
+
     /**
      * @notice The Rewards And Farmed Tokens contract. It is where rewards and farmed tokens are
      *         sent for processing
      */
     address public raft;
 
-    constructor(
-        ConfigurationManagerParams memory _params
-    ) ProtocolAccessManaged(_params.accessManager) {
+    constructor(ConfigurationManagerParams memory _params) ProtocolAccessManaged(_params.accessManager) {
         raft = _params.raft;
     }
 
@@ -26,4 +25,5 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
 
         emit RaftUpdated(newRaft);
     }
+
 }

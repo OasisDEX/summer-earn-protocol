@@ -12,13 +12,16 @@
     "cicheck": "turbo run cicheck --cache-dir=.turbo --filter=./packages/* && pnpm run coverage:total",
     "cicheck:dev": "turbo run cicheck --cache-dir=.turbo --output-logs=new-only --concurrency=100% --continue",
     "graph": "pnpm dlx nx graph",
-    "format": "prettier --check \"./**/*.{ts,tsx,js,jsx,json,sol}\"",
-    "format:fix": "prettier --write \"./**/*.{ts,tsx,js,jsx,json,sol}\"",
+    "format": "turbo run format --cache-dir=.turbo",
+    "format:fix": "turbo run format:fix --cache-dir=.turbo",
+    "format:all": "prettier --check \"./**/*.{ts,tsx,js,jsx,json}\"",
+    "format:all:fix": "prettier --write \"./**/*.{ts,tsx,js,jsx,json}\"",
     "coverage": "turbo run coverage --cache-dir=.turbo"
   },
   "devDependencies": {
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
+    "@summerfi/prettier-config": "workspace:*",
     "@tsconfig/node20": "^20.1.4",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.7",
@@ -41,6 +44,7 @@
     "zx": "^8.0.1"
   },
   "name": "summerfi-monorepo",
+  "prettier": "@summerfi/prettier-config",
   "packageManager": "pnpm@8.15.4",
   "engines": {
     "node": ">=20"
