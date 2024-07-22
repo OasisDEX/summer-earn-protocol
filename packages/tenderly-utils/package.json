@@ -1,5 +1,6 @@
 {
   "name": "@summerfi/tenderly-utils",
+  "prettier": "@summerfi/prettier-config",
   "version": "0.0.1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,6 +31,7 @@
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
+    "@summerfi/prettier-config": "workspace:*",
     "axios": "^1.6.8",
     "ethers": "^6.11.1"
   }

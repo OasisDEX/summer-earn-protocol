@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {Percentage} from "../../src/libraries/PercentageUtils.sol";
+import {StdStorage, Test, console, stdStorage} from "forge-std/Test.sol";
 
 /**
  * @title FleetCommanderStorageWriter
  * @notice Helper contract to write to FleetCommander internal storage variables
  */
 contract FleetCommanderStorageWriter is Test {
+
     using stdStorage for StdStorage;
 
     address public fleetCommander;
@@ -22,44 +23,24 @@ contract FleetCommanderStorageWriter is Test {
     constructor(address fleetCommander_) {
         fleetCommander = fleetCommander_;
 
-        FundsBufferBalanceSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).fundsBufferBalance.selector)
-            .find();
+        FundsBufferBalanceSlot =
+            stdstore.target(fleetCommander).sig(FleetCommander(fleetCommander).fundsBufferBalance.selector).find();
 
-        MinFundsBufferBalanceSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).minFundsBufferBalance.selector)
-            .find();
+        MinFundsBufferBalanceSlot =
+            stdstore.target(fleetCommander).sig(FleetCommander(fleetCommander).minFundsBufferBalance.selector).find();
 
-        DepositCapSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).depositCap.selector)
-            .find();
-        MaxBufferWithdrawalPercentageSlot = stdstore
-            .target(fleetCommander)
-            .sig(
-                FleetCommander(fleetCommander)
-                    .maxBufferWithdrawalPercentage
-                    .selector
-            )
-            .find();
+        DepositCapSlot = stdstore.target(fleetCommander).sig(FleetCommander(fleetCommander).depositCap.selector).find();
+        MaxBufferWithdrawalPercentageSlot = stdstore.target(fleetCommander).sig(
+            FleetCommander(fleetCommander).maxBufferWithdrawalPercentage.selector
+        ).find();
     }
 
     function setFundsBufferBalance(uint256 value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(FundsBufferBalanceSlot),
-            bytes32(value)
-        );
+        vm.store(fleetCommander, bytes32(FundsBufferBalanceSlot), bytes32(value));
     }
 
     function setMinFundsBufferBalance(uint256 value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(MinFundsBufferBalanceSlot),
-            bytes32(value)
-        );
+        vm.store(fleetCommander, bytes32(MinFundsBufferBalanceSlot), bytes32(value));
     }
 
     function setDepositCap(uint256 value) public {
@@ -67,10 +48,7 @@ contract FleetCommanderStorageWriter is Test {
     }
 
     function setMaxBufferWithdrawalPercentage(Percentage value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(MaxBufferWithdrawalPercentageSlot),
-            bytes32(Percentage.unwrap(value))
-        );
+        vm.store(fleetCommander, bytes32(MaxBufferWithdrawalPercentageSlot), bytes32(Percentage.unwrap(value)));
     }
+
 }

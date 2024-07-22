@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {PercentageUtils, Percentage} from "../../src/libraries/PercentageUtils.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {Percentage, PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+
 import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -20,15 +21,14 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * @dev Test suite for the FleetCommander contract's ERC4626 methods
  */
 contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
+
     using PercentageUtils for uint256;
 
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
         fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(address(fleetCommander));
 
         vm.startPrank(governor);
         accessManager.grantKeeperRole(keeper);
@@ -56,9 +56,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Assert
         assertEq(
-            maxDeposit,
-            userBalance,
-            "Max deposit should be the user balance - first deposit so shares equal balance"
+            maxDeposit, userBalance, "Max deposit should be the user balance - first deposit so shares equal balance"
         );
     }
 
@@ -78,11 +76,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 maxMint = fleetCommander.maxMint(mockUser);
 
         // Assert
-        assertEq(
-            maxMint,
-            userBalance,
-            "Max mint should be the user balance - first deposit so shares equal balance"
-        );
+        assertEq(maxMint, userBalance, "Max mint should be the user balance - first deposit so shares equal balance");
     }
 
     function test_MaxWithdraw() public {
@@ -90,14 +84,10 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 userBalance = 1000 * 10 ** 6;
         uint256 bufferBalance = fleetCommander.fundsBufferBalance();
         uint256 depositCap = 50000 * 10 ** 6;
-        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(
-            20
-        );
+        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(20);
 
         // Set buffer balance and max buffer withdrawal percentage
-        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(
-            maxBufferPercentage
-        );
+        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(maxBufferPercentage);
         fleetCommanderStorageWriter.setDepositCap(depositCap);
 
         // Mock user balance
@@ -122,14 +112,10 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
         uint256 bufferBalance = fleetCommander.fundsBufferBalance();
-        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(
-            20
-        );
+        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(20);
 
         // Set buffer balance and max buffer withdrawal percentage
-        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(
-            maxBufferPercentage
-        );
+        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(maxBufferPercentage);
 
         // Mock user balance
         mockToken.mint(mockUser, userBalance);
@@ -166,16 +152,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.stopPrank();
 
         // Assert
-        assertEq(
-            fleetCommander.balanceOf(mockUser),
-            mintAmount,
-            "Mint should increase the user's balance"
-        );
-        assertEq(
-            fleetCommander.fundsBufferBalance(),
-            bufferBalance + mintAmount,
-            "Buffer balance should be updated"
-        );
+        assertEq(fleetCommander.balanceOf(mockUser), mintAmount, "Mint should increase the user's balance");
+        assertEq(fleetCommander.fundsBufferBalance(), bufferBalance + mintAmount, "Buffer balance should be updated");
     }
 
     function test_Redeem() public {
@@ -206,10 +184,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
             depositAmount - redeemAmount,
             "Redeem should decrease the user's balance"
         );
-        assertEq(
-            fleetCommander.fundsBufferBalance(),
-            bufferBalance - redeemAmount,
-            "Buffer balance should be updated"
-        );
+        assertEq(fleetCommander.fundsBufferBalance(), bufferBalance - redeemAmount, "Buffer balance should be updated");
     }
+
 }

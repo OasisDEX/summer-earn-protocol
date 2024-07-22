@@ -2,6 +2,7 @@
 pragma solidity ^0.8.15;
 
 library DataTypes {
+
     struct ReserveData {
         //stores the reserve configuration
         ReserveConfigurationMap configuration;
@@ -264,4 +265,5 @@ library DataTypes {
         uint16 reservesCount;
         uint16 maxNumberReserves;
     }
+
 }

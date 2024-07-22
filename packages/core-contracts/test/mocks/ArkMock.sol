@@ -6,6 +6,7 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract ArkMock is Ark {
+
     constructor(ArkParams memory _params) Ark(_params) {}
 
     function rate() public pure override returns (uint256) {
@@ -21,4 +22,5 @@ contract ArkMock is Ark {
     function _board(uint256 amount) internal override {}
 
     function _disembark(uint256 amount) internal override {}
+
 }

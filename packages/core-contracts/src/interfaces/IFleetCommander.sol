@@ -1,21 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import {ArkConfiguration, FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /// @title IFleetCommander Interface
 /// @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
 interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
+
     /**
      * @notice Retrieves the ark configuration for a given ark address
      * @param arkAddress The address of the ark
      * @return The ArkConfiguration struct for the specified ark
      */
-    function arks(
-        address arkAddress
-    ) external view returns (ArkConfiguration memory);
+    function arks(address arkAddress) external view returns (ArkConfiguration memory);
 
     /* FUNCTIONS - PUBLIC - USER */
     /**
@@ -25,11 +24,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @param owner The address of the owner of the assets
      * @return The amount of assets withdrawn
      */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external override returns (uint256);
+    function withdraw(uint256 assets, address receiver, address owner) external override returns (uint256);
 
     /**
      * @notice Forces a withdrawal of assets from the FleetCommander
@@ -38,11 +33,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @param owner The address of the owner of the assets
      * @return The amount of assets forcefully withdrawn
      */
-    function forceWithdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external returns (uint256);
+    function forceWithdraw(uint256 assets, address receiver, address owner) external returns (uint256);
 
     /**
      * @notice Deposits assets into the FleetCommander
@@ -50,10 +41,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @param receiver The address that will receive the shares
      * @return The amount of shares minted
      */
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) external override returns (uint256);
+    function deposit(uint256 assets, address receiver) external override returns (uint256);
 
     /* FUNCTIONS - EXTERNAL - KEEPER */
     /**
@@ -125,4 +113,5 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @notice Mints shares as fees
      */
     function mintSharesAsFees() external;
+
 }

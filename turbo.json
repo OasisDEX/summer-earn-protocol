@@ -29,7 +29,10 @@
       "dependsOn": ["prebuild", "build", "^lint"]
     },
     "format": {
-      "dependsOn": ["prebuild", "build", "^format"]
+      "dependsOn": ["^format"]
+    },
+    "format:fix": {
+      "dependsOn": [ "^format:fix"]
     },
     "check-circular": {
       "dependsOn": ["prebuild", "build", "^check-circular"]

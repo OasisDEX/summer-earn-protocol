@@ -7,6 +7,7 @@ pragma solidity 0.8.26;
  *         contracts that inherit from ProtocolAccessManaged contract
  */
 interface IProtocolAccessManager {
+
     /**
      * @notice Grants the Admin role to a given account
      *
@@ -48,4 +49,5 @@ interface IProtocolAccessManager {
      * @param account The account from which the Keeper role will be revoked
      */
     function revokeKeeperRole(address account) external;
+
 }

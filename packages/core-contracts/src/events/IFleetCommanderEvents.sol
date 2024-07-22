@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 interface IFleetCommanderEvents {
+
     /* EVENTS */
     /**
      * @notice Emitted when a rebalance operation is completed
@@ -18,11 +19,7 @@ interface IFleetCommanderEvents {
      * @param prevBalance The previous balance before committing funds
      * @param newBalance The new balance after committing funds
      */
-    event QueuedFundsCommitted(
-        address indexed keeper,
-        uint256 prevBalance,
-        uint256 newBalance
-    );
+    event QueuedFundsCommitted(address indexed keeper, uint256 prevBalance, uint256 newBalance);
 
     /**
      * @notice Emitted when the funds queue is refilled
@@ -30,21 +27,14 @@ interface IFleetCommanderEvents {
      * @param prevBalance The previous balance before refilling
      * @param newBalance The new balance after refilling
      */
-    event FundsQueueRefilled(
-        address indexed keeper,
-        uint256 prevBalance,
-        uint256 newBalance
-    );
+    event FundsQueueRefilled(address indexed keeper, uint256 prevBalance, uint256 newBalance);
 
     /**
      * @notice Emitted when the minimum balance of the funds queue is updated
      * @param keeper The address of the keeper who updated the minimum balance
      * @param newBalance The new minimum balance
      */
-    event MinFundsQueueBalanceUpdated(
-        address indexed keeper,
-        uint256 newBalance
-    );
+    event MinFundsQueueBalanceUpdated(address indexed keeper, uint256 newBalance);
 
     /**
      * @notice Emitted when the deposit cap is updated
@@ -76,10 +66,7 @@ interface IFleetCommanderEvents {
      * @param ark The address of the Ark
      * @param newMaxAllocation The new maximum allocation for the Ark (token units)
      */
-    event ArkMaxAllocationUpdated(
-        address indexed ark,
-        uint256 newMaxAllocation
-    );
+    event ArkMaxAllocationUpdated(address indexed ark, uint256 newMaxAllocation);
 
     /**
      * @notice Emitted when the funds buffer balance is updated
@@ -87,23 +74,17 @@ interface IFleetCommanderEvents {
      * @param prevBalance The previous buffer balance
      * @param newBalance The new buffer balance
      */
-    event FundsBufferBalanceUpdated(
-        address indexed user,
-        uint256 prevBalance,
-        uint256 newBalance
-    );
+    event FundsBufferBalanceUpdated(address indexed user, uint256 prevBalance, uint256 newBalance);
     /**
      *
      * @param keeper Keeper address
      * @param totalMoved Total amount of funds moved to arks
      */
-    event FleetCommanderBufferAdjusted(
-        address indexed keeper,
-        uint256 totalMoved
-    );
+    event FleetCommanderBufferAdjusted(address indexed keeper, uint256 totalMoved);
     /**
      *
      * @param newBalance New minimum funds buffer balance
      */
     event FleetCommanderMinFundsBufferBalanceUpdated(uint256 newBalance);
+
 }

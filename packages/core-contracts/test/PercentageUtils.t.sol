@@ -6,6 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import "../src/libraries/PercentageUtils.sol";
 
 contract PercentageUtilsTest is Test {
+
     using PercentageUtils for uint256;
 
     function testFromFraction() public pure {
@@ -48,24 +49,17 @@ contract PercentageUtilsTest is Test {
     }
 
     function testIsPercentageInRange() public pure {
-        Percentage percentageInRange0 = PercentageUtils.fromDecimalPercentage(
-            0
-        );
+        Percentage percentageInRange0 = PercentageUtils.fromDecimalPercentage(0);
         assertTrue(PercentageUtils.isPercentageInRange(percentageInRange0));
 
-        Percentage percentageInRange100 = PercentageUtils.fromDecimalPercentage(
-            100
-        );
+        Percentage percentageInRange100 = PercentageUtils.fromDecimalPercentage(100);
         assertTrue(PercentageUtils.isPercentageInRange(percentageInRange100));
 
-        Percentage percentageInRange26 = PercentageUtils.fromDecimalPercentage(
-            26
-        );
+        Percentage percentageInRange26 = PercentageUtils.fromDecimalPercentage(26);
         assertTrue(PercentageUtils.isPercentageInRange(percentageInRange26));
 
-        Percentage percentageOutOfRange = PercentageUtils.fromDecimalPercentage(
-            101
-        );
+        Percentage percentageOutOfRange = PercentageUtils.fromDecimalPercentage(101);
         assertFalse(PercentageUtils.isPercentageInRange(percentageOutOfRange));
     }
+
 }

@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import "../errors/AccessControlErrors.sol";
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "../errors/AccessControlErrors.sol";
 
 /**
  * @custom:see IProtocolAccessManager
  */
 contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
+
     /**
      * @dev The Governor role is in charge of setting the parameters of the system
      *      and also has the power to manage the different Fleet Commander roles.
@@ -65,12 +66,8 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
     }
 
     // Override supportsInterface to include IProtocolAccessManager
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override returns (bool) {
-        return
-            interfaceId == type(IProtocolAccessManager).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(IProtocolAccessManager).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /* @inheritdoc IProtocolAccessControl */
@@ -118,4 +115,5 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
     function revokeRole(bytes32, address) public view override {
         revert DirectRevokeIsDisabled(msg.sender);
     }
+
 }

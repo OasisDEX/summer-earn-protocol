@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import "../errors/AccessControlErrors.sol";
+import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import "../errors/AccessControlErrors.sol";
-import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 
 /**
  * @title ArkAccessControl
@@ -19,11 +19,8 @@ import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
  *   The Commander role is still declared on the access manager to centralise
  *   role definitions.
  */
-contract ArkAccessManaged is
-    IArkAccessManaged,
-    ProtocolAccessManaged,
-    AccessControl
-{
+contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged, AccessControl {
+
     /**
      * @param accessManager The access manager address
      */
@@ -48,4 +45,5 @@ contract ArkAccessManaged is
     function revokeCommanderRole(address account) external onlyGovernor {
         _revokeRole(_accessManager.COMMANDER_ROLE(), account);
     }
+
 }

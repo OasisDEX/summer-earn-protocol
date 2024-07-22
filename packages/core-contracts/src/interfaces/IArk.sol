@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {IArkAccessManaged} from "./IArkAccessManaged.sol";
-import "../types/Percentage.sol";
-import "../types/ArkTypes.sol";
 import "../events/IArkEvents.sol";
+import "../types/ArkTypes.sol";
+import "../types/Percentage.sol";
+import {IArkAccessManaged} from "./IArkAccessManaged.sol";
+import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 interface IArk is IArkAccessManaged, IArkEvents {
+
     /* FUNCTIONS - PUBLIC */
 
     /// @notice Returns latest deposit cap set for this Ark
@@ -31,4 +32,5 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function setDepositCap(uint256 newCap) external;
 
     function setRaft(address newRaft) external;
+
 }
