@@ -1,9 +1,8 @@
-import { Address, log, BigInt, dataSource, BigDecimal } from '@graphprotocol/graph-ts'
-import { services, addresses, getOneInchOracle } from './addressProvider'
-import { BigIntConstants, BigDecimalConstants } from './constants'
-import { getOrCreateToken } from './initializers'
+import { Address, BigDecimal, BigInt, dataSource, log } from '@graphprotocol/graph-ts'
 import { TokenPrice as TokenPriceEntity } from '../../generated/schema'
-import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { addresses, getOneInchOracle, services } from './addressProvider'
+import { BigDecimalConstants, BigIntConstants } from './constants'
+import { getOrCreateToken } from './initializers'
 
 export class TokenPrice {
   price: BigDecimal

@@ -1,21 +1,21 @@
-import {
-  Token,
-  Account,
-  YieldAggregator,
-  VaultDailySnapshot,
-  VaultHourlySnapshot,
-  FinancialsDailySnapshot,
-  UsageMetricsDailySnapshot,
-  UsageMetricsHourlySnapshot,
-  Position,
-} from '../../generated/schema'
-import * as utils from './utils'
-import * as constants from './constants'
-import { Vault as VaultStore } from '../../generated/schema'
-import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { ERC20 as ERC20Contract } from '../../generated/FleetCommanderFactory/ERC20'
+import {
+  Account,
+  FinancialsDailySnapshot,
+  Position,
+  Token,
+  UsageMetricsDailySnapshot,
+  UsageMetricsHourlySnapshot,
+  VaultDailySnapshot,
+  VaultHourlySnapshot,
+  Vault as VaultStore,
+  YieldAggregator,
+} from '../../generated/schema'
 import { FleetCommanderTemplate } from '../../generated/templates'
+import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import * as constants from './constants'
+import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
   let account = Account.load(id)

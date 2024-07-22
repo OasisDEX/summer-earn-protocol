@@ -1,4 +1,4 @@
-import { Bytes, Address, BigDecimal, BigInt, dataSource } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, Bytes, dataSource } from '@graphprotocol/graph-ts'
 
 // The network names corresponding to the Network enum in the schema.
 // They also correspond to the ones in `dataSource.network()` after converting to lower case.

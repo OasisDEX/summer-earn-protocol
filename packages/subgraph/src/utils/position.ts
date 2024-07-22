@@ -1,10 +1,10 @@
-import { ethereum, BigInt, Address } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Account } from '../../generated/schema'
-import { formatAmount } from '../common/utils'
-import { VaultDetails, PositionDetails } from '../types'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import * as utils from '../common/utils'
 import * as constants from '../common/constants'
+import * as utils from '../common/utils'
+import { formatAmount } from '../common/utils'
+import { PositionDetails, VaultDetails } from '../types'
 
 export function getPositionDetails(
   event: ethereum.Event,

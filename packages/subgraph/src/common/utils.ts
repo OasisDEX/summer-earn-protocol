@@ -1,9 +1,8 @@
-import * as constants from '../common/constants'
-import { VaultFee } from '../../generated/schema'
-import { getOrCreateYieldAggregator } from './initializers'
-import { Vault as VaultStore } from '../../generated/schema'
-import { BigInt, Address, ethereum, BigDecimal } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { ERC20 as ERC20Contract } from '../../generated/FleetCommanderFactory/ERC20'
+import { VaultFee, Vault as VaultStore } from '../../generated/schema'
+import * as constants from '../common/constants'
+import { getOrCreateYieldAggregator } from './initializers'
 
 export function enumToPrefix(snake: string): string {
   return snake.toLowerCase().replace('_', '-') + '-'

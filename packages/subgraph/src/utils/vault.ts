@@ -1,12 +1,12 @@
-import { ethereum, BigInt, Address, log } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { Vault } from '../../generated/schema'
+import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import * as constants from '../common/constants'
 import { getOrCreateToken } from '../common/initializers'
 import { getTokenPriceInUSD } from '../common/priceHelpers'
+import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 import { VaultDetails } from '../types'
-import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import * as utils from '../common/utils'
-import * as constants from '../common/constants'
 
 export function getVaultDetails(event: ethereum.Event, vault: Vault): VaultDetails {
   const vaultContract = FleetCommanderContract.bind(event.address)

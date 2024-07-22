@@ -1,4 +1,4 @@
-import { BigInt, BigDecimal } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { Token } from '../../generated/schema'
 
 export class VaultAndPositionDetails {

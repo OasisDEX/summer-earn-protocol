@@ -1,18 +1,18 @@
+import { BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Account, Vault } from '../../generated/schema'
 import {
   Deposit as DepositEvent,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { getOrCreateAccount, getOrCreateVault } from '../common/initializers'
-import { BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { formatAmount } from '../common/utils'
-import { Account, Vault } from '../../generated/schema'
 import { VaultAndPositionDetails } from '../types'
 import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
-import { createWithdrawEventEntity } from './entities/withdraw'
 import { updatePosition } from './entities/position'
 import { updateVault } from './entities/vault'
+import { createWithdrawEventEntity } from './entities/withdraw'
 
 export function handleDeposit(event: DepositEvent): void {
   const vault = getOrCreateVault(event.address, event.block)

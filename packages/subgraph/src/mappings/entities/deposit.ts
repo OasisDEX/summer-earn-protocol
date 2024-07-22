@@ -1,4 +1,4 @@
-import { BigInt, BigDecimal } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { Deposit } from '../../../generated/schema'
 import { Deposit as DepositEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { PositionDetails } from '../../types'

@@ -1,7 +1,7 @@
 import { BigDecimal } from '@graphprotocol/graph-ts'
+import { Withdraw } from '../../../generated/schema'
 import { Withdraw as WithdrawEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { PositionDetails } from '../../types'
-import { Withdraw } from '../../../generated/schema'
 
 export function createWithdrawEventEntity(
   event: WithdrawEvent,

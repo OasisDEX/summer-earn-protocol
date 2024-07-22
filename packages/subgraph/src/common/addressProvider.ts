@@ -1,13 +1,13 @@
-import { Address, dataSource, BigInt, log } from '@graphprotocol/graph-ts'
-import { OneInchOracle } from '../../generated/templates/FleetCommanderTemplate/OneInchOracle'
-import { SdaiOracle } from '../../generated/templates/FleetCommanderTemplate/SdaiOracle'
-import { SusdeOracle } from '../../generated/templates/FleetCommanderTemplate/SusdeOracle'
-import { FeedRegistry } from '../../generated/templates/FleetCommanderTemplate/FeedRegistry'
+import { Address, BigInt, dataSource } from '@graphprotocol/graph-ts'
 import { AaveV2Oracle } from '../../generated/templates/FleetCommanderTemplate/AaveV2Oracle'
 import { AaveV3Oracle } from '../../generated/templates/FleetCommanderTemplate/AaveV3Oracle'
-import { SparkOracle } from '../../generated/templates/FleetCommanderTemplate/SparkOracle'
-import { EnsReverseResolver } from '../../generated/templates/FleetCommanderTemplate/EnsReverseResolver'
 import { EnsRegistry } from '../../generated/templates/FleetCommanderTemplate/EnsRegistry'
+import { EnsReverseResolver } from '../../generated/templates/FleetCommanderTemplate/EnsReverseResolver'
+import { FeedRegistry } from '../../generated/templates/FleetCommanderTemplate/FeedRegistry'
+import { OneInchOracle } from '../../generated/templates/FleetCommanderTemplate/OneInchOracle'
+import { SdaiOracle } from '../../generated/templates/FleetCommanderTemplate/SdaiOracle'
+import { SparkOracle } from '../../generated/templates/FleetCommanderTemplate/SparkOracle'
+import { SusdeOracle } from '../../generated/templates/FleetCommanderTemplate/SusdeOracle'
 
 export class ServiceAddresses {
   WSTETH: Address
