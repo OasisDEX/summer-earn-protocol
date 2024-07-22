@@ -345,7 +345,8 @@ contract FleetCommander is
     }
 
     function _move(address fromArk, address toArk, uint256 amount) internal {
-        IArk(fromArk).disembark(amount, toArk);
+        _disembark(fromArk, amount);
+        _board(toArk, amount);
     }
 
     function _setupArks(address[] memory _arkAddresses) internal {
