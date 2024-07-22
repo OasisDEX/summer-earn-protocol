@@ -2,20 +2,24 @@
 pragma solidity 0.8.26;
 
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {FleetCommanderParams, ArkConfiguration, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 
 /// @title IFleetCommander Interface
 /// @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
 interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
-     * @notice Retrieves the ark configuration for a given ark address
-     * @param arkAddress The address of the ark
-     * @return The ArkConfiguration struct for the specified ark
+     * @notice Retrieves the arks currently linked to fleet
+     * @return An array of linked ark addresses
      */
-    function arks(
-        address arkAddress
-    ) external view returns (ArkConfiguration memory);
+    function arks() external view returns (address[] memory);
+
+    /**
+     * @notice Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
+     * Vault, through a force withdraw call.
+     * @param owner The address of the owner of the assets
+     */
+    function maxForceWithdraw(address owner) external view returns (uint256);
 
     /* FUNCTIONS - PUBLIC - USER */
     /**
@@ -84,9 +88,14 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
      * @notice Adds a new Ark
      * @param ark The address of the new Ark
-     * @param maxAllocation The maximum allocation for the new Ark
      */
-    function addArk(address ark, uint256 maxAllocation) external;
+    function addArk(address ark) external;
+
+    /**
+     * @notice Adds multiple Arks in a batch
+     * @param arks Array of ark addresses
+     */
+    function addArks(address[] calldata arks) external;
 
     /**
      * @notice Removes an existing Ark

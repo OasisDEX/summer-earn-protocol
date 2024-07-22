@@ -4,20 +4,12 @@ pragma solidity 0.8.26;
 import "./Percentage.sol";
 
 /**
- * @notice Configuration of an Ark added to the FleetCommander
- */
-struct ArkConfiguration {
-    address ark; // Ark address
-    uint256 maxAllocation; // Max allocation as token balance
-}
-
-/**
  * @notice Configuration parameters for the FleetCommander contract
  */
 struct FleetCommanderParams {
     address configurationManager;
     address accessManager;
-    ArkConfiguration[] initialArks;
+    address[] initialArks;
     uint256 initialMinimumFundsBufferBalance;
     uint256 initialRebalanceCooldown;
     address asset;
@@ -26,6 +18,7 @@ struct FleetCommanderParams {
     Percentage initialMinimumPositionWithdrawal;
     Percentage initialMaximumBufferWithdrawal;
     uint256 depositCap;
+    address bufferArk;
 }
 
 /**

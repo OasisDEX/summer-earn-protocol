@@ -8,14 +8,21 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {ArkConfiguration, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 
 abstract contract FleetCommanderTestBase {
     using PercentageUtils for uint256;
+
+    uint256 public BUFFER_BALANCE_SLOT;
+    uint256 public MIN_BUFFER_BALANCE_SLOT;
+
+    uint256 constant INITIAL_REBALANCE_COOLDOWN = 1000;
+    uint256 constant INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE = 10000 * 10 ** 6;
 
     IProtocolAccessManager public accessManager;
     FleetCommanderStorageWriter public fleetCommanderStorageWriter;
@@ -29,6 +36,7 @@ abstract contract FleetCommanderTestBase {
     address ark1 = address(10);
     address ark2 = address(11);
     address ark3 = address(12);
+    address bufferArkAddress = address(13);
 
     address invalidArk = address(999);
 
@@ -36,16 +44,13 @@ abstract contract FleetCommanderTestBase {
     ArkMock public mockArk1;
     ArkMock public mockArk2;
     ArkMock public mockArk3;
+    BufferArk public bufferArk;
 
     string public fleetName = "OK_Fleet";
 
-    uint256 public BUFFER_BALANCE_SLOT;
-    uint256 public MIN_BUFFER_BALANCE_SLOT;
-
-    uint256 public INITIAL_REBALANCE_COOLDOWN = 1000;
-
     uint256 ark1_MAX_ALLOCATION = 10000 * 10 ** 6;
     uint256 ark2_MAX_ALLOCATION = 15000 * 10 ** 6;
+    uint256 ark3_MAX_ALLOCATION = 20000 * 10 ** 6;
 
     constructor() {
         mockToken = new ERC20Mock();
@@ -64,7 +69,8 @@ abstract contract FleetCommanderTestBase {
             ArkParams({
                 accessManager: address(accessManager),
                 token: address(mockToken),
-                configurationManager: address(configurationManager)
+                configurationManager: address(configurationManager),
+                maxAllocation: ark1_MAX_ALLOCATION
             })
         );
 
@@ -72,7 +78,8 @@ abstract contract FleetCommanderTestBase {
             ArkParams({
                 accessManager: address(accessManager),
                 token: address(mockToken),
-                configurationManager: address(configurationManager)
+                configurationManager: address(configurationManager),
+                maxAllocation: ark2_MAX_ALLOCATION
             })
         );
 
@@ -80,32 +87,32 @@ abstract contract FleetCommanderTestBase {
             ArkParams({
                 accessManager: address(accessManager),
                 token: address(mockToken),
-                configurationManager: address(configurationManager)
+                configurationManager: address(configurationManager),
+                maxAllocation: ark3_MAX_ALLOCATION
             })
         );
-
+        bufferArk = new BufferArk(
+            ArkParams({
+                accessManager: address(accessManager),
+                token: address(mockToken),
+                configurationManager: address(configurationManager),
+                maxAllocation: type(uint256).max
+            })
+        );
         ark1 = address(mockArk1);
         ark2 = address(mockArk2);
         ark3 = address(mockArk3);
+        bufferArkAddress = address(bufferArk);
 
-        ArkConfiguration[] memory initialArks = new ArkConfiguration[](3);
-        initialArks[0] = ArkConfiguration({
-            ark: ark1,
-            maxAllocation: ark1_MAX_ALLOCATION
-        });
-        initialArks[1] = ArkConfiguration({
-            ark: ark2,
-            maxAllocation: ark2_MAX_ALLOCATION
-        });
-        initialArks[2] = ArkConfiguration({
-            ark: ark3,
-            maxAllocation: 10000 * 10 ** 6
-        });
+        address[] memory initialArks = new address[](3);
+        initialArks[0] = ark1;
+        initialArks[1] = ark2;
+        initialArks[2] = ark3;
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             initialArks: initialArks,
-            initialMinimumFundsBufferBalance: 10000 * 10 ** 6,
+            initialMinimumFundsBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             asset: address(mockToken),
             name: fleetName,
@@ -114,7 +121,8 @@ abstract contract FleetCommanderTestBase {
                 .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils
                 .fromDecimalPercentage(20),
-            depositCap: 100000000 * 10 ** 6
+            depositCap: type(uint256).max,
+            bufferArk: bufferArkAddress
         });
     }
 }
