@@ -59,20 +59,11 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        _validateWithdraw(assets, owner);
+
         uint256 prevQueueBalance = bufferArk.totalAssets();
+
         uint256 shares = previewWithdraw(assets);
-        if (
-            _msgSender() != owner &&
-            IERC20(address(this)).allowance(owner, _msgSender()) < shares
-        ) {
-            revert FleetCommanderUnauthorizedWithdrawal(_msgSender(), owner);
-        }
-
-        uint256 maxAssets = maxWithdraw(owner);
-        if (assets > maxAssets) {
-            revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
-        }
-
         _disembark(address(bufferArk), assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
@@ -90,21 +81,11 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IERC4626) returns (uint256) {
+        _validateRedeem(shares, owner);
+
         uint256 prevQueueBalance = bufferArk.totalAssets();
+
         uint256 assets = previewRedeem(shares);
-
-        if (
-            _msgSender() != owner &&
-            IERC20(address(this)).allowance(owner, _msgSender()) < shares
-        ) {
-            revert FleetCommanderUnauthorizedRedemption(_msgSender(), owner);
-        }
-
-        uint256 maxShares = maxRedeem(owner);
-        if (shares > maxShares) {
-            revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
-        }
-
         _disembark(address(bufferArk), assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
@@ -122,89 +103,26 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(IFleetCommander) returns (uint256) {
-        if (
-            _msgSender() != owner &&
-            IERC20(address(this)).allowance(owner, _msgSender()) < assets
-        ) {
-            revert FleetCommanderUnauthorizedWithdrawal(_msgSender(), owner);
-        }
-        uint256 maxAssets = maxForceWithdraw(owner);
-        if (assets > maxAssets) {
-            revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
-        }
-
-        uint256 totalAssetsToWithdraw = assets;
-        uint256 totalSharesToWithdraw = previewWithdraw(totalAssetsToWithdraw);
-        address[] memory sortedArks = new address[](_activeArks.length);
-        uint256[] memory rates = new uint256[](_activeArks.length);
-
-        // Collect rates and corresponding addresses
-        for (uint256 i = 0; i < _activeArks.length; i++) {
-            rates[i] = IArk(_activeArks[i]).rate();
-            sortedArks[i] = _activeArks[i];
-        }
-
-        for (uint256 i = 0; i < rates.length; i++) {
-            for (uint256 j = i + 1; j < rates.length; j++) {
-                if (rates[i] > rates[j]) {
-                    // Swap rates
-                    uint256 tempRate = rates[i];
-                    rates[i] = rates[j];
-                    rates[j] = tempRate;
-
-                    // Swap corresponding arks
-                    address tempArk = sortedArks[i];
-                    sortedArks[i] = sortedArks[j];
-                    sortedArks[j] = tempArk;
-                }
-            }
-        }
-        address[] memory allArks = new address[](sortedArks.length + 1);
-        for (uint256 i = 0; i < sortedArks.length; i++) {
-            allArks[i] = sortedArks[i];
-        }
-        allArks[sortedArks.length] = address(bufferArk);
-
-        for (uint256 i = 0; i < allArks.length; i++) {
-            uint256 assetsInArk = IArk(allArks[i]).totalAssets();
-            if (assetsInArk >= assets) {
-                _disembark(allArks[i], assets);
-                break;
-            } else if (assetsInArk > 0) {
-                _disembark(allArks[i], assetsInArk);
-                assets -= assetsInArk;
-            } else {
-                continue;
-            }
-        }
-
-        _withdraw(
-            _msgSender(),
-            receiver,
-            owner,
-            totalAssetsToWithdraw,
-            totalSharesToWithdraw
-        );
-
+        _validateForceWithdraw(assets, owner);
+        uint256 totalSharesToWithdraw = previewWithdraw(assets);
+        address[] memory sortedArks = _getSortedArks();
+        _forceWithdrawFromSortedArks(sortedArks, assets);
+        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToWithdraw);
         _setLastActionTimestamp(0);
 
-        return totalAssetsToWithdraw;
+        return assets;
     }
 
     function deposit(
         uint256 assets,
         address receiver
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
-        uint256 prevQueueBalance = bufferArk.totalAssets();
+        _validateDeposit(assets, _msgSender());
 
-        uint256 maxAssets = maxDeposit(_msgSender());
-        if (assets > maxAssets) {
-            revert ERC4626ExceededMaxDeposit(_msgSender(), assets, maxAssets);
-        }
+        uint256 prevQueueBalance = bufferArk.totalAssets();
 
         uint256 shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
-
         _board(address(bufferArk), assets);
 
         emit FundsBufferBalanceUpdated(
@@ -220,23 +138,18 @@ contract FleetCommander is
         uint256 shares,
         address receiver
     ) public override(ERC4626, IERC4626) returns (uint256) {
-        uint256 prevQueueBalance = bufferArk.totalAssets();
+        _validateMint(shares, _msgSender());
 
-        uint256 maxShares = maxMint(_msgSender());
-        if (shares > maxShares) {
-            revert ERC4626ExceededMaxMint(_msgSender(), shares, maxShares);
-        }
+        uint256 prevQueueBalance = bufferArk.totalAssets();
 
         uint256 assets = previewMint(shares);
         _deposit(_msgSender(), receiver, assets, shares);
-
         _board(address(bufferArk), assets);
-        uint256 fundsBufferBalance = bufferArk.totalAssets();
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
             prevQueueBalance,
-            fundsBufferBalance
+            bufferArk.totalAssets()
         );
 
         return assets;
@@ -308,43 +221,6 @@ contract FleetCommander is
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
         _rebalance(rebalanceData);
-    }
-
-    function _reallocateAssets(
-        RebalanceData memory data
-    ) internal returns (uint256) {
-        IArk toArk = IArk(data.toArk);
-        IArk fromArk = IArk(data.fromArk);
-        uint256 amount = data.amount;
-        uint256 toArkMaxAllocation = toArk.maxAllocation();
-
-        if (address(toArk) != address(bufferArk)) {
-            uint256 toArkRate = toArk.rate();
-            uint256 fromArkRate = fromArk.rate();
-
-            if (toArkRate < fromArkRate) {
-                revert FleetCommanderTargetArkRateTooLow(
-                    address(toArk),
-                    toArkRate,
-                    fromArkRate
-                );
-            }
-        }
-
-        uint256 toArkAllocation = toArk.totalAssets();
-        uint256 availableAllocation;
-        if (toArkAllocation < toArkMaxAllocation) {
-            availableAllocation = toArkMaxAllocation - toArkAllocation;
-            amount = (amount < availableAllocation)
-                ? amount
-                : availableAllocation;
-        } else {
-            // If toArkAllocation >= maxAllocation, we can't add more funds
-            revert FleetCommanderCantRebalanceToArk(address(toArk));
-        }
-        _move(address(fromArk), address(toArk), amount);
-
-        return amount;
     }
 
     function adjustBuffer(
@@ -469,7 +345,8 @@ contract FleetCommander is
     }
 
     function _move(address fromArk, address toArk, uint256 amount) internal {
-        IArk(fromArk).disembark(amount, toArk);
+        _disembark(fromArk, amount);
+        _board(toArk, amount);
     }
 
     function _setupArks(address[] memory _arkAddresses) internal {
@@ -511,6 +388,121 @@ contract FleetCommander is
 
         _isArkActive[ark] = false;
         emit ArkRemoved(ark);
+    }
+
+    /* INTERNAL */
+
+    /**
+     * @notice Reallocates assets from one Ark to another
+     * @dev This function handles the reallocation of assets between Arks, considering:
+     *      1. The rates of the source and destination Arks
+     *      2. The maximum allocation of the destination Ark
+     *      3. The current allocation of the destination Ark
+     * @param data The RebalanceData struct containing information about the reallocation
+     * @return uint256 The actual amount of assets reallocated
+     * @custom:error FleetCommanderTargetArkRateTooLow Thrown when the destination Ark's rate is lower than the source Ark's rate
+     * @custom:error FleetCommanderCantRebalanceToArk Thrown when the destination Ark is already at or above its maximum allocation
+     */
+    function _reallocateAssets(
+        RebalanceData memory data
+    ) internal returns (uint256) {
+        IArk toArk = IArk(data.toArk);
+        IArk fromArk = IArk(data.fromArk);
+        uint256 amount = data.amount;
+        uint256 toArkMaxAllocation = toArk.maxAllocation();
+
+        if (address(toArk) != address(bufferArk)) {
+            uint256 toArkRate = toArk.rate();
+            uint256 fromArkRate = fromArk.rate();
+
+            if (toArkRate < fromArkRate) {
+                revert FleetCommanderTargetArkRateTooLow(
+                    address(toArk),
+                    toArkRate,
+                    fromArkRate
+                );
+            }
+        }
+
+        uint256 toArkAllocation = toArk.totalAssets();
+        uint256 availableAllocation;
+        if (toArkAllocation < toArkMaxAllocation) {
+            availableAllocation = toArkMaxAllocation - toArkAllocation;
+            amount = (amount < availableAllocation)
+                ? amount
+                : availableAllocation;
+        } else {
+            // If toArkAllocation >= maxAllocation, we can't add more funds
+            revert FleetCommanderCantRebalanceToArk(address(toArk));
+        }
+        _move(address(fromArk), address(toArk), amount);
+
+        return amount;
+    }
+
+    /**
+     * @notice Retrieves and sorts the arks based on their rates
+     * @dev This function creates a sorted list of all active arks plus the buffer ark
+     *      arks are sorted by their rates in ascending order. Buffer ark is always the last one
+     * @return A sorted array of ark addresses, with the buffer ark at the end
+     */
+    function _getSortedArks() internal view returns (address[] memory) {
+        address[] memory sortedArks = new address[](_activeArks.length + 1);
+        uint256[] memory rates = new uint256[](_activeArks.length);
+
+        for (uint256 i = 0; i < _activeArks.length; i++) {
+            rates[i] = IArk(_activeArks[i]).rate();
+            sortedArks[i] = _activeArks[i];
+        }
+
+        _sortArksByRate(sortedArks, rates);
+        sortedArks[_activeArks.length] = address(bufferArk);
+
+        return sortedArks;
+    }
+
+    /**
+     * @notice Sorts the arks based on their rates in ascending order
+     * @dev This function implements a simple bubble sort algorithm
+     * @param _arks An array of ark addresses to be sorted
+     * @param rates An array of corresponding rates for each ark
+     */
+    function _sortArksByRate(
+        address[] memory _arks,
+        uint256[] memory rates
+    ) internal pure {
+        for (uint256 i = 0; i < rates.length; i++) {
+            for (uint256 j = i + 1; j < rates.length; j++) {
+                if (rates[i] > rates[j]) {
+                    (rates[i], rates[j]) = (rates[j], rates[i]);
+                    (_arks[i], _arks[j]) = (_arks[j], _arks[i]);
+                }
+            }
+        }
+    }
+
+    /**
+     * @notice Withdraws assets from multiple arks in a specific order
+     * @dev This function attempts to withdraw the requested amount from arks,
+     *      starting with the lowest rate ark and moving to higher rate arks,
+     *      where buffer ark is the last one in arks array
+     * @param sortedArks An array of ark addresses sorted by their rates
+     * @param assets The total amount of assets to withdraw
+     */
+    function _forceWithdrawFromSortedArks(
+        address[] memory sortedArks,
+        uint256 assets
+    ) internal {
+        for (uint256 i = 0; i < sortedArks.length; i++) {
+            uint256 assetsInArk = IArk(sortedArks[i]).totalAssets();
+            if (assetsInArk >= assets) {
+                _disembark(sortedArks[i], assets);
+                break;
+            } else if (assetsInArk > 0) {
+                _disembark(sortedArks[i], assetsInArk);
+                assets -= assetsInArk;
+            }
+        }
     }
 
     /* INTERNAL - VALIDATIONS */
@@ -625,6 +617,107 @@ contract FleetCommander is
                     address(rebalanceData[i].toArk)
                 );
             }
+        }
+    }
+
+    /**
+     * @notice Validates the withdraw request
+     * @dev This function checks two conditions:
+     *      1. The caller is authorized to withdraw on behalf of the owner
+     *      2. The withdrawal amount does not exceed the maximum allowed
+     * @param assets The amount of assets to withdraw
+     * @param owner The address of the owner of the assets
+     * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
+     * @custom:error ERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     */
+    function _validateWithdraw(uint256 assets, address owner) internal view {
+        if (
+            _msgSender() != owner &&
+            IERC20(address(this)).allowance(owner, _msgSender()) < assets
+        ) {
+            revert FleetCommanderUnauthorizedWithdrawal(_msgSender(), owner);
+        }
+        uint256 maxAssets = maxWithdraw(owner);
+        if (assets > maxAssets) {
+            revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
+        }
+    }
+
+    /**
+     * @notice Validates the redemption request
+     * @dev This function checks two conditions:
+     *      1. The caller is authorized to redeem on behalf of the owner
+     *      2. The redemption amount does not exceed the maximum allowed
+     * @param shares The number of shares to redeem
+     * @param owner The address of the owner of the shares
+     * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
+     * @custom:error ERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     */
+    function _validateRedeem(uint256 shares, address owner) internal view {
+        if (
+            _msgSender() != owner &&
+            IERC20(address(this)).allowance(owner, _msgSender()) < shares
+        ) {
+            revert FleetCommanderUnauthorizedRedemption(_msgSender(), owner);
+        }
+
+        uint256 maxShares = maxRedeem(owner);
+        if (shares > maxShares) {
+            revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
+        }
+    }
+
+    /**
+     * @notice Validates the deposit request
+     * @dev This function checks if the requested deposit amount exceeds the maximum allowed
+     * @param assets The amount of assets to deposit
+     * @param owner The address of the account making the deposit
+     * @custom:error ERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
+     */
+    function _validateDeposit(uint256 assets, address owner) internal view {
+        uint256 maxAssets = maxDeposit(owner);
+        if (assets > maxAssets) {
+            revert ERC4626ExceededMaxDeposit(owner, assets, maxAssets);
+        }
+    }
+
+    /**
+     * @notice Validates the mint request
+     * @dev This function checks if the requested mint amount exceeds the maximum allowed
+     * @param shares The number of shares to mint
+     * @param owner The address of the account minting the shares
+     * @custom:error ERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
+     */
+    function _validateMint(uint256 shares, address owner) internal view {
+        uint256 maxShares = maxMint(owner);
+        if (shares > maxShares) {
+            revert ERC4626ExceededMaxMint(owner, shares, maxShares);
+        }
+    }
+
+    /**
+     * @notice Validates the force withdraw request
+     * @dev This function checks two conditions:
+     *      1. The caller is authorized to withdraw on behalf of the owner
+     *      2. The withdrawal amount does not exceed the maximum allowed
+     * @param assets The amount of assets to withdraw
+     * @param owner The address of the owner of the assets
+     * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
+     * @custom:error ERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     */
+    function _validateForceWithdraw(
+        uint256 assets,
+        address owner
+    ) internal view {
+        if (
+            _msgSender() != owner &&
+            IERC20(address(this)).allowance(owner, _msgSender()) < assets
+        ) {
+            revert FleetCommanderUnauthorizedWithdrawal(_msgSender(), owner);
+        }
+        uint256 maxAssets = maxForceWithdraw(owner);
+        if (assets > maxAssets) {
+            revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
         }
     }
 }
