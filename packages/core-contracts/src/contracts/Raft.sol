@@ -9,13 +9,19 @@ import "../errors/RaftErrors.sol";
 import "./ArkAccessManaged.sol";
 
 /**
- * @custom:see IRaft
+ * @title Raft
+ * @notice Manages the harvesting, swapping, and reinvesting of rewards for various Arks.
+ * @dev This contract implements the IRaft interface and inherits access control from ArkAccessManaged.
  */
 contract Raft is IRaft, ArkAccessManaged {
     address public swapProvider;
-
     mapping(address => mapping(address => uint256)) public harvestedRewards;
 
+    /**
+     * @notice Constructs a new Raft contract.
+     * @param _swapProvider_ The address of the swap provider (e.g., 1inch) used for token exchanges.
+     * @param accessManager The address of the AccessManager contract for role-based permissions.
+     */
     constructor(
         address _swapProvider_,
         address accessManager
@@ -25,6 +31,7 @@ contract Raft is IRaft, ArkAccessManaged {
 
     /**
      * @inheritdoc IRaft
+     * @dev Only callable by addresses with the Keeper role.
      */
     function harvestAndReboard(
         address ark,
@@ -38,6 +45,7 @@ contract Raft is IRaft, ArkAccessManaged {
 
     /**
      * @inheritdoc IRaft
+     * @dev Only callable by addresses with the Keeper role.
      */
     function swapAndReboard(
         address ark,
@@ -53,15 +61,23 @@ contract Raft is IRaft, ArkAccessManaged {
      */
     function harvest(address ark, address rewardToken) public {
         uint256 harvestedAmount = IArk(ark).harvest(rewardToken);
-
         harvestedRewards[ark][rewardToken] += harvestedAmount;
-
         emit ArkHarvested(ark, rewardToken);
     }
 
     /**
-     * @dev Internal function to perform a swap operation.
-     * @param ark The address of the Ark contract.
+     * @inheritdoc IRaft
+     */
+    function getHarvestedRewards(
+        address ark,
+        address rewardToken
+    ) external view returns (uint256) {
+        return harvestedRewards[ark][rewardToken];
+    }
+
+    /**
+     * @dev Internal function to perform a swap operation using the swap provider.
+     * @param ark The address of the Ark contract associated with the swap.
      * @param swapData Data required for the swap operation.
      */
     function _swap(address ark, SwapData calldata swapData) internal {
@@ -87,9 +103,9 @@ contract Raft is IRaft, ArkAccessManaged {
     }
 
     /**
-     * @dev Internal function to reinvest harvested rewards.
-     * @param ark The address of the Ark contract.
-     * @param rewardToken The address of the reward token to be reinvested.
+     * @dev Internal function to reinvest harvested rewards back into the Ark.
+     * @param ark The address of the Ark contract to reinvest into.
+     * @param rewardToken The address of the reward token being reinvested.
      */
     function _reboard(address ark, address rewardToken) internal {
         uint256 preSwapRewardBalance = harvestedRewards[ark][rewardToken];
@@ -105,15 +121,5 @@ contract Raft is IRaft, ArkAccessManaged {
         harvestedRewards[ark][rewardToken] = 0;
 
         emit RewardReboarded(ark, rewardToken, preSwapRewardBalance, balance);
-    }
-
-    /**
-     * @inheritdoc IRaft
-     */
-    function getHarvestedRewards(
-        address ark,
-        address rewardToken
-    ) external view returns (uint256) {
-        return harvestedRewards[ark][rewardToken];
     }
 }

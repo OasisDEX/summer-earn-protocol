@@ -12,142 +12,143 @@ import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.s
 
 contract RaftTest is Test, IRaftEvents {
     Raft public raft;
+    IProtocolAccessManager public accessManager;
 
     address public governor = address(1);
     address public mockArk = address(5);
     address public mockSwapProvider = address(6);
     address public mockToken = address(7);
     address public keeper = address(8);
+    address public mockRewardToken = address(9);
+
+    uint256 constant REWARD_AMOUNT = 100;
+    uint256 constant BALANCE_AFTER_SWAP = 200;
 
     function setUp() public {
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
-
-        raft = new Raft(mockSwapProvider, address(accessManager));
-
+        // Setup the access manager and grant roles
+        accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
         accessManager.grantKeeperRole(keeper);
+
+        // Deploy the Raft contract
+        raft = new Raft(mockSwapProvider, address(accessManager));
+
+        // Setup mock calls
+        _setupMockCalls();
     }
 
     function test_Harvest() public {
-        address mockRewardToken = address(6);
-
-        // Arrange
-        vm.mockCall(
-            mockArk,
-            abi.encodeWithSelector(
-                IArk(mockArk).harvest.selector,
-                mockRewardToken
-            ),
-            abi.encode(100)
-        );
-
+        // Expect the ArkHarvested event to be emitted
         vm.expectEmit(true, true, true, true);
         emit ArkHarvested(mockArk, mockRewardToken);
 
-        // Act
+        // Perform the harvest
         raft.harvest(mockArk, mockRewardToken);
+
+        // Assert that the harvested rewards were recorded
+        assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), REWARD_AMOUNT);
     }
 
-    function test_HarvestAndReinvest() public {
-        // Arrange
-        address mockRewardToken = address(6);
-        uint256 rewardAmount = 100;
-        uint256 balanceAfterSwap = 200;
-
-        // Harvest so the mapping is populated
-        vm.mockCall(
-            mockArk,
-            abi.encodeWithSelector(
-                IArk(mockArk).harvest.selector,
-                mockRewardToken
-            ),
-            abi.encode(100)
-        );
-
-        // Mock swap call
+    function test_HarvestAndReboard() public {
+        // Setup swap data
         SwapData memory swapData = SwapData({
             fromAsset: mockRewardToken,
-            amount: rewardAmount,
-            receiveAtLeast: rewardAmount,
+            amount: REWARD_AMOUNT,
+            receiveAtLeast: REWARD_AMOUNT,
             withData: abi.encode()
         });
 
+        // Expect events to be emitted
+        vm.expectEmit(true, true, true, true);
+        emit RewardSwapped(mockRewardToken, mockToken, REWARD_AMOUNT, BALANCE_AFTER_SWAP);
+
+        vm.expectEmit(true, true, true, true);
+        emit RewardReboarded(mockArk, mockRewardToken, REWARD_AMOUNT, BALANCE_AFTER_SWAP);
+
+        // Perform harvestAndReboard
+        vm.prank(keeper);
+        raft.harvestAndReboard(mockArk, mockRewardToken, swapData);
+
+        // Assert that harvested rewards were reset
+        assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), 0);
+    }
+
+    function test_SwapAndReboard() public {
+        // Setup initial harvested rewards
+        vm.mockCall(
+            mockArk,
+            abi.encodeWithSelector(IArk.harvest.selector, mockRewardToken),
+            abi.encode(REWARD_AMOUNT)
+        );
+        raft.harvest(mockArk, mockRewardToken);
+
+        // Setup swap data
+        SwapData memory swapData = SwapData({
+            fromAsset: mockRewardToken,
+            amount: REWARD_AMOUNT,
+            receiveAtLeast: REWARD_AMOUNT,
+            withData: abi.encode()
+        });
+
+        // Expect events to be emitted
+        vm.expectEmit(true, true, true, true);
+        emit RewardSwapped(mockRewardToken, mockToken, REWARD_AMOUNT, BALANCE_AFTER_SWAP);
+
+        vm.expectEmit(true, true, true, true);
+        emit RewardReboarded(mockArk, mockRewardToken, REWARD_AMOUNT, BALANCE_AFTER_SWAP);
+
+        // Perform swapAndReboard
+        vm.prank(keeper);
+        raft.swapAndReboard(mockArk, mockRewardToken, swapData);
+
+        // Assert that harvested rewards were reset
+        assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), 0);
+    }
+
+    function _setupMockCalls() internal {
+        // Mock harvest call
+        vm.mockCall(
+            mockArk,
+            abi.encodeWithSelector(IArk.harvest.selector, mockRewardToken),
+            abi.encode(REWARD_AMOUNT)
+        );
+
+        // Mock token approvals
         vm.mockCall(
             mockRewardToken,
-            abi.encodeWithSelector(
-                IERC20(mockRewardToken).approve.selector,
-                mockSwapProvider,
-                rewardAmount
-            ),
+            abi.encodeWithSelector(IERC20.approve.selector, mockSwapProvider, REWARD_AMOUNT),
+            abi.encode(true)
+        );
+        vm.mockCall(
+            mockToken,
+            abi.encodeWithSelector(IERC20.approve.selector, mockArk, BALANCE_AFTER_SWAP),
             abi.encode(true)
         );
 
+        // Mock token balance calls
+        vm.mockCall(
+            mockToken,
+            abi.encodeWithSelector(IERC20.balanceOf.selector, address(raft)),
+            abi.encode(BALANCE_AFTER_SWAP)
+        );
+
+        // Mock Ark token and boardFromRaft calls
         vm.mockCall(
             mockArk,
-            abi.encodeWithSelector(IArk(mockArk).token.selector),
+            abi.encodeWithSelector(IArk.token.selector),
             abi.encode(mockToken)
         );
-
-        // Mock token balance after swap
-        vm.mockCall(
-            mockToken,
-            abi.encodeWithSelector(
-                IERC20(mockToken).balanceOf.selector,
-                address(raft)
-            ),
-            abi.encode(balanceAfterSwap)
-        );
-
-        /* Reinvest */
-        vm.mockCall(
-            mockToken,
-            abi.encodeWithSelector(
-                IERC20(mockToken).balanceOf.selector,
-                address(raft)
-            ),
-            abi.encode(balanceAfterSwap)
-        );
-
-        vm.mockCall(
-            mockToken,
-            abi.encodeWithSelector(
-                IERC20(mockToken).approve.selector,
-                mockArk,
-                balanceAfterSwap
-            ),
-            abi.encode(true)
-        );
-
         vm.mockCall(
             mockArk,
-            abi.encodeWithSelector(
-                IArk(mockArk).boardFromRaft.selector,
-                balanceAfterSwap
-            ),
+            abi.encodeWithSelector(IArk.boardFromRaft.selector, BALANCE_AFTER_SWAP),
             abi.encode()
         );
 
-        // Expect events
-        vm.expectEmit(true, true, true, true);
-        emit RewardSwapped(
-            mockRewardToken,
-            mockToken,
-            rewardAmount,
-            balanceAfterSwap
+        // Mock successful swap provider call
+        vm.mockCall(
+            mockSwapProvider,
+            abi.encode(),
+            abi.encode(true)
         );
-
-        vm.expectEmit();
-        emit RewardReboarded(
-            mockArk,
-            mockRewardToken,
-            rewardAmount,
-            balanceAfterSwap
-        );
-
-        // Act
-        vm.prank(keeper);
-        raft.harvestAndReboard(mockArk, mockRewardToken, swapData);
     }
 }
