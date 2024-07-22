@@ -18,6 +18,12 @@ import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 abstract contract FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
+    uint256 public BUFFER_BALANCE_SLOT;
+    uint256 public MIN_BUFFER_BALANCE_SLOT;
+
+    uint256 constant INITIAL_REBALANCE_COOLDOWN = 1000;
+    uint256 constant INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE = 10000 * 10 ** 6;
+
     IProtocolAccessManager public accessManager;
     FleetCommanderStorageWriter public fleetCommanderStorageWriter;
     FleetCommander public fleetCommander;
@@ -41,11 +47,6 @@ abstract contract FleetCommanderTestBase {
     BufferArk public bufferArk;
 
     string public fleetName = "OK_Fleet";
-
-    uint256 public BUFFER_BALANCE_SLOT;
-    uint256 public MIN_BUFFER_BALANCE_SLOT;
-
-    uint256 public INITIAL_REBALANCE_COOLDOWN = 1000;
 
     uint256 ark1_MAX_ALLOCATION = 10000 * 10 ** 6;
     uint256 ark2_MAX_ALLOCATION = 15000 * 10 ** 6;
@@ -111,7 +112,7 @@ abstract contract FleetCommanderTestBase {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             initialArks: initialArks,
-            initialMinimumFundsBufferBalance: 10000 * 10 ** 6,
+            initialMinimumFundsBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             asset: address(mockToken),
             name: fleetName,
@@ -120,7 +121,7 @@ abstract contract FleetCommanderTestBase {
                 .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils
                 .fromDecimalPercentage(20),
-            depositCap: 100000000 * 10 ** 6,
+            depositCap: type(uint256).max,
             bufferArk: bufferArkAddress
         });
     }

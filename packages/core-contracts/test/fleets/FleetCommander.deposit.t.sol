@@ -65,27 +65,27 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.deposit(0, mockUser);
     }
 
-    // function test_DepositToOtherReceiver() public {
-    //     address receiver = address(0xdeadbeef);
-    //     uint256 amount = DEPOSIT_AMOUNT;
+    function test_DepositToOtherReceiver() public {
+        address receiver = address(0xdeadbeef);
+        uint256 amount = DEPOSIT_AMOUNT;
 
-    //     mockToken.mint(mockUser, amount);
-    //     vm.startPrank(mockUser);
-    //     mockToken.approve(address(fleetCommander), amount);
-    //     fleetCommander.deposit(amount, receiver);
-    //     vm.stopPrank();
+        mockToken.mint(mockUser, amount);
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+        fleetCommander.deposit(amount, receiver);
+        vm.stopPrank();
 
-    //     assertEq(
-    //         fleetCommander.balanceOf(receiver),
-    //         amount,
-    //         "Receiver should have received the shares"
-    //     );
-    //     assertEq(
-    //         fleetCommander.balanceOf(mockUser),
-    //         0,
-    //         "Depositor should not have received any shares"
-    //     );
-    // }
+        assertEq(
+            fleetCommander.balanceOf(receiver),
+            amount,
+            "Receiver should have received the shares"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "Depositor should not have received any shares"
+        );
+    }
 
     function test_DepositMultipleTimes() public {
         uint256 amount = DEPOSIT_AMOUNT;

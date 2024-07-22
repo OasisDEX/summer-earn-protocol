@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {PercentageUtils, Percentage} from "../../src/libraries/PercentageUtils.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
@@ -21,8 +20,6 @@ import {IArk} from "../../src/interfaces/IArk.sol";
  * @dev Test suite for the FleetCommander contract's ERC4626 methods
  */
 contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
-    using PercentageUtils for uint256;
-
     function setUp() public {
         // Each fleet uses a default setup from the FleetCommanderTestBase contract,
         // but you can create and initialize your own custom fleet if you wish.
@@ -90,16 +87,6 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
         uint256 bufferBalance = IArk(fleetCommander.bufferArk()).totalAssets();
-        uint256 depositCap = 50000 * 10 ** 6;
-        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(
-            20
-        );
-
-        // Set buffer balance and max buffer withdrawal percentage
-        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(
-            maxBufferPercentage
-        );
-        fleetCommanderStorageWriter.setDepositCap(depositCap);
 
         // Mock user balance
         mockToken.mint(mockUser, userBalance);
@@ -114,8 +101,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Assert
         assertEq(
             maxWithdraw,
-            (bufferBalance + userBalance).applyPercentage(maxBufferPercentage),
-            "Max withdraw should be the buffer withdrawal percentage of the total assets (initial buffer + deposited user funds)"
+            (bufferBalance + userBalance),
+            "Max withdraw should be the the total assets (initial buffer + deposited user funds)"
         );
     }
 
@@ -123,14 +110,6 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
         uint256 bufferBalance = IArk(fleetCommander.bufferArk()).totalAssets();
-        Percentage maxBufferPercentage = PercentageUtils.fromDecimalPercentage(
-            20
-        );
-
-        // Set buffer balance and max buffer withdrawal percentage
-        fleetCommanderStorageWriter.setMaxBufferWithdrawalPercentage(
-            maxBufferPercentage
-        );
 
         // Mock user balance
         mockToken.mint(mockUser, userBalance);
@@ -144,8 +123,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Assert
         assertEq(
             maxRedeem,
-            (bufferBalance + userBalance).applyPercentage(maxBufferPercentage),
-            "Max redeem should be the buffer withdrawal percentage of the total assets (initial buffer + deposited user funds)"
+            (bufferBalance + userBalance),
+            "Max redeem should be the total assets (initial buffer + deposited user funds)"
         );
     }
 
