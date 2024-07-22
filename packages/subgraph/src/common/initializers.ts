@@ -7,6 +7,7 @@ import {
   FinancialsDailySnapshot,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
+  Position,
 } from '../../generated/schema'
 import * as utils from './utils'
 import * as constants from './constants'
@@ -29,6 +30,25 @@ export function getOrCreateAccount(id: string): Account {
   }
 
   return account
+}
+
+export function getOrCreatePosition(positionId: string, block: ethereum.Block): Position {
+  let position = Position.load(positionId)
+  const positionIdDetails = utils.getAccountIdAndVaultIdFromPositionId(positionId)
+  if (!position) {
+    position = new Position(positionId)
+    position.inputTokenBalance = constants.BigIntConstants.ZERO
+    position.outputTokenBalance = constants.BigIntConstants.ZERO
+    position.outputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    position.outputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.account = positionIdDetails[0]
+    position.vault = positionIdDetails[1]
+    position.createdBlockNumber = block.number
+    position.createdTimestamp = block.timestamp
+    position.save()
+  }
+
+  return position
 }
 
 export function getOrCreateYieldAggregator(): YieldAggregator {
@@ -73,7 +93,7 @@ export function getOrCreateToken(address: Address): Token {
     token.name = utils.readValue<string>(contract.try_name(), '')
     token.symbol = utils.readValue<string>(contract.try_symbol(), '')
     token.decimals = utils
-      .readValue<BigInt>(contract.try_decimals(), constants.BIGINT_ZERO)
+      .readValue<BigInt>(contract.try_decimals(), constants.BigIntConstants.ZERO)
       .toI32() as u8
 
     token.save()
@@ -179,7 +199,7 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
       ? vault.outputTokenSupply!
-      : constants.BIGINT_ZERO
+      : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BIGDECIMAL_ZERO
@@ -223,7 +243,7 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
       ? vault.outputTokenSupply!
-      : constants.BIGINT_ZERO
+      : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BIGDECIMAL_ZERO
@@ -261,16 +281,16 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.protocol = constants.PROTOCOL_ID
     vault.depositLimit = utils.readValue<BigInt>(
       vaultContract.try_depositCap(),
-      constants.BIGINT_ZERO,
+      constants.BigIntConstants.ZERO,
     )
 
     const inputToken = getOrCreateToken(vaultContract.asset())
     vault.inputToken = inputToken.id
-    vault.inputTokenBalance = constants.BIGINT_ZERO
+    vault.inputTokenBalance = constants.BigIntConstants.ZERO
 
     const outputToken = getOrCreateToken(vaultAddress)
     vault.outputToken = outputToken.id
-    vault.outputTokenSupply = constants.BIGINT_ZERO
+    vault.outputTokenSupply = constants.BigIntConstants.ZERO
 
     vault.outputTokenPriceUSD = constants.BIGDECIMAL_ZERO
     vault.pricePerShare = constants.BIGDECIMAL_ZERO
@@ -284,8 +304,8 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
     vault.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
 
-    //   vault.lastReport = constants.BIGINT_ZERO;
-    //   vault.totalAssets = constants.BIGINT_ZERO;
+    //   vault.lastReport = constants.BigIntConstants.ZERO;
+    //   vault.totalAssets = constants.BigIntConstants.ZERO;
 
     const managementFeeId =
       utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + vaultAddress.toHexString()

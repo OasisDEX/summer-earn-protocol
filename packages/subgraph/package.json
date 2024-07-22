@@ -1,10 +1,10 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "0.0.5",
+  "version": "0.0.9",
   "scripts": {
     "build:mainnet": "graph codegen && graph build --network mainnet",
     "build:base": "graph codegen && graph build --network base",
-    "deploy:base:alchemy": "pnpm build:base && graph deploy summer-protocol-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key FhnHtpQ81E --ipfs https://ipfs.satsuma.xyz"
+    "deploy:base": "pnpm build:base && graph deploy summer-protocol-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key FhnHtpQ81E --ipfs https://ipfs.satsuma.xyz"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "^0.35.1"

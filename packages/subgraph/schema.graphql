@@ -664,6 +664,7 @@ type Withdraw implements Event @entity @transaction {
 type Account @entity @regularPolling {
   " Address of the account "
   id: ID!
+  positions: [Position!]! @derivedFrom(field: "account")
 }
 
 # Helper entity for calculating daily/hourly active users
@@ -672,12 +673,40 @@ type ActiveAccount @entity {
   id: ID!
 }
 
-
-# Additional 
+# Additional
 type TokenPrice @entity {
   id: Bytes!
   token: Token!
   blockNumber: BigInt!
   price: BigDecimal!
   oracle: String!
+}
+
+type Position @entity {
+  " Unique identifier for the position "
+  id: ID!
+
+  " Account associated with the position "
+  account: Account!
+
+  " Vault where the position is held "
+  vault: Vault!
+
+  " Balance of the input token for the position "
+  inputTokenBalance: BigInt!
+
+  " Supply of the output token for the position "
+  outputTokenBalance: BigInt!
+
+  " Normalized supply of the output token "
+  outputTokenBalanceNormalized: BigDecimal!
+
+  " Normalized supply of the output token in USD "
+  outputTokenBalanceNormalizedInUSD: BigDecimal!
+
+  " Creation timestamp "
+  createdTimestamp: BigInt!
+
+  " Creation block number "
+  createdBlockNumber: BigInt!
 }

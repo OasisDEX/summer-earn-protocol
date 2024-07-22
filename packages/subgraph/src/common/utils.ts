@@ -62,3 +62,22 @@ export function formatAmount(amountInBaseUnit: BigInt, decimals: BigInt): BigDec
 
   return BigDecimal.fromString(amountInBaseUnit.toString()).div(power)
 }
+
+/**
+ * Formats the position ID by concatenating the vault ID and account ID.
+ * @param vaultID - The ID of the vault.
+ * @param accountID - The ID of the account.
+ * @returns The formatted position ID.
+ */
+export function formatPositionId(vaultID: string, accountID: string): string {
+  return vaultID + '-' + accountID
+}
+
+/**
+ * Splits the given position ID into an array containing the account ID and vault ID.
+ * @param positionId - The position ID to split.
+ * @returns An array containing the account ID and vault ID.
+ */
+export function getAccountIdAndVaultIdFromPositionId(positionId: string): string[] {
+  return positionId.split('-')
+}

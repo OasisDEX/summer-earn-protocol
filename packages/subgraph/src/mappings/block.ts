@@ -1,6 +1,6 @@
 import { Address, ethereum, log } from '@graphprotocol/graph-ts'
-import { FleetCommanderTemplate } from '../generated/templates'
-import { getOrCreateYieldAggregator } from './common/initializers'
+import { FleetCommanderTemplate } from '../../generated/templates'
+import { getOrCreateYieldAggregator } from '../common/initializers'
 
 export function handleOnce(block: ethereum.Block): void {
   log.debug('handleOnce block.number: {}', [block.number.toString()])

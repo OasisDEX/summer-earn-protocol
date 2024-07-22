@@ -28,7 +28,7 @@ dataSources:
         - handler: handleOnce
           filter:
             kind: once
-      file: ./src/mapping.ts
+      file: ./src/mappings/block.ts
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
@@ -75,4 +75,4 @@ templates:
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
           receipt: true
-      file: ./src/fleetCommander.ts
+      file: ./src/mappings/fleetCommander.ts
