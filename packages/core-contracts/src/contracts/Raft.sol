@@ -5,20 +5,19 @@ import {IRaft} from "../interfaces/IRaft.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {SwapData} from "../types/RaftTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IUniswapV3Factory } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Test, console} from "forge-std/Test.sol";
-
 import "../errors/RaftErrors.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import { TickMath } from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import {TickMath} from "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 
 /**
- * @custom:see IRaft
+ * @title Raft
+ * @notice This contract manages the harvesting, swapping, and boarding of rewards for Arks.
+ * @dev Implements the IRaft interface and inherits from ArkAccessManaged for access control.
  */
 contract Raft is IRaft, ArkAccessManaged {
     using SafeERC20 for IERC20;
@@ -30,6 +29,13 @@ contract Raft is IRaft, ArkAccessManaged {
 
     mapping(address => mapping(address => uint256)) public harvestedRewards;
 
+    /**
+     * @notice Constructor to initialize the Raft contract
+     * @param _uniswapRouter_ Address of the Uniswap V3 router
+     * @param _uniswapFactory_ Address of the Uniswap V3 factory
+     * @param _WETH_ Address of the WETH token
+     * @param accessManager Address of the access manager contract
+     */
     constructor(
         address _uniswapRouter_,
         address _uniswapFactory_,
@@ -73,9 +79,7 @@ contract Raft is IRaft, ArkAccessManaged {
      */
     function harvest(address ark, address rewardToken) public {
         uint256 harvestedAmount = IArk(ark).harvest(rewardToken);
-
         harvestedRewards[ark][rewardToken] += harvestedAmount;
-
         emit ArkHarvested(ark, rewardToken);
     }
 
@@ -83,8 +87,6 @@ contract Raft is IRaft, ArkAccessManaged {
      * @dev Internal function to perform a swap operation.
      * @param ark The address of the Ark contract.
      * @param tokenIn The address of the reward token
-     *
-     * @dev the tokenOut address comes from the Ark
      */
     function _swap(address ark, address tokenIn) internal {
         address tokenOut = address(IArk(ark).token());
@@ -99,13 +101,14 @@ contract Raft is IRaft, ArkAccessManaged {
             // Single hop: tokenIn -> WETH
             (uint256 price, uint24 fee) = getPrice(tokenIn, WETH, allowedFeeTiers);
             path = abi.encodePacked(tokenIn, fee, WETH);
+            amountOutMin = amountIn * price / (10 ** ERC20(tokenIn).decimals());
         } else {
             // Multi-hop: tokenIn -> WETH -> tokenOut
-            (uint256 price, uint24 fee) = getPrice(tokenIn, WETH, allowedFeeTiers);
+            (uint256 price1, uint24 fee1) = getPrice(tokenIn, WETH, allowedFeeTiers);
             (uint256 price2, uint24 fee2) = getPrice(WETH, tokenOut, allowedFeeTiers);
-            path = abi.encodePacked(tokenIn, fee, WETH, fee2, tokenOut);
+            path = abi.encodePacked(tokenIn, fee1, WETH, fee2, tokenOut);
 
-            uint256 intermediateAmount = amountIn * price / (10 ** ERC20(tokenIn).decimals());
+            uint256 intermediateAmount = amountIn * price1 / (10 ** ERC20(tokenIn).decimals());
             amountOutMin = intermediateAmount * price2 / (10 ** ERC20(WETH).decimals());
         }
 
@@ -161,10 +164,22 @@ contract Raft is IRaft, ArkAccessManaged {
         return harvestedRewards[ark][rewardToken];
     }
 
+    /**
+     * @notice Sets the allowed fee tiers for Uniswap V3 pools
+     * @param _allowedFeeTiers_ An array of allowed fee tiers
+     */
     function setAllowedFeeTiers(uint24[] memory _allowedFeeTiers_) public onlyGovernor {
         allowedFeeTiers = _allowedFeeTiers_;
     }
 
+    /**
+     * @notice Gets the price and fee for a token pair
+     * @param tokenIn The address of the input token
+     * @param tokenOut The address of the output token
+     * @param fees An array of fee tiers to check
+     * @return price The price of tokenOut in terms of tokenIn
+     * @return fee The fee tier of the selected pool
+     */
     function getPrice(
         address tokenIn,
         address tokenOut,
@@ -210,6 +225,12 @@ contract Raft is IRaft, ArkAccessManaged {
         }
     }
 
+    /**
+     * @dev Internal function to get the sqrt price of a Uniswap V3 pool
+     * @param uniswapV3Pool The address of the Uniswap V3 pool
+     * @param twapInterval The time-weighted average price (TWAP) interval
+     * @return sqrtPriceX96 The sqrt price of the pool
+     */
     function _getTick(
         address uniswapV3Pool,
         uint32 twapInterval
@@ -219,7 +240,6 @@ contract Raft is IRaft, ArkAccessManaged {
             (sqrtPriceX96, , , , , , ) = IUniswapV3Pool(uniswapV3Pool).slot0();
         } else {
             uint32[] memory secondsAgos = new uint32[](2);
-            // past ---secondsAgo---> present
             secondsAgos[0] = 1 + twapInterval; // secondsAgo
             secondsAgos[1] = 1; // now
 
@@ -231,5 +251,4 @@ contract Raft is IRaft, ArkAccessManaged {
         }
         return sqrtPriceX96;
     }
-
 }

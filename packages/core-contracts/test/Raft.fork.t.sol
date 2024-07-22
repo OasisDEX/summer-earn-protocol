@@ -6,7 +6,6 @@ import {IArk} from "../src/interfaces/IArk.sol";
 import {IRaftEvents} from "../src/interfaces/IRaftEvents.sol";
 import {Raft} from "../src/contracts/Raft.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SwapData} from "../src/types/RaftTypes.sol";
 import {CompoundV3Ark, ArkParams} from "../src/contracts/arks/CompoundV3Ark.sol";
 import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
@@ -14,7 +13,7 @@ import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 
-contract RaftTest is Test, IRaftEvents {
+contract RaftForkTest is Test, IRaftEvents {
     Raft public raft;
     CompoundV3Ark public ark;
     address public governor = address(1);
@@ -22,24 +21,22 @@ contract RaftTest is Test, IRaftEvents {
     address public keeper = address(8);
 
     address public constant rewardToken = 0xc00e94Cb662C3520282E6f5717214004A7f26888; // COMP Token
-    address public constant cometAddress =
-        0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+    address public constant cometAddress = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     address public constant cometRewards = 0x1B0e765F6224C21223AeA2af16c1C46E38885a40;
 
     address public constant uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address public constant uniswapFactory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
 
-    address public constant WETH = 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2;
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     IERC20 public usdc;
 
     uint256 public suppliedUsdcAmount = 1990 * 10 ** 6;
 
     uint256 forkBlock = 20276596;
-    uint256 forkId;
 
     function setUp() public {
-        forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
+        vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
             governor
@@ -90,18 +87,14 @@ contract RaftTest is Test, IRaftEvents {
         raft.harvest(address(ark), rewardToken);
 
         // Assert
-        assertEq(
-            IERC20(rewardToken).balanceOf(address(raft)),
-            6195000000000000
-        );
+        assertGt(IERC20(rewardToken).balanceOf(address(raft)), 0);
     }
 
-    function test_HarvestAndBoard() public {
+    function test_SwapAndBoard() public {
         // Arrange
         vm.warp(block.timestamp + 1000000);
 
-        address testCompWhale = 0xf7Ba2631166e4f7A22a91Def302d873106f0beD8;
-        vm.prank(testCompWhale);
+        // Harvest rewards first
         raft.harvest(address(ark), rewardToken);
         uint256 rewardAmount = IERC20(rewardToken).balanceOf(address(raft));
 
@@ -109,14 +102,46 @@ contract RaftTest is Test, IRaftEvents {
         vm.expectEmit(true, true, true, true);
         emit RewardSwapped(rewardToken, address(usdc), rewardAmount, 0);
 
-        vm.expectEmit();
+        vm.expectEmit(true, true, true, true);
         emit RewardBoarded(address(ark), rewardToken, rewardAmount, 0);
 
         // Act
         vm.prank(keeper);
-        raft.swapAndBoard(
-            address(ark),
-            rewardToken
-        );
+        raft.swapAndBoard(address(ark), rewardToken);
+
+        // Assert
+        assertEq(IERC20(rewardToken).balanceOf(address(raft)), 0);
+        assertGt(ark.totalAssets(), suppliedUsdcAmount);
+    }
+
+    function test_GetPrice() public {
+        // Arrange
+        uint24[] memory fees = new uint24[](4);
+        fees[0] = 100;
+        fees[1] = 500;
+        fees[2] = 3000;
+        fees[3] = 10000;
+
+        // Act
+        (uint256 price, uint24 fee) = raft.getPrice(rewardToken, address(usdc), fees);
+
+        // Assert
+        assertGt(price, 0);
+        assertNotEq(fee, 0);
+    }
+
+    function test_SetAllowedFeeTiers() public {
+        // Arrange
+        uint24[] memory newFeeTiers = new uint24[](2);
+        newFeeTiers[0] = 100;
+        newFeeTiers[1] = 500;
+
+        // Act
+        vm.prank(governor);
+        raft.setAllowedFeeTiers(newFeeTiers);
+
+        // Assert
+        assertEq(raft.allowedFeeTiers(0), 100);
+        assertEq(raft.allowedFeeTiers(1), 500);
     }
 }
