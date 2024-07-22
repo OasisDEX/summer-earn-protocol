@@ -62,6 +62,7 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        tip();
         super.withdraw(assets, receiver, owner);
 
         uint256 prevQueueBalance = fundsBufferBalance;
@@ -81,6 +82,7 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IERC4626) returns (uint256) {
+        tip();
         uint256 assets = super.redeem(shares, receiver, owner);
         uint256 prevQueueBalance = fundsBufferBalance;
         fundsBufferBalance = fundsBufferBalance - assets;
@@ -99,6 +101,7 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(IFleetCommander) returns (uint256) {
+        tip();
         uint256 totalAssetsToWithdraw = assets;
         uint256 totalSharesToWithdraw = previewWithdraw(totalAssetsToWithdraw);
         uint256 assetsToWithdrawFromArks = totalAssetsToWithdraw -
@@ -159,6 +162,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        tip();
         super.deposit(assets, receiver);
 
         uint256 prevQueueBalance = fundsBufferBalance;
@@ -177,6 +181,7 @@ contract FleetCommander is
         uint256 shares,
         address to
     ) public override(ERC4626, IERC4626) returns (uint256) {
+        tip();
         uint256 assets = super.mint(shares, to);
         uint256 prevQueueBalance = fundsBufferBalance;
         fundsBufferBalance = fundsBufferBalance + assets;
@@ -188,6 +193,10 @@ contract FleetCommander is
         );
 
         return assets;
+    }
+
+    function tip() public returns (uint256) {
+
     }
 
     function totalAssets()

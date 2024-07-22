@@ -55,6 +55,8 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
         address receiver
     ) external override returns (uint256);
 
+    function tip() external returns (uint256);
+
     /* FUNCTIONS - EXTERNAL - KEEPER */
     /**
      * @notice Rebalances the assets across Arks
