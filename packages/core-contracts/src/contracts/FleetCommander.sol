@@ -23,6 +23,7 @@ contract FleetCommander is
 {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
+
     address[] private _activeArks;
     IArk public bufferArk;
     mapping(address => bool) _isArkActive;
@@ -176,9 +177,10 @@ contract FleetCommander is
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256) {
-        uint256 maxAssets = totalAssets() > depositCap
+        uint256 _totalAssets = totalAssets();
+        uint256 maxAssets = _totalAssets > depositCap
             ? 0
-            : depositCap - totalAssets();
+            : depositCap - _totalAssets;
 
         return Math.min(maxAssets, IERC20(asset()).balanceOf(owner));
     }
@@ -186,9 +188,10 @@ contract FleetCommander is
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256) {
-        uint256 maxAssets = totalAssets() > depositCap
+        uint256 _totalAssets = totalAssets();
+        uint256 maxAssets = _totalAssets > depositCap
             ? 0
-            : depositCap - totalAssets();
+            : depositCap - _totalAssets;
         return
             previewDeposit(
                 Math.min(maxAssets, IERC20(asset()).balanceOf(owner))
