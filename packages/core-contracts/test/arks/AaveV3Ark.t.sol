@@ -11,8 +11,13 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IPoolDataProvider} from "../../src/interfaces/aave-v3/IPoolDataProvider.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents {
+    using SafeERC20 for IERC20;
+
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
     address public governor = address(1);
@@ -24,6 +29,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
         0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     address public aaveV3DataProvider =
         0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3;
+    address public rewardsController =
+        0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
     IPoolV3 public aaveV3Pool;
     ERC20Mock public mockToken;
 
@@ -63,8 +70,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
             ),
             abi.encode(aaveV3DataProvider)
         );
-        ark = new AaveV3Ark(address(aaveV3Pool), params);
-        nextArk = new AaveV3Ark(address(aaveV3Pool), params);
+        ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
+        nextArk = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -73,7 +80,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         vm.stopPrank();
     }
 
-    function testBoard() public {
+    function test_Board() public {
         vm.prank(governor); // Set msg.sender to governor
         ark.grantCommanderRole(commander);
 
@@ -115,7 +122,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         ark.board(amount);
     }
 
-    function testDisembark() public {
+    function test_Disembark() public {
         vm.prank(governor); // Set msg.sender to governor
         ark.grantCommanderRole(commander);
 
@@ -151,5 +158,63 @@ contract AaveV3ArkTest is Test, IArkEvents {
         // Act
         vm.prank(commander); // Execute the next call as the commander
         ark.disembark(amount);
+    }
+
+    function test_Harvest() public {
+        address mockRewardToken = address(10);
+        address mockAToken = address(11);
+        uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
+
+        vm.mockCall(
+            address(aaveV3DataProvider),
+            abi.encodeWithSelector(
+                IPoolDataProvider(aaveV3DataProvider)
+                    .getReserveTokensAddresses
+                    .selector,
+                address(mockToken)
+            ),
+            abi.encode(address(0), mockAToken, address(0))
+        );
+
+        // Mock the call to claimRewardsToSelf
+        address[] memory incentivizedAssets = new address[](1);
+        incentivizedAssets[0] = mockAToken;
+        vm.mockCall(
+            address(rewardsController),
+            abi.encodeWithSelector(
+                IRewardsController(rewardsController)
+                    .claimRewardsToSelf
+                    .selector,
+                incentivizedAssets,
+                type(uint256).max,
+                mockRewardToken
+            ),
+            abi.encode(mockClaimedRewardsBalance)
+        );
+
+        vm.mockCall(
+            mockRewardToken,
+            abi.encodeWithSelector(
+                IERC20(mockRewardToken).balanceOf.selector,
+                address(ark)
+            ),
+            abi.encode(mockClaimedRewardsBalance)
+        );
+
+        vm.mockCall(
+            mockRewardToken,
+            abi.encodeWithSignature(
+                "transfer(address,uint256)",
+                raft,
+                mockClaimedRewardsBalance
+            ),
+            abi.encode(true)
+        );
+
+        vm.expectEmit(false, false, false, true);
+        emit Harvested(mockClaimedRewardsBalance);
+
+        // Act
+        ark.harvest(mockRewardToken);
     }
 }

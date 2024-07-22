@@ -6,9 +6,11 @@ import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 import "../types/Percentage.sol";
 import "../types/ArkTypes.sol";
 import "../events/IArkEvents.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IArk is IArkAccessManaged, IArkEvents {
     /* FUNCTIONS - PUBLIC */
+    function token() external view returns (IERC20);
 
     /// @notice Returns latest deposit cap set for this Ark
     function depositCap() external view returns (uint256);
@@ -19,13 +21,17 @@ interface IArk is IArkAccessManaged, IArkEvents {
     /// @notice Returns the current rate of the Ark (RAY precision)
     function rate() external view returns (uint256);
 
-    function harvest() external;
+    function harvest(address rewardToken) external returns (uint256);
 
     /* FUNCTIONS - EXTERNAL - COMMANDER */
 
     function board(uint256 amount) external;
 
     function disembark(uint256 amount) external;
+
+    /* FUNCTIONS - EXTERNAL - RAFT */
+
+    function boardFromRaft(uint256 amount) external;
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
     function setDepositCap(uint256 newCap) external;

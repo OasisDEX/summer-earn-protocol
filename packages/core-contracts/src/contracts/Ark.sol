@@ -4,9 +4,10 @@ pragma solidity 0.8.26;
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import "../interfaces/IArk.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IArk, ArkParams} from "../interfaces/IArk.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../errors/AccessControlErrors.sol";
 
 /**
  * @custom:see IArk
@@ -28,12 +29,23 @@ abstract contract Ark is IArk, ArkAccessManaged {
         token = IERC20(_params.token);
     }
 
+    /**
+     * @dev Modifier to check that the caller is the Raft contract
+     */
+    modifier onlyRaft() {
+        if (msg.sender != raft) {
+            revert CallerIsNotRaft(msg.sender);
+        }
+        _;
+    }
+
     /* PUBLIC */
     function totalAssets() public view virtual returns (uint256) {}
 
     function rate() public view virtual returns (uint256) {}
 
-    function harvest() public {}
+    /* EXTERNAL - RAFT */
+    function harvest(address rewardToken) external virtual returns (uint256) {}
 
     /* EXTERNAL - COMMANDER */
     function board(uint256 amount) external onlyCommander {
@@ -48,6 +60,13 @@ abstract contract Ark is IArk, ArkAccessManaged {
         token.safeTransfer(msg.sender, amount);
 
         emit Disembarked(msg.sender, address(token), amount);
+    }
+
+    function boardFromRaft(uint256 amount) external onlyRaft {
+        token.safeTransferFrom(raft, address(this), amount);
+        _board(amount);
+
+        emit Boarded(raft, address(token), amount);
     }
 
     /* EXTERNAL - GOVERNANCE */

@@ -19,6 +19,8 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     address public raft = address(2);
     address public constant cometAddress =
         0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+    address public constant cometRewards = address(5);
+
     IComet public comet;
     ERC20Mock public mockToken;
 
@@ -42,7 +44,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             configurationManager: address(configurationManager),
             token: address(mockToken)
         });
-        ark = new CompoundV3Ark(address(comet), params);
+        ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
         // Permissioning
         vm.prank(governor);

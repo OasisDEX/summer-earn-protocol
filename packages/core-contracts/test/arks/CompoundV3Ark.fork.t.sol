@@ -2,15 +2,17 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../../src/contracts/arks/CompoundV3Ark.sol";
+import {CompoundV3Ark, ArkParams} from "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "../../src/events/IArkEvents.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
@@ -19,8 +21,9 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     address public raft = address(2);
     address public constant cometAddress =
         0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+    address public constant cometRewards = address(5);
     IComet public comet;
-    IERC20 public dai;
+    IERC20 public usdc;
 
     uint256 forkBlock = 20276596;
     uint256 forkId;
@@ -28,7 +31,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     function setUp() public {
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
-        dai = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
         comet = IComet(cometAddress);
 
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
@@ -45,9 +48,9 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(dai)
+            token: address(usdc)
         });
-        ark = new CompoundV3Ark(address(comet), params);
+        ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
         // Permissioning
         vm.prank(governor);
@@ -60,9 +63,9 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Arrange
         uint256 amount = 1990 * 10 ** 6;
-        deal(address(dai), commander, amount);
+        deal(address(usdc), commander, amount);
         vm.prank(commander);
-        dai.approve(address(ark), amount);
+        usdc.approve(address(ark), amount);
 
         // Expect comet to emit Supply
         vm.expectEmit();
@@ -78,7 +81,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
-        emit Boarded(commander, address(dai), amount);
+        emit Boarded(commander, address(usdc), amount);
 
         // Act
         vm.prank(commander); // Execute the next call as the commander

@@ -4,7 +4,8 @@ pragma solidity 0.8.26;
 import "../Ark.sol";
 import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {IArk} from "../../interfaces/IArk.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
 
 contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;
@@ -12,9 +13,15 @@ contract CompoundV3Ark is Ark {
     uint256 public constant SECONDS_PER_YEAR = 31536000;
     uint256 public constant WAD_TO_RAY = 1e9;
     IComet public comet;
+    ICometRewards public cometRewards;
 
-    constructor(address _comet, ArkParams memory _params) Ark(_params) {
+    constructor(
+        address _comet,
+        address _cometRewards,
+        ArkParams memory _params
+    ) Ark(_params) {
         comet = IComet(_comet);
+        cometRewards = ICometRewards(_cometRewards);
     }
 
     function rate() public view override returns (uint256 supplyRate) {
@@ -39,5 +46,18 @@ contract CompoundV3Ark is Ark {
 
     function _disembark(uint256 amount) internal override {
         comet.withdraw(address(token), amount);
+    }
+
+    function harvest(address rewardToken) external override returns (uint256) {
+        cometRewards.claim(address(comet), address(this), true);
+
+        uint256 claimedRewardsBalance = IERC20(rewardToken).balanceOf(
+            address(this)
+        );
+        IERC20(rewardToken).safeTransfer(raft, claimedRewardsBalance);
+
+        emit Harvested(claimedRewardsBalance);
+
+        return claimedRewardsBalance;
     }
 }
