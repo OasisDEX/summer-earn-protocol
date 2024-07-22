@@ -20,10 +20,14 @@ contract RaftForkTest is Test, IRaftEvents {
     IProtocolAccessManager public accessManager;
     IConfigurationManager public configurationManager;
 
-    address public constant SWAP_PROVIDER = 0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
-    address public constant REWARD_TOKEN = 0xc00e94Cb662C3520282E6f5717214004A7f26888; // COMP Token
-    address public constant COMET_ADDRESS = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
-    address public constant COMET_REWARDS = 0x1B0e765F6224C21223AeA2af16c1C46E38885a40;
+    address public constant SWAP_PROVIDER =
+        0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
+    address public constant REWARD_TOKEN =
+        0xc00e94Cb662C3520282E6f5717214004A7f26888; // COMP Token
+    address public constant COMET_ADDRESS =
+        0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+    address public constant COMET_REWARDS =
+        0x1B0e765F6224C21223AeA2af16c1C46E38885a40;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
     address public governor = address(1);

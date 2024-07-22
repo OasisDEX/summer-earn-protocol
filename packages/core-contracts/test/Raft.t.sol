@@ -46,7 +46,10 @@ contract RaftTest is Test, IRaftEvents {
         raft.harvest(mockArk, mockRewardToken);
 
         // Assert that the harvested rewards were recorded
-        assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), REWARD_AMOUNT);
+        assertEq(
+            raft.getHarvestedRewards(mockArk, mockRewardToken),
+            REWARD_AMOUNT
+        );
     }
 
     function test_HarvestAndReboard() public {
@@ -60,10 +63,20 @@ contract RaftTest is Test, IRaftEvents {
 
         // Expect events to be emitted
         vm.expectEmit(true, true, true, true);
-        emit RewardSwapped(mockRewardToken, mockToken, REWARD_AMOUNT, BALANCE_AFTER_SWAP);
+        emit RewardSwapped(
+            mockRewardToken,
+            mockToken,
+            REWARD_AMOUNT,
+            BALANCE_AFTER_SWAP
+        );
 
         vm.expectEmit(true, true, true, true);
-        emit RewardReboarded(mockArk, mockRewardToken, REWARD_AMOUNT, BALANCE_AFTER_SWAP);
+        emit RewardReboarded(
+            mockArk,
+            mockRewardToken,
+            REWARD_AMOUNT,
+            BALANCE_AFTER_SWAP
+        );
 
         // Perform harvestAndReboard
         vm.prank(keeper);
@@ -92,10 +105,20 @@ contract RaftTest is Test, IRaftEvents {
 
         // Expect events to be emitted
         vm.expectEmit(true, true, true, true);
-        emit RewardSwapped(mockRewardToken, mockToken, REWARD_AMOUNT, BALANCE_AFTER_SWAP);
+        emit RewardSwapped(
+            mockRewardToken,
+            mockToken,
+            REWARD_AMOUNT,
+            BALANCE_AFTER_SWAP
+        );
 
         vm.expectEmit(true, true, true, true);
-        emit RewardReboarded(mockArk, mockRewardToken, REWARD_AMOUNT, BALANCE_AFTER_SWAP);
+        emit RewardReboarded(
+            mockArk,
+            mockRewardToken,
+            REWARD_AMOUNT,
+            BALANCE_AFTER_SWAP
+        );
 
         // Perform swapAndReboard
         vm.prank(keeper);
@@ -116,12 +139,20 @@ contract RaftTest is Test, IRaftEvents {
         // Mock token approvals
         vm.mockCall(
             mockRewardToken,
-            abi.encodeWithSelector(IERC20.approve.selector, mockSwapProvider, REWARD_AMOUNT),
+            abi.encodeWithSelector(
+                IERC20.approve.selector,
+                mockSwapProvider,
+                REWARD_AMOUNT
+            ),
             abi.encode(true)
         );
         vm.mockCall(
             mockToken,
-            abi.encodeWithSelector(IERC20.approve.selector, mockArk, BALANCE_AFTER_SWAP),
+            abi.encodeWithSelector(
+                IERC20.approve.selector,
+                mockArk,
+                BALANCE_AFTER_SWAP
+            ),
             abi.encode(true)
         );
 
@@ -140,15 +171,14 @@ contract RaftTest is Test, IRaftEvents {
         );
         vm.mockCall(
             mockArk,
-            abi.encodeWithSelector(IArk.boardFromRaft.selector, BALANCE_AFTER_SWAP),
+            abi.encodeWithSelector(
+                IArk.boardFromRaft.selector,
+                BALANCE_AFTER_SWAP
+            ),
             abi.encode()
         );
 
         // Mock successful swap provider call
-        vm.mockCall(
-            mockSwapProvider,
-            abi.encode(),
-            abi.encode(true)
-        );
+        vm.mockCall(mockSwapProvider, abi.encode(), abi.encode(true));
     }
 }
