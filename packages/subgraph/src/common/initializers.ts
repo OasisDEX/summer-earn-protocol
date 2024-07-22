@@ -71,7 +71,7 @@ export function getOrCreateYieldAggregator(): YieldAggregator {
     protocol.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
     protocol.cumulativeUniqueUsers = 0
     protocol.totalPoolCount = 0
-    protocol._vaults = []
+    protocol.vaultsArray = []
     protocol.save()
   }
 
