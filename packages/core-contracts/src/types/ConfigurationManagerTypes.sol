@@ -7,4 +7,6 @@ pragma solidity 0.8.26;
 struct ConfigurationManagerParams {
     address accessManager;
     address raft;
+    uint8 tipRate;
+    address tipJar;
 }

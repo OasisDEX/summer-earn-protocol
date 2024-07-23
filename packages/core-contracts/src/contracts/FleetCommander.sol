@@ -46,7 +46,11 @@ contract FleetCommander is
     {
         _setupArks(params.initialArks);
 
-        tipAccruer = TipAccruer(params.initialTipRate, params.initialTipJar, address(this));
+        tipAccruer = TipAccruer(
+            params.initialTipRate,
+            params.initialTipJar,
+            address(this)
+        );
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
         depositCap = params.depositCap;

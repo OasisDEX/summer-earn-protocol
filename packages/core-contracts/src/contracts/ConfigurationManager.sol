@@ -18,16 +18,27 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     address public raft;
 
     /**
+     * @notice The address of the TipJar contract
+     * @dev This is the contract that owns tips and is responsible for
+     *      dispensing them to claimants
+     */
+    address public tipJar;
+
+    /**
      * @notice The current tip rate
      */
     uint8 public tipRate;
 
     /**
      * @notice Constructs the ConfigurationManager contract
-     * @param _params A struct containing the initial configuration parameters
+     * @param params A struct containing the initial configuration parameters
      */
-    constructor(ConfigurationManagerParams memory _params) ProtocolAccessManaged(_params.accessManager) {
-        raft = _params.raft;
+    constructor(
+        ConfigurationManagerParams memory params
+    ) ProtocolAccessManaged(params.accessManager) {
+        raft = params.raft;
+        tipRate = params.tipRate;
+        tipJar = params.tipJar;
     }
 
     /**
@@ -39,6 +50,17 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     function setRaft(address newRaft) external onlyGovernor {
         raft = newRaft;
         emit RaftUpdated(newRaft);
+    }
+
+    /**
+     * @notice Sets a new address for the TipJar contract
+     * @param newTipJar The new address for the TipJar contract
+     * @dev Can only be called by the governor
+     * @dev Emits a TipJarUpdated event
+     */
+    function setTipJar(address newTipJar) external onlyGovernor {
+        tipJar = newTipJar;
+        emit TipJarUpdated(newTipJar);
     }
 
     /**
