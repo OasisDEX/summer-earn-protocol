@@ -66,4 +66,13 @@ interface IPoolV3 {
         external
         view
         returns (IPoolAddressesProvider);
+
+    /**
+     * @notice Returns the state and configuration of the reserve
+     * @param asset The address of the underlying asset of the reserve
+     * @return The state and configuration data of the reserve
+     */
+    function getReserveData(
+        address asset
+    ) external view returns (DataTypes.ReserveData memory);
 }
