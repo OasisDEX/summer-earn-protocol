@@ -11,6 +11,7 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {DataTypes} from "../../src/interfaces/aave-v3/DataTypes.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents {
     AaveV3Ark public ark;
@@ -48,6 +49,23 @@ contract AaveV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             maxAllocation: type(uint256).max
         });
+        DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
+            configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
+            liquidityIndex: 1e27, // Example value in ray
+            currentLiquidityRate: 1e27, // Example value in ray
+            variableBorrowIndex: 1e27, // Example value in ray
+            currentVariableBorrowRate: 1e27, // Example value in ray
+            currentStableBorrowRate: 1e27, // Example value in ray
+            lastUpdateTimestamp: uint40(block.timestamp), // Current timestamp as example
+            id: 1, // Example value
+            aTokenAddress: address(0), // Placeholder address
+            stableDebtTokenAddress: address(0), // Placeholder address
+            variableDebtTokenAddress: address(0), // Placeholder address
+            interestRateStrategyAddress: address(0), // Placeholder address
+            accruedToTreasury: 0, // Example value
+            unbacked: 0, // Example value
+            isolationModeTotalDebt: 0 // Example value
+        });
         vm.mockCall(
             address(aaveV3Pool),
             abi.encodeWithSelector(
@@ -63,6 +81,11 @@ contract AaveV3ArkTest is Test, IArkEvents {
                     .selector
             ),
             abi.encode(aaveV3DataProvider)
+        );
+        vm.mockCall(
+            address(aaveV3Pool),
+            abi.encodeWithSelector(IPoolV3(aaveV3Pool).getReserveData.selector),
+            abi.encode(reserveData)
         );
         ark = new AaveV3Ark(address(aaveV3Pool), params);
         nextArk = new AaveV3Ark(address(aaveV3Pool), params);
