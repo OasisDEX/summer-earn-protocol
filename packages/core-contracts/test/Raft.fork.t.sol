@@ -93,7 +93,7 @@ contract RaftForkTest is Test, IRaftEvents {
         assertEq(harvestedAmount, 6195000000000000);
     }
 
-    function test_SwapAndReboard() public {
+    function test_SwapAndBoard() public {
         // Advance time to accumulate rewards
         vm.warp(block.timestamp + 1000000);
 
@@ -117,11 +117,11 @@ contract RaftForkTest is Test, IRaftEvents {
         emit RewardSwapped(REWARD_TOKEN, USDC, rewardAmount, 0);
 
         vm.expectEmit(true, true, true, true);
-        emit RewardReboarded(address(ark), REWARD_TOKEN, rewardAmount, 0);
+        emit RewardBoarded(address(ark), REWARD_TOKEN, rewardAmount, 0);
 
-        // Perform swapAndReboard
+        // Perform swapAndBoard
         vm.prank(keeper);
-        raft.swapAndReboard(address(ark), REWARD_TOKEN, swapData);
+        raft.swapAndBoard(address(ark), REWARD_TOKEN, swapData);
 
         // Assert that harvested rewards were reset
         assertEq(raft.getHarvestedRewards(address(ark), REWARD_TOKEN), 0);

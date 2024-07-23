@@ -52,7 +52,7 @@ contract RaftTest is Test, IRaftEvents {
         );
     }
 
-    function test_HarvestAndReboard() public {
+    function test_HarvestAndBoard() public {
         // Setup swap data
         SwapData memory swapData = SwapData({
             fromAsset: mockRewardToken,
@@ -71,16 +71,16 @@ contract RaftTest is Test, IRaftEvents {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit RewardReboarded(
+        emit RewardBoarded(
             mockArk,
             mockRewardToken,
             REWARD_AMOUNT,
             BALANCE_AFTER_SWAP
         );
 
-        // Perform harvestAndReboard
+        // Perform harvestAndBoard
         vm.prank(keeper);
-        raft.harvestAndReboard(mockArk, mockRewardToken, swapData);
+        raft.harvestAndBoard(mockArk, mockRewardToken, swapData);
 
         // Assert that harvested rewards were reset
         assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), 0);
@@ -113,16 +113,16 @@ contract RaftTest is Test, IRaftEvents {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit RewardReboarded(
+        emit RewardBoarded(
             mockArk,
             mockRewardToken,
             REWARD_AMOUNT,
             BALANCE_AFTER_SWAP
         );
 
-        // Perform swapAndReboard
+        // Perform swapAndBoard
         vm.prank(keeper);
-        raft.swapAndReboard(mockArk, mockRewardToken, swapData);
+        raft.swapAndBoard(mockArk, mockRewardToken, swapData);
 
         // Assert that harvested rewards were reset
         assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), 0);

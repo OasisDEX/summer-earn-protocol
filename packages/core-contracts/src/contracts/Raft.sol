@@ -33,27 +33,27 @@ contract Raft is IRaft, ArkAccessManaged {
      * @inheritdoc IRaft
      * @dev Only callable by addresses with the Keeper role.
      */
-    function harvestAndReboard(
+    function harvestAndBoard(
         address ark,
         address rewardToken,
         SwapData calldata swapData
-    ) external onlyKeeper {
+    ) external onlySuperKeeper {
         harvest(ark, rewardToken);
         _swap(ark, swapData);
-        _reboard(ark, rewardToken);
+        _board(ark, rewardToken);
     }
 
     /**
      * @inheritdoc IRaft
      * @dev Only callable by addresses with the Keeper role.
      */
-    function swapAndReboard(
+    function swapAndBoard(
         address ark,
         address rewardToken,
         SwapData calldata swapData
-    ) external onlyKeeper {
+    ) external onlySuperKeeper {
         _swap(ark, swapData);
-        _reboard(ark, rewardToken);
+        _board(ark, rewardToken);
     }
 
     /**
@@ -63,6 +63,10 @@ contract Raft is IRaft, ArkAccessManaged {
         uint256 harvestedAmount = IArk(ark).harvest(rewardToken);
         harvestedRewards[ark][rewardToken] += harvestedAmount;
         emit ArkHarvested(ark, rewardToken);
+    }
+
+    function setSwapProvider(address newProvider) public onlySuperKeeper {
+        swapProvider = newProvider;
     }
 
     /**
@@ -107,7 +111,7 @@ contract Raft is IRaft, ArkAccessManaged {
      * @param ark The address of the Ark contract to reinvest into.
      * @param rewardToken The address of the reward token being reinvested.
      */
-    function _reboard(address ark, address rewardToken) internal {
+    function _board(address ark, address rewardToken) internal {
         uint256 preSwapRewardBalance = harvestedRewards[ark][rewardToken];
 
         if (preSwapRewardBalance == 0) {
@@ -120,6 +124,6 @@ contract Raft is IRaft, ArkAccessManaged {
 
         harvestedRewards[ark][rewardToken] = 0;
 
-        emit RewardReboarded(ark, rewardToken, preSwapRewardBalance, balance);
+        emit RewardBoarded(ark, rewardToken, preSwapRewardBalance, balance);
     }
 }

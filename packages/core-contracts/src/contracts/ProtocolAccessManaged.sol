@@ -50,4 +50,14 @@ contract ProtocolAccessManaged {
         }
         _;
     }
+
+    /**
+ * @dev Modifier to check that the caller has the Super Keeper role
+     */
+    modifier onlySuperKeeper() {
+        if (!_accessManager.hasRole(_accessManager.SUPER_KEEPER_ROLE(), msg.sender)) {
+            revert CallerIsNotSuperKeeper(msg.sender);
+        }
+        _;
+    }
 }

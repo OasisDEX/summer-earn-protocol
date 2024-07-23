@@ -17,7 +17,7 @@ interface IRaft is IRaftEvents {
      * @param rewardToken The address of the reward token to be harvested and swapped.
      * @param swapData Data required for the swap operation, including the target token and minimum received amount.
      */
-    function harvestAndReboard(
+    function harvestAndBoard(
         address ark,
         address rewardToken,
         SwapData calldata swapData
@@ -30,7 +30,7 @@ interface IRaft is IRaftEvents {
      * @param rewardToken The address of the harvested reward token to be swapped.
      * @param swapData Data required for the swap operation, including the target token and minimum received amount.
      */
-    function swapAndReboard(
+    function swapAndBoard(
         address ark,
         address rewardToken,
         SwapData calldata swapData
