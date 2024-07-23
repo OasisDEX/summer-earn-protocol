@@ -24,20 +24,7 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
  */
 contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
-        // but you can create and initialize your own custom fleet if you wish.
-        fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
-
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(keeper);
-        mockArk1.grantCommanderRole(address(fleetCommander));
-        mockArk2.grantCommanderRole(address(fleetCommander));
-        mockArk3.grantCommanderRole(address(fleetCommander));
-        bufferArk.grantCommanderRole(address(fleetCommander));
-        vm.stopPrank();
+        initializeFleetCommanderWithMockArks();
     }
 
     function test_AdjustBufferSuccess() public {

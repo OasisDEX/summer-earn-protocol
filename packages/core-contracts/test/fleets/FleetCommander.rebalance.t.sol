@@ -24,19 +24,7 @@ import {IArk} from "../../src/interfaces/IArk.sol";
  */
 contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
-        // but you can create and initialize your own custom fleet if you wish.
-        fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
-
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(keeper);
-        mockArk1.grantCommanderRole(address(fleetCommander));
-        mockArk2.grantCommanderRole(address(fleetCommander));
-        mockArk3.grantCommanderRole(address(fleetCommander));
-        bufferArk.grantCommanderRole(address(fleetCommander));
+        initializeFleetCommanderWithMockArks();
         vm.stopPrank();
     }
 
@@ -194,7 +182,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RebalanceExceedMaxAllocation() public {
         // Arrange
         mockArkTotalAssets(ark1, 5000 * 10 ** 6);
-        mockArkTotalAssets(ark2, ark2_MAX_ALLOCATION); // Already at max allocation
+        mockArkTotalAssets(ark2, ARK2_MAX_ALLOCATION); // Already at max allocation
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
 
