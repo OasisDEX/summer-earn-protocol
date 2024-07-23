@@ -14,18 +14,7 @@ contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
 
     function setUp() public {
-        fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
-
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(keeper);
-        mockArk1.grantCommanderRole(address(fleetCommander));
-        mockArk2.grantCommanderRole(address(fleetCommander));
-        mockArk3.grantCommanderRole(address(fleetCommander));
-        bufferArk.grantCommanderRole(address(fleetCommander));
-        vm.stopPrank();
+        initializeFleetCommanderWithMockArks();
         fleetCommanderStorageWriter.setDepositCap(MAX_DEPOSIT_CAP);
     }
 
