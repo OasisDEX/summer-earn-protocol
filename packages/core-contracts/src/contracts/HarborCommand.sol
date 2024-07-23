@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IHarborCommandEvents} from "../events/IHarborCommandEvents.sol";
-import {FleetCommanderAlreadyEnlisted, FleetCommanderNotEnlisted, InvalidTipJarAddress} from "../errors/HarborCommandErrors.sol";
+import {FleetCommanderAlreadyEnlisted, FleetCommanderNotEnlisted} from "../errors/HarborCommandErrors.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 
 contract HarborCommand is
@@ -13,7 +13,6 @@ contract HarborCommand is
 {
     mapping(address => bool) public activeFleetCommanders;
     address[] public fleetCommandersList;
-    address public tipJar;
 
     constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
 
@@ -52,36 +51,11 @@ contract HarborCommand is
         emit FleetCommanderDecommissioned(_fleetCommander);
     }
 
-    /* @inheritdoc IHarborCommand */
-    function enlistTipJar(address _newTipJar) external onlyGovernor {
-        _setTipJar(_newTipJar);
-        emit TipJarEnlisted(_newTipJar);
-    }
-
-    /* @inheritdoc IHarborCommand */
-    function decommissionTipJar() external onlyGovernor {
-        tipJar = address(0);
-        emit TipJarDecommissioned();
-    }
-
-    /* @inheritdoc IHarborCommand */
-    function refitTipJar(address _newTipJar) external onlyGovernor {
-        _setTipJar(_newTipJar);
-        emit TipJarRefitted(_newTipJar);
-    }
-
     function getActiveFleetCommanders()
         external
         view
         returns (address[] memory)
     {
         return fleetCommandersList;
-    }
-
-    function _setTipJar(address _newTipJar) internal {
-        if (_newTipJar == address(0)) {
-            revert InvalidTipJarAddress();
-        }
-        tipJar = _newTipJar;
     }
 }

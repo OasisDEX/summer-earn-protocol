@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import "forge-std/Test.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {FleetCommanderAlreadyEnlisted, FleetCommanderNotEnlisted, InvalidTipJarAddress} from "../../src/errors/HarborCommandErrors.sol";
+import {FleetCommanderAlreadyEnlisted, FleetCommanderNotEnlisted} from "../../src/errors/HarborCommandErrors.sol";
 import {CallerIsNotGovernor} from "../../src/errors/AccessControlErrors.sol";
 import {IHarborCommand} from "../../src/interfaces/IHarborCommand.sol";
 import {IHarborCommandEvents} from "../../src/events/IHarborCommandEvents.sol";
@@ -16,8 +16,6 @@ contract HarborCommandTest is Test {
     address public user = address(2);
     address public fleetCommander1 = address(3);
     address public fleetCommander2 = address(4);
-    address public tipJar1 = address(5);
-    address public tipJar2 = address(6);
 
     function setUp() public {
         // Deploy ProtocolAccessManager
@@ -53,43 +51,6 @@ contract HarborCommandTest is Test {
 
         assertFalse(harborCommand.activeFleetCommanders(fleetCommander1));
         assertEq(harborCommand.getActiveFleetCommanders().length, 0);
-    }
-
-    function test_EnlistTipJar() public {
-        vm.prank(governor);
-
-        vm.expectEmit(true, false, false, true);
-        emit IHarborCommandEvents.TipJarEnlisted(tipJar1);
-
-        harborCommand.enlistTipJar(tipJar1);
-
-        assertEq(harborCommand.tipJar(), tipJar1);
-    }
-
-    function test_DecommissionTipJar() public {
-        vm.startPrank(governor);
-        harborCommand.enlistTipJar(tipJar1);
-
-        vm.expectEmit(false, false, false, true);
-        emit IHarborCommandEvents.TipJarDecommissioned();
-
-        harborCommand.decommissionTipJar();
-        vm.stopPrank();
-
-        assertEq(harborCommand.tipJar(), address(0));
-    }
-
-    function test_RefitTipJar() public {
-        vm.startPrank(governor);
-        harborCommand.enlistTipJar(tipJar1);
-
-        vm.expectEmit(true, false, false, true);
-        emit IHarborCommandEvents.TipJarRefitted(tipJar2);
-
-        harborCommand.refitTipJar(tipJar2);
-        vm.stopPrank();
-
-        assertEq(harborCommand.tipJar(), tipJar2);
     }
 
     function test_GetActiveFleetCommanders() public {
@@ -135,11 +96,5 @@ contract HarborCommandTest is Test {
             )
         );
         harborCommand.decommissionFleetCommander(fleetCommander1);
-    }
-
-    function test_CannotEnlistZeroAddressTipJar() public {
-        vm.prank(governor);
-        vm.expectRevert(InvalidTipJarAddress.selector);
-        harborCommand.enlistTipJar(address(0));
     }
 }

@@ -24,28 +24,6 @@ interface IHarborCommand {
     function decommissionFleetCommander(address _fleetCommander) external;
 
     /**
-     * @notice Enlists a new TipJar
-     * @dev Only callable by the governor
-     * @param _newTipJar The address of the new TipJar to enlist
-     * @custom:error InvalidTipJarAddress Thrown if the provided address is zero
-     */
-    function enlistTipJar(address _newTipJar) external;
-
-    /**
-     * @notice Decommissions the current TipJar
-     * @dev Only callable by the governor. Sets the TipJar address to zero.
-     */
-    function decommissionTipJar() external;
-
-    /**
-     * @notice Updates (refits) the current TipJar address
-     * @dev Only callable by the governor
-     * @param _newTipJar The address of the new TipJar
-     * @custom:error InvalidTipJarAddress Thrown if the provided address is zero
-     */
-    function refitTipJar(address _newTipJar) external;
-
-    /**
      * @notice Retrieves the list of active FleetCommanders
      * @return An array of addresses representing the active FleetCommanders
      */
@@ -69,10 +47,4 @@ interface IHarborCommand {
      * @return The address of the FleetCommander at the specified index
      */
     function fleetCommandersList(uint256 index) external view returns (address);
-
-    /**
-     * @notice Retrieves the current TipJar address
-     * @return The address of the current TipJar
-     */
-    function tipJar() external view returns (address);
 }

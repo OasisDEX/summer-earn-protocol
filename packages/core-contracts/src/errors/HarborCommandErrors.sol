@@ -17,9 +17,3 @@ error FleetCommanderAlreadyEnlisted(address fleetCommander);
  * @param fleetCommander The address of the FleetCommander that was attempted to be decommissioned
  */
 error FleetCommanderNotEnlisted(address fleetCommander);
-
-/**
- * @notice Thrown when attempting to set the TipJar address to the zero address
- * @dev This error is thrown in both the enlistTipJar and refitTipJar functions
- */
-error InvalidTipJarAddress();
