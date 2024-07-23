@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.26;
+
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
+
 /**
  * @title ConfigurationManager
  * @notice Manages system-wide configuration parameters for the protocol

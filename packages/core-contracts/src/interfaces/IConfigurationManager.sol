@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.26;
+
+import {IConfigurationManagerEvents} from "./IConfigurationManagerEvents.sol";
+
 /**
  * @title IConfigurationManager
  * @notice Interface for the ConfigurationManager contract, which manages system-wide parameters

@@ -11,6 +11,7 @@ import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
+import {TipAccruer} from "./TipAccruer.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -31,6 +32,8 @@ contract FleetCommander is
     uint256 public depositCap;
     Percentage public maxBufferWithdrawalPercentage;
 
+    ITipAccruer public immutable tipAccruer;
+
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
     constructor(
@@ -43,6 +46,7 @@ contract FleetCommander is
     {
         _setupArks(params.initialArks);
 
+        tipAccruer = TipAccruer(params.initialTipRate, params.initialTipJar, address(this));
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
         depositCap = params.depositCap;
@@ -195,8 +199,8 @@ contract FleetCommander is
         return assets;
     }
 
-    function tip() public returns (uint256) {
-
+    function tip() {
+        tipAccruer.accrueTip();
     }
 
     function totalAssets()
@@ -265,6 +269,7 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
+        tip();
         _rebalance(rebalanceData);
     }
 
@@ -343,6 +348,7 @@ contract FleetCommander is
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
+        tip();
         _validateRebalanceData(rebalanceData);
 
         uint256 excessFunds = 0;
