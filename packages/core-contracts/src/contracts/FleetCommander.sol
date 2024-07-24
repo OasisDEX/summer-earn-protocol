@@ -343,7 +343,10 @@ contract FleetCommander is
     }
 
     /* INTERNAL - TIPS */
-    function _mintTip(address account, uint256 amount) internal virtual override {
+    function _mintTip(
+        address account,
+        uint256 amount
+    ) internal virtual override {
         _mint(account, amount);
     }
 

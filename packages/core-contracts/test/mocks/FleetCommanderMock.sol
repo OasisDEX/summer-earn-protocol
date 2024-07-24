@@ -13,7 +13,10 @@ contract FleetCommanderMock is Tipper, ERC4626Mock {
         uint8 initialTipRate
     ) ERC4626Mock(underlying) Tipper(configurationManager, initialTipRate) {}
 
-    function _mintTip(address account, uint256 amount) internal virtual override {
+    function _mintTip(
+        address account,
+        uint256 amount
+    ) internal virtual override {
         _mint(account, amount);
     }
 

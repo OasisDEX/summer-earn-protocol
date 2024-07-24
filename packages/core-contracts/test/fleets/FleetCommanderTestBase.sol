@@ -59,7 +59,9 @@ abstract contract FleetCommanderTestBase is Test {
 
     constructor() {}
 
-    function initializeFleetCommanderWithMockArks(uint256 initialTipRate) internal {
+    function initializeFleetCommanderWithMockArks(
+        uint256 initialTipRate
+    ) internal {
         mockToken = new ERC20Mock();
         setupBaseContracts(address(mockToken));
         setupMockArks(address(mockToken));
