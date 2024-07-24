@@ -33,7 +33,7 @@ abstract contract Tipper is ITipper {
     /// @notice Initializes the TipAccruer contract
     /// @param configurationManager The address of the ConfigurationManager contract
     /// @param initialTipRate The initialTipRate for the Fleet
-    constructor(address configurationManager, uint8 initialTipRate) {
+    constructor(address configurationManager, uint256 initialTipRate) {
         IConfigurationManager manager = IConfigurationManager(
             configurationManager
         );

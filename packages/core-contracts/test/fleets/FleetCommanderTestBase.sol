@@ -59,7 +59,7 @@ abstract contract FleetCommanderTestBase is Test {
 
     constructor() {}
 
-    function initializeFleetCommanderWithMockArks() internal {
+    function initializeFleetCommanderWithMockArks(uint256 initialTipRate) internal {
         mockToken = new ERC20Mock();
         setupBaseContracts(address(mockToken));
         setupMockArks(address(mockToken));
@@ -67,15 +67,16 @@ abstract contract FleetCommanderTestBase is Test {
         initialArks[0] = ark1;
         initialArks[1] = ark2;
         initialArks[2] = ark3;
-        setupFleetCommander(address(mockToken), initialArks);
+        setupFleetCommander(address(mockToken), initialArks, initialTipRate);
         grantRoles(initialArks, address(bufferArk), keeper);
     }
 
     function initializeFleetCommanderWithoutArks(
-        address underlyingToken
+        address underlyingToken,
+        uint256 initialTipRate
     ) internal {
         setupBaseContracts(underlyingToken);
-        setupFleetCommander(underlyingToken, new address[](0));
+        setupFleetCommander(underlyingToken, new address[](0), initialTipRate);
     }
 
     function setupBaseContracts(address underlyingToken) internal {
@@ -101,7 +102,8 @@ abstract contract FleetCommanderTestBase is Test {
 
     function setupFleetCommander(
         address underlyingToken,
-        address[] memory initialArks
+        address[] memory initialArks,
+        uint256 initialTipRate
     ) internal {
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
@@ -112,7 +114,7 @@ abstract contract FleetCommanderTestBase is Test {
             asset: underlyingToken,
             name: fleetName,
             symbol: "TEST-SUM",
-            initialTipRate: 100,
+            initialTipRate: initialTipRate,
             initialMinimumPositionWithdrawal: PercentageUtils
                 .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils

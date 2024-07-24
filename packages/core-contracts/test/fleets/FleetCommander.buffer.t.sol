@@ -24,7 +24,8 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
  */
 contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
     }
 
     function test_AdjustBufferSuccess() public {
