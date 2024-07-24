@@ -21,16 +21,18 @@ contract ArkTestHelpers is Test {
         );
     }
 
-    /// @notice Mocks the return value of `depositCap` for a given Ark contract
+    /// @notice Mocks the return value of `maxAllocation` for a given Ark contract
     /// @param contractAddress The address of the Ark contract whose `totalAssets` function is to be mocked
-    /// @param returnValue The value to return when `depositCap` is called
-    function mockArkDepositCap(
+    /// @param returnValue The value to return when `maxAllocation` is called
+    function mockArkMaxAllocation(
         address contractAddress,
         uint256 returnValue
     ) public {
         vm.mockCall(
             contractAddress,
-            abi.encodeWithSelector(IArk(contractAddress).depositCap.selector),
+            abi.encodeWithSelector(
+                IArk(contractAddress).maxAllocation.selector
+            ),
             abi.encode(returnValue)
         );
     }

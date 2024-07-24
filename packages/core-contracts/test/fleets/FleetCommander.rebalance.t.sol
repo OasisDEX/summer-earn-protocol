@@ -10,6 +10,7 @@ import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnfo
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
 
 /**
  * @title Rebalance test suite for FleetCommander
@@ -23,18 +24,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  */
 contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
-        // but you can create and initialize your own custom fleet if you wish.
-        fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
-
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(keeper);
-        mockArk1.grantCommanderRole(address(fleetCommander));
-        mockArk2.grantCommanderRole(address(fleetCommander));
-        mockArk3.grantCommanderRole(address(fleetCommander));
+        initializeFleetCommanderWithMockArks();
         vm.stopPrank();
     }
 
@@ -43,10 +33,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setFundsBufferBalance(initialBufferBalance);
         fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
 
-        mockToken.mint(address(fleetCommander), initialBufferBalance);
+        mockToken.mint(bufferArkAddress, initialBufferBalance);
         mockToken.mint(ark1, 5000 * 10 ** 6);
         mockToken.mint(ark2, 5000 * 10 ** 6);
         mockArkRate(ark1, 105);
@@ -66,7 +55,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Assert
         assertEq(
-            fleetCommander.fundsBufferBalance(),
+            IArk(fleetCommander.bufferArk()).totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -86,10 +75,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 ark2IntitialBalance = 2500 * 10 ** 6;
         uint256 ark3IntitialBalance = 2500 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setFundsBufferBalance(initialBufferBalance);
         fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
 
-        mockToken.mint(address(fleetCommander), initialBufferBalance);
+        mockToken.mint(address(bufferArkAddress), initialBufferBalance);
         mockToken.mint(ark1, ark1IntitialBalance);
         mockToken.mint(ark2, ark2IntitialBalance);
         mockToken.mint(ark3, ark3IntitialBalance);
@@ -117,7 +105,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Assert
         assertEq(
-            fleetCommander.fundsBufferBalance(),
+            IArk(fleetCommander.bufferArk()).totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -144,7 +132,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderArkNotFound(address)",
+                "FleetCommanderArkNotActive(address)",
                 invalidArk
             )
         );
@@ -164,7 +152,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderArkNotFound(address)",
+                "FleetCommanderArkNotActive(address)",
                 address(this)
             )
         );
@@ -194,7 +182,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RebalanceExceedMaxAllocation() public {
         // Arrange
         mockArkTotalAssets(ark1, 5000 * 10 ** 6);
-        mockArkTotalAssets(ark2, ark2_MAX_ALLOCATION); // Already at max allocation
+        mockArkTotalAssets(ark2, ARK2_MAX_ALLOCATION); // Already at max allocation
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
 

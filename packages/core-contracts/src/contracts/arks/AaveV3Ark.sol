@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import "../Ark.sol";
 import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
+import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
 import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
 import {IArk} from "../../interfaces/IArk.sol";
@@ -10,6 +11,7 @@ import {IArk} from "../../interfaces/IArk.sol";
 contract AaveV3Ark is Ark {
     IPoolV3 public aaveV3Pool;
     IPoolDataProvider public aaveV3DataProvider;
+    address public aToken;
 
     constructor(address _aaveV3Pool, ArkParams memory _params) Ark(_params) {
         aaveV3Pool = IPoolV3(_aaveV3Pool);
@@ -18,6 +20,10 @@ contract AaveV3Ark is Ark {
         aaveV3DataProvider = IPoolDataProvider(
             aaveV3AddressesProvider.getPoolDataProvider()
         );
+        DataTypes.ReserveData memory reserveData = aaveV3Pool.getReserveData(
+            address(token)
+        );
+        aToken = reserveData.aTokenAddress;
     }
 
     function rate() public view override returns (uint256) {
@@ -27,9 +33,7 @@ contract AaveV3Ark is Ark {
     }
 
     function totalAssets() public view override returns (uint256) {
-        (uint256 currentATokenBalance, , , , , , , , ) = aaveV3DataProvider
-            .getUserReserveData(address(token), address(this));
-        return currentATokenBalance;
+        return IERC20(aToken).balanceOf(address(this));
     }
 
     function _board(uint256 amount) internal override {

@@ -8,4 +8,5 @@ struct ArkParams {
     address accessManager;
     address configurationManager;
     address token;
+    uint256 maxAllocation;
 }
