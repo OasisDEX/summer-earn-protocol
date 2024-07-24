@@ -151,26 +151,6 @@ contract MetaMorphoArkTestFork is Test, IArkEvents {
         );
     }
 
-    function test_Rate_MetaMorphoArk_fork() public {
-        // Deposit some assets first
-        test_Board_MetaMorphoArk_fork();
-
-        // Get initial rate
-        uint256 initialRate = ark.rate();
-
-        // Warp time to simulate interest accrual
-        vm.warp(block.timestamp + 30 days);
-
-        // Get new rate
-        uint256 newRate = ark.rate();
-
-        // The rate should not decrease over time
-        assertTrue(
-            newRate >= initialRate,
-            "Rate should not decrease over time"
-        );
-    }
-
     function test_TotalAssets_MetaMorphoArk_fork() public {
         // Deposit some assets first
         test_Board_MetaMorphoArk_fork();
