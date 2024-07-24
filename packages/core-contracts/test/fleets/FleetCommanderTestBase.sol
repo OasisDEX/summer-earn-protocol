@@ -25,6 +25,7 @@ abstract contract FleetCommanderTestBase {
     address public raft = address(2);
     address public mockUser = address(3);
     address public keeper = address(4);
+    address public tipJar = address(5);
 
     address ark1 = address(10);
     address ark2 = address(11);
@@ -55,6 +56,7 @@ abstract contract FleetCommanderTestBase {
         IConfigurationManager configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
+                tipJar: tipJar,
                 raft: raft
             })
         );
@@ -110,6 +112,7 @@ abstract contract FleetCommanderTestBase {
             asset: address(mockToken),
             name: fleetName,
             symbol: string(abi.encodePacked(mockToken.symbol(), "-SUM")),
+            initialTipRate: 100,
             initialMinimumPositionWithdrawal: PercentageUtils
                 .fromDecimalPercentage(2),
             initialMaximumBufferWithdrawal: PercentageUtils

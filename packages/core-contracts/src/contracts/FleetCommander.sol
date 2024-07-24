@@ -11,7 +11,8 @@ import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../errors/FleetCommanderErrors.sol";
 import "../libraries/PercentageUtils.sol";
-import {TipAccruer} from "./TipAccruer.sol";
+import {Tipper} from "./Tipper.sol";
+import {ITipper} from "../interfaces/ITipper.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -20,6 +21,7 @@ contract FleetCommander is
     IFleetCommander,
     ERC4626,
     ProtocolAccessManaged,
+    Tipper,
     CooldownEnforcer
 {
     using SafeERC20 for IERC20;
@@ -32,8 +34,6 @@ contract FleetCommander is
     uint256 public depositCap;
     Percentage public maxBufferWithdrawalPercentage;
 
-    ITipAccruer public immutable tipAccruer;
-
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
     constructor(
@@ -42,15 +42,11 @@ contract FleetCommander is
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         ProtocolAccessManaged(params.accessManager)
+        Tipper(params.configurationManager, params.initialTipRate)
         CooldownEnforcer(params.initialRebalanceCooldown, false)
     {
         _setupArks(params.initialArks);
 
-        tipAccruer = TipAccruer(
-            params.initialTipRate,
-            params.initialTipJar,
-            address(this)
-        );
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
         maxBufferWithdrawalPercentage = params.initialMaximumBufferWithdrawal;
         depositCap = params.depositCap;
@@ -70,7 +66,6 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
-        tip();
         super.withdraw(assets, receiver, owner);
 
         uint256 prevQueueBalance = fundsBufferBalance;
@@ -81,7 +76,7 @@ contract FleetCommander is
             prevQueueBalance,
             fundsBufferBalance
         );
-
+        tip();
         return assets;
     }
 
@@ -109,7 +104,6 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(IFleetCommander) returns (uint256) {
-        tip();
         uint256 totalAssetsToWithdraw = assets;
         uint256 totalSharesToWithdraw = previewWithdraw(totalAssetsToWithdraw);
         uint256 assetsToWithdrawFromArks = totalAssetsToWithdraw -
@@ -162,7 +156,7 @@ contract FleetCommander is
         fundsBufferBalance -= totalAssetsToWithdraw;
 
         _setLastActionTimestamp(0);
-
+        _accrueTip();
         return totalAssetsToWithdraw;
     }
 
@@ -170,7 +164,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
-        tip();
+        _accrueTip();
         super.deposit(assets, receiver);
 
         uint256 prevQueueBalance = fundsBufferBalance;
@@ -189,7 +183,6 @@ contract FleetCommander is
         uint256 shares,
         address to
     ) public override(ERC4626, IERC4626) returns (uint256) {
-        tip();
         uint256 assets = super.mint(shares, to);
         uint256 prevQueueBalance = fundsBufferBalance;
         fundsBufferBalance = fundsBufferBalance + assets;
@@ -203,8 +196,8 @@ contract FleetCommander is
         return assets;
     }
 
-    function tip() {
-        tipAccruer.accrueTip();
+    function tip() public returns (uint256) {
+        return _accrueTip();
     }
 
     function totalAssets()
@@ -234,9 +227,12 @@ contract FleetCommander is
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256) {
-        uint256 maxAssets = totalAssets() > depositCap
+        uint256 _totalAssets = totalAssets();
+
+        uint256 maxAssets = _totalAssets > depositCap
             ? 0
-            : depositCap - totalAssets();
+            : depositCap - _totalAssets;
+
         return
             previewDeposit(
                 Math.min(maxAssets, IERC20(asset()).balanceOf(owner))
@@ -273,7 +269,7 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
-        tip();
+        _accrueTip();
         _rebalance(rebalanceData);
     }
 
@@ -352,7 +348,7 @@ contract FleetCommander is
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
-        tip();
+        _accrueTip();
         _validateRebalanceData(rebalanceData);
 
         uint256 excessFunds = 0;
@@ -405,7 +401,13 @@ contract FleetCommander is
         emit DepositCapUpdated(newCap);
     }
 
-    function setFeeAddress(address newAddress) external onlyGovernor {}
+    function setTipJar(address newTipJar) external onlyGovernor {
+        _setTipJar(newTipJar);
+    }
+
+    function setTipRate(uint256 newTipRate) external onlyGovernor {
+        _setTipRate(newTipRate);
+    }
 
     function addArk(address ark, uint256 maxAllocation) external onlyGovernor {
         _addArk(ark, maxAllocation);
@@ -467,15 +469,17 @@ contract FleetCommander is
 
     function emergencyShutdown() external onlyGovernor {}
 
-    /* PUBLIC - FEES */
-    function mintSharesAsFees() public {}
-
     /* PUBLIC - ERC20 */
     function transfer(
         address,
         uint256
     ) public pure override(IERC20, ERC20) returns (bool) {
         revert FleetCommanderTransfersDisabled();
+    }
+
+    /* INTERNAL - TIPS */
+    function _mintTip(address account, uint256 amount) internal virtual override {
+        _mint(account, amount);
     }
 
     /* INTERNAL - REBALANCE */

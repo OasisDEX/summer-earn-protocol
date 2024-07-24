@@ -16,16 +16,10 @@ interface IConfigurationManager is IConfigurationManagerEvents {
     function raft() external returns (address);
 
     /**
-     * @notice Get the current tip rate
-     * @return The current tip rate as a uint8
-     */
-    function tipRate() external returns (uint8);
-
-    /**
      * @notice Get the current tip jar address
      * @return The current tip jar address
      */
-    function tipJar() external returns (uint8);
+    function tipJar() external returns (address);
 
     /**
      * @notice Set a new address for the Raft contract
@@ -33,13 +27,6 @@ interface IConfigurationManager is IConfigurationManagerEvents {
      * @dev Can only be called by the governor
      */
     function setRaft(address newRaft) external;
-
-    /**
-     * @notice Set a new tip rate
-     * @param newTipRate The new tip rate to set
-     * @dev Can only be called by the governor
-     */
-    function setTipRate(uint8 newTipRate) external;
 
     /**
      * @notice Set a new tip ar address

@@ -78,10 +78,16 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function setDepositCap(uint256 newCap) external;
 
     /**
-     * @notice Sets a new fee address
-     * @param newAddress The new fee address
+     * @notice Sets a new tip jar address
+     * @param newTipJar The new fee address
      */
-    function setFeeAddress(address newAddress) external;
+    function setTipJar(address newTipJar) external;
+
+    /**
+     * @notice Sets a new tip rate
+     * @param newTipRate The new tip rate for the fleet
+     */
+    function setTipRate(uint256 newTipRate) external;
 
     /**
      * @notice Adds a new Ark
@@ -121,10 +127,4 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @notice Initiates an emergency shutdown of the FleetCommander
      */
     function emergencyShutdown() external;
-
-    /* FUNCTIONS - PUBLIC - FEES */
-    /**
-     * @notice Mints shares as fees
-     */
-    function mintSharesAsFees() external;
 }

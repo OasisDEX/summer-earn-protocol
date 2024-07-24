@@ -25,11 +25,6 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     address public tipJar;
 
     /**
-     * @notice The current tip rate
-     */
-    uint8 public tipRate;
-
-    /**
      * @notice Constructs the ConfigurationManager contract
      * @param params A struct containing the initial configuration parameters
      */
@@ -37,7 +32,6 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         ConfigurationManagerParams memory params
     ) ProtocolAccessManaged(params.accessManager) {
         raft = params.raft;
-        tipRate = params.tipRate;
         tipJar = params.tipJar;
     }
 
@@ -61,16 +55,5 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     function setTipJar(address newTipJar) external onlyGovernor {
         tipJar = newTipJar;
         emit TipJarUpdated(newTipJar);
-    }
-
-    /**
-     * @notice Sets a new tip rate
-     * @param newTipRate The new tip rate to set
-     * @dev Can only be called by the governor
-     * @dev Emits a TipRateUpdated event
-     */
-    function setTipRate(uint8 newTipRate) external onlyGovernor {
-        tipRate = newTipRate;
-        emit TipRateUpdated(newTipRate);
     }
 }
