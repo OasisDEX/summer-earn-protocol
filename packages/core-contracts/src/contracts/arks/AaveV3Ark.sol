@@ -9,6 +9,9 @@ import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesPro
 import {IArk} from "../../interfaces/IArk.sol";
 
 contract AaveV3Ark is Ark {
+    uint256 public constant WAD = 1e18;
+    uint256 public constant RAY = 1e27;
+    uint256 public constant SECONDS_PER_YEAR = 31536000;
     IPoolV3 public aaveV3Pool;
     IPoolDataProvider public aaveV3DataProvider;
     address public aToken;
@@ -27,7 +30,7 @@ contract AaveV3Ark is Ark {
     }
 
     function rate() public view override returns (uint256) {
-        (, , , , uint256 liquidityRate, , , , , , , ) = aaveV3DataProvider
+        (, , , , , uint256 liquidityRate, , , , , , ) = aaveV3DataProvider
             .getReserveData(address(token));
         return liquidityRate;
     }
