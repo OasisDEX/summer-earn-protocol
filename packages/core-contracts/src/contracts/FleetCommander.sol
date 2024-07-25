@@ -267,8 +267,8 @@ contract FleetCommander is
         emit DepositCapUpdated(newCap);
     }
 
-    function setTipJar(address newTipJar) external onlyGovernor {
-        _setTipJar(newTipJar);
+    function setTipJar() external onlyGovernor {
+        _setTipJar();
     }
 
     function setTipRate(uint256 newTipRate) external onlyGovernor {

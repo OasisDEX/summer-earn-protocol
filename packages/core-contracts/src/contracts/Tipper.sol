@@ -21,6 +21,9 @@ abstract contract Tipper is ITipper {
     /// @notice The address where accrued tips are sent
     address public tipJar;
 
+    /// @notice The protocol configuration manager
+    IConfigurationManager manager;
+
     /// @dev Constant representing 100% in basis points
     uint256 private constant BASIS_POINTS = 10000;
 
@@ -34,7 +37,7 @@ abstract contract Tipper is ITipper {
     /// @param configurationManager The address of the ConfigurationManager contract
     /// @param initialTipRate The initialTipRate for the Fleet
     constructor(address configurationManager, uint256 initialTipRate) {
-        IConfigurationManager manager = IConfigurationManager(
+        manager = IConfigurationManager(
             configurationManager
         );
         tipRate = initialTipRate;
@@ -59,20 +62,17 @@ abstract contract Tipper is ITipper {
 
     /// @notice Sets a new tip jar address
     /// @dev Only callable by the FleetCommander
-    /// @param newTipJar The new address to set as the tip jar
-    function _setTipJar(address newTipJar) internal {
-        if (newTipJar == address(0)) {
-            revert InvalidTipJarAddress();
-        }
-
-        tipJar = newTipJar;
-        emit TipJarUpdated(newTipJar);
+    function _setTipJar() internal {
+        tipJar = manager.tipJar();
+        emit TipJarUpdated(manager.tipJar());
     }
 
     /// @notice Accrues tips based on the current tip rate and time elapsed
     /// @dev Only callable by the FleetCommander
     /// @return tippedShares The amount of tips accrued in shares
     function _accrueTip() internal returns (uint256 tippedShares) {
+        if (tipRate == 0) return 0;
+
         uint256 timeElapsed = block.timestamp - lastTipTimestamp;
 
         if (timeElapsed == 0) return 0;
