@@ -22,7 +22,7 @@ abstract contract Tipper is ITipper {
     address public tipJar;
 
     /// @notice The protocol configuration manager
-    IConfigurationManager manager;
+    IConfigurationManager public manager;
 
     /// @dev Constant representing 100% in basis points
     uint256 private constant BASIS_POINTS = 10000;
