@@ -182,9 +182,15 @@ export function getOrCreateUsageMetricsHourlySnapshot(
 }
 
 export function getOrCreateVaultsDailySnapshots(
-  vault: VaultStore,
+  vaultAddress: Address,
   block: ethereum.Block,
 ): VaultDailySnapshot {
+  const vault = getOrCreateVault(vaultAddress, block)
+  const previousId: string = vault.id
+    .concat('-')
+    .concat((block.timestamp.toI64() - constants.SECONDS_PER_DAY).toString())
+  const previousSnapshot = VaultDailySnapshot.load(previousId)
+
   const id: string = vault.id
     .concat('-')
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_DAY).toString())
@@ -206,7 +212,13 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BIGDECIMAL_ZERO
-
+    vaultSnapshots.apr = !previousSnapshot
+      ? constants.BIGDECIMAL_ZERO
+      : utils.getAprForTimePeriod(
+          previousSnapshot.pricePerShare!,
+          vault.pricePerShare!,
+          constants.BigDecimalConstants.DAY_IN_SECONDS,
+        )
     vaultSnapshots.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -221,20 +233,28 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
   }
+  ;``
 
   return vaultSnapshots
 }
 
 export function getOrCreateVaultsHourlySnapshots(
-  vault: VaultStore,
+  vaultAddress: Address,
   block: ethereum.Block,
 ): VaultHourlySnapshot {
+  log.error('getOrCreateVaultsHourlySnapshots', [])
+  const vault = getOrCreateVault(vaultAddress, block)
   const id: string = vault.id
     .concat('-')
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
+  const previousId = vault.id
+    .concat('-')
+    .concat((block.timestamp.toI64() - constants.SECONDS_PER_HOUR).toString())
+  const previousSnapshot = VaultHourlySnapshot.load(previousId)
   let vaultSnapshots = VaultHourlySnapshot.load(id)
 
   if (!vaultSnapshots) {
+    log.error('Creating new vault snapshot', [])
     vaultSnapshots = new VaultHourlySnapshot(id)
     vaultSnapshots.protocol = vault.protocol
     vaultSnapshots.vault = vault.id
@@ -250,7 +270,13 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BIGDECIMAL_ZERO
-
+    vaultSnapshots.apr = !previousSnapshot
+      ? constants.BIGDECIMAL_ZERO
+      : utils.getAprForTimePeriod(
+          previousSnapshot.pricePerShare!,
+          vault.pricePerShare!,
+          constants.BigDecimalConstants.HOUR_IN_SECONDS,
+        )
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -262,7 +288,7 @@ export function getOrCreateVaultsHourlySnapshots(
 
     vaultSnapshots.blockNumber = block.number
     vaultSnapshots.timestamp = block.timestamp
-
+    log.error('Saving vault snapshot {}', [id])
     vaultSnapshots.save()
   }
 
@@ -303,9 +329,8 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
     vault.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
     vault.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
-
-    //   vault.lastReport = constants.BigIntConstants.ZERO;
-    //   vault.totalAssets = constants.BigIntConstants.ZERO;
+    vault.apr = constants.BIGDECIMAL_ZERO
+    vault.lastUpdateTimestamp = block.timestamp
 
     const managementFeeId =
       utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + vaultAddress.toHexString()
@@ -316,8 +341,6 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
       utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) + vaultAddress.toHexString()
     const performanceFee = BigInt.fromI32(0)
     utils.createFeeType(performanceFeeId, constants.VaultFeeType.PERFORMANCE_FEE, performanceFee)
-
-    // utils.updateProtocolAfterNewVault(vaultAddress);
 
     vault.fees = [managementFeeId, performanceFeeId]
 

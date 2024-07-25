@@ -421,6 +421,11 @@ type Vault @entity @regularPolling {
 
   " All withdrawals made from this vault "
   withdraws: [Withdraw!]! @derivedFrom(field: "vault")
+
+  # Additional fields
+  " APR based on revenue between last two snapshots "
+  apr: BigDecimal!
+  lastUpdateTimestamp: BigInt!
 }
 
 #################################
@@ -484,6 +489,10 @@ type VaultDailySnapshot @entity @dailySnapshot {
 
   " Timestamp of this snapshot "
   timestamp: BigInt!
+
+  #  Additional fields
+  " APR based on last day's revenue "
+  apr: BigDecimal!
 }
 
 type VaultHourlySnapshot @entity @hourlySnapshot {
@@ -543,6 +552,10 @@ type VaultHourlySnapshot @entity @hourlySnapshot {
 
   " Timestamp of this snapshot "
   timestamp: BigInt!
+
+  #  Additional fields
+  " APR based on last hour's revenue "
+  apr: BigDecimal!
 }
 
 ##################################

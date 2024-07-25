@@ -80,3 +80,28 @@ export function formatPositionId(vaultID: string, accountID: string): string {
 export function getAccountIdAndVaultIdFromPositionId(positionId: string): string[] {
   return positionId.split('-')
 }
+
+/**
+ * Calculates the Annual Percentage Rate (APR) for a given time period.
+ *
+ * @param previousPricePerShare - The previous price per share.
+ * @param currentPricePerShare - The current price per share.
+ * @param deltaTime - The time elapsed between the previous and current prices.
+ * @returns The calculated APR.
+ */
+export function getAprForTimePeriod(
+  previousPricePerShare: BigDecimal,
+  currentPricePerShare: BigDecimal,
+  deltaTime: BigDecimal,
+): BigDecimal {
+  if (deltaTime.equals(constants.BigDecimalConstants.ZERO)) {
+    return constants.BigDecimalConstants.ZERO
+  }
+
+  const amountOfPeriodsInYear = constants.BigDecimalConstants.YEAR_IN_SECONDS.div(deltaTime)
+  return currentPricePerShare
+    .minus(previousPricePerShare)
+    .div(previousPricePerShare)
+    .times(constants.BigDecimalConstants.HUNDRED)
+    .times(amountOfPeriodsInYear)
+}

@@ -28,6 +28,10 @@ dataSources:
         - handler: handleOnce
           filter:
             kind: once
+        - handler: handleInterval
+          filter:
+            kind: polling
+            every: 1800
       file: ./src/mappings/block.ts
 templates:
   - kind: ethereum/contract
@@ -74,5 +78,8 @@ templates:
           receipt: true
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
+          receipt: true
+        - event: Rebalanced(indexed address,(address,address,uint256)[])
+          handler: handleRebalance
           receipt: true
       file: ./src/mappings/fleetCommander.ts

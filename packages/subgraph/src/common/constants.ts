@@ -107,6 +107,7 @@ export class BigDecimalConstants {
   static ONE: BigDecimal = BigDecimal.fromString('1')
   static TEN: BigDecimal = BigDecimal.fromString('10')
   static FIFTY_TWO: BigDecimal = BigDecimal.fromString('52')
+  static HUNDRED: BigDecimal = BigDecimal.fromString('100')
   static WAD: BigDecimal = BigDecimal.fromString(BigInt.fromI32(10).pow(18).toString())
   static RAY: BigDecimal = BigDecimal.fromString(BigInt.fromI32(10).pow(27).toString())
   static RAD: BigDecimal = BigDecimal.fromString(BigInt.fromI32(10).pow(45).toString())
@@ -115,6 +116,11 @@ export class BigDecimalConstants {
   static MORPHO_PRECISION: BigDecimal = BigDecimal.fromString(BigInt.fromI32(10).pow(36).toString())
   static VIRTUAL_SHARES: BigDecimal = BigDecimal.fromString(`${10 ** 6}`)
   static USDC_PRECISION: BigDecimal = BigDecimal.fromString(`${10 ** 6}`)
+  static YEAR_IN_DAYS: BigDecimal = BigDecimal.fromString('365')
+  static YEAR_IN_HOURS: BigDecimal = BigDecimal.fromString('8760')
+  static YEAR_IN_SECONDS: BigDecimal = BigDecimal.fromString('31536000')
+  static HOUR_IN_SECONDS: BigDecimal = BigDecimal.fromString('3600')
+  static DAY_IN_SECONDS: BigDecimal = BigDecimal.fromString('86400')
 }
 export class BigIntConstants {
   static MINUS_ONE: BigInt = BigInt.fromI32(-1)
