@@ -13,8 +13,9 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {IMorpho, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
 import {IMetaMorpho, IMetaMorphoBase} from "metamorpho/interfaces/IMetaMorpho.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
-contract MetaMorphoArkTestFork is Test, IArkEvents {
+contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
     MetaMorphoArk public ark;
     address public governor = address(1);
     address public commander = address(4);
@@ -24,6 +25,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents {
 
     IMetaMorpho public metaMorpho;
     IERC20 public asset;
+    IProtocolAccessManager accessManager;
+    IConfigurationManager configurationManager;
 
     uint256 forkBlock = 20376149; // Adjust this to a suitable block number
     uint256 forkId;
@@ -34,11 +37,9 @@ contract MetaMorphoArkTestFork is Test, IArkEvents {
         metaMorpho = IMetaMorpho(METAMORPHO_ADDRESS);
         asset = IERC20(metaMorpho.asset());
 
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
+        accessManager = new ProtocolAccessManager(governor);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
+        configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
                 raft: raft
@@ -80,6 +81,10 @@ contract MetaMorphoArkTestFork is Test, IArkEvents {
                 address(ark)
             )
         );
+
+        // Expect the ArkPoked event to be emitted
+        vm.expectEmit();
+        emit ArkPoked(ark.totalAssets() + amount - 1, block.timestamp);
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -167,5 +172,64 @@ contract MetaMorphoArkTestFork is Test, IArkEvents {
             newTotalAssets > initialTotalAssets,
             "Total assets should increase over time"
         );
+    }
+
+    function test_Poke_MetaMorphoArk_fork() public {
+        // Deposit some assets first
+        test_Board_MetaMorphoArk_fork();
+
+        uint256 initialTotalAssets = ark.totalAssets();
+
+        // Warp time to simulate interest accrual
+        vm.warp(block.timestamp + 30 days);
+
+        uint256 newTotalAssets = ark.totalAssets();
+
+        // Total assets should not decrease over time (assuming no withdrawals)
+        assertTrue(
+            newTotalAssets > initialTotalAssets,
+            "Total assets should increase over time"
+        );
+        // Case 1 - Ark poked in the right time
+        vm.expectEmit();
+        emit ArkPoked(ark.totalAssets(), block.timestamp);
+        ark.poke();
+
+        uint256 currentTotalAssets = ark.totalAssets();
+        mockArkTotalAssets(address(ark), currentTotalAssets);
+
+        // Case 2 - Ark poked too soon
+        vm.expectEmit();
+        emit ArkPokedTooSoon();
+        ark.poke();
+
+        vm.warp(block.timestamp + 30 days);
+
+        // Case 3 - Ark poked and total assets did not change (mock)
+        vm.expectEmit();
+        emit ArkPokedNoChange();
+        ark.poke();
+
+        mockArkTotalAssets(address(ark), currentTotalAssets + 1);
+
+        uint256 finalTotalAssets = ark.totalAssets();
+        assertTrue(
+            finalTotalAssets > newTotalAssets,
+            "Total assets should increase after poke"
+        );
+    }
+
+    function test_Constructor_MetaMorphoArk_AddressZero_fork() public {
+        // Arrange
+        ArkParams memory params = ArkParams({
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            token: address(asset),
+            maxAllocation: 1000
+        });
+
+        // Act
+        vm.expectRevert();
+        new MetaMorphoArk(address(0), params);
     }
 }

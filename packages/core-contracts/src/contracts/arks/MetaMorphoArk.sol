@@ -16,11 +16,14 @@ contract MetaMorphoArk is Ark {
     uint256 lastTotalAssets;
 
     constructor(address _metaMorpho, ArkParams memory _params) Ark(_params) {
+        if (_metaMorpho == address(0)) {
+            revert InvalidVaultAddress();
+        }
         metaMorpho = IMetaMorpho(_metaMorpho);
     }
 
     function rate() public view override returns (uint256 supplyRate) {
-        uint256 currentTotalAssets = totalAssets();
+        uint256 currentTotalAssets = this.totalAssets();
         uint256 timeDelta = block.timestamp - lastUpdate;
 
         if (timeDelta > 0 && lastTotalAssets > 0) {
@@ -50,12 +53,13 @@ contract MetaMorphoArk is Ark {
             emit ArkPokedTooSoon();
             return;
         }
-        uint256 currentTotalAssets = totalAssets();
+        uint256 currentTotalAssets = this.totalAssets();
         if (currentTotalAssets == lastTotalAssets) {
             emit ArkPokedNoChange();
             return;
         }
         lastTotalAssets = currentTotalAssets;
         lastUpdate = block.timestamp;
+        emit ArkPoked(lastTotalAssets, lastUpdate);
     }
 }

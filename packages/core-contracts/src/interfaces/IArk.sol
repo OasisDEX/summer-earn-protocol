@@ -71,4 +71,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @param newRaft The address of the new Raft
      */
     function setRaft(address newRaft) external;
+
+    error InvalidVaultAddress();
 }
