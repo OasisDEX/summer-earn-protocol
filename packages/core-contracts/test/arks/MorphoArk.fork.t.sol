@@ -11,8 +11,8 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {IMorpho, Id, MarketParams, IMorphoBase} from "../../src/interfaces/morpho-blue/IMorpho.sol";
-import {IMetaMorpho} from "../../src/interfaces/meta-morpho/IMetaMorpho.sol";
+import {IMorpho, Id, MarketParams, IMorphoBase} from "morpho-blue/interfaces/IMorpho.sol";
+import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 
 contract MorphoArkTestFork is Test, IArkEvents {
     MorphoArk public ark;

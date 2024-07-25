@@ -25,8 +25,8 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
-import {IMorpho, Id, MarketParams, IMorphoBase} from "../../src/interfaces/morpho-blue/IMorpho.sol";
-import {IMetaMorpho, IMetaMorphoBase} from "../../src/interfaces/meta-morpho/IMetaMorpho.sol";
+import {IMorpho, Id, MarketParams, IMorphoBase} from "morpho-blue/interfaces/IMorpho.sol";
+import {IMetaMorpho, IMetaMorphoBase} from "metamorpho/interfaces/IMetaMorpho.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander

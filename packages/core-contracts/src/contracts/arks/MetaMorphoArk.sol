@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import "../Ark.sol";
-import {IMetaMorpho} from "../../interfaces/meta-morpho/IMetaMorpho.sol";
+import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 import {IArk} from "../../interfaces/IArk.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 

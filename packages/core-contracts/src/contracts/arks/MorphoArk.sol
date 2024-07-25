@@ -2,15 +2,15 @@
 pragma solidity 0.8.26;
 
 import "../Ark.sol";
-import {IMorpho, Id, MarketParams, Market, Position} from "../../interfaces/morpho-blue/IMorpho.sol";
+import {IMorpho, Id, MarketParams, Market, Position} from "morpho-blue/interfaces/IMorpho.sol";
 import {IArk} from "../../interfaces/IArk.sol";
-import {IIrm} from "../../interfaces/morpho-blue/IIrm.sol";
+import {IIrm} from "morpho-blue/interfaces/IIrm.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {UtilsLib} from "../../libraries/morpho-blue/UtilsLib.sol";
-import {SharesMathLib} from "../../libraries/morpho-blue/SharesMathLib.sol";
-import {MarketParamsLib} from "../../libraries/morpho-blue/MarketParamsLib.sol";
-import {MorphoLib} from "../../libraries/morpho-blue/MorphoLib.sol";
-import {MorphoBalancesLib} from "../../libraries/morpho-blue/MorphoBalancesLib.sol";
+import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
+import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
+import {MarketParamsLib} from "morpho-blue/libraries/MarketParamsLib.sol";
+import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
+import {MorphoBalancesLib} from "morpho-blue/libraries/periphery/MorphoBalancesLib.sol";
 
 contract MorphoArk is Ark {
     using SafeERC20 for IERC20;
