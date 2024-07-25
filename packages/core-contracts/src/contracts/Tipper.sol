@@ -144,24 +144,19 @@ abstract contract Tipper is ITipper {
         uint256 base
     ) internal pure returns (uint256 z) {
         // Step 1: Handle special cases
-        // Why: We need to handle edge cases separately to avoid division by zero and ensure correct results for x=0
         if (x == 0 || n == 0) {
             return n == 0 ? base : 0;
         }
 
         // Step 2: Initialize z based on whether n is odd or even
-        // Why: This initialization is crucial for the correctness of the square-and-multiply algorithm
-        // If n is even, we start with 1 (base in fixed-point) as it won't affect the final result
-        // If n is odd, we start with x as we need one factor of x in the result immediately
         z = n % 2 == 0 ? base : x;
 
         // Step 3: Prepare for the main loop
-        // Why: We precompute half of base for efficient rounding in fixed-point arithmetic
         uint256 half = base / 2;
 
         // Step 4: Main loop - Square-and-multiply algorithm
+        // coverage-ignore-start
         assembly {
-            // Why: We divide n by 2 to start because we'll be processing the binary representation of n
             n := div(n, 2)
 
             for {
@@ -169,52 +164,35 @@ abstract contract Tipper is ITipper {
             } n {
 
             } {
-                // Step 4a: Square x
-                // Why: In each iteration, we square x to handle the next bit of the exponent
                 let xx := mul(x, x)
-                // Overflow check: ensure x * x doesn't overflow
                 if iszero(eq(div(xx, x), x)) {
                     revert(0, 0)
                 }
 
-                // Step 4b: Round the squared value
-                // Why: We round to maintain precision in fixed-point arithmetic
                 let xxRound := add(xx, half)
-                // Overflow check: ensure rounding doesn't cause overflow
                 if lt(xxRound, xx) {
                     revert(0, 0)
                 }
 
-                // Step 4c: Maintain fixed-point representation
-                // Why: We divide by base to keep x in the correct fixed-point format
                 x := div(xxRound, base)
 
-                // Step 4d: If n is odd, multiply z by x
-                // Why: This step accumulates the result in z based on the binary representation of n
                 if mod(n, 2) {
-                    // Multiply the current result (z) by the current x
                     let zx := mul(z, x)
-                    // Overflow check: ensure z * x doesn't overflow
                     if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) {
                         revert(0, 0)
                     }
 
-                    // Round the multiplied value
                     let zxRound := add(zx, half)
-                    // Overflow check: ensure rounding doesn't cause overflow
                     if lt(zxRound, zx) {
                         revert(0, 0)
                     }
 
-                    // Update z with the new result, maintaining fixed-point representation
                     z := div(zxRound, base)
                 }
 
-                // Prepare for next iteration
-                // Why: We divide n by 2 to process the next bit of the exponent
                 n := div(n, 2)
             }
         }
-        // At this point, z contains the final result: x^n * base
+        // coverage-ignore-end
     }
 }
