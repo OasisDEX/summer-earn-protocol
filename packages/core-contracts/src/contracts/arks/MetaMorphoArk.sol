@@ -5,7 +5,6 @@ import "../Ark.sol";
 import {IMetaMorpho} from "../../interfaces/meta-morpho/IMetaMorpho.sol";
 import {IArk} from "../../interfaces/IArk.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {console} from "forge-std/console.sol";
 
 contract MetaMorphoArk is Ark {
     using SafeERC20 for IERC20;
@@ -21,9 +20,9 @@ contract MetaMorphoArk is Ark {
     }
 
     function rate() public view override returns (uint256 supplyRate) {
-        uint256 currentTotalAssets = metaMorpho.totalAssets();
-        console.log("rate metaMorpho.totalAssets()", currentTotalAssets);
+        uint256 currentTotalAssets = totalAssets();
         uint256 timeDelta = block.timestamp - lastUpdate;
+
         if (timeDelta > 0 && lastTotalAssets > 0) {
             supplyRate =
                 ((currentTotalAssets - lastTotalAssets) * 365 days * RAY) /
@@ -48,10 +47,15 @@ contract MetaMorphoArk is Ark {
 
     function poke() public override {
         if (block.timestamp == lastUpdate) {
+            emit ArkPokedTooSoon();
             return;
         }
-        console.log("poke metaMorpho.totalAssets()", metaMorpho.totalAssets());
-        lastTotalAssets = metaMorpho.totalAssets();
+        uint256 currentTotalAssets = totalAssets();
+        if (currentTotalAssets == lastTotalAssets) {
+            emit ArkPokedNoChange();
+            return;
+        }
+        lastTotalAssets = currentTotalAssets;
         lastUpdate = block.timestamp;
     }
 }

@@ -31,4 +31,10 @@ interface IArkEvents {
     /// @notice Emitted when the Raft address associated with the Ark is updated
     /// @param newRaft The address of the new Raft
     event RaftUpdated(address newRaft);
+
+    /// @notice Emitted when the Ark is poked twice in the same block
+    event ArkPokedTooSoon();
+
+    /// @notice Emitted when the Ark is poked and the total assets did not change
+    event ArkPokedNoChange();
 }
