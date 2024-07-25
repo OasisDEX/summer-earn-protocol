@@ -49,7 +49,7 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_InitialState() public view {
-        assertEq(fleetCommander.manager(), address(configManager));
+        assertEq(address(fleetCommander.manager()), address(configManager));
         assertEq(fleetCommander.tipRate(), initialTipRate);
         assertEq(fleetCommander.tipJar(), tipJar);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);

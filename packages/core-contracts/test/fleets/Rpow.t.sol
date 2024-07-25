@@ -91,7 +91,7 @@ contract RPowTest is Test {
         tipper.exposed_rpow(2e18, 256, 1e18);
     }
 
-    function testFuzz_rpow(uint256 x, uint256 n) public {
+    function testFuzz_rpow(uint256 x, uint256 n) public view {
         x = bound(x, 0, 2e18); // Limit x to twice the SCALE used in Tipper.sol
         n = bound(n, 0, 120); // Limit n to max of 120 days
 
