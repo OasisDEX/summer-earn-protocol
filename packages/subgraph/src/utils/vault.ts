@@ -25,13 +25,8 @@ export function getVaultDetails(
 
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(vault.inputToken), blockNumber)
-  const pricePerShare = totalAssets.toBigDecimal().div(totalSupply.toBigDecimal())
+  const pricePerShare = totalSupply.toBigDecimal() == constants.BigDecimalConstants.ZERO ? constants.BigDecimalConstants.ONE : totalAssets.toBigDecimal().div(totalSupply.toBigDecimal())
   const outputTokenPriceUSD = pricePerShare.times(inputTokenPriceUSD.price)
-  log.error('outputTokenPriceUSD: {}', [outputTokenPriceUSD.toString()])
-  log.error('inputTokenPriceUSD: {}', [inputTokenPriceUSD.price.toString()])
-  log.error('pricePerShare: {}', [pricePerShare.toString()])
-  log.error('totalAssets: {}', [totalAssets.toString()])
-  log.error('totalSupply: {}', [totalSupply.toString()])
   return new VaultDetails(
     vault.id,
     formatAmount(totalAssets, BigInt.fromI32(inputToken.decimals)).times(inputTokenPriceUSD.price),

@@ -16,18 +16,35 @@ dataSources:
       entities:
         - Vault
       abis:
+        - name: FleetCommanderFactory
+          file: ./abis/FleetCommander.abi.json
         - name: Ark
           file: ./abis/Ark.abi.json
         - name: FleetCommander
           file: ./abis/FleetCommander.abi.json
-        - name: FleetCommanderFactory
-          file: ./abis/FleetCommander.abi.json
         - name: ERC20
           file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
+        - name: EnsReverseResolver
+          file: ./abis/ens/reverse-resolver.json
+        - name: EnsRegistry
+          file: ./abis/ens/registry.json
+        - name: DefaultReverseNameResolver
+          file: ./abis/ens/default-resolver.json
       blockHandlers:
-        - handler: handleOnce
-          filter:
-            kind: once
         - handler: handleInterval
           filter:
             kind: polling

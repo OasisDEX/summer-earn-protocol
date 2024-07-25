@@ -188,7 +188,7 @@ export function getOrCreateVaultsDailySnapshots(
   const vault = getOrCreateVault(vaultAddress, block)
   const previousId: string = vault.id
     .concat('-')
-    .concat((block.timestamp.toI64() - constants.SECONDS_PER_DAY).toString())
+    .concat(((block.timestamp.toI64() - constants.SECONDS_PER_DAY) / constants.SECONDS_PER_DAY).toString())
   const previousSnapshot = VaultDailySnapshot.load(previousId)
 
   const id: string = vault.id
@@ -215,10 +215,10 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.apr = !previousSnapshot
       ? constants.BIGDECIMAL_ZERO
       : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.DAY_IN_SECONDS,
-        )
+        previousSnapshot.pricePerShare!,
+        vault.pricePerShare!,
+        constants.BigDecimalConstants.DAY_IN_SECONDS,
+      )
     vaultSnapshots.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -233,7 +233,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
   }
-  ;``
+  ; ``
 
   return vaultSnapshots
 }
@@ -242,19 +242,17 @@ export function getOrCreateVaultsHourlySnapshots(
   vaultAddress: Address,
   block: ethereum.Block,
 ): VaultHourlySnapshot {
-  log.error('getOrCreateVaultsHourlySnapshots', [])
   const vault = getOrCreateVault(vaultAddress, block)
   const id: string = vault.id
     .concat('-')
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
   const previousId = vault.id
     .concat('-')
-    .concat((block.timestamp.toI64() - constants.SECONDS_PER_HOUR).toString())
+    .concat(((block.timestamp.toI64() - constants.SECONDS_PER_HOUR) / constants.SECONDS_PER_HOUR).toString())
   const previousSnapshot = VaultHourlySnapshot.load(previousId)
   let vaultSnapshots = VaultHourlySnapshot.load(id)
 
   if (!vaultSnapshots) {
-    log.error('Creating new vault snapshot', [])
     vaultSnapshots = new VaultHourlySnapshot(id)
     vaultSnapshots.protocol = vault.protocol
     vaultSnapshots.vault = vault.id
@@ -273,10 +271,10 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.apr = !previousSnapshot
       ? constants.BIGDECIMAL_ZERO
       : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.HOUR_IN_SECONDS,
-        )
+        previousSnapshot.pricePerShare!,
+        vault.pricePerShare!,
+        constants.BigDecimalConstants.HOUR_IN_SECONDS,
+      )
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -288,7 +286,6 @@ export function getOrCreateVaultsHourlySnapshots(
 
     vaultSnapshots.blockNumber = block.number
     vaultSnapshots.timestamp = block.timestamp
-    log.error('Saving vault snapshot {}', [id])
     vaultSnapshots.save()
   }
 
@@ -347,6 +344,14 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.save()
 
     FleetCommanderTemplate.create(vaultAddress)
+
+
+    const yeildAggregator = getOrCreateYieldAggregator()
+    const vaultsArray = yeildAggregator.vaultsArray
+    vaultsArray.push(vault.id)
+    yeildAggregator.vaultsArray = vaultsArray
+    yeildAggregator.totalPoolCount = yeildAggregator.totalPoolCount + 1
+    yeildAggregator.save()
   }
 
   return vault
