@@ -77,6 +77,8 @@ contract FleetCommander is
             prevQueueBalance,
             bufferArk.totalAssets()
         );
+
+        // Accrue tip after withdrawal to maintain accuracy of prior convertToShares calculation
         _accrueTip();
         return assets;
     }
@@ -86,6 +88,7 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(ERC4626, IERC4626) returns (uint256) {
+        // Accrue tip before deposit to ensure state is up to date
         _accrueTip();
         _validateRedeem(shares, owner);
 
@@ -116,6 +119,7 @@ contract FleetCommander is
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToWithdraw);
         _setLastActionTimestamp(0);
 
+        // Accrue tip after withdrawal to maintain accuracy of prior convertToShares calculation
         _accrueTip();
         return assets;
     }
@@ -124,6 +128,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver
     ) public override(ERC4626, IFleetCommander) returns (uint256) {
+        // Accrue tip before deposit to ensure state is up to date
         _accrueTip();
         _validateDeposit(assets, _msgSender());
 
@@ -146,6 +151,8 @@ contract FleetCommander is
         uint256 shares,
         address receiver
     ) public override(ERC4626, IERC4626) returns (uint256) {
+        // Accrue tip before deposit to ensure state is up to date
+        _accrueTip();
         _validateMint(shares, _msgSender());
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -234,6 +241,7 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
+        // Accrue tip before deposit to ensure state is up to date
         _accrueTip();
         _rebalance(rebalanceData);
     }
@@ -241,6 +249,7 @@ contract FleetCommander is
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown {
+        // Accrue tip before deposit to ensure state is up to date
         _accrueTip();
         _validateAdjustBufferData(rebalanceData);
 
@@ -329,6 +338,8 @@ contract FleetCommander is
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor {
+        // Accrue tip before deposit to ensure state is up to date
+        _accrueTip();
         _rebalance(rebalanceData);
     }
 
