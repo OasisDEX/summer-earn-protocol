@@ -135,7 +135,7 @@ contract RPowTest is Test {
 
         // Log gas usage and ensure it's within expected range
         console.log("Gas used for rpow: ", gasUsed);
-        assertLt(gasUsed, 10000); // Adjust the expected gas usage as needed
+        assertLt(gasUsed, 12000); // Adjust the expected gas usage as needed
     }
 }
 

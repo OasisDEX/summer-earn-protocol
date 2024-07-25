@@ -65,19 +65,16 @@ contract TipperTest is Test, ITipperEvents {
 
     function test_SetTipJar() public {
         address newTipJar = address(0x456);
-        MockConfigurationManager _configManager = MockConfigurationManager(
-            address(new MockConfigurationManagerImpl(newTipJar))
-        );
-        FleetCommanderMock _fleetCommander = new FleetCommanderMock(
-            address(underlyingToken),
-            address(_configManager),
-            initialTipRate
+        vm.mockCall(
+            address(configManager),
+            abi.encodeWithSelector(IConfigurationManager.tipJar.selector),
+            abi.encode(newTipJar)
         );
 
         vm.expectEmit(true, true, false, true);
         emit TipJarUpdated(newTipJar);
-        _fleetCommander.setTipJar();
-        assertEq(_fleetCommander.tipJar(), newTipJar);
+        fleetCommander.setTipJar();
+        assertEq(fleetCommander.tipJar(), newTipJar);
     }
 
     function test_AccrueTip() public {
