@@ -52,6 +52,14 @@ contract FleetCommander is
         _isArkActive[address(bufferArk)] = true;
     }
 
+    /**
+     * @dev Modifier to collect the tip before any other action is taken
+     */
+    modifier collectTip() {
+        _accrueTip();
+        _;
+    }
+
     /* PUBLIC - ACCESSORS */
     /// @inheritdoc IFleetCommander
     function arks() public view returns (address[] memory) {
@@ -87,9 +95,7 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public override(ERC4626, IERC4626) returns (uint256) {
-        // Accrue tip before deposit to ensure state is up to date
-        _accrueTip();
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256) {
         _validateRedeem(shares, owner);
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -127,9 +133,7 @@ contract FleetCommander is
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(ERC4626, IFleetCommander) returns (uint256) {
-        // Accrue tip before deposit to ensure state is up to date
-        _accrueTip();
+    ) public override(ERC4626, IFleetCommander) collectTip returns (uint256) {
         _validateDeposit(assets, _msgSender());
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -150,9 +154,7 @@ contract FleetCommander is
     function mint(
         uint256 shares,
         address receiver
-    ) public override(ERC4626, IERC4626) returns (uint256) {
-        // Accrue tip before deposit to ensure state is up to date
-        _accrueTip();
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256) {
         _validateMint(shares, _msgSender());
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -240,17 +242,13 @@ contract FleetCommander is
     /* EXTERNAL - KEEPER */
     function rebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown {
-        // Accrue tip before deposit to ensure state is up to date
-        _accrueTip();
+    ) external onlyKeeper enforceCooldown collectTip {
         _rebalance(rebalanceData);
     }
 
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown {
-        // Accrue tip before deposit to ensure state is up to date
-        _accrueTip();
+    ) external onlyKeeper enforceCooldown collectTip {
         _validateAdjustBufferData(rebalanceData);
 
         uint256 totalMoved = _rebalance(rebalanceData);
@@ -337,9 +335,7 @@ contract FleetCommander is
 
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyGovernor {
-        // Accrue tip before deposit to ensure state is up to date
-        _accrueTip();
+    ) external onlyGovernor collectTip {
         _rebalance(rebalanceData);
     }
 
