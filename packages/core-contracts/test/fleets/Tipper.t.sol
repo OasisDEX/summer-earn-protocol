@@ -64,10 +64,19 @@ contract TipperTest is Test, ITipperEvents {
 
     function test_SetTipJar() public {
         address newTipJar = address(0x456);
+        MockConfigurationManager _configManager = MockConfigurationManager(
+            address(new MockConfigurationManagerImpl(newTipJar))
+        );
+        FleetCommanderMock _fleetCommander = new FleetCommanderMock(
+            address(underlyingToken),
+            address(_configManager),
+            initialTipRate
+        );
+
         vm.expectEmit(true, true, false, true);
         emit TipJarUpdated(newTipJar);
-        fleetCommander.setTipJar(newTipJar);
-        assertEq(fleetCommander.tipJar(), newTipJar);
+        _fleetCommander.setTipJar();
+        assertEq(_fleetCommander.tipJar(), newTipJar);
     }
 
     function test_AccrueTip() public {
@@ -114,8 +123,16 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_SetTipJarCannotBeZeroAddress() public {
+        MockConfigurationManager _configManager = MockConfigurationManager(
+            address(new MockConfigurationManagerImpl(address(0)))
+        );
+        FleetCommanderMock _fleetCommander = new FleetCommanderMock(
+            address(underlyingToken),
+            address(_configManager),
+            initialTipRate
+        );
         vm.expectRevert(abi.encodeWithSignature("InvalidTipJarAddress()"));
-        fleetCommander.setTipJar(address(0));
+        _fleetCommander.setTipJar();
     }
 
     function test_CompoundingEffect() public {

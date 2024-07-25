@@ -37,9 +37,8 @@ abstract contract Tipper is ITipper {
     /// @param configurationManager The address of the ConfigurationManager contract
     /// @param initialTipRate The initialTipRate for the Fleet
     constructor(address configurationManager, uint256 initialTipRate) {
-        manager = IConfigurationManager(
-            configurationManager
-        );
+        manager = IConfigurationManager(configurationManager);
+
         tipRate = initialTipRate;
         tipJar = manager.tipJar();
         lastTipTimestamp = block.timestamp;
@@ -64,6 +63,11 @@ abstract contract Tipper is ITipper {
     /// @dev Only callable by the FleetCommander
     function _setTipJar() internal {
         tipJar = manager.tipJar();
+
+        if (tipJar == address(0)) {
+            revert InvalidTipJarAddress();
+        }
+
         emit TipJarUpdated(manager.tipJar());
     }
 
@@ -141,7 +145,7 @@ abstract contract Tipper is ITipper {
     ) internal pure returns (uint256 z) {
         // Step 1: Handle special cases
         // Why: We need to handle edge cases separately to avoid division by zero and ensure correct results for x=0
-        if (x == 0) {
+        if (x == 0 || n == 0) {
             return n == 0 ? base : 0;
         }
 

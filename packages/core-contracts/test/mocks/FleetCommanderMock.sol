@@ -25,8 +25,8 @@ contract FleetCommanderMock is Tipper, ERC4626Mock {
         _setTipRate(newTipRate);
     }
 
-    function setTipJar(address newTipJar) external {
-        _setTipJar(newTipJar);
+    function setTipJar() external {
+        _setTipJar();
     }
 
     function tip() public returns (uint256) {

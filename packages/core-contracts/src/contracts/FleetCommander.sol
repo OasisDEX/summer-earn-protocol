@@ -71,7 +71,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public override(ERC4626, IFleetCommander) returns (uint256) {
+    ) public override(ERC4626, IFleetCommander) collectTip returns (uint256) {
         _validateWithdraw(assets, owner);
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -86,8 +86,6 @@ contract FleetCommander is
             bufferArk.totalAssets()
         );
 
-        // Accrue tip after withdrawal to maintain accuracy of prior convertToShares calculation
-        _accrueTip();
         return assets;
     }
 
@@ -117,7 +115,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public override(IFleetCommander) returns (uint256) {
+    ) public override(IFleetCommander) collectTip returns (uint256) {
         _validateForceWithdraw(assets, owner);
         uint256 totalSharesToWithdraw = previewWithdraw(assets);
         address[] memory sortedArks = _getSortedArks();

@@ -83,9 +83,8 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Sets a new tip jar address
-     * @param newTipJar The new fee address
      */
-    function setTipJar(address newTipJar) external;
+    function setTipJar() external;
 
     /**
      * @notice Sets a new tip rate
