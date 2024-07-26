@@ -70,3 +70,21 @@ export class VaultDetails {
     this.protocol = protocol
   }
 }
+
+export class ArkDetails {
+  arkId: string
+  vaultId: string
+  inputTokenBalance: BigInt
+  totalValueLockedUSD: BigDecimal
+  constructor(
+    arkId: string,
+    vaultId: string,
+    inputTokenBalance: BigInt,
+    totalValueLockedUSD: BigDecimal,
+  ) {
+    this.arkId = arkId
+    this.vaultId = vaultId
+    this.inputTokenBalance = inputTokenBalance
+    this.totalValueLockedUSD = totalValueLockedUSD
+  }
+}

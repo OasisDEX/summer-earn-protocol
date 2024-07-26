@@ -1,4 +1,4 @@
-import { Address, ethereum, log } from '@graphprotocol/graph-ts'
+import { Address, ethereum } from '@graphprotocol/graph-ts'
 import { BigDecimalConstants } from '../../common/constants'
 import { getOrCreateVault } from '../../common/initializers'
 import { getAprForTimePeriod } from '../../common/utils'
@@ -6,8 +6,11 @@ import { VaultDetails } from '../../types'
 
 export function updateVault(vaultDetails: VaultDetails, block: ethereum.Block): void {
   const vault = getOrCreateVault(Address.fromString(vaultDetails.vaultId), block)
-  let previousPricePerShare = vault.pricePerShare;
-  if (!previousPricePerShare || previousPricePerShare && previousPricePerShare.equals(BigDecimalConstants.ZERO)) {
+  let previousPricePerShare = vault.pricePerShare
+  if (
+    !previousPricePerShare ||
+    (previousPricePerShare && previousPricePerShare.equals(BigDecimalConstants.ZERO))
+  ) {
     previousPricePerShare = BigDecimalConstants.ONE
   }
   const deltaTime = block.timestamp.minus(vault.lastUpdateTimestamp).toBigDecimal()

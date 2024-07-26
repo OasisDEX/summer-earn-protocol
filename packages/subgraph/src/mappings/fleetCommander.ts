@@ -1,11 +1,12 @@
 import { BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Account, Vault } from '../../generated/schema'
 import {
+  ArkAdded,
   Deposit as DepositEvent,
   Rebalanced,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { getOrCreateAccount, getOrCreateVault } from '../common/initializers'
+import { getOrCreateAccount, getOrCreateArk, getOrCreateVault } from '../common/initializers'
 import { formatAmount } from '../common/utils'
 import { VaultAndPositionDetails } from '../types'
 import { getPositionDetails } from '../utils/position'
@@ -21,6 +22,10 @@ export function handleRebalanced(event: Rebalanced): void {
   const vaultDetails = getVaultDetails(event.address, event.block.number, vault)
 
   updateVault(vaultDetails, event.block)
+}
+
+export function handleArkAdded(event: ArkAdded): void {
+  getOrCreateArk(event.address, event.params.ark, event.block)
 }
 
 export function handleDeposit(event: DepositEvent): void {

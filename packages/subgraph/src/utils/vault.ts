@@ -1,4 +1,4 @@
-import { Address, BigInt, log } from '@graphprotocol/graph-ts'
+import { Address, BigInt } from '@graphprotocol/graph-ts'
 import { Vault } from '../../generated/schema'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import * as constants from '../common/constants'
@@ -25,7 +25,10 @@ export function getVaultDetails(
 
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(vault.inputToken), blockNumber)
-  const pricePerShare = totalSupply.toBigDecimal() == constants.BigDecimalConstants.ZERO ? constants.BigDecimalConstants.ONE : totalAssets.toBigDecimal().div(totalSupply.toBigDecimal())
+  const pricePerShare =
+    totalSupply.toBigDecimal() == constants.BigDecimalConstants.ZERO
+      ? constants.BigDecimalConstants.ONE
+      : totalAssets.toBigDecimal().div(totalSupply.toBigDecimal())
   const outputTokenPriceUSD = pricePerShare.times(inputTokenPriceUSD.price)
   return new VaultDetails(
     vault.id,

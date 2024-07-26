@@ -2,17 +2,22 @@ import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { ERC20 as ERC20Contract } from '../../generated/FleetCommanderFactory/ERC20'
 import {
   Account,
+  Ark,
+  ArkDailySnapshot,
+  ArkHourlySnapshot,
   FinancialsDailySnapshot,
   Position,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
   VaultDailySnapshot,
+  VaultFee,
   VaultHourlySnapshot,
   Vault as VaultStore,
   YieldAggregator,
 } from '../../generated/schema'
-import { FleetCommanderTemplate } from '../../generated/templates'
+import { ArkTemplate, FleetCommanderTemplate } from '../../generated/templates'
+import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import * as constants from './constants'
 import * as utils from './utils'
@@ -188,7 +193,12 @@ export function getOrCreateVaultsDailySnapshots(
   const vault = getOrCreateVault(vaultAddress, block)
   const previousId: string = vault.id
     .concat('-')
-    .concat(((block.timestamp.toI64() - constants.SECONDS_PER_DAY) / constants.SECONDS_PER_DAY).toString())
+    .concat(
+      (
+        (block.timestamp.toI64() - constants.SECONDS_PER_DAY) /
+        constants.SECONDS_PER_DAY
+      ).toString(),
+    )
   const previousSnapshot = VaultDailySnapshot.load(previousId)
 
   const id: string = vault.id
@@ -215,10 +225,10 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.apr = !previousSnapshot
       ? constants.BIGDECIMAL_ZERO
       : utils.getAprForTimePeriod(
-        previousSnapshot.pricePerShare!,
-        vault.pricePerShare!,
-        constants.BigDecimalConstants.DAY_IN_SECONDS,
-      )
+          previousSnapshot.pricePerShare!,
+          vault.pricePerShare!,
+          constants.BigDecimalConstants.DAY_IN_SECONDS,
+        )
     vaultSnapshots.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -233,7 +243,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
   }
-  ; ``
+  ;``
 
   return vaultSnapshots
 }
@@ -248,7 +258,12 @@ export function getOrCreateVaultsHourlySnapshots(
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
   const previousId = vault.id
     .concat('-')
-    .concat(((block.timestamp.toI64() - constants.SECONDS_PER_HOUR) / constants.SECONDS_PER_HOUR).toString())
+    .concat(
+      (
+        (block.timestamp.toI64() - constants.SECONDS_PER_HOUR) /
+        constants.SECONDS_PER_HOUR
+      ).toString(),
+    )
   const previousSnapshot = VaultHourlySnapshot.load(previousId)
   let vaultSnapshots = VaultHourlySnapshot.load(id)
 
@@ -271,10 +286,10 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.apr = !previousSnapshot
       ? constants.BIGDECIMAL_ZERO
       : utils.getAprForTimePeriod(
-        previousSnapshot.pricePerShare!,
-        vault.pricePerShare!,
-        constants.BigDecimalConstants.HOUR_IN_SECONDS,
-      )
+          previousSnapshot.pricePerShare!,
+          vault.pricePerShare!,
+          constants.BigDecimalConstants.HOUR_IN_SECONDS,
+        )
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -340,11 +355,10 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     utils.createFeeType(performanceFeeId, constants.VaultFeeType.PERFORMANCE_FEE, performanceFee)
 
     vault.fees = [managementFeeId, performanceFeeId]
-
+    vault.arksArray = []
     vault.save()
 
     FleetCommanderTemplate.create(vaultAddress)
-
 
     const yeildAggregator = getOrCreateYieldAggregator()
     const vaultsArray = yeildAggregator.vaultsArray
@@ -355,4 +369,188 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
   }
 
   return vault
+}
+
+export function getOrCreateArk(
+  vaultAddress: Address,
+  arkAddress: Address,
+  block: ethereum.Block,
+): Ark {
+  let ark = Ark.load(arkAddress.toHexString())
+
+  if (!ark) {
+    ark = new Ark(arkAddress.toHexString())
+    const vault = getOrCreateVault(vaultAddress, block)
+    const arkContract = ArkContract.bind(arkAddress)
+    ark.name = 'Ark'
+    ark.symbol = ''
+    ark.vault = vaultAddress.toHexString()
+    ark.depositLimit = utils.readValue<BigInt>(
+      arkContract.try_depositCap(),
+      constants.BigIntConstants.ZERO,
+    )
+
+    ark.inputToken = vault.inputToken
+    ark.inputTokenBalance = constants.BigIntConstants.ZERO
+
+    ark.createdBlockNumber = block.number
+    ark.createdTimestamp = block.timestamp
+
+    ark.totalValueLockedUSD = constants.BIGDECIMAL_ZERO
+
+    ark.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    ark.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    ark.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    ark.apr = constants.BIGDECIMAL_ZERO
+    ark.lastUpdateTimestamp = block.timestamp
+
+    const managementFeeId =
+      utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + arkAddress.toHexString()
+    const managementFee = new VaultFee(managementFeeId)
+    managementFee.feeType = constants.VaultFeeType.MANAGEMENT_FEE
+    managementFee.feePercentage = constants.BIGDECIMAL_ZERO
+    managementFee.save()
+
+    const performanceFeeId =
+      utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) + arkAddress.toHexString()
+    const performanceFee = new VaultFee(performanceFeeId)
+    performanceFee.feeType = constants.VaultFeeType.PERFORMANCE_FEE
+    performanceFee.feePercentage = constants.BIGDECIMAL_ZERO
+    performanceFee.save()
+
+    ark.fees = [managementFeeId, performanceFeeId]
+
+    // Initialize arrays
+    ark.rewardTokens = []
+    ark.rewardTokenEmissionsAmount = []
+    ark.rewardTokenEmissionsUSD = []
+
+    ark.save()
+
+    const arksArray = vault.arksArray
+    arksArray.push(ark.id)
+    vault.arksArray = arksArray
+    vault.save()
+    ArkTemplate.create(arkAddress)
+  }
+
+  return ark
+}
+
+export function getOrCreateArksHourlySnapshots(
+  vaultAddress: Address,
+  arkAddress: Address,
+  block: ethereum.Block,
+): ArkHourlySnapshot {
+  const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+  const id: string = ark.id
+    .concat('-')
+    .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
+  const previousId = ark.id
+    .concat('-')
+    .concat(
+      (
+        (block.timestamp.toI64() - constants.SECONDS_PER_HOUR) /
+        constants.SECONDS_PER_HOUR
+      ).toString(),
+    )
+  const previousSnapshot = ArkHourlySnapshot.load(previousId)
+  let arkSnapshots = ArkHourlySnapshot.load(id)
+
+  if (!arkSnapshots) {
+    const arkContract = ArkContract.bind(arkAddress)
+    arkSnapshots = new ArkHourlySnapshot(id)
+    arkSnapshots.protocol = ark.vault
+    arkSnapshots.vault = ark.vault
+    arkSnapshots.ark = ark.id
+
+    arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
+    arkSnapshots.inputTokenBalance = ark.inputTokenBalance
+    arkSnapshots.outputTokenSupply = constants.BigIntConstants.ZERO
+    arkSnapshots.outputTokenPriceUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.pricePerShare = constants.BIGDECIMAL_ZERO
+    arkSnapshots.apr = arkContract
+      .rate()
+      .toBigDecimal()
+      .div(constants.BigDecimalConstants.RAY)
+      .times(constants.BigDecimalConstants.HUNDRED)
+    arkSnapshots.hourlySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.cumulativeSupplySideRevenueUSD = ark.cumulativeSupplySideRevenueUSD
+
+    arkSnapshots.hourlyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.cumulativeProtocolSideRevenueUSD = ark.cumulativeProtocolSideRevenueUSD
+
+    arkSnapshots.hourlyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.cumulativeTotalRevenueUSD = ark.cumulativeTotalRevenueUSD
+
+    arkSnapshots.stakedOutputTokenAmount = constants.BigIntConstants.ZERO
+    arkSnapshots.rewardTokenEmissionsAmount = []
+    arkSnapshots.rewardTokenEmissionsUSD = []
+
+    arkSnapshots.blockNumber = block.number
+    arkSnapshots.timestamp = block.timestamp
+    arkSnapshots.save()
+  }
+
+  return arkSnapshots
+}
+
+export function getOrCreateArksDailySnapshots(
+  vaultAddress: Address,
+  arkAddress: Address,
+  block: ethereum.Block,
+): ArkDailySnapshot {
+  const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+  const previousId: string = ark.id
+    .concat('-')
+    .concat(
+      (
+        (block.timestamp.toI64() - constants.SECONDS_PER_DAY) /
+        constants.SECONDS_PER_DAY
+      ).toString(),
+    )
+  const previousSnapshot = ArkDailySnapshot.load(previousId)
+
+  const id: string = ark.id
+    .concat('-')
+    .concat((block.timestamp.toI64() / constants.SECONDS_PER_DAY).toString())
+  let arkSnapshots = ArkDailySnapshot.load(id)
+
+  if (!arkSnapshots) {
+    const arkContract = ArkContract.bind(arkAddress)
+    arkSnapshots = new ArkDailySnapshot(id)
+    arkSnapshots.protocol = ark.vault
+    arkSnapshots.vault = ark.vault
+    arkSnapshots.ark = ark.id
+
+    arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
+    arkSnapshots.inputTokenBalance = ark.inputTokenBalance
+    arkSnapshots.outputTokenSupply = constants.BigIntConstants.ZERO
+    arkSnapshots.outputTokenPriceUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.pricePerShare = constants.BIGDECIMAL_ZERO
+    arkSnapshots.apr = arkContract
+      .rate()
+      .toBigDecimal()
+      .div(constants.BigDecimalConstants.RAY)
+      .times(constants.BigDecimalConstants.HUNDRED)
+    arkSnapshots.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.cumulativeSupplySideRevenueUSD = ark.cumulativeSupplySideRevenueUSD
+
+    arkSnapshots.dailyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.cumulativeProtocolSideRevenueUSD = ark.cumulativeProtocolSideRevenueUSD
+
+    arkSnapshots.dailyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.cumulativeTotalRevenueUSD = ark.cumulativeTotalRevenueUSD
+
+    arkSnapshots.stakedOutputTokenAmount = constants.BigIntConstants.ZERO
+    arkSnapshots.rewardTokenEmissionsAmount = []
+    arkSnapshots.rewardTokenEmissionsUSD = []
+
+    arkSnapshots.blockNumber = block.number
+    arkSnapshots.timestamp = block.timestamp
+
+    arkSnapshots.save()
+  }
+
+  return arkSnapshots
 }
