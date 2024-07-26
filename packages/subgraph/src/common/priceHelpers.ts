@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, dataSource, log } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, dataSource, ethereum, log } from '@graphprotocol/graph-ts'
 import { TokenPrice as TokenPriceEntity } from '../../generated/schema'
 import { addresses, getOneInchOracle, services } from './addressProvider'
 import { BigDecimalConstants, BigIntConstants } from './constants'
@@ -14,23 +14,23 @@ export class TokenPrice {
   }
 }
 
-export function getTokenPriceInUSD(tokenAddress: Address, blockNumber: BigInt): TokenPrice {
+export function getTokenPriceInUSD(tokenAddress: Address, block: ethereum.Block): TokenPrice {
   const token = getOrCreateToken(tokenAddress)
   let existingPrice = TokenPriceEntity.load(tokenAddress)
   if (existingPrice == null) {
     existingPrice = new TokenPriceEntity(tokenAddress)
-  } else if (existingPrice && existingPrice.blockNumber.equals(blockNumber)) {
+  } else if (existingPrice && existingPrice.blockNumber.equals(block.number)) {
     return new TokenPrice(existingPrice.price, existingPrice.oracle)
   }
-  const price = _getTokenPriceInUSD(tokenAddress, blockNumber)
+  const price = _getTokenPriceInUSD(tokenAddress, block.number)
   existingPrice.price = price.price
   existingPrice.oracle = price.oracle
-  existingPrice.blockNumber = blockNumber
+  existingPrice.blockNumber = block.number
   existingPrice.token = tokenAddress.toHexString()
   existingPrice.save()
 
   token.lastPriceUSD = price.price
-  token.lastPriceBlockNumber = blockNumber
+  token.lastPriceBlockNumber = block.number
   token.save()
 
   return new TokenPrice(existingPrice.price, existingPrice.oracle)

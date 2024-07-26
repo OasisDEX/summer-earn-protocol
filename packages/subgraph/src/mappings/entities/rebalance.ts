@@ -1,4 +1,4 @@
-import { Address, BigInt } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Rebalance, Vault } from '../../../generated/schema'
 import { Rebalanced as RebalancedEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { getOrCreateToken } from '../../common/initializers'
@@ -8,7 +8,7 @@ import { formatAmount } from '../../common/utils'
 export function createRebalanceEventEntity(
   event: RebalancedEvent,
   vault: Vault,
-  blockNumber: BigInt,
+  block: ethereum.Block,
 ): void {
   const rebalances = event.params.rebalances
   const inputTokenAddress = Address.fromString(vault.inputToken)
@@ -20,7 +20,7 @@ export function createRebalanceEventEntity(
     const amount = rebalances[i].amount
     const normalizedAmount = formatAmount(amount, BigInt.fromI32(inputToken.decimals))
     const normalizedAmountUSD = normalizedAmount.times(
-      getTokenPriceInUSD(inputTokenAddress, blockNumber).price,
+      getTokenPriceInUSD(inputTokenAddress, block).price,
     )
     const rebalance = rebalances[i]
     rebalanceEntity.amount = rebalance.amount

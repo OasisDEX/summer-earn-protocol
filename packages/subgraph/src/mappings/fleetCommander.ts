@@ -1,5 +1,5 @@
 import { BigInt, ethereum } from '@graphprotocol/graph-ts'
-import { Account, Vault } from '../../generated/schema'
+import { Account } from '../../generated/schema'
 import {
   ArkAdded,
   Deposit as DepositEvent,
@@ -19,12 +19,10 @@ import { createWithdrawEventEntity } from './entities/withdraw'
 
 export function handleRebalanced(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
-
-  const vaultDetails = getVaultDetails(event.address, event.block.number, vault)
+  const vaultDetails = getVaultDetails(event.address, event.block)
 
   updateVault(vaultDetails, event.block)
-
-  createRebalanceEventEntity(event, vault, event.block.number)
+  createRebalanceEventEntity(event, vault, event.block)
 }
 
 export function handleArkAdded(event: ArkAdded): void {
@@ -32,11 +30,9 @@ export function handleArkAdded(event: ArkAdded): void {
 }
 
 export function handleDeposit(event: DepositEvent): void {
-  const vault = getOrCreateVault(event.address, event.block)
   const account = getOrCreateAccount(event.params.sender.toHexString())
 
-  const result = getAndUpdateVaultAndPositionDetails(event, vault, account)
-
+  const result = getAndUpdateVaultAndPositionDetails(event, account, event.block)
   const amount = event.params.assets
   const normalizedAmount = formatAmount(
     amount,
@@ -48,11 +44,9 @@ export function handleDeposit(event: DepositEvent): void {
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
-  const vault = getOrCreateVault(event.address, event.block)
   const account = getOrCreateAccount(event.params.sender.toHexString())
 
-  const result = getAndUpdateVaultAndPositionDetails(event, vault, account)
-
+  const result = getAndUpdateVaultAndPositionDetails(event, account, event.block)
   const amount = event.params.assets
   const normalizedAmount = formatAmount(
     amount,
@@ -65,20 +59,20 @@ export function handleWithdraw(event: WithdrawEvent): void {
 
 function getVaultAndPositionDetails(
   event: ethereum.Event,
-  vault: Vault,
   account: Account,
+  block: ethereum.Block,
 ): VaultAndPositionDetails {
-  const vaultDetails = getVaultDetails(event.address, event.block.number, vault)
+  const vaultDetails = getVaultDetails(event.address, block)
   const positionDetails = getPositionDetails(event, account, vaultDetails)
   return { vaultDetails: vaultDetails, positionDetails: positionDetails }
 }
 
 function getAndUpdateVaultAndPositionDetails(
   event: ethereum.Event,
-  vault: Vault,
   account: Account,
+  block: ethereum.Block,
 ): VaultAndPositionDetails {
-  const result = getVaultAndPositionDetails(event, vault, account)
+  const result = getVaultAndPositionDetails(event, account, block)
 
   updateVault(result.vaultDetails, event.block)
   updatePosition(result.positionDetails, event.block)

@@ -1,18 +1,14 @@
-import { Address, BigInt } from '@graphprotocol/graph-ts'
-import { Vault } from '../../generated/schema'
+import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import * as constants from '../common/constants'
-import { getOrCreateToken } from '../common/initializers'
+import { getOrCreateToken, getOrCreateVault } from '../common/initializers'
 import { getTokenPriceInUSD } from '../common/priceHelpers'
 import * as utils from '../common/utils'
 import { formatAmount } from '../common/utils'
 import { VaultDetails } from '../types'
 
-export function getVaultDetails(
-  vaultAddress: Address,
-  blockNumber: BigInt,
-  vault: Vault,
-): VaultDetails {
+export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): VaultDetails {
+  const vault = getOrCreateVault(vaultAddress, block)
   const vaultContract = FleetCommanderContract.bind(vaultAddress)
   const totalAssets = utils.readValue<BigInt>(
     vaultContract.try_totalAssets(),
@@ -24,7 +20,7 @@ export function getVaultDetails(
   )
 
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
-  const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(vault.inputToken), blockNumber)
+  const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(vault.inputToken), block)
   const pricePerShare =
     totalSupply.toBigDecimal() == constants.BigDecimalConstants.ZERO
       ? constants.BigDecimalConstants.ONE
