@@ -24,7 +24,7 @@ contract MetaMorphoArkDeploy is ArkDeploymentScript {
             token: arkAssetToken,
             maxAllocation: maxAllocation
         });
-        IArk ark = new MetaMorphoArk(config.metaMorpho.steakhouseUsdc, params);
+        Ark ark = new MetaMorphoArk(config.metaMorpho.steakhouseUsdc, params);
         updateAddressInConfig(
             network,
             "metamorphoSteakhouseUsdcArk",

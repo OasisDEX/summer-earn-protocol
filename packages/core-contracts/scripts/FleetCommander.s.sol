@@ -8,7 +8,7 @@ import {IFleetCommander} from "../src/interfaces/IFleetCommander.sol";
 import {FleetCommanderParams} from "../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 import {DeploymentScript} from "./DeploymentScript.s.sol";
-
+import "../src/interfaces/IArk.sol";
 contract FleetCommanderDeploy is DeploymentScript {
     using stdJson for string;
 
@@ -51,11 +51,12 @@ contract FleetCommanderDeploy is DeploymentScript {
         IFleetCommander commander = new FleetCommander(params);
         console.log("Deployed Fleet Commander Address");
         console.log(address(commander));
-        updateAddressInConfig(
-            network,
-            "fleetCommander",
-            address(commander)
-        );
+
+        for (uint256 i = 0; i < initialArks.length; i++) {
+            IArk(initialArks[i]).grantCommanderRole(address(commander));
+        }
+        IArk(config.bufferArk).grantCommanderRole(address(commander));
+        updateAddressInConfig(network, "fleetCommander", address(commander));
         vm.stopBroadcast();
     }
 

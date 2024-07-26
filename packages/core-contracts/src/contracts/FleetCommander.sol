@@ -292,9 +292,6 @@ contract FleetCommander is
         address ark,
         uint256 newMaxAllocation
     ) external onlyGovernor {
-        if (newMaxAllocation == 0) {
-            revert FleetCommanderArkMaxAllocationZero(ark);
-        }
         if (!_isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }

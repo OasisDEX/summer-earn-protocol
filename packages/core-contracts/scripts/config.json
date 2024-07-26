@@ -29,7 +29,7 @@
     },
     "morpho": {
       "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-      "usdcMarketId": "0x3b3769cfca57be2eaed03fcc5299c25691b77781a1e124e7a8d520eb9a7eabb5"
+      "usdcMarketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
     },
     "metaMorpho": {
       "steakhouseUsdc": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
@@ -41,6 +41,6 @@
     "harborCommand": "0xA31FEEaF66BE08D924F59162592d03D5d7bcaf26",
     "bufferArk": "0x240Dd25a99aD709e3c3726153a1F6ECDE99B5D1D",
     "metamorphoSteakhouseUsdcArk": "0xc23f69b4c3c464b3f11F46e9f9A375953d845839",
-    "morphoUsdcArk": "0x56A1B7Cc671705103B852756beA3c22D914bD722"
+    "morphoUsdcArk": "0xA7651360Bb2f8f43511017838B3B123520dE39CA"
   }
 }
