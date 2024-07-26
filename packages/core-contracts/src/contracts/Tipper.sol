@@ -155,7 +155,6 @@ abstract contract Tipper is ITipper {
         uint256 half = base / 2;
 
         // Step 4: Main loop - Square-and-multiply algorithm
-        // coverage-ignore-start
         assembly {
             n := div(n, 2)
 
@@ -193,6 +192,5 @@ abstract contract Tipper is ITipper {
                 n := div(n, 2)
             }
         }
-        // coverage-ignore-end
     }
 }
