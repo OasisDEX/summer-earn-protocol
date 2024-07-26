@@ -53,7 +53,8 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(dai)
+            token: address(dai),
+            maxAllocation: type(uint256).max
         });
 
         ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);

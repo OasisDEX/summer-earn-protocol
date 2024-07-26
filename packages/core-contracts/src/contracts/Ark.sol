@@ -16,7 +16,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     using SafeERC20 for IERC20;
 
     address public raft;
-    uint256 public depositCap;
+    uint256 public maxAllocation;
     IERC20 public token;
 
     constructor(
@@ -25,6 +25,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
         IConfigurationManager manager = IConfigurationManager(
             _params.configurationManager
         );
+        maxAllocation = _params.maxAllocation;
         raft = manager.raft();
         token = IERC20(_params.token);
     }
@@ -55,11 +56,19 @@ abstract contract Ark is IArk, ArkAccessManaged {
         emit Boarded(msg.sender, address(token), amount);
     }
 
-    function disembark(uint256 amount) external onlyCommander {
+    function disembark(
+        uint256 amount,
+        address receiver
+    ) external onlyCommander {
         _disembark(amount);
-        token.safeTransfer(msg.sender, amount);
+        token.safeTransfer(receiver, amount);
 
-        emit Disembarked(msg.sender, address(token), amount);
+        emit Disembarked(receiver, address(token), amount);
+    }
+
+    function setMaxAllocation(uint256 newMaxAllocation) external onlyCommander {
+        maxAllocation = newMaxAllocation;
+        emit MaxAllocationUpdated(newMaxAllocation);
     }
 
     function boardFromRaft(uint256 amount) external onlyRaft {
@@ -70,8 +79,6 @@ abstract contract Ark is IArk, ArkAccessManaged {
     }
 
     /* EXTERNAL - GOVERNANCE */
-    function setDepositCap(uint256 newCap) external onlyGovernor {}
-
     function setRaft(address newRaft) external onlyGovernor {}
 
     /* INTERNAL */
