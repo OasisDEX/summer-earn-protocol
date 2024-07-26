@@ -99,7 +99,7 @@ templates:
         - event: Rebalanced(indexed address,(address,address,uint256)[])
           handler: handleRebalance
           receipt: true
-        - event: ArkAdded(indexed address,uint256)
+        - event: ArkAdded(indexed address)
           handler: handleArkAdded
           receipt: true
       file: ./src/mappings/fleetCommander.ts
