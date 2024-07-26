@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
+import {Id} from "morpho-blue/interfaces/IMorpho.sol";
 
 contract DeploymentScript is Script {
     using stdJson for string;
@@ -13,6 +14,7 @@ contract DeploymentScript is Script {
     string public network;
     address public customToken;
     Config public config;
+    string public json;
 
     constructor() {
         (string memory _network, address _customToken) = _getTokenAndNetwork();
@@ -40,12 +42,26 @@ contract DeploymentScript is Script {
         address usdcToken;
         address aaveV3Pool;
         address compoundV3Pool;
+        address harborCommand;
+        address bufferArk;
+        MorphoBlueConfig morphoBlue;
+        MetamorphoConfig metaMorpho;
+    }
+
+    struct MorphoBlueConfig {
+        address blue;
+        Id usdcMarketId;
+    }
+
+    struct MetamorphoConfig {
+        address metamorpho;
+        address steakhouseUsdc;
     }
 
     function _readConfig(
         string memory _network_
-    ) internal view returns (Config memory) {
-        string memory json = vm.readFile("scripts/config.json");
+    ) internal returns (Config memory) {
+        json = vm.readFile("scripts/config.json");
 
         Config memory _config;
         _config.governor = _readAddressFromJson(json, _network_, "governor");
@@ -71,17 +87,44 @@ contract DeploymentScript is Script {
             _network_,
             "compound.usdcToken"
         );
-
+        _config.harborCommand = _readAddressFromJson(
+            json,
+            _network_,
+            "harborCommand"
+        );
+        _config.morphoBlue.blue = _readAddressFromJson(
+            json,
+            _network_,
+            "morpho.blue"
+        );
+        _config.morphoBlue.usdcMarketId = Id.wrap(
+            _readBytes32FromJson(json, _network_, "morpho.usdcMarketId")
+        );
+        _config.metaMorpho.steakhouseUsdc = _readAddressFromJson(
+            json,
+            _network_,
+            "metaMorpho.steakhouseUsdc"
+        );
+        _config.bufferArk = _readAddressFromJson(json, _network_, "bufferArk");
         return _config;
     }
 
     function _readAddressFromJson(
-        string memory json,
+        string memory _json,
         string memory _network_,
         string memory key
     ) internal pure returns (address) {
         string memory path = string(abi.encodePacked(".", _network_, ".", key));
-        return json.readAddress(path);
+        return _json.readAddress(path);
+    }
+
+    function _readBytes32FromJson(
+        string memory _json,
+        string memory _network_,
+        string memory key
+    ) internal pure returns (bytes32) {
+        string memory path = string(abi.encodePacked(".", _network_, ".", key));
+        return _json.readBytes32(path);
     }
 
     function _getTokenAndNetwork()
@@ -98,5 +141,32 @@ contract DeploymentScript is Script {
         }
 
         return (_network, _customToken);
+    }
+
+    function updateAddressInConfig(
+        string memory _network,
+        string memory _contractName,
+        address _address
+    ) internal {
+        string memory contractKey = getContractKey(_network, _contractName);
+        vm.writeJson(
+            vm.toString(_address),
+            "./scripts/config.json",
+            contractKey
+        );
+    }
+
+    function getContractKey(
+        string memory _network,
+        string memory _contractName
+    ) internal view returns (string memory) {
+        string memory networkKey = string.concat(".", _network);
+        string memory contractKey = string.concat(".", _contractName);
+        return string.concat(networkKey, contractKey);
+    }
+
+    modifier reloadConfig() {
+        _;
+        config = _readConfig(network);
     }
 }

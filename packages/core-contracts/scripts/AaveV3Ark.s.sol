@@ -8,7 +8,8 @@ import {IArk} from "../src/interfaces/IArk.sol";
 import "./ArkDeploymentScript.s.sol";
 
 contract AaveV3ArkDeploy is ArkDeploymentScript {
-    function run() external {
+    function run() external reloadConfig {
+        vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
@@ -24,7 +25,7 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
         });
 
         IArk ark = new AaveV3Ark(config.aaveV3Pool, params);
-
+        updateAddressInConfig(network, "usdcAaveV3Ark", address(ark));
         console.log("Deployed Aave V3 Ark");
         console.log(address(ark));
 

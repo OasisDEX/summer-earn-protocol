@@ -8,7 +8,8 @@ import {IArk} from "../src/interfaces/IArk.sol";
 import "./ArkDeploymentScript.s.sol";
 
 contract CompoundV3ArkDeploy is ArkDeploymentScript {
-    function run() external {
+    function run() external reloadConfig {
+        vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
@@ -24,7 +25,7 @@ contract CompoundV3ArkDeploy is ArkDeploymentScript {
         });
 
         IArk ark = new CompoundV3Ark(config.compoundV3Pool, params);
-
+        updateAddressInConfig(network, "usdcCompoundV3Ark", address(ark));
         console.log("Deployed Compound V3 Ark");
         console.log(address(ark));
 

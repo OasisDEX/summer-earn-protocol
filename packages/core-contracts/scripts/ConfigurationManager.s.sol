@@ -8,15 +8,28 @@ import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes
 import {DeploymentScript} from "./DeploymentScript.s.sol";
 
 contract ConfigurationManagerDeploy is DeploymentScript {
-    function run() external {
+    function run() external reloadConfig {
+        vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
+        if (config.protocolAccessManager == address(0)) {
+            revert("ProtocolAccessManager not deployed");
+        }
+        if (config.configurationManager != address(0)) {
+            revert("ConfigurationManager already deployed");
+        }
 
         IConfigurationManager manager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: config.protocolAccessManager,
-                raft: config.raft
+                raft: config.raft,
+                tipJar: address(0)
             })
+        );
+        updateAddressInConfig(
+            network,
+            "configurationManager",
+            address(manager)
         );
         console.log("Deployed Configuration Manager Address");
         console.log(address(manager));

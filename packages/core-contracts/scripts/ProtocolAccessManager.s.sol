@@ -8,12 +8,20 @@ import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes
 import {DeploymentScript} from "./DeploymentScript.s.sol";
 
 contract ProtocolAccessManagerDeploy is DeploymentScript {
-    function run() external {
+    function run() external reloadConfig {
+        vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
-
+        if (config.protocolAccessManager != address(0)) {
+            revert("ProtocolAccessManager already deployed");
+        }
         IProtocolAccessManager manager = new ProtocolAccessManager(
             config.governor
+        );
+        updateAddressInConfig(
+            network,
+            "protocolAccessManager",
+            address(manager)
         );
         console.log("Deployed Protocol Access Manager Address");
         console.log(address(manager));

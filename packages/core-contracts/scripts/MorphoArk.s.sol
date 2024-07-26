@@ -9,7 +9,8 @@ import "./ArkDeploymentScript.s.sol";
 import {MorphoArk} from "../src/contracts/arks/MorphoArk.sol";
 
 contract MorphoArkDeploy is ArkDeploymentScript {
-    function run() external {
+    function run() external reloadConfig {
+        vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
@@ -24,8 +25,12 @@ contract MorphoArkDeploy is ArkDeploymentScript {
             maxAllocation: maxAllocation
         });
 
-        IArk ark = new MorphoArk(config.morpho, config.usdcMarketId, params);
-
+        IArk ark = new MorphoArk(
+            config.morphoBlue.blue,
+            config.morphoBlue.usdcMarketId,
+            params
+        );
+        updateAddressInConfig(network, "morphoUsdcArk", address(ark));
         console.log("Deployed Morpho Ark");
         console.log(address(ark));
 

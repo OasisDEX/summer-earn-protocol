@@ -9,7 +9,8 @@ import "./ArkDeploymentScript.s.sol";
 import {MetaMorphoArk} from "../src/contracts/arks/MetaMorphoArk.sol";
 
 contract MetaMorphoArkDeploy is ArkDeploymentScript {
-    function run() external {
+    function run() external reloadConfig {
+        vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
@@ -23,9 +24,12 @@ contract MetaMorphoArkDeploy is ArkDeploymentScript {
             token: arkAssetToken,
             maxAllocation: maxAllocation
         });
-
-        IArk ark = new MetaMorphoArk(config.metaMorpho.steakhouseUsdc,  params);
-
+        IArk ark = new MetaMorphoArk(config.metaMorpho.steakhouseUsdc, params);
+        updateAddressInConfig(
+            network,
+            "metamorphoSteakhouseUsdcArk",
+            address(ark)
+        );
         console.log("Deployed MetaMorpho Ark");
         console.log(address(ark));
 

@@ -3,8 +3,10 @@
     "fleetName": "FleetCommander_BaseUSDC_Test",
     "symbol": "FCBUSD",
     "arks": [
-      "0x675b2F51FAe37801a70aA4D335AB1f4Adc443Fd1",
-      // ... fill in ark addresses
+      "0x0ecA3163f8eDB02DC48FB0e88A62F4c911302280",
+      "0x9496945599bd17f5b2940cb542C49B8BE97563e0",
+      "0x1b6Ab8f2806E849DC136B3066567ED7f30A99748",
+      "0x240Dd25a99aD709e3c3726153a1F6ECDE99B5D1D"
     ]
   }
 }
