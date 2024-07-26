@@ -17,7 +17,7 @@ import { createRebalanceEventEntity } from './entities/rebalance'
 import { updateVault } from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
 
-export function handleRebalanced(event: Rebalanced): void {
+export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
   const vaultDetails = getVaultDetails(event.address, event.block)
 

@@ -14,7 +14,7 @@ import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
 
 export function handleOnce(block: ethereum.Block): void {
-  getOrCreateVault(Address.fromString('0xa09E82322f351154a155f9e0f9e6ddbc8791C794'), block)
+  getOrCreateVault(Address.fromString('0x66b5277938617daAdE875D2913495A8d13cf3045'), block)
 }
 
 function updateArkAndSnapshots(

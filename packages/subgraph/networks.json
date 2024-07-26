@@ -2,7 +2,7 @@
   "base": {
     "FleetCommanderFactory": {
       "address": "0xa09E82322f351154a155f9e0f9e6ddbc8791C794",
-      "startBlock": 16874027
+      "startBlock": 17615848
     }
   },
   "mainnet": {
