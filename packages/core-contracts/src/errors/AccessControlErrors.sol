@@ -5,6 +5,7 @@ error CallerIsNotGovernor(address caller);
 error CallerIsNotKeeper(address caller);
 error CallerIsNotSuperKeeper(address caller);
 error CallerIsNotCommander(address caller);
+error CallerIsNotRaftOrCommander(address caller);
 error CallerIsNotRaft(address caller);
 error CallerIsNotAdmin(address caller);
 error DirectGrantIsDisabled(address caller);

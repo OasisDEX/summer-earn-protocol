@@ -163,7 +163,7 @@ contract RaftTest is Test, IRaftEvents {
             abi.encode(BALANCE_AFTER_SWAP)
         );
 
-        // Mock Ark token and boardFromRaft calls
+        // Mock Ark token and board calls
         vm.mockCall(
             mockArk,
             abi.encodeWithSelector(IArk.token.selector),
@@ -171,10 +171,7 @@ contract RaftTest is Test, IRaftEvents {
         );
         vm.mockCall(
             mockArk,
-            abi.encodeWithSelector(
-                IArk.boardFromRaft.selector,
-                BALANCE_AFTER_SWAP
-            ),
+            abi.encodeWithSelector(IArk.board.selector, BALANCE_AFTER_SWAP),
             abi.encode()
         );
 

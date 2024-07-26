@@ -49,7 +49,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     function harvest(address rewardToken) external virtual returns (uint256) {}
 
     /* EXTERNAL - COMMANDER */
-    function board(uint256 amount) external onlyCommander {
+    function board(uint256 amount) external onlyRaftOrCommander {
         token.safeTransferFrom(msg.sender, address(this), amount);
         _board(amount);
 
@@ -69,13 +69,6 @@ abstract contract Ark is IArk, ArkAccessManaged {
     function setMaxAllocation(uint256 newMaxAllocation) external onlyCommander {
         maxAllocation = newMaxAllocation;
         emit MaxAllocationUpdated(newMaxAllocation);
-    }
-
-    function boardFromRaft(uint256 amount) external onlyRaft {
-        token.safeTransferFrom(raft, address(this), amount);
-        _board(amount);
-
-        emit Boarded(raft, address(token), amount);
     }
 
     /* EXTERNAL - GOVERNANCE */

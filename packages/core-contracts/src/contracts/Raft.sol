@@ -120,7 +120,7 @@ contract Raft is IRaft, ArkAccessManaged {
 
         uint256 balance = IArk(ark).token().balanceOf(address(this));
         IERC20(IArk(ark).token()).approve(ark, balance);
-        IArk(ark).boardFromRaft(balance);
+        IArk(ark).board(balance);
 
         harvestedRewards[ark][rewardToken] = 0;
 

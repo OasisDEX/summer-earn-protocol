@@ -6,6 +6,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import "../errors/AccessControlErrors.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
+import {IArk} from "../interfaces/IArk.sol";
 
 /**
  * @title ArkAccessControl
@@ -35,6 +36,19 @@ contract ArkAccessManaged is
     modifier onlyCommander() {
         if (!hasRole(_accessManager.COMMANDER_ROLE(), msg.sender)) {
             revert CallerIsNotCommander(msg.sender);
+        }
+        _;
+    }
+
+    /**
+     * @dev Modifier to check that the caller has the Commander role
+     */
+    modifier onlyRaftOrCommander() {
+        if (
+            !hasRole(_accessManager.COMMANDER_ROLE(), msg.sender) &&
+            msg.sender != IArk(address(this)).raft()
+        ) {
+            revert CallerIsNotRaftOrCommander(msg.sender);
         }
         _;
     }

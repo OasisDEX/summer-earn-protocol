@@ -15,13 +15,24 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 interface IArk is IArkAccessManaged, IArkEvents {
     /* FUNCTIONS - PUBLIC */
-    function token() external view returns (IERC20);
+
+    /**
+     * @notice Returns the address of the associated Raft contract
+     * @return The address of the Raft contract
+     */
+    function raft() external view returns (address);
 
     /**
      * @notice Returns the maximum allocation for this Ark
      * @return The maximum allocation amount
      */
     function maxAllocation() external view returns (uint256);
+
+    /**
+     * @notice Returns the ERC20 token managed by this Ark
+     * @return The IERC20 interface of the managed token
+     */
+    function token() external view returns (IERC20);
 
     /**
      * @notice Returns the current underlying balance of the Ark
@@ -62,10 +73,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @param newMaxAllocation The new maximum allocation amount
      */
     function setMaxAllocation(uint256 newMaxAllocation) external;
-
-    /* FUNCTIONS - EXTERNAL - RAFT */
-
-    function boardFromRaft(uint256 amount) external;
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
 
