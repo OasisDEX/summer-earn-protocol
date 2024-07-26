@@ -17,7 +17,8 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
 
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
         // Deposit for tests
         mockToken.mint(mockUser, DEPOSIT_AMOUNT);
         vm.startPrank(mockUser);

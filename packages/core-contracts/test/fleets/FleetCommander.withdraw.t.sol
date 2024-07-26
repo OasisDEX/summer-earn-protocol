@@ -27,7 +27,8 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
 
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
 
         // Arrange (Deposit first)
         mockToken.mint(mockUser, DEPOSIT_AMOUNT);
