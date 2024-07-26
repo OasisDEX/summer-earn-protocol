@@ -30,7 +30,10 @@ contract MorphoArkTestFork is Test, IArkEvents {
     address public constant WBTC_ADDRESS =
         0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
 
-    bytes32 public constant MARKET_ID = 0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49;
+    Id public constant MARKET_ID =
+        Id.wrap(
+            0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49
+        );
 
     IMorpho public morpho;
     IERC20 public usdc;
@@ -55,10 +58,6 @@ contract MorphoArkTestFork is Test, IArkEvents {
                 raft: raft
             })
         );
-
-//        console.log("----");
-//        console.logBytes32(bytes32(MARKET_ID));
-//        MarketParams memory marketParams = morpho.idToMarketParams(MARKET_ID);
 
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
@@ -91,7 +90,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
             MORPHO_ADDRESS,
             abi.encodeWithSelector(
                 IMorphoBase.supply.selector,
-                morpho.idToMarketParams(Id.wrap(MARKET_ID)),
+                morpho.idToMarketParams(MARKET_ID),
                 amount,
                 0,
                 address(ark),
@@ -118,7 +117,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         // Warp time to simulate interest accrual
         vm.warp(block.timestamp + 1 days);
 
-        morpho.accrueInterest(morpho.idToMarketParams(Id.wrap(MARKET_ID)));
+        morpho.accrueInterest(morpho.idToMarketParams(MARKET_ID));
 
         uint256 assetsAfterAccrual = ark.totalAssets();
         assertTrue(
@@ -148,7 +147,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
             MORPHO_ADDRESS,
             abi.encodeWithSelector(
                 IMorphoBase.withdraw.selector,
-                morpho.idToMarketParams(Id.wrap(MARKET_ID)),
+                morpho.idToMarketParams(MARKET_ID),
                 amountToWithdraw,
                 0,
                 address(ark),

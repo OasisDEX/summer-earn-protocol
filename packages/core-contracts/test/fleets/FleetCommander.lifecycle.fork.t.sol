@@ -57,10 +57,10 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
     address public constant METAMORPHO_ADDRESS =
         0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB;
-    bytes32 public constant MORPHO_MARKET_ID = 0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49;
-//        Id.wrap(
-//            0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49
-//        );
+    Id public constant MORPHO_MARKET_ID =
+        Id.wrap(
+            0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49
+        );
     uint256 constant FORK_BLOCK = 20376149;
 
     function setUp() public {
@@ -99,13 +99,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             arkParams
         );
 
-//        MarketParams memory morphoMarketParams = morphoContract
-//            .idToMarketParams(MORPHO_MARKET_ID);
-        morphoArk = new MorphoArk(
-            MORPHO_ADDRESS,
-            MORPHO_MARKET_ID,
-            arkParams
-        );
+        morphoArk = new MorphoArk(MORPHO_ADDRESS, MORPHO_MARKET_ID, arkParams);
 
         metaMorphoArk = new MetaMorphoArk(METAMORPHO_ADDRESS, arkParams);
     }
@@ -194,7 +188,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Accrue interest for Morpho
         morphoContract.accrueInterest(
-            morphoContract.idToMarketParams(Id.wrap(MORPHO_MARKET_ID))
+            morphoContract.idToMarketParams(MORPHO_MARKET_ID)
         );
 
         // Check total assets and rates
