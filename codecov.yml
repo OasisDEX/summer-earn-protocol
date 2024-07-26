@@ -1,0 +1,2 @@
+ignore:
+  - "packages/core-contracts/src/contracts/Tipper.sol"
