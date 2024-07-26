@@ -13,6 +13,7 @@ import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
 import { updatePosition } from './entities/position'
+import { createRebalanceEventEntity } from './entities/rebalance'
 import { updateVault } from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
 
@@ -22,6 +23,8 @@ export function handleRebalanced(event: Rebalanced): void {
   const vaultDetails = getVaultDetails(event.address, event.block.number, vault)
 
   updateVault(vaultDetails, event.block)
+
+  createRebalanceEventEntity(event, vault, event.block.number)
 }
 
 export function handleArkAdded(event: ArkAdded): void {

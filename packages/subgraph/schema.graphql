@@ -691,6 +691,129 @@ type ActiveAccount @entity {
 }
 
 # Additional
+
+## Events
+
+type Rebalance @entity @transaction {
+  " { Transaction hash }-{ Log index } "
+  id: ID!
+
+  " Transaction hash of the transaction that emitted this event "
+  hash: String!
+
+  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
+  logIndex: Int!
+
+  " The protocol this transaction belongs to "
+  protocol: YieldAggregator!
+
+  " Ark that we reblance to "
+  to: Ark!
+
+  " Ark that we reblance from "
+  from: Ark!
+
+  " Block number of this event "
+  blockNumber: BigInt!
+
+  " Timestamp of this event "
+  timestamp: BigInt!
+
+  " Token rebalanced "
+  asset: Token!
+
+  " Amount of token deposited in native units "
+  amount: BigInt!
+
+  " Amount of token deposited in USD "
+  amountUSD: BigDecimal!
+
+  " The vault involving this transaction "
+  vault: Vault!
+}
+
+type Board implements Event @entity @transaction {
+  " { Transaction hash }-{ Log index } "
+  id: ID!
+
+  " Transaction hash of the transaction that emitted this event "
+  hash: String!
+
+  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
+  logIndex: Int!
+
+  " The protocol this transaction belongs to "
+  protocol: YieldAggregator!
+
+  " Market that tokens are deposited into "
+  to: String!
+
+  " Address that deposited tokens "
+  from: String!
+
+  " Block number of this event "
+  blockNumber: BigInt!
+
+  " Timestamp of this event "
+  timestamp: BigInt!
+
+  " Token deposited "
+  asset: Token!
+
+  " Amount of token deposited in native units "
+  amount: BigInt!
+
+  " Amount of token deposited in USD "
+  amountUSD: BigDecimal!
+
+  " The vault involving this transaction "
+  vault: Vault!
+
+  ark: Ark!
+}
+
+type Disembark implements Event @entity @transaction {
+  " { Transaction hash }-{ Log index }"
+  id: ID!
+
+  " Transaction hash of the transaction that emitted this event "
+  hash: String!
+
+  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
+  logIndex: Int!
+
+  " The protocol this transaction belongs to "
+  protocol: YieldAggregator!
+
+  " Address that received tokens "
+  to: String!
+
+  " Market that tokens are withdrawn from "
+  from: String!
+
+  " Block number of this event "
+  blockNumber: BigInt!
+
+  " Timestamp of this event "
+  timestamp: BigInt!
+
+  " Token withdrawn "
+  asset: Token!
+
+  " Amount of token withdrawn in native units "
+  amount: BigInt!
+
+  " Amount of token withdrawn in USD "
+  amountUSD: BigDecimal!
+
+  " The vault involving this transaction "
+  vault: Vault!
+
+  ark: Ark!
+}
+## Entities
+
+
 type TokenPrice @entity {
   id: Bytes!
   token: Token!
@@ -802,86 +925,6 @@ type Ark @entity @regularPolling {
   " APR based on revenue between last two snapshots "
   apr: BigDecimal!
   lastUpdateTimestamp: BigInt!
-}
-
-type Board implements Event @entity @transaction {
-  " { Transaction hash }-{ Log index } "
-  id: ID!
-
-  " Transaction hash of the transaction that emitted this event "
-  hash: String!
-
-  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
-  logIndex: Int!
-
-  " The protocol this transaction belongs to "
-  protocol: YieldAggregator!
-
-  " Market that tokens are deposited into "
-  to: String!
-
-  " Address that deposited tokens "
-  from: String!
-
-  " Block number of this event "
-  blockNumber: BigInt!
-
-  " Timestamp of this event "
-  timestamp: BigInt!
-
-  " Token deposited "
-  asset: Token!
-
-  " Amount of token deposited in native units "
-  amount: BigInt!
-
-  " Amount of token deposited in USD "
-  amountUSD: BigDecimal!
-
-  " The vault involving this transaction "
-  vault: Vault!
-
-  ark: Ark!
-}
-
-type Disembark implements Event @entity @transaction {
-  " { Transaction hash }-{ Log index }"
-  id: ID!
-
-  " Transaction hash of the transaction that emitted this event "
-  hash: String!
-
-  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
-  logIndex: Int!
-
-  " The protocol this transaction belongs to "
-  protocol: YieldAggregator!
-
-  " Address that received tokens "
-  to: String!
-
-  " Market that tokens are withdrawn from "
-  from: String!
-
-  " Block number of this event "
-  blockNumber: BigInt!
-
-  " Timestamp of this event "
-  timestamp: BigInt!
-
-  " Token withdrawn "
-  asset: Token!
-
-  " Amount of token withdrawn in native units "
-  amount: BigInt!
-
-  " Amount of token withdrawn in USD "
-  amountUSD: BigDecimal!
-
-  " The vault involving this transaction "
-  vault: Vault!
-
-  ark: Ark!
 }
 
 type ArkDailySnapshot @entity @dailySnapshot {
