@@ -25,7 +25,10 @@
     },
     "morpho": {
       "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-      "usdcMarketId":
+      "usdcMarketId": "0x3b3769cfca57be2eaed03fcc5299c25691b77781a1e124e7a8d520eb9a7eabb5"
+    },
+    "metaMorpho": {
+      "steakhouseUsdc": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
     },
     "usdcAaveV3Ark": "0x675b2F51FAe37801a70aA4D335AB1f4Adc443Fd1",
     "usdcCompoundV3Ark": "0x77554F2077714741E38a229699e0Cc128249CcbB",

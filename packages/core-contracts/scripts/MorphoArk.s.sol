@@ -24,9 +24,9 @@ contract MorphoArkDeploy is ArkDeploymentScript {
             maxAllocation: maxAllocation
         });
 
-        IArk ark = new MorphoArk(config.morpho, config.marketParams, params);
+        IArk ark = new MorphoArk(config.morpho, config.usdcMarketId, params);
 
-        console.log("Deployed Compound V3 Ark");
+        console.log("Deployed Morpho Ark");
         console.log(address(ark));
 
         vm.stopBroadcast();

@@ -2,13 +2,13 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Script.sol";
-import {AaveV3Ark} from "../src/contracts/arks/AaveV3Ark.sol";
+import {CompoundV3Ark} from "../src/contracts/arks/CompoundV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
 import "./ArkDeploymentScript.s.sol";
-import {BufferArk} from "../src/contracts/arks/BufferArk.sol";
+import {MetaMorphoArk} from "../src/contracts/arks/MetaMorphoArk.sol";
 
-contract BufferArkDeploy is ArkDeploymentScript {
+contract MetaMorphoArkDeploy is ArkDeploymentScript {
     function run() external {
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
@@ -24,9 +24,9 @@ contract BufferArkDeploy is ArkDeploymentScript {
             maxAllocation: maxAllocation
         });
 
-        IArk ark = new BufferArk(params);
+        IArk ark = new MetaMorphoArk(config.metaMorpho.steakhouseUsdc,  params);
 
-        console.log("Deployed Buffer Ark");
+        console.log("Deployed MetaMorpho Ark");
         console.log(address(ark));
 
         vm.stopBroadcast();
