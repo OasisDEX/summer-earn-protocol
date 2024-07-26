@@ -98,13 +98,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             arkParams
         );
 
-        MarketParams memory morphoMarketParams = morphoContract
-            .idToMarketParams(MORPHO_MARKET_ID);
-        morphoArk = new MorphoArk(
-            MORPHO_ADDRESS,
-            morphoMarketParams,
-            arkParams
-        );
+        morphoArk = new MorphoArk(MORPHO_ADDRESS, MORPHO_MARKET_ID, arkParams);
 
         metaMorphoArk = new MetaMorphoArk(METAMORPHO_ADDRESS, arkParams);
     }

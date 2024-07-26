@@ -56,8 +56,6 @@ contract MorphoArkTestFork is Test, IArkEvents {
             })
         );
 
-        MarketParams memory marketParams = morpho.idToMarketParams(MARKET_ID);
-
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
@@ -65,7 +63,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
             maxAllocation: type(uint256).max
         });
 
-        ark = new MorphoArk(MORPHO_ADDRESS, marketParams, params);
+        ark = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
 
         // Permissioning
         vm.startPrank(governor);

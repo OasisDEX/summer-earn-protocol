@@ -29,12 +29,12 @@ contract MorphoArk is Ark {
 
     constructor(
         address _morpho,
-        MarketParams memory _marketParams,
+        Id _marketId,
         ArkParams memory _arkParams
     ) Ark(_arkParams) {
         MORPHO = IMorpho(_morpho);
-        marketParams = _marketParams;
-        marketId = _marketParams.id();
+        marketId = _marketId;
+        marketParams = MORPHO.idToMarketParams(_marketId);
     }
 
     function rate() public view override returns (uint256) {
