@@ -9,6 +9,7 @@
     "compound": {
       "usdcToken": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
     },
+    "morpho": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
     "usdcAaveV3Ark": "0x0000000000000000000000000000000000000000",
     "usdcCompoundV3Ark": "0x0000000000000000000000000000000000000000"
   },
@@ -22,8 +23,13 @@
     "compound": {
       "usdcToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
     },
+    "morpho": {
+      "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "usdcMarketId":
+    },
     "usdcAaveV3Ark": "0x675b2F51FAe37801a70aA4D335AB1f4Adc443Fd1",
     "usdcCompoundV3Ark": "0x77554F2077714741E38a229699e0Cc128249CcbB",
-    "usdcFleetCommander_1": "0xa09E82322f351154a155f9e0f9e6ddbc8791C794"
+    "usdcFleetCommander_1": "0xa09E82322f351154a155f9e0f9e6ddbc8791C794",
+    "usdcFleetCommander_test": "0x0"
   }
 }
