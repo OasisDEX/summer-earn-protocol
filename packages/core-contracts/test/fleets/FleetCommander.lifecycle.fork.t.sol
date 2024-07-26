@@ -45,6 +45,10 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address public constant COMPOUND_USDC_COMET_ADDRESS =
         0xc3d688B66703497DAA19211EEdff47f25384cdc3;
+    address public constant COMET_REWARDS =
+        0x1B0e765F6224C21223AeA2af16c1C46E38885a40;
+    address public constant AAVE_V3_REWARDS_CONTROLLER =
+        0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
     uint256 constant FORK_BLOCK = 20276596;
 
     function setUp() public {
@@ -74,9 +78,14 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             token: address(usdcTokenContract),
             maxAllocation: type(uint256).max
         });
-        aaveArk = new AaveV3Ark(address(aaveV3PoolContract), arkParams);
+        aaveArk = new AaveV3Ark(
+            address(aaveV3PoolContract),
+            AAVE_V3_REWARDS_CONTROLLER,
+            arkParams
+        );
         compoundArk = new CompoundV3Ark(
             address(usdcCompoundCometContract),
+            COMET_REWARDS,
             arkParams
         );
     }

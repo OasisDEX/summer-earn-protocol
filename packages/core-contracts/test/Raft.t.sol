@@ -28,7 +28,7 @@ contract RaftTest is Test, IRaftEvents {
         // Setup the access manager and grant roles
         accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
-        accessManager.grantKeeperRole(keeper);
+        accessManager.grantSuperKeeperRole(keeper);
 
         // Deploy the Raft contract
         raft = new Raft(mockSwapProvider, address(accessManager));

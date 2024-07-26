@@ -44,7 +44,7 @@ contract RaftForkTest is Test, IRaftEvents {
         // Setup access management
         accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
-        accessManager.grantKeeperRole(keeper);
+        accessManager.grantSuperKeeperRole(keeper);
 
         // Deploy Raft
         raft = new Raft(SWAP_PROVIDER, address(accessManager));
@@ -61,7 +61,8 @@ contract RaftForkTest is Test, IRaftEvents {
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: USDC
+            token: USDC,
+            maxAllocation: type(uint256).max
         });
         ark = new CompoundV3Ark(COMET_ADDRESS, COMET_REWARDS, params);
 

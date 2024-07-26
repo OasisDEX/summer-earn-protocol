@@ -9,6 +9,7 @@ import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesPro
 import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IArk, ArkParams} from "../../interfaces/IArk.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
@@ -18,7 +19,11 @@ contract AaveV3Ark is Ark {
     address public aToken;
     IRewardsController public rewardsController;
 
-    constructor(address _aaveV3Pool, address _rewardsController, ArkParams memory _params) Ark(_params) {
+    constructor(
+        address _aaveV3Pool,
+        address _rewardsController,
+        ArkParams memory _params
+    ) Ark(_params) {
         aaveV3Pool = IPoolV3(_aaveV3Pool);
         IPoolAddressesProvider aaveV3AddressesProvider = aaveV3Pool
             .ADDRESSES_PROVIDER();
