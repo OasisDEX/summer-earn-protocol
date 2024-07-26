@@ -256,6 +256,7 @@ contract FleetCommander is
             revert FleetCommanderInsufficientBuffer();
         }
 
+        emit Rebalanced(_msgSender(), rebalanceData);
         emit FleetCommanderBufferAdjusted(_msgSender(), totalMoved);
     }
 
