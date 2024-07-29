@@ -68,7 +68,7 @@ export const DEFAULT_MANAGEMENT_FEE = BigInt.fromI32(200)
 export const DEFAULT_PERFORMANCE_FEE = BigInt.fromI32(2000)
 export const DEFAULT_WITHDRAWAL_FEE = BigInt.fromI32(50)
 
-export const BIGINT_ZERO = BigInt.fromI32(0)
+export const BIGINT_ZERO = constants.BigIntConstants.ZERO
 export const BIGINT_ONE = BigInt.fromI32(1)
 export const BIGINT_TEN = BigInt.fromI32(10)
 export const BIGINT_HUNDRED = BigInt.fromI32(100)
@@ -124,7 +124,7 @@ export class BigDecimalConstants {
 }
 export class BigIntConstants {
   static MINUS_ONE: BigInt = BigInt.fromI32(-1)
-  static ZERO: BigInt = BigInt.fromI32(0)
+  static ZERO: BigInt = constants.BigIntConstants.ZERO
   static ONE: BigInt = BigInt.fromI32(1)
   static FIVE: BigInt = BigInt.fromI32(5)
   static TEN: BigInt = BigInt.fromI32(10)

@@ -1,5 +1,5 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
-import { ERC20 as ERC20Contract } from '../../generated/FleetCommanderFactory/ERC20'
+import { ERC20 as ERC20Contract } from '../../generated/HarborCommand/ERC20'
 import {
   Account,
   Ark,
@@ -69,11 +69,11 @@ export function getOrCreateYieldAggregator(): YieldAggregator {
     protocol.methodologyVersion = '1.0.0'
     protocol.network = constants.Protocol.NETWORK
     protocol.type = constants.ProtocolType.YIELD
-    protocol.totalValueLockedUSD = constants.BIGDECIMAL_ZERO
-    protocol.protocolControlledValueUSD = constants.BIGDECIMAL_ZERO
-    protocol.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
-    protocol.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
-    protocol.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    protocol.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
+    protocol.protocolControlledValueUSD = constants.BigDecimalConstants.ZERO
+    protocol.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
+    protocol.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
+    protocol.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeUniqueUsers = 0
     protocol.totalPoolCount = 0
     protocol.vaultsArray = []
@@ -115,14 +115,14 @@ export function getOrCreateFinancialDailySnapshots(block: ethereum.Block): Finan
     financialMetrics = new FinancialsDailySnapshot(id.toString())
     financialMetrics.protocol = constants.PROTOCOL_ID
 
-    financialMetrics.totalValueLockedUSD = constants.BIGDECIMAL_ZERO
-    financialMetrics.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
-    financialMetrics.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
-    financialMetrics.dailyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
-    financialMetrics.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    financialMetrics.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
+    financialMetrics.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
+    financialMetrics.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
+    financialMetrics.dailyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
+    financialMetrics.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
 
-    financialMetrics.dailyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
-    financialMetrics.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    financialMetrics.dailyTotalRevenueUSD = constants.BigDecimalConstants.ZERO
+    financialMetrics.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
 
     financialMetrics.blockNumber = block.number
     financialMetrics.timestamp = block.timestamp
@@ -218,24 +218,24 @@ export function getOrCreateVaultsDailySnapshots(
       : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
-      : constants.BIGDECIMAL_ZERO
+      : constants.BigDecimalConstants.ZERO
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
-      : constants.BIGDECIMAL_ZERO
+      : constants.BigDecimalConstants.ZERO
     vaultSnapshots.apr = !previousSnapshot
-      ? constants.BIGDECIMAL_ZERO
+      ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
           previousSnapshot.pricePerShare!,
           vault.pricePerShare!,
           constants.BigDecimalConstants.DAY_IN_SECONDS,
         )
-    vaultSnapshots.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
-    vaultSnapshots.dailyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.dailyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeProtocolSideRevenueUSD = vault.cumulativeProtocolSideRevenueUSD
 
-    vaultSnapshots.dailyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.dailyTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
 
     vaultSnapshots.blockNumber = block.number
@@ -279,24 +279,24 @@ export function getOrCreateVaultsHourlySnapshots(
       : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
-      : constants.BIGDECIMAL_ZERO
+      : constants.BigDecimalConstants.ZERO
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
-      : constants.BIGDECIMAL_ZERO
+      : constants.BigDecimalConstants.ZERO
     vaultSnapshots.apr = !previousSnapshot
-      ? constants.BIGDECIMAL_ZERO
+      ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
           previousSnapshot.pricePerShare!,
           vault.pricePerShare!,
           constants.BigDecimalConstants.HOUR_IN_SECONDS,
         )
-    vaultSnapshots.hourlySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
-    vaultSnapshots.hourlyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.hourlyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeProtocolSideRevenueUSD = vault.cumulativeProtocolSideRevenueUSD
 
-    vaultSnapshots.hourlyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    vaultSnapshots.hourlyTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
 
     vaultSnapshots.blockNumber = block.number
@@ -316,6 +316,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     const vaultContract = FleetCommanderContract.bind(vaultAddress)
     vault.name = utils.readValue<string>(vaultContract.try_name(), '')
     vault.symbol = utils.readValue<string>(vaultContract.try_symbol(), '')
+
     vault.protocol = constants.PROTOCOL_ID
     vault.depositLimit = utils.readValue<BigInt>(
       vaultContract.try_depositCap(),
@@ -329,36 +330,39 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     const outputToken = getOrCreateToken(vaultAddress)
     vault.outputToken = outputToken.id
     vault.outputTokenSupply = constants.BigIntConstants.ZERO
+    vault.outputTokenPriceUSD = constants.BigDecimalConstants.ZERO
 
-    vault.outputTokenPriceUSD = constants.BIGDECIMAL_ZERO
-    vault.pricePerShare = constants.BIGDECIMAL_ZERO
+    vault.pricePerShare = constants.BigDecimalConstants.ZERO
+    vault.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
+
+    vault.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
+    vault.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
+    vault.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
+    vault.apr = constants.BigDecimalConstants.ZERO
 
     vault.createdBlockNumber = block.number
     vault.createdTimestamp = block.timestamp
-
-    vault.totalValueLockedUSD = constants.BIGDECIMAL_ZERO
-
-    vault.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
-    vault.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
-    vault.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
-    vault.apr = constants.BIGDECIMAL_ZERO
     vault.lastUpdateTimestamp = block.timestamp
 
     const managementFeeId =
       utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + vaultAddress.toHexString()
-    const managementFee = BigInt.fromI32(0)
+    const managementFee = constants.BigIntConstants.ZERO
     utils.createFeeType(managementFeeId, constants.VaultFeeType.MANAGEMENT_FEE, managementFee)
 
     const performanceFeeId =
       utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) + vaultAddress.toHexString()
-    const performanceFee = BigInt.fromI32(0)
+    const performanceFee = constants.BigIntConstants.ZERO
     utils.createFeeType(performanceFeeId, constants.VaultFeeType.PERFORMANCE_FEE, performanceFee)
 
     vault.fees = [managementFeeId, performanceFeeId]
-    vault.arksArray = []
-    vault.save()
 
-    FleetCommanderTemplate.create(vaultAddress)
+    const initialVaultArks = utils.readValue<Address[]>(
+      vaultContract.try_arks(),
+      new Array<Address>(),
+    )
+
+    vault.arksArray = initialVaultArks.map<string>((ark: Address) => ark.toHexString())
+    vault.save()
 
     const yeildAggregator = getOrCreateYieldAggregator()
     const vaultsArray = yeildAggregator.vaultsArray
@@ -366,6 +370,8 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     yeildAggregator.vaultsArray = vaultsArray
     yeildAggregator.totalPoolCount = yeildAggregator.totalPoolCount + 1
     yeildAggregator.save()
+
+    FleetCommanderTemplate.create(vaultAddress)
   }
 
   return vault
@@ -392,30 +398,28 @@ export function getOrCreateArk(
 
     ark.inputToken = vault.inputToken
     ark.inputTokenBalance = constants.BigIntConstants.ZERO
+    ark.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
+    ark.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
+    ark.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
+    ark.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
+    ark.apr = constants.BigDecimalConstants.ZERO
 
     ark.createdBlockNumber = block.number
     ark.createdTimestamp = block.timestamp
-
-    ark.totalValueLockedUSD = constants.BIGDECIMAL_ZERO
-
-    ark.cumulativeSupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
-    ark.cumulativeProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
-    ark.cumulativeTotalRevenueUSD = constants.BIGDECIMAL_ZERO
-    ark.apr = constants.BIGDECIMAL_ZERO
     ark.lastUpdateTimestamp = block.timestamp
 
     const managementFeeId =
       utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + arkAddress.toHexString()
     const managementFee = new VaultFee(managementFeeId)
     managementFee.feeType = constants.VaultFeeType.MANAGEMENT_FEE
-    managementFee.feePercentage = constants.BIGDECIMAL_ZERO
+    managementFee.feePercentage = constants.BigDecimalConstants.ZERO
     managementFee.save()
 
     const performanceFeeId =
       utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) + arkAddress.toHexString()
     const performanceFee = new VaultFee(performanceFeeId)
     performanceFee.feeType = constants.VaultFeeType.PERFORMANCE_FEE
-    performanceFee.feePercentage = constants.BIGDECIMAL_ZERO
+    performanceFee.feePercentage = constants.BigDecimalConstants.ZERO
     performanceFee.save()
 
     ark.fees = [managementFeeId, performanceFeeId]
@@ -428,9 +432,12 @@ export function getOrCreateArk(
     ark.save()
 
     const arksArray = vault.arksArray
-    arksArray.push(ark.id)
-    vault.arksArray = arksArray
-    vault.save()
+    if (!arksArray.includes(ark.id)) {
+      arksArray.push(ark.id)
+      vault.arksArray = arksArray
+      vault.save()
+    }
+
     ArkTemplate.create(arkAddress)
   }
 
@@ -446,15 +453,6 @@ export function getOrCreateArksHourlySnapshots(
   const id: string = ark.id
     .concat('-')
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
-  const previousId = ark.id
-    .concat('-')
-    .concat(
-      (
-        (block.timestamp.toI64() - constants.SECONDS_PER_HOUR) /
-        constants.SECONDS_PER_HOUR
-      ).toString(),
-    )
-  const previousSnapshot = ArkHourlySnapshot.load(previousId)
   let arkSnapshots = ArkHourlySnapshot.load(id)
 
   if (!arkSnapshots) {
@@ -467,20 +465,21 @@ export function getOrCreateArksHourlySnapshots(
     arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
     arkSnapshots.inputTokenBalance = ark.inputTokenBalance
     arkSnapshots.outputTokenSupply = constants.BigIntConstants.ZERO
-    arkSnapshots.outputTokenPriceUSD = constants.BIGDECIMAL_ZERO
-    arkSnapshots.pricePerShare = constants.BIGDECIMAL_ZERO
+    arkSnapshots.outputTokenPriceUSD = constants.BigDecimalConstants.ZERO
+    arkSnapshots.pricePerShare = constants.BigDecimalConstants.ZERO
     arkSnapshots.apr = arkContract
       .rate()
       .toBigDecimal()
       .div(constants.BigDecimalConstants.RAY)
       .times(constants.BigDecimalConstants.HUNDRED)
-    arkSnapshots.hourlySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+
+    arkSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     arkSnapshots.cumulativeSupplySideRevenueUSD = ark.cumulativeSupplySideRevenueUSD
 
-    arkSnapshots.hourlyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.hourlyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     arkSnapshots.cumulativeProtocolSideRevenueUSD = ark.cumulativeProtocolSideRevenueUSD
 
-    arkSnapshots.hourlyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.hourlyTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     arkSnapshots.cumulativeTotalRevenueUSD = ark.cumulativeTotalRevenueUSD
 
     arkSnapshots.stakedOutputTokenAmount = constants.BigIntConstants.ZERO
@@ -501,16 +500,6 @@ export function getOrCreateArksDailySnapshots(
   block: ethereum.Block,
 ): ArkDailySnapshot {
   const ark = getOrCreateArk(vaultAddress, arkAddress, block)
-  const previousId: string = ark.id
-    .concat('-')
-    .concat(
-      (
-        (block.timestamp.toI64() - constants.SECONDS_PER_DAY) /
-        constants.SECONDS_PER_DAY
-      ).toString(),
-    )
-  const previousSnapshot = ArkDailySnapshot.load(previousId)
-
   const id: string = ark.id
     .concat('-')
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_DAY).toString())
@@ -526,20 +515,21 @@ export function getOrCreateArksDailySnapshots(
     arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
     arkSnapshots.inputTokenBalance = ark.inputTokenBalance
     arkSnapshots.outputTokenSupply = constants.BigIntConstants.ZERO
-    arkSnapshots.outputTokenPriceUSD = constants.BIGDECIMAL_ZERO
-    arkSnapshots.pricePerShare = constants.BIGDECIMAL_ZERO
+    arkSnapshots.outputTokenPriceUSD = constants.BigDecimalConstants.ZERO
+    arkSnapshots.pricePerShare = constants.BigDecimalConstants.ZERO
     arkSnapshots.apr = arkContract
       .rate()
       .toBigDecimal()
       .div(constants.BigDecimalConstants.RAY)
       .times(constants.BigDecimalConstants.HUNDRED)
-    arkSnapshots.dailySupplySideRevenueUSD = constants.BIGDECIMAL_ZERO
+
+    arkSnapshots.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     arkSnapshots.cumulativeSupplySideRevenueUSD = ark.cumulativeSupplySideRevenueUSD
 
-    arkSnapshots.dailyProtocolSideRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.dailyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     arkSnapshots.cumulativeProtocolSideRevenueUSD = ark.cumulativeProtocolSideRevenueUSD
 
-    arkSnapshots.dailyTotalRevenueUSD = constants.BIGDECIMAL_ZERO
+    arkSnapshots.dailyTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     arkSnapshots.cumulativeTotalRevenueUSD = ark.cumulativeTotalRevenueUSD
 
     arkSnapshots.stakedOutputTokenAmount = constants.BigIntConstants.ZERO

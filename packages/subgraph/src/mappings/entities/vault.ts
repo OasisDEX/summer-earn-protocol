@@ -21,7 +21,7 @@ export function updateVault(vaultDetails: VaultDetails, block: ethereum.Block): 
   vault.pricePerShare = vaultDetails.pricePerShare
   vault.lastUpdateTimestamp = block.timestamp
 
-  vault.apr = getAprForTimePeriod(previousPricePerShare!, vaultDetails.pricePerShare, deltaTime)
+  vault.apr = getAprForTimePeriod(previousPricePerShare, vaultDetails.pricePerShare, deltaTime)
 
   vault.save()
 }

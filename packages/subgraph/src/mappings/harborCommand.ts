@@ -1,4 +1,5 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
 import { BigIntConstants } from '../common/constants'
 import {
   getOrCreateArksDailySnapshots,
@@ -13,8 +14,8 @@ import { getVaultDetails } from '../utils/vault'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
 
-export function handleOnce(block: ethereum.Block): void {
-  getOrCreateVault(Address.fromString('0x66b5277938617daAdE875D2913495A8d13cf3045'), block)
+export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): void {
+  getOrCreateVault(event.params.fleetCommander, event.block)
 }
 
 function updateArkAndSnapshots(
@@ -55,13 +56,6 @@ function updateVaultAndArks(
 
 export function handleInterval(block: ethereum.Block): void {
   const protocol = getOrCreateYieldAggregator()
-
-  if (!protocol.lastUpdateTimestamp) {
-    protocol.lastUpdateTimestamp = block.timestamp
-    protocol.save()
-    handleOnce(block)
-    return
-  }
 
   protocol.lastUpdateTimestamp = block.timestamp
   protocol.save()

@@ -1,8 +1,8 @@
 {
   "base": {
-    "FleetCommanderFactory": {
-      "address": "0xa09E82322f351154a155f9e0f9e6ddbc8791C794",
-      "startBlock": 17615848
+    "HarborCommand": {
+      "address": "0xf9c71B49De6cA90d6369B2898664b3f2d2fF8a90",
+      "startBlock": 17728659
     }
   },
   "mainnet": {

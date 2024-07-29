@@ -1,5 +1,5 @@
 import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
-import { ERC20 as ERC20Contract } from '../../generated/FleetCommanderFactory/ERC20'
+import { ERC20 as ERC20Contract } from '../../generated/HarborCommand/ERC20'
 import { VaultFee, Vault as VaultStore } from '../../generated/schema'
 import * as constants from '../common/constants'
 import { getOrCreateYieldAggregator } from './initializers'
@@ -37,7 +37,7 @@ export function updateProtocolTotalValueLockedUSD(): void {
   const protocol = getOrCreateYieldAggregator()
   const vaultIds = protocol.vaultsArray
 
-  let totalValueLockedUSD = constants.BIGDECIMAL_ZERO
+  let totalValueLockedUSD = constants.BigDecimalConstants.ZERO
   for (let vaultIdx = 0; vaultIdx < vaultIds.length; vaultIdx++) {
     const vault = VaultStore.load(vaultIds[vaultIdx])
 
