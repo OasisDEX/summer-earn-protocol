@@ -430,6 +430,8 @@ type Vault @entity @regularPolling {
 
   arks: [Ark!]! @derivedFrom(field: "vault")
   arksArray: [Ark!]!
+
+  rebalances: [Rebalance!]! @derivedFrom(field: "vault")
 }
 
 #################################
@@ -925,6 +927,9 @@ type Ark @entity @regularPolling {
   " APR based on revenue between last two snapshots "
   apr: BigDecimal!
   lastUpdateTimestamp: BigInt!
+
+  rebalancesTo: [Rebalance!]! @derivedFrom(field: "to")
+  rebalancesFrom: [Rebalance!]! @derivedFrom(field: "from")
 }
 
 type ArkDailySnapshot @entity @dailySnapshot {

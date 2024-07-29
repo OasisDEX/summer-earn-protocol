@@ -1,7 +1,7 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Rebalance, Vault } from '../../../generated/schema'
 import { Rebalanced as RebalancedEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { getOrCreateToken } from '../../common/initializers'
+import { getOrCreateArk, getOrCreateToken } from '../../common/initializers'
 import { getTokenPriceInUSD } from '../../common/priceHelpers'
 import { formatAmount } from '../../common/utils'
 
@@ -22,6 +22,10 @@ export function createRebalanceEventEntity(
     const normalizedAmountUSD = normalizedAmount.times(
       getTokenPriceInUSD(inputTokenAddress, block).price,
     )
+
+    getOrCreateArk(Address.fromString(vault.id), rebalances[i].fromArk, block)
+    getOrCreateArk(Address.fromString(vault.id), rebalances[i].toArk, block)
+
     const rebalance = rebalances[i]
     rebalanceEntity.amount = rebalance.amount
     rebalanceEntity.amountUSD = normalizedAmountUSD
