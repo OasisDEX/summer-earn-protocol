@@ -87,11 +87,9 @@ abstract contract Tipper is ITipper {
 
         if (tippedShares > 0) {
             _mintTip(tipJar, tippedShares);
-
             emit TipAccrued(tippedShares);
+            lastTipTimestamp = block.timestamp;
         }
-
-        lastTipTimestamp = block.timestamp;
     }
 
     function _calculateTip(

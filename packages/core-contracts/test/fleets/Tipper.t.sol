@@ -8,6 +8,7 @@ import {ITipperEvents} from "../../src/interfaces/ITipperEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {Tipper} from "../../src/contracts/Tipper.sol";
 
 abstract contract MockConfigurationManager is IConfigurationManager {
     address public tipJar;
@@ -18,8 +19,11 @@ abstract contract MockConfigurationManager is IConfigurationManager {
 
     // Implement other IConfigurationManager functions with empty bodies
     function raft() external pure returns (address) {}
+
     function tipRate() external pure returns (uint8) {}
+
     function setRaft(address) external pure {}
+
     function setTipRate(uint8) external pure {}
 }
 
@@ -31,6 +35,7 @@ contract TipperTest is Test, ITipperEvents {
     ERC20Mock public underlyingToken;
     address public tipJar;
     uint8 public initialTipRate;
+    TipperHarness public tipper;
 
     function setUp() public {
         underlyingToken = new ERC20Mock();
@@ -46,6 +51,7 @@ contract TipperTest is Test, ITipperEvents {
         );
         vm.prank(address(fleetCommander));
         underlyingToken.approve(address(fleetCommander), type(uint256).max);
+        tipper = new TipperHarness(address(configManager));
     }
 
     function test_InitialState() public view {
@@ -109,8 +115,9 @@ contract TipperTest is Test, ITipperEvents {
         // Warp time forward by 6 months
         vm.warp(block.timestamp + 182.5 days);
 
-        uint256 estimatedTip = fleetCommander.estimateAccruedTip();
-        assertApproxEqRel(estimatedTip, 4978 ether, 0.01e18); // Approximately 0.4978% of 1,000,000 over 6 months
+        uint256 estimatedTipAfter2000minutes = fleetCommander
+            .estimateAccruedTip();
+        assertApproxEqRel(estimatedTipAfter2000minutes, 4978 ether, 0.01e18); // Approximately 0.4978% of 1,000,000 over 6 months
     }
 
     function test_TipRateCannotExceedOneHundredPercent() public {
@@ -154,6 +161,70 @@ contract TipperTest is Test, ITipperEvents {
         assertApproxEqRel(firstAccrual, 16.17 ether, 0.01e18);
         assertApproxEqRel(secondAccrual, 16.47 ether, 0.01e18);
     }
+
+    function test_NoTipAccrualForSmallAmounts() public {
+        uint256 initialDepositByUser = 1 ether;
+        underlyingToken.mint(mockUser, initialDepositByUser);
+
+        vm.startPrank(mockUser);
+        underlyingToken.approve(address(fleetCommander), initialDepositByUser);
+        fleetCommander.deposit(initialDepositByUser, mockUser);
+        vm.stopPrank();
+
+        uint256 tipExpectedAfter1000minutes = tipper.exposed_calculateTip(
+            fleetCommander.totalSupply(),
+            1000 minutes
+        );
+        assertEq(
+            tipExpectedAfter1000minutes,
+            0,
+            "No tip should be accrued for small amounts"
+        );
+
+        uint256 tipExpectedAfter2000minutes = tipper.exposed_calculateTip(
+            fleetCommander.totalSupply(),
+            2000 minutes
+        );
+        uint256 initialLastTipTimestamp = fleetCommander.lastTipTimestamp();
+
+        // Warp time forward by a small amount (e.g., 1 minute)
+        vm.warp(block.timestamp + 1 minutes);
+
+        uint256 tipAccruedAfter1Minute = fleetCommander.tip();
+
+        assertEq(
+            tipAccruedAfter1Minute,
+            0,
+            "No tip should be accrued for small amounts"
+        );
+        assertEq(
+            fleetCommander.lastTipTimestamp(),
+            initialLastTipTimestamp,
+            "lastTipTimestamp should not be updated for zero tip accrual"
+        );
+
+        // for 1000 minutes there should be no tip accrued
+        vm.warp(block.timestamp + 1000 minutes);
+        uint256 tipAccruedAfter1000minutes = fleetCommander.tip();
+
+        assertEq(
+            tipAccruedAfter1000minutes,
+            0,
+            "No tip should be accrued for small amounts"
+        );
+
+        // there should be tip for 2000 minutes
+        vm.warp(block.timestamp + 1000 minutes);
+
+        // Ensure that estimateAccruedTip returns a non-zero value
+        uint256 estimatedTipAfter2000minutes = fleetCommander
+            .estimateAccruedTip();
+        assertEq(
+            estimatedTipAfter2000minutes,
+            tipExpectedAfter2000minutes,
+            "Estimated tip should be greater than zero"
+        );
+    }
 }
 
 // Concrete implementation of MockConfigurationManager
@@ -163,4 +234,22 @@ contract MockConfigurationManagerImpl is MockConfigurationManager {
     function setTipJar(address newTipJar) external override {
         tipJar = newTipJar;
     }
+}
+
+contract TipperHarness is Tipper {
+    constructor(address configurationManager) Tipper(configurationManager, 0) {
+        tipRate = 100;
+    }
+
+    function exposed_calculateTip(
+        uint256 totalShares,
+        uint256 timeElapsed
+    ) public view returns (uint256) {
+        return _calculateTip(totalShares, timeElapsed);
+    }
+
+    function _mintTip(
+        address account,
+        uint256 amount
+    ) internal virtual override {}
 }
