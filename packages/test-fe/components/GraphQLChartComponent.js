@@ -193,7 +193,7 @@ const GraphQLChartComponent = () => {
                   dataKey="vaultAPR"
                   stroke={colors[0]}
                   name="Vault APR"
-                  strokeWidth={hoveredArk === 'vaultAPR' ? 4 : 2}
+                  strokeWidth={hoveredArk === 'vaultAPR' ? 10 : 5}
                   dot={false}
                   animationDuration={1000}
                 />
