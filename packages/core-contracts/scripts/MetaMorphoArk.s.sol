@@ -24,7 +24,7 @@ contract MetaMorphoArkDeploy is ArkDeploymentScript {
             maxAllocation: maxAllocation
         });
 
-        IArk ark = new MetaMorphoArk(config.metaMorpho.steakhouseUsdc,  params);
+        IArk ark = new MetaMorphoArk(config.metaMorpho.steakhouseUsdc, params);
 
         console.log("Deployed MetaMorpho Ark");
         console.log(address(ark));

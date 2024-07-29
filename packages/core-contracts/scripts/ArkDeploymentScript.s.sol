@@ -10,11 +10,7 @@ contract ArkDeploymentScript is DeploymentScript {
         maxAllocation = _getMaxAllocation();
     }
 
-    function _getMaxAllocation()
-    internal
-    view
-    returns (uint256)
-    {
+    function _getMaxAllocation() internal view returns (uint256) {
         uint256 _maxAllocation;
         try vm.envUint("ALLOCATION") returns (uint256 maxAllocation) {
             _maxAllocation = maxAllocation;

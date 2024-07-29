@@ -292,9 +292,6 @@ contract FleetCommander is
         address ark,
         uint256 newMaxAllocation
     ) external onlyGovernor {
-        if (newMaxAllocation == 0) {
-            revert FleetCommanderArkMaxAllocationZero(ark);
-        }
         if (!_isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -394,9 +391,6 @@ contract FleetCommander is
         }
         if (_isArkActive[ark]) {
             revert FleetCommanderArkAlreadyExists(ark);
-        }
-        if (IArk(ark).maxAllocation() == 0) {
-            revert FleetCommanderArkMaxAllocationZero(ark);
         }
 
         _isArkActive[ark] = true;
@@ -646,7 +640,7 @@ contract FleetCommander is
                 revert FleetCommanderArkNotActive(rebalanceData[i].fromArk);
             }
             if (IArk(rebalanceData[i].toArk).maxAllocation() == 0) {
-                revert FleetCommanderCantRebalanceToArk(
+                revert FleetCommanderArkMaxAllocationZero(
                     address(rebalanceData[i].toArk)
                 );
             }

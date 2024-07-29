@@ -21,6 +21,8 @@ contract MorphoArkTestFork is Test, IArkEvents {
     address public tipJar = address(3);
     address public commander = address(4);
 
+    IConfigurationManager configurationManager;
+    IProtocolAccessManager accessManager;
     address public constant MORPHO_ADDRESS =
         0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
     address public constant METAMORPHO_ADDRESS =
@@ -47,11 +49,9 @@ contract MorphoArkTestFork is Test, IArkEvents {
         morpho = IMorpho(MORPHO_ADDRESS);
         usdc = IERC20(USDC_ADDRESS);
 
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
+        accessManager = new ProtocolAccessManager(governor);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
+        configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
                 tipJar: tipJar,
@@ -72,6 +72,41 @@ contract MorphoArkTestFork is Test, IArkEvents {
         vm.startPrank(governor);
         ark.grantCommanderRole(commander);
         vm.stopPrank();
+    }
+
+    function test_Constructor_MorphoArk_fork() public {
+        // Arrange
+        ArkParams memory params = ArkParams({
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            token: address(usdc),
+            maxAllocation: 1000
+        });
+
+        // Act & Assert
+        vm.expectRevert(abi.encodeWithSignature("InvalidMorphoAddress()"));
+        new MorphoArk(address(0), Id.wrap(0), params);
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidMorphoAddress()"));
+        new MorphoArk(address(0), MARKET_ID, params);
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidMarketId()"));
+        new MorphoArk(MORPHO_ADDRESS, Id.wrap(0), params);
+
+        MorphoArk newArk = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
+        assertTrue(
+            newArk.maxAllocation() == 1000,
+            "Max allocation should be set"
+        );
+        assertTrue(
+            Id.unwrap(newArk.marketId()) == Id.unwrap(MARKET_ID),
+            "Market ID should be set"
+        );
+        assertTrue(newArk.totalAssets() == 0, "Total assets should be zero");
+        assertTrue(
+            address(newArk.MORPHO()) == MORPHO_ADDRESS,
+            "Morpho address should be set"
+        );
     }
 
     function test_Board_MorphoArk_fork() public {
@@ -175,5 +210,28 @@ contract MorphoArkTestFork is Test, IArkEvents {
             remainingAssets > 1000 * 10 ** 6 - amountToWithdraw,
             "Remaining assets should more than initial balance minus withdrawn amount (accounting the accrued interest)"
         );
+    }
+
+    function test_Rate_Zero_fork() public {
+        // Arrange
+        Market memory market = Market({
+            totalSupplyShares: 0,
+            totalSupplyAssets: 0,
+            totalBorrowShares: 0,
+            totalBorrowAssets: 0,
+            fee: 0,
+            lastUpdate: 0
+        });
+        vm.mockCall(
+            MORPHO_ADDRESS,
+            abi.encodeWithSelector(IMorpho.market.selector, MARKET_ID),
+            abi.encode(market)
+        );
+
+        // Act
+        uint256 rate = ark.rate();
+
+        // Assert
+        assertTrue(rate == 0, "Rate should be zero");
     }
 }
