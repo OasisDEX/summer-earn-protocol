@@ -426,6 +426,7 @@ type Vault @entity @regularPolling {
   # Additional fields
   " APR based on revenue between last two snapshots "
   apr: BigDecimal!
+
   lastUpdateTimestamp: BigInt!
 
   arks: [Ark!]! @derivedFrom(field: "vault")
@@ -561,6 +562,8 @@ type VaultHourlySnapshot @entity @hourlySnapshot {
 
   #  Additional fields
   " APR based on last hour's revenue "
+  aprLast1h: BigDecimal!
+  "Current APR"
   apr: BigDecimal!
 }
 
@@ -815,7 +818,6 @@ type Disembark implements Event @entity @transaction {
 }
 ## Entities
 
-
 type TokenPrice @entity {
   id: Bytes!
   token: Token!
@@ -1062,4 +1064,5 @@ type ArkHourlySnapshot @entity @hourlySnapshot {
   #  Additional fields
   " APR based on last hour's revenue "
   apr: BigDecimal!
+  aprLast1h: BigDecimal!
 }

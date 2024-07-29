@@ -225,10 +225,10 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.apr = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.DAY_IN_SECONDS,
-        )
+        previousSnapshot.pricePerShare!,
+        vault.pricePerShare!,
+        constants.BigDecimalConstants.DAY_IN_SECONDS,
+      )
     vaultSnapshots.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -243,7 +243,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
   }
-  ;``
+  ; ``
 
   return vaultSnapshots
 }
@@ -283,13 +283,28 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
-    vaultSnapshots.apr = !previousSnapshot
+    vaultSnapshots.aprLast1h = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.HOUR_IN_SECONDS,
-        )
+        previousSnapshot.pricePerShare!,
+        vault.pricePerShare!,
+        constants.BigDecimalConstants.HOUR_IN_SECONDS,
+      )
+    const totalAssets = vault.inputTokenBalance;
+    const arks = vault.arksArray;
+
+    // get weighted apr for all arks
+    let weightedApr = constants.BigDecimalConstants.ZERO;
+    for (let j = 0; j < arks.length; j++) {
+      const arkAddress = Address.fromString(arks[j]);
+      const arkContract = ArkContract.bind(arkAddress);
+      const arkApr = arkContract.rate().toBigDecimal().div(constants.BigDecimalConstants.RAY);
+      const arkTotalAssets = arkContract.totalAssets().toBigDecimal();
+      const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal());
+      weightedApr = weightedApr.plus(arkApr.times(arkWeight));
+    }
+    vaultSnapshots.apr = weightedApr.times(constants.BigDecimalConstants.HUNDRED);
+
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -453,8 +468,11 @@ export function getOrCreateArksHourlySnapshots(
   const id: string = ark.id
     .concat('-')
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
+  const previousId = ark.id
+    .concat('-')
+    .concat(((block.timestamp.toI64() - (constants.SECONDS_PER_HOUR)) / constants.SECONDS_PER_HOUR).toString())
   let arkSnapshots = ArkHourlySnapshot.load(id)
-
+  let previousSnapshot = ArkHourlySnapshot.load(previousId)
   if (!arkSnapshots) {
     const arkContract = ArkContract.bind(arkAddress)
     arkSnapshots = new ArkHourlySnapshot(id)
@@ -472,6 +490,10 @@ export function getOrCreateArksHourlySnapshots(
       .toBigDecimal()
       .div(constants.BigDecimalConstants.RAY)
       .times(constants.BigDecimalConstants.HUNDRED)
+
+    arkSnapshots.aprLast1h = !previousSnapshot
+      ? constants.BigDecimalConstants.ZERO
+      : previousSnapshot.apr.plus(arkSnapshots.apr).div(constants.BigDecimalConstants.TWO)
 
     arkSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     arkSnapshots.cumulativeSupplySideRevenueUSD = ark.cumulativeSupplySideRevenueUSD

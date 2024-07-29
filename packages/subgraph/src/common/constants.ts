@@ -105,6 +105,7 @@ export class BigDecimalConstants {
   static ZERO: BigDecimal = BigDecimal.fromString('0')
   static FIVE_BPS: BigDecimal = BigDecimal.fromString('0.0005')
   static ONE: BigDecimal = BigDecimal.fromString('1')
+  static TWO: BigDecimal = BigDecimal.fromString('2')
   static TEN: BigDecimal = BigDecimal.fromString('10')
   static FIFTY_TWO: BigDecimal = BigDecimal.fromString('52')
   static HUNDRED: BigDecimal = BigDecimal.fromString('100')
