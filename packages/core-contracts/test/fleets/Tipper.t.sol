@@ -96,7 +96,7 @@ contract TipperTest is Test, ITipperEvents {
         vm.warp(block.timestamp + 365 days);
 
         vm.expectEmit(true, true, false, true);
-        emit TipAccrued(10050028723667921000000); // Approximately 1% of 1,000,000 over 1 year
+        emit TipAccrued(10050167052044451000000); // Approximately 1% of 1,000,000 over 1 year
         uint256 accruedTip = fleetCommander.tip();
 
         assertApproxEqRel(accruedTip, 10050 ether, 0.01e18);
@@ -158,12 +158,12 @@ contract TipperTest is Test, ITipperEvents {
         uint256 secondAccrual = fleetCommander.tip();
 
         assertGt(secondAccrual, firstAccrual);
-        assertApproxEqRel(firstAccrual, 16.17 ether, 0.01e18);
+        assertApproxEqRel(firstAccrual, 16.45 ether, 0.01e18);
         assertApproxEqRel(secondAccrual, 16.47 ether, 0.01e18);
     }
 
     function test_NoTipAccrualForSmallAmounts() public {
-        uint256 initialDepositByUser = 1 ether;
+        uint256 initialDepositByUser = 10000;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);
@@ -173,7 +173,7 @@ contract TipperTest is Test, ITipperEvents {
 
         uint256 tipExpectedAfter1000minutes = tipper.exposed_calculateTip(
             fleetCommander.totalSupply(),
-            1000 minutes
+            1
         );
         assertEq(
             tipExpectedAfter1000minutes,

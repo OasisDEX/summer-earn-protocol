@@ -99,17 +99,13 @@ abstract contract Tipper is ITipper {
         // Calculate the daily interest rate
         // tipRate is in basis points (1/10000)
         // SCALE is a constant for fixed-point arithmetic (e.g., 1e18)
-        // Dividing by 365 converts annual rate to daily rate
-        uint256 dailyRate = (tipRate * SCALE) / (BASIS_POINTS * 365);
-
-        // Convert timeElapsed from seconds to days
-        // 1 days is a Solidity time unit equal to 86400 seconds
-        uint256 daysElapsed = timeElapsed / 1 days;
+        // Dividing by 365 days converts annual rate to rate per second
+        uint256 ratePerSecond = (tipRate * SCALE) / (BASIS_POINTS * 365 days);
 
         // Calculate (1 + r)^t using a custom power function
         // This is the compound interest factor
         // _rpow is a function for exponentiation with fixed-point numbers
-        uint256 factor = _rpow((SCALE + dailyRate), daysElapsed, SCALE);
+        uint256 factor = _rpow((SCALE + ratePerSecond), timeElapsed, SCALE);
 
         // Calculate S = P * (1 + r)^t
         // This gives the final amount after compound interest
