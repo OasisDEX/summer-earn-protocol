@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
-import {DeploymentScript} from "./DeploymentScript.s.sol";
+import {DeploymentScript} from "./common/DeploymentScript.s.sol";
 
 contract ConfigurationManagerDeploy is DeploymentScript {
     function run() external reloadConfig {
@@ -23,7 +23,7 @@ contract ConfigurationManagerDeploy is DeploymentScript {
             ConfigurationManagerParams({
                 accessManager: config.protocolAccessManager,
                 raft: config.raft,
-                tipJar: address(0)
+                tipJar: config.tipJar
             })
         );
         updateAddressInConfig(

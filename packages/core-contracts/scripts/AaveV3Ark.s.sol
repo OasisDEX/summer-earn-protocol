@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {AaveV3Ark} from "../src/contracts/arks/AaveV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
-import "./ArkDeploymentScript.s.sol";
+import "./common/ArkDeploymentScript.s.sol";
 
 contract AaveV3ArkDeploy is ArkDeploymentScript {
     function run() external reloadConfig {
@@ -16,7 +16,11 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
         address arkAssetToken = customToken == address(0)
             ? config.usdcToken
             : customToken;
-
+        if (config.aaveV3Pool == address(0)) {
+            console.log("Aave V3 Pool address is not set");
+            vm.stopBroadcast();
+            return;
+        }
         ArkParams memory params = ArkParams({
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,

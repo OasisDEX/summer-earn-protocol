@@ -44,8 +44,10 @@ contract DeploymentScript is Script {
         address compoundV3Pool;
         address harborCommand;
         address bufferArk;
+        address tipJar;
         MorphoBlueConfig morphoBlue;
         MetamorphoConfig metaMorpho;
+        uint256 tipRate;
     }
 
     struct MorphoBlueConfig {
@@ -106,6 +108,8 @@ contract DeploymentScript is Script {
             "metaMorpho.steakhouseUsdc"
         );
         _config.bufferArk = _readAddressFromJson(json, _network_, "bufferArk");
+        _config.tipJar = _readAddressFromJson(json, _network_, "tipJar");
+        _config.tipRate = _readUintFromJson(json, _network_, "tipRate");
         return _config;
     }
 
@@ -125,6 +129,15 @@ contract DeploymentScript is Script {
     ) internal pure returns (bytes32) {
         string memory path = string(abi.encodePacked(".", _network_, ".", key));
         return _json.readBytes32(path);
+    }
+
+    function _readUintFromJson(
+        string memory _json,
+        string memory _network_,
+        string memory key
+    ) internal pure returns (uint256) {
+        string memory path = string(abi.encodePacked(".", _network_, ".", key));
+        return _json.readUint(path);
     }
 
     function _getTokenAndNetwork()

@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {CompoundV3Ark} from "../src/contracts/arks/CompoundV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
-import "./ArkDeploymentScript.s.sol";
+import "./common/ArkDeploymentScript.s.sol";
 
 contract CompoundV3ArkDeploy is ArkDeploymentScript {
     function run() external reloadConfig {
@@ -16,7 +16,11 @@ contract CompoundV3ArkDeploy is ArkDeploymentScript {
         address arkAssetToken = customToken == address(0)
             ? config.usdcToken
             : customToken;
-
+        if (config.compoundV3Pool == address(0)) {
+            console.log("Compound V3 Pool address is not set");
+            vm.stopBroadcast();
+            return;
+        }
         ArkParams memory params = ArkParams({
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,

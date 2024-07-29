@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import "forge-std/Script.sol";
 import {AaveV3Ark} from "../src/contracts/arks/AaveV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
-import "./ArkDeploymentScript.s.sol";
+import "./common/ArkDeploymentScript.s.sol";
 import {BufferArk} from "../src/contracts/arks/BufferArk.sol";
 
 contract BufferArkDeploy is ArkDeploymentScript {

@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
-import {DeploymentScript} from "./DeploymentScript.s.sol";
+import {DeploymentScript} from "./common/DeploymentScript.s.sol";
 
 contract ProtocolAccessManagerDeploy is DeploymentScript {
     function run() external reloadConfig {

@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
-import {DeploymentScript} from "./DeploymentScript.s.sol";
+import {DeploymentScript} from "./common/DeploymentScript.s.sol";
 import {HarborCommand} from "../src/contracts/HarborCommand.sol";
 
 contract HarborCommandDeploy is DeploymentScript {
@@ -24,7 +24,6 @@ contract HarborCommandDeploy is DeploymentScript {
         );
         console.log("Deployed HarborCommand Address", address(harborCommand));
         updateAddressInConfig(network, "harborCommand", address(harborCommand));
-        console.log("HarborCommand deployed and saved to config.json");
         vm.stopBroadcast();
     }
 }

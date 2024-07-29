@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {CompoundV3Ark} from "../src/contracts/arks/CompoundV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
-import "./ArkDeploymentScript.s.sol";
+import "./common/ArkDeploymentScript.s.sol";
 import {MorphoArk} from "../src/contracts/arks/MorphoArk.sol";
 
 contract MorphoArkDeploy is ArkDeploymentScript {
@@ -17,7 +17,16 @@ contract MorphoArkDeploy is ArkDeploymentScript {
         address arkAssetToken = customToken == address(0)
             ? config.usdcToken
             : customToken;
-
+        if (config.morphoBlue.blue == address(0)) {
+            console.log("Morpho Blue address is not set");
+            vm.stopBroadcast();
+            return;
+        }
+        if (Id.unwrap(config.morphoBlue.usdcMarketId) == 0) {
+            console.log("Morpho USDC Market ID is not set");
+            vm.stopBroadcast();
+            return;
+        }
         ArkParams memory params = ArkParams({
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,

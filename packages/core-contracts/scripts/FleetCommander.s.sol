@@ -7,8 +7,10 @@ import {FleetCommander} from "../src/contracts/FleetCommander.sol";
 import {IFleetCommander} from "../src/interfaces/IFleetCommander.sol";
 import {FleetCommanderParams} from "../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
-import {DeploymentScript} from "./DeploymentScript.s.sol";
+import {DeploymentScript} from "./common/DeploymentScript.s.sol";
 import "../src/interfaces/IArk.sol";
+import {HarborCommand} from "../src/contracts/HarborCommand.sol";
+
 contract FleetCommanderDeploy is DeploymentScript {
     using stdJson for string;
 
@@ -34,7 +36,7 @@ contract FleetCommanderDeploy is DeploymentScript {
             configurationManager: config.configurationManager,
             accessManager: config.protocolAccessManager,
             initialArks: initialArks,
-            initialMinimumFundsBufferBalance: 50 * 10 ** 6,
+            initialMinimumFundsBufferBalance: 1 * 10 ** 6,
             initialRebalanceCooldown: 3 minutes,
             asset: config.usdcToken,
             name: fleetName,
@@ -45,18 +47,27 @@ contract FleetCommanderDeploy is DeploymentScript {
                 .fromDecimalPercentage(20),
             depositCap: type(uint256).max,
             bufferArk: config.bufferArk,
-            initialTipRate: 0
+            initialTipRate: config.tipRate
         });
 
         IFleetCommander commander = new FleetCommander(params);
-        console.log("Deployed Fleet Commander Address");
-        console.log(address(commander));
+        console.log("Deployed Fleet Commander Address : ", address(commander));
 
+        // grant commander roles to the initial arks and buffer ark
         for (uint256 i = 0; i < initialArks.length; i++) {
             IArk(initialArks[i]).grantCommanderRole(address(commander));
         }
         IArk(config.bufferArk).grantCommanderRole(address(commander));
-        updateAddressInConfig(network, "fleetCommander", address(commander));
+
+        // enlist the fleet commander in the harbor command
+        HarborCommand harborCommand = HarborCommand(config.harborCommand);
+        harborCommand.enlistFleetCommander(address(commander));
+
+        updateAddressInConfig(
+            network,
+            "usdcFleetCommander_1",
+            address(commander)
+        );
         vm.stopBroadcast();
     }
 
