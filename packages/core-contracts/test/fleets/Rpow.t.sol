@@ -92,8 +92,8 @@ contract RPowTest is Test {
     }
 
     function testFuzz_rpow(uint256 x, uint256 n) public view {
-        x = bound(x, 0, 2e18); // Limit x to twice the SCALE used in Tipper.sol
-        n = bound(n, 0, 120); // Limit n to max of 120 days
+        x = bound(x, 0, 1000000002145441671); // Limit to ~8% per year
+        n = bound(n, 0, 365 days); // Limit n to max of 365 days
 
         console.log("x:", x);
         console.log("n:", n);
