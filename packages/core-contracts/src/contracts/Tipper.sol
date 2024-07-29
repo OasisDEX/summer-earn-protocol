@@ -41,7 +41,7 @@ abstract contract Tipper is ITipper {
 
         tipRate = initialTipRate;
         tipJar = manager.tipJar();
-        lastTipTimestamp = block.timestamp;
+        lastTipTimestamp = now;
     }
 
     // Internal function that must be implemented by the inheriting contract
@@ -75,9 +75,12 @@ abstract contract Tipper is ITipper {
     /// @dev Only callable by the FleetCommander
     /// @return tippedShares The amount of tips accrued in shares
     function _accrueTip() internal returns (uint256 tippedShares) {
-        if (tipRate == 0) return 0;
+        if (tipRate == 0) {
+            return 0;
+            lastTipTimestamp = now;
+        }
 
-        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
+        uint256 timeElapsed = now - lastTipTimestamp;
 
         if (timeElapsed == 0) return 0;
 
@@ -87,8 +90,8 @@ abstract contract Tipper is ITipper {
 
         if (tippedShares > 0) {
             _mintTip(tipJar, tippedShares);
+            lastTipTimestamp = now;
             emit TipAccrued(tippedShares);
-            lastTipTimestamp = block.timestamp;
         }
     }
 
@@ -120,7 +123,7 @@ abstract contract Tipper is ITipper {
     /// @notice Estimates the amount of tips accrued since the last tip accrual
     /// @return The estimated amount of accrued tips
     function estimateAccruedTip() public view returns (uint256) {
-        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
+        uint256 timeElapsed = now - lastTipTimestamp;
         uint256 totalShares = IERC20(address(this)).totalSupply();
         return _calculateTip(totalShares, timeElapsed);
     }
