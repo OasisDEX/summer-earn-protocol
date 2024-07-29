@@ -53,7 +53,8 @@ contract MorphoArkTestFork is Test, IArkEvents {
         configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
-                raft: raft
+                raft: raft,
+                tipJar: address(0)
             })
         );
 

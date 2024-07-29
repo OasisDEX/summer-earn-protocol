@@ -42,7 +42,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
-                raft: raft
+                raft: raft,
+                tipJar: address(0)
             })
         );
 
