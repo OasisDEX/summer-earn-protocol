@@ -12,6 +12,9 @@ import {MarketParamsLib} from "morpho-blue/libraries/MarketParamsLib.sol";
 import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
 import {MorphoBalancesLib} from "morpho-blue/libraries/periphery/MorphoBalancesLib.sol";
 
+error InvalidMorphoAddress();
+error InvalidMarketId();
+
 contract MorphoArk is Ark {
     using SafeERC20 for IERC20;
     using SharesMathLib for uint256;
@@ -32,6 +35,12 @@ contract MorphoArk is Ark {
         Id _marketId,
         ArkParams memory _arkParams
     ) Ark(_arkParams) {
+        if (_morpho == address(0)) {
+            revert InvalidMorphoAddress();
+        }
+        if (Id.unwrap(_marketId) == 0) {
+            revert InvalidMarketId();
+        }
         MORPHO = IMorpho(_morpho);
         marketId = _marketId;
         marketParams = MORPHO.idToMarketParams(_marketId);
