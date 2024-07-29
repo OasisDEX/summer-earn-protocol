@@ -90,6 +90,9 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         vm.expectEmit();
         emit Boarded(commander, address(asset), amount);
 
+        // Expect the poke call to Ark
+        vm.expectCall(address(ark), abi.encodeWithSelector(IArk.poke.selector));
+
         // Act
         ark.board(amount);
         vm.stopPrank();
@@ -139,6 +142,9 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         // Expect the Disembarked event to be emitted
         vm.expectEmit();
         emit Disembarked(commander, address(asset), amountToWithdraw);
+
+        // Expect the poke call to Ark
+        vm.expectCall(address(ark), abi.encodeWithSelector(IArk.poke.selector));
 
         ark.disembark(amountToWithdraw, commander);
 
@@ -229,7 +235,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         });
 
         // Act
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaultAddress()"));
         new MetaMorphoArk(address(0), params);
     }
 }

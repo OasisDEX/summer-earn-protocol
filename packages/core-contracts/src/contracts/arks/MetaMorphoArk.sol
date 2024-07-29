@@ -40,12 +40,12 @@ contract MetaMorphoArk is Ark {
     function _board(uint256 amount) internal override {
         token.approve(address(metaMorpho), amount);
         metaMorpho.deposit(amount, address(this));
-        poke();
+        this.poke();
     }
 
     function _disembark(uint256 amount) internal override {
         metaMorpho.withdraw(amount, address(this), address(this));
-        poke();
+        this.poke();
     }
 
     function poke() public override {
