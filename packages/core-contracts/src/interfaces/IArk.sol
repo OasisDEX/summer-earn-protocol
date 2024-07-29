@@ -34,6 +34,11 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function rate() external view returns (uint256);
 
     /**
+     * @notice Updates information about the Ark
+     */
+    function poke() external;
+
+    /**
      * @notice Triggers a harvest operation to collect rewards
      */
     function harvest() external;
@@ -66,4 +71,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @param newRaft The address of the new Raft
      */
     function setRaft(address newRaft) external;
+
+    error InvalidVaultAddress();
 }

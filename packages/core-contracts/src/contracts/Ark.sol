@@ -59,6 +59,10 @@ abstract contract Ark is IArk, ArkAccessManaged {
         emit MaxAllocationUpdated(newMaxAllocation);
     }
 
+    function poke() public virtual {
+        // No-op
+    }
+
     /* EXTERNAL - GOVERNANCE */
     function setRaft(address newRaft) external onlyGovernor {}
 
