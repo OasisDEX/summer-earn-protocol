@@ -8,8 +8,10 @@ import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 
 import "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
+import "../../src/contracts/arks/MorphoArk.sol";
+import "../../src/contracts/arks/MetaMorphoArk.sol";
 import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../src/events/IArkEvents.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
@@ -23,6 +25,8 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import {IMorpho, Id, MarketParams, IMorphoBase} from "morpho-blue/interfaces/IMorpho.sol";
+import {IMetaMorpho, IMetaMorphoBase} from "metamorpho/interfaces/IMetaMorpho.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
@@ -32,11 +36,15 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     // Arks
     CompoundV3Ark public compoundArk;
     AaveV3Ark public aaveArk;
+    MorphoArk public morphoArk;
+    MetaMorphoArk public metaMorphoArk;
 
     // External contracts
     IComet public usdcCompoundCometContract;
     IPoolV3 public aaveV3PoolContract;
     IERC20 public usdcTokenContract;
+    IMorpho public morphoContract;
+    IMetaMorpho public metaMorphoContract;
 
     // Constants
     address public constant USDC_ADDRESS =
@@ -45,7 +53,15 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address public constant COMPOUND_USDC_COMET_ADDRESS =
         0xc3d688B66703497DAA19211EEdff47f25384cdc3;
-    uint256 constant FORK_BLOCK = 20276596;
+    address public constant MORPHO_ADDRESS =
+        0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
+    address public constant METAMORPHO_ADDRESS =
+        0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB;
+    Id public constant MORPHO_MARKET_ID =
+        Id.wrap(
+            0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49
+        );
+    uint256 constant FORK_BLOCK = 20376149;
 
     function setUp() public {
         console.log("Setting up LifecycleTest");
@@ -65,6 +81,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         usdcTokenContract = IERC20(USDC_ADDRESS);
         aaveV3PoolContract = IPoolV3(AAVE_V3_POOL_ADDRESS);
         usdcCompoundCometContract = IComet(COMPOUND_USDC_COMET_ADDRESS);
+        morphoContract = IMorpho(MORPHO_ADDRESS);
+        metaMorphoContract = IMetaMorpho(METAMORPHO_ADDRESS);
     }
 
     function setupArks() internal {
@@ -79,12 +97,18 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             address(usdcCompoundCometContract),
             arkParams
         );
+
+        morphoArk = new MorphoArk(MORPHO_ADDRESS, MORPHO_MARKET_ID, arkParams);
+
+        metaMorphoArk = new MetaMorphoArk(METAMORPHO_ADDRESS, arkParams);
     }
 
     function addArksToFleetCommander() internal {
-        address[] memory arks = new address[](2);
+        address[] memory arks = new address[](4);
         arks[0] = address(compoundArk);
         arks[1] = address(aaveArk);
+        arks[2] = address(morphoArk);
+        arks[3] = address(metaMorphoArk);
         vm.prank(governor);
         fleetCommander.addArks(arks);
     }
@@ -93,6 +117,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(governor);
         compoundArk.grantCommanderRole(address(fleetCommander));
         aaveArk.grantCommanderRole(address(fleetCommander));
+        morphoArk.grantCommanderRole(address(fleetCommander));
+        metaMorphoArk.grantCommanderRole(address(fleetCommander));
         bufferArk.grantCommanderRole(address(fleetCommander));
         accessManager.grantKeeperRole(keeper);
         vm.stopPrank();
@@ -101,15 +127,17 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function logSetupInfo() internal view {
         console.log("aave ark:", address(aaveArk));
         console.log("compound ark:", address(compoundArk));
+        console.log("morpho ark:", address(morphoArk));
+        console.log("metamorpho ark:", address(metaMorphoArk));
         console.log("buffer ark:", address(bufferArk));
         console.log("fleet commander:", address(fleetCommander));
     }
 
     function test_DepositRebalanceForceWithdrawFork() public {
         // Arrange
-        uint256 user1Deposit = ARK1_MAX_ALLOCATION;
-        uint256 user2Deposit = ARK2_MAX_ALLOCATION;
-        uint256 depositCap = ARK1_MAX_ALLOCATION + ARK2_MAX_ALLOCATION;
+        uint256 totalDeposit = 4000 * 10 ** 6; // 4000 USDC
+        uint256 userDeposit = totalDeposit / 4; // 1000 USDC per ark
+        uint256 depositCap = totalDeposit;
         uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
@@ -117,65 +145,34 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Set deposit cap
         fleetCommanderStorageWriter.setDepositCap(depositCap);
-        // Mint tokens for users
-        deal(address(usdcTokenContract), mockUser, user1Deposit);
-        deal(address(usdcTokenContract), mockUser2, user2Deposit);
 
-        // User 1 deposits
-        vm.startPrank(mockUser);
-        usdcTokenContract.approve(address(fleetCommander), user1Deposit);
-        uint256 user1PreviewShares = fleetCommander.previewDeposit(
-            user1Deposit
-        );
-        uint256 user1DepositedShares = fleetCommander.deposit(
-            user1Deposit,
-            mockUser
-        );
-        assertEq(
-            user1PreviewShares,
-            user1DepositedShares,
-            "Preview and deposited shares should be equal"
-        );
-        assertEq(
-            fleetCommander.balanceOf(mockUser),
-            user1Deposit,
-            "User 1 balance should be equal to deposit"
-        );
-        vm.stopPrank();
+        // Mint tokens for user
+        deal(address(usdcTokenContract), mockUser, totalDeposit);
 
-        // User 2 deposits
-        vm.startPrank(mockUser2);
-        usdcTokenContract.approve(address(fleetCommander), user2Deposit);
-        uint256 user2PreviewShares = fleetCommander.previewDeposit(
-            user2Deposit
-        );
-        uint256 user2DepositedShares = fleetCommander.deposit(
-            user2Deposit,
-            mockUser2
-        );
-        assertEq(
-            user2PreviewShares,
-            user2DepositedShares,
-            "Preview and deposited shares should be equal"
-        );
-        assertEq(
-            fleetCommander.balanceOf(mockUser2),
-            user2Deposit,
-            "User 2 balance should be equal to deposit"
-        );
-        vm.stopPrank();
+        // User deposits
+        depositForUser(mockUser, totalDeposit);
 
-        // Rebalance funds to Ark1 and Ark2
-        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
+        // Rebalance funds to all Arks
+        RebalanceData[] memory rebalanceData = new RebalanceData[](4);
         rebalanceData[0] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: address(compoundArk),
-            amount: user1Deposit
+            amount: userDeposit
         });
         rebalanceData[1] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: address(aaveArk),
-            amount: user2Deposit
+            amount: userDeposit
+        });
+        rebalanceData[2] = RebalanceData({
+            fromArk: address(bufferArk),
+            toArk: address(morphoArk),
+            amount: userDeposit
+        });
+        rebalanceData[3] = RebalanceData({
+            fromArk: address(bufferArk),
+            toArk: address(metaMorphoArk),
+            amount: userDeposit
         });
 
         // Advance time to move past cooldown window
@@ -183,59 +180,112 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
 
-        // Advance time and update Ark1 and Ark2 balances to simulate interest accrual
-        vm.warp(block.timestamp + 5 days);
+        metaMorphoArk.poke();
 
-        // User 1 withdraws
+        // Advance time to simulate interest accrual
+        vm.warp(block.timestamp + 30 days);
 
-        vm.startPrank(mockUser);
-        uint256 user1Shares = fleetCommander.balanceOf(mockUser);
-        uint256 user1Assets = fleetCommander.previewRedeem(user1Shares);
-        console.log("User 1 shares:", fleetCommander.balanceOf(mockUser));
-        console.log("User 1 assets:", user1Assets);
-        console.log("cmpound ark assets:", compoundArk.totalAssets());
-        console.log("aave ark assets:", aaveArk.totalAssets());
-        console.log("fleet assets", fleetCommander.totalAssets());
-        fleetCommander.forceWithdraw(user1Assets, mockUser, mockUser);
-
-        assertEq(
-            fleetCommander.balanceOf(mockUser),
-            0,
-            "User 1 balance should be 0"
+        // Accrue interest for Morpho
+        morphoContract.accrueInterest(
+            morphoContract.idToMarketParams(MORPHO_MARKET_ID)
         );
-        assertEq(
-            usdcTokenContract.balanceOf(mockUser),
-            user1Assets,
-            "User 1 should receive assets"
-        );
-        vm.stopPrank();
 
-        // User 2 withdraws
+        // Check total assets and rates
+        checkAssetsAndRates();
 
-        vm.startPrank(mockUser2);
-        uint256 user2Shares = fleetCommander.balanceOf(mockUser2);
-        uint256 user2Assets = fleetCommander.previewRedeem(user2Shares);
-        console.log("User 2 shares:", fleetCommander.balanceOf(mockUser2));
-        console.log("User 2 assets:", user2Assets);
-        fleetCommander.forceWithdraw(user2Assets, mockUser2, mockUser2);
-
-        assertEq(
-            fleetCommander.balanceOf(mockUser2),
-            0,
-            "User 2 balance should be 0"
-        );
-        assertEq(
-            usdcTokenContract.balanceOf(mockUser2),
-            user2Assets,
-            "User 2 should receive assets"
-        );
-        vm.stopPrank();
+        // User withdraws
+        withdrawForUser(mockUser, totalDeposit);
 
         // Assert
-        assertEq(
+        assertApproxEqAbs(
             fleetCommander.totalAssets(),
             0,
-            "Total assets should be 0 after withdrawals"
+            1000, // Allow for small rounding errors
+            "Total assets should be close to 0 after withdrawals"
+        );
+    }
+
+    function depositForUser(address user, uint256 amount) internal {
+        vm.startPrank(user);
+        usdcTokenContract.approve(address(fleetCommander), amount);
+        uint256 previewShares = fleetCommander.previewDeposit(amount);
+        uint256 depositedShares = fleetCommander.deposit(amount, user);
+        assertEq(
+            previewShares,
+            depositedShares,
+            "Preview and deposited shares should be equal"
+        );
+        assertEq(
+            fleetCommander.balanceOf(user),
+            amount,
+            "User balance should be equal to deposit"
+        );
+        vm.stopPrank();
+    }
+
+    function withdrawForUser(
+        address user,
+        uint256 expectedMinimumAmount
+    ) internal {
+        vm.startPrank(user);
+        uint256 userShares = fleetCommander.balanceOf(user);
+        uint256 userAssets = fleetCommander.previewRedeem(userShares);
+        console.log("User shares:", userShares);
+        console.log("User assets:", userAssets);
+        fleetCommander.forceWithdraw(userAssets, user, user);
+
+        assertEq(fleetCommander.balanceOf(user), 0, "User balance should be 0");
+        assertGe(
+            usdcTokenContract.balanceOf(user),
+            expectedMinimumAmount,
+            "User should receive at least the expected minimum assets"
+        );
+        vm.stopPrank();
+    }
+
+    function checkAssetsAndRates() internal view {
+        console.log("Compound Ark assets   :", compoundArk.totalAssets());
+        console.log("Aave Ark assets       :", aaveArk.totalAssets());
+        console.log("Morpho Ark assets     :", morphoArk.totalAssets());
+        console.log("MetaMorpho Ark assets :", metaMorphoArk.totalAssets());
+
+        console.log("Compound Ark rate     :", compoundArk.rate());
+        console.log("Aave Ark rate         :", aaveArk.rate());
+        console.log("Morpho Ark rate       :", morphoArk.rate());
+        console.log("MetaMorpho Ark rate   :", metaMorphoArk.rate());
+
+        assertTrue(
+            compoundArk.totalAssets() > 1000 * 10 ** 6,
+            "Compound Ark assets should have increased"
+        );
+        assertTrue(
+            aaveArk.totalAssets() > 1000 * 10 ** 6,
+            "Aave Ark assets should have increased"
+        );
+        assertTrue(
+            morphoArk.totalAssets() > 1000 * 10 ** 6,
+            "Morpho Ark assets should have increased"
+        );
+        assertTrue(
+            metaMorphoArk.totalAssets() > 1000 * 10 ** 6,
+            "MetaMorpho Ark assets should have increased"
+        );
+
+        assertTrue(
+            compoundArk.rate() > 0,
+            "Compound Ark rate should be greater than zero"
+        );
+        assertTrue(
+            aaveArk.rate() > 0,
+            "Aave Ark rate should be greater than zero"
+        );
+        assertTrue(
+            morphoArk.rate() > 0,
+            "Morpho Ark rate should be greater than zero"
+        );
+        assertTrue(
+            metaMorphoArk.rate() > 0,
+            "MetaMorpho Ark rate should be greater than zero"
         );
     }
 }
