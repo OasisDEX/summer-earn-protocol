@@ -6,7 +6,6 @@ import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
 import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
 import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
-import {IArk} from "../../interfaces/IArk.sol";
 
 contract AaveV3Ark is Ark {
     uint256 public constant WAD = 1e18;
