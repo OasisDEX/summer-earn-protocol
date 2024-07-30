@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {ITipper} from "../../src/interfaces/ITipper.sol";
-import {ITipperEvents} from "../../src/interfaces/ITipperEvents.sol";
+import {ITipperEvents} from "../../src/events/ITipperEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";

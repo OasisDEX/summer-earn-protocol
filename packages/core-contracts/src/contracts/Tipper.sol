@@ -7,49 +7,57 @@ import {FleetCommander} from "./FleetCommander.sol";
 import "../errors/TipperErrors.sol";
 import "../interfaces/IConfigurationManager.sol";
 
-/// @title Tipper
-/// @notice Contract implementing tip accrual functionality
-/// @dev This contract is designed to be instantiated by the FleetCommander
+/**
+ * @title Tipper
+ * @notice Contract implementing tip accrual functionality
+ * @dev This contract is designed to be instantiated by the FleetCommander
+ */
 abstract contract Tipper is ITipper {
-    /// @notice The current tip rate in basis points
-    /// @dev 100 basis points = 1%
+    /**
+     * @notice The current tip rate in basis points
+     * @dev 100 basis points = 1%
+     */
     uint256 public tipRate;
 
-    /// @notice The timestamp of the last tip accrual
+    /** @notice The timestamp of the last tip accrual */
     uint256 public lastTipTimestamp;
 
-    /// @notice The address where accrued tips are sent
+    /** @notice The address where accrued tips are sent */
     address public tipJar;
 
-    /// @notice The protocol configuration manager
+    /** @notice The protocol configuration manager */
     IConfigurationManager public manager;
 
-    /// @dev Constant representing 100% in basis points
+    /** @dev Constant representing 100% in basis points */
     uint256 private constant BASIS_POINTS = 10000;
 
-    /// @dev Constant representing the number of seconds in a year
+    /** @dev Constant representing the number of seconds in a year */
     uint256 private constant SECONDS_PER_YEAR = 365 days;
 
-    /// @dev Constant for scaling
+    /** @dev Constant for scaling */
     uint256 private constant SCALE = 1e18;
 
-    /// @notice Initializes the TipAccruer contract
-    /// @param configurationManager The address of the ConfigurationManager contract
-    /// @param initialTipRate The initialTipRate for the Fleet
+    /**
+     * @notice Initializes the TipAccruer contract
+     * @param configurationManager The address of the ConfigurationManager contract
+     * @param initialTipRate The initialTipRate for the Fleet
+     */
     constructor(address configurationManager, uint256 initialTipRate) {
         manager = IConfigurationManager(configurationManager);
 
         tipRate = initialTipRate;
         tipJar = manager.tipJar();
-        lastTipTimestamp = now;
+        lastTipTimestamp = block.timestamp;
     }
 
     // Internal function that must be implemented by the inheriting contract
     function _mintTip(address account, uint256 amount) internal virtual;
 
-    /// @notice Sets a new tip rate
-    /// @dev Only callable by the FleetCommander. Accrues tips before changing the rate.
-    /// @param newTipRate The new tip rate to set (in basis points)
+    /**
+     * @notice Sets a new tip rate
+     * @dev Only callable by the FleetCommander. Accrues tips before changing the rate.
+     * @param newTipRate The new tip rate to set (in basis points)
+     */
     function _setTipRate(uint256 newTipRate) internal {
         if (newTipRate > BASIS_POINTS) {
             revert TipRateCannotExceedOneHundredPercent();
@@ -59,8 +67,10 @@ abstract contract Tipper is ITipper {
         emit TipRateUpdated(newTipRate);
     }
 
-    /// @notice Sets a new tip jar address
-    /// @dev Only callable by the FleetCommander
+    /**
+     * @notice Sets a new tip jar address
+     * @dev Only callable by the FleetCommander
+     */
     function _setTipJar() internal {
         tipJar = manager.tipJar();
 
@@ -71,16 +81,18 @@ abstract contract Tipper is ITipper {
         emit TipJarUpdated(manager.tipJar());
     }
 
-    /// @notice Accrues tips based on the current tip rate and time elapsed
-    /// @dev Only callable by the FleetCommander
-    /// @return tippedShares The amount of tips accrued in shares
+    /**
+     * @notice Accrues tips based on the current tip rate and time elapsed
+     * @dev Only callable by the FleetCommander
+     * @return tippedShares The amount of tips accrued in shares
+     */
     function _accrueTip() internal returns (uint256 tippedShares) {
         if (tipRate == 0) {
             return 0;
-            lastTipTimestamp = now;
+            lastTipTimestamp = block.timestamp;
         }
 
-        uint256 timeElapsed = now - lastTipTimestamp;
+        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
 
         if (timeElapsed == 0) return 0;
 
@@ -90,7 +102,7 @@ abstract contract Tipper is ITipper {
 
         if (tippedShares > 0) {
             _mintTip(tipJar, tippedShares);
-            lastTipTimestamp = now;
+            lastTipTimestamp = block.timestamp;
             emit TipAccrued(tippedShares);
         }
     }
@@ -120,21 +132,25 @@ abstract contract Tipper is ITipper {
         return finalShares - totalShares;
     }
 
-    /// @notice Estimates the amount of tips accrued since the last tip accrual
-    /// @return The estimated amount of accrued tips
+    /**
+     * @notice Estimates the amount of tips accrued since the last tip accrual
+     * @return The estimated amount of accrued tips
+     */
     function estimateAccruedTip() public view returns (uint256) {
-        uint256 timeElapsed = now - lastTipTimestamp;
+        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
         uint256 totalShares = IERC20(address(this)).totalSupply();
         return _calculateTip(totalShares, timeElapsed);
     }
 
-    /// @notice Calculates x^n with precision of 1e18 (base)
-    /// @dev Uses an optimized assembly implementation for efficiency
-    /// @dev Is equivalent to exp(ln((rate))*(secondsSince))
-    /// @param x The base number
-    /// @param n The exponent
-    /// @param base The precision factor (typically 1e18)
-    /// @return z The result of x^n, representing x^n * base
+    /**
+     * @notice Calculates x^n with precision of 1e18 (base)
+     * @dev Uses an optimized assembly implementation for efficiency
+     * @dev Is equivalent to exp(ln((rate))*(secondsSince))
+     * @param x The base number
+     * @param n The exponent
+     * @param base The precision factor (typically 1e18)
+     * @return z The result of x^n, representing x^n * base
+     */
     function _rpow(
         uint256 x,
         uint256 n,

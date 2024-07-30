@@ -5,8 +5,10 @@ import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.s
 import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
 
-/// @title IFleetCommander Interface
-/// @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
+/**
+ * @title IFleetCommander Interface
+ * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
+ */
 interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
      * @notice Retrieves the arks currently linked to fleet
@@ -59,6 +61,10 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
         address receiver
     ) external override returns (uint256);
 
+    /**
+     * @notice Accrues and distributes tips
+     * @return The amount of tips accrued
+     */
     function tip() external returns (uint256);
 
     /* FUNCTIONS - EXTERNAL - KEEPER */
@@ -126,7 +132,6 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
      * @notice Forces a rebalance operation
      * @param data Array of typed rebalance data struct
-     *
      * @dev has no cooldown enforced but only callable by privileged role
      */
     function forceRebalance(RebalanceData[] calldata data) external;
