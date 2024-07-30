@@ -6,7 +6,7 @@ import {
   Rebalanced,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { getOrCreateAccount, getOrCreateArk, getOrCreateVault } from '../common/initializers'
+import { getOrCreateAccount, getOrCreateArk, getOrCreateVault, getOrCreateVaultsPostActionSnapshots } from '../common/initializers'
 import { formatAmount } from '../common/utils'
 import { VaultAndPositionDetails } from '../types'
 import { getPositionDetails } from '../utils/position'
@@ -22,6 +22,7 @@ export function handleRebalance(event: Rebalanced): void {
   const vaultDetails = getVaultDetails(event.address, event.block)
 
   updateVault(vaultDetails, event.block)
+  getOrCreateVaultsPostActionSnapshots(event.address, event.block)
   createRebalanceEventEntity(event, vault, event.block)
 }
 

@@ -7,6 +7,8 @@ import {
   ArkHourlySnapshot,
   FinancialsDailySnapshot,
   Position,
+  PostActionArkSnapshot,
+  PostActionVaultSnapshot,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
@@ -482,9 +484,7 @@ export function getOrCreateArksHourlySnapshots(
 
     arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
     arkSnapshots.inputTokenBalance = ark.inputTokenBalance
-    arkSnapshots.outputTokenSupply = constants.BigIntConstants.ZERO
-    arkSnapshots.outputTokenPriceUSD = constants.BigDecimalConstants.ZERO
-    arkSnapshots.pricePerShare = constants.BigDecimalConstants.ZERO
+
     arkSnapshots.apr = arkContract
       .rate()
       .toBigDecimal()
@@ -494,19 +494,6 @@ export function getOrCreateArksHourlySnapshots(
     arkSnapshots.aprLast1h = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : previousSnapshot.apr.plus(arkSnapshots.apr).div(constants.BigDecimalConstants.TWO)
-
-    arkSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
-    arkSnapshots.cumulativeSupplySideRevenueUSD = ark.cumulativeSupplySideRevenueUSD
-
-    arkSnapshots.hourlyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
-    arkSnapshots.cumulativeProtocolSideRevenueUSD = ark.cumulativeProtocolSideRevenueUSD
-
-    arkSnapshots.hourlyTotalRevenueUSD = constants.BigDecimalConstants.ZERO
-    arkSnapshots.cumulativeTotalRevenueUSD = ark.cumulativeTotalRevenueUSD
-
-    arkSnapshots.stakedOutputTokenAmount = constants.BigIntConstants.ZERO
-    arkSnapshots.rewardTokenEmissionsAmount = []
-    arkSnapshots.rewardTokenEmissionsUSD = []
 
     arkSnapshots.blockNumber = block.number
     arkSnapshots.timestamp = block.timestamp
@@ -536,27 +523,12 @@ export function getOrCreateArksDailySnapshots(
 
     arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
     arkSnapshots.inputTokenBalance = ark.inputTokenBalance
-    arkSnapshots.outputTokenSupply = constants.BigIntConstants.ZERO
-    arkSnapshots.outputTokenPriceUSD = constants.BigDecimalConstants.ZERO
-    arkSnapshots.pricePerShare = constants.BigDecimalConstants.ZERO
+
     arkSnapshots.apr = arkContract
       .rate()
       .toBigDecimal()
       .div(constants.BigDecimalConstants.RAY)
       .times(constants.BigDecimalConstants.HUNDRED)
-
-    arkSnapshots.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
-    arkSnapshots.cumulativeSupplySideRevenueUSD = ark.cumulativeSupplySideRevenueUSD
-
-    arkSnapshots.dailyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
-    arkSnapshots.cumulativeProtocolSideRevenueUSD = ark.cumulativeProtocolSideRevenueUSD
-
-    arkSnapshots.dailyTotalRevenueUSD = constants.BigDecimalConstants.ZERO
-    arkSnapshots.cumulativeTotalRevenueUSD = ark.cumulativeTotalRevenueUSD
-
-    arkSnapshots.stakedOutputTokenAmount = constants.BigIntConstants.ZERO
-    arkSnapshots.rewardTokenEmissionsAmount = []
-    arkSnapshots.rewardTokenEmissionsUSD = []
 
     arkSnapshots.blockNumber = block.number
     arkSnapshots.timestamp = block.timestamp
@@ -565,4 +537,92 @@ export function getOrCreateArksDailySnapshots(
   }
 
   return arkSnapshots
+}
+
+export function getOrCreateArksPostActionSnapshots(
+  vaultAddress: Address,
+  arkAddress: Address,
+  block: ethereum.Block,
+): PostActionArkSnapshot {
+  const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+  const id: string = ark.id
+    .concat('-')
+    .concat((block.timestamp.toI64()).toString())
+
+  let arkSnapshots = PostActionArkSnapshot.load(id)
+
+  if (!arkSnapshots) {
+    const arkContract = ArkContract.bind(arkAddress)
+    arkSnapshots = new PostActionArkSnapshot(id)
+    arkSnapshots.protocol = ark.vault
+    arkSnapshots.vault = ark.vault
+    arkSnapshots.ark = ark.id
+
+    arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
+    arkSnapshots.inputTokenBalance = ark.inputTokenBalance
+
+    arkSnapshots.apr = arkContract
+      .rate()
+      .toBigDecimal()
+      .div(constants.BigDecimalConstants.RAY)
+      .times(constants.BigDecimalConstants.HUNDRED)
+
+
+    arkSnapshots.blockNumber = block.number
+    arkSnapshots.timestamp = block.timestamp
+    arkSnapshots.save()
+  }
+
+  return arkSnapshots
+}
+
+export function getOrCreateVaultsPostActionSnapshots(
+  vaultAddress: Address,
+  block: ethereum.Block,
+): PostActionVaultSnapshot {
+  const vault = getOrCreateVault(vaultAddress, block)
+  const id: string = vault.id
+    .concat('-')
+    .concat((block.timestamp.toI64()).toString())
+  let vaultSnapshots = PostActionVaultSnapshot.load(id)
+
+  if (!vaultSnapshots) {
+    vaultSnapshots = new PostActionVaultSnapshot(id)
+    vaultSnapshots.protocol = vault.protocol
+    vaultSnapshots.vault = vault.id
+
+    vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
+    vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
+    vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
+      ? vault.outputTokenSupply!
+      : constants.BigIntConstants.ZERO
+    vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
+      ? vault.outputTokenPriceUSD!
+      : constants.BigDecimalConstants.ZERO
+    vaultSnapshots.pricePerShare = vault.pricePerShare
+      ? vault.pricePerShare!
+      : constants.BigDecimalConstants.ZERO
+
+
+    const totalAssets = vault.inputTokenBalance;
+    const arks = vault.arksArray;
+
+    // get weighted apr for all arks
+    let weightedApr = constants.BigDecimalConstants.ZERO;
+    for (let j = 0; j < arks.length; j++) {
+      const arkAddress = Address.fromString(arks[j]);
+      const arkContract = ArkContract.bind(arkAddress);
+      const arkApr = arkContract.rate().toBigDecimal().div(constants.BigDecimalConstants.RAY);
+      const arkTotalAssets = arkContract.totalAssets().toBigDecimal();
+      const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal());
+      weightedApr = weightedApr.plus(arkApr.times(arkWeight));
+    }
+    vaultSnapshots.apr = weightedApr.times(constants.BigDecimalConstants.HUNDRED);
+
+    vaultSnapshots.blockNumber = block.number
+    vaultSnapshots.timestamp = block.timestamp
+    vaultSnapshots.save()
+  }
+
+  return vaultSnapshots
 }

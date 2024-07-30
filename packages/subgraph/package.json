@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "0.0.23-weighted-vault-apr",
+  "version": "0.0.24-post-action-snapshot",
   "scripts": {
     "build:mainnet": "graph codegen && graph build --network mainnet",
     "build:base": "graph codegen && graph build --network base",

@@ -1,9 +1,11 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Rebalance, Vault } from '../../../generated/schema'
 import { Rebalanced as RebalancedEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { getOrCreateArk, getOrCreateToken } from '../../common/initializers'
+import { getOrCreateArk, getOrCreateArksPostActionSnapshots, getOrCreateToken } from '../../common/initializers'
 import { getTokenPriceInUSD } from '../../common/priceHelpers'
 import { formatAmount } from '../../common/utils'
+import { getArkDetails } from '../../utils/ark'
+import { updateArk } from './ark'
 
 export function createRebalanceEventEntity(
   event: RebalancedEvent,
@@ -25,6 +27,15 @@ export function createRebalanceEventEntity(
 
     getOrCreateArk(Address.fromString(vault.id), rebalances[i].fromArk, block)
     getOrCreateArk(Address.fromString(vault.id), rebalances[i].toArk, block)
+
+    const fromArkDetails = getArkDetails(Address.fromString(vault.id), rebalances[i].fromArk, block)
+    updateArk(fromArkDetails, block)
+
+    const toArkDetails = getArkDetails(Address.fromString(vault.id), rebalances[i].toArk, block)
+    updateArk(toArkDetails, block)
+
+    getOrCreateArksPostActionSnapshots(Address.fromString(vault.id), rebalances[i].fromArk, block)
+    getOrCreateArksPostActionSnapshots(Address.fromString(vault.id), rebalances[i].toArk, block)
 
     const rebalance = rebalances[i]
     rebalanceEntity.amount = rebalance.amount
