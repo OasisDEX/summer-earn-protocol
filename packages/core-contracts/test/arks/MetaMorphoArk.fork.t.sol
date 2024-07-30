@@ -18,8 +18,10 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
     MetaMorphoArk public ark;
     address public governor = address(1);
-    address public commander = address(4);
     address public raft = address(2);
+    address public tipJar = address(3);
+    address public commander = address(4);
+
     address public constant METAMORPHO_ADDRESS =
         0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB;
 
@@ -42,8 +44,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
-                raft: raft,
-                tipJar: address(0)
+                tipJar: tipJar,
+                raft: raft
             })
         );
 

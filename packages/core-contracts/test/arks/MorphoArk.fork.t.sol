@@ -17,8 +17,9 @@ import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 contract MorphoArkTestFork is Test, IArkEvents {
     MorphoArk public ark;
     address public governor = address(1);
-    address public commander = address(4);
     address public raft = address(2);
+    address public tipJar = address(3);
+    address public commander = address(4);
 
     IConfigurationManager configurationManager;
     IProtocolAccessManager accessManager;
@@ -53,8 +54,8 @@ contract MorphoArkTestFork is Test, IArkEvents {
         configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
-                raft: raft,
-                tipJar: address(0)
+                tipJar: tipJar,
+                raft: raft
             })
         );
 
