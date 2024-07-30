@@ -269,8 +269,26 @@ contract FleetCommander is
         _setTipJar();
     }
 
-    function setTipRate(Percentage newTipRate) external onlyGovernor {
-        _setTipRate(newTipRate);
+    /**
+     * @notice Sets a new tip rate for the protocol
+     * @dev Only callable by the governor
+     * @param newTipRateNumerator The numerator of the new tip rate fraction
+     * @param newTipRateDenominator The denominator of the new tip rate fraction
+     * @dev The tip rate is set as a fraction (newTipRateNumerator / newTipRateDenominator)
+     *      For example, for a 5.5% rate, you might pass (55, 1000)
+     */
+    function setTipRate(
+        uint256 newTipRateNumerator,
+        uint256 newTipRateDenominator
+    ) external onlyGovernor {
+        // Convert the fraction to the internal Percentage representation
+        // This uses the PercentageUtils library to create a Percentage struct
+        _setTipRate(
+            PercentageUtils.fromFraction(
+                newTipRateNumerator,
+                newTipRateDenominator
+            )
+        );
     }
 
     function addArk(address ark) external onlyGovernor {
