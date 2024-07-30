@@ -270,7 +270,7 @@ contract FleetCommander is
         _setTipJar();
     }
 
-    function setTipRate(uint256 newTipRate) external onlyGovernor {
+    function setTipRate(Percentage newTipRate) external onlyGovernor {
         _setTipRate(newTipRate);
     }
 

@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 /**
  * @title Percentage
- *     @notice Custom type for Percentage values
+ * @notice Custom type for Percentage values
  */
 
 /**
@@ -27,7 +27,7 @@ using {
 } for Percentage global;
 
 /* The number of decimals used for the slippage percentage */
-uint256 constant PERCENTAGE_DECIMALS = 6;
+uint256 constant PERCENTAGE_DECIMALS = 18;
 
 /* The factor used to scale the slippage percentage when calculating the slippage on an amount */
 uint256 constant PERCENTAGE_FACTOR = 10 ** PERCENTAGE_DECIMALS;

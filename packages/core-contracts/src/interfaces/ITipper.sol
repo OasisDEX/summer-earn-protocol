@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ITipperEvents} from "../events/ITipperEvents.sol";
+import "../types/Percentage.sol";
 
 /**
  * @title ITipper Interface
@@ -11,10 +12,10 @@ import {ITipperEvents} from "../events/ITipperEvents.sol";
 interface ITipper is ITipperEvents {
     /**
      * @notice Get the current tip rate
-     * @return The current tip rate in basis points (1/10000)
+     * @return The current tip rate using the Percentage type
      * @dev A tip rate of 100 represents 1%, 10000 represents 100%
      */
-    function tipRate() external view returns (uint256);
+    function tipRate() external view returns (Percentage);
 
     /**
      * @notice Get the timestamp of the last tip accrual

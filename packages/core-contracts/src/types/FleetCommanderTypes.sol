@@ -19,7 +19,7 @@ struct FleetCommanderParams {
     Percentage initialMaximumBufferWithdrawal;
     uint256 depositCap;
     address bufferArk;
-    uint256 initialTipRate;
+    Percentage initialTipRate;
 }
 
 /**

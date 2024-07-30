@@ -15,6 +15,8 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import "../../src/types/Percentage.sol";
+import "../../src/libraries/PercentageUtils.sol";
 
 abstract contract FleetCommanderTestBase is Test {
     using PercentageUtils for uint256;
@@ -69,7 +71,11 @@ abstract contract FleetCommanderTestBase is Test {
         initialArks[0] = ark1;
         initialArks[1] = ark2;
         initialArks[2] = ark3;
-        setupFleetCommander(address(mockToken), initialArks, initialTipRate);
+        setupFleetCommander(
+            address(mockToken),
+            initialArks,
+            PercentageUtils.fromDecimalPercentage(initialTipRate)
+        );
         grantRoles(initialArks, address(bufferArk), keeper);
     }
 
@@ -78,7 +84,11 @@ abstract contract FleetCommanderTestBase is Test {
         uint256 initialTipRate
     ) internal {
         setupBaseContracts(underlyingToken);
-        setupFleetCommander(underlyingToken, new address[](0), initialTipRate);
+        setupFleetCommander(
+            underlyingToken,
+            new address[](0),
+            PercentageUtils.fromDecimalPercentage(initialTipRate)
+        );
     }
 
     function setupBaseContracts(address underlyingToken) internal {
@@ -105,7 +115,7 @@ abstract contract FleetCommanderTestBase is Test {
     function setupFleetCommander(
         address underlyingToken,
         address[] memory initialArks,
-        uint256 initialTipRate
+        Percentage initialTipRate
     ) internal {
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),

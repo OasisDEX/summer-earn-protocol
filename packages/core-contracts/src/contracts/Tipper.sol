@@ -6,18 +6,18 @@ import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol"
 import {FleetCommander} from "./FleetCommander.sol";
 import "../errors/TipperErrors.sol";
 import "../interfaces/IConfigurationManager.sol";
+import "../types/Percentage.sol";
+import "../libraries/PercentageUtils.sol";
 
 /**
  * @title Tipper
  * @notice Contract implementing tip accrual functionality
- * @dev This contract is designed to be instantiated by the FleetCommander
  */
 abstract contract Tipper is ITipper {
-    /**
-     * @notice The current tip rate in basis points
-     * @dev 100 basis points = 1%
-     */
-    uint256 public tipRate;
+    using PercentageUtils for uint256;
+
+    /** @notice The current tip rate in basis points */
+    Percentage public tipRate;
 
     /** @notice The timestamp of the last tip accrual */
     uint256 public lastTipTimestamp;
@@ -28,21 +28,15 @@ abstract contract Tipper is ITipper {
     /** @notice The protocol configuration manager */
     IConfigurationManager public manager;
 
-    /** @dev Constant representing 100% in basis points */
-    uint256 private constant BASIS_POINTS = 10000;
-
     /** @dev Constant representing the number of seconds in a year */
     uint256 private constant SECONDS_PER_YEAR = 365 days;
-
-    /** @dev Constant for scaling */
-    uint256 private constant SCALE = 1e18;
 
     /**
      * @notice Initializes the TipAccruer contract
      * @param configurationManager The address of the ConfigurationManager contract
      * @param initialTipRate The initialTipRate for the Fleet
      */
-    constructor(address configurationManager, uint256 initialTipRate) {
+    constructor(address configurationManager, Percentage initialTipRate) {
         manager = IConfigurationManager(configurationManager);
 
         tipRate = initialTipRate;
@@ -58,8 +52,8 @@ abstract contract Tipper is ITipper {
      * @dev Only callable by the FleetCommander. Accrues tips before changing the rate.
      * @param newTipRate The new tip rate to set (in basis points)
      */
-    function _setTipRate(uint256 newTipRate) internal {
-        if (newTipRate > BASIS_POINTS) {
+    function _setTipRate(Percentage newTipRate) internal {
+        if (newTipRate > PERCENTAGE_100) {
             revert TipRateCannotExceedOneHundredPercent();
         }
         _accrueTip(); // Accrue tips before changing the rate
@@ -87,9 +81,9 @@ abstract contract Tipper is ITipper {
      * @return tippedShares The amount of tips accrued in shares
      */
     function _accrueTip() internal returns (uint256 tippedShares) {
-        if (tipRate == 0) {
-            return 0;
+        if (Percentage.unwrap(tipRate) == 0) {
             lastTipTimestamp = block.timestamp;
+            return 0;
         }
 
         uint256 timeElapsed = block.timestamp - lastTipTimestamp;
@@ -111,24 +105,23 @@ abstract contract Tipper is ITipper {
         uint256 totalShares,
         uint256 timeElapsed
     ) internal view returns (uint256) {
-        // Calculate the daily interest rate
-        // tipRate is in basis points (1/10000)
-        // SCALE is a constant for fixed-point arithmetic (e.g., 1e18)
-        // Dividing by 365 days converts annual rate to rate per second
-        uint256 ratePerSecond = (tipRate * SCALE) / (BASIS_POINTS * 365 days);
+        Percentage ratePerSecond = Percentage.wrap(
+            (Percentage.unwrap(tipRate) / SECONDS_PER_YEAR)
+        );
 
         // Calculate (1 + r)^t using a custom power function
-        // This is the compound interest factor
-        // _rpow is a function for exponentiation with fixed-point numbers
-        uint256 factor = _rpow((SCALE + ratePerSecond), timeElapsed, SCALE);
+        Percentage factor = _rpow(
+            PERCENTAGE_100 + ratePerSecond,
+            timeElapsed,
+            PERCENTAGE_100
+        );
 
         // Calculate S = P * (1 + r)^t
-        // This gives the final amount after compound interest
-        // Divide by SCALE to adjust for fixed-point arithmetic
-        uint256 finalShares = (totalShares * factor) / SCALE;
+        uint256 finalShares = totalShares.applyPercentage(factor);
 
         // Return the difference (S - P)
         // This represents the total interest (tip) earned
+
         return finalShares - totalShares;
     }
 
@@ -152,20 +145,24 @@ abstract contract Tipper is ITipper {
      * @return z The result of x^n, representing x^n * base
      */
     function _rpow(
-        uint256 x,
+        Percentage x,
         uint256 n,
-        uint256 base
-    ) internal pure returns (uint256 z) {
+        Percentage base
+    ) internal pure returns (Percentage z) {
+        uint256 xUnwrapped = Percentage.unwrap(x);
+        uint256 baseUnwrapped = Percentage.unwrap(base);
+        uint256 result;
+
         // Step 1: Handle special cases
-        if (x == 0 || n == 0) {
-            return n == 0 ? base : 0;
+        if (xUnwrapped == 0 || n == 0) {
+            return n == 0 ? base : Percentage.wrap(0);
         }
 
-        // Step 2: Initialize z based on whether n is odd or even
-        z = n % 2 == 0 ? base : x;
+        // Step 2: Initialize result is based on whether n is odd or even
+        result = n % 2 == 0 ? baseUnwrapped : xUnwrapped;
 
         // Step 3: Prepare for the main loop
-        uint256 half = base / 2;
+        uint256 half = baseUnwrapped / 2;
 
         // Step 4: Main loop - Square-and-multiply algorithm
         assembly {
@@ -176,8 +173,8 @@ abstract contract Tipper is ITipper {
             } n {
 
             } {
-                let xx := mul(x, x)
-                if iszero(eq(div(xx, x), x)) {
+                let xx := mul(xUnwrapped, xUnwrapped)
+                if iszero(eq(div(xx, xUnwrapped), xUnwrapped)) {
                     revert(0, 0)
                 }
 
@@ -186,11 +183,14 @@ abstract contract Tipper is ITipper {
                     revert(0, 0)
                 }
 
-                x := div(xxRound, base)
+                xUnwrapped := div(xxRound, baseUnwrapped)
 
                 if mod(n, 2) {
-                    let zx := mul(z, x)
-                    if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) {
+                    let zx := mul(result, xUnwrapped)
+                    if and(
+                        iszero(iszero(xUnwrapped)),
+                        iszero(eq(div(zx, xUnwrapped), result))
+                    ) {
                         revert(0, 0)
                     }
 
@@ -199,11 +199,13 @@ abstract contract Tipper is ITipper {
                         revert(0, 0)
                     }
 
-                    z := div(zxRound, base)
+                    result := div(zxRound, baseUnwrapped)
                 }
 
                 n := div(n, 2)
             }
         }
+
+        return Percentage.wrap(result);
     }
 }

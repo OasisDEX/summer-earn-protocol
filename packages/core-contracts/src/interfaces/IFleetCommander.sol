@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import "../types/Percentage.sol";
 
 /**
  * @title IFleetCommander Interface
@@ -96,7 +97,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @notice Sets a new tip rate
      * @param newTipRate The new tip rate for the fleet
      */
-    function setTipRate(uint256 newTipRate) external;
+    function setTipRate(Percentage newTipRate) external;
 
     /**
      * @notice Adds a new Ark

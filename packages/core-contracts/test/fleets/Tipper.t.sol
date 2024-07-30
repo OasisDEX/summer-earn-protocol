@@ -9,6 +9,8 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
+import "../../src/libraries/PercentageUtils.sol";
+import "../../src/types/Percentage.sol";
 
 abstract contract MockConfigurationManager is IConfigurationManager {
     address public tipJar;
@@ -28,19 +30,21 @@ abstract contract MockConfigurationManager is IConfigurationManager {
 }
 
 contract TipperTest is Test, ITipperEvents {
+    using PercentageUtils for uint256;
+
     address public mockUser = address(1);
     FleetCommanderMock public fleetCommander;
     MockConfigurationManager public configManager;
 
     ERC20Mock public underlyingToken;
     address public tipJar;
-    uint8 public initialTipRate;
+    Percentage public initialTipRate;
     TipperHarness public tipper;
 
     function setUp() public {
         underlyingToken = new ERC20Mock();
         tipJar = address(0x123);
-        initialTipRate = 100; // 1%
+        initialTipRate = PercentageUtils.fromDecimalPercentage(1);
         configManager = MockConfigurationManager(
             address(new MockConfigurationManagerImpl(tipJar))
         );
@@ -56,17 +60,23 @@ contract TipperTest is Test, ITipperEvents {
 
     function test_InitialState() public view {
         assertEq(address(fleetCommander.manager()), address(configManager));
-        assertEq(fleetCommander.tipRate(), initialTipRate);
+        assertEq(
+            Percentage.unwrap(fleetCommander.tipRate()),
+            Percentage.unwrap(initialTipRate)
+        );
         assertEq(fleetCommander.tipJar(), tipJar);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
     }
 
     function test_SetTipRate() public {
-        uint8 newTipRate = 200; // 2%
+        Percentage newTipRate = PercentageUtils.fromDecimalPercentage(2);
         vm.expectEmit(true, true, false, true);
         emit TipRateUpdated(newTipRate);
         fleetCommander.setTipRate(newTipRate);
-        assertEq(fleetCommander.tipRate(), newTipRate);
+        assertEq(
+            Percentage.unwrap(fleetCommander.tipRate()),
+            Percentage.unwrap(newTipRate)
+        );
     }
 
     function test_SetTipJar() public {
@@ -96,7 +106,7 @@ contract TipperTest is Test, ITipperEvents {
         vm.warp(block.timestamp + 365 days);
 
         vm.expectEmit(true, true, false, true);
-        emit TipAccrued(10050167052044451000000); // Approximately 1% of 1,000,000 over 1 year
+        emit TipAccrued(10050167082308619770000); // Approximately 1% of 1,000,000 over 1 year
         uint256 accruedTip = fleetCommander.tip();
 
         assertApproxEqRel(accruedTip, 10050 ether, 0.01e18);
@@ -124,7 +134,7 @@ contract TipperTest is Test, ITipperEvents {
         vm.expectRevert(
             abi.encodeWithSignature("TipRateCannotExceedOneHundredPercent()")
         );
-        fleetCommander.setTipRate(10001); // 100.01%
+        fleetCommander.setTipRate(PercentageUtils.fromDecimalPercentage(101));
     }
 
     function test_SetTipJarCannotBeZeroAddress() public {
@@ -237,8 +247,10 @@ contract MockConfigurationManagerImpl is MockConfigurationManager {
 }
 
 contract TipperHarness is Tipper {
-    constructor(address configurationManager) Tipper(configurationManager, 0) {
-        tipRate = 100;
+    constructor(
+        address configurationManager
+    ) Tipper(configurationManager, PercentageUtils.fromDecimalPercentage(0)) {
+        tipRate = PercentageUtils.fromDecimalPercentage(1);
     }
 
     function exposed_calculateTip(
