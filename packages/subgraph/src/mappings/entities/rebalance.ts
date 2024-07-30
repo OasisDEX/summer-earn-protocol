@@ -28,15 +28,6 @@ export function createRebalanceEventEntity(
     getOrCreateArk(Address.fromString(vault.id), rebalances[i].fromArk, block)
     getOrCreateArk(Address.fromString(vault.id), rebalances[i].toArk, block)
 
-    const fromArkDetails = getArkDetails(Address.fromString(vault.id), rebalances[i].fromArk, block)
-    updateArk(fromArkDetails, block)
-
-    const toArkDetails = getArkDetails(Address.fromString(vault.id), rebalances[i].toArk, block)
-    updateArk(toArkDetails, block)
-
-    getOrCreateArksPostActionSnapshots(Address.fromString(vault.id), rebalances[i].fromArk, block)
-    getOrCreateArksPostActionSnapshots(Address.fromString(vault.id), rebalances[i].toArk, block)
-
     const rebalance = rebalances[i]
     rebalanceEntity.amount = rebalance.amount
     rebalanceEntity.amountUSD = normalizedAmountUSD

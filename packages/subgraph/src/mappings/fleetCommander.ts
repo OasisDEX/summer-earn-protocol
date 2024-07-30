@@ -1,4 +1,4 @@
-import { BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Account } from '../../generated/schema'
 import {
   ArkAdded,
@@ -6,7 +6,7 @@ import {
   Rebalanced,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { getOrCreateAccount, getOrCreateArk, getOrCreateVault, getOrCreateVaultsPostActionSnapshots } from '../common/initializers'
+import { getOrCreateAccount, getOrCreateArk, getOrCreateArksPostActionSnapshots, getOrCreateVault, getOrCreateVaultsPostActionSnapshots } from '../common/initializers'
 import { formatAmount } from '../common/utils'
 import { VaultAndPositionDetails } from '../types'
 import { getPositionDetails } from '../utils/position'
@@ -16,6 +16,8 @@ import { updatePosition } from './entities/position'
 import { createRebalanceEventEntity } from './entities/rebalance'
 import { updateVault } from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
+import { getArkDetails } from '../utils/ark'
+import { updateArk } from './entities/ark'
 
 export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
@@ -23,6 +25,15 @@ export function handleRebalance(event: Rebalanced): void {
 
   updateVault(vaultDetails, event.block)
   getOrCreateVaultsPostActionSnapshots(event.address, event.block)
+
+  const arks = vault.arksArray
+
+  for (let i = 0; i < arks.length; i++) {
+    const arkDetails = getArkDetails(Address.fromString(vault.id), Address.fromString(arks[i]), event.block)
+    updateArk(arkDetails, event.block)
+    getOrCreateArksPostActionSnapshots(Address.fromString(vault.id), Address.fromString(arks[i]), event.block)
+  }
+
   createRebalanceEventEntity(event, vault, event.block)
 }
 
