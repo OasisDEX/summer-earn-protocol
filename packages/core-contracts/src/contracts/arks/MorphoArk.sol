@@ -3,9 +3,9 @@ pragma solidity 0.8.26;
 
 import "../Ark.sol";
 import {IMorpho, Id, MarketParams, Market, Position} from "morpho-blue/interfaces/IMorpho.sol";
-import {IArk} from "../../interfaces/IArk.sol";
+
 import {IIrm} from "morpho-blue/interfaces/IIrm.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
 import {MarketParamsLib} from "morpho-blue/libraries/MarketParamsLib.sol";
