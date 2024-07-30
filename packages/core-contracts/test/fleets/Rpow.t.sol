@@ -6,6 +6,7 @@ import {Tipper} from "../../src/contracts/Tipper.sol";
 import "../../src/contracts/ConfigurationManager.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import "../../src/types/Percentage.sol";
+import "../../src/libraries/MathUtils.sol";
 
 contract RPowTest is Test {
     address public governor = address(1);
@@ -142,6 +143,8 @@ contract RPowTest is Test {
 
 // Helper contract to expose the internal _rpow function for testing
 contract TipperHarness is Tipper {
+    using MathUtils for Percentage;
+
     constructor(
         address configurationManager
     ) Tipper(configurationManager, Percentage.wrap(0)) {}
@@ -153,7 +156,7 @@ contract TipperHarness is Tipper {
     ) public pure returns (uint256) {
         return
             Percentage.unwrap(
-                _rpow(Percentage.wrap(x), n, Percentage.wrap(base))
+                MathUtils.rpow(Percentage.wrap(x), n, Percentage.wrap(base))
             );
     }
 
