@@ -26,10 +26,10 @@ using {
     equalTo as ==
 } for Percentage global;
 
-/* The number of decimals used for the slippage percentage */
+/* The number of decimals used for the percentage */
 uint256 constant PERCENTAGE_DECIMALS = 18;
 
-/* The factor used to scale the slippage percentage when calculating the slippage on an amount */
+/* The factor used to scale the percentage */
 uint256 constant PERCENTAGE_FACTOR = 10 ** PERCENTAGE_DECIMALS;
 
 /* Percentage of 100% with the given `PERCENTAGE_DECIMALS` */
