@@ -45,21 +45,21 @@ contract TipperTest is Test, ITipperEvents {
     function test_InitialState() public view {
         assertEq(address(fleetCommander.manager()), address(configManager));
         assertEq(
-            Percentage.unwrap(fleetCommander.tipRate()),
-            Percentage.unwrap(initialTipRate)
+            fleetCommander.tipRate(),
+            PercentageUtils.toBasisPoints(initialTipRate)
         );
         assertEq(fleetCommander.tipJar(), tipJar);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
     }
 
     function test_SetTipRate() public {
-        Percentage newTipRate = PercentageUtils.fromDecimalPercentage(2);
+        uint256 newTipRateInBasisPoints = PercentageUtils.toBasisPoints(PercentageUtils.fromDecimalPercentage(2));
         vm.expectEmit(true, true, false, true);
-        emit TipRateUpdated(newTipRate);
-        fleetCommander.setTipRate(newTipRate);
+        emit TipRateUpdated(newTipRateInBasisPoints);
+        fleetCommander.setTipRate(newTipRateInBasisPoints);
         assertEq(
-            Percentage.unwrap(fleetCommander.tipRate()),
-            Percentage.unwrap(newTipRate)
+            fleetCommander.tipRate(),
+            newTipRateInBasisPoints
         );
     }
 
@@ -118,7 +118,7 @@ contract TipperTest is Test, ITipperEvents {
         vm.expectRevert(
             abi.encodeWithSignature("TipRateCannotExceedOneHundredPercent()")
         );
-        fleetCommander.setTipRate(PercentageUtils.fromDecimalPercentage(101));
+        fleetCommander.setTipRate(10001);
     }
 
     function test_SetTipJarCannotBeZeroAddress() public {
@@ -233,7 +233,7 @@ contract TipperHarness is Tipper {
     constructor(
         address configurationManager
     ) Tipper(configurationManager, PercentageUtils.fromDecimalPercentage(0)) {
-        tipRate = PercentageUtils.fromDecimalPercentage(1);
+        tipRate = 100; // 1%
     }
 
     function exposed_calculateTip(

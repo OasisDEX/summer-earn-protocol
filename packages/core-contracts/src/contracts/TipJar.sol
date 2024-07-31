@@ -8,6 +8,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {PercentageUtils} from "../libraries/PercentageUtils.sol";
 import "../errors/TipJarErrors.sol";
 import {Percentage, fromPercentage, toPercentage} from "../types/Percentage.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
 /**
  * @title TipJar
@@ -93,7 +94,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         return allStreams;
     }
 
-    function shake(IERC4626 fleetCommander) public {
+    function shake(IFleetCommander fleetCommander) public {
         uint256 shares = fleetCommander.balanceOf(address(this));
         require(shares > 0, "No shares to distribute");
 
@@ -125,7 +126,9 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         emit TipJarShaken(address(fleetCommander), assets);
     }
 
-    function shakeMultiple(IERC4626[] calldata fleetCommanders) external {
+    function shakeMultiple(
+        IFleetCommander[] calldata fleetCommanders
+    ) external {
         for (uint256 i = 0; i < fleetCommanders.length; i++) {
             shake(fleetCommanders[i]);
         }

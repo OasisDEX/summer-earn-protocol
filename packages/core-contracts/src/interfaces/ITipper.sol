@@ -11,11 +11,11 @@ import {Percentage} from "../types/Percentage.sol";
  */
 interface ITipper is ITipperEvents {
     /**
-     * @notice Get the current tip rate
-     * @return The current tip rate using the Percentage type
+     * @notice Get the current tip rate (in basis points)
+     * @return The current tip rate
      * @dev A tip rate of 100 represents 1%, 10000 represents 100%
      */
-    function tipRate() external view returns (Percentage);
+    function tipRate() external view returns (uint256);
 
     /**
      * @notice Get the timestamp of the last tip accrual

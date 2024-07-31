@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ITipJarEvents} from "./ITipJarEvents.sol";
 import "../types/Percentage.sol";
+import "./IFleetCommander.sol";
 
 /**
  * @title ITipJar
@@ -31,6 +32,6 @@ interface ITipJar is ITipJarEvents {
         address recipient
     ) external view returns (TipStream memory);
     function getAllTipStreams() external view returns (TipStream[] memory);
-    function shake(IERC4626 fleetCommander) external;
-    function shakeMultiple(IERC4626[] calldata fleetCommanders) external;
+    function shake(IFleetCommander fleetCommander) external;
+    function shakeMultiple(IFleetCommander[] calldata fleetCommanders) external;
 }

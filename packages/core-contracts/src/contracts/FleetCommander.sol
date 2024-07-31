@@ -272,21 +272,18 @@ contract FleetCommander is
     /**
      * @notice Sets a new tip rate for the protocol
      * @dev Only callable by the governor
-     * @param newTipRateNumerator The numerator of the new tip rate fraction
-     * @param newTipRateDenominator The denominator of the new tip rate fraction
-     * @dev The tip rate is set as a fraction (newTipRateNumerator / newTipRateDenominator)
-     *      For example, for a 5.5% rate, you might pass (55, 1000)
+     * @param newTipRateInBasisPoints The numerator of the new tip rate in basis points
+     * @dev The tip rate is set in basis points (newTipRateInBasisPoints)
+     *      For example, for a 5.5% rate, you might pass 550 (as in 550 out of 10000)
      */
     function setTipRate(
-        uint256 newTipRateNumerator,
-        uint256 newTipRateDenominator
+        uint256 newTipRateInBasisPoints
     ) external onlyGovernor {
-        // Convert the fraction to the internal Percentage representation
+        // Convert the basis point allocation to the internal Percentage representation
         // This uses the PercentageUtils library to create a Percentage struct
         _setTipRate(
-            PercentageUtils.fromFraction(
-                newTipRateNumerator,
-                newTipRateDenominator
+            PercentageUtils.fromBasisPoints(
+                newTipRateInBasisPoints
             )
         );
     }

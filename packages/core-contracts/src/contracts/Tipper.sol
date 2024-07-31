@@ -21,7 +21,7 @@ abstract contract Tipper is ITipper {
     /**
      * @notice The current tip rate in basis points
      */
-    Percentage public tipRate;
+    uint256 public tipRate;
 
     /**
      * @notice The timestamp of the last tip accrual
@@ -51,7 +51,7 @@ abstract contract Tipper is ITipper {
     constructor(address configurationManager, Percentage initialTipRate) {
         manager = IConfigurationManager(configurationManager);
 
-        tipRate = initialTipRate;
+        tipRate = PercentageUtils.toBasisPoints(initialTipRate);
         tipJar = manager.tipJar();
         lastTipTimestamp = block.timestamp;
     }
@@ -69,8 +69,8 @@ abstract contract Tipper is ITipper {
             revert TipRateCannotExceedOneHundredPercent();
         }
         _accrueTip(); // Accrue tips before changing the rate
-        tipRate = newTipRate;
-        emit TipRateUpdated(newTipRate);
+        tipRate = PercentageUtils.toBasisPoints(newTipRate);
+        emit TipRateUpdated(tipRate);
     }
 
     /**
@@ -93,7 +93,7 @@ abstract contract Tipper is ITipper {
      * @return tippedShares The amount of tips accrued in shares
      */
     function _accrueTip() internal returns (uint256 tippedShares) {
-        if (tipRate == toPercentage(0)) {
+        if (tipRate == 0) {
             lastTipTimestamp = block.timestamp;
             return 0;
         }
@@ -118,7 +118,7 @@ abstract contract Tipper is ITipper {
         uint256 timeElapsed
     ) internal view returns (uint256) {
         Percentage ratePerSecond = Percentage.wrap(
-            (Percentage.unwrap(tipRate) / SECONDS_PER_YEAR)
+            (Percentage.unwrap(PercentageUtils.fromBasisPoints(tipRate)) / SECONDS_PER_YEAR)
         );
 
         // Calculate (1 + r)^t using a custom power function

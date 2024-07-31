@@ -95,12 +95,12 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Sets a new tip rate
-     * @param newTipRateNumerator The new tip rate for the fleet
-     * @param newTipRateDenominator The new tip rate denominator (for fine tune setting)
+     * @param newTipRateInBasisPoints The numerator of the new tip rate in basis points
+     * @dev The tip rate is set in basis points (newTipRateInBasisPoints)
+     *      For example, for a 5.5% rate, you might pass 550 (as in 550 out of 10000)
      */
     function setTipRate(
-        uint256 newTipRateNumerator,
-        uint256 newTipRateDenominator
+        uint256 newTipRateInBasisPoints
     ) external;
 
     /**
