@@ -99,9 +99,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @dev The tip rate is set in basis points (newTipRateInBasisPoints)
      *      For example, for a 5.5% rate, you might pass 550 (as in 550 out of 10000)
      */
-    function setTipRate(
-        uint256 newTipRateInBasisPoints
-    ) external;
+    function setTipRate(uint256 newTipRateInBasisPoints) external;
 
     /**
      * @notice Adds a new Ark

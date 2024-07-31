@@ -276,16 +276,10 @@ contract FleetCommander is
      * @dev The tip rate is set in basis points (newTipRateInBasisPoints)
      *      For example, for a 5.5% rate, you might pass 550 (as in 550 out of 10000)
      */
-    function setTipRate(
-        uint256 newTipRateInBasisPoints
-    ) external onlyGovernor {
+    function setTipRate(uint256 newTipRateInBasisPoints) external onlyGovernor {
         // Convert the basis point allocation to the internal Percentage representation
         // This uses the PercentageUtils library to create a Percentage struct
-        _setTipRate(
-            PercentageUtils.fromBasisPoints(
-                newTipRateInBasisPoints
-            )
-        );
+        _setTipRate(PercentageUtils.fromBasisPoints(newTipRateInBasisPoints));
     }
 
     function addArk(address ark) external onlyGovernor {

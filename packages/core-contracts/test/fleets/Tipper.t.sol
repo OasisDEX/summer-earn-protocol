@@ -53,14 +53,13 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_SetTipRate() public {
-        uint256 newTipRateInBasisPoints = PercentageUtils.toBasisPoints(PercentageUtils.fromDecimalPercentage(2));
+        uint256 newTipRateInBasisPoints = PercentageUtils.toBasisPoints(
+            PercentageUtils.fromDecimalPercentage(2)
+        );
         vm.expectEmit(true, true, false, true);
         emit TipRateUpdated(newTipRateInBasisPoints);
         fleetCommander.setTipRate(newTipRateInBasisPoints);
-        assertEq(
-            fleetCommander.tipRate(),
-            newTipRateInBasisPoints
-        );
+        assertEq(fleetCommander.tipRate(), newTipRateInBasisPoints);
     }
 
     function test_SetTipJar() public {

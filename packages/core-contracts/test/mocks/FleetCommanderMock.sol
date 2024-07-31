@@ -49,11 +49,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     ) external returns (uint256) {}
 
     function setTipRate(uint256 newTipRateInBasisPoints) external {
-        _setTipRate(
-            PercentageUtils.fromBasisPoints(
-                newTipRateInBasisPoints
-            )
-        );
+        _setTipRate(PercentageUtils.fromBasisPoints(newTipRateInBasisPoints));
     }
 
     function setTipJar() external {
