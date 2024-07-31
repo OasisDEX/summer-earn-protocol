@@ -25,7 +25,8 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
 
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
         fleetCommanderStorageWriter.setDepositCap(MAX_DEPOSIT_CAP);
     }
 

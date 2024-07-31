@@ -68,7 +68,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
 
-        initializeFleetCommanderWithoutArks(USDC_ADDRESS);
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithoutArks(USDC_ADDRESS, initialTipRate);
         setupExternalContracts();
         setupArks();
         addArksToFleetCommander();

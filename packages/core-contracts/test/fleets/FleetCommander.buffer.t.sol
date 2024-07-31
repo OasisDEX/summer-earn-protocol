@@ -14,7 +14,7 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
 /**
  * @title Buffer test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's fund buffer functionality
-
+ *
  *
  * @dev TODO : add more tests
  *
@@ -24,7 +24,8 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
  */
 contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
     }
 
     function test_AdjustBufferSuccess() public {

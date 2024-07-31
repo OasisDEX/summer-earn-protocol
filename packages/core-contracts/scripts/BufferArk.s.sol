@@ -4,23 +4,20 @@ pragma solidity 0.8.26;
 import "forge-std/Script.sol";
 import {AaveV3Ark} from "../src/contracts/arks/AaveV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
-import {IArk} from "../src/interfaces/IArk.sol";
 import "./common/ArkDeploymentScript.s.sol";
+import {BufferArk} from "../src/contracts/arks/BufferArk.sol";
 
-contract AaveV3ArkDeploy is ArkDeploymentScript {
+contract BufferArkDeploy is ArkDeploymentScript {
     function run() external reloadConfig {
         vm.createSelectFork(network);
+
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
         address arkAssetToken = customToken == address(0)
             ? config.usdcToken
             : customToken;
-        if (config.aaveV3Pool == address(0)) {
-            console.log("Aave V3 Pool address is not set");
-            vm.stopBroadcast();
-            return;
-        }
+
         ArkParams memory params = ArkParams({
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
@@ -28,11 +25,11 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
             maxAllocation: maxAllocation
         });
 
-        IArk ark = new AaveV3Ark(config.aaveV3Pool, params);
-        updateAddressInConfig(network, "usdcAaveV3Ark", address(ark));
-        console.log("Deployed Aave V3 Ark");
-        console.log(address(ark));
+        BufferArk ark = new BufferArk(params);
 
+        console.log("Deployed Buffer Ark");
+        console.log(address(ark));
+        updateAddressInConfig(network, "bufferArk", address(ark));
         vm.stopBroadcast();
     }
 }
