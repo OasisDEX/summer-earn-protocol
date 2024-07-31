@@ -6,7 +6,7 @@ import "forge-std/StdJson.sol";
 import {FleetCommander} from "../src/contracts/FleetCommander.sol";
 import {IFleetCommander} from "../src/interfaces/IFleetCommander.sol";
 import {FleetCommanderParams} from "../src/types/FleetCommanderTypes.sol";
-import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
+import {PercentageUtils, Percentage} from "../src/libraries/PercentageUtils.sol";
 import {DeploymentScript} from "./common/DeploymentScript.s.sol";
 import "../src/interfaces/IArk.sol";
 import {HarborCommand} from "../src/contracts/HarborCommand.sol";
@@ -47,7 +47,7 @@ contract FleetCommanderDeploy is DeploymentScript {
                 .fromDecimalPercentage(20),
             depositCap: type(uint256).max,
             bufferArk: config.bufferArk,
-            initialTipRate: config.tipRate
+            initialTipRate: Percentage.wrap(config.tipRate)
         });
 
         IFleetCommander commander = new FleetCommander(params);
