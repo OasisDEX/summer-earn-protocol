@@ -38,13 +38,33 @@ contract ArkAccessManaged is
         _;
     }
 
+    /**
+     * @notice Hook executed before the Commander role is granted
+     * @dev This function is called internally before granting the Commander role.
+     *      It allows derived contracts to add custom logic or checks before the role is granted.
+     *      Remember to always call the parent hook using `super._beforeGrantRoleHook(account)` in derived contracts.
+     * @param account The address to which the Commander role will be granted
+     */
+    function _beforeGrantRoleHook(address account) internal virtual {}
+
+    /**
+     * @notice Hook executed before the Commander role is revoked
+     * @dev This function is called internally before revoking the Commander role.
+     *      It allows derived contracts to add custom logic or checks before the role is revoked.
+     *      Remember to always call the parent hook using `super._beforeRevokeRoleHook(account)` in derived contracts.
+     * @param account The address from which the Commander role will be revoked
+     */
+    function _beforeRevokeRoleHook(address account) internal virtual {}
+
     /* @inheritdoc IArkAccessControl */
     function grantCommanderRole(address account) external onlyGovernor {
+        _beforeGrantRoleHook(account);
         _grantRole(_accessManager.COMMANDER_ROLE(), account);
     }
 
     /* @inheritdoc IArkAccessControl */
     function revokeCommanderRole(address account) external onlyGovernor {
+        _beforeRevokeRoleHook(account);
         _revokeRole(_accessManager.COMMANDER_ROLE(), account);
     }
 }
