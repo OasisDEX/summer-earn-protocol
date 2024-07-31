@@ -5,6 +5,7 @@ import {ITipJar} from "../interfaces/ITipJar.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import "../errors/TipJarErrors.sol";
 
 /**
  * @title TipJar
@@ -16,15 +17,20 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     uint256 public constant BASE = 10000;
     address public treasuryAddress;
 
-    constructor(address _accessManager, address _treasuryAddress) ProtocolAccessManaged(_accessManager) {
-        treasuryAddress = _treasuryAddress;
+    constructor(address accessManager, address _treasuryAddress_) ProtocolAccessManaged(accessManager) {
+        treasuryAddress = _treasuryAddress_;
     }
 
     function addTipStream(address recipient, uint256 allocation, uint256 minimumTerm) external onlyGovernor {
-        require(recipient != address(0), "Invalid recipient address");
-        require(tipStreams[recipient].recipient == address(0), "TipStream already exists");
-        require(allocation > 0 && allocation <= BASE, "Invalid allocation");
-        require(getTotalAllocation() + allocation <= BASE, "Total allocation exceeds 100%");
+        _validateTipStream(recipient);
+        _validateTipStreamAllocation(allocation);
+
+        if (allocation == 0 || allocation > BASE) {
+            revert InvalidTipStreamAllocation(allocation);
+        }
+        if (getTotalAllocation() + allocation > BASE) {
+            revert TotalAllocationExceedsOneHundredPercent();
+        }
 
         tipStreams[recipient] = TipStream({
             recipient: recipient,
@@ -37,8 +43,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     }
 
     function removeTipStream(address recipient) external onlyGovernor {
-        require(tipStreams[recipient].recipient != address(0), "TipStream does not exist");
-        require(block.timestamp >= tipStreams[recipient].minimumTerm, "Minimum term not reached");
+        _validateTipStream(recipient);
 
         delete tipStreams[recipient];
         for (uint i = 0; i < tipStreamRecipients.length; i++) {
@@ -53,12 +58,8 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     }
 
     function updateTipStream(address recipient, uint256 newAllocation, uint256 newMinimumTerm) external onlyGovernor {
-        require(tipStreams[recipient].recipient != address(0), "TipStream does not exist");
-        require(block.timestamp >= tipStreams[recipient].minimumTerm, "Minimum term not reached");
-        require(newAllocation > 0 && newAllocation <= BASE, "Invalid allocation");
-
-        uint256 totalAllocation = getTotalAllocation() - tipStreams[recipient].allocation + newAllocation;
-        require(totalAllocation <= BASE, "Total allocation exceeds 100%");
+        _validateTipStream(recipient);
+        _validateTipStreamAllocation(newAllocation);
 
         tipStreams[recipient].allocation = newAllocation;
         tipStreams[recipient].minimumTerm = newMinimumTerm;
@@ -123,5 +124,23 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     function setTreasuryAddress(address newTreasuryAddress) external onlyGovernor {
         require(newTreasuryAddress != address(0), "Invalid treasury address");
         treasuryAddress = newTreasuryAddress;
+    }
+
+    function _validateTipStream(address recipient) internal {
+        if (tipStreams[recipient].recipient == address(0)) {
+            revert TipStreamDoesNotExist(recipient);
+        }
+        if (block.timestamp < tipStreams[recipient].minimumTerm) {
+            revert TipStreamMinTermNotReached(recipient);
+        }
+    }
+
+    function _validateTipStreamAllocation(uint256 allocation) internal {
+        if (allocation == 0 || allocation > BASE) {
+            revert InvalidTipStreamAllocation(allocation);
+        }
+        if (getTotalAllocation() + allocation > BASE) {
+            revert TotalAllocationExceedsOneHundredPercent();
+        }
     }
 }
