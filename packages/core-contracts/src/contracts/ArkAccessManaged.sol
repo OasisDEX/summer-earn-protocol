@@ -2,9 +2,9 @@
 pragma solidity 0.8.26;
 
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import "../errors/AccessControlErrors.sol";
+import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
+import "../errors/AccessControlErrors.sol";
 
 /**
  * @title ArkAccessControl
@@ -21,7 +21,7 @@ import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 contract ArkAccessManaged is
     IArkAccessManaged,
     ProtocolAccessManaged,
-    AccessControl
+    LimitedAccessControl
 {
     /**
      * @param accessManager The access manager address
