@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "../types/Percentage.sol";
+import {Percentage, PERCENTAGE_FACTOR, PERCENTAGE_100} from "../types/Percentage.sol";
 
 /**
  * @title PercentageUtils
@@ -95,5 +95,31 @@ library PercentageUtils {
         uint256 percentage
     ) internal pure returns (Percentage) {
         return Percentage.wrap(percentage * PERCENTAGE_FACTOR);
+    }
+
+    /**
+     * @notice Converts the given basis points number into a percentage with the right number of decimals
+     *
+     * @param percentage The percentage in basis-points format, i.e., 5000 for 50%
+     *
+     * @return The percentage with `PERCENTAGE_DECIMALS` decimals
+     */
+    function fromBasisPoints(
+        uint256 percentage
+    ) internal pure returns (Percentage) {
+        return Percentage.wrap((percentage * PERCENTAGE_FACTOR) / 100);
+    }
+
+    /**
+     * @notice Converts the given basis points number into a percentage with the right number of decimals
+     *
+     * @param percentage The percentage in basis-points format, i.e., 5000 for 50%
+     *
+     * @return The percentage with `PERCENTAGE_DECIMALS` decimals
+     */
+    function toBasisPoints(
+        Percentage percentage
+    ) internal pure returns (uint256) {
+        return (Percentage.unwrap(percentage) / PERCENTAGE_FACTOR) * 100;
     }
 }

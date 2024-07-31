@@ -16,10 +16,20 @@ interface ITipJar is ITipJarEvents {
         uint256 minimumTerm;
     }
 
-    function addTipStream(address recipient, Percentage allocation, uint256 minimumTerm) external;
+    function addTipStream(
+        address recipient,
+        uint256 allocation,
+        uint256 minimumTerm
+    ) external;
     function removeTipStream(address recipient) external;
-    function updateTipStream(address recipient, Percentage newAllocation, uint256 newMinimumTerm) external;
-    function getTipStream(address recipient) external view returns (TipStream memory);
+    function updateTipStream(
+        address recipient,
+        uint256 newAllocation,
+        uint256 newMinimumTerm
+    ) external;
+    function getTipStream(
+        address recipient
+    ) external view returns (TipStream memory);
     function getAllTipStreams() external view returns (TipStream[] memory);
     function shake(IERC4626 fleetCommander) external;
     function shakeMultiple(IERC4626[] calldata fleetCommanders) external;

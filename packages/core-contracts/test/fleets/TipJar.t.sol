@@ -10,10 +10,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {TipJar} from "../../src/contracts/TipJar.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import "../../src/libraries/PercentageUtils.sol";
+import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
 import "../../src/types/Percentage.sol";
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
-
 
 contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;
@@ -21,6 +20,8 @@ contract TipJarTest is Test, ITipJarEvents {
     address public governor = address(1);
     address public keeper = address(2);
     address public treasury = address(3);
+    address public mockTipStreamRecipient = address(4);
+
     FleetCommanderMock public fleetCommander;
     ConfigurationManagerMock public configManager;
     ERC20Mock public underlyingToken;
@@ -49,17 +50,23 @@ contract TipJarTest is Test, ITipJarEvents {
         underlyingToken.approve(address(fleetCommander), type(uint256).max);
     }
 
-    function testAddTipStream() public {
+    function test_AddTipStream() public {
         vm.prank(governor);
-        tipJar.addTipStream(address(4), 2000, block.timestamp + 1 days);
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            2000,
+            block.timestamp + 1 days
+        );
 
-        ITipJar.TipStream memory stream = tipJar.getTipStream(address(4));
-        assertEq(stream.recipient, address(4));
-        assertEq(stream.allocation.rawValue, 2000);
+        ITipJar.TipStream memory stream = tipJar.getTipStream(
+            mockTipStreamRecipient
+        );
+        assertEq(stream.recipient, mockTipStreamRecipient);
+        assertEq(PercentageUtils.toBasisPoints(stream.allocation), 2000);
         assertEq(stream.minimumTerm, block.timestamp + 1 days);
     }
 
-    function testUpdateTipStream() public {
+    function test_UpdateTipStream() public {
         vm.startPrank(governor);
         tipJar.addTipStream(address(4), 2000, block.timestamp + 1 days);
 
@@ -69,11 +76,11 @@ contract TipJarTest is Test, ITipJarEvents {
 
         ITipJar.TipStream memory stream = tipJar.getTipStream(address(4));
         assertEq(stream.recipient, address(4));
-        assertEq(stream.allocation.rawValue, 3000);
+        assertEq(fromPercentage(stream.allocation), 30);
         assertEq(stream.minimumTerm, block.timestamp + 3 days);
     }
 
-    function testRemoveTipStream() public {
+    function test_RemoveTipStream() public {
         vm.startPrank(governor);
         tipJar.addTipStream(address(4), 2000, block.timestamp + 1 days);
 
@@ -83,11 +90,11 @@ contract TipJarTest is Test, ITipJarEvents {
 
         ITipJar.TipStream memory stream = tipJar.getTipStream(address(4));
         assertEq(stream.recipient, address(0));
-        assertEq(stream.allocation.rawValue, 0);
+        assertEq(fromPercentage(stream.allocation), 0);
         assertEq(stream.minimumTerm, 0);
     }
 
-    function testGetAllTipStreams() public {
+    function test_GetAllTipStreams() public {
         vm.startPrank(governor);
         tipJar.addTipStream(address(4), 2000, block.timestamp + 1 days);
         tipJar.addTipStream(address(5), 3000, block.timestamp + 2 days);
@@ -99,7 +106,7 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(streams[1].recipient, address(5));
     }
 
-    function testShake() public {
+    function test_Shake() public {
         // Setup tip streams
         vm.prank(governor);
         tipJar.addTipStream(address(4), 6000, block.timestamp);
@@ -120,12 +127,12 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(underlyingToken.balanceOf(treasury), 100 ether);
     }
 
-    function testFailAddTipStreamNonGovernor() public {
+    function test_FailAddTipStreamNonGovernor() public {
         vm.prank(address(6));
         tipJar.addTipStream(address(4), 2000, block.timestamp + 1 days);
     }
 
-    function testFailUpdateTipStreamBeforeMinTerm() public {
+    function test_FailUpdateTipStreamBeforeMinTerm() public {
         vm.prank(governor);
         tipJar.addTipStream(address(4), 2000, block.timestamp + 1 days);
 
@@ -133,13 +140,13 @@ contract TipJarTest is Test, ITipJarEvents {
         tipJar.updateTipStream(address(4), 3000, block.timestamp + 2 days);
     }
 
-    function testFailExceedTotalAllocation() public {
+    function test_FailExceedTotalAllocation() public {
         vm.startPrank(governor);
         tipJar.addTipStream(address(4), 6000, block.timestamp);
         tipJar.addTipStream(address(5), 5000, block.timestamp);
     }
 
-    function testSetTreasuryAddress() public {
+    function test_SetTreasuryAddress() public {
         address newTreasury = address(6);
         vm.prank(governor);
         tipJar.setTreasuryAddress(newTreasury);
@@ -151,6 +158,6 @@ contract ConfigurationManagerImplMock is ConfigurationManagerMock {
     constructor(address _tipJar) ConfigurationManagerMock(_tipJar) {}
 
     function setTipJar(address newTipJar) external override {
-//        tipJar = newTipJar;
+        //        tipJar = newTipJar;
     }
 }

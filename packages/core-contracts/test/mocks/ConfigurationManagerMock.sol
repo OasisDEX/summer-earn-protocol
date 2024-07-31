@@ -12,7 +12,7 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
 
     function raft() external pure returns (address) {}
 
-    function tipRate() external pure returns (uint8) {}
+    function tipRate() external pure returns (uint256) {}
 
     function setRaft(address) external pure {}
 

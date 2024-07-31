@@ -12,7 +12,11 @@ interface ITipJarEvents {
      * @param allocation The allocation percentage for the new tip stream (in basis points, where 10000 = 100%)
      * @param minimumTerm The minimum duration (as a UNIX timestamp) during which this tip stream cannot be modified or removed
      */
-    event TipStreamAdded(address indexed recipient, uint256 allocation, uint256 minimumTerm);
+    event TipStreamAdded(
+        address indexed recipient,
+        uint256 allocation,
+        uint256 minimumTerm
+    );
 
     /**
      * @notice Emitted when a tip stream is removed from the TipJar
@@ -26,12 +30,19 @@ interface ITipJarEvents {
      * @param newAllocation The new allocation percentage for the tip stream (in basis points, where 10000 = 100%)
      * @param newMinimumTerm The new minimum duration (as a UNIX timestamp) during which this tip stream cannot be modified or removed
      */
-    event TipStreamUpdated(address indexed recipient, uint256 newAllocation, uint256 newMinimumTerm);
+    event TipStreamUpdated(
+        address indexed recipient,
+        uint256 newAllocation,
+        uint256 newMinimumTerm
+    );
 
     /**
      * @notice Emitted when the TipJar distributes collected tips from a FleetCommander
      * @param fleetCommander The address of the FleetCommander contract from which tips were distributed
      * @param totalDistributed The total amount of underlying assets distributed to all recipients
      */
-    event TipJarShaken(address indexed fleetCommander, uint256 totalDistributed);
+    event TipJarShaken(
+        address indexed fleetCommander,
+        uint256 totalDistributed
+    );
 }
