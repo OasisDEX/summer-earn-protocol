@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "../types/Percentage.sol";
+import {Percentage, toPercentage} from "../types/Percentage.sol";
 
 /**
  * @title MathUtils
@@ -14,30 +14,30 @@ library MathUtils {
      * @dev Is equivalent to exp(ln((rate))*(secondsSince))
      * @dev Is derived from this function on MakerDAO's Pot.sol
      *      https://github.com/makerdao/dss/blob/fa4f6630afb0624d04a003e920b0d71a00331d98/src/pot.sol#L85
-     * @param x The base number
+     * @param wrappedX The base number wrapped as Percentage
      * @param n The exponent
-     * @param base The precision factor (typically 1e18)
-     * @return z The result of x^n, representing x^n * base
+     * @param wrappedBase The precision factor (typically 1e18) wrapped as Percentage
+     * @return z The result of x^n, representing x^n * base wrapped as Percentage
      */
     function rpow(
-        Percentage x,
+        Percentage wrappedX,
         uint256 n,
-        Percentage base
+        Percentage wrappedBase
     ) internal pure returns (Percentage z) {
-        uint256 xUnwrapped = Percentage.unwrap(x);
-        uint256 baseUnwrapped = Percentage.unwrap(base);
+        uint256 x = Percentage.unwrap(wrappedX);
+        uint256 base = Percentage.unwrap(wrappedBase);
         uint256 result;
 
         // Step 1: Handle special cases
-        if (xUnwrapped == 0 || n == 0) {
-            return n == 0 ? base : Percentage.wrap(0);
+        if (x == 0 || n == 0) {
+            return n == 0 ? wrappedBase : toPercentage(0);
         }
 
         // Step 2: Initialize result is based on whether n is odd or even
-        result = n % 2 == 0 ? baseUnwrapped : xUnwrapped;
+        result = n % 2 == 0 ? base : x;
 
         // Step 3: Prepare for the main loop
-        uint256 half = baseUnwrapped / 2;
+        uint256 half = base / 2;
 
         // Step 4: Main loop - Square-and-multiply algorithm
         assembly {
@@ -48,8 +48,8 @@ library MathUtils {
             } n {
 
             } {
-                let xx := mul(xUnwrapped, xUnwrapped)
-                if iszero(eq(div(xx, xUnwrapped), xUnwrapped)) {
+                let xx := mul(x, x)
+                if iszero(eq(div(xx, x), x)) {
                     revert(0, 0)
                 }
 
@@ -58,14 +58,11 @@ library MathUtils {
                     revert(0, 0)
                 }
 
-                xUnwrapped := div(xxRound, baseUnwrapped)
+                x := div(xxRound, base)
 
                 if mod(n, 2) {
-                    let zx := mul(result, xUnwrapped)
-                    if and(
-                        iszero(iszero(xUnwrapped)),
-                        iszero(eq(div(zx, xUnwrapped), result))
-                    ) {
+                    let zx := mul(result, x)
+                    if and(iszero(iszero(x)), iszero(eq(div(zx, x), result))) {
                         revert(0, 0)
                     }
 
@@ -74,7 +71,7 @@ library MathUtils {
                         revert(0, 0)
                     }
 
-                    result := div(zxRound, baseUnwrapped)
+                    result := div(zxRound, base)
                 }
 
                 n := div(n, 2)

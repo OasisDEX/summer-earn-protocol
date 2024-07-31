@@ -14,6 +14,7 @@ import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
 
 contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     using PercentageUtils for uint256;
+
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
 
     function setUp() public {

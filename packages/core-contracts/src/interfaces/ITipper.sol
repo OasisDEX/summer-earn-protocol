@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ITipperEvents} from "../events/ITipperEvents.sol";
-import "../types/Percentage.sol";
+import {Percentage} from "../types/Percentage.sol";
 
 /**
  * @title ITipper Interface

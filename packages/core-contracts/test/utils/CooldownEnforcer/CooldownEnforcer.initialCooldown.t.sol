@@ -8,14 +8,18 @@ import "../../../src/utils/CooldownEnforcer/ICooldownEnforcerEvents.sol";
 
 import {CooldownEnforcer_TestBase} from "./CooldownEnforcerTestBase.sol";
 
-/** Specialization to start the cooldown from the deployment time */
+/**
+ * Specialization to start the cooldown from the deployment time
+ */
 contract CooldownEnforcer_InitialCooldown_Test is CooldownEnforcer_TestBase {
     function enforceFromNow() public pure override returns (bool) {
         return true;
     }
 }
 
-/** CooldownEnforce.enforceCooldown modifier tests */
+/**
+ * CooldownEnforce.enforceCooldown modifier tests
+ */
 contract CooldownEnforcer_InitialCooldown_EnforceCooldown_InitialCooldown_Test is
     CooldownEnforcer_InitialCooldown_Test
 {
@@ -120,7 +124,9 @@ contract CooldownEnforcer_InitialCooldown_EnforceCooldown_InitialCooldown_Test i
     }
 }
 
-/** CooldownEnforce._updateCooldown tests */
+/**
+ * CooldownEnforce._updateCooldown tests
+ */
 contract CooldownEnforcer_UpdateCooldown_InitialCooldown_Test is
     CooldownEnforcer_InitialCooldown_Test
 {

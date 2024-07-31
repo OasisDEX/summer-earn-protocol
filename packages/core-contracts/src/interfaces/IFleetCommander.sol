@@ -95,9 +95,13 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Sets a new tip rate
-     * @param newTipRate The new tip rate for the fleet
+     * @param newTipRateNumerator The new tip rate for the fleet
+     * @param newTipRateDenominator The new tip rate denominator (for fine tune setting)
      */
-    function setTipRate(Percentage newTipRate) external;
+    function setTipRate(
+        uint256 newTipRateNumerator,
+        uint256 newTipRateDenominator
+    ) external;
 
     /**
      * @notice Adds a new Ark

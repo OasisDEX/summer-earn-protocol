@@ -10,7 +10,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../errors/FleetCommanderErrors.sol";
-import "../libraries/PercentageUtils.sol";
+import {PercentageUtils} from "../libraries/PercentageUtils.sol";
 import {Tipper} from "./Tipper.sol";
 import {ITipper} from "../interfaces/ITipper.sol";
 

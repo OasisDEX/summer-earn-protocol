@@ -18,19 +18,29 @@ abstract contract Tipper is ITipper {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;
 
-    /** @notice The current tip rate in basis points */
+    /**
+     * @notice The current tip rate in basis points
+     */
     Percentage public tipRate;
 
-    /** @notice The timestamp of the last tip accrual */
+    /**
+     * @notice The timestamp of the last tip accrual
+     */
     uint256 public lastTipTimestamp;
 
-    /** @notice The address where accrued tips are sent */
+    /**
+     * @notice The address where accrued tips are sent
+     */
     address public tipJar;
 
-    /** @notice The protocol configuration manager */
+    /**
+     * @notice The protocol configuration manager
+     */
     IConfigurationManager public manager;
 
-    /** @dev Constant representing the number of seconds in a year */
+    /**
+     * @dev Constant representing the number of seconds in a year
+     */
     uint256 private constant SECONDS_PER_YEAR = 365 days;
 
     /**
@@ -55,7 +65,7 @@ abstract contract Tipper is ITipper {
      * @param newTipRate The new tip rate to set (in basis points)
      */
     function _setTipRate(Percentage newTipRate) internal {
-        if (newTipRate > PERCENTAGE_100) {
+        if (!PercentageUtils.isPercentageInRange(newTipRate)) {
             revert TipRateCannotExceedOneHundredPercent();
         }
         _accrueTip(); // Accrue tips before changing the rate
@@ -83,7 +93,7 @@ abstract contract Tipper is ITipper {
      * @return tippedShares The amount of tips accrued in shares
      */
     function _accrueTip() internal returns (uint256 tippedShares) {
-        if (Percentage.unwrap(tipRate) == 0) {
+        if (tipRate == toPercentage(0)) {
             lastTipTimestamp = block.timestamp;
             return 0;
         }

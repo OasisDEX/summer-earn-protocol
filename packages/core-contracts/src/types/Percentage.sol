@@ -81,3 +81,15 @@ function greaterThan(Percentage a, Percentage b) pure returns (bool) {
 function equalTo(Percentage a, Percentage b) pure returns (bool) {
     return Percentage.unwrap(a) == Percentage.unwrap(b);
 }
+
+function equals(Percentage a, Percentage b) pure returns (bool) {
+    return Percentage.unwrap(a) == Percentage.unwrap(b);
+}
+
+function toPercentage(uint256 value) pure returns (Percentage) {
+    return Percentage.wrap(value * PERCENTAGE_FACTOR);
+}
+
+function fromPercentage(Percentage value) pure returns (uint256) {
+    return Percentage.unwrap(value) / PERCENTAGE_FACTOR;
+}
