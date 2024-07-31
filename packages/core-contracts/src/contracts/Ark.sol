@@ -90,7 +90,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
      * @dev Overrides the base implementation to enforce single Commander constraint
      */
     function _beforeRevokeRoleHook(
-        address /* _account */
+        address
     ) internal virtual override(ArkAccessManaged) {
         if (this.totalAssets() > 0) {
             revert CannotRemoveCommanderFromArkWithAssets();

@@ -37,7 +37,7 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @notice Checks if the Ark has a Commander assigned
      * @return bool True if a Commander is assigned, false otherwise
      */
-    function hasComander() external view returns (bool);
+    function hasCommander() external view returns (bool);
 
     /**
      * @notice Updates information about the Ark
