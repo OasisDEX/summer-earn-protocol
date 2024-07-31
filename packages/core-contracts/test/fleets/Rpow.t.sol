@@ -5,6 +5,8 @@ import {Test, console} from "forge-std/Test.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import "../../src/contracts/ConfigurationManager.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import "../../src/types/Percentage.sol";
+import "../../src/libraries/MathUtils.sol";
 
 contract RPowTest is Test {
     address public governor = address(1);
@@ -92,8 +94,8 @@ contract RPowTest is Test {
     }
 
     function testFuzz_rpow(uint256 x, uint256 n) public view {
-        x = bound(x, 0, 2e18); // Limit x to twice the SCALE used in Tipper.sol
-        n = bound(n, 0, 120); // Limit n to max of 120 days
+        x = bound(x, 0, 1000000002145441671); // Limit to ~8% per year
+        n = bound(n, 0, 365 days); // Limit n to max of 365 days
 
         console.log("x:", x);
         console.log("n:", n);
@@ -108,7 +110,7 @@ contract RPowTest is Test {
         } else if (n == 0) {
             assertEq(result, base, "Incorrect result for n = 0");
         } else if (x <= base) {
-            assertLe(result, 1e18, "Result should be <= 1e18 for x <= 1e18");
+            assertLe(result, base, "Result should be <= 1e18 for x <= 1e18");
         } else {
             assertGe(result, x, "Result should be >= x for x > 1e18");
         }
@@ -141,14 +143,21 @@ contract RPowTest is Test {
 
 // Helper contract to expose the internal _rpow function for testing
 contract TipperHarness is Tipper {
-    constructor(address configurationManager) Tipper(configurationManager, 0) {}
+    using MathUtils for Percentage;
+
+    constructor(
+        address configurationManager
+    ) Tipper(configurationManager, Percentage.wrap(0)) {}
 
     function exposed_rpow(
         uint256 x,
         uint256 n,
         uint256 base
     ) public pure returns (uint256) {
-        return _rpow(x, n, base);
+        return
+            Percentage.unwrap(
+                MathUtils.rpow(Percentage.wrap(x), n, Percentage.wrap(base))
+            );
     }
 
     function _mintTip(

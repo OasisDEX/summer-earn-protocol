@@ -5,12 +5,13 @@ import {Test, console} from "forge-std/Test.sol";
 import {ERC4626Mock, ERC4626, ERC20} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../src/types/Percentage.sol";
 
 contract FleetCommanderMock is Tipper, ERC4626Mock {
     constructor(
         address underlying,
         address configurationManager,
-        uint8 initialTipRate
+        Percentage initialTipRate
     ) ERC4626Mock(underlying) Tipper(configurationManager, initialTipRate) {}
 
     function _mintTip(
@@ -21,7 +22,7 @@ contract FleetCommanderMock is Tipper, ERC4626Mock {
     }
 
     // Expose internal functions for testing
-    function setTipRate(uint256 newTipRate) external {
+    function setTipRate(Percentage newTipRate) external {
         _setTipRate(newTipRate);
     }
 
