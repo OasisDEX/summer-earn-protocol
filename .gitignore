@@ -76,3 +76,12 @@ cdk.context.json
 
 # rays-dashboard specific
 /apps/rays-dashboard/types/generated
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+*.egg-info/
+dist/
+build/
