@@ -17,7 +17,7 @@ contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
         initializeFleetCommanderWithMockArks();
     }
 
-    function test_DepositRebalanceForceWithdrawX() public {
+    function test_DepositRebalanceForceWithdraw() public {
         // Arrange
         uint256 user1Deposit = ARK1_MAX_ALLOCATION;
         uint256 user2Deposit = ARK2_MAX_ALLOCATION;

@@ -205,6 +205,35 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
+    function test_RebalanceExceedMaxAllocationAfterDeposit() public {
+        uint256 rebalanceAmount = 1000 * 10 ** 6;
+
+        // Arrange
+        mockArkTotalAssets(ark1, 5000 * 10 ** 6);
+        // Max allocation is one unit less than the rebalance amount
+        mockArkTotalAssets(ark2, ARK2_MAX_ALLOCATION - rebalanceAmount + 1);
+        mockArkRate(ark1, 105);
+        mockArkRate(ark2, 110);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            amount: rebalanceAmount
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderCantRebalanceToArk(address)",
+                ark2
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
+
     function test_RebalanceLowerRate() public {
         // Arrange
         mockArkTotalAssets(ark1, 5000 * 10 ** 6);
