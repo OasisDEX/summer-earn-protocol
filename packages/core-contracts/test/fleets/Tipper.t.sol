@@ -11,30 +11,14 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import "../../src/libraries/PercentageUtils.sol";
 import "../../src/types/Percentage.sol";
-
-abstract contract MockConfigurationManager is IConfigurationManager {
-    address public tipJar;
-
-    constructor(address _tipJar) {
-        tipJar = _tipJar;
-    }
-
-    // Implement other IConfigurationManager functions with empty bodies
-    function raft() external pure returns (address) {}
-
-    function tipRate() external pure returns (uint8) {}
-
-    function setRaft(address) external pure {}
-
-    function setTipRate(uint8) external pure {}
-}
+import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 
 contract TipperTest is Test, ITipperEvents {
     using PercentageUtils for uint256;
 
     address public mockUser = address(1);
     FleetCommanderMock public fleetCommander;
-    MockConfigurationManager public configManager;
+    ConfigurationManagerMock public configManager;
 
     ERC20Mock public underlyingToken;
     address public tipJar;
@@ -45,8 +29,8 @@ contract TipperTest is Test, ITipperEvents {
         underlyingToken = new ERC20Mock();
         tipJar = address(0x123);
         initialTipRate = PercentageUtils.fromDecimalPercentage(1);
-        configManager = MockConfigurationManager(
-            address(new MockConfigurationManagerImpl(tipJar))
+        configManager = ConfigurationManagerMock(
+            address(new ConfigurationManagerImplMock(tipJar))
         );
         fleetCommander = new FleetCommanderMock(
             address(underlyingToken),
@@ -138,8 +122,8 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_SetTipJarCannotBeZeroAddress() public {
-        MockConfigurationManager _configManager = MockConfigurationManager(
-            address(new MockConfigurationManagerImpl(address(0)))
+        ConfigurationManagerMock _configManager = ConfigurationManagerMock(
+            address(new ConfigurationManagerImplMock(address(0)))
         );
         FleetCommanderMock _fleetCommander = new FleetCommanderMock(
             address(underlyingToken),
@@ -237,9 +221,8 @@ contract TipperTest is Test, ITipperEvents {
     }
 }
 
-// Concrete implementation of MockConfigurationManager
-contract MockConfigurationManagerImpl is MockConfigurationManager {
-    constructor(address _tipJar) MockConfigurationManager(_tipJar) {}
+contract ConfigurationManagerImplMock is ConfigurationManagerMock {
+    constructor(address _tipJar) ConfigurationManagerMock(_tipJar) {}
 
     function setTipJar(address newTipJar) external override {
         tipJar = newTipJar;

@@ -5,7 +5,9 @@ import {ITipJar} from "../interfaces/ITipJar.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {PercentageUtils} from "../libraries/PercentageUtils.sol";
 import "../errors/TipJarErrors.sol";
+import "../types/Percentage.sol";
 
 /**
  * @title TipJar
@@ -25,16 +27,9 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         _validateTipStream(recipient);
         _validateTipStreamAllocation(allocation);
 
-        if (allocation == 0 || allocation > BASE) {
-            revert InvalidTipStreamAllocation(allocation);
-        }
-        if (getTotalAllocation() + allocation > BASE) {
-            revert TotalAllocationExceedsOneHundredPercent();
-        }
-
         tipStreams[recipient] = TipStream({
             recipient: recipient,
-            allocation: allocation,
+            allocation: PercentageUtils.fromFraction(allocation, BASE),
             minimumTerm: minimumTerm
         });
         tipStreamRecipients.push(recipient);
@@ -61,7 +56,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         _validateTipStream(recipient);
         _validateTipStreamAllocation(newAllocation);
 
-        tipStreams[recipient].allocation = newAllocation;
+        tipStreams[recipient].allocation = PercentageUtils.fromFraction(newAllocation, BASE);
         tipStreams[recipient].minimumTerm = newMinimumTerm;
 
         emit TipStreamUpdated(recipient, newAllocation, newMinimumTerm);
@@ -79,7 +74,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         return allStreams;
     }
 
-    function shake(IERC4626 fleetCommander) external {
+    function shake(IERC4626 fleetCommander) public {
         uint256 shares = fleetCommander.balanceOf(address(this));
         require(shares > 0, "No shares to distribute");
 
