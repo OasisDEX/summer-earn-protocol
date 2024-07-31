@@ -84,6 +84,22 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         assertTrue(!ark.hasCommander(), "Commander role granted");
     }
 
+    function test_RevokeRoleDirectly_ShouldFail() public {
+        // Arrange
+        vm.prank(governor);
+        ark.grantCommanderRole(commander);
+
+        // Act
+        vm.expectRevert(
+            abi.encodeWithSignature("DirectRevokeIsDisabled(address)", governor)
+        );
+        vm.prank(governor);
+        ark.revokeRole(keccak256("COMMANDER_ROLE"), commander);
+
+        // Assert
+        assertTrue(ark.hasCommander(), "Commander role not granted");
+    }
+
     function test_RevokeCommanderRole_ShouldSucceed() public {
         // Arrange
         vm.prank(governor);
