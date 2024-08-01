@@ -6,15 +6,16 @@ import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {ITipJar} from "../../src/interfaces/ITipJar.sol";
 import {ITipJarEvents} from "../../src/interfaces/ITipJarEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {TipJar} from "../../src/contracts/TipJar.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
 import {Percentage, fromPercentage} from "../../src/types/Percentage.sol";
+import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import "../../src/errors/TipJarErrors.sol";
 import "../../src/errors/AccessControlErrors.sol";
-import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 
 contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;
@@ -50,6 +51,15 @@ contract TipJarTest is Test, ITipJarEvents {
 
         vm.prank(address(fleetCommander));
         underlyingToken.approve(address(fleetCommander), type(uint256).max);
+    }
+
+    function test_Constructor() public {
+        assertEq(tipJar.treasuryAddress(), treasury);
+
+        // Test with a different treasury address
+        address newTreasury = address(42);
+        TipJar newTipJar = new TipJar(address(accessManager), newTreasury);
+        assertEq(newTipJar.treasuryAddress(), newTreasury);
     }
 
     function test_AddTipStream() public {
@@ -169,6 +179,83 @@ contract TipJarTest is Test, ITipJarEvents {
             300 ether
         );
         assertEq(underlyingToken.balanceOf(treasury), 100 ether);
+    }
+
+    function test_ShakeMultiple() public {
+        address anotherMockTipStreamParticipant = address(5);
+
+        // Setup tip streams
+        vm.startPrank(governor);
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            PercentageUtils.fromDecimalPercentage(60),
+            block.timestamp
+        );
+        tipJar.addTipStream(
+            anotherMockTipStreamParticipant,
+            PercentageUtils.fromDecimalPercentage(30),
+            block.timestamp
+        );
+        vm.stopPrank();
+
+        // Create a second FleetCommander
+        FleetCommanderMock fleetCommander2 = new FleetCommanderMock(
+            address(underlyingToken),
+            address(configManager),
+            PercentageUtils.fromDecimalPercentage(1)
+        );
+
+        // Setup mock fleet commanders with some balance
+        uint256 initialBalance = 1000 ether;
+        underlyingToken.mint(address(tipJar), initialBalance * 2);
+
+        vm.startPrank(address(tipJar));
+        underlyingToken.approve(address(fleetCommander), initialBalance);
+        underlyingToken.approve(address(fleetCommander2), initialBalance);
+        fleetCommander.deposit(initialBalance, address(tipJar));
+        fleetCommander2.deposit(initialBalance, address(tipJar));
+        vm.stopPrank();
+
+        // Shake multiple jars
+        IFleetCommander[] memory commanders = new IFleetCommander[](2);
+        commanders[0] = fleetCommander;
+        commanders[1] = fleetCommander2;
+        tipJar.shakeMultiple(commanders);
+
+        // Check balances (should be doubled compared to the single shake test)
+        assertEq(underlyingToken.balanceOf(mockTipStreamRecipient), 1200 ether);
+        assertEq(
+            underlyingToken.balanceOf(anotherMockTipStreamParticipant),
+            600 ether
+        );
+        assertEq(underlyingToken.balanceOf(treasury), 200 ether);
+    }
+
+    function test_FailShakeWithNoShares() public {
+        // Ensure the TipJar has no shares in the FleetCommander
+        assertEq(fleetCommander.balanceOf(address(tipJar)), 0);
+
+        vm.expectRevert(NoSharesToDistribute.selector);
+        tipJar.shake(fleetCommander);
+    }
+
+    function test_FailRemoveNonexistentTipStream() public {
+        address nonexistentRecipient = address(99);
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TipStreamDoesNotExist.selector,
+                nonexistentRecipient
+            )
+        );
+        tipJar.removeTipStream(nonexistentRecipient);
+    }
+
+    function test_FailSetInvalidTreasuryAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(InvalidTreasuryAddress.selector);
+        tipJar.setTreasuryAddress(address(0));
     }
 
     function test_FailAddTipStreamNonGovernor() public {

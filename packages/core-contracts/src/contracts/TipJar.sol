@@ -94,7 +94,9 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
 
     function shake(IFleetCommander fleetCommander) public {
         uint256 shares = fleetCommander.balanceOf(address(this));
-        require(shares > 0, "No shares to distribute");
+        if (shares == 0) {
+            revert NoSharesToDistribute();
+        }
 
         uint256 assets = fleetCommander.redeem(
             shares,
@@ -143,7 +145,9 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     function setTreasuryAddress(
         address newTreasuryAddress
     ) external onlyGovernor {
-        require(newTreasuryAddress != address(0), "Invalid treasury address");
+        if (newTreasuryAddress == address(0)) {
+            revert InvalidTreasuryAddress();
+        }
         treasuryAddress = newTreasuryAddress;
     }
 

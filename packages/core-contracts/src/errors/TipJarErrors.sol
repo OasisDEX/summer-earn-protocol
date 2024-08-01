@@ -9,3 +9,5 @@ error InvalidTipStreamAllocation(Percentage invalidAllocation);
 error TotalAllocationExceedsOneHundredPercent();
 error TipStreamDoesNotExist(address recipient);
 error TipStreamMinTermNotReached(address recipient);
+error NoSharesToDistribute();
+error InvalidTreasuryAddress();
