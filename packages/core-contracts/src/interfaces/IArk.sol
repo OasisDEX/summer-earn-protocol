@@ -34,6 +34,12 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function rate() external view returns (uint256);
 
     /**
+     * @notice Checks if the Ark has a Commander assigned
+     * @return bool True if a Commander is assigned, false otherwise
+     */
+    function hasCommander() external view returns (bool);
+
+    /**
      * @notice Updates information about the Ark
      */
     function poke() external;

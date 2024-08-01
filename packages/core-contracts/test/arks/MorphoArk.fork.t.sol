@@ -110,9 +110,6 @@ contract MorphoArkTestFork is Test, IArkEvents {
     }
 
     function test_Board_MorphoArk_fork() public {
-        vm.prank(governor);
-        ark.grantCommanderRole(commander);
-
         // Arrange
         uint256 amount = 1000 * 10 ** 6; // 1000 USDC
         deal(USDC_ADDRESS, commander, amount);

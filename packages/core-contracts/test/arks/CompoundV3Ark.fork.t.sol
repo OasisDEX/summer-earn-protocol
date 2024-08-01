@@ -59,9 +59,6 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     }
 
     function test_Board_CompoundV3_fork() public {
-        vm.prank(governor); // Set msg.sender to governor
-        ark.grantCommanderRole(commander);
-
         // Arrange
         uint256 amount = 1990 * 10 ** 6;
         deal(address(dai), commander, amount);

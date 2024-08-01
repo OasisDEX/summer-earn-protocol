@@ -2,10 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../../src/contracts/arks/MetaMorphoArk.sol";
-import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../src/events/IArkEvents.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
@@ -14,6 +11,10 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {IMorpho, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
 import {IMetaMorpho, IMetaMorphoBase} from "metamorpho/interfaces/IMetaMorpho.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import "../../src/contracts/arks/MetaMorphoArk.sol";
+import "../../src/errors/AccessControlErrors.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../src/events/IArkEvents.sol";
 
 contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
     MetaMorphoArk public ark;
@@ -65,9 +66,6 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
     }
 
     function test_Board_MetaMorphoArk_fork() public {
-        vm.prank(governor);
-        ark.grantCommanderRole(commander);
-
         // Arrange
         uint256 amount = 1000 * 10 ** 6;
         deal(address(asset), commander, amount);
