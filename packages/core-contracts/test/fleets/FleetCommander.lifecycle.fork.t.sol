@@ -181,29 +181,29 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
 
-        // metaMorphoArk.poke();
+        metaMorphoArk.poke();
 
-        // // Advance time to simulate interest accrual
-        // vm.warp(block.timestamp + 30 days);
+        // Advance time to simulate interest accrual
+        vm.warp(block.timestamp + 30 days);
 
-        // // Accrue interest for Morpho
-        // morphoContract.accrueInterest(
-        //     morphoContract.idToMarketParams(MORPHO_MARKET_ID)
-        // );
+        // Accrue interest for Morpho
+        morphoContract.accrueInterest(
+            morphoContract.idToMarketParams(MORPHO_MARKET_ID)
+        );
 
-        // // Check total assets and rates
-        // checkAssetsAndRates();
+        // Check total assets and rates
+        checkAssetsAndRates();
 
-        // // User withdraws
-        // withdrawForUser(mockUser, totalDeposit);
+        // User withdraws
+        withdrawForUser(mockUser, totalDeposit);
 
-        // // Assert
-        // assertApproxEqAbs(
-        //     fleetCommander.totalAssets(),
-        //     0,
-        //     1000, // Allow for small rounding errors
-        //     "Total assets should be close to 0 after withdrawals"
-        // );
+        // Assert
+        assertApproxEqAbs(
+            fleetCommander.totalAssets(),
+            0,
+            1000, // Allow for small rounding errors
+            "Total assets should be close to 0 after withdrawals"
+        );
     }
 
     function depositForUser(address user, uint256 amount) internal {
