@@ -5,7 +5,7 @@ import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contrac
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
-import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";

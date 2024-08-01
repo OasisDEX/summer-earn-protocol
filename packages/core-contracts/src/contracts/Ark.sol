@@ -2,10 +2,10 @@
 pragma solidity 0.8.26;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import "../interfaces/IArk.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
