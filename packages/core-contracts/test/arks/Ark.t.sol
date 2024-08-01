@@ -32,7 +32,8 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         IConfigurationManager configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
-                raft: raft
+                raft: raft,
+                tipJar: address(0)
             })
         );
 
