@@ -258,6 +258,77 @@ contract TipJarTest is Test, ITipJarEvents {
         tipJar.setTreasuryAddress(address(0));
     }
 
+    function test_FailAddTipStreamWithInvalidAllocation() public {
+        vm.startPrank(governor);
+
+        // Test with zero allocation
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidTipStreamAllocation.selector,
+                PercentageUtils.fromDecimalPercentage(0)
+            )
+        );
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            PercentageUtils.fromDecimalPercentage(0),
+            block.timestamp
+        );
+
+        // Test with allocation greater than 100%
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidTipStreamAllocation.selector,
+                PercentageUtils.fromDecimalPercentage(101)
+            )
+        );
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            PercentageUtils.fromDecimalPercentage(101),
+            block.timestamp
+        );
+
+        vm.stopPrank();
+    }
+
+    function test_GetAllTipStreamsEmpty() public {
+        // Test when there are no tip streams
+        ITipJar.TipStream[] memory emptyStreams = tipJar.getAllTipStreams();
+        assertEq(emptyStreams.length, 0);
+    }
+
+    function test_GetAllTipStreamsMultiple() public {
+        address recipient1 = address(4);
+        address recipient2 = address(5);
+        address recipient3 = address(6);
+
+        vm.startPrank(governor);
+        tipJar.addTipStream(
+            recipient1,
+            PercentageUtils.fromDecimalPercentage(20),
+            block.timestamp
+        );
+        tipJar.addTipStream(
+            recipient2,
+            PercentageUtils.fromDecimalPercentage(30),
+            block.timestamp
+        );
+        tipJar.addTipStream(
+            recipient3,
+            PercentageUtils.fromDecimalPercentage(10),
+            block.timestamp
+        );
+        vm.stopPrank();
+
+        ITipJar.TipStream[] memory allStreams = tipJar.getAllTipStreams();
+        assertEq(allStreams.length, 3);
+        assertEq(allStreams[0].recipient, recipient1);
+        assertEq(allStreams[1].recipient, recipient2);
+        assertEq(allStreams[2].recipient, recipient3);
+        assertEq(fromPercentage(allStreams[0].allocation), 20);
+        assertEq(fromPercentage(allStreams[1].allocation), 30);
+        assertEq(fromPercentage(allStreams[2].allocation), 10);
+    }
+
     function test_FailAddTipStreamNonGovernor() public {
         address notGovernor = address(6);
         vm.prank(notGovernor);
