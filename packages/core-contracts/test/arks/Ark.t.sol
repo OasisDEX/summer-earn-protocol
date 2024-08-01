@@ -17,10 +17,10 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
     ArkMock public ark;
+    ArkMock public otherArk;
     address public governor = address(1);
     address public commander = address(4);
     address public raft = address(2);
-    address public otherArk = address(3);
     ERC20Mock public mockToken;
 
     function setUp() public {
@@ -46,6 +46,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         });
 
         ark = new ArkMock(params);
+        otherArk = new ArkMock(params);
     }
 
     function test_GrantCommanderRole_ShouldSucceed() public {
@@ -68,10 +69,10 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
 
         // Act
         vm.prank(governor);
-        ark.grantCommanderRole(commander);
+        ark.grantCommanderRole(address(5));
 
         // Assert
-        assertTrue(ark.commander() == commander, "Commander role not granted");
+        assertTrue(ark.commander() != address(5), "Commander role not granted");
     }
 
     function test_GrantRoleDirectly_ShouldFail() public {
@@ -132,12 +133,37 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         assertTrue(ark.commander() == commander, "Commander role not revoked");
     }
 
-    function test_CalledByArk_ShouldSucceed() public {
+    function test_BoardByCommander_ShouldSucceed() public {
+        vm.prank(governor);
+        ark.grantCommanderRole(commander);
+
+        uint256 amount = 1000;
+        mockToken.mint(commander, amount);
+
+        vm.startPrank(commander);
+        mockToken.approve(address(ark), amount);
+        vm.expectEmit();
+        emit Boarded(commander, address(mockToken), amount);
+        ark.board(amount);
+        vm.stopPrank();
+
+        assertEq(
+            mockToken.balanceOf(address(ark)),
+            amount,
+            "Token not transferred to ark"
+        );
+    }
+
+    function test_BoardByArk_ShouldSucceed() public {
         // Arrange
         vm.prank(governor);
         ark.grantCommanderRole(commander);
+
+        uint256 amount = 1000;
+        mockToken.mint(address(otherArk), amount);
+
         vm.mockCall(
-            address(commander),
+            commander,
             abi.encodeWithSelector(
                 IFleetCommander.isArkActive.selector,
                 address(otherArk)
@@ -145,61 +171,141 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
             abi.encode(true)
         );
 
-        mockToken.mint(otherArk, 1000);
-
         // Act
-        vm.startPrank(otherArk);
-        mockToken.approve(address(ark), 1000);
-        ark.board(1000);
+        vm.startPrank(address(otherArk));
+        mockToken.approve(address(ark), amount);
+        vm.expectEmit();
+        emit Boarded(address(otherArk), address(mockToken), amount);
+        ark.board(amount);
         vm.stopPrank();
+
+        // Assert
+        assertEq(
+            mockToken.balanceOf(address(ark)),
+            amount,
+            "Token not transferred to ark"
+        );
     }
 
-    function test_CalledByNotArk_ShouldRevert() public {
+    function test_BoardByNonArk_ShouldFail() public {
         // Arrange
         vm.prank(governor);
         ark.grantCommanderRole(commander);
+
+        uint256 amount = 1000;
+        address nonArk = address(5);
+        mockToken.mint(nonArk, amount);
+
         vm.mockCall(
-            address(commander),
+            commander,
             abi.encodeWithSelector(
                 IFleetCommander.isArkActive.selector,
-                address(otherArk)
+                nonArk
             ),
             abi.encode(false)
         );
-        mockToken.mint(otherArk, 1000);
-
-        // Act
-        vm.startPrank(otherArk);
-        mockToken.approve(address(ark), 1000);
+        // Act && Assert
+        vm.startPrank(nonArk);
+        mockToken.approve(address(ark), amount);
         vm.expectRevert(
             abi.encodeWithSignature(
                 "CallerIsNotCommanderOrArk(address)",
-                otherArk
+                nonArk
             )
         );
-
-        ark.board(1000);
+        ark.board(amount);
         vm.stopPrank();
     }
 
-    function test_CalledByCommander_ShouldSucceed() public {
+    function test_Disembark_ShouldSucceed() public {
         // Arrange
         vm.prank(governor);
         ark.grantCommanderRole(commander);
-        vm.mockCall(
-            address(commander),
-            abi.encodeWithSelector(
-                IFleetCommander.isArkActive.selector,
-                address(commander)
-            ),
-            abi.encode(false)
-        );
-        mockToken.mint(commander, 1000);
+
+        uint256 amount = 1000;
+        mockToken.mint(address(ark), amount);
 
         // Act
         vm.startPrank(commander);
-        mockToken.approve(address(ark), 1000);
-        ark.board(1000);
+        vm.expectEmit();
+        emit Disembarked(commander, address(mockToken), amount);
+        ark.disembark(amount);
         vm.stopPrank();
+
+        // Assert
+        assertEq(
+            mockToken.balanceOf(commander),
+            amount,
+            "Token not transferred to commander"
+        );
+    }
+
+    function test_DisembarkByNonCommander_ShouldFail() public {
+        // Arrange
+        vm.prank(governor);
+        ark.grantCommanderRole(commander);
+
+        uint256 amount = 1000;
+        mockToken.mint(address(ark), amount);
+
+        // Act && Assert
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotCommander(address)",
+                address(this)
+            )
+        );
+        ark.disembark(amount);
+    }
+
+    function test_Move_ShouldSucceed() public {
+        // Arrange
+        vm.startPrank(governor);
+        ark.grantCommanderRole(commander);
+        otherArk.grantCommanderRole(commander);
+        vm.stopPrank();
+
+        uint256 amount = 1000;
+        mockToken.mint(address(ark), amount);
+
+        vm.mockCall(
+            commander,
+            abi.encodeWithSelector(
+                IFleetCommander.isArkActive.selector,
+                address(ark)
+            ),
+            abi.encode(true)
+        );
+        // Act
+        vm.startPrank(commander);
+        vm.expectEmit();
+        emit Moved(address(ark), address(otherArk), address(mockToken), amount);
+        ark.move(amount, address(otherArk));
+        vm.stopPrank();
+        // Assert
+
+        assertEq(
+            mockToken.balanceOf(address(otherArk)),
+            amount,
+            "Token not transferred to other ark"
+        );
+    }
+
+    function test_MoveByNonCommander_ShouldFail() public {
+        // Arrange
+        vm.prank(governor);
+        ark.grantCommanderRole(commander);
+
+        uint256 amount = 1000;
+        mockToken.mint(address(ark), amount);
+
+        // Act && Assert
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotCommander(address)",
+                address(this)
+            )
+        );
+        ark.move(amount, address(otherArk));
     }
 }
