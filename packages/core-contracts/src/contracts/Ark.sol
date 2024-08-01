@@ -18,7 +18,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     address public raft;
     uint256 public maxAllocation;
     IERC20 public token;
-    bool private _hasCommander;
+    address private _commander;
 
     constructor(
         ArkParams memory _params
@@ -38,8 +38,8 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     function harvest() public {}
 
-    function hasCommander() public view returns (bool) {
-        return _hasCommander;
+    function commander() public view returns (address) {
+        return _commander;
     }
 
     /* EXTERNAL - COMMANDER */
@@ -77,12 +77,12 @@ abstract contract Ark is IArk, ArkAccessManaged {
      * @dev Overrides the base implementation to prevent removal when assets are present
      */
     function _beforeGrantRoleHook(
-        address
+        address newComander
     ) internal virtual override(ArkAccessManaged) onlyGovernor {
-        if (_hasCommander) {
+        if (_commander != address(0)) {
             revert CannotAddCommanderToArkWithCommander();
         }
-        _hasCommander = true;
+        _commander = newComander;
     }
 
     /**
@@ -95,7 +95,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
         if (this.totalAssets() > 0) {
             revert CannotRemoveCommanderFromArkWithAssets();
         }
-        _hasCommander = false;
+        _commander = address(0);
     }
 
     /* INTERNAL */

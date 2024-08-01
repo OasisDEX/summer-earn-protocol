@@ -34,10 +34,10 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function rate() external view returns (uint256);
 
     /**
-     * @notice Checks if the Ark has a Commander assigned
-     * @return bool True if a Commander is assigned, false otherwise
+     * @notice Returns the address of the Fleet commander managing the ark
+     * @return address Address of Fleet commander managing the ark if a Commander is assigned, address(0) otherwise
      */
-    function hasCommander() external view returns (bool);
+    function commander() external view returns (address);
 
     /**
      * @notice Updates information about the Ark

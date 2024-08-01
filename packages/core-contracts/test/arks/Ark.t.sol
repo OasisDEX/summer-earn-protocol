@@ -53,7 +53,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         ark.grantCommanderRole(commander);
 
         // Assert
-        assertTrue(ark.hasCommander(), "Commander role not granted");
+        assertTrue(ark.commander() == commander, "Commander role not granted");
     }
 
     function test_GrantCommanderRole_ShouldFail() public {
@@ -70,7 +70,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         ark.grantCommanderRole(commander);
 
         // Assert
-        assertTrue(ark.hasCommander(), "Commander role not granted");
+        assertTrue(ark.commander() == commander, "Commander role not granted");
     }
 
     function test_GrantRoleDirectly_ShouldFail() public {
@@ -82,7 +82,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         ark.grantRole(keccak256("COMMANDER_ROLE"), commander);
 
         // Assert
-        assertTrue(!ark.hasCommander(), "Commander role granted");
+        assertTrue(ark.commander() != commander, "Commander role granted");
     }
 
     function test_RevokeRoleDirectly_ShouldFail() public {
@@ -98,7 +98,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         ark.revokeRole(keccak256("COMMANDER_ROLE"), commander);
 
         // Assert
-        assertTrue(ark.hasCommander(), "Commander role not granted");
+        assertTrue(ark.commander() == commander, "Commander role not granted");
     }
 
     function test_RevokeCommanderRole_ShouldSucceed() public {
@@ -111,7 +111,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         ark.revokeCommanderRole(commander);
 
         // Assert
-        assertFalse(ark.hasCommander(), "Commander role not revoked");
+        assertFalse(ark.commander() == commander, "Commander role not revoked");
     }
 
     function test_RevokeCommanderRole_ShouldFail() public {
@@ -128,6 +128,6 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         ark.revokeCommanderRole(commander);
 
         // Assert
-        assertTrue(ark.hasCommander(), "Commander role not revoked");
+        assertTrue(ark.commander() == commander, "Commander role not revoked");
     }
 }
