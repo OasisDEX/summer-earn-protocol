@@ -2,12 +2,13 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Script.sol";
-import {AaveV3Ark} from "../src/contracts/arks/AaveV3Ark.sol";
+import {CompoundV3Ark} from "../src/contracts/arks/CompoundV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
 import "./common/ArkDeploymentScript.s.sol";
+import {MorphoArk} from "../src/contracts/arks/MorphoArk.sol";
 
-contract AaveV3ArkDeploy is ArkDeploymentScript {
+contract MorphoArkDeploy is ArkDeploymentScript {
     function run() external reloadConfig {
         vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
@@ -16,8 +17,13 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
         address arkAssetToken = customToken == address(0)
             ? config.usdcToken
             : customToken;
-        if (config.aaveV3Pool == address(0)) {
-            console.log("Aave V3 Pool address is not set");
+        if (config.morphoBlue.blue == address(0)) {
+            console.log("Morpho Blue address is not set");
+            vm.stopBroadcast();
+            return;
+        }
+        if (Id.unwrap(config.morphoBlue.usdcMarketId) == 0) {
+            console.log("Morpho USDC Market ID is not set");
             vm.stopBroadcast();
             return;
         }
@@ -28,9 +34,13 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
             maxAllocation: maxAllocation
         });
 
-        IArk ark = new AaveV3Ark(config.aaveV3Pool, params);
-        updateAddressInConfig(network, "usdcAaveV3Ark", address(ark));
-        console.log("Deployed Aave V3 Ark");
+        IArk ark = new MorphoArk(
+            config.morphoBlue.blue,
+            config.morphoBlue.usdcMarketId,
+            params
+        );
+        updateAddressInConfig(network, "morphoUsdcArk", address(ark));
+        console.log("Deployed Morpho Ark");
         console.log(address(ark));
 
         vm.stopBroadcast();

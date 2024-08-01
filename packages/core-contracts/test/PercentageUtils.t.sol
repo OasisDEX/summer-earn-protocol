@@ -11,13 +11,16 @@ contract PercentageUtilsTest is Test {
     function testFromFraction() public pure {
         Percentage percentage = PercentageUtils.fromFraction(2085, 100);
 
-        assertEq(Percentage.unwrap(percentage), 20850000);
+        assertEq(
+            Percentage.unwrap(percentage),
+            2085 * (PERCENTAGE_FACTOR / 100)
+        );
     }
 
     function testFromDecimalPercentage() public pure {
         Percentage percentage = PercentageUtils.fromDecimalPercentage(23);
 
-        assertEq(Percentage.unwrap(percentage), 23000000);
+        assertEq(Percentage.unwrap(percentage), 23 * PERCENTAGE_FACTOR);
     }
 
     function testAddPercentage() public pure {

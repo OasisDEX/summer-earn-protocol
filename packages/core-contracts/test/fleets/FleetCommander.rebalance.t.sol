@@ -24,7 +24,8 @@ import {IArk} from "../../src/interfaces/IArk.sol";
  */
 contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
         vm.stopPrank();
     }
 

@@ -2,35 +2,35 @@
 pragma solidity 0.8.26;
 
 interface IComet {
-    event Supply(address indexed from, address indexed dst, uint amount);
-    event Transfer(address indexed from, address indexed to, uint amount);
-    event Withdraw(address indexed src, address indexed to, uint amount);
+    event Supply(address indexed from, address indexed dst, uint256 amount);
+    event Transfer(address indexed from, address indexed to, uint256 amount);
+    event Withdraw(address indexed src, address indexed to, uint256 amount);
 
     event SupplyCollateral(
         address indexed from,
         address indexed dst,
         address indexed asset,
-        uint amount
+        uint256 amount
     );
     event TransferCollateral(
         address indexed from,
         address indexed to,
         address indexed asset,
-        uint amount
+        uint256 amount
     );
     event WithdrawCollateral(
         address indexed src,
         address indexed to,
         address indexed asset,
-        uint amount
+        uint256 amount
     );
 
     /// @notice Event emitted when a borrow position is absorbed by the protocol
     event AbsorbDebt(
         address indexed absorber,
         address indexed borrower,
-        uint basePaidOut,
-        uint usdValue
+        uint256 basePaidOut,
+        uint256 usdValue
     );
 
     /// @notice Event emitted when a user's collateral is absorbed by the protocol
@@ -38,16 +38,16 @@ interface IComet {
         address indexed absorber,
         address indexed borrower,
         address indexed asset,
-        uint collateralAbsorbed,
-        uint usdValue
+        uint256 collateralAbsorbed,
+        uint256 usdValue
     );
 
     /// @notice Event emitted when a collateral asset is purchased from the protocol
     event BuyCollateral(
         address indexed buyer,
         address indexed asset,
-        uint baseAmount,
-        uint collateralAmount
+        uint256 baseAmount,
+        uint256 collateralAmount
     );
 
     /// @notice Event emitted when an action is paused/unpaused
@@ -60,7 +60,7 @@ interface IComet {
     );
 
     /// @notice Event emitted when reserves are withdrawn by the governor
-    event WithdrawReserves(address indexed to, uint amount);
+    event WithdrawReserves(address indexed to, uint256 amount);
 
     function borrowBalanceOf(address account) external view returns (uint256);
 

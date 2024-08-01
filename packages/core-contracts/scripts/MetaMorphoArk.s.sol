@@ -2,12 +2,13 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Script.sol";
-import {AaveV3Ark} from "../src/contracts/arks/AaveV3Ark.sol";
+import {CompoundV3Ark} from "../src/contracts/arks/CompoundV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
 import "./common/ArkDeploymentScript.s.sol";
+import {MetaMorphoArk} from "../src/contracts/arks/MetaMorphoArk.sol";
 
-contract AaveV3ArkDeploy is ArkDeploymentScript {
+contract MetaMorphoArkDeploy is ArkDeploymentScript {
     function run() external reloadConfig {
         vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
@@ -16,8 +17,8 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
         address arkAssetToken = customToken == address(0)
             ? config.usdcToken
             : customToken;
-        if (config.aaveV3Pool == address(0)) {
-            console.log("Aave V3 Pool address is not set");
+        if (config.metaMorpho.steakhouseUsdc == address(0)) {
+            console.log("MetaMorpho Steakhouse USDC address is not set");
             vm.stopBroadcast();
             return;
         }
@@ -27,10 +28,16 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
             token: arkAssetToken,
             maxAllocation: maxAllocation
         });
-
-        IArk ark = new AaveV3Ark(config.aaveV3Pool, params);
-        updateAddressInConfig(network, "usdcAaveV3Ark", address(ark));
-        console.log("Deployed Aave V3 Ark");
+        MetaMorphoArk ark = new MetaMorphoArk(
+            config.metaMorpho.steakhouseUsdc,
+            params
+        );
+        updateAddressInConfig(
+            network,
+            "metamorphoSteakhouseUsdcArk",
+            address(ark)
+        );
+        console.log("Deployed MetaMorpho Ark");
         console.log(address(ark));
 
         vm.stopBroadcast();

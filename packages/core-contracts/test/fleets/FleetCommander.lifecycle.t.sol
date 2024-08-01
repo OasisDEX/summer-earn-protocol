@@ -14,7 +14,8 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  */
 contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
     }
 
     function test_DepositRebalanceForceWithdraw() public {
