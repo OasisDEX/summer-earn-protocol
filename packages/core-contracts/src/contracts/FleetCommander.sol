@@ -457,16 +457,11 @@ contract FleetCommander is
         }
 
         uint256 toArkAllocation = toArk.totalAssets();
-        uint256 availableAllocation;
-        if (toArkAllocation < toArkMaxAllocation) {
-            availableAllocation = toArkMaxAllocation - toArkAllocation;
-            amount = (amount < availableAllocation)
-                ? amount
-                : availableAllocation;
-        } else {
-            // If toArkAllocation >= maxAllocation, we can't add more funds
+
+        if (toArkAllocation + amount > toArkMaxAllocation) {
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
+
         _move(address(fromArk), address(toArk), amount);
 
         return amount;

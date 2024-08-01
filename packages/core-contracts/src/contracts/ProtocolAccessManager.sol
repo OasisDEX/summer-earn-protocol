@@ -2,14 +2,13 @@
 pragma solidity 0.8.26;
 
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-
+import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import "../errors/AccessControlErrors.sol";
 
 /**
  * @custom:see IProtocolAccessManager
  */
-contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
+contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /**
      * @dev The Governor role is in charge of setting the parameters of the system
      *      and also has the power to manage the different Fleet Commander roles.
@@ -100,21 +99,5 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
     /* @inheritdoc IProtocolAccessControl */
     function revokeKeeperRole(address account) external onlyGovernor {
         _revokeRole(KEEPER_ROLE, account);
-    }
-
-    /*
-     * @dev Disabled generally to rely on specific role grant methods
-     * and our own modifiers
-     */
-    function grantRole(bytes32, address) public view override {
-        revert DirectGrantIsDisabled(msg.sender);
-    }
-
-    /*
-     * @dev Disabled generally to rely on specific role grant methods
-     * and our own modifiers
-     */
-    function revokeRole(bytes32, address) public view override {
-        revert DirectRevokeIsDisabled(msg.sender);
     }
 }
