@@ -147,7 +147,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         // Expect the poke call to Ark
         vm.expectCall(address(ark), abi.encodeWithSelector(IArk.poke.selector));
 
-        ark.disembark(amountToWithdraw, commander);
+        ark.disembark(amountToWithdraw);
 
         uint256 finalBalance = asset.balanceOf(commander);
         assertEq(
