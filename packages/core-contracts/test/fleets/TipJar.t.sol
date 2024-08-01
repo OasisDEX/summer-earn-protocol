@@ -170,7 +170,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.stopPrank();
 
         // Shake the jar
-        tipJar.shake(fleetCommander);
+        tipJar.shake(address(fleetCommander));
 
         // Check balances
         assertEq(underlyingToken.balanceOf(mockTipStreamRecipient), 600 ether);
@@ -217,9 +217,9 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.stopPrank();
 
         // Shake multiple jars
-        IFleetCommander[] memory commanders = new IFleetCommander[](2);
-        commanders[0] = fleetCommander;
-        commanders[1] = fleetCommander2;
+        address[] memory commanders = new address[](2);
+        commanders[0] = address(fleetCommander);
+        commanders[1] = address(fleetCommander2);
         tipJar.shakeMultiple(commanders);
 
         // Check balances (should be doubled compared to the single shake test)
@@ -271,12 +271,17 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(fromPercentage(totalAllocation), 45);
     }
 
-    function test_FailShakeWithNoShares() public {
-        // Ensure the TipJar has no shares in the FleetCommander
-        assertEq(fleetCommander.balanceOf(address(tipJar)), 0);
+    function test_FailShakeWithNoAssets() public {
+        // Ensure the TipJar has no assets in the FleetCommander
+        assertEq(
+            fleetCommander.convertToAssets(
+                fleetCommander.balanceOf(address(tipJar))
+            ),
+            0
+        );
 
-        vm.expectRevert(NoSharesToDistribute.selector);
-        tipJar.shake(fleetCommander);
+        vm.expectRevert(NoAssetsToDistribute.selector);
+        tipJar.shake(address(fleetCommander));
     }
 
     function test_FailRemoveNonexistentTipStream() public {
@@ -296,6 +301,11 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.prank(governor);
         vm.expectRevert(InvalidTreasuryAddress.selector);
         tipJar.setTreasuryAddress(address(0));
+    }
+
+    function test_FailShakeInvalidFleetCommanderAddress() public {
+        vm.expectRevert(InvalidFleetCommanderAddress.selector);
+        tipJar.shake(address(0));
     }
 
     function test_FailAddTipStreamWithInvalidAllocation() public {
@@ -330,7 +340,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.stopPrank();
     }
 
-    function test_GetAllTipStreamsEmpty() public {
+    function test_GetAllTipStreamsEmpty() public view {
         // Test when there are no tip streams
         ITipJar.TipStream[] memory emptyStreams = tipJar.getAllTipStreams();
         assertEq(emptyStreams.length, 0);

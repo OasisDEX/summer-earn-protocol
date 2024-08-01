@@ -92,24 +92,33 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         return allStreams;
     }
 
-    function shake(IFleetCommander fleetCommander) public {
-        uint256 shares = fleetCommander.balanceOf(address(this));
-        if (shares == 0) {
-            revert NoSharesToDistribute();
+    function shake(address _fleetCommander_) public {
+        if (_fleetCommander_ == address(0)) {
+            revert InvalidFleetCommanderAddress();
         }
 
-        uint256 assets = fleetCommander.redeem(
-            shares,
+        IFleetCommander fleetCommander = IFleetCommander(_fleetCommander_);
+
+        uint256 _assets = fleetCommander.convertToAssets(
+            fleetCommander.balanceOf(address(this))
+        );
+        if (_assets == 0) {
+            revert NoAssetsToDistribute();
+        }
+
+        uint256 withdrawnAssets = fleetCommander.withdraw(
+            _assets,
             address(this),
             address(this)
         );
+
         IERC20 underlyingAsset = IERC20(fleetCommander.asset());
 
         uint256 totalDistributed = 0;
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
             address recipient = tipStreamRecipients[i];
             Percentage allocation = tipStreams[recipient].allocation;
-            uint256 amount = assets.applyPercentage(allocation);
+            uint256 amount = withdrawnAssets.applyPercentage(allocation);
 
             if (amount > 0) {
                 underlyingAsset.transfer(recipient, amount);
@@ -118,17 +127,15 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         }
 
         // Transfer remaining balance to treasury
-        uint256 remaining = assets - totalDistributed;
+        uint256 remaining = withdrawnAssets - totalDistributed;
         if (remaining > 0) {
             underlyingAsset.transfer(treasuryAddress, remaining);
         }
 
-        emit TipJarShaken(address(fleetCommander), assets);
+        emit TipJarShaken(address(fleetCommander), withdrawnAssets);
     }
 
-    function shakeMultiple(
-        IFleetCommander[] calldata fleetCommanders
-    ) external {
+    function shakeMultiple(address[] calldata fleetCommanders) external {
         for (uint256 i = 0; i < fleetCommanders.length; i++) {
             shake(fleetCommanders[i]);
         }

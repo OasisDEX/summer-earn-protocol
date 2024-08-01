@@ -33,6 +33,6 @@ interface ITipJar is ITipJarEvents {
     ) external view returns (TipStream memory);
     function getAllTipStreams() external view returns (TipStream[] memory);
     function getTotalAllocation() external view returns (Percentage);
-    function shake(IFleetCommander fleetCommander) external;
-    function shakeMultiple(IFleetCommander[] calldata fleetCommanders) external;
+    function shake(address fleetCommander) external;
+    function shakeMultiple(address[] calldata fleetCommanders) external;
 }
