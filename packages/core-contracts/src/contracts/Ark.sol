@@ -18,7 +18,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     address public raft;
     uint256 public maxAllocation;
     IERC20 public token;
-    address private _commander;
+    address public commander;
 
     constructor(
         ArkParams memory _params
@@ -41,11 +41,6 @@ abstract contract Ark is IArk, ArkAccessManaged {
     /* @inheritdoc IArk */
     function harvest() public {}
 
-    /* @inheritdoc IArk */
-    function commander() public view returns (address) {
-        return _commander;
-    }
-
     /* EXTERNAL - COMMANDER */
     /* @inheritdoc IArk */
     function board(uint256 amount) external onlyCommanderOrArk {
@@ -66,13 +61,13 @@ abstract contract Ark is IArk, ArkAccessManaged {
     }
 
     /* @inheritdoc IArk */
-    function move(uint256 amount, address receiver) external onlyCommander {
+    function move(uint256 amount, address receiverArk) external onlyCommander {
         _disembark(amount);
 
-        token.approve(receiver, amount);
-        IArk(receiver).board(amount);
+        token.approve(receiverArk, amount);
+        IArk(receiverArk).board(amount);
 
-        emit Moved(address(this), receiver, address(token), amount);
+        emit Moved(address(this), receiverArk, address(token), amount);
     }
 
     /* @inheritdoc IArk */
@@ -96,10 +91,10 @@ abstract contract Ark is IArk, ArkAccessManaged {
     function _beforeGrantRoleHook(
         address newComander
     ) internal virtual override(ArkAccessManaged) onlyGovernor {
-        if (_commander != address(0)) {
+        if (commander != address(0)) {
             revert CannotAddCommanderToArkWithCommander();
         }
-        _commander = newComander;
+        commander = newComander;
     }
 
     /**
@@ -112,7 +107,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
         if (this.totalAssets() > 0) {
             revert CannotRemoveCommanderFromArkWithAssets();
         }
-        _commander = address(0);
+        commander = address(0);
     }
 
     /* INTERNAL */
@@ -122,13 +117,13 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     /* MODIFIERS */
 
-    //*
-    // @dev Modifier to check that the caller has the Commander role or is an Ark
-    // */
+    /**
+     * @dev Modifier to check that the caller has the Commander role or is an Ark
+     */
     modifier onlyCommanderOrArk() {
         if (!hasCommanderRole()) {
             address msgSender = _msgSender();
-            bool isArk = IFleetCommander(_commander).isArkActive(msgSender);
+            bool isArk = IFleetCommander(commander).isArkActive(msgSender);
             if (!isArk) {
                 revert CallerIsNotCommanderOrArk(msgSender);
             }

@@ -37,7 +37,7 @@ interface IArkEvents {
      */
     event Moved(
         address indexed from,
-        address to,
+        address indexed to,
         address token,
         uint256 amount
     );
