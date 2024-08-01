@@ -159,14 +159,14 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     function _validateTipStreamAllocation(Percentage allocation) internal view {
         if (
             allocation == toPercentage(0) ||
-            !PercentageUtils.isPercentageInRange(
-                allocation
-            )
+            !PercentageUtils.isPercentageInRange(allocation)
         ) {
             revert InvalidTipStreamAllocation(allocation);
         }
         if (
-            !PercentageUtils.isPercentageInRange(getTotalAllocation() + allocation)
+            !PercentageUtils.isPercentageInRange(
+                getTotalAllocation() + allocation
+            )
         ) {
             revert TotalAllocationExceedsOneHundredPercent();
         }

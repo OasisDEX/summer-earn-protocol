@@ -120,8 +120,7 @@ abstract contract Tipper is ITipper {
         uint256 timeElapsed
     ) internal view returns (uint256) {
         Percentage ratePerSecond = Percentage.wrap(
-            (Percentage.unwrap(tipRate) /
-                SECONDS_PER_YEAR)
+            (Percentage.unwrap(tipRate) / SECONDS_PER_YEAR)
         );
 
         // Calculate (1 + r)^t using a custom power function

@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Percentage} from "../types/Percentage.sol";
 
-    error InvalidRecipientAddress();
+error InvalidRecipientAddress();
 error TipStreamAlreadyExists(address recipient);
 error InvalidTipStreamAllocation(Percentage invalidAllocation);
 error TotalAllocationExceedsOneHundredPercent();

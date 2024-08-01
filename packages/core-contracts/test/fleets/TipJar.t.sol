@@ -64,7 +64,9 @@ contract TipJarTest is Test, ITipJarEvents {
             mockTipStreamRecipient
         );
         assertEq(stream.recipient, mockTipStreamRecipient);
-        assertTrue(stream.allocation == PercentageUtils.fromDecimalPercentage(20));
+        assertTrue(
+            stream.allocation == PercentageUtils.fromDecimalPercentage(20)
+        );
         assertEq(stream.minimumTerm, block.timestamp + 1 days);
     }
 
@@ -136,7 +138,11 @@ contract TipJarTest is Test, ITipJarEvents {
 
         // Setup tip streams
         vm.startPrank(governor);
-        tipJar.addTipStream(mockTipStreamRecipient, PercentageUtils.fromDecimalPercentage(60), block.timestamp);
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            PercentageUtils.fromDecimalPercentage(60),
+            block.timestamp
+        );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
             PercentageUtils.fromDecimalPercentage(30),
@@ -204,7 +210,11 @@ contract TipJarTest is Test, ITipJarEvents {
         address anotherMockTipStreamParticipant = address(5);
 
         vm.startPrank(governor);
-        tipJar.addTipStream(mockTipStreamRecipient, PercentageUtils.fromDecimalPercentage(60), block.timestamp);
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            PercentageUtils.fromDecimalPercentage(60),
+            block.timestamp
+        );
         vm.expectRevert(
             abi.encodeWithSelector(
                 TotalAllocationExceedsOneHundredPercent.selector
