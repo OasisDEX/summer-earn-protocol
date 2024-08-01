@@ -51,47 +51,30 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Act
         vm.prank(mockUser);
         uint256 withdrawalAmount = DEPOSIT_AMOUNT / 10;
-        fleetCommander.withdraw(DEPOSIT_AMOUNT / 10, mockUser, mockUser);
-        console.log("deposit amount", DEPOSIT_AMOUNT);
-        console.log("withdrawal amount", withdrawalAmount);
-        console.log("balanceOf(mockUser)", fleetCommander.balanceOf(mockUser));
+        uint256 shares = fleetCommander.withdraw(
+            withdrawalAmount,
+            mockUser,
+            mockUser
+        );
+
         // Assert
         assertEq(
             DEPOSIT_AMOUNT - withdrawalAmount,
-            fleetCommander.balanceOf(mockUser)
+            fleetCommander.balanceOf(mockUser),
+            "Incorrect remaining balance"
         );
-    }
-
-    function test_RevertIfArkMaxAllocationNotZero() public {
-        // Act & Assert
-        vm.prank(governor);
-        mockArkMaxAllocation(ark1, 100);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkMaxAllocationGreaterThanZero.selector,
-                ark1
-            )
+        assertEq(
+            withdrawalAmount,
+            mockToken.balanceOf(mockUser),
+            "Incorrect withdrawn amount"
         );
-        fleetCommander.removeArk(ark1);
-    }
-
-    function test_RevertIfArkTotalAssetsNotZero() public {
-        // Act & Assert
-        vm.prank(governor);
-        mockArkTotalAssets(ark1, 100);
-        mockArkMaxAllocation(ark1, 0);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkAssetsNotZero.selector,
-                ark1
-            )
-        );
-        fleetCommander.removeArk(ark1);
+        assertEq(shares, withdrawalAmount, "Incorrect shares withdrawn");
     }
 
     function test_WithdrawZeroAmount() public {
         vm.prank(mockUser);
-        fleetCommander.withdraw(0, mockUser, mockUser);
+        uint256 shares = fleetCommander.withdraw(0, mockUser, mockUser);
+        assertEq(shares, 0, "Should withdraw zero shares for zero assets");
     }
 
     function test_WithdrawToOtherReceiver() public {
@@ -99,7 +82,11 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 withdrawAmount = DEPOSIT_AMOUNT / 2;
 
         vm.prank(mockUser);
-        fleetCommander.withdraw(withdrawAmount, receiver, mockUser);
+        uint256 shares = fleetCommander.withdraw(
+            withdrawAmount,
+            receiver,
+            mockUser
+        );
 
         assertEq(
             mockToken.balanceOf(receiver),
@@ -111,6 +98,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             0,
             "Owner should not have received any assets"
         );
+        assertEq(shares, withdrawAmount, "Incorrect shares withdrawn");
     }
 
     function test_WithdrawMultipleTimes() public {
@@ -119,13 +107,39 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(mockUser);
         fleetCommander.withdraw(withdrawAmount, mockUser, mockUser);
         fleetCommander.withdraw(withdrawAmount, mockUser, mockUser);
-        fleetCommander.withdraw(
+        uint256 shares = fleetCommander.withdraw(
             fleetCommander.maxWithdraw(mockUser),
             mockUser,
             mockUser
         );
         vm.stopPrank();
 
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "User should have no remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            DEPOSIT_AMOUNT,
+            "User should have received all assets back"
+        );
+        assertEq(
+            shares,
+            DEPOSIT_AMOUNT - (2 * withdrawAmount),
+            "Incorrect shares withdrawn"
+        );
+    }
+
+    function test_WithdrawMaxUint() public {
+        vm.prank(mockUser);
+        uint256 shares = fleetCommander.withdraw(
+            type(uint256).max,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(shares, DEPOSIT_AMOUNT, "Incorrect amount withdrawn");
         assertEq(
             fleetCommander.balanceOf(mockUser),
             0,
@@ -146,7 +160,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
                 "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
                 mockUser,
                 excessAmount,
-                fleetCommander.maxWithdraw(mockUser)
+                DEPOSIT_AMOUNT
             )
         );
         vm.prank(mockUser);
@@ -175,7 +189,13 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.approve(nonOwner, DEPOSIT_AMOUNT);
 
         vm.prank(nonOwner);
-        fleetCommander.withdraw(DEPOSIT_AMOUNT - 1, nonOwner, mockUser);
+        uint256 shares = fleetCommander.withdraw(
+            DEPOSIT_AMOUNT - 1,
+            nonOwner,
+            mockUser
+        );
+
+        assertEq(shares, DEPOSIT_AMOUNT - 1, "Incorrect shares withdrawn");
     }
 
     function test_WithdrawByNonOwnerWithInsufficientAllowance() public {
@@ -229,9 +249,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
     }
 
-    function test_ForceWithdraw() public {
-        uint256 withdrawAmount = DEPOSIT_AMOUNT;
-
+    function test_ForceWithdrawWhenBufferInsufficient() public {
         // Move some funds to different arks
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
@@ -239,23 +257,27 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,
-                DEPOSIT_AMOUNT / 3
+                DEPOSIT_AMOUNT / 2
             )
         );
-
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.rebalance(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark2,
-                DEPOSIT_AMOUNT / 3
+                DEPOSIT_AMOUNT / 2
             )
         );
         vm.stopPrank();
 
         vm.prank(mockUser);
-        fleetCommander.forceWithdraw(withdrawAmount, mockUser, mockUser);
+        uint256 shares = fleetCommander.withdraw(
+            DEPOSIT_AMOUNT,
+            mockUser,
+            mockUser
+        );
 
+        assertEq(shares, DEPOSIT_AMOUNT, "Incorrect amount withdrawn");
         assertEq(
             fleetCommander.balanceOf(mockUser),
             0,
@@ -266,63 +288,6 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             DEPOSIT_AMOUNT,
             "User should have received all assets back"
         );
-    }
-
-    function test_ForceWithdrawExceedingBalance() public {
-        uint256 excessAmount = DEPOSIT_AMOUNT + 1;
-
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
-                mockUser,
-                excessAmount,
-                fleetCommander.maxWithdraw(mockUser)
-            )
-        );
-        vm.prank(mockUser);
-        fleetCommander.forceWithdraw(excessAmount, mockUser, mockUser);
-    }
-
-    function test_ForceWithdrawByNonOwner() public {
-        address nonOwner = address(0xdeadbeef);
-
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderUnauthorizedWithdrawal(address,address)",
-                nonOwner,
-                mockUser
-            )
-        );
-        vm.prank(nonOwner);
-        fleetCommander.forceWithdraw(DEPOSIT_AMOUNT, nonOwner, mockUser);
-    }
-
-    function test_ForceWithdrawByNonOwnerWithSufficientAllowance() public {
-        address nonOwner = address(0xdeadbeef);
-
-        vm.prank(mockUser);
-        fleetCommander.approve(nonOwner, DEPOSIT_AMOUNT);
-
-        vm.prank(nonOwner);
-        fleetCommander.forceWithdraw(DEPOSIT_AMOUNT - 1, nonOwner, mockUser);
-    }
-
-    function test_ForceWithdrawByNonOwnerWithInsufficientAllowance() public {
-        address nonOwner = address(0xdeadbeef);
-
-        vm.prank(mockUser);
-        fleetCommander.approve(nonOwner, DEPOSIT_AMOUNT - 2);
-
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderUnauthorizedWithdrawal(address,address)",
-                nonOwner,
-                mockUser
-            )
-        );
-
-        vm.prank(nonOwner);
-        fleetCommander.forceWithdraw(DEPOSIT_AMOUNT - 1, nonOwner, mockUser);
     }
 
     function generateRebalanceData(

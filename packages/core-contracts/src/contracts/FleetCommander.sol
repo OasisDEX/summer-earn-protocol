@@ -67,11 +67,11 @@ contract FleetCommander is
     }
 
     /* PUBLIC - USER */
-    function withdraw(
+    function _withdrawInternal(
         uint256 assets,
         address receiver,
         address owner
-    ) public override(ERC4626, IFleetCommander) collectTip returns (uint256) {
+    ) public returns (uint256) {
         _validateWithdraw(assets, owner);
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -109,6 +109,44 @@ contract FleetCommander is
         );
 
         return assets;
+    }
+
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    )
+        public
+        override(ERC4626, IFleetCommander)
+        collectTip
+        returns (uint256 shares)
+    {
+        uint256 bufferBalance = bufferArk.totalAssets();
+        uint256 totalUserShares = balanceOf(owner);
+        uint256 maxWithdrawableAssets = previewRedeem(totalUserShares);
+
+        if (assets == type(uint256).max) {
+            assets = maxWithdrawableAssets;
+        } else if (assets > maxWithdrawableAssets) {
+            revert ERC4626ExceededMaxWithdraw(
+                owner,
+                assets,
+                maxWithdrawableAssets
+            );
+        }
+
+        if (assets <= bufferBalance) {
+            shares = _withdrawInternal(assets, receiver, owner);
+        } else {
+            shares = forceWithdraw(assets, receiver, owner);
+        }
+
+        require(
+            balanceOf(owner) == 0 || assets < maxWithdrawableAssets,
+            "FleetCommander: User should have no shares left when withdrawing max"
+        );
+
+        return shares;
     }
 
     function forceWithdraw(
