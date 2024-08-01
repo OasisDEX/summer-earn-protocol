@@ -116,20 +116,4 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     function revokeSuperKeeperRole(address account) external onlyGovernor {
         _revokeRole(SUPER_KEEPER_ROLE, account);
     }
-
-    /*
-     * @dev Disabled generally to rely on specific role grant methods
-     * and our own modifiers
-     */
-    function grantRole(bytes32, address) public view override {
-        revert DirectGrantIsDisabled(msg.sender);
-    }
-
-    /*
-     * @dev Disabled generally to rely on specific role grant methods
-     * and our own modifiers
-     */
-    function revokeRole(bytes32, address) public view override {
-        revert DirectRevokeIsDisabled(msg.sender);
-    }
 }

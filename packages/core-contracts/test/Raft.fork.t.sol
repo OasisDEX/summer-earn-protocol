@@ -33,6 +33,7 @@ contract RaftForkTest is Test, IRaftEvents {
     address public governor = address(1);
     address public commander = address(4);
     address public keeper = address(8);
+    address public tipJar = address(9);
 
     uint256 public constant SUPPLIED_USDC_AMOUNT = 1990 * 10 ** 6;
     uint256 public constant FORK_BLOCK = 20276596;
@@ -53,6 +54,7 @@ contract RaftForkTest is Test, IRaftEvents {
         configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
+                tipJar: tipJar,
                 raft: address(raft)
             })
         );

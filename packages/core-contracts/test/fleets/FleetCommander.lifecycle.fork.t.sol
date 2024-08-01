@@ -57,7 +57,6 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         0x1B0e765F6224C21223AeA2af16c1C46E38885a40;
     address public constant AAVE_V3_REWARDS_CONTROLLER =
         0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
-    uint256 constant FORK_BLOCK = 20276596;
     address public constant MORPHO_ADDRESS =
         0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
     address public constant METAMORPHO_ADDRESS =
