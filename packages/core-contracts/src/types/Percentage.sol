@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 /**
  * @title Percentage
- *     @notice Custom type for Percentage values
+ * @notice Custom type for Percentage values
  */
 
 /**
@@ -26,10 +26,10 @@ using {
     equalTo as ==
 } for Percentage global;
 
-/* The number of decimals used for the slippage percentage */
-uint256 constant PERCENTAGE_DECIMALS = 6;
+/* The number of decimals used for the percentage */
+uint256 constant PERCENTAGE_DECIMALS = 18;
 
-/* The factor used to scale the slippage percentage when calculating the slippage on an amount */
+/* The factor used to scale the percentage */
 uint256 constant PERCENTAGE_FACTOR = 10 ** PERCENTAGE_DECIMALS;
 
 /* Percentage of 100% with the given `PERCENTAGE_DECIMALS` */
@@ -80,4 +80,16 @@ function greaterThan(Percentage a, Percentage b) pure returns (bool) {
 
 function equalTo(Percentage a, Percentage b) pure returns (bool) {
     return Percentage.unwrap(a) == Percentage.unwrap(b);
+}
+
+function equals(Percentage a, Percentage b) pure returns (bool) {
+    return Percentage.unwrap(a) == Percentage.unwrap(b);
+}
+
+function toPercentage(uint256 value) pure returns (Percentage) {
+    return Percentage.wrap(value * PERCENTAGE_FACTOR);
+}
+
+function fromPercentage(Percentage value) pure returns (uint256) {
+    return Percentage.unwrap(value) / PERCENTAGE_FACTOR;
 }

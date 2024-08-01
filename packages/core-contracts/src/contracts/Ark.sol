@@ -8,6 +8,10 @@ import {IArk, ArkParams} from "../interfaces/IArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../errors/AccessControlErrors.sol";
+import {CannotAddCommanderToArkWithCommander, CannotRemoveCommanderFromArkWithAssets} from "../errors/ArkErrors.sol";
+import {IArk, ArkParams} from "../interfaces/IArk.sol";
+
+import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @custom:see IArk
@@ -18,6 +22,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     address public raft;
     uint256 public maxAllocation;
     IERC20 public token;
+    bool private _hasCommander;
 
     constructor(
         ArkParams memory _params
@@ -48,6 +53,10 @@ abstract contract Ark is IArk, ArkAccessManaged {
     /* EXTERNAL - RAFT */
     function harvest(address rewardToken) external virtual returns (uint256) {}
 
+    function hasCommander() public view returns (bool) {
+        return _hasCommander;
+    }
+
     /* EXTERNAL - COMMANDER */
     function board(uint256 amount) external onlyRaftOrCommander {
         token.safeTransferFrom(msg.sender, address(this), amount);
@@ -71,8 +80,38 @@ abstract contract Ark is IArk, ArkAccessManaged {
         emit MaxAllocationUpdated(newMaxAllocation);
     }
 
+    function poke() public virtual {
+        // No-op
+    }
+
     /* EXTERNAL - GOVERNANCE */
     function setRaft(address newRaft) external onlyGovernor {}
+
+    /**
+     * @notice Hook executed before the Commander role is revoked
+     * @dev Overrides the base implementation to prevent removal when assets are present
+     */
+    function _beforeGrantRoleHook(
+        address
+    ) internal virtual override(ArkAccessManaged) onlyGovernor {
+        if (_hasCommander) {
+            revert CannotAddCommanderToArkWithCommander();
+        }
+        _hasCommander = true;
+    }
+
+    /**
+     * @notice Hook executed before the Commander role is granted
+     * @dev Overrides the base implementation to enforce single Commander constraint
+     */
+    function _beforeRevokeRoleHook(
+        address
+    ) internal virtual override(ArkAccessManaged) {
+        if (this.totalAssets() > 0) {
+            revert CannotRemoveCommanderFromArkWithAssets();
+        }
+        _hasCommander = false;
+    }
 
     /* INTERNAL */
     function _board(uint256 amount) internal virtual;

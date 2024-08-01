@@ -17,8 +17,10 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
     address public governor = address(1);
-    address public commander = address(4);
     address public raft = address(2);
+    address public tipJar = address(3);
+    address public commander = address(4);
+
     address public constant cometAddress =
         0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     address public constant cometRewards = address(5);
@@ -41,6 +43,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         IConfigurationManager configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
+                tipJar: tipJar,
                 raft: raft
             })
         );
@@ -59,9 +62,6 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     }
 
     function test_Board_CompoundV3_fork() public {
-        vm.prank(governor); // Set msg.sender to governor
-        ark.grantCommanderRole(commander);
-
         // Arrange
         uint256 amount = 1990 * 10 ** 6;
         deal(address(usdc), commander, amount);

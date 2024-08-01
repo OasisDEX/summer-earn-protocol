@@ -21,7 +21,8 @@ import {IArk} from "../../src/interfaces/IArk.sol";
  */
 contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
     }
 
     function test_MaxDeposit() public {

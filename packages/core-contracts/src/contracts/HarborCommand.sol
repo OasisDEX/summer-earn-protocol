@@ -38,7 +38,7 @@ contract HarborCommand is
         activeFleetCommanders[_fleetCommander] = false;
 
         // Remove from list
-        for (uint i = 0; i < fleetCommandersList.length; i++) {
+        for (uint256 i = 0; i < fleetCommandersList.length; i++) {
             if (fleetCommandersList[i] == _fleetCommander) {
                 fleetCommandersList[i] = fleetCommandersList[
                     fleetCommandersList.length - 1

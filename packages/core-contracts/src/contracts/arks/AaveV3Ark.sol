@@ -13,6 +13,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
+    uint256 public constant WAD = 1e18;
+    uint256 public constant RAY = 1e27;
+    uint256 public constant SECONDS_PER_YEAR = 365 days;
 
     IPoolV3 public aaveV3Pool;
     IPoolDataProvider public aaveV3DataProvider;
@@ -38,7 +41,7 @@ contract AaveV3Ark is Ark {
     }
 
     function rate() public view override returns (uint256) {
-        (, , , , uint256 liquidityRate, , , , , , , ) = aaveV3DataProvider
+        (, , , , , uint256 liquidityRate, , , , , , ) = aaveV3DataProvider
             .getReserveData(address(token));
         return liquidityRate;
     }

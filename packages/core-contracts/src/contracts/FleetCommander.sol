@@ -5,12 +5,14 @@ import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contrac
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "../interfaces/IArk.sol";
-import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../errors/FleetCommanderErrors.sol";
-import "../libraries/PercentageUtils.sol";
+import {PercentageUtils} from "../libraries/PercentageUtils.sol";
+import {Tipper} from "./Tipper.sol";
+import {ITipper} from "../interfaces/ITipper.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -19,6 +21,7 @@ contract FleetCommander is
     IFleetCommander,
     ERC4626,
     ProtocolAccessManaged,
+    Tipper,
     CooldownEnforcer
 {
     using SafeERC20 for IERC20;
@@ -38,6 +41,7 @@ contract FleetCommander is
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         ProtocolAccessManaged(params.accessManager)
+        Tipper(params.configurationManager, params.initialTipRate)
         CooldownEnforcer(params.initialRebalanceCooldown, false)
     {
         _setupArks(params.initialArks);
@@ -46,6 +50,14 @@ contract FleetCommander is
         depositCap = params.depositCap;
         bufferArk = IArk(params.bufferArk);
         _isArkActive[address(bufferArk)] = true;
+    }
+
+    /**
+     * @dev Modifier to collect the tip before any other action is taken
+     */
+    modifier collectTip() {
+        _accrueTip();
+        _;
     }
 
     /* PUBLIC - ACCESSORS */
@@ -59,7 +71,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public override(ERC4626, IFleetCommander) returns (uint256) {
+    ) public override(ERC4626, IFleetCommander) collectTip returns (uint256) {
         _validateWithdraw(assets, owner);
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -81,7 +93,7 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public override(ERC4626, IERC4626) returns (uint256) {
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256) {
         _validateRedeem(shares, owner);
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -103,7 +115,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public override(IFleetCommander) returns (uint256) {
+    ) public override(IFleetCommander) collectTip returns (uint256) {
         _validateForceWithdraw(assets, owner);
         uint256 totalSharesToWithdraw = previewWithdraw(assets);
         address[] memory sortedArks = _getSortedArks();
@@ -111,13 +123,15 @@ contract FleetCommander is
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToWithdraw);
         _setLastActionTimestamp(0);
 
+        // Accrue tip after withdrawal to maintain accuracy of prior convertToShares calculation
+        _accrueTip();
         return assets;
     }
 
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(ERC4626, IFleetCommander) returns (uint256) {
+    ) public override(ERC4626, IFleetCommander) collectTip returns (uint256) {
         _validateDeposit(assets, _msgSender());
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -138,7 +152,7 @@ contract FleetCommander is
     function mint(
         uint256 shares,
         address receiver
-    ) public override(ERC4626, IERC4626) returns (uint256) {
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256) {
         _validateMint(shares, _msgSender());
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -154,6 +168,10 @@ contract FleetCommander is
         );
 
         return assets;
+    }
+
+    function tip() public returns (uint256) {
+        return _accrueTip();
     }
 
     function totalAssets()
@@ -222,13 +240,13 @@ contract FleetCommander is
     /* EXTERNAL - KEEPER */
     function rebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown {
+    ) external onlyKeeper enforceCooldown collectTip {
         _rebalance(rebalanceData);
     }
 
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown {
+    ) external onlyKeeper enforceCooldown collectTip {
         _validateAdjustBufferData(rebalanceData);
 
         uint256 totalMoved = _rebalance(rebalanceData);
@@ -247,7 +265,31 @@ contract FleetCommander is
         emit DepositCapUpdated(newCap);
     }
 
-    function setFeeAddress(address newAddress) external onlyGovernor {}
+    function setTipJar() external onlyGovernor {
+        _setTipJar();
+    }
+
+    /**
+     * @notice Sets a new tip rate for the protocol
+     * @dev Only callable by the governor
+     * @param newTipRateNumerator The numerator of the new tip rate fraction
+     * @param newTipRateDenominator The denominator of the new tip rate fraction
+     * @dev The tip rate is set as a fraction (newTipRateNumerator / newTipRateDenominator)
+     *      For example, for a 5.5% rate, you might pass (55, 1000)
+     */
+    function setTipRate(
+        uint256 newTipRateNumerator,
+        uint256 newTipRateDenominator
+    ) external onlyGovernor {
+        // Convert the fraction to the internal Percentage representation
+        // This uses the PercentageUtils library to create a Percentage struct
+        _setTipRate(
+            PercentageUtils.fromFraction(
+                newTipRateNumerator,
+                newTipRateDenominator
+            )
+        );
+    }
 
     function addArk(address ark) external onlyGovernor {
         _addArk(ark);
@@ -267,9 +309,6 @@ contract FleetCommander is
         address ark,
         uint256 newMaxAllocation
     ) external onlyGovernor {
-        if (newMaxAllocation == 0) {
-            revert FleetCommanderArkMaxAllocationZero(ark);
-        }
         if (!_isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -309,14 +348,11 @@ contract FleetCommander is
 
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyGovernor {
+    ) external onlyGovernor collectTip {
         _rebalance(rebalanceData);
     }
 
     function emergencyShutdown() external onlyGovernor {}
-
-    /* PUBLIC - FEES */
-    function mintSharesAsFees() public {}
 
     /* PUBLIC - ERC20 */
     function transfer(
@@ -324,6 +360,14 @@ contract FleetCommander is
         uint256
     ) public pure override(IERC20, ERC20) returns (bool) {
         revert FleetCommanderTransfersDisabled();
+    }
+
+    /* INTERNAL - TIPS */
+    function _mintTip(
+        address account,
+        uint256 amount
+    ) internal virtual override {
+        _mint(account, amount);
     }
 
     /* INTERNAL - REBALANCE */
@@ -364,9 +408,6 @@ contract FleetCommander is
         }
         if (_isArkActive[ark]) {
             revert FleetCommanderArkAlreadyExists(ark);
-        }
-        if (IArk(ark).maxAllocation() == 0) {
-            revert FleetCommanderArkMaxAllocationZero(ark);
         }
 
         _isArkActive[ark] = true;
@@ -428,16 +469,11 @@ contract FleetCommander is
         }
 
         uint256 toArkAllocation = toArk.totalAssets();
-        uint256 availableAllocation;
-        if (toArkAllocation < toArkMaxAllocation) {
-            availableAllocation = toArkMaxAllocation - toArkAllocation;
-            amount = (amount < availableAllocation)
-                ? amount
-                : availableAllocation;
-        } else {
-            // If toArkAllocation >= maxAllocation, we can't add more funds
+
+        if (toArkAllocation + amount > toArkMaxAllocation) {
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
+
         _move(address(fromArk), address(toArk), amount);
 
         return amount;
@@ -616,7 +652,7 @@ contract FleetCommander is
                 revert FleetCommanderArkNotActive(rebalanceData[i].fromArk);
             }
             if (IArk(rebalanceData[i].toArk).maxAllocation() == 0) {
-                revert FleetCommanderCantRebalanceToArk(
+                revert FleetCommanderArkMaxAllocationZero(
                     address(rebalanceData[i].toArk)
                 );
             }

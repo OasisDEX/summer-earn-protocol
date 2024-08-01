@@ -2,15 +2,13 @@
 pragma solidity 0.8.26;
 
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import "../errors/AccessControlErrors.sol";
 
 /**
  * @custom:see IProtocolAccessManager
  */
-contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
+contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /**
      * @dev The Governor role is in charge of setting the parameters of the system
      *      and also has the power to manage the different Fleet Commander roles.

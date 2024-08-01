@@ -14,7 +14,7 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
 /**
  * @title Buffer test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's fund buffer functionality
-
+ *
  *
  * @dev TODO : add more tests
  *
@@ -24,7 +24,8 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
  */
 contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        initializeFleetCommanderWithMockArks();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
     }
 
     function test_AdjustBufferSuccess() public {
@@ -420,6 +421,40 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             fromArk: bufferArkAddress,
             toArk: ark1,
             amount: 1000 * 10 ** 6
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FleetCommanderCantRebalanceToArk.selector,
+                ark1
+            )
+        );
+        fleetCommander.adjustBuffer(rebalanceData);
+    }
+
+    function test_AdjustBufferWithAmountExceedingMaxAllocation() public {
+        uint256 rebalanceAmount = 1000 * 10 ** 6;
+        // Arrange
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
+        uint256 ark1MaxAllocation = 5000 * 10 ** 6;
+
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        mockToken.mint(address(bufferArkAddress), initialBufferBalance);
+
+        mockArkRate(ark1, 105);
+        mockArkMaxAllocation(ark1, ark1MaxAllocation);
+        // Max allocation is one unit less than the rebalance amount
+        mockArkTotalAssets(ark1, ark1MaxAllocation - rebalanceAmount + 1);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: bufferArkAddress,
+            toArk: ark1,
+            amount: rebalanceAmount
         });
 
         // Act & Assert

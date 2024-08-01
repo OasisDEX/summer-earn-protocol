@@ -47,6 +47,17 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function rate() external view returns (uint256);
 
     /**
+     * @notice Checks if the Ark has a Commander assigned
+     * @return bool True if a Commander is assigned, false otherwise
+     */
+    function hasCommander() external view returns (bool);
+
+    /**
+     * @notice Updates information about the Ark
+     */
+    function poke() external;
+
+    /**
      * @notice Triggers a harvest operation to collect rewards
      * @param rewardToken The reward token address
      * @return The number of reward tokens harvested
@@ -81,4 +92,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @param newRaft The address of the new Raft
      */
     function setRaft(address newRaft) external;
+
+    error InvalidVaultAddress();
 }

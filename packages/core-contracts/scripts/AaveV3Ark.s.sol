@@ -2,28 +2,34 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Script.sol";
-import {DeploymentScript} from "./DeploymentScript.s.sol";
 import {AaveV3Ark} from "../src/contracts/arks/AaveV3Ark.sol";
 import {ArkParams} from "../src/types/ArkTypes.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
+import "./common/ArkDeploymentScript.s.sol";
 
-contract AaveV3ArkDeploy is DeploymentScript {
-    function run() external {
+contract AaveV3ArkDeploy is ArkDeploymentScript {
+    function run() external reloadConfig {
+        vm.createSelectFork(network);
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
         address arkAssetToken = customToken == address(0)
             ? config.usdcToken
             : customToken;
-
+        if (config.aaveV3Pool == address(0)) {
+            console.log("Aave V3 Pool address is not set");
+            vm.stopBroadcast();
+            return;
+        }
         ArkParams memory params = ArkParams({
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
-            token: arkAssetToken
+            token: arkAssetToken,
+            maxAllocation: maxAllocation
         });
 
         IArk ark = new AaveV3Ark(config.aaveV3Pool, params);
-
+        updateAddressInConfig(network, "usdcAaveV3Ark", address(ark));
         console.log("Deployed Aave V3 Ark");
         console.log(address(ark));
 

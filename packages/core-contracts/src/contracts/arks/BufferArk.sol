@@ -3,8 +3,6 @@ pragma solidity 0.8.26;
 
 import "../Ark.sol";
 
-import {IArk} from "../../interfaces/IArk.sol";
-
 contract BufferArk is Ark {
     constructor(ArkParams memory _params) Ark(_params) {}
 

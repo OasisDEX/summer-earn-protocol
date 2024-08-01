@@ -16,8 +16,10 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
     address public governor = address(1);
-    address public commander = address(4);
     address public raft = address(2);
+    address public tipJar = address(3);
+    address public commander = address(4);
+
     address public constant aaveV3PoolAddress =
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address public aaveAddressProvider =
@@ -46,6 +48,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
         IConfigurationManager configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
+                tipJar: tipJar,
                 raft: raft
             })
         );
