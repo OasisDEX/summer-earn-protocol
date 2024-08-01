@@ -66,6 +66,11 @@ contract FleetCommander is
         return _activeArks;
     }
 
+    /// @inheritdoc IFleetCommander
+    function isArkActive(address ark) external view returns (bool) {
+        return _isArkActive[ark];
+    }
+
     /* PUBLIC - USER */
     function withdraw(
         uint256 assets,
@@ -388,12 +393,11 @@ contract FleetCommander is
     }
 
     function _disembark(address ark, uint256 amount) internal {
-        IArk(ark).disembark(amount, address(this));
+        IArk(ark).disembark(amount);
     }
 
     function _move(address fromArk, address toArk, uint256 amount) internal {
-        _disembark(fromArk, amount);
-        _board(toArk, amount);
+        IArk(fromArk).move(amount, toArk);
     }
 
     function _setupArks(address[] memory _arkAddresses) internal {

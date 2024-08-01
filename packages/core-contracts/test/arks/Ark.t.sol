@@ -20,6 +20,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
     address public governor = address(1);
     address public commander = address(4);
     address public raft = address(2);
+    address public otherArk = address(3);
     ERC20Mock public mockToken;
 
     function setUp() public {
@@ -129,5 +130,76 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
 
         // Assert
         assertTrue(ark.commander() == commander, "Commander role not revoked");
+    }
+
+    function test_CalledByArk_ShouldSucceed() public {
+        // Arrange
+        vm.prank(governor);
+        ark.grantCommanderRole(commander);
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSelector(
+                IFleetCommander.isArkActive.selector,
+                address(otherArk)
+            ),
+            abi.encode(true)
+        );
+
+        mockToken.mint(otherArk, 1000);
+
+        // Act
+        vm.startPrank(otherArk);
+        mockToken.approve(address(ark), 1000);
+        ark.board(1000);
+        vm.stopPrank();
+    }
+
+    function test_CalledByNotArk_ShouldRevert() public {
+        // Arrange
+        vm.prank(governor);
+        ark.grantCommanderRole(commander);
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSelector(
+                IFleetCommander.isArkActive.selector,
+                address(otherArk)
+            ),
+            abi.encode(false)
+        );
+        mockToken.mint(otherArk, 1000);
+
+        // Act
+        vm.startPrank(otherArk);
+        mockToken.approve(address(ark), 1000);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotCommanderOrArk(address)",
+                otherArk
+            )
+        );
+
+        ark.board(1000);
+        vm.stopPrank();
+    }
+
+    function test_CalledByCommander_ShouldSucceed() public {
+        // Arrange
+        vm.prank(governor);
+        ark.grantCommanderRole(commander);
+        vm.mockCall(
+            address(commander),
+            abi.encodeWithSelector(
+                IFleetCommander.isArkActive.selector,
+                address(commander)
+            ),
+            abi.encode(false)
+        );
+        mockToken.mint(commander, 1000);
+
+        // Act
+        vm.startPrank(commander);
+        mockToken.approve(address(ark), 1000);
+        ark.board(1000);
+        vm.stopPrank();
     }
 }

@@ -11,6 +11,7 @@ import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnfo
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+import "../../src/events/IArkEvents.sol";
 
 /**
  * @title Rebalance test suite for FleetCommander
@@ -33,6 +34,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
+        uint256 rebalanceAmount = 1000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
 
@@ -46,12 +48,15 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
-            amount: 1000 * 10 ** 6
+            amount: rebalanceAmount
         });
 
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
+        vm.expectEmit();
+        emit IArkEvents.Moved(ark1, ark2, address(mockToken), rebalanceAmount);
+
         fleetCommander.rebalance(rebalanceData);
 
         // Assert

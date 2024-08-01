@@ -60,9 +60,15 @@ interface IArk is IArkAccessManaged, IArkEvents {
     /**
      * @notice Withdraws (disembarks) tokens from the Ark
      * @param amount The amount of tokens to withdraw
-     * @param receiver Address receiving the withdrawn funds
      */
-    function disembark(uint256 amount, address receiver) external;
+    function disembark(uint256 amount) external;
+
+    /**
+     * @notice Moves tokens from one ark to another
+     * @param amount  The amount of tokens to move
+     * @param receiver The address of the Ark the funds will be boarded to
+     */
+    function move(uint256 amount, address receiver) external;
 
     /**
      * @notice Sets a new maximum allocation for the Ark

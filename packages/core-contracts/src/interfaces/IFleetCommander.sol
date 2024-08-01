@@ -18,6 +18,12 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function arks() external view returns (address[] memory);
 
     /**
+     * @notice Checks if the ark is part of the fleet
+     * @param ark The address of the Ark
+     */
+    function isArkActive(address ark) external view returns (bool);
+
+    /**
      * @notice Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
      * Vault, through a force withdraw call.
      * @param owner The address of the owner of the assets

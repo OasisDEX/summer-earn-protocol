@@ -29,6 +29,20 @@ interface IArkEvents {
     event Disembarked(address indexed commander, address token, uint256 amount);
 
     /**
+     * @notice Emitted when tokens are moved from one address to another
+     * @param from Ark being boarded from
+     * @param to Ark being boarded to
+     * @param token The address of the token being moved
+     * @param amount The amount of tokens moved
+     */
+    event Moved(
+        address indexed from,
+        address to,
+        address token,
+        uint256 amount
+    );
+
+    /**
      * @notice Emitted when the deposit cap of the Ark is updated
      * @param newCap The new deposit cap value
      */
