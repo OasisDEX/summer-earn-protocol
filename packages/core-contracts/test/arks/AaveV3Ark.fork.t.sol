@@ -71,9 +71,6 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
     }
 
     function test_Board_AaveV3_fork() public {
-        vm.prank(governor); // Set msg.sender to governor
-        ark.grantCommanderRole(commander);
-
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         deal(address(dai), commander, amount);

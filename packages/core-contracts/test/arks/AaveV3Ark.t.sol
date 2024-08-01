@@ -108,9 +108,6 @@ contract AaveV3ArkTest is Test, IArkEvents {
     }
 
     function test_Board() public {
-        vm.prank(governor); // Set msg.sender to governor
-        ark.grantCommanderRole(commander);
-
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(commander, amount);
@@ -150,9 +147,6 @@ contract AaveV3ArkTest is Test, IArkEvents {
     }
 
     function test_Disembark() public {
-        vm.prank(governor); // Set msg.sender to governor
-        ark.grantCommanderRole(commander);
-
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(address(ark), amount);
