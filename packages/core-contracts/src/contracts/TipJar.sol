@@ -30,14 +30,14 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
 
     function addTipStream(
         address recipient,
-        uint256 allocation,
+        Percentage allocation,
         uint256 minimumTerm
     ) external onlyGovernor {
         _validateTipStreamAllocation(allocation);
 
         tipStreams[recipient] = TipStream({
             recipient: recipient,
-            allocation: PercentageUtils.fromBasisPoints(allocation),
+            allocation: allocation,
             minimumTerm: minimumTerm
         });
         tipStreamRecipients.push(recipient);
@@ -64,15 +64,13 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
 
     function updateTipStream(
         address recipient,
-        uint256 newAllocation,
+        Percentage newAllocation,
         uint256 newMinimumTerm
     ) external onlyGovernor {
         _validateTipStream(recipient);
         _validateTipStreamAllocation(newAllocation);
 
-        tipStreams[recipient].allocation = PercentageUtils.fromBasisPoints(
-            newAllocation
-        );
+        tipStreams[recipient].allocation = newAllocation;
         tipStreams[recipient].minimumTerm = newMinimumTerm;
 
         emit TipStreamUpdated(recipient, newAllocation, newMinimumTerm);
@@ -134,12 +132,12 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         }
     }
 
-    function getTotalAllocation() public view returns (uint256) {
+    function getTotalAllocation() public view returns (Percentage) {
         Percentage total = toPercentage(0);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
             total = total + tipStreams[tipStreamRecipients[i]].allocation;
         }
-        return PercentageUtils.toBasisPoints(total);
+        return total;
     }
 
     function setTreasuryAddress(
@@ -158,21 +156,17 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         }
     }
 
-    function _validateTipStreamAllocation(uint256 allocation) internal view {
+    function _validateTipStreamAllocation(Percentage allocation) internal view {
         if (
-            allocation == 0 ||
+            allocation == toPercentage(0) ||
             !PercentageUtils.isPercentageInRange(
-                PercentageUtils.fromBasisPoints(allocation)
+                allocation
             )
         ) {
             revert InvalidTipStreamAllocation(allocation);
         }
         if (
-            !PercentageUtils.isPercentageInRange(
-                PercentageUtils.fromBasisPoints(
-                    getTotalAllocation() + allocation
-                )
-            )
+            !PercentageUtils.isPercentageInRange(getTotalAllocation() + allocation)
         ) {
             revert TotalAllocationExceedsOneHundredPercent();
         }

@@ -6,9 +6,9 @@ import {Percentage} from "../types/Percentage.sol";
 interface ITipperEvents {
     /**
      * @notice Emitted when the tip rate is updated
-     * @param newTipRate The new tip rate value (in basis points)
+     * @param newTipRate The new tip rate value
      */
-    event TipRateUpdated(uint256 newTipRate);
+    event TipRateUpdated(Percentage newTipRate);
 
     /**
      * @notice Emitted when tips are accrued

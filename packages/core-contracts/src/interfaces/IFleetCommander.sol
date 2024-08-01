@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
-import "../types/Percentage.sol";
+import {Percentage} from "../types/Percentage.sol";
 
 /**
  * @title IFleetCommander Interface
@@ -95,11 +95,11 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Sets a new tip rate
-     * @param newTipRateInBasisPoints The numerator of the new tip rate in basis points
-     * @dev The tip rate is set in basis points (newTipRateInBasisPoints)
-     *      For example, for a 5.5% rate, you might pass 550 (as in 550 out of 10000)
+     * @param newTipRate The new tip rate as a Percentage
+     * @dev The tip rate is set as a Percentage. Percentages use 18 decimals of precision
+     *      For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)
      */
-    function setTipRate(uint256 newTipRateInBasisPoints) external;
+    function setTipRate(Percentage newTipRate) external;
 
     /**
      * @notice Adds a new Ark

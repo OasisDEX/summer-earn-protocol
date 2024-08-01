@@ -9,8 +9,8 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
-import "../../src/libraries/PercentageUtils.sol";
-import "../../src/types/Percentage.sol";
+import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+import {Percentage} from "../../src/types/Percentage.sol";
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 
 contract TipperTest is Test, ITipperEvents {
@@ -44,22 +44,17 @@ contract TipperTest is Test, ITipperEvents {
 
     function test_InitialState() public view {
         assertEq(address(fleetCommander.manager()), address(configManager));
-        assertEq(
-            fleetCommander.tipRate(),
-            PercentageUtils.toBasisPoints(initialTipRate)
-        );
+        assertTrue(fleetCommander.tipRate() == initialTipRate);
         assertEq(fleetCommander.tipJar(), tipJar);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
     }
 
     function test_SetTipRate() public {
-        uint256 newTipRateInBasisPoints = PercentageUtils.toBasisPoints(
-            PercentageUtils.fromDecimalPercentage(2)
-        );
+        Percentage newTipRate = PercentageUtils.fromDecimalPercentage(2);
         vm.expectEmit(true, true, false, true);
-        emit TipRateUpdated(newTipRateInBasisPoints);
-        fleetCommander.setTipRate(newTipRateInBasisPoints);
-        assertEq(fleetCommander.tipRate(), newTipRateInBasisPoints);
+        emit TipRateUpdated(newTipRate);
+        fleetCommander.setTipRate(newTipRate);
+        assertTrue(fleetCommander.tipRate() == newTipRate);
     }
 
     function test_SetTipJar() public {
@@ -117,7 +112,7 @@ contract TipperTest is Test, ITipperEvents {
         vm.expectRevert(
             abi.encodeWithSignature("TipRateCannotExceedOneHundredPercent()")
         );
-        fleetCommander.setTipRate(10001);
+        fleetCommander.setTipRate(PercentageUtils.fromDecimalPercentage(101));
     }
 
     function test_SetTipJarCannotBeZeroAddress() public {
@@ -232,7 +227,7 @@ contract TipperHarness is Tipper {
     constructor(
         address configurationManager
     ) Tipper(configurationManager, PercentageUtils.fromDecimalPercentage(0)) {
-        tipRate = 100; // 1%
+        tipRate = PercentageUtils.fromDecimalPercentage(1); // 1%
     }
 
     function exposed_calculateTip(

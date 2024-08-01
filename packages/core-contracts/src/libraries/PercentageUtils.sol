@@ -96,36 +96,4 @@ library PercentageUtils {
     ) internal pure returns (Percentage) {
         return Percentage.wrap(percentage * PERCENTAGE_FACTOR);
     }
-
-    /**
-     * @notice Converts the given basis points number into a percentage with the right number of decimals
-     *
-     * @param percentage The percentage in basis points format, i.e., 5000 for 50%
-     *
-     * @return The percentage with `PERCENTAGE_DECIMALS` decimals
-     *
-     * @dev This function converts from basis points (1/10000) to the internal percentage representation.
-     *      For example, 5000 basis points (50%) would be converted to 50 * PERCENTAGE_FACTOR.
-     */
-    function fromBasisPoints(
-        uint256 percentage
-    ) internal pure returns (Percentage) {
-        return Percentage.wrap((percentage * PERCENTAGE_FACTOR) / 100);
-    }
-
-    /**
-     * @notice Converts the internal percentage representation to basis points
-     *
-     * @param percentage The percentage in the internal Percentage format
-     *
-     * @return The percentage expressed in basis points (1/10000)
-     *
-     * @dev This function converts from the internal percentage representation to basis points.
-     *      For example, 50 * PERCENTAGE_FACTOR (50%) would be converted to 5000 basis points.
-     */
-    function toBasisPoints(
-        Percentage percentage
-    ) internal pure returns (uint256) {
-        return (Percentage.unwrap(percentage) * 100) / PERCENTAGE_FACTOR;
-    }
 }

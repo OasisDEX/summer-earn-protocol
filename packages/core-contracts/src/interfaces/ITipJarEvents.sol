@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {Percentage} from "../types/Percentage.sol";
+
 /**
  * @title ITipJarEvents
  * @notice Interface for events emitted by the TipJar contract
@@ -9,12 +11,12 @@ interface ITipJarEvents {
     /**
      * @notice Emitted when a new tip stream is added to the TipJar
      * @param recipient The address of the recipient for the new tip stream
-     * @param allocation The allocation percentage for the new tip stream (in basis points, where 10000 = 100%)
+     * @param allocation The allocation percentage for the new tip stream
      * @param minimumTerm The minimum duration (as a UNIX timestamp) during which this tip stream cannot be modified or removed
      */
     event TipStreamAdded(
         address indexed recipient,
-        uint256 allocation,
+        Percentage allocation,
         uint256 minimumTerm
     );
 
@@ -27,12 +29,12 @@ interface ITipJarEvents {
     /**
      * @notice Emitted when an existing tip stream is updated
      * @param recipient The address of the recipient whose tip stream was updated
-     * @param newAllocation The new allocation percentage for the tip stream (in basis points, where 10000 = 100%)
+     * @param newAllocation The new allocation percentage for the tip stream
      * @param newMinimumTerm The new minimum duration (as a UNIX timestamp) during which this tip stream cannot be modified or removed
      */
     event TipStreamUpdated(
         address indexed recipient,
-        uint256 newAllocation,
+        Percentage newAllocation,
         uint256 newMinimumTerm
     );
 

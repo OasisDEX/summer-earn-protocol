@@ -56,7 +56,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.prank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            2000,
+            PercentageUtils.fromDecimalPercentage(20),
             block.timestamp + 1 days
         );
 
@@ -64,7 +64,7 @@ contract TipJarTest is Test, ITipJarEvents {
             mockTipStreamRecipient
         );
         assertEq(stream.recipient, mockTipStreamRecipient);
-        assertEq(PercentageUtils.toBasisPoints(stream.allocation), 2000);
+        assertTrue(stream.allocation == PercentageUtils.fromDecimalPercentage(20));
         assertEq(stream.minimumTerm, block.timestamp + 1 days);
     }
 
@@ -72,14 +72,14 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            2000,
+            PercentageUtils.fromDecimalPercentage(30),
             block.timestamp + 1 days
         );
 
         vm.warp(block.timestamp + 2 days);
         tipJar.updateTipStream(
             mockTipStreamRecipient,
-            3000,
+            PercentageUtils.fromDecimalPercentage(30),
             block.timestamp + 3 days
         );
         vm.stopPrank();
@@ -94,7 +94,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            2000,
+            PercentageUtils.fromDecimalPercentage(20),
             block.timestamp + 1 days
         );
 
@@ -115,12 +115,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            2000,
+            PercentageUtils.fromDecimalPercentage(20),
             block.timestamp + 1 days
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            3000,
+            PercentageUtils.fromDecimalPercentage(30),
             block.timestamp + 2 days
         );
         vm.stopPrank();
@@ -136,10 +136,10 @@ contract TipJarTest is Test, ITipJarEvents {
 
         // Setup tip streams
         vm.startPrank(governor);
-        tipJar.addTipStream(mockTipStreamRecipient, 6000, block.timestamp);
+        tipJar.addTipStream(mockTipStreamRecipient, PercentageUtils.fromDecimalPercentage(60), block.timestamp);
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            3000,
+            PercentageUtils.fromDecimalPercentage(30),
             block.timestamp
         );
         vm.stopPrank();
@@ -173,7 +173,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            2000,
+            PercentageUtils.fromDecimalPercentage(20),
             block.timestamp + 1 days
         );
     }
@@ -182,7 +182,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.prank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            2000,
+            PercentageUtils.fromDecimalPercentage(20),
             block.timestamp + 1 days
         );
 
@@ -195,7 +195,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         tipJar.updateTipStream(
             mockTipStreamRecipient,
-            3000,
+            PercentageUtils.fromDecimalPercentage(30),
             block.timestamp + 2 days
         );
     }
@@ -204,7 +204,7 @@ contract TipJarTest is Test, ITipJarEvents {
         address anotherMockTipStreamParticipant = address(5);
 
         vm.startPrank(governor);
-        tipJar.addTipStream(mockTipStreamRecipient, 6000, block.timestamp);
+        tipJar.addTipStream(mockTipStreamRecipient, PercentageUtils.fromDecimalPercentage(60), block.timestamp);
         vm.expectRevert(
             abi.encodeWithSelector(
                 TotalAllocationExceedsOneHundredPercent.selector
@@ -212,7 +212,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            5000,
+            PercentageUtils.fromDecimalPercentage(50),
             block.timestamp
         );
     }

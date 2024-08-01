@@ -4,11 +4,12 @@ pragma solidity 0.8.26;
 import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {FleetCommander} from "./FleetCommander.sol";
+
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {Percentage, PERCENTAGE_100, toPercentage} from "../types/Percentage.sol";
+import {PercentageUtils} from "../libraries/PercentageUtils.sol";
+import {MathUtils} from "../libraries/MathUtils.sol";
 import "../errors/TipperErrors.sol";
-import "../interfaces/IConfigurationManager.sol";
-import "../types/Percentage.sol";
-import "../libraries/PercentageUtils.sol";
-import "../libraries/MathUtils.sol";
 
 /**
  * @title Tipper
@@ -19,9 +20,10 @@ abstract contract Tipper is ITipper {
     using MathUtils for Percentage;
 
     /**
-     * @notice The current tip rate in basis points
+     * @notice The current tip rate (as Percentage)
+     * @dev Percentages have 18 decimals of precision
      */
-    uint256 public tipRate;
+    Percentage public tipRate;
 
     /**
      * @notice The timestamp of the last tip accrual
@@ -51,7 +53,7 @@ abstract contract Tipper is ITipper {
     constructor(address configurationManager, Percentage initialTipRate) {
         manager = IConfigurationManager(configurationManager);
 
-        tipRate = PercentageUtils.toBasisPoints(initialTipRate);
+        tipRate = initialTipRate;
         tipJar = manager.tipJar();
         lastTipTimestamp = block.timestamp;
     }
@@ -69,8 +71,8 @@ abstract contract Tipper is ITipper {
             revert TipRateCannotExceedOneHundredPercent();
         }
         _accrueTip(); // Accrue tips before changing the rate
-        tipRate = PercentageUtils.toBasisPoints(newTipRate);
-        emit TipRateUpdated(tipRate);
+        tipRate = newTipRate;
+        emit TipRateUpdated(newTipRate);
     }
 
     /**
@@ -93,7 +95,7 @@ abstract contract Tipper is ITipper {
      * @return tippedShares The amount of tips accrued in shares
      */
     function _accrueTip() internal returns (uint256 tippedShares) {
-        if (tipRate == 0) {
+        if (tipRate == toPercentage(0)) {
             lastTipTimestamp = block.timestamp;
             return 0;
         }
@@ -118,7 +120,7 @@ abstract contract Tipper is ITipper {
         uint256 timeElapsed
     ) internal view returns (uint256) {
         Percentage ratePerSecond = Percentage.wrap(
-            (Percentage.unwrap(PercentageUtils.fromBasisPoints(tipRate)) /
+            (Percentage.unwrap(tipRate) /
                 SECONDS_PER_YEAR)
         );
 
