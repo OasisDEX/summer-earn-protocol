@@ -231,6 +231,46 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(underlyingToken.balanceOf(treasury), 200 ether);
     }
 
+    function test_GetTotalAllocation() public {
+        // Setup initial tip streams
+        vm.startPrank(governor);
+        tipJar.addTipStream(
+            address(4),
+            PercentageUtils.fromDecimalPercentage(20),
+            block.timestamp
+        );
+        tipJar.addTipStream(
+            address(5),
+            PercentageUtils.fromDecimalPercentage(30),
+            block.timestamp
+        );
+        vm.stopPrank();
+
+        // Check initial total allocation
+        Percentage totalAllocation = tipJar.getTotalAllocation();
+        assertEq(fromPercentage(totalAllocation), 50);
+
+        // Add another tip stream
+        vm.prank(governor);
+        tipJar.addTipStream(
+            address(6),
+            PercentageUtils.fromDecimalPercentage(25),
+            block.timestamp
+        );
+
+        // Check updated total allocation
+        totalAllocation = tipJar.getTotalAllocation();
+        assertEq(fromPercentage(totalAllocation), 75);
+
+        // Remove a tip stream
+        vm.prank(governor);
+        tipJar.removeTipStream(address(5));
+
+        // Check final total allocation
+        totalAllocation = tipJar.getTotalAllocation();
+        assertEq(fromPercentage(totalAllocation), 45);
+    }
+
     function test_FailShakeWithNoShares() public {
         // Ensure the TipJar has no shares in the FleetCommander
         assertEq(fleetCommander.balanceOf(address(tipJar)), 0);
