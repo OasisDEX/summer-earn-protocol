@@ -25,10 +25,10 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
-     * Vault, through a force withdraw call.
+     * Vault, directly from Buffer.
      * @param owner The address of the owner of the assets
      */
-    function maxForceWithdraw(address owner) external view returns (uint256);
+    function maxBufferWithdraw(address owner) external view returns (uint256);
 
     /* FUNCTIONS - PUBLIC - USER */
     /**
@@ -51,8 +51,20 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @param owner The address of the owner of the assets
      * @return The amount of assets forcefully withdrawn
      */
-    function forceWithdraw(
+    function withdrawFromArks(
         uint256 assets,
+        address receiver,
+        address owner
+    ) external returns (uint256);
+
+    /**
+     * @notice Redeems shares for assets from the FleetCommander
+     * @param shares The amount of shares to redeem
+     * @param receiver  The address that will receive the assets
+     * @param owner The address of the owner of the shares
+     */
+    function redeemFromArks(
+        uint256 shares,
         address receiver,
         address owner
     ) external returns (uint256);

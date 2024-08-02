@@ -233,7 +233,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 userAssets = fleetCommander.previewRedeem(userShares);
         console.log("User shares:", userShares);
         console.log("User assets:", userAssets);
-        fleetCommander.forceWithdraw(userAssets, user, user);
+        fleetCommander.withdrawFromArks(userAssets, user, user);
 
         assertEq(fleetCommander.balanceOf(user), 0, "User balance should be 0");
         assertGe(
