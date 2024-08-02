@@ -9,6 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SwapData} from "../src/types/RaftTypes.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
+import "../src/errors/RaftErrors.sol";
 
 contract RaftTest is Test, IRaftEvents {
     Raft public raft;
@@ -16,19 +17,24 @@ contract RaftTest is Test, IRaftEvents {
 
     address public governor = address(1);
     address public mockArk = address(5);
-    address public mockSwapProvider = address(6);
+//    address public mockSwapProvider = address(6);
     address public mockToken = address(7);
-    address public keeper = address(8);
+    address public superKeeper = address(8);
     address public mockRewardToken = address(9);
+    address public newSwapProvider = address(10);
+
+    MockSwapProvider public mockSwapProvider;
 
     uint256 constant REWARD_AMOUNT = 100;
     uint256 constant BALANCE_AFTER_SWAP = 200;
 
     function setUp() public {
+        mockSwapProvider = new MockSwapProvider();
+
         // Setup the access manager and grant roles
         accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
-        accessManager.grantSuperKeeperRole(keeper);
+        accessManager.grantSuperKeeperRole(superKeeper);
 
         // Deploy the Raft contract
         raft = new Raft(mockSwapProvider, address(accessManager));
@@ -79,14 +85,14 @@ contract RaftTest is Test, IRaftEvents {
         );
 
         // Perform harvestAndBoard
-        vm.prank(keeper);
+        vm.prank(superKeeper);
         raft.harvestAndBoard(mockArk, mockRewardToken, swapData);
 
         // Assert that harvested rewards were reset
         assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), 0);
     }
 
-    function test_SwapAndReboard() public {
+    function test_SwapAndBoard() public {
         // Setup initial harvested rewards
         vm.mockCall(
             mockArk,
@@ -121,11 +127,78 @@ contract RaftTest is Test, IRaftEvents {
         );
 
         // Perform swapAndBoard
-        vm.prank(keeper);
+        vm.prank(superKeeper);
         raft.swapAndBoard(mockArk, mockRewardToken, swapData);
 
         // Assert that harvested rewards were reset
         assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), 0);
+    }
+
+    function test_SetSwapProvider() public {
+        // Expect revert when called by non-superKeeper
+        vm.expectRevert();
+        raft.setSwapProvider(newSwapProvider);
+
+        // Set new swap provider
+        vm.prank(superKeeper);
+        raft.setSwapProvider(newSwapProvider);
+
+        // Assert that the swap provider was updated
+        assertEq(raft.swapProvider(), newSwapProvider);
+    }
+
+    function test_SwapFailure() public {
+        // Setup swap data
+        SwapData memory swapData = SwapData({
+            fromAsset: mockRewardToken,
+            amount: REWARD_AMOUNT,
+            receiveAtLeast: REWARD_AMOUNT,
+            withData: abi.encodeWithSignature("someFunction(uint256)", 123)
+        });
+
+        // Mock failed swap
+        mockSwapProvider.setShouldFail(true);
+
+        // Expect revert on swap failure
+        vm.expectRevert(abi.encodeWithSelector(RewardsSwapFailed.selector, superKeeper));
+
+        // Attempt to perform swapAndBoard
+        vm.prank(superKeeper);
+        raft.swapAndBoard(mockArk, mockRewardToken, swapData);
+    }
+
+    function test_InsufficientSwapOutput() public {
+        // Setup swap data with higher receiveAtLeast
+        SwapData memory swapData = SwapData({
+            fromAsset: mockRewardToken,
+            amount: REWARD_AMOUNT,
+            receiveAtLeast: BALANCE_AFTER_SWAP + 1, // Set higher than actual output
+            withData: abi.encode()
+        });
+
+        // Expect revert due to insufficient swap output
+        vm.expectRevert(abi.encodeWithSelector(ReceivedLess.selector, BALANCE_AFTER_SWAP + 1, BALANCE_AFTER_SWAP));
+
+        // Attempt to perform swapAndBoard
+        vm.prank(superKeeper);
+        raft.swapAndBoard(mockArk, mockRewardToken, swapData);
+    }
+
+    function test_NoRewardsToReinvest() public {
+        // Setup swap data
+        SwapData memory swapData = SwapData({
+            fromAsset: mockRewardToken,
+            amount: REWARD_AMOUNT,
+            receiveAtLeast: REWARD_AMOUNT,
+            withData: abi.encode()
+        });
+
+        // Expect revert due to no rewards to reinvest
+        vm.expectRevert(abi.encodeWithSelector(NoRewardsToReinvest.selector, mockArk, mockRewardToken));
+
+        // Attempt to perform swapAndBoard without harvesting first
+        vm.prank(superKeeper);
+        raft.swapAndBoard(mockArk, mockRewardToken, swapData);
     }
 
     function _setupMockCalls() internal {
@@ -177,5 +250,17 @@ contract RaftTest is Test, IRaftEvents {
 
         // Mock successful swap provider call
         vm.mockCall(mockSwapProvider, abi.encode(), abi.encode(true));
+    }
+}
+
+contract MockSwapProvider {
+    bool public shouldFail = false;
+
+    function setShouldFail(bool _shouldFail) external {
+        shouldFail = _shouldFail;
+    }
+
+    fallback() external {
+        require(!shouldFail, "Swap failed");
     }
 }
