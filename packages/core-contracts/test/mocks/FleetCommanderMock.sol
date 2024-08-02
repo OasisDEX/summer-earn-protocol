@@ -64,11 +64,17 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         return _accrueTip();
     }
 
-    function arks() external view returns (address[] memory) {}
+    function arks(uint256) external pure returns (address) {
+        return address(0);
+    }
 
     function addArk(address ark) external {}
 
     function removeArk(address ark) external {}
+
+    function isArkActive(address) external pure returns (bool) {
+        return false;
+    }
 
     function addArks(address[] memory _arks) external {}
 

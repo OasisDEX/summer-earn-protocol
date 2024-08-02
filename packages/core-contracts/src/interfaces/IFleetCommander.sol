@@ -12,8 +12,9 @@ import {Percentage} from "../types/Percentage.sol";
  */
 interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
-     * @notice Retrieves the arks currently linked to fleet
-     * @return An array of linked ark addresses
+     * @notice Retrieves the ark address at the specified index
+     * @param index The index of the ark in the arks array
+     * @return The address of the ark at the specified index
      */
     function arks(uint256 index) external view returns (address);
 
