@@ -12,21 +12,17 @@ import "../errors/AccessControlErrors.sol";
 contract LimitedAccessControl is AccessControl {
     /**
      * @dev Overrides the grantRole function from AccessControl to disable direct role granting.
-     * @param role The role that would be granted (unused in this implementation).
-     * @param account The account that would receive the role (unused in this implementation).
      * @notice This function always reverts with a DirectGrantIsDisabled error.
      */
-    function grantRole(bytes32 role, address account) public view override {
+    function grantRole(bytes32, address) public view override {
         revert DirectGrantIsDisabled(msg.sender);
     }
 
     /**
      * @dev Overrides the revokeRole function from AccessControl to disable direct role revoking.
-     * @param role The role that would be revoked (unused in this implementation).
-     * @param account The account that would lose the role (unused in this implementation).
      * @notice This function always reverts with a DirectRevokeIsDisabled error.
      */
-    function revokeRole(bytes32 role, address account) public view override {
+    function revokeRole(bytes32, address) public view override {
         revert DirectRevokeIsDisabled(msg.sender);
     }
 }

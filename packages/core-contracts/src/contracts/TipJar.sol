@@ -6,13 +6,14 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {PercentageUtils} from "../libraries/PercentageUtils.sol";
-import "../errors/TipJarErrors.sol";
-import {Percentage, fromPercentage, toPercentage} from "../types/Percentage.sol";
+import {Percentage, fromPercentage, toPercentage, PERCENTAGE_100} from "../types/Percentage.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import "../errors/TipJarErrors.sol";
 
 /**
  * @title TipJar
- * @notice Contract implementing the centralised collection of Tips
+ * @notice Contract implementing the centralized collection and distribution of tips
+ * @dev This contract manages tip streams, allowing for the addition, removal, and updating of tip allocations
  */
 contract TipJar is ITipJar, ProtocolAccessManaged {
     using PercentageUtils for uint256;
@@ -21,30 +22,45 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     address[] public tipStreamRecipients;
     address public treasuryAddress;
 
+    /**
+     * @notice Constructs a new TipJar contract
+     * @param accessManager The address of the access manager contract
+     * @param treasuryAddress_ The address of the treasury to receive remaining funds
+     */
     constructor(
         address accessManager,
-        address _treasuryAddress_
+        address treasuryAddress_
     ) ProtocolAccessManaged(accessManager) {
-        treasuryAddress = _treasuryAddress_;
+        treasuryAddress = treasuryAddress_;
     }
 
+    /**
+     * @notice Adds a new tip stream
+     * @param recipient The address of the tip stream recipient
+     * @param allocation The percentage of tips allocated to this stream
+     * @param lockedUntilEpoch The epoch until which this tip stream is locked
+     */
     function addTipStream(
         address recipient,
         Percentage allocation,
-        uint256 minimumTerm
+        uint256 lockedUntilEpoch
     ) external onlyGovernor {
         _validateTipStreamAllocation(allocation);
 
         tipStreams[recipient] = TipStream({
             recipient: recipient,
             allocation: allocation,
-            minimumTerm: minimumTerm
+            lockedUntilEpoch: lockedUntilEpoch
         });
         tipStreamRecipients.push(recipient);
 
-        emit TipStreamAdded(recipient, allocation, minimumTerm);
+        emit TipStreamAdded(recipient, allocation, lockedUntilEpoch);
     }
 
+    /**
+     * @notice Removes an existing tip stream
+     * @param recipient The address of the tip stream recipient to remove
+     */
     function removeTipStream(address recipient) external onlyGovernor {
         _validateTipStream(recipient);
 
@@ -53,7 +69,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
             if (tipStreamRecipients[i] == recipient) {
                 tipStreamRecipients[i] = tipStreamRecipients[
                     tipStreamRecipients.length - 1
-                ];
+                    ];
                 tipStreamRecipients.pop();
                 break;
             }
@@ -62,26 +78,41 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         emit TipStreamRemoved(recipient);
     }
 
+    /**
+     * @notice Updates an existing tip stream
+     * @param recipient The address of the tip stream recipient to update
+     * @param newAllocation The new percentage allocation for the tip stream
+     * @param newLockedUntilEpoch The new epoch until which this tip stream is locked
+     */
     function updateTipStream(
         address recipient,
         Percentage newAllocation,
-        uint256 newMinimumTerm
+        uint256 newLockedUntilEpoch
     ) external onlyGovernor {
         _validateTipStream(recipient);
         _validateTipStreamAllocation(newAllocation);
 
         tipStreams[recipient].allocation = newAllocation;
-        tipStreams[recipient].minimumTerm = newMinimumTerm;
+        tipStreams[recipient].lockedUntilEpoch = newLockedUntilEpoch;
 
-        emit TipStreamUpdated(recipient, newAllocation, newMinimumTerm);
+        emit TipStreamUpdated(recipient, newAllocation, newLockedUntilEpoch);
     }
 
+    /**
+     * @notice Retrieves information about a specific tip stream
+     * @param recipient The address of the tip stream recipient
+     * @return TipStream struct containing the tip stream information
+     */
     function getTipStream(
         address recipient
     ) external view returns (TipStream memory) {
         return tipStreams[recipient];
     }
 
+    /**
+     * @notice Retrieves information about all tip streams
+     * @return An array of TipStream structs containing all tip stream information
+     */
     function getAllTipStreams() external view returns (TipStream[] memory) {
         TipStream[] memory allStreams = new TipStream[](
             tipStreamRecipients.length
@@ -92,33 +123,92 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         return allStreams;
     }
 
-    function shake(address _fleetCommander_) public {
-        if (_fleetCommander_ == address(0)) {
+    /**
+     * @notice Distributes accumulated tips from a single FleetCommander
+     * @param fleetCommander_ The address of the FleetCommander contract to distribute tips from
+     */
+    function shake(address fleetCommander_) public {
+        _shake(fleetCommander_);
+    }
+
+    /**
+     * @notice Distributes accumulated tips from multiple FleetCommanders
+     * @param fleetCommanders An array of FleetCommander contract addresses to distribute tips from
+     */
+    function shakeMultiple(address[] calldata fleetCommanders) external {
+        for (uint256 i = 0; i < fleetCommanders.length; i++) {
+            _shake(fleetCommanders[i]);
+        }
+    }
+
+    /**
+     * @notice Calculates the total allocation percentage across all tip streams
+     * @return The total allocation as a Percentage
+     */
+    function getTotalAllocation() public view returns (Percentage) {
+        Percentage total = toPercentage(0);
+        for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
+            total = total + tipStreams[tipStreamRecipients[i]].allocation;
+        }
+        return total;
+    }
+
+    /**
+     * @notice Sets a new treasury address
+     * @param newTreasuryAddress The new address for the treasury
+     */
+    function setTreasuryAddress(
+        address newTreasuryAddress
+    ) external onlyGovernor {
+        if (newTreasuryAddress == address(0)) {
+            revert InvalidTreasuryAddress();
+        }
+        treasuryAddress = newTreasuryAddress;
+    }
+
+    /**
+     * @notice Distributes accumulated tips from a single FleetCommander
+     * @param fleetCommander_ The address of the FleetCommander contract to distribute tips from
+     */
+    function _shake(address fleetCommander_) internal {
+        if (fleetCommander_ == address(0)) {
             revert InvalidFleetCommanderAddress();
         }
 
-        IFleetCommander fleetCommander = IFleetCommander(_fleetCommander_);
+        IFleetCommander fleetCommander = IFleetCommander(fleetCommander_);
 
-        uint256 _assets = fleetCommander.convertToAssets(
-            fleetCommander.balanceOf(address(this))
-        );
-        if (_assets == 0) {
-            revert NoAssetsToDistribute();
+        uint256 shares = fleetCommander.balanceOf(address(this));
+        if (shares == 0) {
+            revert NoSharesToRedeem();
         }
 
-        uint256 withdrawnAssets = fleetCommander.withdraw(
-            _assets,
+        uint256 withdrawnAssets = fleetCommander.redeem(
+            shares,
             address(this),
             address(this)
         );
 
+        if (withdrawnAssets == 0) {
+            revert NoAssetsToDistribute();
+        }
+
         IERC20 underlyingAsset = IERC20(fleetCommander.asset());
 
+        // Distribute assets to tip stream recipients
         uint256 totalDistributed = 0;
+        Percentage totalAllocated = toPercentage(0);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
             address recipient = tipStreamRecipients[i];
             Percentage allocation = tipStreams[recipient].allocation;
-            uint256 amount = withdrawnAssets.applyPercentage(allocation);
+            totalAllocated = totalAllocated + allocation;
+
+            uint256 amount;
+            // Handle the last recipient differently to account for rounding errors
+            if (totalAllocated == PERCENTAGE_100) {
+                amount = withdrawnAssets - totalDistributed;
+            } else {
+                amount = withdrawnAssets.applyPercentage(allocation);
+            }
 
             if (amount > 0) {
                 underlyingAsset.transfer(recipient, amount);
@@ -135,38 +225,23 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         emit TipJarShaken(address(fleetCommander), withdrawnAssets);
     }
 
-    function shakeMultiple(address[] calldata fleetCommanders) external {
-        for (uint256 i = 0; i < fleetCommanders.length; i++) {
-            shake(fleetCommanders[i]);
-        }
-    }
-
-    function getTotalAllocation() public view returns (Percentage) {
-        Percentage total = toPercentage(0);
-        for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
-            total = total + tipStreams[tipStreamRecipients[i]].allocation;
-        }
-        return total;
-    }
-
-    function setTreasuryAddress(
-        address newTreasuryAddress
-    ) external onlyGovernor {
-        if (newTreasuryAddress == address(0)) {
-            revert InvalidTreasuryAddress();
-        }
-        treasuryAddress = newTreasuryAddress;
-    }
-
+    /**
+     * @notice Validates that a tip stream exists and is not locked
+     * @param recipient The address of the tip stream recipient
+     */
     function _validateTipStream(address recipient) internal view {
         if (tipStreams[recipient].recipient == address(0)) {
             revert TipStreamDoesNotExist(recipient);
         }
-        if (block.timestamp < tipStreams[recipient].minimumTerm) {
-            revert TipStreamMinTermNotReached(recipient);
+        if (block.timestamp < tipStreams[recipient].lockedUntilEpoch) {
+            revert TipStreamLocked(recipient);
         }
     }
 
+    /**
+     * @notice Validates the allocation for a tip stream
+     * @param allocation The allocation to validate
+     */
     function _validateTipStreamAllocation(Percentage allocation) internal view {
         if (
             allocation == toPercentage(0) ||
@@ -176,8 +251,8 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         }
         if (
             !PercentageUtils.isPercentageInRange(
-                getTotalAllocation() + allocation
-            )
+            getTotalAllocation() + allocation
+        )
         ) {
             revert TotalAllocationExceedsOneHundredPercent();
         }

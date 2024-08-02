@@ -27,6 +27,10 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         _mint(account, amount);
     }
 
+    function testMint(address account, uint256 amount) public {
+        _mint(account, amount);
+    }
+
     function deposit(
         uint256 assets,
         address receiver
