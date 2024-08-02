@@ -69,7 +69,7 @@ contract FleetCommander is
         uint256 prevQueueBalance = bufferArk.totalAssets();
         uint256 shares = previewWithdraw(assets);
 
-        _validateWithdraw(assets, shares, owner);
+        _validateBufferWithdraw(assets, shares, owner);
         _disembark(address(bufferArk), assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
@@ -722,7 +722,7 @@ contract FleetCommander is
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
      * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
      */
-    function _validateWithdraw(
+    function _validateBufferWithdraw(
         uint256 assets,
         uint256 shares,
         address owner

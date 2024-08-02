@@ -140,6 +140,28 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
         vm.prank(mockUser);
         fleetCommander.withdraw(excessAmount, mockUser, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
+                mockUser,
+                excessAmount,
+                DEPOSIT_AMOUNT
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.withdrawFromBuffer(excessAmount, mockUser, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
+                mockUser,
+                excessAmount,
+                DEPOSIT_AMOUNT
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.withdrawFromArks(excessAmount, mockUser, mockUser);
     }
 
     function test_WithdrawByNonOwner() public {
