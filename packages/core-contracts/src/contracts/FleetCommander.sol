@@ -66,11 +66,10 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public returns (uint256) {
-        _validateWithdraw(assets, owner);
-
         uint256 prevQueueBalance = bufferArk.totalAssets();
-
         uint256 shares = previewWithdraw(assets);
+
+        _validateWithdraw(assets, shares, owner);
         _disembark(address(bufferArk), assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
@@ -80,7 +79,7 @@ contract FleetCommander is
             bufferArk.totalAssets()
         );
 
-        return assets;
+        return shares;
     }
 
     function redeem(
@@ -131,12 +130,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    )
-        public
-        override(ERC4626, IFleetCommander)
-        collectTip
-        returns (uint256 shares)
-    {
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256 shares) {
         uint256 bufferBalance = bufferArk.totalAssets();
 
         if (assets == type(uint256).max) {
@@ -158,16 +152,14 @@ contract FleetCommander is
         address receiver,
         address owner
     ) public override(IFleetCommander) collectTip returns (uint256) {
-        _validateForceWithdraw(assets, owner);
-        uint256 totalSharesToWithdraw = previewWithdraw(assets);
+        uint256 totalSharesToRedeem = previewWithdraw(assets);
+        _validateForceWithdraw(assets, totalSharesToRedeem, owner);
         address[] memory sortedArks = _getSortedArks();
         _forceDisembarkFromSortedArks(sortedArks, assets);
-        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToWithdraw);
+        _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
         _setLastActionTimestamp(0);
-
-        // Accrue tip after withdrawal to maintain accuracy of prior convertToShares calculation
-        _accrueTip();
-        return assets;
+        emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
+        return totalSharesToRedeem;
     }
 
     function redeemFromArks(
@@ -181,16 +173,14 @@ contract FleetCommander is
         _forceDisembarkFromSortedArks(sortedArks, totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
         _setLastActionTimestamp(0);
-
-        // Accrue tip after withdrawal to maintain accuracy of prior convertToShares calculation
-        _accrueTip();
-        return shares;
+        emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
+        return totalAssetsToWithdraw;
     }
 
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(ERC4626, IFleetCommander) collectTip returns (uint256) {
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256) {
         _validateDeposit(assets, _msgSender());
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
@@ -205,7 +195,7 @@ contract FleetCommander is
             bufferArk.totalAssets()
         );
 
-        return assets;
+        return shares;
     }
 
     function mint(
@@ -246,7 +236,7 @@ contract FleetCommander is
         }
         allArks[arks.length] = bufferArk;
         for (uint256 i = 0; i < allArks.length; i++) {
-            // TODO: are we sure we can make all `totalAssets` calls that will not revert (as per ERC4626)
+            // TODO: are we sure we can make all `totalAssets` calls that will not revert (as per IERC4626)
             total += IArk(allArks[i]).totalAssets();
         }
     }
@@ -727,14 +717,19 @@ contract FleetCommander is
      *      1. The caller is authorized to withdraw on behalf of the owner
      *      2. The withdrawal amount does not exceed the maximum allowed
      * @param assets The amount of assets to withdraw
+     * @param shares The number of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
-     * @custom:error ERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
      */
-    function _validateWithdraw(uint256 assets, address owner) internal view {
+    function _validateWithdraw(
+        uint256 assets,
+        uint256 shares,
+        address owner
+    ) internal view {
         if (
             _msgSender() != owner &&
-            IERC20(address(this)).allowance(owner, _msgSender()) < assets
+            IERC20(address(this)).allowance(owner, _msgSender()) < shares
         ) {
             revert FleetCommanderUnauthorizedWithdrawal(_msgSender(), owner);
         }
@@ -752,7 +747,7 @@ contract FleetCommander is
      * @param shares The number of shares to redeem
      * @param owner The address of the owner of the shares
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
-     * @custom:error ERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
      */
     function _validateRedeem(uint256 shares, address owner) internal view {
         if (
@@ -773,7 +768,7 @@ contract FleetCommander is
      * @dev This function checks if the requested deposit amount exceeds the maximum allowed
      * @param assets The amount of assets to deposit
      * @param owner The address of the account making the deposit
-     * @custom:error ERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
+     * @custom:error IERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
      */
     function _validateDeposit(uint256 assets, address owner) internal view {
         uint256 maxAssets = maxDeposit(owner);
@@ -787,7 +782,7 @@ contract FleetCommander is
      * @dev This function checks if the requested mint amount exceeds the maximum allowed
      * @param shares The number of shares to mint
      * @param owner The address of the account minting the shares
-     * @custom:error ERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
+     * @custom:error IERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
      */
     function _validateMint(uint256 shares, address owner) internal view {
         uint256 maxShares = maxMint(owner);
@@ -802,17 +797,19 @@ contract FleetCommander is
      *      1. The caller is authorized to withdraw on behalf of the owner
      *      2. The withdrawal amount does not exceed the maximum allowed
      * @param assets The amount of assets to withdraw
+     * @param shares The amount of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
-     * @custom:error ERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
      */
     function _validateForceWithdraw(
         uint256 assets,
+        uint256 shares,
         address owner
     ) internal view {
         if (
             _msgSender() != owner &&
-            IERC20(address(this)).allowance(owner, _msgSender()) < assets
+            IERC20(address(this)).allowance(owner, _msgSender()) < shares
         ) {
             revert FleetCommanderUnauthorizedWithdrawal(_msgSender(), owner);
         }
@@ -830,7 +827,7 @@ contract FleetCommander is
      * @param shares The amount of shares to redeem
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
-     * @custom:error ERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
      */
     function _validateForceRedeem(uint256 shares, address owner) internal view {
         if (

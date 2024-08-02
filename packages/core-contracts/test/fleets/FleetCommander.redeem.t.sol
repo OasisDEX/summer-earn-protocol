@@ -51,31 +51,6 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertEq(assets, redeemAmount, "Incorrect assets returned");
     }
 
-    function test_RedeemZeroShares() public {
-        vm.prank(mockUser);
-        uint256 assets = fleetCommander.redeem(0, mockUser, mockUser);
-        assertEq(assets, 0, "Should redeem zero assets for zero shares");
-    }
-
-    function test_RedeemToOtherReceiver() public {
-        address receiver = address(0xdeadbeef);
-        uint256 redeemAmount = DEPOSIT_AMOUNT / 2;
-
-        vm.prank(mockUser);
-        fleetCommander.redeem(redeemAmount, receiver, mockUser);
-
-        assertEq(
-            mockToken.balanceOf(receiver),
-            redeemAmount,
-            "Receiver should have received the assets"
-        );
-        assertEq(
-            mockToken.balanceOf(mockUser),
-            0,
-            "Owner should not have received any assets"
-        );
-    }
-
     function test_RedeemMultipleTimes() public {
         uint256 redeemAmount = DEPOSIT_AMOUNT / 3;
 
@@ -101,6 +76,18 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
     }
 
+    function test_RedeemZero() public {
+        vm.prank(mockUser);
+        uint256 redeemedAmount = fleetCommander.redeem(0, mockUser, mockUser);
+
+        assertEq(redeemedAmount, 0, "Should redeem zero amount");
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            DEPOSIT_AMOUNT,
+            "User balance should remain unchanged"
+        );
+    }
+
     function test_RedeemExceedingBalance() public {
         uint256 excessAmount = DEPOSIT_AMOUNT + 1;
 
@@ -117,7 +104,6 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_RedeemByNonOwner() public {
-        address nonOwner = address(0xdeadbeef);
         uint256 sharesToRedeem = fleetCommander.maxRedeem(mockUser);
 
         vm.expectRevert(
@@ -133,7 +119,6 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_RedeemByNonOwnerWithSufficientAllowance() public {
-        address nonOwner = address(0xdeadbeef);
         uint256 sharesToRedeem = fleetCommander.maxRedeem(mockUser);
 
         vm.prank(mockUser);
@@ -144,7 +129,6 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_RedeemByNonOwnerWithInsufficientAllowance() public {
-        address nonOwner = address(0xdeadbeef);
         uint256 sharesToRedeem = fleetCommander.maxRedeem(mockUser);
 
         vm.prank(mockUser);
@@ -160,6 +144,51 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.prank(nonOwner);
         fleetCommander.redeem(sharesToRedeem - 1, nonOwner, mockUser);
+    }
+
+    function test_RedeemToOtherReceiver() public {
+        address receiver = nonOwner;
+        uint256 redeemAmount = fleetCommander.maxRedeem(mockUser) / 2;
+
+        vm.prank(mockUser);
+        fleetCommander.redeem(redeemAmount, receiver, mockUser);
+
+        assertEq(
+            mockToken.balanceOf(receiver),
+            redeemAmount,
+            "Receiver should have received the assets"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            0,
+            "Owner should not have received any assets"
+        );
+    }
+
+    function test_RedeemToOtherReceiverCalledByNonOwner() public {
+        address receiver = address(9999999);
+        uint256 redeemAmount = fleetCommander.maxRedeem(mockUser) / 2;
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedRedemption(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+        vm.prank(nonOwner);
+        fleetCommander.redeem(redeemAmount, receiver, mockUser);
+
+        assertEq(
+            mockToken.balanceOf(receiver),
+            0,
+            "Receiver should not have received the assets"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            0,
+            "Owner should not have received any assets"
+        );
     }
 
     function test_RedeemEventEmission() public {
@@ -180,7 +209,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_RedeemUpdatesBufferBalance() public {
-        uint256 redeemAmount = DEPOSIT_AMOUNT / 2;
+        uint256 redeemAmount = fleetCommander.maxRedeem(mockUser) / 2;
         uint256 initialBufferBalance = IArk(fleetCommander.bufferArk())
             .totalAssets();
 
@@ -233,7 +262,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertEq(
             fleetCommander.balanceOf(mockUser),
             userShares - redeemAmount,
-            "User should have no remaining shares"
+            "User should have reduced amount of shares"
         );
         assertEq(
             assetsAmount,
@@ -242,17 +271,173 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
     }
 
-    function generateRebalanceData(
-        address fromArk,
-        address toArk,
-        uint256 amount
-    ) internal pure returns (RebalanceData[] memory) {
-        RebalanceData[] memory data = new RebalanceData[](1);
-        data[0] = RebalanceData({
-            fromArk: fromArk,
-            toArk: toArk,
-            amount: amount
-        });
-        return data;
+    function test_RedeemAll() public {
+        vm.prank(mockUser);
+        uint256 redeemedAmount = fleetCommander.redeem(
+            type(uint256).max,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            redeemedAmount,
+            DEPOSIT_AMOUNT,
+            "Contract should return correct amount of withdrawn assets"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "User should have no remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            DEPOSIT_AMOUNT,
+            "User should receive all assets"
+        );
+    }
+
+    function test_RedeemFromBuffer() public {
+        uint256 userShares = fleetCommander.balanceOf(mockUser);
+        uint256 redeemShares = fleetCommander.maxRedeem(mockUser) / 2;
+        uint256 assetsToWithdraw = fleetCommander.maxWithdraw(mockUser) / 2;
+
+        vm.prank(mockUser);
+        uint256 withdrawnAssets = fleetCommander.redeem(
+            redeemShares,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            withdrawnAssets,
+            assetsToWithdraw,
+            "Should redeem requested amount from buffer"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            userShares - redeemShares,
+            "User should have remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            withdrawnAssets,
+            "User should receive redeemed assets"
+        );
+    }
+
+    function test_RedeemFromArks() public {
+        // Move some funds to arks
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.rebalance(
+            generateRebalanceData(
+                address(fleetCommander.bufferArk()),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
+        );
+        vm.stopPrank();
+
+        uint256 userShares = fleetCommander.balanceOf(mockUser);
+        uint256 redeemShares = (fleetCommander.maxRedeem(mockUser) * 3) / 4;
+        uint256 assetsToWithdraw = (fleetCommander.maxWithdraw(mockUser) * 3) /
+            4;
+
+        vm.prank(mockUser);
+        uint256 withdrawnAssets = fleetCommander.redeem(
+            redeemShares,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            withdrawnAssets,
+            assetsToWithdraw,
+            "Should redeem requested amount from buffer and arks"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            userShares - redeemShares,
+            "User should have remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            assetsToWithdraw,
+            "User should receive redeemed assets"
+        );
+    }
+
+    function test_MaxBufferRedeem() public {
+        uint256 maxBufferRedeem = fleetCommander.maxBufferRedeem(mockUser);
+        uint256 userShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
+
+        assertEq(
+            userShares,
+            fleetCommander.balanceOf(mockUser),
+            "User should have deposited"
+        );
+        assertEq(
+            maxBufferRedeem,
+            fleetCommander.convertToShares(DEPOSIT_AMOUNT),
+            "Max buffer redeem should equal to depoit shares"
+        );
+
+        // Move some funds to arks
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.rebalance(
+            generateRebalanceData(
+                address(fleetCommander.bufferArk()),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
+        );
+        vm.stopPrank();
+
+        maxBufferRedeem = fleetCommander.maxBufferRedeem(mockUser);
+        assertEq(
+            maxBufferRedeem,
+            userShares / 2,
+            "Max buffer redeem should equal remaining buffer amount"
+        );
+    }
+
+    function test_ValidateForceRedeem() public {
+        uint256 userShares = fleetCommander.balanceOf(mockUser);
+        // Test unauthorized redemption
+        vm.prank(nonOwner);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedRedemption(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+        fleetCommander.redeemFromArks(DEPOSIT_AMOUNT, nonOwner, mockUser);
+
+        // Test exceeding max redeem
+        vm.prank(mockUser);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxRedeem(address,uint256,uint256)",
+                mockUser,
+                userShares + 1,
+                userShares
+            )
+        );
+        fleetCommander.redeemFromArks(DEPOSIT_AMOUNT + 1, mockUser, mockUser);
+
+        // Test successful force redeem
+        vm.prank(mockUser);
+        uint256 withdrawnAmount = fleetCommander.redeemFromArks(
+            userShares,
+            mockUser,
+            mockUser
+        );
+        assertEq(
+            withdrawnAmount,
+            DEPOSIT_AMOUNT,
+            "Should force redeem full amount"
+        );
     }
 }
