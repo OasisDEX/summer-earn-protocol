@@ -69,7 +69,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
             if (tipStreamRecipients[i] == recipient) {
                 tipStreamRecipients[i] = tipStreamRecipients[
                     tipStreamRecipients.length - 1
-                    ];
+                ];
                 tipStreamRecipients.pop();
                 break;
             }
@@ -251,8 +251,8 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         }
         if (
             !PercentageUtils.isPercentageInRange(
-            getTotalAllocation() + allocation
-        )
+                getTotalAllocation() + allocation
+            )
         ) {
             revert TotalAllocationExceedsOneHundredPercent();
         }
