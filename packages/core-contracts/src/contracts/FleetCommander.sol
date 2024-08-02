@@ -87,32 +87,20 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public override(ERC4626, IERC4626) collectTip returns (uint256) {
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256 assets) {
         uint256 bufferBalance = bufferArk.totalAssets();
-        uint256 totalUserShares = balanceOf(owner);
-        uint256 assets = previewRedeem(shares);
-        uint256 maxWithdrawableAssets = previewRedeem(totalUserShares);
+        uint256 bufferBalanceInShares = convertToShares(bufferBalance);
 
         if (shares == type(uint256).max) {
+            uint256 totalUserShares = balanceOf(owner);
             shares = totalUserShares;
-        } else if (shares > totalUserShares) {
-            revert ERC4626ExceededMaxRedeem(
-                owner,
-                assets,
-                maxWithdrawableAssets
-            );
         }
 
-        if (assets <= bufferBalance) {
+        if (shares <= bufferBalanceInShares) {
             assets = redeemFromBuffer(shares, receiver, owner);
         } else {
             assets = redeemFromArks(shares, receiver, owner);
         }
-
-        require(
-            balanceOf(owner) == 0 || shares < totalUserShares,
-            "FleetCommander: User should have no shares left when withdrawing max"
-        );
 
         return assets;
     }
@@ -150,17 +138,10 @@ contract FleetCommander is
         returns (uint256 shares)
     {
         uint256 bufferBalance = bufferArk.totalAssets();
-        uint256 totalUserShares = balanceOf(owner);
-        uint256 maxWithdrawableAssets = previewRedeem(totalUserShares);
 
         if (assets == type(uint256).max) {
-            assets = maxWithdrawableAssets;
-        } else if (assets > maxWithdrawableAssets) {
-            revert ERC4626ExceededMaxWithdraw(
-                owner,
-                assets,
-                maxWithdrawableAssets
-            );
+            uint256 totalUserShares = balanceOf(owner);
+            assets = previewRedeem(totalUserShares);
         }
 
         if (assets <= bufferBalance) {
@@ -168,11 +149,6 @@ contract FleetCommander is
         } else {
             shares = withdrawFromArks(assets, receiver, owner);
         }
-
-        require(
-            balanceOf(owner) == 0 || assets < maxWithdrawableAssets,
-            "FleetCommander: User should have no shares left when withdrawing max"
-        );
 
         return shares;
     }
