@@ -34,10 +34,10 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function rate() external view returns (uint256);
 
     /**
-     * @notice Checks if the Ark has a Commander assigned
-     * @return bool True if a Commander is assigned, false otherwise
+     * @notice Returns the address of the Fleet commander managing the ark
+     * @return address Address of Fleet commander managing the ark if a Commander is assigned, address(0) otherwise
      */
-    function hasCommander() external view returns (bool);
+    function commander() external view returns (address);
 
     /**
      * @notice Updates information about the Ark
@@ -60,9 +60,15 @@ interface IArk is IArkAccessManaged, IArkEvents {
     /**
      * @notice Withdraws (disembarks) tokens from the Ark
      * @param amount The amount of tokens to withdraw
-     * @param receiver Address receiving the withdrawn funds
      */
-    function disembark(uint256 amount, address receiver) external;
+    function disembark(uint256 amount) external;
+
+    /**
+     * @notice Moves tokens from one ark to another
+     * @param amount  The amount of tokens to move
+     * @param receiver The address of the Ark the funds will be boarded to
+     */
+    function move(uint256 amount, address receiver) external;
 
     /**
      * @notice Sets a new maximum allocation for the Ark

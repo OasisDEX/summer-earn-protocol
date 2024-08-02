@@ -4,9 +4,9 @@ pragma solidity 0.8.26;
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import {CannotAddCommanderToArkWithCommander, CannotRemoveCommanderFromArkWithAssets} from "../errors/ArkErrors.sol";
+import {CannotAddCommanderToArkWithCommander, CannotRemoveCommanderFromArkWithAssets, CallerIsNotCommanderOrArk} from "../errors/ArkErrors.sol";
 import {IArk, ArkParams} from "../interfaces/IArk.sol";
-
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
@@ -18,7 +18,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     address public raft;
     uint256 public maxAllocation;
     IERC20 public token;
-    bool private _hasCommander;
+    address public commander;
 
     constructor(
         ArkParams memory _params
@@ -32,44 +32,56 @@ abstract contract Ark is IArk, ArkAccessManaged {
     }
 
     /* PUBLIC */
+    /* @inheritdoc IArk */
     function totalAssets() public view virtual returns (uint256) {}
 
+    /* @inheritdoc IArk */
     function rate() public view virtual returns (uint256) {}
 
+    /* @inheritdoc IArk */
     function harvest() public {}
 
-    function hasCommander() public view returns (bool) {
-        return _hasCommander;
-    }
-
     /* EXTERNAL - COMMANDER */
-    function board(uint256 amount) external onlyCommander {
-        token.safeTransferFrom(msg.sender, address(this), amount);
+    /* @inheritdoc IArk */
+    function board(uint256 amount) external onlyCommanderOrArk {
+        address msgSender = _msgSender();
+        token.safeTransferFrom(msgSender, address(this), amount);
         _board(amount);
 
-        emit Boarded(msg.sender, address(token), amount);
+        emit Boarded(msgSender, address(token), amount);
     }
 
-    function disembark(
-        uint256 amount,
-        address receiver
-    ) external onlyCommander {
+    /* @inheritdoc IArk */
+    function disembark(uint256 amount) external onlyCommander {
+        address msgSender = _msgSender();
         _disembark(amount);
-        token.safeTransfer(receiver, amount);
+        token.safeTransfer(msgSender, amount);
 
-        emit Disembarked(receiver, address(token), amount);
+        emit Disembarked(msgSender, address(token), amount);
     }
 
+    /* @inheritdoc IArk */
+    function move(uint256 amount, address receiverArk) external onlyCommander {
+        _disembark(amount);
+
+        token.approve(receiverArk, amount);
+        IArk(receiverArk).board(amount);
+
+        emit Moved(address(this), receiverArk, address(token), amount);
+    }
+
+    /* @inheritdoc IArk */
     function setMaxAllocation(uint256 newMaxAllocation) external onlyCommander {
         maxAllocation = newMaxAllocation;
         emit MaxAllocationUpdated(newMaxAllocation);
     }
 
-    function poke() public virtual {
-        // No-op
-    }
+    /* @inheritdoc IArk */
+    function poke() public virtual {}
 
     /* EXTERNAL - GOVERNANCE */
+
+    /* @inheritdoc IArk */
     function setRaft(address newRaft) external {}
 
     /**
@@ -77,12 +89,12 @@ abstract contract Ark is IArk, ArkAccessManaged {
      * @dev Overrides the base implementation to prevent removal when assets are present
      */
     function _beforeGrantRoleHook(
-        address
+        address newComander
     ) internal virtual override(ArkAccessManaged) onlyGovernor {
-        if (_hasCommander) {
+        if (commander != address(0)) {
             revert CannotAddCommanderToArkWithCommander();
         }
-        _hasCommander = true;
+        commander = newComander;
     }
 
     /**
@@ -95,11 +107,27 @@ abstract contract Ark is IArk, ArkAccessManaged {
         if (this.totalAssets() > 0) {
             revert CannotRemoveCommanderFromArkWithAssets();
         }
-        _hasCommander = false;
+        commander = address(0);
     }
 
     /* INTERNAL */
     function _board(uint256 amount) internal virtual;
 
     function _disembark(uint256 amount) internal virtual;
+
+    /* MODIFIERS */
+
+    /**
+     * @dev Modifier to check that the caller has the Commander role or is an Ark
+     */
+    modifier onlyCommanderOrArk() {
+        if (!hasCommanderRole()) {
+            address msgSender = _msgSender();
+            bool isArk = IFleetCommander(commander).isArkActive(msgSender);
+            if (!isArk) {
+                revert CallerIsNotCommanderOrArk(msgSender);
+            }
+        }
+        _;
+    }
 }

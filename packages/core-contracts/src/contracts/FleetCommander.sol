@@ -26,9 +26,9 @@ contract FleetCommander is
 {
     using SafeERC20 for IERC20;
 
-    address[] private _activeArks;
+    address[] public arks;
     IArk public bufferArk;
-    mapping(address => bool) _isArkActive;
+    mapping(address => bool) public isArkActive;
     uint256 public minFundsBufferBalance;
     uint256 public depositCap;
 
@@ -48,7 +48,7 @@ contract FleetCommander is
         minFundsBufferBalance = params.initialMinimumFundsBufferBalance;
         depositCap = params.depositCap;
         bufferArk = IArk(params.bufferArk);
-        _isArkActive[address(bufferArk)] = true;
+        isArkActive[address(bufferArk)] = true;
     }
 
     /**
@@ -57,12 +57,6 @@ contract FleetCommander is
     modifier collectTip() {
         _accrueTip();
         _;
-    }
-
-    /* PUBLIC - ACCESSORS */
-    /// @inheritdoc IFleetCommander
-    function arks() public view returns (address[] memory) {
-        return _activeArks;
     }
 
     /* PUBLIC - USER */
@@ -180,11 +174,11 @@ contract FleetCommander is
         returns (uint256 total)
     {
         total = 0;
-        IArk[] memory allArks = new IArk[](_activeArks.length + 1);
-        for (uint256 i = 0; i < _activeArks.length; i++) {
-            allArks[i] = IArk(_activeArks[i]);
+        IArk[] memory allArks = new IArk[](arks.length + 1);
+        for (uint256 i = 0; i < arks.length; i++) {
+            allArks[i] = IArk(arks[i]);
         }
-        allArks[_activeArks.length] = bufferArk;
+        allArks[arks.length] = bufferArk;
         for (uint256 i = 0; i < allArks.length; i++) {
             // TODO: are we sure we can make all `totalAssets` calls that will not revert (as per ERC4626)
             total += IArk(allArks[i]).totalAssets();
@@ -297,24 +291,24 @@ contract FleetCommander is
         address ark,
         uint256 newMaxAllocation
     ) external onlyGovernor {
-        if (!_isArkActive[ark]) {
+        if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
 
         uint256 oldMaxAllocation = IArk(ark).maxAllocation();
         IArk(ark).setMaxAllocation(newMaxAllocation);
 
-        // Update _activeArks if necessary
+        // Update arks if necessary
         bool wasActive = oldMaxAllocation > 0;
         bool isNowActive = newMaxAllocation > 0;
 
         if (!wasActive && isNowActive) {
-            _activeArks.push(ark);
+            arks.push(ark);
         } else if (wasActive && !isNowActive) {
-            for (uint256 i = 0; i < _activeArks.length; i++) {
-                if (_activeArks[i] == ark) {
-                    _activeArks[i] = _activeArks[_activeArks.length - 1];
-                    _activeArks.pop();
+            for (uint256 i = 0; i < arks.length; i++) {
+                if (arks[i] == ark) {
+                    arks[i] = arks[arks.length - 1];
+                    arks.pop();
                     break;
                 }
             }
@@ -376,12 +370,11 @@ contract FleetCommander is
     }
 
     function _disembark(address ark, uint256 amount) internal {
-        IArk(ark).disembark(amount, address(this));
+        IArk(ark).disembark(amount);
     }
 
     function _move(address fromArk, address toArk, uint256 amount) internal {
-        _disembark(fromArk, amount);
-        _board(toArk, amount);
+        IArk(fromArk).move(amount, toArk);
     }
 
     function _setupArks(address[] memory _arkAddresses) internal {
@@ -394,31 +387,31 @@ contract FleetCommander is
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();
         }
-        if (_isArkActive[ark]) {
+        if (isArkActive[ark]) {
             revert FleetCommanderArkAlreadyExists(ark);
         }
 
-        _isArkActive[ark] = true;
-        _activeArks.push(ark);
+        isArkActive[ark] = true;
+        arks.push(ark);
         emit ArkAdded(ark);
     }
 
     function _removeArk(address ark) internal {
-        if (!_isArkActive[ark]) {
+        if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
 
-        // Remove from _activeArks if present
-        for (uint256 i = 0; i < _activeArks.length; i++) {
-            if (_activeArks[i] == ark) {
+        // Remove from arks if present
+        for (uint256 i = 0; i < arks.length; i++) {
+            if (arks[i] == ark) {
                 _validateArkRemoval(ark);
-                _activeArks[i] = _activeArks[_activeArks.length - 1];
-                _activeArks.pop();
+                arks[i] = arks[arks.length - 1];
+                arks.pop();
                 break;
             }
         }
 
-        _isArkActive[ark] = false;
+        isArkActive[ark] = false;
         emit ArkRemoved(ark);
     }
 
@@ -474,16 +467,16 @@ contract FleetCommander is
      * @return A sorted array of ark addresses, with the buffer ark at the end
      */
     function _getSortedArks() internal view returns (address[] memory) {
-        address[] memory sortedArks = new address[](_activeArks.length + 1);
-        uint256[] memory rates = new uint256[](_activeArks.length);
+        address[] memory sortedArks = new address[](arks.length + 1);
+        uint256[] memory rates = new uint256[](arks.length);
 
-        for (uint256 i = 0; i < _activeArks.length; i++) {
-            rates[i] = IArk(_activeArks[i]).rate();
-            sortedArks[i] = _activeArks[i];
+        for (uint256 i = 0; i < arks.length; i++) {
+            rates[i] = IArk(arks[i]).rate();
+            sortedArks[i] = arks[i];
         }
 
         _sortArksByRate(sortedArks, rates);
-        sortedArks[_activeArks.length] = address(bufferArk);
+        sortedArks[arks.length] = address(bufferArk);
 
         return sortedArks;
     }
@@ -633,10 +626,10 @@ contract FleetCommander is
             if (address(rebalanceData[i].fromArk) == address(0)) {
                 revert FleetCommanderArkNotFound(rebalanceData[i].fromArk);
             }
-            if (!_isArkActive[address(rebalanceData[i].toArk)]) {
+            if (!isArkActive[address(rebalanceData[i].toArk)]) {
                 revert FleetCommanderArkNotActive(rebalanceData[i].toArk);
             }
-            if (!_isArkActive[address(rebalanceData[i].fromArk)]) {
+            if (!isArkActive[address(rebalanceData[i].fromArk)]) {
                 revert FleetCommanderArkNotActive(rebalanceData[i].fromArk);
             }
             if (IArk(rebalanceData[i].toArk).maxAllocation() == 0) {
