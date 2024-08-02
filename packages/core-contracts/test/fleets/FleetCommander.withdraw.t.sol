@@ -189,6 +189,28 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.prank(nonOwner);
         fleetCommander.withdraw(assetsToWithdraw, nonOwner, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
+        fleetCommander.withdrawFromArks(assetsToWithdraw, nonOwner, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
+        fleetCommander.withdrawFromBuffer(assetsToWithdraw, nonOwner, mockUser);
     }
 
     function test_WithdrawToOtherReceiver() public {
@@ -359,6 +381,29 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.prank(mockUser);
         uint256 sharesRedeemed = fleetCommander.withdraw(
+            assetsToWithdraw,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            assetsToWithdraw,
+            "User should receive withdrawn assets"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositShares - sharesRedeemed,
+            "User should have remaining shares"
+        );
+    }
+
+    function test_WithdrawFromBufferDirectly() public {
+        uint256 depositShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+
+        vm.prank(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdrawFromBuffer(
             assetsToWithdraw,
             mockUser,
             mockUser

@@ -143,6 +143,28 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
 
         vm.prank(nonOwner);
+        fleetCommander.redeemFromBuffer(sharesToRedeem - 1, nonOwner, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedRedemption(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
+        fleetCommander.redeemFromArks(sharesToRedeem - 1, nonOwner, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedRedemption(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
         fleetCommander.redeem(sharesToRedeem - 1, nonOwner, mockUser);
     }
 
@@ -303,6 +325,35 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.prank(mockUser);
         uint256 withdrawnAssets = fleetCommander.redeem(
+            redeemShares,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            withdrawnAssets,
+            assetsToWithdraw,
+            "Should redeem requested amount from buffer"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            userShares - redeemShares,
+            "User should have remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            withdrawnAssets,
+            "User should receive redeemed assets"
+        );
+    }
+
+    function test_RedeemFromBufferDirectly() public {
+        uint256 userShares = fleetCommander.balanceOf(mockUser);
+        uint256 redeemShares = fleetCommander.maxRedeem(mockUser) / 2;
+        uint256 assetsToWithdraw = fleetCommander.maxWithdraw(mockUser) / 2;
+
+        vm.prank(mockUser);
+        uint256 withdrawnAssets = fleetCommander.redeemFromBuffer(
             redeemShares,
             mockUser,
             mockUser
