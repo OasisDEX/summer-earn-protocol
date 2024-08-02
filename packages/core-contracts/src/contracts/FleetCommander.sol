@@ -65,9 +65,9 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public returns (uint256) {
+    ) public returns (uint256 shares) {
         uint256 prevQueueBalance = bufferArk.totalAssets();
-        uint256 shares = previewWithdraw(assets);
+        shares = previewWithdraw(assets);
 
         _validateBufferWithdraw(assets, shares, owner);
         _disembark(address(bufferArk), assets);
@@ -78,8 +78,6 @@ contract FleetCommander is
             prevQueueBalance,
             bufferArk.totalAssets()
         );
-
-        return shares;
     }
 
     function redeem(
@@ -100,20 +98,18 @@ contract FleetCommander is
         } else {
             assets = redeemFromArks(shares, receiver, owner);
         }
-
-        return assets;
     }
 
     function redeemFromBuffer(
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip returns (uint256) {
+    ) public collectTip returns (uint256 assets) {
         _validateRedeem(shares, owner);
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
 
-        uint256 assets = previewRedeem(shares);
+        assets = previewRedeem(shares);
         _disembark(address(bufferArk), assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
@@ -122,8 +118,6 @@ contract FleetCommander is
             prevQueueBalance,
             bufferArk.totalAssets()
         );
-
-        return assets;
     }
 
     function withdraw(
@@ -143,49 +137,55 @@ contract FleetCommander is
         } else {
             shares = withdrawFromArks(assets, receiver, owner);
         }
-
-        return shares;
     }
 
     function withdrawFromArks(
         uint256 assets,
         address receiver,
         address owner
-    ) public override(IFleetCommander) collectTip returns (uint256) {
-        uint256 totalSharesToRedeem = previewWithdraw(assets);
+    )
+        public
+        override(IFleetCommander)
+        collectTip
+        returns (uint256 totalSharesToRedeem)
+    {
+        totalSharesToRedeem = previewWithdraw(assets);
         _validateForceWithdraw(assets, totalSharesToRedeem, owner);
         address[] memory sortedArks = _getSortedArks();
         _forceDisembarkFromSortedArks(sortedArks, assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
         _setLastActionTimestamp(0);
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
-        return totalSharesToRedeem;
     }
 
     function redeemFromArks(
         uint256 shares,
         address receiver,
         address owner
-    ) public override(IFleetCommander) collectTip returns (uint256) {
+    )
+        public
+        override(IFleetCommander)
+        collectTip
+        returns (uint256 totalAssetsToWithdraw)
+    {
         _validateForceRedeem(shares, owner);
-        uint256 totalAssetsToWithdraw = previewRedeem(shares);
+        totalAssetsToWithdraw = previewRedeem(shares);
         address[] memory sortedArks = _getSortedArks();
         _forceDisembarkFromSortedArks(sortedArks, totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
         _setLastActionTimestamp(0);
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
-        return totalAssetsToWithdraw;
     }
 
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(ERC4626, IERC4626) collectTip returns (uint256) {
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256 shares) {
         _validateDeposit(assets, _msgSender());
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
 
-        uint256 shares = previewDeposit(assets);
+        shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(bufferArk), assets);
 
@@ -194,19 +194,17 @@ contract FleetCommander is
             prevQueueBalance,
             bufferArk.totalAssets()
         );
-
-        return shares;
     }
 
     function mint(
         uint256 shares,
         address receiver
-    ) public override(ERC4626, IERC4626) collectTip returns (uint256) {
+    ) public override(ERC4626, IERC4626) collectTip returns (uint256 assets) {
         _validateMint(shares, _msgSender());
 
         uint256 prevQueueBalance = bufferArk.totalAssets();
 
-        uint256 assets = previewMint(shares);
+        assets = previewMint(shares);
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(bufferArk), assets);
 
@@ -215,8 +213,6 @@ contract FleetCommander is
             prevQueueBalance,
             bufferArk.totalAssets()
         );
-
-        return assets;
     }
 
     function tip() public returns (uint256) {
