@@ -36,8 +36,16 @@ contract ConfigurationManagerTest is Test {
     }
 
     function testInitialState() public {
-        assertEq(configManager.raft(), initialRaft, "Initial Raft address should be set correctly");
-        assertEq(configManager.tipJar(), initialTipJar, "Initial TipJar address should be set correctly");
+        assertEq(
+            configManager.raft(),
+            initialRaft,
+            "Initial Raft address should be set correctly"
+        );
+        assertEq(
+            configManager.tipJar(),
+            initialTipJar,
+            "Initial TipJar address should be set correctly"
+        );
     }
 
     function testSetRaftByGovernor() public {
@@ -46,13 +54,19 @@ contract ConfigurationManagerTest is Test {
         vm.expectEmit(true, true, true, true);
         emit RaftUpdated(newRaft);
         configManager.setRaft(newRaft);
-        assertEq(configManager.raft(), newRaft, "Raft address should be updated");
+        assertEq(
+            configManager.raft(),
+            newRaft,
+            "Raft address should be updated"
+        );
     }
 
     function testSetRaftByNonGovernor() public {
         address newRaft = address(5);
         vm.prank(nonGovernor);
-        vm.expectRevert(abi.encodeWithSignature("CallerIsNotGovernor(address)", nonGovernor));
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", nonGovernor)
+        );
         configManager.setRaft(newRaft);
     }
 
@@ -62,13 +76,19 @@ contract ConfigurationManagerTest is Test {
         vm.expectEmit(true, true, true, true);
         emit TipJarUpdated(newTipJar);
         configManager.setTipJar(newTipJar);
-        assertEq(configManager.tipJar(), newTipJar, "TipJar address should be updated");
+        assertEq(
+            configManager.tipJar(),
+            newTipJar,
+            "TipJar address should be updated"
+        );
     }
 
     function testSetTipJarByNonGovernor() public {
         address newTipJar = address(6);
         vm.prank(nonGovernor);
-        vm.expectRevert(abi.encodeWithSignature("CallerIsNotGovernor(address)", nonGovernor));
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", nonGovernor)
+        );
         configManager.setTipJar(newTipJar);
     }
 
@@ -83,7 +103,11 @@ contract ConfigurationManagerTest is Test {
             vm.expectEmit(true, true, true, true);
             emit RaftUpdated(newRafts[i]);
             configManager.setRaft(newRafts[i]);
-            assertEq(configManager.raft(), newRafts[i], "Raft address should be updated");
+            assertEq(
+                configManager.raft(),
+                newRafts[i],
+                "Raft address should be updated"
+            );
         }
     }
 
@@ -98,19 +122,31 @@ contract ConfigurationManagerTest is Test {
             vm.expectEmit(true, true, true, true);
             emit TipJarUpdated(newTipJars[i]);
             configManager.setTipJar(newTipJars[i]);
-            assertEq(configManager.tipJar(), newTipJars[i], "TipJar address should be updated");
+            assertEq(
+                configManager.tipJar(),
+                newTipJars[i],
+                "TipJar address should be updated"
+            );
         }
     }
 
     function testSetRaftToZeroAddress() public {
         vm.prank(governor);
         configManager.setRaft(address(0));
-        assertEq(configManager.raft(), address(0), "Raft address should be set to zero address");
+        assertEq(
+            configManager.raft(),
+            address(0),
+            "Raft address should be set to zero address"
+        );
     }
 
     function testSetTipJarToZeroAddress() public {
         vm.prank(governor);
         configManager.setTipJar(address(0));
-        assertEq(configManager.tipJar(), address(0), "TipJar address should be set to zero address");
+        assertEq(
+            configManager.tipJar(),
+            address(0),
+            "TipJar address should be set to zero address"
+        );
     }
 }
