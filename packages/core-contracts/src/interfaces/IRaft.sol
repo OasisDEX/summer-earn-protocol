@@ -16,11 +16,13 @@ interface IRaft is IRaftEvents {
      * @param ark The address of the Ark contract to harvest rewards from.
      * @param rewardToken The address of the reward token to be harvested and swapped.
      * @param swapData Data required for the swap operation, including the target token and minimum received amount.
+     * @param extraHarvestData Additional data required by a protocol to harvest
      */
     function harvestAndBoard(
         address ark,
         address rewardToken,
-        SwapData calldata swapData
+        SwapData calldata swapData,
+        bytes calldata extraHarvestData
     ) external;
 
     /**
@@ -41,8 +43,9 @@ interface IRaft is IRaftEvents {
      * @dev This function only collects rewards, storing them in the Raft contract for later use.
      * @param ark The address of the Ark contract to harvest rewards from.
      * @param rewardToken The address of the reward token to be harvested.
+     * @param extraHarvestData Additional data required by a protocol to harvest
      */
-    function harvest(address ark, address rewardToken) external;
+    function harvest(address ark, address rewardToken, bytes calldata extraHarvestData) external;
 
     /**
      * @notice Retrieves the amount of harvested rewards for a specific Ark and reward token.

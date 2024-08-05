@@ -61,5 +61,5 @@ contract MetaMorphoArk is Ark {
         emit ArkPoked(lastTotalAssets, lastUpdate);
     }
 
-    function _harvest(address rewardToken, bytes) internal override returns (uint256) {}
+    function _harvest(address rewardToken, bytes calldata) internal override returns (uint256) {}
 }

@@ -36,9 +36,10 @@ contract Raft is IRaft, ArkAccessManaged {
     function harvestAndBoard(
         address ark,
         address rewardToken,
-        SwapData calldata swapData
+        SwapData calldata swapData,
+        bytes calldata extraHarvestData
     ) external onlySuperKeeper {
-        harvest(ark, rewardToken);
+        harvest(ark, rewardToken, extraHarvestData);
         swapAndBoard(ark, rewardToken, swapData);
     }
 
@@ -64,8 +65,8 @@ contract Raft is IRaft, ArkAccessManaged {
     /**
      * @inheritdoc IRaft
      */
-    function harvest(address ark, address rewardToken) public {
-        uint256 harvestedAmount = IArk(ark).harvest(rewardToken);
+    function harvest(address ark, address rewardToken, bytes calldata extraHarvestData) public {
+        uint256 harvestedAmount = IArk(ark).harvest(rewardToken, extraHarvestData);
         harvestedRewards[ark][rewardToken] += harvestedAmount;
         emit ArkHarvested(ark, rewardToken);
     }

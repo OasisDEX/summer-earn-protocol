@@ -236,6 +236,6 @@ contract AaveV3ArkTest is Test, IArkEvents {
         emit Harvested(mockClaimedRewardsBalance);
 
         // Act
-        ark.harvest(mockRewardToken);
+        ark.harvest(mockRewardToken, bytes(""));
     }
 }

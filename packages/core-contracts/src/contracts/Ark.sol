@@ -42,9 +42,9 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     /* EXTERNAL - RAFT */
     /* @inheritdoc IArk */
-    function harvest(address rewardToken, bytes additionalData) external returns (uint256) {
+    function harvest(address rewardToken, bytes calldata additionalData) external returns (uint256) {
         _updateRaft(manager.raft());
-        _harvest(rewardToken, additionalData);
+        return _harvest(rewardToken, additionalData);
     }
 
     /* EXTERNAL - COMMANDER */
@@ -121,5 +121,5 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     function _disembark(uint256 amount) internal virtual;
 
-    function _harvest(address rewardToken, bytes additionalData) internal virtual returns (uint256);
+    function _harvest(address rewardToken, bytes calldata additionalData) internal virtual returns (uint256);
 }

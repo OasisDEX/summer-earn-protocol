@@ -105,7 +105,7 @@ contract RaftForkTest is Test, IRaftEvents {
         emit ArkHarvested(address(ark), REWARD_TOKEN);
 
         // Perform the harvest
-        raft.harvest(address(ark), REWARD_TOKEN);
+        raft.harvest(address(ark), REWARD_TOKEN, bytes(""));
 
         // Assert that rewards were harvested
         uint256 harvestedAmount = IERC20(REWARD_TOKEN).balanceOf(address(raft));
@@ -119,7 +119,7 @@ contract RaftForkTest is Test, IRaftEvents {
         // Perform initial harvest
         address testCompWhale = 0xf7Ba2631166e4f7A22a91Def302d873106f0beD8;
         vm.prank(testCompWhale);
-        raft.harvest(address(ark), REWARD_TOKEN);
+        raft.harvest(address(ark), REWARD_TOKEN, bytes(""));
 
         uint256 rewardAmount = IERC20(REWARD_TOKEN).balanceOf(address(raft));
 

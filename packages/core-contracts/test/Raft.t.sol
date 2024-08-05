@@ -48,7 +48,7 @@ contract RaftTest is Test, IRaftEvents {
         emit ArkHarvested(mockArk, mockRewardToken);
 
         // Perform the harvest
-        raft.harvest(mockArk, mockRewardToken);
+        raft.harvest(mockArk, mockRewardToken, bytes(""));
 
         // Assert that the harvested rewards were recorded
         assertEq(
@@ -85,7 +85,7 @@ contract RaftTest is Test, IRaftEvents {
 
         // Perform harvestAndBoard
         vm.prank(superKeeper);
-        raft.harvestAndBoard(mockArk, mockRewardToken, swapData);
+        raft.harvestAndBoard(mockArk, mockRewardToken, swapData, bytes(""));
 
         // Assert that harvested rewards were reset
         assertEq(raft.getHarvestedRewards(mockArk, mockRewardToken), 0);
@@ -98,7 +98,7 @@ contract RaftTest is Test, IRaftEvents {
             abi.encodeWithSelector(IArk.harvest.selector, mockRewardToken),
             abi.encode(REWARD_AMOUNT)
         );
-        raft.harvest(mockArk, mockRewardToken);
+        raft.harvest(mockArk, mockRewardToken, bytes(""));
 
         // Setup swap data
         SwapData memory swapData = SwapData({
@@ -147,7 +147,7 @@ contract RaftTest is Test, IRaftEvents {
     }
 
     function test_SwapFailure() public {
-        raft.harvest(mockArk, mockRewardToken);
+        raft.harvest(mockArk, mockRewardToken, bytes(""));
 
         // Setup swap data
         SwapData memory swapData = SwapData({
@@ -169,7 +169,7 @@ contract RaftTest is Test, IRaftEvents {
     }
 
     function test_InsufficientSwapOutput() public {
-        raft.harvest(mockArk, mockRewardToken);
+        raft.harvest(mockArk, mockRewardToken, bytes(""));
 
         // Setup swap data with higher receiveAtLeast
         SwapData memory swapData = SwapData({
