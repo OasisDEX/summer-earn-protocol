@@ -6,7 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import "../src/types/Percentage.sol";
 
 contract PercentageTest is Test {
-    function testPercentageAddition() public pure {
+    function test_PercentageAddition() public pure {
         Percentage percentageA = Percentage.wrap(10 * PERCENTAGE_FACTOR);
         Percentage percentageB = Percentage.wrap(20 * PERCENTAGE_FACTOR);
 
@@ -15,7 +15,7 @@ contract PercentageTest is Test {
         assertEq(Percentage.unwrap(result), 30 * PERCENTAGE_FACTOR);
     }
 
-    function testPercentageSubtraction() public pure {
+    function test_PercentageSubtraction() public pure {
         Percentage percentageA = Percentage.wrap(30 * PERCENTAGE_FACTOR);
         Percentage percentageB = Percentage.wrap(20 * PERCENTAGE_FACTOR);
 
@@ -24,7 +24,7 @@ contract PercentageTest is Test {
         assertEq(Percentage.unwrap(result), 10 * PERCENTAGE_FACTOR);
     }
 
-    function testPercentageMultiplication() public pure {
+    function test_PercentageMultiplication() public pure {
         Percentage percentageA = Percentage.wrap(50 * PERCENTAGE_FACTOR);
         Percentage percentageB = Percentage.wrap(50 * PERCENTAGE_FACTOR);
 
@@ -33,7 +33,7 @@ contract PercentageTest is Test {
         assertEq(Percentage.unwrap(result), 25 * PERCENTAGE_FACTOR);
     }
 
-    function testPercentageDivision() public pure {
+    function test_PercentageDivision() public pure {
         Percentage percentageA = Percentage.wrap(50 * PERCENTAGE_FACTOR);
         Percentage percentageB = Percentage.wrap(25 * PERCENTAGE_FACTOR);
 
@@ -42,7 +42,7 @@ contract PercentageTest is Test {
         assertEq(Percentage.unwrap(result), 200 * PERCENTAGE_FACTOR);
     }
 
-    function testPercentageLessOrEqualThan() public pure {
+    function test_PercentageLessOrEqualThan() public pure {
         assertTrue(
             Percentage.wrap(50 * PERCENTAGE_FACTOR) <=
                 Percentage.wrap(50 * PERCENTAGE_FACTOR)
@@ -61,7 +61,7 @@ contract PercentageTest is Test {
         );
     }
 
-    function testPercentageLessThan() public pure {
+    function test_PercentageLessThan() public pure {
         assertTrue(
             Percentage.wrap(50 * PERCENTAGE_FACTOR) <
                 Percentage.wrap((50 * PERCENTAGE_FACTOR) + 1)
@@ -80,7 +80,7 @@ contract PercentageTest is Test {
         );
     }
 
-    function testPercentageGreaterOrEqualThan() public pure {
+    function test_PercentageGreaterOrEqualThan() public pure {
         assertTrue(
             Percentage.wrap(50 * PERCENTAGE_FACTOR) >=
                 Percentage.wrap(50 * PERCENTAGE_FACTOR)
@@ -99,7 +99,7 @@ contract PercentageTest is Test {
         );
     }
 
-    function testPercentageGreaterThan() public pure {
+    function test_PercentageGreaterThan() public pure {
         assertTrue(
             Percentage.wrap((50 * PERCENTAGE_FACTOR) + 1) >
                 Percentage.wrap(50 * PERCENTAGE_FACTOR)

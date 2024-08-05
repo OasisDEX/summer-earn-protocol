@@ -43,4 +43,6 @@ contract ArkTestHelpers is Test {
     function mockArkRate(address ark, uint256 rate) internal {
         vm.mockCall(ark, abi.encodeWithSignature("rate()"), abi.encode(rate));
     }
+
+    function test() public {}
 }

@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
-import "../types/Percentage.sol";
+import {Percentage} from "../types/Percentage.sol";
 
 /**
  * @title IFleetCommander Interface
@@ -12,10 +12,16 @@ import "../types/Percentage.sol";
  */
 interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
-     * @notice Retrieves the arks currently linked to fleet
-     * @return An array of linked ark addresses
+     * @notice Retrieves the ark address at the specified index
+     * @param index The index of the ark in the arks array
+     * @return The address of the ark at the specified index
      */
     function arks(uint256 index) external view returns (address);
+
+    /**
+     * @notice Retrieves the arks currently linked to fleet
+     */
+    function getArks() external view returns (address[] memory);
 
     /**
      * @notice Checks if the ark is part of the fleet
@@ -101,13 +107,11 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Sets a new tip rate
-     * @param newTipRateNumerator The new tip rate for the fleet
-     * @param newTipRateDenominator The new tip rate denominator (for fine tune setting)
+     * @param newTipRate The new tip rate as a Percentage
+     * @dev The tip rate is set as a Percentage. Percentages use 18 decimals of precision
+     *      For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)
      */
-    function setTipRate(
-        uint256 newTipRateNumerator,
-        uint256 newTipRateDenominator
-    ) external;
+    function setTipRate(Percentage newTipRate) external;
 
     /**
      * @notice Adds a new Ark

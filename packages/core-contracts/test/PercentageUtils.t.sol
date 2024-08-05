@@ -8,7 +8,7 @@ import "../src/libraries/PercentageUtils.sol";
 contract PercentageUtilsTest is Test {
     using PercentageUtils for uint256;
 
-    function testFromFraction() public pure {
+    function test_FromFraction() public pure {
         Percentage percentage = PercentageUtils.fromFraction(2085, 100);
 
         assertEq(
@@ -17,13 +17,13 @@ contract PercentageUtilsTest is Test {
         );
     }
 
-    function testFromDecimalPercentage() public pure {
+    function test_FromDecimalPercentage() public pure {
         Percentage percentage = PercentageUtils.fromDecimalPercentage(23);
 
         assertEq(Percentage.unwrap(percentage), 23 * PERCENTAGE_FACTOR);
     }
 
-    function testAddPercentage() public pure {
+    function test_AddPercentage() public pure {
         uint256 amount = 100;
         Percentage percentage = PercentageUtils.fromDecimalPercentage(50);
 
@@ -32,7 +32,7 @@ contract PercentageUtilsTest is Test {
         assertEq(result, 150);
     }
 
-    function testSubtractPercentage() public pure {
+    function test_SubtractPercentage() public pure {
         uint256 amount = 100;
         Percentage percentage = PercentageUtils.fromDecimalPercentage(20);
 
@@ -41,7 +41,7 @@ contract PercentageUtilsTest is Test {
         assertEq(result, 80);
     }
 
-    function testApplyPercentage() public pure {
+    function test_ApplyPercentage() public pure {
         uint256 amount = 100;
         Percentage percentage = PercentageUtils.fromDecimalPercentage(40);
 
@@ -50,7 +50,7 @@ contract PercentageUtilsTest is Test {
         assertEq(result, 40);
     }
 
-    function testIsPercentageInRange() public pure {
+    function test_IsPercentageInRange() public pure {
         Percentage percentageInRange0 = PercentageUtils.fromDecimalPercentage(
             0
         );
