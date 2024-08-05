@@ -376,4 +376,44 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.rebalance(rebalanceData);
     }
+
+    function test_rebalanceToBufferArk() public {
+        // Arrange
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: bufferArkAddress,
+            amount: 0
+        });
+
+        // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderCantUseRebalanceOnBufferArk()"
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
+
+    function test_rebalanceFromBufferArk() public {
+        // Arrange
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: bufferArkAddress,
+            toArk: ark1,
+            amount: 0
+        });
+
+        // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderCantUseRebalanceOnBufferArk()"
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
 }

@@ -202,11 +202,13 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_RedeemWithRebalancedFunds() public {
         uint256 userShares = fleetCommander.balanceOf(mockUser);
+        vm.prank(governor);
+        fleetCommander.setMinBufferBalance(0);
 
         // Move some funds to different arks
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,
@@ -215,7 +217,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
 
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark2,
