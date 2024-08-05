@@ -14,7 +14,6 @@ import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     using PercentageUtils for uint256;
 
-contract FleetCommanderMock is Tipper, ERC4626Mock {
     address[] public arks;
 
     constructor(
@@ -69,10 +68,6 @@ contract FleetCommanderMock is Tipper, ERC4626Mock {
 
     function getArks() external view returns (address[] memory) {
         return arks;
-    }
-
-    function arks(uint256) external pure returns (address) {
-        return address(0);
     }
 
     function addArk(address ark) external {}
