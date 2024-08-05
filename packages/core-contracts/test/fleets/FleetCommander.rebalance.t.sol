@@ -416,4 +416,46 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.rebalance(rebalanceData);
     }
+
+    function test_ForceRebalance() public {
+        // Arrange
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
+        uint256 rebalanceAmount = 1000 * 10 ** 6;
+
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+
+        mockToken.mint(bufferArkAddress, initialBufferBalance);
+        mockToken.mint(ark1, 5000 * 10 ** 6);
+        mockToken.mint(ark2, 5000 * 10 ** 6);
+        mockArkRate(ark1, 105);
+        mockArkRate(ark2, 110);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            amount: rebalanceAmount
+        });
+
+        // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(governor);
+        vm.expectEmit();
+        emit IArkEvents.Moved(ark1, ark2, address(mockToken), rebalanceAmount);
+
+        fleetCommander.forceRebalance(rebalanceData);
+
+        // Assert
+        assertEq(
+            IArk(fleetCommander.bufferArk()).totalAssets(),
+            initialBufferBalance,
+            "Buffer balance should remain unchanged"
+        );
+        assertEq(
+            fleetCommander.totalAssets(),
+            initialBufferBalance + 10000 * 10 ** 6,
+            "Total assets should remain unchanged"
+        );
+    }
 }
