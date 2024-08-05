@@ -5,9 +5,8 @@ import {IRaft} from "../interfaces/IRaft.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {SwapData} from "../types/RaftTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import "../errors/RaftErrors.sol";
-import "./ArkAccessManaged.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 /**
  * @title Raft
@@ -16,7 +15,7 @@ import {Test, console} from "forge-std/Test.sol";
  */
 contract Raft is IRaft, ArkAccessManaged {
     address public swapProvider;
-    mapping(address => mapping(address => uint256)) public harvestedRewards;
+    mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount)) public harvestedRewards;
 
     /**
      * @notice Constructs a new Raft contract.
@@ -40,8 +39,7 @@ contract Raft is IRaft, ArkAccessManaged {
         SwapData calldata swapData
     ) external onlySuperKeeper {
         harvest(ark, rewardToken);
-        _swap(ark, swapData);
-        _board(ark, rewardToken);
+        swapAndBoard(ark, rewardToken, swapData);
     }
 
     /**
@@ -52,9 +50,15 @@ contract Raft is IRaft, ArkAccessManaged {
         address ark,
         address rewardToken,
         SwapData calldata swapData
-    ) external onlySuperKeeper {
+    ) public onlySuperKeeper {
+        uint256 harvestedAmount = harvestedRewards[ark][swapData.fromAsset];
+        if (swapData.amount != harvestedAmount) {
+            revert SwapAmountMustMatchHarvestedAmount(swapData.amount, harvestedAmount, rewardToken);
+        }
         _swap(ark, swapData);
         _board(ark, rewardToken);
+
+        harvestedRewards[ark][rewardToken] = 0;
     }
 
     /**
@@ -113,18 +117,11 @@ contract Raft is IRaft, ArkAccessManaged {
      * @param rewardToken The address of the reward token being reinvested.
      */
     function _board(address ark, address rewardToken) internal {
-        uint256 preSwapRewardBalance = harvestedRewards[ark][rewardToken];
-
-        if (preSwapRewardBalance == 0) {
-            revert NoRewardsToReinvest(ark, rewardToken);
-        }
-
         uint256 balance = IArk(ark).token().balanceOf(address(this));
         IERC20(IArk(ark).token()).approve(ark, balance);
         IArk(ark).board(balance);
 
-        harvestedRewards[ark][rewardToken] = 0;
-
+        uint256 preSwapRewardBalance = harvestedRewards[ark][rewardToken];
         emit RewardBoarded(ark, rewardToken, preSwapRewardBalance, balance);
     }
 }

@@ -13,12 +13,18 @@ import {IConfigurationManager} from "../src/interfaces/IConfigurationManager.sol
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
+import {FleetCommanderMock} from "./mocks/FleetCommanderMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
 
 contract RaftForkTest is Test, IRaftEvents {
+    using PercentageUtils for uint256;
+
     Raft public raft;
     CompoundV3Ark public ark;
     IProtocolAccessManager public accessManager;
     IConfigurationManager public configurationManager;
+    ERC20Mock public underlyingToken;
 
     address public constant SWAP_PROVIDER =
         0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
@@ -31,7 +37,7 @@ contract RaftForkTest is Test, IRaftEvents {
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
     address public governor = address(1);
-    address public commander = address(4);
+    FleetCommanderMock public commander;
     address public keeper = address(8);
     address public tipJar = address(9);
 
@@ -39,6 +45,9 @@ contract RaftForkTest is Test, IRaftEvents {
     uint256 public constant FORK_BLOCK = 20276596;
 
     function setUp() public {
+        underlyingToken = new ERC20Mock();
+        tipJar = address(0x123);
+
         // Create and select a fork of the Ethereum mainnet
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
 
@@ -59,6 +68,12 @@ contract RaftForkTest is Test, IRaftEvents {
             })
         );
 
+        commander = new FleetCommanderMock(
+            address(underlyingToken),
+            address(configurationManager),
+            PercentageUtils.fromDecimalPercentage(1)
+        );
+
         // Setup and deploy CompoundV3Ark
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
@@ -67,14 +82,15 @@ contract RaftForkTest is Test, IRaftEvents {
             maxAllocation: type(uint256).max
         });
         ark = new CompoundV3Ark(COMET_ADDRESS, COMET_REWARDS, params);
+        commander.addArk(address(ark));
 
         // Grant commander role to the commander address
         vm.prank(governor);
-        ark.grantCommanderRole(commander);
+        ark.grantCommanderRole(address(commander));
 
         // Supply USDC to the Ark
-        deal(USDC, commander, SUPPLIED_USDC_AMOUNT);
-        vm.startPrank(commander);
+        deal(USDC, address(commander), SUPPLIED_USDC_AMOUNT);
+        vm.startPrank(address(commander));
         IERC20(USDC).approve(address(ark), SUPPLIED_USDC_AMOUNT);
         ark.board(SUPPLIED_USDC_AMOUNT);
         vm.stopPrank();

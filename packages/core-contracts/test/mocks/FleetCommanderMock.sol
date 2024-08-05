@@ -9,6 +9,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../src/types/Percentage.sol";
 
 contract FleetCommanderMock is Tipper, ERC4626Mock {
+    address[] public arks;
+    mapping(address => bool) public isArkActive;
+
     constructor(
         address underlying,
         address configurationManager,
@@ -34,4 +37,10 @@ contract FleetCommanderMock is Tipper, ERC4626Mock {
     function tip() public returns (uint256) {
         return _accrueTip();
     }
+
+    function addArk(address ark) public {
+        isArkActive[ark] = true;
+        arks.push(ark);
+    }
+
 }

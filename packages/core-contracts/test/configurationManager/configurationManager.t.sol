@@ -35,7 +35,7 @@ contract ConfigurationManagerTest is Test {
         configManager = new ConfigurationManager(params);
     }
 
-    function testInitialState() public {
+    function testInitialState() public view {
         assertEq(
             configManager.raft(),
             initialRaft,

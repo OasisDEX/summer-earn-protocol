@@ -6,6 +6,7 @@ import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {IArk} from "../../interfaces/IArk.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;
@@ -48,7 +49,7 @@ contract CompoundV3Ark is Ark {
         comet.withdraw(address(token), amount);
     }
 
-    function harvest(address rewardToken) external override returns (uint256) {
+    function _harvest(address rewardToken, bytes) internal override returns (uint256) {
         cometRewards.claim(address(comet), address(this), true);
 
         uint256 claimedRewardsBalance = IERC20(rewardToken).balanceOf(

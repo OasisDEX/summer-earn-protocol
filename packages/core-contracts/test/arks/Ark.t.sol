@@ -2,10 +2,10 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../../src/contracts/arks/AaveV3Ark.sol";
-import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "../../src/events/IArkEvents.sol";
+import {AaveV3Ark, ArkParams} from "../../src/contracts/arks/AaveV3Ark.sol";
+import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
@@ -14,6 +14,7 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {DataTypes} from "../../src/interfaces/aave-v3/DataTypes.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import "../../src/errors/AccessControlErrors.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
     ArkMock public ark;
@@ -209,7 +210,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         mockToken.approve(address(ark), amount);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "CallerIsNotCommanderOrArk(address)",
+                "CallerIsNotAuthorizedToBoard(address)",
                 nonArk
             )
         );

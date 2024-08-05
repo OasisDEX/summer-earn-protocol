@@ -9,6 +9,7 @@ import "../interfaces/IConfigurationManager.sol";
 import "../types/Percentage.sol";
 import "../libraries/PercentageUtils.sol";
 import "../libraries/MathUtils.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 /**
  * @title Tipper
@@ -52,8 +53,11 @@ abstract contract Tipper is ITipper {
         manager = IConfigurationManager(configurationManager);
 
         tipRate = initialTipRate;
+        console.log("H1");
         tipJar = manager.tipJar();
+        console.log("H2");
         lastTipTimestamp = block.timestamp;
+        console.log("H3");
     }
 
     // Internal function that must be implemented by the inheriting contract

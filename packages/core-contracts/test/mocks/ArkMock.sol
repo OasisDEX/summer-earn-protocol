@@ -21,4 +21,6 @@ contract ArkMock is Ark {
     function _board(uint256 amount) internal override {}
 
     function _disembark(uint256 amount) internal override {}
+
+    function _harvest(address rewardToken) internal override returns (uint256) {}
 }

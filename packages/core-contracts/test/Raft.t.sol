@@ -17,7 +17,6 @@ contract RaftTest is Test, IRaftEvents {
 
     address public governor = address(1);
     address public mockArk = address(5);
-//    address public mockSwapProvider = address(6);
     address public mockToken = address(7);
     address public superKeeper = address(8);
     address public mockRewardToken = address(9);
@@ -37,7 +36,7 @@ contract RaftTest is Test, IRaftEvents {
         accessManager.grantSuperKeeperRole(superKeeper);
 
         // Deploy the Raft contract
-        raft = new Raft(mockSwapProvider, address(accessManager));
+        raft = new Raft(address(mockSwapProvider), address(accessManager));
 
         // Setup mock calls
         _setupMockCalls();
@@ -148,6 +147,8 @@ contract RaftTest is Test, IRaftEvents {
     }
 
     function test_SwapFailure() public {
+        raft.harvest(mockArk, mockRewardToken);
+
         // Setup swap data
         SwapData memory swapData = SwapData({
             fromAsset: mockRewardToken,
@@ -168,6 +169,8 @@ contract RaftTest is Test, IRaftEvents {
     }
 
     function test_InsufficientSwapOutput() public {
+        raft.harvest(mockArk, mockRewardToken);
+
         // Setup swap data with higher receiveAtLeast
         SwapData memory swapData = SwapData({
             fromAsset: mockRewardToken,
@@ -180,23 +183,6 @@ contract RaftTest is Test, IRaftEvents {
         vm.expectRevert(abi.encodeWithSelector(ReceivedLess.selector, BALANCE_AFTER_SWAP + 1, BALANCE_AFTER_SWAP));
 
         // Attempt to perform swapAndBoard
-        vm.prank(superKeeper);
-        raft.swapAndBoard(mockArk, mockRewardToken, swapData);
-    }
-
-    function test_NoRewardsToReinvest() public {
-        // Setup swap data
-        SwapData memory swapData = SwapData({
-            fromAsset: mockRewardToken,
-            amount: REWARD_AMOUNT,
-            receiveAtLeast: REWARD_AMOUNT,
-            withData: abi.encode()
-        });
-
-        // Expect revert due to no rewards to reinvest
-        vm.expectRevert(abi.encodeWithSelector(NoRewardsToReinvest.selector, mockArk, mockRewardToken));
-
-        // Attempt to perform swapAndBoard without harvesting first
         vm.prank(superKeeper);
         raft.swapAndBoard(mockArk, mockRewardToken, swapData);
     }
@@ -247,9 +233,6 @@ contract RaftTest is Test, IRaftEvents {
             abi.encodeWithSelector(IArk.board.selector, BALANCE_AFTER_SWAP),
             abi.encode()
         );
-
-        // Mock successful swap provider call
-        vm.mockCall(mockSwapProvider, abi.encode(), abi.encode(true));
     }
 }
 

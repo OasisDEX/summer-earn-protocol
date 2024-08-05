@@ -91,13 +91,5 @@ interface IArk is IArkAccessManaged, IArkEvents {
      */
     function setMaxAllocation(uint256 newMaxAllocation) external;
 
-    /* FUNCTIONS - EXTERNAL - GOVERNANCE */
-
-    /**
-     * @notice Sets a new Raft address for the Ark
-     * @param newRaft The address of the new Raft
-     */
-    function setRaft(address newRaft) external;
-
     error InvalidVaultAddress();
 }

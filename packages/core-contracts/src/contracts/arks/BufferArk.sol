@@ -17,4 +17,6 @@ contract BufferArk is Ark {
     function _board(uint256 amount) internal override {}
 
     function _disembark(uint256 amount) internal override {}
+
+    function _harvest(address rewardToken, bytes) internal override returns (uint256) {}
 }

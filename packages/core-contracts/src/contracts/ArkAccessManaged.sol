@@ -4,8 +4,10 @@ pragma solidity 0.8.26;
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
-import "../errors/AccessControlErrors.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IArk} from "../interfaces/IArk.sol";
+import "../errors/AccessControlErrors.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 /**
  * @title ArkAccessControl
@@ -44,14 +46,23 @@ contract ArkAccessManaged is
     }
 
     /**
-     * @dev Modifier to check that the caller has the Commander role
+     * @dev Modifier to check that the caller has the appropriate role to board
+     *      Options being: Commander, another Ark or the RAFT contract
      */
-    modifier onlyRaftOrCommander() {
-        if (
-            !hasRole(_accessManager.COMMANDER_ROLE(), msg.sender) &&
-            msg.sender != IArk(address(this)).raft()
-        ) {
-            revert CallerIsNotRaftOrCommander(msg.sender);
+    modifier onlyAuthorizedToBoard(address commander) {
+        console.log("ONLY AUTH");
+        if (!hasCommanderRole()) {
+            address msgSender = _msgSender();
+            console.log("msgSender", msgSender);
+            bool isRaft = msgSender == IArk(address(this)).raft();
+            console.log("isRaft", isRaft);
+            bool isArk = IFleetCommander(commander).isArkActive(msgSender);
+            console.log("isArk", isArk);
+            if (!isArk && !isRaft) {
+                console.log("Reverting");
+                revert CallerIsNotAuthorizedToBoard(msgSender);
+            }
+            console.log("HERE");
         }
         _;
     }
