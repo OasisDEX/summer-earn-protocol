@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../../src/contracts/arks/CompoundV3Ark.sol";
+import {BufferArk, ArkParams} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/errors/AccessControlErrors.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "../../src/events/IArkEvents.sol";
@@ -12,8 +12,8 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
-contract CompoundV3ArkTest is Test, IArkEvents {
-    CompoundV3Ark public ark;
+contract BufferArkTest is Test, IArkEvents {
+    BufferArk public ark;
     IProtocolAccessManager accessManager;
     IConfigurationManager configurationManager;
     address public governor = address(1);
@@ -21,14 +21,10 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     address public tipJar = address(3);
     address public commander = address(4);
 
-    address public constant cometAddress =
-        0xc3d688B66703497DAA19211EEdff47f25384cdc3;
-    IComet public comet;
     ERC20Mock public mockToken;
 
     function setUp() public {
         mockToken = new ERC20Mock();
-        comet = IComet(cometAddress);
 
         accessManager = new ProtocolAccessManager(governor);
 
@@ -46,7 +42,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             maxAllocation: type(uint256).max
         });
-        ark = new CompoundV3Ark(address(comet), params);
+        ark = new BufferArk(params);
 
         // Permissioning
         vm.prank(governor);
@@ -60,8 +56,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             maxAllocation: type(uint256).max
         });
-        ark = new CompoundV3Ark(address(comet), params);
-        assertEq(address(ark.comet()), address(comet));
+        ark = new BufferArk(params);
         assertEq(address(ark.token()), address(mockToken));
         assertEq(ark.maxAllocation(), type(uint256).max);
     }
@@ -72,25 +67,6 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         mockToken.mint(commander, amount);
         vm.prank(commander);
         mockToken.approve(address(ark), amount);
-
-        vm.mockCall(
-            address(comet),
-            abi.encodeWithSelector(
-                comet.supply.selector,
-                address(mockToken),
-                amount
-            ),
-            abi.encode()
-        );
-
-        vm.expectCall(
-            address(comet),
-            abi.encodeWithSelector(
-                comet.supply.selector,
-                address(mockToken),
-                amount
-            )
-        );
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -105,25 +81,6 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(address(ark), amount);
-
-        vm.mockCall(
-            address(comet),
-            abi.encodeWithSelector(
-                comet.withdraw.selector,
-                address(mockToken),
-                amount
-            ),
-            abi.encode(amount)
-        );
-
-        vm.expectCall(
-            address(comet),
-            abi.encodeWithSelector(
-                comet.withdraw.selector,
-                address(mockToken),
-                amount
-            )
-        );
 
         // Expect the Disembarked event to be emitted
         vm.expectEmit();

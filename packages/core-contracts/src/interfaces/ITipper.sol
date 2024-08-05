@@ -12,8 +12,8 @@ import {Percentage} from "../types/Percentage.sol";
 interface ITipper is ITipperEvents {
     /**
      * @notice Get the current tip rate
-     * @return The current tip rate using the Percentage type
-     * @dev A tip rate of 100 represents 1%, 10000 represents 100%
+     * @return The current tip rate
+     * @dev A tip rate of 100 * 1e18 represents 100%
      */
     function tipRate() external view returns (Percentage);
 

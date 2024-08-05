@@ -9,10 +9,10 @@ import {IArk} from "../interfaces/IArk.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import "../errors/FleetCommanderErrors.sol";
-import {PercentageUtils} from "../libraries/PercentageUtils.sol";
 import {Tipper} from "./Tipper.sol";
 import {ITipper} from "../interfaces/ITipper.sol";
+import {Percentage} from "../types/Percentage.sol";
+import "../errors/FleetCommanderErrors.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -25,7 +25,6 @@ contract FleetCommander is
     CooldownEnforcer
 {
     using SafeERC20 for IERC20;
-    using PercentageUtils for uint256;
 
     address[] public arks;
     IArk public bufferArk;
@@ -237,6 +236,10 @@ contract FleetCommander is
         }
     }
 
+    function getArks() public view returns (address[] memory) {
+        return arks;
+    }
+
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256) {
@@ -300,11 +303,6 @@ contract FleetCommander is
 
         uint256 totalMoved = _rebalance(rebalanceData);
 
-        uint256 finalBufferBalance = bufferArk.totalAssets();
-        if (finalBufferBalance < minFundsBufferBalance) {
-            revert FleetCommanderInsufficientBuffer();
-        }
-
         emit FleetCommanderBufferAdjusted(_msgSender(), totalMoved);
     }
 
@@ -321,23 +319,12 @@ contract FleetCommander is
     /**
      * @notice Sets a new tip rate for the protocol
      * @dev Only callable by the governor
-     * @param newTipRateNumerator The numerator of the new tip rate fraction
-     * @param newTipRateDenominator The denominator of the new tip rate fraction
-     * @dev The tip rate is set as a fraction (newTipRateNumerator / newTipRateDenominator)
-     *      For example, for a 5.5% rate, you might pass (55, 1000)
+     * @dev The tip rate is set as a Percentage. Percentages use 18 decimals of precision
+     *      For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)
+     * @param newTipRate The new tip rate as a Percentage
      */
-    function setTipRate(
-        uint256 newTipRateNumerator,
-        uint256 newTipRateDenominator
-    ) external onlyGovernor {
-        // Convert the fraction to the internal Percentage representation
-        // This uses the PercentageUtils library to create a Percentage struct
-        _setTipRate(
-            PercentageUtils.fromFraction(
-                newTipRateNumerator,
-                newTipRateDenominator
-            )
-        );
+    function setTipRate(Percentage newTipRate) external onlyGovernor {
+        _setTipRate(newTipRate);
     }
 
     function addArk(address ark) external onlyGovernor {
@@ -362,24 +349,7 @@ contract FleetCommander is
             revert FleetCommanderArkNotFound(ark);
         }
 
-        uint256 oldMaxAllocation = IArk(ark).maxAllocation();
         IArk(ark).setMaxAllocation(newMaxAllocation);
-
-        // Update arks if necessary
-        bool wasActive = oldMaxAllocation > 0;
-        bool isNowActive = newMaxAllocation > 0;
-
-        if (!wasActive && isNowActive) {
-            arks.push(ark);
-        } else if (wasActive && !isNowActive) {
-            for (uint256 i = 0; i < arks.length; i++) {
-                if (arks[i] == ark) {
-                    arks[i] = arks[arks.length - 1];
-                    arks.pop();
-                    break;
-                }
-            }
-        }
 
         emit ArkMaxAllocationUpdated(ark, newMaxAllocation);
     }
@@ -609,7 +579,6 @@ contract FleetCommander is
         if (_ark.maxAllocation() > 0) {
             revert FleetCommanderArkMaxAllocationGreaterThanZero(ark);
         }
-
         if (_ark.totalAssets() != 0) {
             revert FleetCommanderArkAssetsNotZero(ark);
         }
