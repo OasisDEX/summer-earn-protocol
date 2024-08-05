@@ -178,7 +178,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.disembark(amount, commander);
+        ark.disembark(amount);
     }
 
     function test_Harvest() public {

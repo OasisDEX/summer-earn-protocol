@@ -120,6 +120,6 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.disembark(amount, commander);
+        ark.disembark(amount);
     }
 }

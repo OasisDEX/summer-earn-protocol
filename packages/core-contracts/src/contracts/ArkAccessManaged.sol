@@ -33,10 +33,14 @@ contract ArkAccessManaged is
      * @dev Modifier to check that the caller has the Commander role
      */
     modifier onlyCommander() {
-        if (!hasRole(_accessManager.COMMANDER_ROLE(), msg.sender)) {
+        if (!hasCommanderRole()) {
             revert CallerIsNotCommander(msg.sender);
         }
         _;
+    }
+
+    function hasCommanderRole() internal view returns (bool) {
+        return hasRole(_accessManager.COMMANDER_ROLE(), msg.sender);
     }
 
     /**

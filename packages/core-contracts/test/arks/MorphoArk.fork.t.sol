@@ -192,7 +192,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         emit Disembarked(commander, USDC_ADDRESS, amountToWithdraw);
 
         vm.prank(commander);
-        ark.disembark(amountToWithdraw, commander);
+        ark.disembark(amountToWithdraw);
 
         uint256 finalBalance = usdc.balanceOf(commander);
         assertEq(
