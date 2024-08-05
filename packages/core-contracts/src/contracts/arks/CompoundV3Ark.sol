@@ -49,7 +49,10 @@ contract CompoundV3Ark is Ark {
         comet.withdraw(address(token), amount);
     }
 
-    function _harvest(address rewardToken, bytes calldata) internal override returns (uint256) {
+    function _harvest(
+        address rewardToken,
+        bytes calldata
+    ) internal override returns (uint256) {
         cometRewards.claim(address(comet), address(this), true);
 
         uint256 claimedRewardsBalance = IERC20(rewardToken).balanceOf(

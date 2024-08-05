@@ -42,5 +42,4 @@ contract FleetCommanderMock is Tipper, ERC4626Mock {
         isArkActive[ark] = true;
         arks.push(ark);
     }
-
 }

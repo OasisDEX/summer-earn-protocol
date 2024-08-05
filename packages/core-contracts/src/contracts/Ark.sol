@@ -25,9 +25,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     constructor(
         ArkParams memory _params
     ) ArkAccessManaged(_params.accessManager) {
-        manager = IConfigurationManager(
-            _params.configurationManager
-        );
+        manager = IConfigurationManager(_params.configurationManager);
         maxAllocation = _params.maxAllocation;
         raft = manager.raft();
         token = IERC20(_params.token);
@@ -42,7 +40,10 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     /* EXTERNAL - RAFT */
     /* @inheritdoc IArk */
-    function harvest(address rewardToken, bytes calldata additionalData) external returns (uint256) {
+    function harvest(
+        address rewardToken,
+        bytes calldata additionalData
+    ) external returns (uint256) {
         _updateRaft(manager.raft());
         return _harvest(rewardToken, additionalData);
     }
@@ -121,5 +122,8 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     function _disembark(uint256 amount) internal virtual;
 
-    function _harvest(address rewardToken, bytes calldata additionalData) internal virtual returns (uint256);
+    function _harvest(
+        address rewardToken,
+        bytes calldata additionalData
+    ) internal virtual returns (uint256);
 }

@@ -50,7 +50,10 @@ contract AaveV3Ark is Ark {
         return IERC20(aToken).balanceOf(address(this));
     }
 
-    function _harvest(address rewardToken, bytes calldata) internal override returns (uint256) {
+    function _harvest(
+        address rewardToken,
+        bytes calldata
+    ) internal override returns (uint256) {
         (, address aTokenAddress, ) = aaveV3DataProvider
             .getReserveTokensAddresses(address(token));
         address[] memory incentivizedAssets = new address[](1);

@@ -63,7 +63,10 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @param additionalData Optional bytes that might be required by a specific protocol to harvest
      * @return The number of reward tokens harvested
      */
-    function harvest(address rewardToken, bytes calldata additionalData) external returns (uint256);
+    function harvest(
+        address rewardToken,
+        bytes calldata additionalData
+    ) external returns (uint256);
 
     /* FUNCTIONS - EXTERNAL - COMMANDER */
 

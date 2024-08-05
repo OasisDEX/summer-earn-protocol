@@ -45,7 +45,11 @@ interface IRaft is IRaftEvents {
      * @param rewardToken The address of the reward token to be harvested.
      * @param extraHarvestData Additional data required by a protocol to harvest
      */
-    function harvest(address ark, address rewardToken, bytes calldata extraHarvestData) external;
+    function harvest(
+        address ark,
+        address rewardToken,
+        bytes calldata extraHarvestData
+    ) external;
 
     /**
      * @notice Retrieves the amount of harvested rewards for a specific Ark and reward token.

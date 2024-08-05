@@ -15,7 +15,8 @@ import "../errors/RaftErrors.sol";
  */
 contract Raft is IRaft, ArkAccessManaged {
     address public swapProvider;
-    mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount)) public harvestedRewards;
+    mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount))
+        public harvestedRewards;
 
     /**
      * @notice Constructs a new Raft contract.
@@ -54,7 +55,11 @@ contract Raft is IRaft, ArkAccessManaged {
     ) public onlySuperKeeper {
         uint256 harvestedAmount = harvestedRewards[ark][swapData.fromAsset];
         if (swapData.amount != harvestedAmount) {
-            revert SwapAmountMustMatchHarvestedAmount(swapData.amount, harvestedAmount, rewardToken);
+            revert SwapAmountMustMatchHarvestedAmount(
+                swapData.amount,
+                harvestedAmount,
+                rewardToken
+            );
         }
         _swap(ark, swapData);
         _board(ark, rewardToken);
@@ -65,8 +70,15 @@ contract Raft is IRaft, ArkAccessManaged {
     /**
      * @inheritdoc IRaft
      */
-    function harvest(address ark, address rewardToken, bytes calldata extraHarvestData) public {
-        uint256 harvestedAmount = IArk(ark).harvest(rewardToken, extraHarvestData);
+    function harvest(
+        address ark,
+        address rewardToken,
+        bytes calldata extraHarvestData
+    ) public {
+        uint256 harvestedAmount = IArk(ark).harvest(
+            rewardToken,
+            extraHarvestData
+        );
         harvestedRewards[ark][rewardToken] += harvestedAmount;
         emit ArkHarvested(ark, rewardToken);
     }

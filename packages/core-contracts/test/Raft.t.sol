@@ -161,7 +161,9 @@ contract RaftTest is Test, IRaftEvents {
         mockSwapProvider.setShouldFail(true);
 
         // Expect revert on swap failure
-        vm.expectRevert(abi.encodeWithSelector(RewardsSwapFailed.selector, superKeeper));
+        vm.expectRevert(
+            abi.encodeWithSelector(RewardsSwapFailed.selector, superKeeper)
+        );
 
         // Attempt to perform swapAndBoard
         vm.prank(superKeeper);
@@ -180,7 +182,13 @@ contract RaftTest is Test, IRaftEvents {
         });
 
         // Expect revert due to insufficient swap output
-        vm.expectRevert(abi.encodeWithSelector(ReceivedLess.selector, BALANCE_AFTER_SWAP + 1, BALANCE_AFTER_SWAP));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ReceivedLess.selector,
+                BALANCE_AFTER_SWAP + 1,
+                BALANCE_AFTER_SWAP
+            )
+        );
 
         // Attempt to perform swapAndBoard
         vm.prank(superKeeper);
