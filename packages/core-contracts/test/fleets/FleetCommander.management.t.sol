@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderRebalanceAmountZero, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderInvalidBufferAdjustment, FleetCommanderInsufficientBuffer, FleetCommanderCantRebalanceToArk, FleetCommanderArkNotFound, FleetCommanderArkMaxAllocationZero, FleetCommanderArkMaxAllocationGreaterThanZero, FleetCommanderArkAssetsNotZero, FleetCommanderTransfersDisabled} from "../../src/errors/FleetCommanderErrors.sol";
+import {FleetCommanderArkAlreadyExists, FleetCommanderRebalanceAmountZero, FleetCommanderInvalidSourceArk, FleetCommanderInvalidArkAddress, FleetCommanderNoExcessFunds, FleetCommanderInvalidBufferAdjustment, FleetCommanderInsufficientBuffer, FleetCommanderCantRebalanceToArk, FleetCommanderArkNotFound, FleetCommanderArkMaxAllocationZero, FleetCommanderArkMaxAllocationGreaterThanZero, FleetCommanderArkAssetsNotZero, FleetCommanderTransfersDisabled} from "../../src/errors/FleetCommanderErrors.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
@@ -91,6 +91,19 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.removeArk(address(mockArk1));
     }
 
+    function testRemoveSuccessful() public {
+        // First, set max allocation to 0
+        vm.prank(governor);
+        fleetCommander.setMaxAllocation(address(mockArk1), 0);
+
+        vm.prank(governor);
+        vm.expectEmit(false, false, false, true);
+        emit IFleetCommanderEvents.ArkRemoved(address(mockArk1));
+        fleetCommander.removeArk(address(mockArk1));
+        assertEq(fleetCommander.getArks().length, 2);
+        assertEq(fleetCommander.isArkActive(address(mockArk1)), false);
+    }
+
     function testRemoveArkWithNonZeroAssets() public {
         // First, set max allocation to 0
         vm.prank(governor);
@@ -149,5 +162,42 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             )
         );
         fleetCommander.rebalance(rebalanceData);
+    }
+
+    function testSetDepositCap() public {
+        uint256 newDepositCap = 10000;
+        vm.prank(governor);
+        vm.expectEmit(false, false, false, true);
+        emit IFleetCommanderEvents.DepositCapUpdated(newDepositCap);
+        fleetCommander.setDepositCap(newDepositCap);
+        assertEq(fleetCommander.depositCap(), newDepositCap);
+    }
+
+    function testAddArkWithAddressZero() public {
+        vm.expectRevert(FleetCommanderInvalidArkAddress.selector);
+        vm.prank(governor);
+        fleetCommander.addArk(address(0));
+    }
+
+    function testAddAlreadyExistingArk() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FleetCommanderArkAlreadyExists.selector,
+                address(mockArk1)
+            )
+        );
+        vm.prank(governor);
+        fleetCommander.addArk(address(mockArk1));
+    }
+
+    function testRemoveNotExistingArk() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FleetCommanderArkNotFound.selector,
+                address(0x123)
+            )
+        );
+        vm.prank(governor);
+        fleetCommander.removeArk(address(0x123));
     }
 }
