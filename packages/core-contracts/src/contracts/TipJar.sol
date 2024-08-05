@@ -111,7 +111,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
 
     /**
      * @notice Retrieves information about all tip streams
-     * @return An array of TipStream structs containing all tip stream information
+     * @return allStreams An array of TipStream structs containing all tip stream information
      */
     function getAllTipStreams() external view returns (TipStream[] memory) {
         TipStream[] memory allStreams = new TipStream[](
@@ -143,14 +143,13 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
 
     /**
      * @notice Calculates the total allocation percentage across all tip streams
-     * @return The total allocation as a Percentage
+     * @return total The total allocation as a Percentage
      */
-    function getTotalAllocation() public view returns (Percentage) {
-        Percentage total = toPercentage(0);
+    function getTotalAllocation() public view returns (Percentage total) {
+        total = toPercentage(0);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
             total = total + tipStreams[tipStreamRecipients[i]].allocation;
         }
-        return total;
     }
 
     /**

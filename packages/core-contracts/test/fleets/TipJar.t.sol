@@ -180,7 +180,43 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         assertEq(underlyingToken.balanceOf(treasury), 100 ether);
     }
+    function test_ShakeWith100PercentAllocations() public {
+        address anotherMockTipStreamParticipant = address(5);
 
+        // Setup tip streams
+        vm.startPrank(governor);
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            PercentageUtils.fromDecimalPercentage(60),
+            block.timestamp
+        );
+        tipJar.addTipStream(
+            anotherMockTipStreamParticipant,
+            PercentageUtils.fromDecimalPercentage(40),
+            block.timestamp
+        );
+        vm.stopPrank();
+
+        // Setup mock fleet commander with some balance
+        uint256 initialBalance = 1000 ether;
+        underlyingToken.mint(address(tipJar), initialBalance);
+
+        vm.startPrank(address(tipJar));
+        underlyingToken.approve(address(fleetCommander), initialBalance);
+        fleetCommander.deposit(initialBalance, address(tipJar));
+        vm.stopPrank();
+
+        // Shake the jar
+        tipJar.shake(address(fleetCommander));
+
+        // Check balances
+        assertEq(underlyingToken.balanceOf(mockTipStreamRecipient), 600 ether);
+        assertEq(
+            underlyingToken.balanceOf(anotherMockTipStreamParticipant),
+            400 ether
+        );
+        assertEq(underlyingToken.balanceOf(treasury), 0 ether);
+    }
     function test_ShakeMultiple() public {
         address anotherMockTipStreamParticipant = address(5);
 

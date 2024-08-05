@@ -93,7 +93,7 @@ contract RPowTest is Test {
         tipper.exposed_rpow(2e18, 256, 1e18);
     }
 
-    function testFuzz_rpow(uint256 x, uint256 n) public view {
+    function test_Fuzz_rpow(uint256 x, uint256 n) public view {
         x = bound(x, 0, 1000000002145441671); // Limit to ~8% per year
         n = bound(n, 0, 365 days); // Limit n to max of 365 days
 

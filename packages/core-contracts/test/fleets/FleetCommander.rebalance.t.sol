@@ -305,4 +305,75 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         fleetCommander.rebalance(rebalanceData); // This should succeed
     }
+
+    function test_FleetCommanderRebalanceNoOperations() public {
+        // Arrange
+        RebalanceData[] memory rebalanceData = new RebalanceData[](0);
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature("FleetCommanderRebalanceNoOperations()")
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
+
+    function test_FleetCommanderRebalanceTooManyOperations() public {
+        // Arrange
+        RebalanceData[] memory rebalanceData = new RebalanceData[](10 + 1);
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderRebalanceTooManyOperations(uint256)",
+                10 + 1
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
+
+    function test_TargetArkAddressZero() public {
+        // Arrange
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: address(0), // Invalid target
+            amount: 1000 * 10 ** 6
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
+                address(0)
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
+
+    function test_TSourceArkAddressZero() public {
+        // Arrange
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: address(0), // Invalid target
+            toArk: ark1,
+            amount: 1000 * 10 ** 6
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
+                address(0)
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
 }

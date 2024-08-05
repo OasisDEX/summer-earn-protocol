@@ -19,6 +19,11 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function arks(uint256 index) external view returns (address);
 
     /**
+     * @notice Retrieves the arks currently linked to fleet
+     */
+    function getArks() external view returns (address[] memory);
+
+    /**
      * @notice Checks if the ark is part of the fleet
      * @param ark The address of the Ark
      */

@@ -190,13 +190,50 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         mockToken.mint(address(bufferArkAddress), bufferBalance);
 
-        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
-            fromArk: ark1, // Invalid source, should be FleetCommander
+            fromArk: bufferArkAddress,
             toArk: ark2,
             amount: 1000 * 10 ** 6
         });
+        rebalanceData[1] = RebalanceData({
+            fromArk: ark2,
+            toArk: ark1,
+            amount: 1000 * 10 ** 6
+        });
 
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FleetCommanderInvalidBufferAdjustment.selector
+            )
+        );
+        fleetCommander.adjustBuffer(rebalanceData);
+    }
+
+    function test_AdjustBufferInvalidTargetArk() public {
+        // Arrange
+        uint256 bufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
+
+        // Set buffer balance and min buffer balance
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+
+        mockToken.mint(address(bufferArkAddress), bufferBalance);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark2,
+            toArk: bufferArkAddress,
+            amount: 1000 * 10 ** 6
+        });
+        rebalanceData[1] = RebalanceData({
+            fromArk: ark2,
+            toArk: ark1,
+            amount: 1000 * 10 ** 6
+        });
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
