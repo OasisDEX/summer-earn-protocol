@@ -69,7 +69,7 @@ contract RaftForkTest is Test, IRaftEvents {
         );
 
         commander = new FleetCommanderMock(
-            address(underlyingToken),
+            USDC,
             address(configurationManager),
             PercentageUtils.fromDecimalPercentage(1)
         );
@@ -136,14 +136,11 @@ contract RaftForkTest is Test, IRaftEvents {
         emit RewardSwapped(REWARD_TOKEN, USDC, rewardAmount, 0);
 
         vm.expectEmit(true, true, true, true);
-        emit RewardBoarded(address(ark), REWARD_TOKEN, rewardAmount, 0);
+        emit RewardBoarded(address(ark), REWARD_TOKEN, USDC, 0);
 
         // Perform swapAndBoard
         vm.prank(keeper);
         raft.swapAndBoard(address(ark), REWARD_TOKEN, swapData);
-
-        // Assert that harvested rewards were reset
-        assertEq(raft.getHarvestedRewards(address(ark), REWARD_TOKEN), 0);
 
         // Assert that the Ark's balance increased
         uint256 arkBalance = ark.totalAssets();

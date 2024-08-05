@@ -13,8 +13,8 @@ interface IRaftEvents {
     );
     event RewardBoarded(
         address indexed ark,
-        address indexed rewardToken,
-        uint256 originalRewardBalance,
-        uint256 amountReinvested
+        address indexed fromRewardToken,
+        address indexed toFleetToken,
+        uint256 amountReboarded
     );
 }

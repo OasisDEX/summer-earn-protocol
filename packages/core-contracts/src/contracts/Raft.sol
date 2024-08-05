@@ -40,8 +40,8 @@ contract Raft is IRaft, ArkAccessManaged {
         SwapData calldata swapData,
         bytes calldata extraHarvestData
     ) external onlySuperKeeper {
-        harvest(ark, rewardToken, extraHarvestData);
-        swapAndBoard(ark, rewardToken, swapData);
+        _harvest(ark, rewardToken, extraHarvestData);
+        _swapAndBoard(ark, rewardToken, swapData);
     }
 
     /**
@@ -53,18 +53,7 @@ contract Raft is IRaft, ArkAccessManaged {
         address rewardToken,
         SwapData calldata swapData
     ) public onlySuperKeeper {
-        uint256 harvestedAmount = harvestedRewards[ark][swapData.fromAsset];
-        if (swapData.amount != harvestedAmount) {
-            revert SwapAmountMustMatchHarvestedAmount(
-                swapData.amount,
-                harvestedAmount,
-                rewardToken
-            );
-        }
-        _swap(ark, swapData);
-        _board(ark, rewardToken);
-
-        harvestedRewards[ark][rewardToken] = 0;
+        _swapAndBoard(ark, rewardToken, swapData);
     }
 
     /**
@@ -75,12 +64,7 @@ contract Raft is IRaft, ArkAccessManaged {
         address rewardToken,
         bytes calldata extraHarvestData
     ) public {
-        uint256 harvestedAmount = IArk(ark).harvest(
-            rewardToken,
-            extraHarvestData
-        );
-        harvestedRewards[ark][rewardToken] += harvestedAmount;
-        emit ArkHarvested(ark, rewardToken);
+        _harvest(ark, rewardToken, extraHarvestData);
     }
 
     function setSwapProvider(address newProvider) public onlySuperKeeper {
@@ -95,6 +79,41 @@ contract Raft is IRaft, ArkAccessManaged {
         address rewardToken
     ) external view returns (uint256) {
         return harvestedRewards[ark][rewardToken];
+    }
+
+    function _harvest(
+        address ark,
+        address rewardToken,
+        bytes calldata extraHarvestData
+    ) internal {
+        uint256 harvestedAmount = IArk(ark).harvest(
+            rewardToken,
+            extraHarvestData
+        );
+        harvestedRewards[ark][rewardToken] += harvestedAmount;
+        emit ArkHarvested(ark, rewardToken);
+    }
+
+    function _swapAndBoard(address ark,
+        address rewardToken,
+        SwapData calldata swapData) internal {
+        uint256 harvestedAmount = harvestedRewards[ark][swapData.fromAsset];
+
+        // Ensure we're not trying to swap more than what's harvested
+        if (swapData.amount > harvestedAmount) {
+            revert SwapAmountExceedsHarvestedAmount(swapData.amount, harvestedAmount, rewardToken);
+        }
+
+        uint256 preSwapRewardBalance = IERC20(rewardToken).balanceOf(address(this));
+        _swap(ark, swapData);
+        uint256 postSwapRewardBalance = IERC20(rewardToken).balanceOf(address(this));
+
+        uint256 swappedAmount = postSwapRewardBalance - preSwapRewardBalance;
+
+        _board(ark, rewardToken);
+
+        uint256 remainingRewards = harvestedAmount - swappedAmount;
+        harvestedRewards[ark][rewardToken] = remainingRewards;
     }
 
     /**
@@ -130,11 +149,11 @@ contract Raft is IRaft, ArkAccessManaged {
      * @param rewardToken The address of the reward token being reinvested.
      */
     function _board(address ark, address rewardToken) internal {
-        uint256 balance = IArk(ark).token().balanceOf(address(this));
-        IERC20(IArk(ark).token()).approve(ark, balance);
+        IERC20 fleetToken = IArk(ark).token();
+        uint256 balance = fleetToken.balanceOf(address(this));
+        IERC20(fleetToken).approve(ark, balance);
         IArk(ark).board(balance);
 
-        uint256 preSwapRewardBalance = harvestedRewards[ark][rewardToken];
-        emit RewardBoarded(ark, rewardToken, preSwapRewardBalance, balance);
+        emit RewardBoarded(ark, rewardToken, address(fleetToken), balance);
     }
 }

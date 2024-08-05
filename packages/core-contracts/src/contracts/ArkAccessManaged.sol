@@ -7,7 +7,6 @@ import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import "../errors/AccessControlErrors.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 /**
  * @title ArkAccessControl
@@ -50,19 +49,13 @@ contract ArkAccessManaged is
      *      Options being: Commander, another Ark or the RAFT contract
      */
     modifier onlyAuthorizedToBoard(address commander) {
-        console.log("ONLY AUTH");
         if (!hasCommanderRole()) {
             address msgSender = _msgSender();
-            console.log("msgSender", msgSender);
             bool isRaft = msgSender == IArk(address(this)).raft();
-            console.log("isRaft", isRaft);
             bool isArk = IFleetCommander(commander).isArkActive(msgSender);
-            console.log("isArk", isArk);
             if (!isArk && !isRaft) {
-                console.log("Reverting");
                 revert CallerIsNotAuthorizedToBoard(msgSender);
             }
-            console.log("HERE");
         }
         _;
     }
