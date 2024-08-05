@@ -186,6 +186,10 @@ contract FleetCommander is
         }
     }
 
+    function getArks() public view returns (address[] memory) {
+        return arks;
+    }
+
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256) {
@@ -245,11 +249,6 @@ contract FleetCommander is
 
         uint256 totalMoved = _rebalance(rebalanceData);
 
-        uint256 finalBufferBalance = bufferArk.totalAssets();
-        if (finalBufferBalance < minFundsBufferBalance) {
-            revert FleetCommanderInsufficientBuffer();
-        }
-
         emit FleetCommanderBufferAdjusted(_msgSender(), totalMoved);
     }
 
@@ -307,24 +306,7 @@ contract FleetCommander is
             revert FleetCommanderArkNotFound(ark);
         }
 
-        uint256 oldMaxAllocation = IArk(ark).maxAllocation();
         IArk(ark).setMaxAllocation(newMaxAllocation);
-
-        // Update arks if necessary
-        bool wasActive = oldMaxAllocation > 0;
-        bool isNowActive = newMaxAllocation > 0;
-
-        if (!wasActive && isNowActive) {
-            arks.push(ark);
-        } else if (wasActive && !isNowActive) {
-            for (uint256 i = 0; i < arks.length; i++) {
-                if (arks[i] == ark) {
-                    arks[i] = arks[arks.length - 1];
-                    arks.pop();
-                    break;
-                }
-            }
-        }
 
         emit ArkMaxAllocationUpdated(ark, newMaxAllocation);
     }
@@ -554,7 +536,6 @@ contract FleetCommander is
         if (_ark.maxAllocation() > 0) {
             revert FleetCommanderArkMaxAllocationGreaterThanZero(ark);
         }
-
         if (_ark.totalAssets() != 0) {
             revert FleetCommanderArkAssetsNotZero(ark);
         }
