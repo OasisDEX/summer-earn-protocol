@@ -27,6 +27,8 @@ contract HarborCommandTest is Test {
         harborCommand = new HarborCommand(address(accessManager));
     }
 
+    function testConstructor() public {}
+
     function test_EnlistFleetCommander() public {
         vm.prank(governor);
 
