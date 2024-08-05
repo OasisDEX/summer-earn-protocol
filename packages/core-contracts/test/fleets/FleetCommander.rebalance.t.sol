@@ -306,7 +306,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData); // This should succeed
     }
 
-    function testFleetCommanderRebalanceNoOperations() public {
+    function test_FleetCommanderRebalanceNoOperations() public {
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](0);
 
@@ -319,7 +319,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testFleetCommanderRebalanceTooManyOperations() public {
+    function test_FleetCommanderRebalanceTooManyOperations() public {
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](10 + 1);
 
@@ -335,7 +335,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testTargetArkAddressZero() public {
+    function test_TargetArkAddressZero() public {
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -356,7 +356,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testTSourceArkAddressZero() public {
+    function test_TSourceArkAddressZero() public {
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({

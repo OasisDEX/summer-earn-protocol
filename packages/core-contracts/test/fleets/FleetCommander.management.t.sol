@@ -20,7 +20,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         initializeFleetCommanderWithMockArks(initialTipRate);
     }
 
-    function testConstructorInitialization() public {
+    function test_ConstructorInitialization() public {
         FleetCommanderParams memory params = FleetCommanderParams({
             configurationManager: address(configurationManager),
             accessManager: address(accessManager),
@@ -45,7 +45,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
 
-    function testGetArks() public {
+    function test_GetArks() public {
         address[] memory arks = fleetCommander.getArks();
         assertEq(arks.length, 3);
         assertEq(arks[0], address(mockArk1));
@@ -53,7 +53,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertEq(arks[2], address(mockArk3));
     }
 
-    function testSetMaxAllocationArkNotFound() public {
+    function test_SetMaxAllocationArkNotFound() public {
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -64,7 +64,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.setMaxAllocation(address(0x123), 1000);
     }
 
-    function testSetMinBufferBalance() public {
+    function test_SetMinBufferBalance() public {
         uint256 newBalance = 2000;
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
@@ -75,12 +75,12 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertEq(fleetCommander.minFundsBufferBalance(), newBalance);
     }
 
-    function testTransferDisabled() public {
+    function test_TransferDisabled() public {
         vm.expectRevert(FleetCommanderTransfersDisabled.selector);
         fleetCommander.transfer(address(0x123), 100);
     }
 
-    function testRemoveArkWithNonZeroAllocation() public {
+    function test_RemoveArkWithNonZeroAllocation() public {
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -91,7 +91,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.removeArk(address(mockArk1));
     }
 
-    function testRemoveSuccessful() public {
+    function test_RemoveSuccessful() public {
         // First, set max allocation to 0
         vm.prank(governor);
         fleetCommander.setMaxAllocation(address(mockArk1), 0);
@@ -104,7 +104,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertEq(fleetCommander.isArkActive(address(mockArk1)), false);
     }
 
-    function testRemoveArkWithNonZeroAssets() public {
+    function test_RemoveArkWithNonZeroAssets() public {
         // First, set max allocation to 0
         vm.prank(governor);
         fleetCommander.setMaxAllocation(address(mockArk1), 0);
@@ -122,7 +122,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.removeArk(address(mockArk1));
     }
 
-    function testRebalanceWithInvalidArk() public {
+    function test_RebalanceWithInvalidArk() public {
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: address(0),
@@ -141,7 +141,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testRebalanceToArkWithZeroMaxAllocation() public {
+    function test_RebalanceToArkWithZeroMaxAllocation() public {
         // Set max allocation of mockArk1 to 0
         vm.prank(governor);
         fleetCommander.setMaxAllocation(address(mockArk1), 0);
@@ -164,7 +164,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function testSetDepositCap() public {
+    function test_SetDepositCap() public {
         uint256 newDepositCap = 10000;
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
@@ -173,13 +173,13 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertEq(fleetCommander.depositCap(), newDepositCap);
     }
 
-    function testAddArkWithAddressZero() public {
+    function test_AddArkWithAddressZero() public {
         vm.expectRevert(FleetCommanderInvalidArkAddress.selector);
         vm.prank(governor);
         fleetCommander.addArk(address(0));
     }
 
-    function testAddAlreadyExistingArk() public {
+    function test_AddAlreadyExistingArk() public {
         vm.expectRevert(
             abi.encodeWithSelector(
                 FleetCommanderArkAlreadyExists.selector,
@@ -190,7 +190,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.addArk(address(mockArk1));
     }
 
-    function testRemoveNotExistingArk() public {
+    function test_RemoveNotExistingArk() public {
         vm.expectRevert(
             abi.encodeWithSelector(
                 FleetCommanderArkNotFound.selector,

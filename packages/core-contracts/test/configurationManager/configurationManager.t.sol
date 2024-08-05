@@ -35,7 +35,7 @@ contract ConfigurationManagerTest is Test {
         configManager = new ConfigurationManager(params);
     }
 
-    function testConstructor() public {
+    function test_Constructor() public {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             accessManager: address(accessManager),
             raft: initialRaft,
@@ -54,7 +54,7 @@ contract ConfigurationManagerTest is Test {
         );
     }
 
-    function testSetRaftByGovernor() public {
+    function test_SetRaftByGovernor() public {
         address newRaft = address(5);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
@@ -67,7 +67,7 @@ contract ConfigurationManagerTest is Test {
         );
     }
 
-    function testSetRaftByNonGovernor() public {
+    function test_SetRaftByNonGovernor() public {
         address newRaft = address(5);
         vm.prank(nonGovernor);
         vm.expectRevert(
@@ -76,7 +76,7 @@ contract ConfigurationManagerTest is Test {
         configManager.setRaft(newRaft);
     }
 
-    function testSetTipJarByGovernor() public {
+    function test_SetTipJarByGovernor() public {
         address newTipJar = address(6);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
@@ -89,7 +89,7 @@ contract ConfigurationManagerTest is Test {
         );
     }
 
-    function testSetTipJarByNonGovernor() public {
+    function test_SetTipJarByNonGovernor() public {
         address newTipJar = address(6);
         vm.prank(nonGovernor);
         vm.expectRevert(
@@ -98,7 +98,7 @@ contract ConfigurationManagerTest is Test {
         configManager.setTipJar(newTipJar);
     }
 
-    function testMultipleRaftUpdates() public {
+    function test_MultipleRaftUpdates() public {
         address[] memory newRafts = new address[](3);
         newRafts[0] = address(7);
         newRafts[1] = address(8);
@@ -117,7 +117,7 @@ contract ConfigurationManagerTest is Test {
         }
     }
 
-    function testMultipleTipJarUpdates() public {
+    function test_MultipleTipJarUpdates() public {
         address[] memory newTipJars = new address[](3);
         newTipJars[0] = address(10);
         newTipJars[1] = address(11);
@@ -136,7 +136,7 @@ contract ConfigurationManagerTest is Test {
         }
     }
 
-    function testSetRaftToZeroAddress() public {
+    function test_SetRaftToZeroAddress() public {
         vm.prank(governor);
         configManager.setRaft(address(0));
         assertEq(
@@ -146,7 +146,7 @@ contract ConfigurationManagerTest is Test {
         );
     }
 
-    function testSetTipJarToZeroAddress() public {
+    function test_SetTipJarToZeroAddress() public {
         vm.prank(governor);
         configManager.setTipJar(address(0));
         assertEq(

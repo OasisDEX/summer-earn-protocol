@@ -222,7 +222,7 @@ contract ConfigurationManagerImplMock is ConfigurationManagerMock {
         tipJar = newTipJar;
     }
 
-    function test() public {}
+    function test_() public {}
 }
 
 contract TipperHarness is Tipper {
@@ -244,5 +244,5 @@ contract TipperHarness is Tipper {
         uint256 amount
     ) internal virtual override {}
 
-    function test() public {}
+    function test_() public {}
 }

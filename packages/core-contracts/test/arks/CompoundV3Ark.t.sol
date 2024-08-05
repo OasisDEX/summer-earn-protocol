@@ -53,7 +53,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         ark.grantCommanderRole(commander);
     }
 
-    function testConstructor() public {
+    function test_Constructor() public {
         ArkParams memory params = ArkParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
@@ -66,7 +66,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         assertEq(ark.maxAllocation(), type(uint256).max);
     }
 
-    function testBoard() public {
+    function test_Board() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(commander, amount);
@@ -101,7 +101,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         ark.board(amount);
     }
 
-    function testDisembark() public {
+    function test_Disembark() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(address(ark), amount);

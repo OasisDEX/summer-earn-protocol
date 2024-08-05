@@ -23,7 +23,7 @@ contract ProtocolAccessManagerTest is Test {
         accessManager = new ProtocolAccessManager(governor);
     }
 
-    function testConstructor() public {
+    function test_Constructor() public {
         assertTrue(
             accessManager.hasRole(accessManager.DEFAULT_ADMIN_ROLE(), governor)
         );
@@ -32,7 +32,7 @@ contract ProtocolAccessManagerTest is Test {
         );
     }
 
-    function testSupportsInterface() public {
+    function test_SupportsInterface() public {
         assertTrue(
             accessManager.supportsInterface(
                 type(IProtocolAccessManager).interfaceId
@@ -40,7 +40,7 @@ contract ProtocolAccessManagerTest is Test {
         );
     }
 
-    function testGrantAdminRole() public {
+    function test_GrantAdminRole() public {
         vm.prank(governor);
         accessManager.grantAdminRole(admin);
         assertTrue(
@@ -48,7 +48,7 @@ contract ProtocolAccessManagerTest is Test {
         );
     }
 
-    function testRevokeAdminRole() public {
+    function test_RevokeAdminRole() public {
         vm.startPrank(governor);
         accessManager.grantAdminRole(admin);
         accessManager.revokeAdminRole(admin);
@@ -58,13 +58,13 @@ contract ProtocolAccessManagerTest is Test {
         );
     }
 
-    function testGrantGovernorRole() public {
+    function test_GrantGovernorRole() public {
         vm.prank(governor);
         accessManager.grantGovernorRole(user);
         assertTrue(accessManager.hasRole(accessManager.GOVERNOR_ROLE(), user));
     }
 
-    function testRevokeGovernorRole() public {
+    function test_RevokeGovernorRole() public {
         vm.startPrank(governor);
         accessManager.grantGovernorRole(user);
         accessManager.revokeGovernorRole(user);
@@ -72,13 +72,13 @@ contract ProtocolAccessManagerTest is Test {
         assertFalse(accessManager.hasRole(accessManager.GOVERNOR_ROLE(), user));
     }
 
-    function testGrantKeeperRole() public {
+    function test_GrantKeeperRole() public {
         vm.prank(governor);
         accessManager.grantKeeperRole(keeper);
         assertTrue(accessManager.hasRole(accessManager.KEEPER_ROLE(), keeper));
     }
 
-    function testRevokeKeeperRole() public {
+    function test_RevokeKeeperRole() public {
         vm.startPrank(governor);
         accessManager.grantKeeperRole(keeper);
         accessManager.revokeKeeperRole(keeper);
@@ -86,7 +86,7 @@ contract ProtocolAccessManagerTest is Test {
         assertFalse(accessManager.hasRole(accessManager.KEEPER_ROLE(), keeper));
     }
 
-    function testOnlyAdminModifier() public {
+    function test_OnlyAdminModifier() public {
         vm.expectRevert(
             abi.encodeWithSelector(CallerIsNotAdmin.selector, user)
         );
@@ -94,7 +94,7 @@ contract ProtocolAccessManagerTest is Test {
         accessManager.grantAdminRole(user);
     }
 
-    function testOnlyGovernorModifier() public {
+    function test_OnlyGovernorModifier() public {
         vm.expectRevert(
             abi.encodeWithSelector(CallerIsNotGovernor.selector, user)
         );
