@@ -221,6 +221,8 @@ contract ConfigurationManagerImplMock is ConfigurationManagerMock {
     function setTipJar(address newTipJar) external override {
         tipJar = newTipJar;
     }
+
+    function test() public {}
 }
 
 contract TipperHarness is Tipper {
@@ -241,4 +243,6 @@ contract TipperHarness is Tipper {
         address account,
         uint256 amount
     ) internal virtual override {}
+
+    function test() public {}
 }

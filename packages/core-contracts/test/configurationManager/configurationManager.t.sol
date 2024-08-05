@@ -35,7 +35,13 @@ contract ConfigurationManagerTest is Test {
         configManager = new ConfigurationManager(params);
     }
 
-    function testInitialState() public {
+    function testConstructor() public {
+        ConfigurationManagerParams memory params = ConfigurationManagerParams({
+            accessManager: address(accessManager),
+            raft: initialRaft,
+            tipJar: initialTipJar
+        });
+        configManager = new ConfigurationManager(params);
         assertEq(
             configManager.raft(),
             initialRaft,

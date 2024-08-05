@@ -95,4 +95,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function updateRebalanceCooldown(uint256 newCooldown) external {}
 
     function maxForceWithdraw(address owner) external view returns (uint256) {}
+
+    function test() public {}
 }

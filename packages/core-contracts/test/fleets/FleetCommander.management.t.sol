@@ -45,6 +45,14 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
 
+    function testGetArks() public {
+        address[] memory arks = fleetCommander.getArks();
+        assertEq(arks.length, 3);
+        assertEq(arks[0], address(mockArk1));
+        assertEq(arks[1], address(mockArk2));
+        assertEq(arks[2], address(mockArk3));
+    }
+
     function testSetMaxAllocationArkNotFound() public {
         vm.prank(governor);
         vm.expectRevert(
