@@ -62,7 +62,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             maxAllocation: type(uint256).max
         });
-        ark = new CompoundV3Ark(address(comet), params);
+        ark = new CompoundV3Ark(address(comet), cometRewards, params);
         assertEq(address(ark.comet()), address(comet));
         assertEq(address(ark.token()), address(mockToken));
         assertEq(ark.maxAllocation(), type(uint256).max);

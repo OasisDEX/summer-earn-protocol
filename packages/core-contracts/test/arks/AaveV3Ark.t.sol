@@ -143,8 +143,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
             address(aaveAddressProvider),
             abi.encodeWithSelector(
                 IPoolAddressesProvider(aaveAddressProvider)
-                .getPoolDataProvider
-                .selector
+                    .getPoolDataProvider
+                    .selector
             ),
             abi.encode(aaveV3DataProvider)
         );
@@ -153,7 +153,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
             abi.encodeWithSelector(IPoolV3(aaveV3Pool).getReserveData.selector),
             abi.encode(reserveData)
         );
-        ark = new AaveV3Ark(address(aaveV3Pool), params);
+        ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
         assertEq(address(ark.aaveV3Pool()), address(aaveV3Pool));
         assertEq(address(ark.aaveV3DataProvider()), aaveV3DataProvider);
 

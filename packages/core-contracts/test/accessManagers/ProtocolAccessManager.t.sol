@@ -23,7 +23,7 @@ contract ProtocolAccessManagerTest is Test {
         accessManager = new ProtocolAccessManager(governor);
     }
 
-    function test_Constructor() public {
+    function test_Constructor() public view {
         assertTrue(
             accessManager.hasRole(accessManager.DEFAULT_ADMIN_ROLE(), governor)
         );
@@ -32,7 +32,7 @@ contract ProtocolAccessManagerTest is Test {
         );
     }
 
-    function test_SupportsInterface() public {
+    function test_SupportsInterface() public view {
         assertTrue(
             accessManager.supportsInterface(
                 type(IProtocolAccessManager).interfaceId

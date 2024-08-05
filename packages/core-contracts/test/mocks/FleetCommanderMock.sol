@@ -67,7 +67,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         return _accrueTip();
     }
 
-    function addArk(address ark) public {
+    function addArk(address ark) external {
         isArkActive[ark] = true;
         arks.push(ark);
     }
@@ -76,13 +76,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         return arks;
     }
 
-    function addArk(address ark) external {}
-
     function removeArk(address ark) external {}
-
-    function isArkActive(address) external pure returns (bool) {
-        return false;
-    }
 
     function addArks(address[] memory _arks) external {}
 
