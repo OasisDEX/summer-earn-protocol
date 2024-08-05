@@ -4,11 +4,12 @@ pragma solidity 0.8.26;
 import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {FleetCommander} from "./FleetCommander.sol";
+
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {Percentage, PERCENTAGE_100, toPercentage} from "../types/Percentage.sol";
+import {PercentageUtils} from "../libraries/PercentageUtils.sol";
+import {MathUtils} from "../libraries/MathUtils.sol";
 import "../errors/TipperErrors.sol";
-import "../interfaces/IConfigurationManager.sol";
-import "../types/Percentage.sol";
-import "../libraries/PercentageUtils.sol";
-import "../libraries/MathUtils.sol";
 
 /**
  * @title Tipper
@@ -19,7 +20,8 @@ abstract contract Tipper is ITipper {
     using MathUtils for Percentage;
 
     /**
-     * @notice The current tip rate in basis points
+     * @notice The current tip rate (as Percentage)
+     * @dev Percentages have 18 decimals of precision
      */
     Percentage public tipRate;
 

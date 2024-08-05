@@ -9,10 +9,10 @@ import {IArk} from "../interfaces/IArk.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import "../errors/FleetCommanderErrors.sol";
-import {PercentageUtils} from "../libraries/PercentageUtils.sol";
 import {Tipper} from "./Tipper.sol";
 import {ITipper} from "../interfaces/ITipper.sol";
+import {Percentage} from "../types/Percentage.sol";
+import "../errors/FleetCommanderErrors.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -25,7 +25,6 @@ contract FleetCommander is
     CooldownEnforcer
 {
     using SafeERC20 for IERC20;
-    using PercentageUtils for uint256;
 
     address[] public arks;
     IArk public bufferArk;
@@ -265,23 +264,12 @@ contract FleetCommander is
     /**
      * @notice Sets a new tip rate for the protocol
      * @dev Only callable by the governor
-     * @param newTipRateNumerator The numerator of the new tip rate fraction
-     * @param newTipRateDenominator The denominator of the new tip rate fraction
-     * @dev The tip rate is set as a fraction (newTipRateNumerator / newTipRateDenominator)
-     *      For example, for a 5.5% rate, you might pass (55, 1000)
+     * @dev The tip rate is set as a Percentage. Percentages use 18 decimals of precision
+     *      For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)
+     * @param newTipRate The new tip rate as a Percentage
      */
-    function setTipRate(
-        uint256 newTipRateNumerator,
-        uint256 newTipRateDenominator
-    ) external onlyGovernor {
-        // Convert the fraction to the internal Percentage representation
-        // This uses the PercentageUtils library to create a Percentage struct
-        _setTipRate(
-            PercentageUtils.fromFraction(
-                newTipRateNumerator,
-                newTipRateDenominator
-            )
-        );
+    function setTipRate(Percentage newTipRate) external onlyGovernor {
+        _setTipRate(newTipRate);
     }
 
     function addArk(address ark) external onlyGovernor {

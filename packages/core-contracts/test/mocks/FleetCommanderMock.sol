@@ -5,8 +5,14 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ERC4626Mock, ERC4626, ERC20} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
+import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../src/types/Percentage.sol";
+import {Percentage} from "../../src/types/Percentage.sol";
+import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+
+contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
+    using PercentageUtils for uint256;
 
 contract FleetCommanderMock is Tipper, ERC4626Mock {
     address[] public arks;
@@ -24,7 +30,31 @@ contract FleetCommanderMock is Tipper, ERC4626Mock {
         _mint(account, amount);
     }
 
-    // Expose internal functions for testing
+    function testMint(address account, uint256 amount) public {
+        _mint(account, amount);
+    }
+
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) public override(IFleetCommander, ERC4626) returns (uint256) {
+        return super.deposit(assets, receiver);
+    }
+
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override(IFleetCommander, ERC4626) returns (uint256) {
+        return super.withdraw(assets, receiver, owner);
+    }
+
+    function forceWithdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) external returns (uint256) {}
+
     function setTipRate(Percentage newTipRate) external {
         _setTipRate(newTipRate);
     }
@@ -40,4 +70,34 @@ contract FleetCommanderMock is Tipper, ERC4626Mock {
     function getArks() external view returns (address[] memory) {
         return arks;
     }
+
+    function arks(uint256) external pure returns (address) {
+        return address(0);
+    }
+
+    function addArk(address ark) external {}
+
+    function removeArk(address ark) external {}
+
+    function isArkActive(address) external pure returns (bool) {
+        return false;
+    }
+
+    function addArks(address[] memory _arks) external {}
+
+    function adjustBuffer(RebalanceData[] calldata data) external {}
+
+    function emergencyShutdown() external {}
+
+    function setDepositCap(uint256 newCap) external {}
+
+    function setMaxAllocation(address ark, uint256 newMaxAllocation) external {}
+
+    function rebalance(RebalanceData[] calldata data) external {}
+
+    function forceRebalance(RebalanceData[] calldata data) external {}
+
+    function updateRebalanceCooldown(uint256 newCooldown) external {}
+
+    function maxForceWithdraw(address owner) external view returns (uint256) {}
 }

@@ -9,32 +9,16 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
-import "../../src/libraries/PercentageUtils.sol";
-import "../../src/types/Percentage.sol";
-
-abstract contract MockConfigurationManager is IConfigurationManager {
-    address public tipJar;
-
-    constructor(address _tipJar) {
-        tipJar = _tipJar;
-    }
-
-    // Implement other IConfigurationManager functions with empty bodies
-    function raft() external pure returns (address) {}
-
-    function tipRate() external pure returns (uint8) {}
-
-    function setRaft(address) external pure {}
-
-    function setTipRate(uint8) external pure {}
-}
+import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+import {Percentage} from "../../src/types/Percentage.sol";
+import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 
 contract TipperTest is Test, ITipperEvents {
     using PercentageUtils for uint256;
 
     address public mockUser = address(1);
     FleetCommanderMock public fleetCommander;
-    MockConfigurationManager public configManager;
+    ConfigurationManagerMock public configManager;
 
     ERC20Mock public underlyingToken;
     address public tipJar;
@@ -45,8 +29,8 @@ contract TipperTest is Test, ITipperEvents {
         underlyingToken = new ERC20Mock();
         tipJar = address(0x123);
         initialTipRate = PercentageUtils.fromDecimalPercentage(1);
-        configManager = MockConfigurationManager(
-            address(new MockConfigurationManagerImpl(tipJar))
+        configManager = ConfigurationManagerMock(
+            address(new ConfigurationManagerImplMock(tipJar))
         );
         fleetCommander = new FleetCommanderMock(
             address(underlyingToken),
@@ -60,10 +44,7 @@ contract TipperTest is Test, ITipperEvents {
 
     function test_InitialState() public view {
         assertEq(address(fleetCommander.manager()), address(configManager));
-        assertEq(
-            Percentage.unwrap(fleetCommander.tipRate()),
-            Percentage.unwrap(initialTipRate)
-        );
+        assertTrue(fleetCommander.tipRate() == initialTipRate);
         assertEq(fleetCommander.tipJar(), tipJar);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
     }
@@ -73,10 +54,7 @@ contract TipperTest is Test, ITipperEvents {
         vm.expectEmit(true, true, false, true);
         emit TipRateUpdated(newTipRate);
         fleetCommander.setTipRate(newTipRate);
-        assertEq(
-            Percentage.unwrap(fleetCommander.tipRate()),
-            Percentage.unwrap(newTipRate)
-        );
+        assertTrue(fleetCommander.tipRate() == newTipRate);
     }
 
     function test_SetTipJar() public {
@@ -138,8 +116,8 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_SetTipJarCannotBeZeroAddress() public {
-        MockConfigurationManager _configManager = MockConfigurationManager(
-            address(new MockConfigurationManagerImpl(address(0)))
+        ConfigurationManagerMock _configManager = ConfigurationManagerMock(
+            address(new ConfigurationManagerImplMock(address(0)))
         );
         FleetCommanderMock _fleetCommander = new FleetCommanderMock(
             address(underlyingToken),
@@ -237,9 +215,8 @@ contract TipperTest is Test, ITipperEvents {
     }
 }
 
-// Concrete implementation of MockConfigurationManager
-contract MockConfigurationManagerImpl is MockConfigurationManager {
-    constructor(address _tipJar) MockConfigurationManager(_tipJar) {}
+contract ConfigurationManagerImplMock is ConfigurationManagerMock {
+    constructor(address _tipJar) ConfigurationManagerMock(_tipJar) {}
 
     function setTipJar(address newTipJar) external override {
         tipJar = newTipJar;
@@ -250,7 +227,7 @@ contract TipperHarness is Tipper {
     constructor(
         address configurationManager
     ) Tipper(configurationManager, PercentageUtils.fromDecimalPercentage(0)) {
-        tipRate = PercentageUtils.fromDecimalPercentage(1);
+        tipRate = PercentageUtils.fromDecimalPercentage(1); // 1%
     }
 
     function exposed_calculateTip(
