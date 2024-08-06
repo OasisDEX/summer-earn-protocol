@@ -3,17 +3,14 @@ pragma solidity 0.8.26;
 
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {Constants} from "./Constants.sol";
 
-/**
- * @title Ark Test Helpers
- * @notice Provides helper functions for testing Ark contracts
- */
-contract ArkTestHelpers is Test {
-    /**
-     * @notice Mocks the return value of `totalAssets` for a given Ark contract
-     * @param contractAddress The address of the Ark contract whose `totalAssets` function is to be mocked
-     * @param returnValue The value to return when `totalAssets` is called
-     */
+/// @title Ark Test Helpers
+/// @notice Provides helper functions for testing Ark contracts
+contract ArkTestHelpers is Test, Constants {
+    /// @notice Mocks the return value of `totalAssets` for a given Ark contract
+    /// @param contractAddress The address of the Ark contract whose `totalAssets` function is to be mocked
+    /// @param returnValue The value to return when `totalAssets` is called
     function mockArkTotalAssets(
         address contractAddress,
         uint256 returnValue
