@@ -236,4 +236,6 @@ contract MockSwapProvider {
     fallback() external {
         require(!shouldFail, "Swap failed");
     }
+
+    function test() external {}
 }

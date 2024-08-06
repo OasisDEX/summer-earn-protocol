@@ -52,16 +52,12 @@ contract CompoundV3Ark is Ark {
     function _harvest(
         address rewardToken,
         bytes calldata
-    ) internal override returns (uint256) {
+    ) internal override returns (uint256 claimedRewardsBalance) {
         cometRewards.claim(address(comet), address(this), true);
 
-        uint256 claimedRewardsBalance = IERC20(rewardToken).balanceOf(
-            address(this)
-        );
+        claimedRewardsBalance = IERC20(rewardToken).balanceOf(address(this));
         IERC20(rewardToken).safeTransfer(raft, claimedRewardsBalance);
 
         emit Harvested(claimedRewardsBalance);
-
-        return claimedRewardsBalance;
     }
 }
