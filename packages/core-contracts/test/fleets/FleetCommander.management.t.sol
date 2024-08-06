@@ -148,7 +148,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: bufferArkAddress,
+            fromArk: address(mockArk2),
             toArk: address(mockArk1),
             amount: 100
         });

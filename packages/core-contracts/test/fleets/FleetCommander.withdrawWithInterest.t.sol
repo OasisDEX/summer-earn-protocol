@@ -40,6 +40,9 @@ contract WithdrawWithInterestTest is
 
         // Simulate interest accrual
         mockToken.mint(address(fleetCommander.bufferArk()), INTEREST_AMOUNT);
+
+        vm.prank(governor);
+        fleetCommander.setMinBufferBalance(0);
     }
 
     function test_ConversionRateChange() public {
@@ -77,7 +80,7 @@ contract WithdrawWithInterestTest is
     function test_WithdrawBufferPlusOne() public {
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,

@@ -40,6 +40,9 @@ contract RedeemWithInterestTest is
 
         // Simulate interest accrual
         mockToken.mint(address(fleetCommander.bufferArk()), INTEREST_AMOUNT);
+
+        vm.prank(governor);
+        fleetCommander.setMinBufferBalance(0);
     }
 
     function test_ConversionRateChange() public {
@@ -80,7 +83,7 @@ contract RedeemWithInterestTest is
     function test_RedeemBufferPlusOne() public {
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,

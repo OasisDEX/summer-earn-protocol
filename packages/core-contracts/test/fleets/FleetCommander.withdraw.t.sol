@@ -42,6 +42,9 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.stopPrank();
 
         initialConversionRate = fleetCommander.convertToAssets(1000000);
+
+        vm.prank(governor);
+        fleetCommander.setMinBufferBalance(0);
     }
 
     function test_ConversionRateChange() public {
@@ -294,7 +297,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Move some funds to different arks
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,
@@ -302,7 +305,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             )
         );
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark2,
@@ -353,7 +356,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,
@@ -447,7 +450,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,
@@ -489,7 +492,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,
@@ -511,7 +514,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark1,
@@ -519,7 +522,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             )
         );
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.rebalance(
+        fleetCommander.adjustBuffer(
             generateRebalanceData(
                 address(fleetCommander.bufferArk()),
                 ark2,
