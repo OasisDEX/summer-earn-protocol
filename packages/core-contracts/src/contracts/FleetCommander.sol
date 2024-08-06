@@ -238,6 +238,7 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip {
+        // Validate that no operations are moving to or from the bufferArk
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
@@ -314,6 +315,7 @@ contract FleetCommander is
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor collectTip {
+        // Validate that no operations are moving to or from the bufferArk
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }

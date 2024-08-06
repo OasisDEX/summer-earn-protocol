@@ -377,7 +377,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function test_rebalanceToBufferArk() public {
+    function test_rebalanceToBufferArk_ShouldFail() public {
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
