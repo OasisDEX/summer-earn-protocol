@@ -327,7 +327,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertApproxEqAbs(
             fleetCommander.totalAssets(),
             0,
-            1000, // Allow for small rounding errors
+            1, // Allow for small rounding errors
             "Total assets should be close to 0 after withdrawals"
         );
     }
