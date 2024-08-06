@@ -30,8 +30,6 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             asset: address(mockToken),
             name: "Fleet Commander",
             symbol: "FC",
-            initialMinimumPositionWithdrawal: Percentage.wrap(0),
-            initialMaximumBufferWithdrawal: Percentage.wrap(0),
             depositCap: 10000,
             bufferArk: bufferArkAddress,
             initialTipRate: Percentage.wrap(0)

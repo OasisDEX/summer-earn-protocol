@@ -41,10 +41,6 @@ contract FleetCommanderDeploy is DeploymentScript {
             asset: config.usdcToken,
             name: fleetName,
             symbol: fleetSymbol,
-            initialMinimumPositionWithdrawal: PercentageUtils
-                .fromDecimalPercentage(2),
-            initialMaximumBufferWithdrawal: PercentageUtils
-                .fromDecimalPercentage(20),
             depositCap: type(uint256).max,
             bufferArk: config.bufferArk,
             initialTipRate: Percentage.wrap(config.tipRate)

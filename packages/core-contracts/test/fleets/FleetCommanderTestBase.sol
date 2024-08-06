@@ -127,10 +127,6 @@ abstract contract FleetCommanderTestBase is Test {
             name: fleetName,
             symbol: "TEST-SUM",
             initialTipRate: initialTipRate,
-            initialMinimumPositionWithdrawal: PercentageUtils
-                .fromDecimalPercentage(2),
-            initialMaximumBufferWithdrawal: PercentageUtils
-                .fromDecimalPercentage(20),
             depositCap: type(uint256).max,
             bufferArk: bufferArkAddress
         });

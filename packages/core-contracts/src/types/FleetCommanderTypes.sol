@@ -7,18 +7,16 @@ import "./Percentage.sol";
  * @notice Configuration parameters for the FleetCommander contract
  */
 struct FleetCommanderParams {
-    address configurationManager;
-    address accessManager;
-    address[] initialArks;
-    uint256 initialMinimumFundsBufferBalance;
-    uint256 initialRebalanceCooldown;
-    address asset;
     string name;
     string symbol;
-    Percentage initialMinimumPositionWithdrawal;
-    Percentage initialMaximumBufferWithdrawal;
-    uint256 depositCap;
+    address[] initialArks;
+    address configurationManager;
+    address accessManager;
+    address asset;
     address bufferArk;
+    uint256 initialMinimumFundsBufferBalance;
+    uint256 initialRebalanceCooldown;
+    uint256 depositCap;
     Percentage initialTipRate;
 }
 
