@@ -154,11 +154,10 @@ contract RaftTest is Test, IRaftEvents {
 
     function test_SetSwapProvider() public {
         // Attempt to set new swap provider as non-superkeeper
+        address notGovernor = address(0x123);
+        vm.prank(notGovernor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                CallerIsNotSuperKeeper.selector,
-                address(this)
-            )
+            abi.encodeWithSelector(CallerIsNotSuperKeeper.selector, notGovernor)
         );
         raft.setSwapProvider(newSwapProvider);
 

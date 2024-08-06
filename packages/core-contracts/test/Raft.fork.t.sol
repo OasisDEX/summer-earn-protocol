@@ -161,9 +161,6 @@ contract RaftForkTest is Test, IRaftEvents {
         // Advance time to accumulate rewards
         vm.warp(block.timestamp + 1000000);
 
-        console.log("RAFT");
-        console.log(address(raft));
-
         // Mock the harvest call
         vm.mockCall(
             address(ark),
@@ -215,6 +212,64 @@ contract RaftForkTest is Test, IRaftEvents {
                 SWAPPED_MIN_AMOUNT,
                 ACTUAL_SWAPPED_AMOUNT
             )
+        );
+
+        // Attempt to perform swapAndBoard
+        vm.prank(keeper);
+        raft.swapAndBoard(address(ark), WSTETH_REWARD, swapData);
+    }
+
+    function test_SwapFail() public {
+        address WSTETH_REWARD = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+        uint256 HARVESTED_AMOUNT = 1000000000000000000000; // 100 WSTETH
+        uint256 SWAPPED_MIN_AMOUNT = 2892000000000;
+
+        // Advance time to accumulate rewards
+        vm.warp(block.timestamp + 1000000);
+
+        // Mock the harvest call
+        vm.mockCall(
+            address(ark),
+            abi.encodeWithSelector(
+                IArk.harvest.selector,
+                WSTETH_REWARD,
+                bytes("")
+            ),
+            abi.encode(HARVESTED_AMOUNT)
+        );
+
+        // Perform initial harvest
+        raft.harvest(address(ark), WSTETH_REWARD, bytes(""));
+
+        // Manually add WSTETH balance to the Raft contract
+        deal(WSTETH_REWARD, address(raft), HARVESTED_AMOUNT);
+
+        // Verify the balance
+        uint256 rewardAmount = IERC20(WSTETH_REWARD).balanceOf(address(raft));
+        assertEq(
+            rewardAmount,
+            HARVESTED_AMOUNT,
+            "WSTETH balance should match harvested amount"
+        );
+
+        // Prepare swap data with a high receiveAtLeast value
+        SwapData memory swapData = SwapData({
+            fromAsset: WSTETH_REWARD,
+            amount: HARVESTED_AMOUNT,
+            receiveAtLeast: SWAPPED_MIN_AMOUNT,
+            withData: swapCalldata // Use the stored calldata
+        });
+
+        //        // Mock the swap call to simulate a successful swap but with less than expected amount
+        //        vm.mockCall(
+        //            SWAP_PROVIDER,
+        //            swapData.withData,
+        //            abi.encode(ACTUAL_SWAPPED_AMOUNT)
+        //        );
+
+        // Expect the ReceivedLess error
+        vm.expectRevert(
+            abi.encodeWithSelector(RewardsSwapFailed.selector, keeper)
         );
 
         // Attempt to perform swapAndBoard

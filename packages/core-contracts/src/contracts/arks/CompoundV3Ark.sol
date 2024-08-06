@@ -6,7 +6,6 @@ import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {IArk} from "../../interfaces/IArk.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;
