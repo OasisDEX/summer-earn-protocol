@@ -11,7 +11,7 @@ contract MetaMorphoArk is Ark {
     uint256 public constant RAY = 1e27;
     IMetaMorpho public immutable metaMorpho;
     uint256 lastUpdate;
-    uint256 lastTotalAssets;
+    uint256 lastPrice;
 
     constructor(address _metaMorpho, ArkParams memory _params) Ark(_params) {
         if (_metaMorpho == address(0)) {
@@ -21,13 +21,13 @@ contract MetaMorphoArk is Ark {
     }
 
     function rate() public view override returns (uint256 supplyRate) {
-        uint256 currentTotalAssets = this.totalAssets();
+        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
         uint256 timeDelta = block.timestamp - lastUpdate;
 
-        if (timeDelta > 0 && lastTotalAssets > 0) {
+        if (timeDelta > 0 && lastPrice > 0) {
             supplyRate =
-                ((currentTotalAssets - lastTotalAssets) * 365 days * RAY) /
-                (lastTotalAssets * timeDelta);
+                ((currentPrice - lastPrice) * 365 days * RAY) /
+                (lastPrice * timeDelta);
         }
     }
 
@@ -51,13 +51,13 @@ contract MetaMorphoArk is Ark {
             emit ArkPokedTooSoon();
             return;
         }
-        uint256 currentTotalAssets = this.totalAssets();
-        if (currentTotalAssets == lastTotalAssets) {
+        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
+        if (currentPrice == lastPrice) {
             emit ArkPokedNoChange();
             return;
         }
-        lastTotalAssets = currentTotalAssets;
+        lastPrice = currentPrice;
         lastUpdate = block.timestamp;
-        emit ArkPoked(lastTotalAssets, lastUpdate);
+        emit ArkPoked(lastPrice, lastUpdate);
     }
 }
