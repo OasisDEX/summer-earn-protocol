@@ -83,7 +83,11 @@ contract RaftTest is Test, IRaftEvents {
     function test_SwapAndBoard() public {
         vm.mockCall(
             mockArk,
-            abi.encodeWithSelector(IArk.harvest.selector, mockRewardToken, bytes("")),
+            abi.encodeWithSelector(
+                IArk.harvest.selector,
+                mockRewardToken,
+                bytes("")
+            ),
             abi.encode(REWARD_AMOUNT)
         );
         raft.harvest(mockArk, mockRewardToken, bytes(""));
@@ -118,7 +122,11 @@ contract RaftTest is Test, IRaftEvents {
     function test_SwapAmountExceedsHarvested() public {
         vm.mockCall(
             mockArk,
-            abi.encodeWithSelector(IArk.harvest.selector, mockRewardToken, bytes("")),
+            abi.encodeWithSelector(
+                IArk.harvest.selector,
+                mockRewardToken,
+                bytes("")
+            ),
             abi.encode(REWARD_AMOUNT)
         );
         raft.harvest(mockArk, mockRewardToken, bytes(""));
@@ -130,12 +138,14 @@ contract RaftTest is Test, IRaftEvents {
             withData: abi.encode()
         });
 
-        vm.expectRevert(abi.encodeWithSelector(
-            SwapAmountExceedsHarvestedAmount.selector,
-            REWARD_AMOUNT + 1,
-            REWARD_AMOUNT,
-            mockRewardToken
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SwapAmountExceedsHarvestedAmount.selector,
+                REWARD_AMOUNT + 1,
+                REWARD_AMOUNT,
+                mockRewardToken
+            )
+        );
 
         vm.prank(superKeeper);
         raft.swapAndBoard(mockArk, mockRewardToken, swapData);
@@ -144,7 +154,11 @@ contract RaftTest is Test, IRaftEvents {
     function _setupMockCalls() internal {
         vm.mockCall(
             mockArk,
-            abi.encodeWithSelector(IArk.harvest.selector, mockRewardToken, bytes("")),
+            abi.encodeWithSelector(
+                IArk.harvest.selector,
+                mockRewardToken,
+                bytes("")
+            ),
             abi.encode(REWARD_AMOUNT)
         );
 

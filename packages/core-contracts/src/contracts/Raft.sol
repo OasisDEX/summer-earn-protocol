@@ -94,19 +94,29 @@ contract Raft is IRaft, ArkAccessManaged {
         emit ArkHarvested(ark, rewardToken);
     }
 
-    function _swapAndBoard(address ark,
+    function _swapAndBoard(
+        address ark,
         address rewardToken,
-        SwapData calldata swapData) internal {
+        SwapData calldata swapData
+    ) internal {
         uint256 harvestedAmount = harvestedRewards[ark][swapData.fromAsset];
 
         // Ensure we're not trying to swap more than what's harvested
         if (swapData.amount > harvestedAmount) {
-            revert SwapAmountExceedsHarvestedAmount(swapData.amount, harvestedAmount, rewardToken);
+            revert SwapAmountExceedsHarvestedAmount(
+                swapData.amount,
+                harvestedAmount,
+                rewardToken
+            );
         }
 
-        uint256 preSwapRewardBalance = IERC20(rewardToken).balanceOf(address(this));
+        uint256 preSwapRewardBalance = IERC20(rewardToken).balanceOf(
+            address(this)
+        );
         _swap(ark, swapData);
-        uint256 postSwapRewardBalance = IERC20(rewardToken).balanceOf(address(this));
+        uint256 postSwapRewardBalance = IERC20(rewardToken).balanceOf(
+            address(this)
+        );
 
         uint256 swappedAmount = postSwapRewardBalance - preSwapRewardBalance;
 
