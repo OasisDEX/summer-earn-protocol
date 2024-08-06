@@ -43,7 +43,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
 
-    function test_GetArks() public {
+    function test_GetArks() public view {
         address[] memory arks = fleetCommander.getArks();
         assertEq(arks.length, 3);
         assertEq(arks[0], address(mockArk1));

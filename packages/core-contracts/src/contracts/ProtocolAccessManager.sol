@@ -22,6 +22,12 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     /**
+     * @dev The Super Keeper role is in charge of rebalancing the funds between the different
+     *         Arks through the Fleet Commander
+     */
+    bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
+
+    /**
      * @dev The Commander role is assigned to a FleetCommander and is used to restrict
      *          with whom associated arks can interact
      */
@@ -99,5 +105,15 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /* @inheritdoc IProtocolAccessControl */
     function revokeKeeperRole(address account) external onlyGovernor {
         _revokeRole(KEEPER_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessControl */
+    function grantSuperKeeperRole(address account) external onlyGovernor {
+        _grantRole(SUPER_KEEPER_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessControl */
+    function revokeSuperKeeperRole(address account) external onlyGovernor {
+        _revokeRole(SUPER_KEEPER_ROLE, account);
     }
 }

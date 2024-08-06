@@ -2,12 +2,13 @@
 pragma solidity 0.8.26;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
-
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import {CannotAddCommanderToArkWithCommander, CannotRemoveCommanderFromArkWithAssets, CallerIsNotCommanderOrArk} from "../errors/ArkErrors.sol";
-import {IArk, ArkParams} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import {CannotAddCommanderToArkWithCommander, CannotRemoveCommanderFromArkWithAssets} from "../errors/ArkErrors.sol";
+import {IArk, ArkParams} from "../interfaces/IArk.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../errors/AccessControlErrors.sol";
 
 /**
  * @custom:see IArk
@@ -19,13 +20,12 @@ abstract contract Ark is IArk, ArkAccessManaged {
     uint256 public maxAllocation;
     IERC20 public token;
     address public commander;
+    IConfigurationManager public manager;
 
     constructor(
         ArkParams memory _params
     ) ArkAccessManaged(_params.accessManager) {
-        IConfigurationManager manager = IConfigurationManager(
-            _params.configurationManager
-        );
+        manager = IConfigurationManager(_params.configurationManager);
         maxAllocation = _params.maxAllocation;
         raft = manager.raft();
         token = IERC20(_params.token);
@@ -38,12 +38,19 @@ abstract contract Ark is IArk, ArkAccessManaged {
     /* @inheritdoc IArk */
     function rate() public view virtual returns (uint256) {}
 
+    /* EXTERNAL - RAFT */
     /* @inheritdoc IArk */
-    function harvest() public {}
+    function harvest(
+        address rewardToken,
+        bytes calldata additionalData
+    ) external returns (uint256) {
+        _updateRaft(manager.raft());
+        return _harvest(rewardToken, additionalData);
+    }
 
     /* EXTERNAL - COMMANDER */
     /* @inheritdoc IArk */
-    function board(uint256 amount) external onlyCommanderOrArk {
+    function board(uint256 amount) external onlyAuthorizedToBoard(commander) {
         address msgSender = _msgSender();
         token.safeTransferFrom(msgSender, address(this), amount);
         _board(amount);
@@ -82,7 +89,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     /* EXTERNAL - GOVERNANCE */
 
     /* @inheritdoc IArk */
-    function setRaft(address newRaft) external {}
+    function _updateRaft(address newRaft) internal {}
 
     /**
      * @notice Hook executed before the Commander role is revoked
@@ -115,19 +122,8 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     function _disembark(uint256 amount) internal virtual;
 
-    /* MODIFIERS */
-
-    /**
-     * @dev Modifier to check that the caller has the Commander role or is an Ark
-     */
-    modifier onlyCommanderOrArk() {
-        if (!hasCommanderRole()) {
-            address msgSender = _msgSender();
-            bool isArk = IFleetCommander(commander).isArkActive(msgSender);
-            if (!isArk) {
-                revert CallerIsNotCommanderOrArk(msgSender);
-            }
-        }
-        _;
-    }
+    function _harvest(
+        address rewardToken,
+        bytes calldata additionalData
+    ) internal virtual returns (uint256);
 }

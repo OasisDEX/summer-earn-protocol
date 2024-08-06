@@ -6,6 +6,7 @@ import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 import "../types/Percentage.sol";
 import "../types/ArkTypes.sol";
 import "../events/IArkEvents.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IArk
@@ -16,10 +17,22 @@ interface IArk is IArkAccessManaged, IArkEvents {
     /* FUNCTIONS - PUBLIC */
 
     /**
+     * @notice Returns the address of the associated Raft contract
+     * @return The address of the Raft contract
+     */
+    function raft() external view returns (address);
+
+    /**
      * @notice Returns the maximum allocation for this Ark
      * @return The maximum allocation amount
      */
     function maxAllocation() external view returns (uint256);
+
+    /**
+     * @notice Returns the ERC20 token managed by this Ark
+     * @return The IERC20 interface of the managed token
+     */
+    function token() external view returns (IERC20);
 
     /**
      * @notice Returns the current underlying balance of the Ark
@@ -46,8 +59,14 @@ interface IArk is IArkAccessManaged, IArkEvents {
 
     /**
      * @notice Triggers a harvest operation to collect rewards
+     * @param rewardToken The reward token address
+     * @param additionalData Optional bytes that might be required by a specific protocol to harvest
+     * @return The number of reward tokens harvested
      */
-    function harvest() external;
+    function harvest(
+        address rewardToken,
+        bytes calldata additionalData
+    ) external returns (uint256);
 
     /* FUNCTIONS - EXTERNAL - COMMANDER */
 
@@ -75,14 +94,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @param newMaxAllocation The new maximum allocation amount
      */
     function setMaxAllocation(uint256 newMaxAllocation) external;
-
-    /* FUNCTIONS - EXTERNAL - GOVERNANCE */
-
-    /**
-     * @notice Sets a new Raft address for the Ark
-     * @param newRaft The address of the new Raft
-     */
-    function setRaft(address newRaft) external;
 
     error InvalidVaultAddress();
 }

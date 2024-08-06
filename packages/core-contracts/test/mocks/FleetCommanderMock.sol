@@ -15,6 +15,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     using PercentageUtils for uint256;
 
     address[] public arks;
+    mapping(address => bool) public isArkActive;
 
     constructor(
         address underlying,
@@ -66,17 +67,16 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         return _accrueTip();
     }
 
+    function addArk(address ark) external {
+        isArkActive[ark] = true;
+        arks.push(ark);
+    }
+
     function getArks() external view returns (address[] memory) {
         return arks;
     }
 
-    function addArk(address ark) external {}
-
     function removeArk(address ark) external {}
-
-    function isArkActive(address) external pure returns (bool) {
-        return false;
-    }
 
     function addArks(address[] memory _arks) external {}
 

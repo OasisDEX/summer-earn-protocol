@@ -4,6 +4,8 @@ pragma solidity 0.8.26;
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import {IArk} from "../interfaces/IArk.sol";
 import "../errors/AccessControlErrors.sol";
 
 /**
@@ -40,6 +42,22 @@ contract ArkAccessManaged is
 
     function hasCommanderRole() internal view returns (bool) {
         return hasRole(_accessManager.COMMANDER_ROLE(), msg.sender);
+    }
+
+    /**
+     * @dev Modifier to check that the caller has the appropriate role to board
+     *      Options being: Commander, another Ark or the RAFT contract
+     */
+    modifier onlyAuthorizedToBoard(address commander) {
+        if (!hasCommanderRole()) {
+            address msgSender = _msgSender();
+            bool isRaft = msgSender == IArk(address(this)).raft();
+            bool isArk = IFleetCommander(commander).isArkActive(msgSender);
+            if (!isArk && !isRaft) {
+                revert CallerIsNotAuthorizedToBoard(msgSender);
+            }
+        }
+        _;
     }
 
     /**
