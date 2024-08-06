@@ -420,6 +420,9 @@ contract FleetCommander is
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
         uint256 amount = data.amount;
+        if (amount == type(uint256).max) {
+            amount = fromArk.totalAssets();
+        }
         uint256 toArkMaxAllocation = toArk.maxAllocation();
 
         if (address(toArk) != address(bufferArk)) {
@@ -550,6 +553,9 @@ contract FleetCommander is
         uint256 initialBufferBalance = bufferArk.totalAssets();
         uint256 totalToMove;
         for (uint256 i = 0; i < rebalanceData.length; i++) {
+            if (rebalanceData[i].amount == type(uint256).max) {
+                revert FleetCommanderCantUseMaxUintForBufferAdjustement();
+            }
             totalToMove += rebalanceData[i].amount;
             if (isMovingToBuffer) {
                 if (rebalanceData[i].toArk != address(bufferArk)) {

@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderRebalanceAmountZero, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderInvalidBufferAdjustment, FleetCommanderInsufficientBuffer, FleetCommanderInsufficientBuffer, FleetCommanderCantRebalanceToArk} from "../../src/errors/FleetCommanderErrors.sol";
+import {FleetCommanderCantUseMaxUintForBufferAdjustement, FleetCommanderRebalanceAmountZero, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderInvalidBufferAdjustment, FleetCommanderInsufficientBuffer, FleetCommanderInsufficientBuffer, FleetCommanderCantRebalanceToArk} from "../../src/errors/FleetCommanderErrors.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
@@ -467,6 +467,37 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             abi.encodeWithSelector(
                 FleetCommanderCantRebalanceToArk.selector,
                 ark1
+            )
+        );
+        fleetCommander.adjustBuffer(rebalanceData);
+    }
+
+    function test_AdjustBufferWithMaxUint_ShouldFail() public {
+        // Arrange
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
+        uint256 ark1MaxAllocation = 5000 * 10 ** 6;
+
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        mockToken.mint(address(bufferArkAddress), initialBufferBalance);
+
+        mockArkRate(ark1, 105);
+        mockArkMaxAllocation(ark1, ark1MaxAllocation);
+        mockArkTotalAssets(ark1, ark1MaxAllocation);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: bufferArkAddress,
+            toArk: ark1,
+            amount: type(uint256).max
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FleetCommanderCantUseMaxUintForBufferAdjustement.selector
             )
         );
         fleetCommander.adjustBuffer(rebalanceData);

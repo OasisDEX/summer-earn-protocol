@@ -30,3 +30,4 @@ error FleetCommanderArkAssetsNotZero(address ark);
 error FleetCommanderUnauthorizedWithdrawal(address caller, address owner);
 error FleetCommanderUnauthorizedRedemption(address caller, address owner);
 error FleetCommanderCantUseRebalanceOnBufferArk();
+error FleetCommanderCantUseMaxUintForBufferAdjustement();
