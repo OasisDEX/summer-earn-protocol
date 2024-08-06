@@ -151,6 +151,24 @@ contract RaftTest is Test, IRaftEvents {
         raft.swapAndBoard(mockArk, mockRewardToken, swapData);
     }
 
+    function test_SetSwapProvider() public {
+        // Attempt to set new swap provider as non-superkeeper
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotSuperKeeper(address)",
+                address(this)
+            )
+        );
+        raft.setSwapProvider(newSwapProvider);
+
+        // Set new swap provider as superkeeper
+        vm.prank(superKeeper);
+        raft.setSwapProvider(newSwapProvider);
+
+        // Verify the swap provider has been updated
+        assertEq(raft.swapProvider(), newSwapProvider);
+    }
+
     function _setupMockCalls() internal {
         vm.mockCall(
             mockArk,
