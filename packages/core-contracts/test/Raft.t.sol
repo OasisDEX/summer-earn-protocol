@@ -10,6 +10,7 @@ import {SwapData} from "../src/types/RaftTypes.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 import "../src/errors/RaftErrors.sol";
+import "../src/errors/AccessControlErrors.sol";
 
 contract RaftTest is Test, IRaftEvents {
     Raft public raft;
@@ -154,8 +155,8 @@ contract RaftTest is Test, IRaftEvents {
     function test_SetSwapProvider() public {
         // Attempt to set new swap provider as non-superkeeper
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "CallerIsNotSuperKeeper(address)",
+            abi.encodeWithSelector(
+                CallerIsNotSuperKeeper.selector,
                 address(this)
             )
         );
