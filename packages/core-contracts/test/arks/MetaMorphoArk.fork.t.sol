@@ -85,7 +85,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
 
         // Expect the ArkPoked event to be emitted
         vm.expectEmit();
-        emit ArkPoked(ark.totalAssets() + amount - 1, block.timestamp);
+        emit ArkPoked(metaMorpho.convertToAssets(WAD), block.timestamp);
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -197,13 +197,18 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             newTotalAssets > initialTotalAssets,
             "Total assets should increase over time"
         );
+
         // Case 1 - Ark poked in the right time
         vm.expectEmit();
-        emit ArkPoked(ark.totalAssets(), block.timestamp);
+        emit ArkPoked(metaMorpho.convertToAssets(WAD), block.timestamp);
         ark.poke();
 
-        uint256 currentTotalAssets = ark.totalAssets();
-        mockArkTotalAssets(address(ark), currentTotalAssets);
+        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
+        vm.mockCall(
+            address(metaMorpho),
+            abi.encodeWithSignature("convertToAssets(uint256)", WAD),
+            abi.encode(currentPrice)
+        );
 
         // Case 2 - Ark poked too soon
         vm.expectEmit();
@@ -217,7 +222,11 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         emit ArkPokedNoChange();
         ark.poke();
 
-        mockArkTotalAssets(address(ark), currentTotalAssets + 1);
+        vm.mockCall(
+            address(metaMorpho),
+            abi.encodeWithSignature("convertToAssets(uint256)", WAD),
+            abi.encode(currentPrice + 1)
+        );
 
         uint256 finalTotalAssets = ark.totalAssets();
         assertTrue(
