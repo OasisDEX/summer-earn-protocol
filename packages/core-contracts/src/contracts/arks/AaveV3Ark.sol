@@ -53,13 +53,13 @@ contract AaveV3Ark is Ark {
     function _harvest(
         address rewardToken,
         bytes calldata
-    ) internal override returns (uint256) {
+    ) internal override returns (uint256 claimedRewardsBalance) {
         (, address aTokenAddress, ) = aaveV3DataProvider
             .getReserveTokensAddresses(address(token));
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = aTokenAddress;
 
-        uint256 claimedRewardsBalance = rewardsController.claimRewardsToSelf(
+        claimedRewardsBalance = rewardsController.claimRewardsToSelf(
             incentivizedAssets,
             type(uint256).max,
             rewardToken
@@ -67,8 +67,6 @@ contract AaveV3Ark is Ark {
         IERC20(rewardToken).safeTransfer(raft, claimedRewardsBalance);
 
         emit Harvested(claimedRewardsBalance);
-
-        return claimedRewardsBalance;
     }
 
     function _board(uint256 amount) internal override {
