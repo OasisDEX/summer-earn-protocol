@@ -11,6 +11,7 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ICometRewards} from "../../src/interfaces/compound-v3/ICometRewards.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
@@ -134,5 +135,57 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         // Act
         vm.prank(commander); // Execute the next call as the commander
         ark.disembark(amount);
+    }
+
+    function test_Harvest() public {
+        address mockRewardToken = address(10);
+        uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
+
+        // Mock the call to claim
+        vm.mockCall(
+            address(cometRewards),
+            abi.encodeWithSelector(
+                ICometRewards(cometRewards).claim.selector,
+                address(comet),
+                address(ark),
+                true
+            ),
+            abi.encode()
+        );
+
+        // Mock the balance of reward token after claiming
+        vm.mockCall(
+            mockRewardToken,
+            abi.encodeWithSelector(
+                IERC20(mockRewardToken).balanceOf.selector,
+                address(ark)
+            ),
+            abi.encode(mockClaimedRewardsBalance)
+        );
+
+        // Mock the transfer of reward token to raft
+        vm.mockCall(
+            mockRewardToken,
+            abi.encodeWithSignature(
+                "transfer(address,uint256)",
+                raft,
+                mockClaimedRewardsBalance
+            ),
+            abi.encode(true)
+        );
+
+        // Expect the Harvested event to be emitted
+        vm.expectEmit(false, false, false, true);
+        emit Harvested(mockClaimedRewardsBalance);
+
+        // Act
+        uint256 harvestedAmount = ark.harvest(mockRewardToken, bytes(""));
+
+        // Assert
+        assertEq(
+            harvestedAmount,
+            mockClaimedRewardsBalance,
+            "Harvested amount should match mocked balance"
+        );
     }
 }
