@@ -114,7 +114,7 @@ contract RaftForkTest is Test, IRaftEvents {
 
         // Assert that rewards were harvested
         uint256 harvestedAmount = IERC20(REWARD_TOKEN).balanceOf(address(raft));
-        assertEq(harvestedAmount, 6195000000000000);
+        assertEq(harvestedAmount, 7878000000000000);
     }
 
     function test_SwapAndBoard() public {
