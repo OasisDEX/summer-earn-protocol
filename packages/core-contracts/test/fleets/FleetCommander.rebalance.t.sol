@@ -232,8 +232,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_RebalanceExceedMaxAllocation() public {
         // Arrange
-        mockArkTotalAssets(ark1, 5000 * 10 ** 6);
-        mockArkTotalAssets(ark2, ARK2_MAX_ALLOCATION); // Already at max allocation
+        mockToken.mint(ark1, 5000 * 10 ** 6);
+        mockToken.mint(ark2, ARK2_MAX_ALLOCATION); // Already at max allocation
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
 
@@ -260,9 +260,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
         // Arrange
-        mockArkTotalAssets(ark1, 5000 * 10 ** 6);
+        mockToken.mint(ark1, 5000 * 10 ** 6);
         // Max allocation is one unit less than the rebalance amount
-        mockArkTotalAssets(ark2, ARK2_MAX_ALLOCATION - rebalanceAmount + 1);
+        mockToken.mint(ark2, ARK2_MAX_ALLOCATION - rebalanceAmount + 1);
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
 
