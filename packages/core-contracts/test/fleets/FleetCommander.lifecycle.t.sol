@@ -107,7 +107,7 @@ contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(mockUser);
         uint256 user1Shares = fleetCommander.balanceOf(mockUser);
         uint256 user1Assets = fleetCommander.previewRedeem(user1Shares);
-        fleetCommander.forceWithdraw(user1Assets, mockUser, mockUser);
+        fleetCommander.withdrawFromArks(user1Assets, mockUser, mockUser);
 
         assertEq(
             fleetCommander.balanceOf(mockUser),
@@ -125,7 +125,7 @@ contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(mockUser2);
         uint256 user2Shares = fleetCommander.balanceOf(mockUser2);
         uint256 user2Assets = fleetCommander.previewRedeem(user2Shares);
-        fleetCommander.forceWithdraw(user2Assets, mockUser2, mockUser2);
+        fleetCommander.withdrawFromArks(user2Assets, mockUser2, mockUser2);
 
         assertEq(
             fleetCommander.balanceOf(mockUser2),

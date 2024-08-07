@@ -105,4 +105,28 @@ interface IFleetCommanderEvents {
      * @param newBalance New minimum funds buffer balance
      */
     event FleetCommanderMinFundsBufferBalanceUpdated(uint256 newBalance);
+
+    /**
+     * @notice Emitted when funds are withdrawn from Arks
+     * @param owner The address of the owner who initiated the withdrawal
+     * @param receiver The address of the receiver of the withdrawn funds
+     * @param totalWithdrawn The total amount of funds withdrawn
+     */
+    event FleetCommanderWithdrawnFromArks(
+        address indexed owner,
+        address receiver,
+        uint256 totalWithdrawn
+    );
+
+    /**
+     * @notice Emitted when funds are redeemed from Arks
+     * @param owner The address of the owner who initiated the redemption
+     * @param receiver The address of the receiver of the redeemed funds
+     * @param totalRedeemed The total amount of funds redeemed
+     */
+    event FleetCommanderRedeemedFromArks(
+        address indexed owner,
+        address receiver,
+        uint256 totalRedeemed
+    );
 }

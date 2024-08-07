@@ -14,11 +14,12 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/types/Percentage.sol";
 import "../../src/libraries/PercentageUtils.sol";
 
-abstract contract FleetCommanderTestBase is Test {
+abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
 
     uint256 public BUFFER_BALANCE_SLOT;
@@ -54,6 +55,7 @@ abstract contract FleetCommanderTestBase is Test {
     address public ark3 = address(12);
     address public bufferArkAddress = address(13);
     address public invalidArk = address(999);
+    address public nonOwner = address(0xdeadbeef);
 
     // Other variables
     string public fleetName = "OK_Fleet";
