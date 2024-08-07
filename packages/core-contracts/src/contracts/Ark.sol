@@ -9,6 +9,7 @@ import {CannotAddCommanderToArkWithCommander, CannotRemoveCommanderFromArkWithAs
 import {IArk, ArkParams} from "../interfaces/IArk.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../errors/AccessControlErrors.sol";
+import "../errors/ArkErrors.sol";
 
 /**
  * @custom:see IArk
@@ -27,7 +28,22 @@ abstract contract Ark is IArk, ArkAccessManaged {
     constructor(
         ArkParams memory _params
     ) ArkAccessManaged(_params.accessManager) {
+        if (_params.configurationManager == address(0)) {
+            revert CannotDeployArkWithoutConfigurationManager();
+        }
+        if (_params.token == address(0)) {
+            revert CannotDeployArkWithoutToken();
+        }
+        if (
+            keccak256(abi.encodePacked(_params.name)) ==
+            keccak256(abi.encodePacked(""))
+        ) {
+            revert CannotDeployArkWithEmptyName();
+        }
         manager = IConfigurationManager(_params.configurationManager);
+        if (manager.raft() == address(0)) {
+            revert CannotDeployArkWithoutRaft();
+        }
         maxAllocation = _params.maxAllocation;
         raft = manager.raft();
         token = IERC20(_params.token);

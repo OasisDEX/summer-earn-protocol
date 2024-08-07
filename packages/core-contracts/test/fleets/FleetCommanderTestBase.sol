@@ -100,7 +100,7 @@ abstract contract FleetCommanderTestBase is Test {
                 raft: raft
             })
         );
-
+        console.log("raft", configurationManager.raft());
         bufferArk = new BufferArk(
             ArkParams({
                 name: "TestArk",
@@ -110,6 +110,7 @@ abstract contract FleetCommanderTestBase is Test {
                 maxAllocation: type(uint256).max
             })
         );
+        console.log("bufferArk", address(bufferArk));
         bufferArkAddress = address(bufferArk);
     }
 

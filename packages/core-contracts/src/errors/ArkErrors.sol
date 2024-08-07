@@ -3,3 +3,7 @@ pragma solidity 0.8.26;
 
 error CannotRemoveCommanderFromArkWithAssets();
 error CannotAddCommanderToArkWithCommander();
+error CannotDeployArkWithoutConfigurationManager();
+error CannotDeployArkWithoutRaft();
+error CannotDeployArkWithoutToken();
+error CannotDeployArkWithEmptyName();
