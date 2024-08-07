@@ -102,9 +102,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 raft: raft
             })
         );
-
         bufferArk = new BufferArk(
             ArkParams({
+                name: "TestArk",
                 accessManager: address(accessManager),
                 token: underlyingToken,
                 configurationManager: address(configurationManager),
@@ -170,6 +170,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         return
             new ArkMock(
                 ArkParams({
+                    name: "TestArk",
                     accessManager: address(accessManager),
                     token: tokenAddress,
                     configurationManager: address(configurationManager),

@@ -22,6 +22,7 @@ contract CompoundV3ArkDeploy is ArkDeploymentScript {
             return;
         }
         ArkParams memory params = ArkParams({
+            name: "CompoundV3Ark",
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
             token: arkAssetToken,

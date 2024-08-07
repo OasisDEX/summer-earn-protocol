@@ -28,6 +28,7 @@ contract MorphoArkDeploy is ArkDeploymentScript {
             return;
         }
         ArkParams memory params = ArkParams({
+            name: "MorphoArk",
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
             token: arkAssetToken,

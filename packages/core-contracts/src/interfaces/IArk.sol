@@ -17,6 +17,12 @@ interface IArk is IArkAccessManaged, IArkEvents {
     /* FUNCTIONS - PUBLIC */
 
     /**
+     * @dev Returns the name of the Ark.
+     * @return The name of the Ark as a string.
+     */
+    function name() external view returns (string memory);
+
+    /**
      * @notice Returns the address of the associated Raft contract
      * @return The address of the Raft contract
      */

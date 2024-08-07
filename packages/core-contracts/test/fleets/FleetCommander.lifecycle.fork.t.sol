@@ -92,6 +92,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function setupArks() internal {
         ArkParams memory arkParams = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(usdcTokenContract),

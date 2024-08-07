@@ -79,6 +79,7 @@ contract RaftForkTest is Test, IRaftEvents {
 
         // Setup and deploy CompoundV3Ark
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: USDC,
