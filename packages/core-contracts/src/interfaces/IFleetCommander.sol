@@ -26,57 +26,74 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
      * @notice Checks if the ark is part of the fleet
      * @param ark The address of the Ark
+     * @return bool Returns true if the ark is active, false otherwise.
      */
     function isArkActive(address ark) external view returns (bool);
 
     /**
      * @notice Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
-     * Vault, through a force withdraw call.
+     * Vault, directly from Buffer.
      * @param owner The address of the owner of the assets
+     * @return uint256 The maximum amount that can be withdrawn.
      */
-    function maxForceWithdraw(address owner) external view returns (uint256);
+    function maxBufferWithdraw(address owner) external view returns (uint256);
 
     /* FUNCTIONS - PUBLIC - USER */
-    /**
-     * @notice Withdraws assets from the FleetCommander
-     * @param assets The amount of assets to withdraw
-     * @param receiver The address that will receive the withdrawn assets
-     * @param owner The address of the owner of the assets
-     * @return The amount of assets withdrawn
-     */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external override returns (uint256);
-
     /**
      * @notice Forces a withdrawal of assets from the FleetCommander
      * @param assets The amount of assets to forcefully withdraw
      * @param receiver The address that will receive the withdrawn assets
      * @param owner The address of the owner of the assets
-     * @return The amount of assets forcefully withdrawn
+     * @return shares The amount of shares redeemed
      */
-    function forceWithdraw(
+    function withdrawFromArks(
         uint256 assets,
         address receiver,
         address owner
-    ) external returns (uint256);
+    ) external returns (uint256 shares);
 
     /**
-     * @notice Deposits assets into the FleetCommander
-     * @param assets The amount of assets to deposit
-     * @param receiver The address that will receive the shares
-     * @return The amount of shares minted
+     * @notice Redeems shares for assets from the FleetCommander
+     * @param shares The amount of shares to redeem
+     * @param receiver  The address that will receive the assets
+     * @param owner The address of the owner of the shares
+     * @return assets The amount of assets forcefully withdrawn
      */
-    function deposit(
+    function redeemFromArks(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) external returns (uint256 assets);
+
+    /**
+     * @notice Redeems shares for assets directly from the Buffer
+     * @param shares The amount of shares to redeem
+     * @param receiver The address that will receive the assets
+     * @param owner The address of the owner of the shares
+     * @return assets The amount of assets redeemed
+     */
+    function redeemFromBuffer(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) external returns (uint256 assets);
+
+    /**
+     * @notice Forces a withdrawal of assets directly from the Buffer
+     * @param assets The amount of assets to withdraw
+     * @param receiver The address that will receive the withdrawn assets
+     * @param owner The address of the owner of the assets
+     * @return shares The amount of shares redeemed
+     */
+    function withdrawFromBuffer(
         uint256 assets,
-        address receiver
-    ) external override returns (uint256);
+        address receiver,
+        address owner
+    ) external returns (uint256 shares);
 
     /**
      * @notice Accrues and distributes tips
-     * @return The amount of tips accrued
+     * @return uint256 The amount of tips accrued
      */
     function tip() external returns (uint256);
 
@@ -102,6 +119,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Sets a new tip jar address
+     * @dev This function sets the tipJar address to the address specified in the configuration manager.
      */
     function setTipJar() external;
 
@@ -153,6 +171,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Initiates an emergency shutdown of the FleetCommander
+     * @dev This action can only be performed under critical circumstances and typically by governance or a privileged role.
      */
     function emergencyShutdown() external;
 }
