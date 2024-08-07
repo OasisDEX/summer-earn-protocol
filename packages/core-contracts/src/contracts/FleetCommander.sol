@@ -464,16 +464,16 @@ contract FleetCommander is
      *      2. The maximum allocation of the destination Ark
      *      3. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
-     * @return uint256 The actual amount of assets reallocated
+     * @return amount uint256 The actual amount of assets reallocated
      * @custom:error FleetCommanderTargetArkRateTooLow Thrown when the destination Ark's rate is lower than the source Ark's rate
      * @custom:error FleetCommanderCantRebalanceToArk Thrown when the destination Ark is already at or above its maximum allocation
      */
     function _reallocateAssets(
         RebalanceData memory data
-    ) internal returns (uint256) {
+    ) internal returns (uint256 amount) {
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
-        uint256 amount = data.amount;
+        amount = data.amount;
         if (amount == type(uint256).max) {
             amount = fromArk.totalAssets();
         }
@@ -485,8 +485,6 @@ contract FleetCommander is
         }
 
         _move(address(fromArk), address(toArk), amount);
-
-        return amount;
     }
 
     /**
