@@ -397,7 +397,6 @@ contract FleetCommander is
     function _reallocateAllAssets(
         RebalanceData[] calldata rebalanceData
     ) internal returns (uint256 totalMoved) {
-        _validateReallocateAllAssets(rebalanceData);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             totalMoved += _reallocateAssets(rebalanceData[i]);
         }
@@ -479,20 +478,6 @@ contract FleetCommander is
             amount = fromArk.totalAssets();
         }
         uint256 toArkMaxAllocation = toArk.maxAllocation();
-
-        if (address(toArk) != address(bufferArk)) {
-            uint256 toArkRate = toArk.rate();
-            uint256 fromArkRate = fromArk.rate();
-
-            if (toArkRate < fromArkRate) {
-                revert FleetCommanderTargetArkRateTooLow(
-                    address(toArk),
-                    toArkRate,
-                    fromArkRate
-                );
-            }
-        }
-
         uint256 toArkAllocation = toArk.totalAssets();
 
         if (toArkAllocation + amount > toArkMaxAllocation) {
@@ -604,6 +589,7 @@ contract FleetCommander is
     function _validateAdjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) internal view {
+        _validateReallocateAllAssets(rebalanceData);
         bool isMovingToBuffer = rebalanceData[0].toArk == address(bufferArk);
         uint256 initialBufferBalance = bufferArk.totalAssets();
         uint256 totalToMove;
@@ -635,23 +621,83 @@ contract FleetCommander is
     }
 
     /**
-     * @notice Validates that no rebalance operation moves funds to or from the bufferArk directly.
-     * @dev Iterates through each rebalance operation in `rebalanceData`. If any operation involves
-     *      moving funds directly to or from the `bufferArk`, it reverts with `FleetCommanderInvalidBufferAdjustment`.
-     *      This ensures that the bufferArk's funds are only adjusted through designated mechanisms, not direct rebalance operations.
-     * @param rebalanceData An array of `RebalanceData` structs, each representing a rebalance operation to be validated.
-     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown if a rebalance operation attempts to directly adjust the bufferArk's funds.
+     * @notice Validates the rebalance operations to ensure they meet all required constraints
+     * @dev This function performs a series of checks on each rebalance operation:
+     *      1. Ensures general reallocation constraints are met
+     *      2. Verifies the buffer ark is not directly involved in rebalancing
+     *      3. Checks that funds are only moved to higher rate arks, with an exception for over-allocated arks
+     * @param rebalanceData An array of RebalanceData structs, each representing a rebalance operation
      */
     function _validateRebalance(
         RebalanceData[] calldata rebalanceData
     ) internal view {
+        _validateReallocateAllAssets(rebalanceData);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            if (
-                rebalanceData[i].toArk == address(bufferArk) ||
-                rebalanceData[i].fromArk == address(bufferArk)
-            ) {
-                revert FleetCommanderCantUseRebalanceOnBufferArk();
+            _validateBufferArkNotInvolved(rebalanceData[i]);
+
+            uint256 toArkRate = IArk(rebalanceData[i].toArk).rate();
+            uint256 fromArkRate = IArk(rebalanceData[i].fromArk).rate();
+
+            if (toArkRate < fromArkRate) {
+                _validateRebalanceToLowerRate(
+                    IArk(rebalanceData[i].fromArk),
+                    rebalanceData[i].amount,
+                    fromArkRate,
+                    toArkRate,
+                    rebalanceData[i].toArk
+                );
             }
+        }
+    }
+
+    /**
+     * @notice Validates that the buffer ark is not directly involved in a rebalance operation
+     * @dev This function checks if either the source or destination ark in a rebalance operation is the buffer ark
+     * @param data The RebalanceData struct containing the source and destination ark addresses
+     * @custom:error FleetCommanderCantUseRebalanceOnBufferArk Thrown if the buffer ark is involved in the rebalance
+     */
+    function _validateBufferArkNotInvolved(
+        RebalanceData memory data
+    ) internal view {
+        if (
+            data.toArk == address(bufferArk) ||
+            data.fromArk == address(bufferArk)
+        ) {
+            revert FleetCommanderCantUseRebalanceOnBufferArk();
+        }
+    }
+
+    /**
+     * @notice Validates a rebalance operation that moves funds to a lower rate ark
+     * @dev This function checks if the rebalance to a lower rate ark is allowed due to over-allocation
+     *      It's only permissible to move funds to a lower rate ark if:
+     *      1. The source ark is over-allocated (total assets > max allocation)
+     *      2. The amount being moved is less than or equal to the excess allocation
+     * @param fromArk The source ark contract
+     * @param amount The amount of assets being moved in the rebalance operation
+     * @param fromArkRate The rate of the source ark
+     * @param toArkRate The rate of the destination ark
+     * @param toArkAddress The address of the destination ark
+     */
+    function _validateRebalanceToLowerRate(
+        IArk fromArk,
+        uint256 amount,
+        uint256 fromArkRate,
+        uint256 toArkRate,
+        address toArkAddress
+    ) internal view {
+        uint256 fromArkMaxAllocation = fromArk.maxAllocation();
+        uint256 fromArkTotalAssets = fromArk.totalAssets();
+
+        if (
+            fromArkTotalAssets <= fromArkMaxAllocation ||
+            fromArkTotalAssets - fromArkMaxAllocation < amount
+        ) {
+            revert FleetCommanderTargetArkRateTooLow(
+                toArkAddress,
+                toArkRate,
+                fromArkRate
+            );
         }
     }
 
