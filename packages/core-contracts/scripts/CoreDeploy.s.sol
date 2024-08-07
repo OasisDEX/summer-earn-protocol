@@ -5,6 +5,7 @@ import "forge-std/Script.sol";
 import {DeploymentScript} from "./common/DeploymentScript.s.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
+import {Raft} from "../src/contracts/Raft.sol";
 import {HarborCommand} from "../src/contracts/HarborCommand.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 
@@ -26,8 +27,8 @@ contract CoreDeploy is DeploymentScript {
         if (config.governor == address(0)) {
             revert("Governor address not set");
         }
-        if (config.raft == address(0)) {
-            revert("Raft address not set");
+        if (config.swapProvider == address(0)) {
+            revert("SwapProvider address not set");
         }
         if (config.tipJar == address(0)) {
             revert("TipJar address not set");
@@ -36,6 +37,8 @@ contract CoreDeploy is DeploymentScript {
         address protocolAccessManager = _deployProtocolAccessManager(
             config.governor
         );
+
+        _deployRaft(config.swapProvider, protocolAccessManager);
 
         _deployConfigurationManager(
             protocolAccessManager,
@@ -124,5 +127,25 @@ contract CoreDeploy is DeploymentScript {
         console.log("Deployed Harbor Command:", address(harborCommand));
 
         return address(harborCommand);
+    }
+
+    /**
+     * @notice Deploys the Raft contract
+     * @param swapProvider Address of the SwapProvider
+     * @param _protocolAccessManager Address of the ProtocolAccessManager
+     * @return Address of the deployed Raft
+     */
+    function _deployRaft(
+        address swapProvider,
+        address _protocolAccessManager
+    ) internal returns (address) {
+        if (config.raft != address(0)) {
+            revert("Raft already deployed");
+        }
+        Raft raft = new Raft(swapProvider, _protocolAccessManager);
+        updateAddressInConfig(network, "raft", address(raft));
+        console.log("Deployed Raft:", address(raft));
+
+        return address(raft);
     }
 }

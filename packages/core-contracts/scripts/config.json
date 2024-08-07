@@ -6,6 +6,7 @@
     "configurationManager": "0x8aD75eFF83EbcB2E343b1b8d76eFBC796Cf38594",
     "usdcToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     "aaveV3Pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+    "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
     "compound": {
       "usdcToken": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
     },
@@ -24,6 +25,7 @@
     "tipJar": "0x499B422dbf6b5FaC25d2259d295ee43B0E74a3DE",
     "usdcToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     "aaveV3Pool": "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
+    "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
     "compound": {
       "usdcToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
     },

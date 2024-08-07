@@ -49,6 +49,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         );
 
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(usdc),

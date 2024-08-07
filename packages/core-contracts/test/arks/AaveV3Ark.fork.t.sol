@@ -54,6 +54,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
         );
 
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(dai),

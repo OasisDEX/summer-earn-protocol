@@ -19,6 +19,7 @@ contract BufferArkDeploy is ArkDeploymentScript {
             : customToken;
 
         ArkParams memory params = ArkParams({
+            name: "BufferArk",
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
             token: arkAssetToken,

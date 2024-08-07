@@ -16,22 +16,22 @@ import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import "../../src/errors/AccessControlErrors.sol";
 
-contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
+contract ArkTest is Test, IArkEvents, ArkTestHelpers {
     ArkMock public ark;
     ArkMock public otherArk;
     address public governor = address(1);
     address public commander = address(4);
     address public raft = address(2);
     ERC20Mock public mockToken;
+    IProtocolAccessManager accessManager;
+    IConfigurationManager configurationManager;
 
     function setUp() public {
         mockToken = new ERC20Mock();
 
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
+        accessManager = new ProtocolAccessManager(governor);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
+        configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
                 raft: raft,
@@ -40,6 +40,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         );
 
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
@@ -48,6 +49,57 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
 
         ark = new ArkMock(params);
         otherArk = new ArkMock(params);
+    }
+
+    function test_Constructor() public {
+        ArkParams memory params = ArkParams({
+            name: "",
+            accessManager: address(0),
+            configurationManager: address(0),
+            token: address(0),
+            maxAllocation: type(uint256).max
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "InvalidAccessManagerAddress(address)",
+                address(0)
+            )
+        );
+        new ArkMock(params);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CannotDeployArkWithoutConfigurationManager()"
+            )
+        );
+        params.accessManager = address(accessManager);
+        new ArkMock(params);
+
+        vm.expectRevert(
+            abi.encodeWithSignature("CannotDeployArkWithoutToken()")
+        );
+        params.configurationManager = address(configurationManager);
+        new ArkMock(params);
+
+        vm.expectRevert(
+            abi.encodeWithSignature("CannotDeployArkWithEmptyName()")
+        );
+        params.token = address(3);
+        new ArkMock(params);
+
+        vm.prank(governor);
+        configurationManager.setRaft(address(0));
+        vm.expectRevert(
+            abi.encodeWithSignature("CannotDeployArkWithoutRaft()")
+        );
+        params.name = "TestArk";
+        new ArkMock(params);
+
+        vm.prank(governor);
+        configurationManager.setRaft(raft);
+
+        new ArkMock(params);
     }
 
     function test_GrantCommanderRole_ShouldSucceed() public {
