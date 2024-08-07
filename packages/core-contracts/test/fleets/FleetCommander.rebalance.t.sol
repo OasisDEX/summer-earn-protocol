@@ -12,6 +12,7 @@ import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWrite
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 import "../../src/events/IArkEvents.sol";
+import "../../src/events/IFleetCommanderEvents.sol";
 
 /**
  * @title Rebalance test suite for FleetCommander
@@ -71,7 +72,49 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             "Total assets should remain unchanged"
         );
     }
+    function test_RebalanceWithMaxUint() public {
+        // Arrange
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
+        uint256 rebalanceAmount = type(uint256).max;
 
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+
+        mockToken.mint(bufferArkAddress, initialBufferBalance);
+        mockToken.mint(ark1, 5000 * 10 ** 6);
+        mockToken.mint(ark2, 5000 * 10 ** 6);
+        mockArkRate(ark1, 105);
+        mockArkRate(ark2, 110);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            amount: rebalanceAmount
+        });
+
+        // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectEmit();
+        emit IArkEvents.Moved(ark1, ark2, address(mockToken), 5000 * 10 ** 6);
+        vm.expectEmit();
+        emit IFleetCommanderEvents.Rebalanced(address(keeper), rebalanceData);
+
+        fleetCommander.rebalance(rebalanceData);
+
+        // Assert
+        assertEq(
+            IArk(fleetCommander.bufferArk()).totalAssets(),
+            initialBufferBalance,
+            "Buffer balance should remain unchanged"
+        );
+        assertEq(
+            fleetCommander.totalAssets(),
+            initialBufferBalance + 10000 * 10 ** 6,
+            "Total assets should remain unchanged"
+        );
+    }
     function test_RebalanceMultipleArks() public {
         // Arrange
         uint256 initialBufferBalance = 15000 * 10 ** 6;
@@ -356,7 +399,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function test_TSourceArkAddressZero() public {
+    function test_SourceArkAddressZero() public {
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({

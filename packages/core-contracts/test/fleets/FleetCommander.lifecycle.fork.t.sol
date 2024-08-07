@@ -144,7 +144,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         console.log("fleet commander:", address(fleetCommander));
     }
 
-    function test_DepositRebalanceForceWithdrawFork() public {
+    function test_DepositRebalanceForceWithdraw_Fork() public {
         // Arrange
         uint256 totalDeposit = 4000 * 10 ** 6; // 4000 USDC
         uint256 userDeposit = totalDeposit / 4; // 1000 USDC per ark
@@ -212,6 +212,132 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             fleetCommander.totalAssets(),
             0,
             1000, // Allow for small rounding errors
+            "Total assets should be close to 0 after withdrawals"
+        );
+    }
+
+    function test_DepositRebalanceWithMaxUintWithdraw_Fork() public {
+        // Arrange
+        uint256 totalDeposit = 4000 * 10 ** 6; // 4000 USDC
+        uint256 userDeposit = totalDeposit / 4; // 1000 USDC per ark
+        uint256 depositCap = totalDeposit;
+        uint256 minBufferBalance = 0;
+
+        // Set initial buffer balance and min buffer balance
+        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+
+        // Set deposit cap
+        fleetCommanderStorageWriter.setDepositCap(depositCap);
+
+        // Mint tokens for user
+        deal(address(usdcTokenContract), mockUser, totalDeposit);
+
+        // User deposits
+        depositForUser(mockUser, totalDeposit);
+
+        // Rebalance funds to all Arks
+        RebalanceData[] memory rebalanceData = new RebalanceData[](4);
+        rebalanceData[0] = RebalanceData({
+            fromArk: address(bufferArk),
+            toArk: address(compoundArk),
+            amount: userDeposit
+        });
+        rebalanceData[1] = RebalanceData({
+            fromArk: address(bufferArk),
+            toArk: address(aaveArk),
+            amount: userDeposit
+        });
+        rebalanceData[2] = RebalanceData({
+            fromArk: address(bufferArk),
+            toArk: address(morphoArk),
+            amount: userDeposit
+        });
+        rebalanceData[3] = RebalanceData({
+            fromArk: address(bufferArk),
+            toArk: address(metaMorphoArk),
+            amount: userDeposit
+        });
+
+        // Advance time to move past cooldown window
+        vm.warp(block.timestamp + 1 days);
+        vm.prank(keeper);
+        fleetCommander.adjustBuffer(rebalanceData);
+
+        metaMorphoArk.poke();
+
+        // Advance time to simulate interest accrual
+        vm.warp(block.timestamp + 30 days);
+
+        // Accrue interest for Morpho
+        morphoContract.accrueInterest(
+            morphoContract.idToMarketParams(MORPHO_MARKET_ID)
+        );
+
+        // Check total assets and rates
+        checkAssetsAndRates();
+
+        // Second rebalance using max uint
+        // we can only rebalance to an ark with rate higher than the current ark
+        uint256 aaveArkTotalAssets = aaveArk.totalAssets();
+        uint256 morphoArkTotalAssets = morphoArk.totalAssets();
+        uint256 metaMorphoArkTotalAssets = metaMorphoArk.totalAssets();
+        uint256 compoundArkTotalAssets = compoundArk.totalAssets();
+
+        RebalanceData[] memory secondRebalanceData = new RebalanceData[](3);
+        secondRebalanceData[0] = RebalanceData({
+            fromArk: address(compoundArk),
+            toArk: address(aaveArk),
+            amount: type(uint256).max
+        });
+        secondRebalanceData[1] = RebalanceData({
+            fromArk: address(morphoArk),
+            toArk: address(compoundArk),
+            amount: type(uint256).max
+        });
+        secondRebalanceData[2] = RebalanceData({
+            fromArk: address(metaMorphoArk),
+            toArk: address(aaveArk),
+            amount: type(uint256).max
+        });
+
+        vm.expectEmit();
+        emit IArkEvents.Moved(
+            address(compoundArk),
+            address(aaveArk),
+            address(usdcTokenContract),
+            compoundArkTotalAssets
+        );
+        vm.expectEmit();
+        emit IArkEvents.Moved(
+            address(morphoArk),
+            address(compoundArk),
+            address(usdcTokenContract),
+            morphoArkTotalAssets
+        );
+        vm.expectEmit();
+        emit IArkEvents.Moved(
+            address(metaMorphoArk),
+            address(aaveArk),
+            address(usdcTokenContract),
+            metaMorphoArkTotalAssets
+        );
+        vm.prank(keeper);
+        fleetCommander.rebalance(secondRebalanceData);
+
+        assertEq(
+            metaMorphoArk.totalAssets(),
+            0,
+            "MetaMorpho Ark assets should be 0"
+        );
+        assertEq(morphoArk.totalAssets(), 0, "Morpho Ark assets should be 0");
+        // User withdraws
+        withdrawForUser(mockUser, totalDeposit);
+
+        // Assert
+        assertApproxEqAbs(
+            fleetCommander.totalAssets(),
+            0,
+            1, // Allow for small rounding errors
             "Total assets should be close to 0 after withdrawals"
         );
     }

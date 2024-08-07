@@ -100,13 +100,33 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /* FUNCTIONS - EXTERNAL - KEEPER */
     /**
      * @notice Rebalances the assets across Arks
-     * @param data Array of typed rebalance data struct
+     * @param data Array of RebalanceData structs
+     * @dev RebalanceData struct contains:
+     *      - fromArk: The address of the Ark to move assets from
+     *      - toArk: The address of the Ark to move assets to
+     *      - amount: The amount of assets to move
+     * @dev Using type(uint256).max as the amount will move all assets from the fromArk to the toArk
+     * @dev Rebalance operations cannot involve the buffer Ark directly
+     * @dev The number of operations in a single rebalance call is limited to MAX_REBALANCE_OPERATIONS
+     * @dev Rebalance is subject to a cooldown period between calls
+     * @dev Only callable by accounts with the Keeper role
      */
     function rebalance(RebalanceData[] calldata data) external;
 
     /**
-     * @notice Adjusts the buffer of funds
-     * @param data Array of typed rebalance data struct (fleet commander address used as fromArk)
+     * @notice Adjusts the buffer of funds by moving assets between the buffer Ark and other Arks
+     * @param data Array of RebalanceData structs
+     * @dev RebalanceData struct contains:
+     *      - fromArk: The address of the Ark to move assets from (must be buffer Ark for withdrawing from buffer)
+     *      - toArk: The address of the Ark to move assets to (must be buffer Ark for depositing to buffer)
+     *      - amount: The amount of assets to move
+     * @dev Unlike rebalance, adjustBuffer operations must involve the buffer Ark
+     * @dev All operations in a single adjustBuffer call must be in the same direction (either all to buffer or all from buffer)
+     * @dev type(uint256).max is not allowed as an amount for buffer adjustments
+     * @dev When withdrawing from the buffer, the total amount moved cannot reduce the buffer balance below minFundsBufferBalance
+     * @dev The number of operations in a single adjustBuffer call is limited to MAX_REBALANCE_OPERATIONS
+     * @dev AdjustBuffer is subject to a cooldown period between calls
+     * @dev Only callable by accounts with the Keeper role
      */
     function adjustBuffer(RebalanceData[] calldata data) external;
 
