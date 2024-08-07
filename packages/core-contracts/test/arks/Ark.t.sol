@@ -40,6 +40,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestHelpers {
         );
 
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),

@@ -44,6 +44,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         );
 
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
@@ -58,6 +59,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
     function test_Constructor() public {
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),

@@ -60,6 +60,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         );
 
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: USDC_ADDRESS,
@@ -77,6 +78,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
     function test_Constructor_MorphoArk_fork() public {
         // Arrange
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(usdc),

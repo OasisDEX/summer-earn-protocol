@@ -45,6 +45,7 @@ contract DeploymentScript is Script {
         address harborCommand;
         address bufferArk;
         address tipJar;
+        address swapProvider;
         MorphoBlueConfig morphoBlue;
         MetamorphoConfig metaMorpho;
         uint256 tipRate;
@@ -110,6 +111,11 @@ contract DeploymentScript is Script {
         _config.bufferArk = _readAddressFromJson(json, _network_, "bufferArk");
         _config.tipJar = _readAddressFromJson(json, _network_, "tipJar");
         _config.tipRate = _readUintFromJson(json, _network_, "tipRate");
+        _config.swapProvider = _readAddressFromJson(
+            json,
+            _network_,
+            "swapProvider"
+        );
         return _config;
     }
 

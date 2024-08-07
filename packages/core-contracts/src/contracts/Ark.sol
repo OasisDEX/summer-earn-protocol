@@ -16,10 +16,12 @@ import "../errors/AccessControlErrors.sol";
 abstract contract Ark is IArk, ArkAccessManaged {
     using SafeERC20 for IERC20;
 
+    string public name;
+    address public commander;
     address public raft;
     uint256 public maxAllocation;
+
     IERC20 public token;
-    address public commander;
     IConfigurationManager public manager;
 
     constructor(
@@ -29,6 +31,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
         maxAllocation = _params.maxAllocation;
         raft = manager.raft();
         token = IERC20(_params.token);
+        name = _params.name;
     }
 
     /* PUBLIC */

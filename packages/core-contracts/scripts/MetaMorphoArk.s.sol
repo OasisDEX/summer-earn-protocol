@@ -23,6 +23,7 @@ contract MetaMorphoArkDeploy is ArkDeploymentScript {
             return;
         }
         ArkParams memory params = ArkParams({
+            name: "MetaMorphoArk",
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
             token: arkAssetToken,

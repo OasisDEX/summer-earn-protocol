@@ -22,6 +22,7 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
             return;
         }
         ArkParams memory params = ArkParams({
+            name: "AaveV3Ark",
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
             token: arkAssetToken,
