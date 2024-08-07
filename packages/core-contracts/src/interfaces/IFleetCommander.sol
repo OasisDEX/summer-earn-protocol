@@ -119,7 +119,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Sets a new tip jar address
-     * @dev This function requires a parameter that specifies the new tip jar address.
+     * @dev This function sets the tipJar address to the address specified in the configuration manager.
      */
     function setTipJar() external;
 
