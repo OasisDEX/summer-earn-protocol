@@ -30,8 +30,6 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             asset: address(mockToken),
             name: "Fleet Commander",
             symbol: "FC",
-            initialMinimumPositionWithdrawal: Percentage.wrap(0),
-            initialMaximumBufferWithdrawal: Percentage.wrap(0),
             depositCap: 10000,
             bufferArk: bufferArkAddress,
             initialTipRate: Percentage.wrap(0)
@@ -45,7 +43,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
 
-    function test_GetArks() public {
+    function test_GetArks() public view {
         address[] memory arks = fleetCommander.getArks();
         assertEq(arks.length, 3);
         assertEq(arks[0], address(mockArk1));

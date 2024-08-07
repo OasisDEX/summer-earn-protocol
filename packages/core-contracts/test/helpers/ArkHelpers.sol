@@ -22,9 +22,11 @@ contract ArkTestHelpers is Test, Constants {
         );
     }
 
-    /// @notice Mocks the return value of `maxAllocation` for a given Ark contract
-    /// @param contractAddress The address of the Ark contract whose `totalAssets` function is to be mocked
-    /// @param returnValue The value to return when `maxAllocation` is called
+    /**
+     * @notice Mocks the return value of `maxAllocation` for a given Ark contract
+     * @param contractAddress The address of the Ark contract whose `totalAssets` function is to be mocked
+     * @param returnValue The value to return when `maxAllocation` is called
+     */
     function mockArkMaxAllocation(
         address contractAddress,
         uint256 returnValue
@@ -38,9 +40,11 @@ contract ArkTestHelpers is Test, Constants {
         );
     }
 
-    /// @notice Mocks the return value of `rate` for a given Ark contract
-    /// @param ark The address of the Ark contract whose `rate` function is to be mocked
-    /// @param rate The value to return when `rate` is called
+    /**
+     * @notice Mocks the return value of `rate` for a given Ark contract
+     * @param ark The address of the Ark contract whose `rate` function is to be mocked
+     * @param rate The value to return when `rate` is called
+     */
     function mockArkRate(address ark, uint256 rate) internal {
         vm.mockCall(ark, abi.encodeWithSignature("rate()"), abi.encode(rate));
     }

@@ -93,4 +93,9 @@ contract MorphoArk is Ark {
         MORPHO.accrueInterest(marketParams);
         MORPHO.withdraw(marketParams, amount, 0, address(this), address(this));
     }
+
+    function _harvest(
+        address rewardToken,
+        bytes calldata
+    ) internal override returns (uint256) {}
 }

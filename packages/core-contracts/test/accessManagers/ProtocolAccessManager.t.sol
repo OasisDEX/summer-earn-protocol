@@ -7,7 +7,7 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {CallerIsNotAdmin, CallerIsNotGovernor, CallerIsNotKeeper} from "../../src/errors/AccessControlErrors.sol";
 
 contract ProtocolAccessManagerTest is Test {
-    ProtocolAccessManager public accessManager;
+    TestProtocolAccessManager public accessManager;
     address public governor;
     address public admin;
     address public keeper;
@@ -20,10 +20,10 @@ contract ProtocolAccessManagerTest is Test {
         user = address(0x4);
 
         vm.prank(governor);
-        accessManager = new ProtocolAccessManager(governor);
+        accessManager = new TestProtocolAccessManager(governor);
     }
 
-    function test_Constructor() public {
+    function test_Constructor() public view {
         assertTrue(
             accessManager.hasRole(accessManager.DEFAULT_ADMIN_ROLE(), governor)
         );
@@ -32,7 +32,7 @@ contract ProtocolAccessManagerTest is Test {
         );
     }
 
-    function test_SupportsInterface() public {
+    function test_SupportsInterface() public view {
         assertTrue(
             accessManager.supportsInterface(
                 type(IProtocolAccessManager).interfaceId
@@ -55,6 +55,24 @@ contract ProtocolAccessManagerTest is Test {
         vm.stopPrank();
         assertFalse(
             accessManager.hasRole(accessManager.DEFAULT_ADMIN_ROLE(), admin)
+        );
+    }
+
+    function test_GrantSuperKeeperRole() public {
+        vm.prank(governor);
+        accessManager.grantSuperKeeperRole(admin);
+        assertTrue(
+            accessManager.hasRole(accessManager.SUPER_KEEPER_ROLE(), admin)
+        );
+    }
+
+    function test_RevokeSuperKeeperRole() public {
+        vm.startPrank(governor);
+        accessManager.grantSuperKeeperRole(admin);
+        accessManager.revokeSuperKeeperRole(admin);
+        vm.stopPrank();
+        assertFalse(
+            accessManager.hasRole(accessManager.SUPER_KEEPER_ROLE(), admin)
         );
     }
 
@@ -102,6 +120,22 @@ contract ProtocolAccessManagerTest is Test {
         accessManager.grantKeeperRole(user);
     }
 
+    function test_OnlyGovernorModifier_Fail() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(CallerIsNotGovernor.selector, user)
+        );
+        vm.prank(user);
+        accessManager.grantKeeperRole(user);
+    }
+
+    function test_OnlyKeeperModifier_Fail() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(CallerIsNotKeeper.selector, user)
+        );
+        vm.prank(user);
+        accessManager.dummyKeeperFunction();
+    }
+
     function test_GrantRoleDirectly_ShouldFail() public {
         // Act
         vm.expectRevert(
@@ -122,5 +156,14 @@ contract ProtocolAccessManagerTest is Test {
         );
         vm.prank(governor);
         accessManager.revokeRole(keccak256("COMMANDER_ROLE"), keeper);
+    }
+}
+
+contract TestProtocolAccessManager is ProtocolAccessManager {
+    constructor(address governor) ProtocolAccessManager(governor) {}
+
+    // Add this dummy function for testing purposes
+    function dummyKeeperFunction() external onlyKeeper {
+        // This function doesn't need to do anything
     }
 }

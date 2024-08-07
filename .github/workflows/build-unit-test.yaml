@@ -1,4 +1,4 @@
-name: CI
+name: Build and Unit Test
 on:
   pull_request:
     types: [opened, synchronize]

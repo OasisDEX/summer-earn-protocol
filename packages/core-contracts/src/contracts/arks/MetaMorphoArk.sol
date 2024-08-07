@@ -60,4 +60,9 @@ contract MetaMorphoArk is Ark {
         lastUpdate = block.timestamp;
         emit ArkPoked(lastPrice, lastUpdate);
     }
+
+    function _harvest(
+        address rewardToken,
+        bytes calldata
+    ) internal override returns (uint256) {}
 }
