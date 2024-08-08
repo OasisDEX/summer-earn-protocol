@@ -15,6 +15,7 @@ cache
 abis
 artifacts
 packages/core-contracts/lib/**
+packages/dutch-auction/lib/**
 **/.sst/**
 **/.turbo/**
 packages/**/src/generated
