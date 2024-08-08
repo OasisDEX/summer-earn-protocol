@@ -1,6 +1,3 @@
-Certainly! Below is the updated `README.md` file, formatted properly for Markdown so that it can be easily copied and pasted:
-
-```markdown
 # Dutch Auction Smart Contract
 
 This project implements a Dutch Auction system using Solidity smart contracts. It's built and tested using the Foundry framework.
@@ -20,6 +17,8 @@ This project implements a Dutch Auction system using Solidity smart contracts. I
     - [DutchAuctionErrors](#dutchauctionerrors)
     - [DutchAuctionEvents](#dutchauctionevents)
   - [Python Script for Price Data](#python-script-for-price-data)
+    - [Features](#features)
+    - [Usage](#usage)
   - [Key Features](#key-features)
   - [Contributing](#contributing)
   - [License](#license)
