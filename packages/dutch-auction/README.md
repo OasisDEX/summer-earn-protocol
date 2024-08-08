@@ -122,6 +122,8 @@ A contract defining events emitted by the auction system.
 
 A Python script (`utils/generate_price_data.py`) is provided to generate expected price data for both linear and exponential price decay models. It also plots these decays for visual comparison.
 
+![](utils/price_decay_comparison.png)
+
 ### Features
 
 - **Configurable Intervals**: Adjust the number of intervals to compute prices over the auction duration.
