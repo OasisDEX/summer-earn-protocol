@@ -1,3 +1,6 @@
+Certainly! Below is the updated `README.md` file, formatted properly for Markdown so that it can be easily copied and pasted:
+
+```markdown
 # Dutch Auction Smart Contract
 
 This project implements a Dutch Auction system using Solidity smart contracts. It's built and tested using the Foundry framework.
@@ -16,6 +19,7 @@ This project implements a Dutch Auction system using Solidity smart contracts. I
     - [DutchAuctionLibrary](#dutchauctionlibrary)
     - [DutchAuctionErrors](#dutchauctionerrors)
     - [DutchAuctionEvents](#dutchauctionevents)
+  - [Python Script for Price Data](#python-script-for-price-data)
   - [Key Features](#key-features)
   - [Contributing](#contributing)
   - [License](#license)
@@ -34,10 +38,14 @@ dutch-auction/
 │   ├── DutchAuctionErrors.sol
 │   └── DutchAuctionEvents.sol
 ├── test/
-│   └── DutchAuction.t.sol
-|   └── DutchAuction.fuzz.t.sol
+│   ├── DutchAuction.t.sol
+│   └── DutchAuction.fuzz.t.sol
 ├── script/
 │   └── DeployDutchAuction.s.sol
+├── utils/
+|   ├── generate_price_data.py
+│   ├── price_decay_comparison.png
+│   └── expected_prices.json
 ├── foundry.toml
 └── README.md
 ```
@@ -45,46 +53,51 @@ dutch-auction/
 ## Setup
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone https://github.com/oasisdex/summer-earn-protocol.git
    cd packages/dutch-auction
    ```
 
 2. Install Foundry if you haven't already:
-   ```
+   ```bash
    curl -L https://foundry.paradigm.xyz | bash
    foundryup
    ```
 
 3. Install dependencies:
-   ```
+   ```bash
    forge install
+   ```
+
+4. Install Python dependencies for the script:
+   ```bash
+   pip install matplotlib
    ```
 
 ## Testing
 
 Run the test suite using Forge:
 
-```
+```bash
 forge test
 ```
 
 For more verbose output:
 
-```
+```bash
 forge test -vvv
 ```
 
 ## Deployment
 
 1. Set up your `.env` file with your RPC URL and private key:
-   ```
+   ```plaintext
    RPC_URL=your_rpc_url
    PRIVATE_KEY=your_private_key
    ```
 
 2. Run the deployment script:
-   ```
+   ```bash
    forge script script/DeployDutchAuction.s.sol:DeployDutchAuction --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
    ```
 
@@ -105,6 +118,25 @@ A contract defining custom errors used throughout the system.
 ### DutchAuctionEvents
 
 A contract defining events emitted by the auction system.
+
+## Python Script for Price Data
+
+A Python script (`utils/generate_price_data.py`) is provided to generate expected price data for both linear and exponential price decay models. It also plots these decays for visual comparison.
+
+### Features
+
+- **Configurable Intervals**: Adjust the number of intervals to compute prices over the auction duration.
+- **Output**: Generates a JSON file (`expected_prices.json`) with expected prices and a PNG file (`price_decay_comparison.png`) for visual comparison.
+
+### Usage
+
+1. Edit the `num_intervals` variable in `utils/generate_price_data.py` to change the number of time intervals for price calculation.
+2. Run the script:
+   ```bash
+   python utils/generate_price_data.py
+   ```
+
+This script will create a JSON file and a PNG image showing the price decay for the auction's duration.
 
 ## Key Features
 

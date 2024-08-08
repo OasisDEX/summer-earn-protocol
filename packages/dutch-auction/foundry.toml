@@ -8,6 +8,9 @@ solc = "0.8.26"
 evm_version = "cancun"
 cbor_metadata = true
 viaIR = false
+fs_permissions = [
+    { access = "read-write", path = "./utils/expected_prices.json"}
+]
 
 [profile.ci]
   fuzz = { runs = 10_000 }

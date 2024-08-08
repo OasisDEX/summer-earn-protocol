@@ -2,11 +2,14 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
+import "forge-std/StdJson.sol";
 import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract DutchAuctionLibraryTest is Test {
+    using stdJson for string;
+
     DutchAuctionManager public auctionManager;
     ERC20Mock public auctionToken1;
     ERC20Mock public auctionToken2;
@@ -24,6 +27,9 @@ contract DutchAuctionLibraryTest is Test {
     uint256 public constant TOTAL_TOKENS = 1000 ether;
     uint256 public constant KICKER_REWARD_PERCENTAGE = 5;
 
+    // JSON data for expected prices
+    string constant EXPECTED_PRICES_PATH = "./utils/expected_prices.json";
+
     function setUp() public {
         auctionManager = new DutchAuctionManager();
         auctionToken1 = new ERC20Mock();
@@ -34,15 +40,15 @@ contract DutchAuctionLibraryTest is Test {
         auctionToken2.mint(address(auctionManager), TOTAL_TOKENS);
         paymentToken.mint(
             BUYER1,
-            7500000000000000000000000000000000000000 ether
+            7_500_000_000_000_000_000_000_000_000_000_000_000_000 ether
         );
         paymentToken.mint(
             BUYER2,
-            7500000000000000000000000000000000000000 ether
+            7_500_000_000_000_000_000_000_000_000_000_000_000_000 ether
         );
         paymentToken.mint(
             BUYER3,
-            7500000000000000000000000000000000000000 ether
+            7_500_000_000_000_000_000_000_000_000_000_000_000_000 ether
         );
 
         vm.prank(BUYER1);
@@ -111,6 +117,57 @@ contract DutchAuctionLibraryTest is Test {
             UNSOLD_RECIPIENT,
             true
         );
+    }
+
+    function testPriceDecayLinear() public {
+        uint256 auctionId = _createAuction(auctionToken1, true);
+        // Load expected prices from JSON
+        string memory json = vm.readFile(EXPECTED_PRICES_PATH);
+
+        string[] memory keys = vm.parseJsonKeys(json, ".linear");
+
+        uint256 initialBlockTimestamp = block.timestamp;
+        uint256[] memory timeIntervals = getIntervals(keys);
+        uint256[] memory expectedPrices = getExpectedPrices(
+            json,
+            keys,
+            "linear"
+        );
+        for (uint256 i = 0; i < keys.length; i++) {
+            vm.warp(initialBlockTimestamp + timeIntervals[i]);
+
+            uint256 currentPrice = auctionManager.getCurrentPrice(auctionId);
+            assertEq(
+                currentPrice,
+                expectedPrices[i],
+                "Linear price incorrect at interval"
+            );
+        }
+    }
+
+    function testPriceDecayExponential() public {
+        uint256 auctionId = _createAuction(auctionToken1, false);
+        string memory json = vm.readFile(EXPECTED_PRICES_PATH);
+
+        string[] memory keys = vm.parseJsonKeys(json, ".exponential");
+
+        uint256 initialBlockTimestamp = block.timestamp;
+        uint256[] memory timeIntervals = getIntervals(keys);
+        uint256[] memory expectedPrices = getExpectedPrices(
+            json,
+            keys,
+            "exponential"
+        );
+        for (uint256 i = 0; i < keys.length; i++) {
+            vm.warp(initialBlockTimestamp + timeIntervals[i]);
+
+            uint256 currentPrice = auctionManager.getCurrentPrice(auctionId);
+            assertEq(
+                currentPrice,
+                expectedPrices[i],
+                "Exponential price incorrect at interval"
+            );
+        }
     }
 
     function testAuctionLifecycle_Linear() public {
@@ -371,6 +428,7 @@ contract DutchAuctionLibraryTest is Test {
             "Unsold recipient should have no tokens"
         );
     }
+
     function testInvalidKickerRewardPercentage() public {
         vm.expectRevert(
             abi.encodeWithSignature("InvalidKickerRewardPercentage()")
@@ -438,6 +496,7 @@ contract DutchAuctionLibraryTest is Test {
             "Buyer should have received tokens immediately after auction creation"
         );
     }
+
     function _createAuction(
         ERC20Mock _auctionToken,
         bool _isLinearDecay
@@ -510,5 +569,57 @@ contract DutchAuctionLibraryTest is Test {
             unsoldAmount,
             "Unsold tokens not sent to recipient"
         );
+    }
+
+    /**
+     * @dev Calculates the expected prices based on the provided JSON data, keys, and decay value.
+     * @param _json The JSON data containing the prices.
+     * @param keys The keys to extract the prices from the JSON data.
+     * @param decay The decay value to be used in the price calculation.
+     * @return An array of uint256 values representing the expected prices.
+     */
+    function getExpectedPrices(
+        string memory _json,
+        string[] memory keys,
+        string memory decay
+    ) internal pure returns (uint256[] memory) {
+        uint256[] memory prices = new uint256[](keys.length);
+
+        for (uint256 i = 0; i < keys.length; i++) {
+            prices[i] = _readUintFromJson(_json, decay, keys[i]);
+        }
+        return prices;
+    }
+
+    /**
+     * @dev Reads a uint256 value from the provided JSON data based on the decay, and key.
+     * @param _json The JSON data containing the value.
+     * @param decay The decay value to be used in the value extraction.
+     * @param key The key to extract the value from the JSON data.
+     * @return The extracted uint256 value.
+     */
+    function _readUintFromJson(
+        string memory _json,
+        string memory decay,
+        string memory key
+    ) internal pure returns (uint256) {
+        string memory path = string(abi.encodePacked(".", decay, ".", key));
+        return _json.readUint(path);
+    }
+
+    /**
+     * @dev Converts an array of string values to an array of uint256 values.
+     * @param keys The string values to be converted.
+     * @return An array of uint256 values representing the converted string values.
+     */
+    function getIntervals(
+        string[] memory keys
+    ) internal pure returns (uint256[] memory) {
+        uint256[] memory intervals = new uint256[](keys.length);
+
+        for (uint256 i = 0; i < keys.length; i++) {
+            intervals[i] = vm.parseUint(keys[i]);
+        }
+        return intervals;
     }
 }
