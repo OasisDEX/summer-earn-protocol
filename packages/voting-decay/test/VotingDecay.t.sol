@@ -2,94 +2,107 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
-import "../src/VotingDecay.sol";
-import "../src/IVotingDecay.sol";
+import "../src/VotingDecayLibrary.sol";
+import "../src/VotingDecayManager.sol";
 
 contract VotingDecayTest is Test {
-    using VotingDecay for IVotingDecay.Account;
-
-    mapping(address => IVotingDecay.Account) internal accounts;
+    VotingDecayManager internal decayManager;
     address internal user = address(1);
+    address internal delegate = address(2);
     uint256 internal constant INITIAL_VOTING_POWER = 1000e18;
-    uint256 internal constant DECAY_RATE = 0.1e18; // 10% per year
+    uint256 internal constant DECAY_RATE = 0.1e27; // 10% per year
 
     function setUp() public {
-        IVotingDecay.Account storage account = accounts[user];
-        account.votingPower = INITIAL_VOTING_POWER;
-        account.lastUpdateTimestamp = block.timestamp;
-        account.decayRate = DECAY_RATE;
-        account.delegateTo = address(0);
+        decayManager = new VotingDecayManager();
+        decayManager.setDecayRate(user, DECAY_RATE);
     }
 
-    function test_InitialVotingPower() public view {
-        assertEq(VotingDecay.getCurrentVotingPower(accounts[user]), INITIAL_VOTING_POWER);
+    function test_InitialDecayIndex() public view {
+        assertEq(decayManager.getCurrentDecayIndex(user), VotingDecayLibrary.RAY);
     }
 
     function test_DecayOverOneYear() public {
         // Fast forward one year
         vm.warp(block.timestamp + 365 days);
 
-        uint256 expectedVotingPower = INITIAL_VOTING_POWER * 9 / 10; // 90% of initial
-        assertApproxEqAbs(VotingDecay.getCurrentVotingPower(accounts[user]), expectedVotingPower, 1e18);
+        uint256 expectedDecayIndex = 0.9e27; // 90% of initial
+        assertApproxEqAbs(decayManager.getCurrentDecayIndex(user), expectedDecayIndex, 1e25);
     }
 
-    function test_UpdateDecay() public {
+    function test_UpdateDecayIndex() public {
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
-        VotingDecay.updateDecay(accounts[user]);
+        decayManager.refreshDecay(user);
 
-        uint256 expectedVotingPower = INITIAL_VOTING_POWER * 95 / 100; // Roughly 95% of initial
-        assertApproxEqAbs(accounts[user].votingPower, expectedVotingPower, 1e18);
-        assertEq(accounts[user].lastUpdateTimestamp, block.timestamp);
+        assertEq(decayManager.getCurrentDecayIndex(user), VotingDecayLibrary.RAY);
     }
 
     function test_ResetDecay() public {
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
-        VotingDecay.resetDecay(accounts[user]);
+        decayManager.refreshDecay(user);
 
-        assertEq(accounts[user].lastUpdateTimestamp, block.timestamp);
-        assertEq(accounts[user].votingPower, INITIAL_VOTING_POWER); // Voting power shouldn't change on reset
+        assertEq(decayManager.getCurrentDecayIndex(user), VotingDecayLibrary.RAY);
     }
 
     function test_SetDecayRate() public {
-        uint256 newRate = 0.2e18; // 20% per year
-        VotingDecay.setDecayRate(accounts[user], newRate);
-        assertEq(accounts[user].decayRate, newRate);
+        uint256 newRate = 0.2e27; // 20% per year
+        decayManager.setDecayRate(user, newRate);
+
+        assertEq(decayManager.getDecayRate(user), newRate);
+
+        // Fast-forward and check the decay index
+        vm.warp(block.timestamp + 365 days);
+        uint256 expectedDecayIndex = 0.8e27; // 80% of initial
+        assertApproxEqAbs(decayManager.getCurrentDecayIndex(user), expectedDecayIndex, 1e25);
     }
 
     function testFail_SetInvalidDecayRate() public {
-        uint256 invalidRate = 1.1e18; // 110% per year
-        VotingDecay.setDecayRate(accounts[user], invalidRate);
+        uint256 invalidRate = 1.1e27; // 110% per year
+        decayManager.setDecayRate(user, invalidRate);
     }
 
     function test_Delegate() public {
-        address delegateAddress = address(2);
-        IVotingDecay.Account storage delegateAccount = accounts[delegateAddress];
+        decayManager.setDecayRate(delegate, DECAY_RATE);
+        decayManager.delegate(user, delegate);
 
-        VotingDecay.delegate(accounts[user], delegateAccount);
-
-        assertEq(accounts[user].votingPower, 0);
-        assertEq(accounts[user].delegateTo, delegateAddress);
-        assertEq(delegateAccount.votingPower, INITIAL_VOTING_POWER);
+        assertEq(decayManager.getCurrentDecayIndex(user), decayManager.getCurrentDecayIndex(delegate));
     }
 
     function test_Undelegate() public {
-        address delegateAddress = address(2);
-        IVotingDecay.Account storage delegateAccount = accounts[delegateAddress];
-
-        VotingDecay.delegate(accounts[user], delegateAccount);
+        decayManager.setDecayRate(delegate, DECAY_RATE);
+        decayManager.delegate(user, delegate);
 
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
-        VotingDecay.undelegate(accounts[user], accounts);
+        decayManager.undelegate(user);
 
-        uint256 expectedVotingPower = INITIAL_VOTING_POWER * 95 / 100; // Roughly 95% of initial
-        assertApproxEqAbs(accounts[user].votingPower, expectedVotingPower, 1e18);
-        assertEq(accounts[user].delegateTo, address(0));
-        assertEq(delegateAccount.votingPower, 0);
+        assertEq(decayManager.getCurrentDecayIndex(user), VotingDecayLibrary.RAY); // Reset to full voting power
+        assertApproxEqAbs(decayManager.getCurrentDecayIndex(delegate), 0.95e27, 1e25);
+    }
+
+    function test_ApplyDecayToVotingPower() public {
+        // Fast forward 1 year
+        vm.warp(block.timestamp + 365 days);
+
+        uint256 decayedVotingPower = decayManager.getVotingPower(user, INITIAL_VOTING_POWER);
+        uint256 expectedDecayedVotingPower = (INITIAL_VOTING_POWER * 9) / 10;
+        assertApproxEqAbs(decayedVotingPower, expectedDecayedVotingPower, 1e18);
+    }
+
+    function test_SetDecayFreeWindow() public {
+        uint256 decayFreeWindow = 30 days;
+        decayManager.setDecayFreeWindow(user, decayFreeWindow);
+
+        // Fast forward 29 days (within decay-free window)
+        vm.warp(block.timestamp + 29 days);
+        assertEq(decayManager.getCurrentDecayIndex(user), VotingDecayLibrary.RAY);
+
+        // Fast forward another 30 days (outside decay-free window)
+        vm.warp(block.timestamp + 30 days);
+        assertLt(decayManager.getCurrentDecayIndex(user), VotingDecayLibrary.RAY);
     }
 }
