@@ -41,6 +41,15 @@ contract RaftTest is Test, IRaftEvents {
         _setupMockCalls();
     }
 
+    function test_Constructor() public {
+        raft = new Raft(address(mockSwapProvider), address(accessManager));
+        assertEq(
+            raft.swapProvider(),
+            address(mockSwapProvider),
+            "Wrong swap provider address"
+        );
+    }
+
     function test_Harvest() public {
         vm.expectEmit(true, true, true, true);
         emit ArkHarvested(mockArk, mockRewardToken);

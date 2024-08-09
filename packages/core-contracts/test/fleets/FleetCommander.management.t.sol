@@ -188,6 +188,14 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         assertEq(mockArk2.depositCap(), newDepositCap);
     }
 
+    function test_updateRebalanceCooldown_ShouldFail() public {
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", keeper)
+        );
+        fleetCommander.updateRebalanceCooldown(0);
+    }
+
     function test_SetArkDepositCapInvalidArk_ShouldFail() public {
         vm.expectRevert(
             abi.encodeWithSelector(
