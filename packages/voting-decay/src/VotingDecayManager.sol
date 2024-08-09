@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import "./VotingDecayLibrary.sol";
 import "./VotingDecayEvents.sol";
+import "./VotingDecayErrors.sol";
 
 /*
  * @title VotingDecayManager
@@ -25,14 +26,9 @@ contract VotingDecayManager {
      * @param rate The new decay rate
      */
     function setDecayRate(address accountAddress, uint256 rate) external {
-        require(
-            VotingDecayLibrary.isValidDecayRate(rate),
-            "Invalid decay rate"
-        );
+        if (!VotingDecayLibrary.isValidDecayRate(rate)) revert InvalidDecayRate();
         _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
-            accountAddress
-        ];
+        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[accountAddress];
         account.decayRate = rate;
         emit VotingDecayEvents.DecayRateSet(accountAddress, rate);
     }
@@ -72,11 +68,9 @@ contract VotingDecayManager {
         _initializeAccountIfNew(from);
         _initializeAccountIfNew(to);
 
-        VotingDecayLibrary.DecayInfo storage fromAccount = decayInfoByAccount[
-            from
-        ];
-        require(fromAccount.delegateTo == address(0), "Already delegated");
-        require(from != to, "Cannot delegate to self");
+        VotingDecayLibrary.DecayInfo storage fromAccount = decayInfoByAccount[from];
+        if (fromAccount.delegateTo != address(0)) revert AlreadyDelegated();
+        if (from == to) revert CannotDelegateToSelf();
 
         _updateDecayIndex(from);
 
@@ -101,10 +95,8 @@ contract VotingDecayManager {
      */
     function undelegate(address accountAddress) external {
         _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage decayInfo = decayInfoByAccount[
-            accountAddress
-        ];
-        require(decayInfo.delegateTo != address(0), "Not delegated");
+        VotingDecayLibrary.DecayInfo storage decayInfo = decayInfoByAccount[accountAddress];
+        if (decayInfo.delegateTo == address(0)) revert NotDelegated();
 
         address currentDelegate = decayInfo.delegateTo;
         _removeDelegator(currentDelegate, accountAddress);
