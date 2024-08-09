@@ -1,9 +1,17 @@
 [submodule "packages/core-contracts/lib/openzeppelin-contracts"]
 	path = packages/core-contracts/lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+	ignore = dirty
 [submodule "packages/core-contracts/lib/forge-std"]
 	path = packages/core-contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
 [submodule "packages/core-contracts/lib/metamorpho"]
 	path = packages/core-contracts/lib/metamorpho
 	url = https://github.com/morpho-org/metamorpho
+[submodule "packages/voting-decay/lib/openzeppelin-contracts"]
+    path = packages/voting-decay/lib/openzeppelin-contracts
+    url = https://github.com/openzeppelin/openzeppelin-contracts
+    ignore = dirty
+[submodule "packages/voting-decay/lib/forge-std"]
+    path = packages/voting-decay/lib/forge-std
+    url = https://github.com/foundry-rs/forge-std
