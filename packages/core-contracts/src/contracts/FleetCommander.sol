@@ -13,10 +13,10 @@ import {Tipper} from "./Tipper.sol";
 import {ITipper} from "../interfaces/ITipper.sol";
 import {Percentage} from "../types/Percentage.sol";
 import "../errors/FleetCommanderErrors.sol";
-
 /**
  * @custom:see IFleetCommander
  */
+
 contract FleetCommander is
     IFleetCommander,
     ERC4626,
@@ -294,6 +294,7 @@ contract FleetCommander is
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip {
         // Validate that no operations are moving to or from the bufferArk
+        _validateReallocateAllAssets(rebalanceData);
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
@@ -301,6 +302,7 @@ contract FleetCommander is
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip {
+        _validateReallocateAllAssets(rebalanceData);
         _validateAdjustBuffer(rebalanceData);
 
         uint256 totalMoved = _reallocateAllAssets(rebalanceData);
@@ -371,6 +373,7 @@ contract FleetCommander is
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor collectTip {
         // Validate that no operations are moving to or from the bufferArk
+        _validateReallocateAllAssets(rebalanceData);
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
@@ -473,10 +476,13 @@ contract FleetCommander is
     ) internal returns (uint256 amount) {
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
-        amount = data.amount;
-        if (amount == type(uint256).max) {
+
+        if (data.amount == type(uint256).max) {
             amount = fromArk.totalAssets();
+        } else {
+            amount = data.amount;
         }
+
         uint256 toArkMaxAllocation = toArk.maxAllocation();
         uint256 toArkAllocation = toArk.totalAssets();
 
@@ -587,7 +593,6 @@ contract FleetCommander is
     function _validateAdjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) internal view {
-        _validateReallocateAllAssets(rebalanceData);
         bool isMovingToBuffer = rebalanceData[0].toArk == address(bufferArk);
         uint256 initialBufferBalance = bufferArk.totalAssets();
         uint256 totalToMove;
@@ -629,7 +634,6 @@ contract FleetCommander is
     function _validateRebalance(
         RebalanceData[] calldata rebalanceData
     ) internal view {
-        _validateReallocateAllAssets(rebalanceData);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             _validateBufferArkNotInvolved(rebalanceData[i]);
 
