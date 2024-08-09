@@ -13,5 +13,5 @@
     url = https://github.com/openzeppelin/openzeppelin-contracts
     ignore = dirty
 [submodule "packages/voting-decay/lib/forge-std"]
-    path = packages/voting-decay/lib/forge-std
-    url = https://github.com/foundry-rs/forge-std
+	path = packages/voting-decay/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std

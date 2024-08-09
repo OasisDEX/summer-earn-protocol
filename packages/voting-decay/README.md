@@ -1,66 +1,92 @@
-## Foundry
+# Voting Decay Smart Contract
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A Solidity library for tracking and managing the decay of voting power in governance systems.
 
-Foundry consists of:
+## Table of Contents
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Documentation
+## Overview
 
-https://book.getfoundry.sh/
+The Voting Decay Library provides a flexible and efficient way to implement voting power erosion in blockchain-based governance systems. It allows for customizable decay rates, supports delegation, and offers utilities for calculating and updating voting power based on user activity.
+
+## Features
+
+- Customizable decay rates
+- Notional amount-based erosion calculation
+- Support for delegated voting power
+- Time-based modifiers for accurate decay tracking
+- Erosion reset mechanisms
+- Flexible voting power decay policies
+- Easy integration with existing governance systems
+
+## Installation
+
+TODO: Actually publish as foundry package
+
+To install the Voting Decay Library, use the following command:
+
+```bash
+forge install yourusername/voting-decay
+```
 
 ## Usage
+Here's a basic example of how to use the Voting Decay Library:
 
-### Build
+```solidity
+pragma solidity ^0.8.0;
 
-```shell
-$ forge build
+import "voting-decay/VotingDecay.sol";
+
+contract MyGovernance {
+    using VotingDecay for VotingDecay.Account;
+
+    mapping(address => VotingDecay.Account) public accounts;
+
+    function vote(uint256 proposalId) external {
+        VotingDecay.Account storage account = accounts[msg.sender];
+        account.updateDecay();
+        uint256 votingPower = account.getCurrentVotingPower();
+        // Use votingPower for voting logic
+    }
+
+    function refresh() external {
+        accounts[msg.sender].refreshDecay();
+    }
+}
+```
+## API Reference
+
+### Key Functions
+
+- `calculateDecay(uint256 notionalAmount, uint256 elapsedTime) -> uint256`
+- `getCurrentVotingPower(address account) -> uint256`
+- `updateDecay(address account)`
+- `resetDecay(address account)`
+- `applyDecay(address account)`
+- `setDecayRate(uint256 rate)`
+- `refreshDecay(address account)`
+
+For detailed documentation on each function, please refer to the inline comments in the source code.
+
+## Testing
+
+To run the test suite:
+
+```bash
+forge test
 ```
 
-### Test
+## Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+## License
+This project is licensed under the MIT License.
+This markdown block includes everything from the API Reference section to the end of the README. You can now easily copy and paste this into your project's README file.
