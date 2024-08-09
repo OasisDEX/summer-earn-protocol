@@ -49,12 +49,6 @@ interface IArkEvents {
     event DepositCapUpdated(uint256 newCap);
 
     /**
-     * @notice Emitted when the maximum allocation of the Ark is updated
-     * @param newDepositCap The new maximum allocation value
-     */
-    event MaxAllocationUpdated(uint256 newDepositCap);
-
-    /**
      * @notice Emitted when the Raft address associated with the Ark is updated
      * @param newRaft The address of the new Raft
      */

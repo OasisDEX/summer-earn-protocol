@@ -18,7 +18,6 @@ import "../errors/FleetCommanderErrors.sol";
 /**
  * @custom:see IFleetCommander
  */
-
 contract FleetCommander is
     IFleetCommander,
     ERC4626,
@@ -316,7 +315,7 @@ contract FleetCommander is
     }
 
     /* EXTERNAL - GOVERNANCE */
-    function setDepositCap(uint256 newCap) external onlyGovernor {
+    function setFleetDepositCap(uint256 newCap) external onlyGovernor {
         depositCap = newCap;
         emit DepositCapUpdated(newCap);
     }
@@ -350,7 +349,7 @@ contract FleetCommander is
         _removeArk(ark);
     }
 
-    function setDepositCap(
+    function setArkDepositCap(
         address ark,
         uint256 newDepositCap
     ) external onlyGovernor {

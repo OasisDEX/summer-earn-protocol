@@ -131,11 +131,6 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function adjustBuffer(RebalanceData[] calldata data) external;
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
-    /**
-     * @notice Sets a new deposit cap
-     * @param newCap The new deposit cap value
-     */
-    function setDepositCap(uint256 newCap) external;
 
     /**
      * @notice Sets a new tip jar address
@@ -170,11 +165,17 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function removeArk(address ark) external;
 
     /**
-     * @notice Sets a new maximum allocation for an Ark
-     * @param ark The address of the Ark
-     * @param newDepositCap The new maximum allocation
+     * @notice Sets a new deposit cap for Fleet
+     * @param newDepositCap The new deposit cap
      */
-    function setDepositCap(address ark, uint256 newDepositCap) external;
+    function setFleetDepositCap(uint256 newDepositCap) external;
+
+    /**
+     * @notice Sets a new deposit cap for an Ark
+     * @param ark The address of the Ark
+     * @param newDepositCap The new deposit cap
+     */
+    function setArkDepositCap(address ark, uint256 newDepositCap) external;
 
     /**
      * @notice Sets the moveFromMax for an Ark

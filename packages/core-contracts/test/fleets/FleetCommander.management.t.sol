@@ -10,6 +10,7 @@ import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWrite
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "../../src/types/Percentage.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -60,7 +61,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
                 address(0x123)
             )
         );
-        fleetCommander.setDepositCap(address(0x123), 1000);
+        fleetCommander.setArkDepositCap(address(0x123), 1000);
     }
 
     function test_SetMinBufferBalance() public {
@@ -93,7 +94,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RemoveSuccessful() public {
         // First, set max allocation to 0
         vm.prank(governor);
-        fleetCommander.setDepositCap(address(mockArk1), 0);
+        fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
@@ -106,7 +107,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RemoveArkWithNonZeroAssets() public {
         // First, set max allocation to 0
         vm.prank(governor);
-        fleetCommander.setDepositCap(address(mockArk1), 0);
+        fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
         // Mock non-zero assets
         mockToken.mint(address(mockArk1), 1000);
@@ -143,7 +144,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RebalanceToArkWithZeroMaxAllocation() public {
         // Set max allocation of mockArk1 to 0
         vm.prank(governor);
-        fleetCommander.setDepositCap(address(mockArk1), 0);
+        fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -166,10 +167,88 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_SetDepositCap() public {
         uint256 newDepositCap = 10000;
         vm.prank(governor);
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit();
         emit IFleetCommanderEvents.DepositCapUpdated(newDepositCap);
-        fleetCommander.setDepositCap(newDepositCap);
+
+        fleetCommander.setFleetDepositCap(newDepositCap);
         assertEq(fleetCommander.depositCap(), newDepositCap);
+    }
+
+    function test_setArkDepositCap() public {
+        uint256 newDepositCap = 10000;
+        vm.prank(governor);
+        vm.expectEmit();
+        emit IArkEvents.DepositCapUpdated(newDepositCap);
+        vm.expectEmit();
+        emit IFleetCommanderEvents.ArkDepositCapUpdated(
+            address(mockArk2),
+            newDepositCap
+        );
+        fleetCommander.setArkDepositCap(address(mockArk2), newDepositCap);
+        assertEq(mockArk2.depositCap(), newDepositCap);
+    }
+
+    function test_SetArkDepositCapInvalidArk_ShouldFail() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FleetCommanderArkNotFound.selector,
+                address(0x123)
+            )
+        );
+        vm.prank(governor);
+        fleetCommander.setArkDepositCap(address(0x123), 1000);
+    }
+
+    function test_SetArkMoveToMax() public {
+        uint256 maxMoveTo = 1000;
+        vm.prank(governor);
+        vm.expectEmit();
+        emit IArkEvents.MoveToMaxUpdated(maxMoveTo);
+        vm.expectEmit();
+        emit IFleetCommanderEvents.ArkMoveToMaxUpdated(
+            address(mockArk2),
+            maxMoveTo
+        );
+        fleetCommander.setArkMoveToMax(address(mockArk2), maxMoveTo);
+
+        assertEq(mockArk2.moveToMax(), maxMoveTo);
+    }
+
+    function test_SetArkMoveToMaxInvalidArk_ShouldFail() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FleetCommanderArkNotFound.selector,
+                address(0x123)
+            )
+        );
+        vm.prank(governor);
+        fleetCommander.setArkMoveToMax(address(0x123), type(uint256).max);
+    }
+
+    function test_SetArkMoveFromMax() public {
+        uint256 maxMoveFrom = 1000;
+        vm.prank(governor);
+        vm.expectEmit();
+        emit IArkEvents.MoveFromMaxUpdated(maxMoveFrom);
+        vm.expectEmit();
+        emit IFleetCommanderEvents.ArkMoveFromMaxUpdated(
+            address(mockArk2),
+            maxMoveFrom
+        );
+        fleetCommander.setArkMoveFromMax(address(mockArk2), maxMoveFrom);
+
+        assertEq(mockArk2.moveFromMax(), maxMoveFrom);
+    }
+
+    function test_SetArkMoveFromMaxInvalidArk_ShouldFail() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                FleetCommanderArkNotFound.selector,
+                address(0x123)
+            )
+        );
+        vm.prank(governor);
+        fleetCommander.setArkMoveFromMax(address(0x123), type(uint256).max);
     }
 
     function test_AddArkWithAddressZero() public {

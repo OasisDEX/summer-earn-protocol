@@ -127,7 +127,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
     /* @inheritdoc IArk */
     function setDepositCap(uint256 newDepositCap) external onlyCommander {
         config.depositCap = newDepositCap;
-        emit MaxAllocationUpdated(newDepositCap);
+        emit DepositCapUpdated(newDepositCap);
     }
 
     function setMoveFromMax(uint256 newMoveFromMax) external onlyCommander {

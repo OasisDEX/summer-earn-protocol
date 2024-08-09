@@ -85,7 +85,9 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function emergencyShutdown() external {}
 
-    function setDepositCap(uint256 newCap) external {}
+    function setFleetDepositCap(uint256 newCap) external {}
+
+    function setArkDepositCap(address ark, uint256 newDepositCap) external {}
 
     function setArkMoveFromMax(address ark, uint256 newMoveFromMax) external {}
 
