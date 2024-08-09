@@ -496,4 +496,43 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             "Should force redeem full amount"
         );
     }
+
+    function test_ValidateRedeemFromBuffer() public {
+        uint256 userShares = fleetCommander.balanceOf(mockUser);
+        // Test unauthorized redemption
+        vm.prank(nonOwner);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedRedemption(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+        fleetCommander.redeemFromBuffer(DEPOSIT_AMOUNT, nonOwner, mockUser);
+
+        // Test exceeding max redeem
+        vm.prank(mockUser);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxRedeem(address,uint256,uint256)",
+                mockUser,
+                userShares + 1,
+                userShares
+            )
+        );
+        fleetCommander.redeemFromBuffer(DEPOSIT_AMOUNT + 1, mockUser, mockUser);
+
+        // Test successful redeem from buffer
+        vm.prank(mockUser);
+        uint256 withdrawnAmount = fleetCommander.redeemFromBuffer(
+            userShares,
+            mockUser,
+            mockUser
+        );
+        assertEq(
+            withdrawnAmount,
+            DEPOSIT_AMOUNT,
+            "Should force redeem full amount"
+        );
+    }
 }
