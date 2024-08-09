@@ -14,11 +14,11 @@ import {ITipper} from "../interfaces/ITipper.sol";
 import {Percentage} from "../types/Percentage.sol";
 import {PercentageUtils} from "../libraries/PercentageUtils.sol";
 import "../errors/FleetCommanderErrors.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @custom:see IFleetCommander
  */
+
 contract FleetCommander is
     IFleetCommander,
     ERC4626,
@@ -299,6 +299,7 @@ contract FleetCommander is
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip {
         // Validate that no operations are moving to or from the bufferArk
+        _validateReallocateAllAssets(rebalanceData);
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
@@ -306,6 +307,7 @@ contract FleetCommander is
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip {
+        _validateReallocateAllAssets(rebalanceData);
         _validateAdjustBuffer(rebalanceData);
 
         uint256 totalMoved = _reallocateAllAssets(rebalanceData);
@@ -409,6 +411,7 @@ contract FleetCommander is
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor collectTip {
         // Validate that no operations are moving to or from the bufferArk
+        _validateReallocateAllAssets(rebalanceData);
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
@@ -435,7 +438,6 @@ contract FleetCommander is
     function _reallocateAllAssets(
         RebalanceData[] calldata rebalanceData
     ) internal returns (uint256 totalMoved) {
-        _validateReallocateAllAssets(rebalanceData);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             totalMoved += _reallocateAssets(rebalanceData[i]);
         }
@@ -503,58 +505,30 @@ contract FleetCommander is
      *      2. The maximum allocation of the destination Ark
      *      3. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
-     * @return uint256 The actual amount of assets reallocated
+     * @return amount uint256 The actual amount of assets reallocated
      * @custom:error FleetCommanderTargetArkRateTooLow Thrown when the destination Ark's rate is lower than the source Ark's rate
      * @custom:error FleetCommanderCantRebalanceToArk Thrown when the destination Ark is already at or above its maximum allocation
      */
     function _reallocateAssets(
         RebalanceData memory data
-    ) internal returns (uint256) {
+    ) internal returns (uint256 amount) {
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
-        uint256 amount = data.amount;
-        if (amount == type(uint256).max) {
+
+        if (data.amount == type(uint256).max) {
             amount = fromArk.totalAssets();
-        }
-        uint256 toArkMaxAllocation = toArk.depositCap();
-
-        if (
-            address(toArk) != address(bufferArk) &&
-            address(fromArk) != address(bufferArk)
-        ) {
-            uint256 toArkRate = toArk.rate();
-            uint256 fromArkRate = fromArk.rate();
-            if (toArkRate < fromArkRate) {
-                revert FleetCommanderTargetArkRateTooLow(
-                    address(toArk),
-                    toArkRate,
-                    fromArkRate
-                );
-            }
-            Percentage rateDifference = PercentageUtils.fromFraction(
-                (toArkRate - fromArkRate) * 100,
-                fromArkRate
-            );
-            if (rateDifference < minimumRateDifference) {
-                console.log(Percentage.unwrap(minimumRateDifference));
-                console.log(Percentage.unwrap(rateDifference));
-                revert FleetCommanderTargetArkRateTooLow(
-                    address(toArk),
-                    toArkRate,
-                    fromArkRate
-                );
-            }
+        } else {
+            amount = data.amount;
         }
 
+        uint256 toArkDepositCap = toArk.depositCap();
         uint256 toArkAllocation = toArk.totalAssets();
 
-        if (toArkAllocation + amount > toArkMaxAllocation) {
+        if (toArkAllocation + amount > toArkDepositCap) {
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
         _move(address(fromArk), address(toArk), amount);
-
-        return amount;
     }
 
     /**
@@ -631,13 +605,13 @@ contract FleetCommander is
      *      2. The Ark must not hold any assets
      * These conditions ensure that the Ark is effectively decommissioned before removal
      * @param ark The address of the Ark to be removed
-     * @custom:error FleetCommanderArkMaxAllocationGreaterThanZero Thrown when the Ark's max allocation is not zero
+     * @custom:error FleetCommanderArkDepositCapGreaterThanZero Thrown when the Ark's max allocation is not zero
      * @custom:error FleetCommanderArkAssetsNotZero Thrown when the Ark still holds assets
      */
     function _validateArkRemoval(address ark) internal view {
         IArk _ark = IArk(ark);
         if (_ark.depositCap() > 0) {
-            revert FleetCommanderArkMaxAllocationGreaterThanZero(ark);
+            revert FleetCommanderArkDepositCapGreaterThanZero(ark);
         }
         if (_ark.totalAssets() != 0) {
             revert FleetCommanderArkAssetsNotZero(ark);
@@ -688,23 +662,93 @@ contract FleetCommander is
     }
 
     /**
-     * @notice Validates that no rebalance operation moves funds to or from the bufferArk directly.
-     * @dev Iterates through each rebalance operation in `rebalanceData`. If any operation involves
-     *      moving funds directly to or from the `bufferArk`, it reverts with `FleetCommanderInvalidBufferAdjustment`.
-     *      This ensures that the bufferArk's funds are only adjusted through designated mechanisms, not direct rebalance operations.
-     * @param rebalanceData An array of `RebalanceData` structs, each representing a rebalance operation to be validated.
-     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown if a rebalance operation attempts to directly adjust the bufferArk's funds.
+     * @notice Validates the rebalance operations to ensure they meet all required constraints
+     * @dev This function performs a series of checks on each rebalance operation:
+     *      1. Ensures general reallocation constraints are met
+     *      2. Verifies the buffer ark is not directly involved in rebalancing
+     *      3. Checks that funds are only moved to higher rate arks, with an exception for over-allocated arks
+     * @param rebalanceData An array of RebalanceData structs, each representing a rebalance operation
      */
     function _validateRebalance(
         RebalanceData[] calldata rebalanceData
     ) internal view {
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            if (
-                rebalanceData[i].toArk == address(bufferArk) ||
-                rebalanceData[i].fromArk == address(bufferArk)
-            ) {
-                revert FleetCommanderCantUseRebalanceOnBufferArk();
+            _validateBufferArkNotInvolved(rebalanceData[i]);
+
+            uint256 toArkRate = IArk(rebalanceData[i].toArk).rate();
+            uint256 fromArkRate = IArk(rebalanceData[i].fromArk).rate();
+
+            if (toArkRate < fromArkRate) {
+                _validateRebalanceToLowerRate(
+                    IArk(rebalanceData[i].fromArk),
+                    rebalanceData[i].amount,
+                    fromArkRate,
+                    toArkRate,
+                    rebalanceData[i].toArk
+                );
+            } else {
+                Percentage rateDifference = PercentageUtils.fromFraction(
+                    (toArkRate - fromArkRate) * 100,
+                    fromArkRate
+                );
+                if (rateDifference < minimumRateDifference) {
+                    revert FleetCommanderTargetArkRateTooLow(
+                        address(rebalanceData[i].toArk),
+                        toArkRate,
+                        fromArkRate
+                    );
+                }
             }
+        }
+    }
+
+    /**
+     * @notice Validates that the buffer ark is not directly involved in a rebalance operation
+     * @dev This function checks if either the source or destination ark in a rebalance operation is the buffer ark
+     * @param data The RebalanceData struct containing the source and destination ark addresses
+     * @custom:error FleetCommanderCantUseRebalanceOnBufferArk Thrown if the buffer ark is involved in the rebalance
+     */
+    function _validateBufferArkNotInvolved(
+        RebalanceData memory data
+    ) internal view {
+        if (
+            data.toArk == address(bufferArk) ||
+            data.fromArk == address(bufferArk)
+        ) {
+            revert FleetCommanderCantUseRebalanceOnBufferArk();
+        }
+    }
+
+    /**
+     * @notice Validates a rebalance operation that moves funds to a lower rate ark
+     * @dev This function checks if the rebalance to a lower rate ark is allowed due to over-allocation
+     *      It's only permissible to move funds to a lower rate ark if:
+     *      1. The source ark is over-allocated (total assets > max allocation)
+     *      2. The amount being moved is less than or equal to the excess allocation
+     * @param fromArk The source ark contract
+     * @param amount The amount of assets being moved in the rebalance operation
+     * @param fromArkRate The rate of the source ark
+     * @param toArkRate The rate of the destination ark
+     * @param toArkAddress The address of the destination ark
+     */
+    function _validateRebalanceToLowerRate(
+        IArk fromArk,
+        uint256 amount,
+        uint256 fromArkRate,
+        uint256 toArkRate,
+        address toArkAddress
+    ) internal view {
+        uint256 fromArkDepositCap = fromArk.depositCap();
+        uint256 fromArkTotalAssets = fromArk.totalAssets();
+        if (
+            fromArkTotalAssets <= fromArkDepositCap ||
+            fromArkTotalAssets - fromArkDepositCap < amount
+        ) {
+            revert FleetCommanderTargetArkRateTooLow(
+                toArkAddress,
+                toArkRate,
+                fromArkRate
+            );
         }
     }
 
@@ -767,7 +811,7 @@ contract FleetCommander is
                 revert FleetCommanderExceedsMoveToMax(toArk, amount, moveToMax);
             }
             if (IArk(toArk).depositCap() == 0) {
-                revert FleetCommanderArkMaxAllocationZero(
+                revert FleetCommanderArkDepositCapZero(
                     address(rebalanceData[i].toArk)
                 );
             }

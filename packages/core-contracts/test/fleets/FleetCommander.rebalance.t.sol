@@ -429,7 +429,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: bufferArkAddress,
-            amount: 0
+            amount: 1000 * 10 ** 6
         });
 
         // Act
@@ -449,7 +449,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: 0
+            amount: 1000 * 10 ** 6
         });
 
         // Act
@@ -505,6 +505,158 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
     }
 
+    function test_RebalanceLowerRateWithOverAllocation() public {
+        // Arrange
+        uint256 arkMaxAllocation = 5000 * 10 ** 6;
+        uint256 arkTotalAssets = 6000 * 10 ** 6;
+        uint256 rebalanceAmount = 1000 * 10 ** 6;
+
+        mockArkMaxAllocation(ark1, arkMaxAllocation);
+        mockToken.mint(ark1, arkTotalAssets);
+        mockToken.mint(ark2, 4000 * 10 ** 6);
+        mockArkRate(ark1, 110);
+        mockArkRate(ark2, 105); // Lower rate than source
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            amount: rebalanceAmount
+        });
+
+        // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        fleetCommander.rebalance(rebalanceData); // This should succeed
+
+        // Assert
+        assertEq(
+            IArk(ark1).totalAssets(),
+            arkTotalAssets - rebalanceAmount,
+            "Source ark balance should decrease"
+        );
+        assertEq(
+            IArk(ark2).totalAssets(),
+            4000 * 10 ** 6 + rebalanceAmount,
+            "Target ark balance should increase"
+        );
+    }
+
+    function test_RebalanceLowerRateWithOverAllocationExceedingAmount() public {
+        // Arrange
+        uint256 arkMaxAllocation = 5000 * 10 ** 6;
+        uint256 arkTotalAssets = 6000 * 10 ** 6;
+        uint256 rebalanceAmount = 1100 * 10 ** 6; // Exceeds over-allocation amount
+
+        mockArkMaxAllocation(ark1, arkMaxAllocation);
+        mockToken.mint(ark1, arkTotalAssets);
+        mockToken.mint(ark2, 4000 * 10 ** 6);
+        mockArkRate(ark1, 110);
+        mockArkRate(ark2, 105); // Lower rate than source
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            amount: rebalanceAmount
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderTargetArkRateTooLow(address,uint256,uint256)",
+                ark2,
+                105,
+                110
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
+
+    function test_RebalanceLowerRateWithoutOverAllocation() public {
+        // Arrange
+        uint256 arkMaxAllocation = 5000 * 10 ** 6;
+        uint256 arkTotalAssets = 5000 * 10 ** 6; // Not over-allocated
+        uint256 rebalanceAmount = 1000 * 10 ** 6;
+
+        mockArkMaxAllocation(ark1, arkMaxAllocation);
+        mockToken.mint(ark1, arkTotalAssets);
+        mockToken.mint(ark2, 4000 * 10 ** 6);
+        mockArkRate(ark1, 110);
+        mockArkRate(ark2, 105); // Lower rate than source
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            amount: rebalanceAmount
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderTargetArkRateTooLow(address,uint256,uint256)",
+                ark2,
+                105,
+                110
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
+
+    function test_RebalanceMultipleOperationsWithMixedRates() public {
+        // Arrange
+        uint256 arkMaxAllocation = 5000 * 10 ** 6;
+        uint256 ark1TotalAssets = 6000 * 10 ** 6; // Over-allocated
+        uint256 ark2TotalAssets = 4000 * 10 ** 6;
+        uint256 ark3TotalAssets = 3000 * 10 ** 6;
+
+        mockArkMaxAllocation(ark1, arkMaxAllocation);
+        mockToken.mint(ark1, ark1TotalAssets);
+        mockToken.mint(ark2, ark2TotalAssets);
+        mockToken.mint(ark3, ark3TotalAssets);
+        mockArkRate(ark1, 110);
+        mockArkRate(ark2, 105); // Lower rate than ark1
+        mockArkRate(ark3, 115); // Higher rate than ark1
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            amount: 500 * 10 ** 6
+        });
+        rebalanceData[1] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark3,
+            amount: 500 * 10 ** 6
+        });
+
+        // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        fleetCommander.rebalance(rebalanceData);
+
+        // Assert
+        assertEq(
+            IArk(ark1).totalAssets(),
+            ark1TotalAssets - 1000 * 10 ** 6,
+            "Source ark balance should decrease"
+        );
+        assertEq(
+            IArk(ark2).totalAssets(),
+            ark2TotalAssets + 500 * 10 ** 6,
+            "Lower rate ark balance should increase"
+        );
+        assertEq(
+            IArk(ark3).totalAssets(),
+            ark3TotalAssets + 500 * 10 ** 6,
+            "Higher rate ark balance should increase"
+        );
+    }
     function test_RebalanceExceedsMoveFromMax() public {
         // Arrange
         uint256 moveFromMax = 500 * 10 ** 6;
