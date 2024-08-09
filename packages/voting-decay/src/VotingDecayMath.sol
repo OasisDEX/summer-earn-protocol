@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import { UD60x18, ud, unwrap } from "@prb/math/src/UD60x18.sol";
 
 library VotingDecayMath {
     using Math for uint256;
@@ -20,7 +21,7 @@ library VotingDecayMath {
     }
 
     /**
-     * @dev Calculates the exponential decay.
+     * @dev Calculates the exponential decay using PRBMath's UD60x18 type.
      * @param initialValue The initial value
      * @param decayRate The decay rate per second (scaled by 1e18)
      * @param time The time elapsed in seconds
@@ -31,13 +32,14 @@ library VotingDecayMath {
             return initialValue;
         }
 
-        // Calculate decay factor: (1 - decayRate)^time
-        uint256 decayFactor = SCALE - decayRate;
-        for (uint256 i = 0; i < time; i++) {
-            initialValue = mulDiv(initialValue, decayFactor, SCALE);
-        }
+        UD60x18 initialValueUD = ud(initialValue);
+        UD60x18 decayRateUD = ud(SCALE - decayRate);
+        UD60x18 timeUD = ud(time);
 
-        return initialValue;
+        UD60x18 decayFactor = decayRateUD.pow(timeUD);
+        UD60x18 result = initialValueUD.mul(decayFactor);
+
+        return unwrap(result);
     }
 
     /**
@@ -48,27 +50,28 @@ library VotingDecayMath {
      * @return The decayed value
      */
     function linearDecay(uint256 initialValue, uint256 decayRate, uint256 time) internal pure returns (uint256) {
-        uint256 totalDecay = mulDiv(decayRate, time, SCALE);
-        return initialValue > totalDecay ? initialValue - totalDecay : 0;
+        UD60x18 totalDecay = ud(decayRate).mul(ud(time));
+        UD60x18 result = ud(initialValue).sub(totalDecay);
+        return unwrap(result.gt(ud(0)) ? result : ud(0));
     }
 
     /**
-     * @dev Calculates the square root of a number.
+     * @dev Calculates the square root of a number using PRBMath's sqrt.
      * @param x The number to calculate the square root of
      * @return y The square root of x
      */
-    function sqrt(uint256 x) internal pure returns (uint256 y) {
-        return Math.sqrt(x);
+    function sqrt(uint256 x) internal pure returns (uint256) {
+        return unwrap(ud(x).sqrt());
     }
 
     /**
-     * @dev Raises a number to a power.
-     * @param base The base number
-     * @param exponent The exponent
-     * @return The result of base^exponent
+     * @dev Raises a number to a power using PRBMath's UD60x18 type.
+     * @param base The base number (scaled by 1e18)
+     * @param exponent The exponent (integer value)
+     * @return The result of base^exponent, scaled by 1e18
      */
     function pow(uint256 base, uint256 exponent) internal pure returns (uint256) {
-        return base.pow(exponent);
+        return unwrap(ud(base).powu(exponent));
     }
 
     /**
