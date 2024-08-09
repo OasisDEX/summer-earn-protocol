@@ -65,7 +65,7 @@ contract ExampleGovernance {
      */
     function updateVotingPower(uint256 newBaseVotingPower) external {
         require(voters[msg.sender].isRegistered, "Voter not registered");
-        decayManager.refreshDecay(msg.sender);
+        decayManager.resetDecay(msg.sender);
         voters[msg.sender].baseVotingPower = newBaseVotingPower;
     }
 
@@ -116,7 +116,7 @@ contract ExampleGovernance {
         uint256 votingPower = getAggregateVotingPower(msg.sender);
         proposalVotes[proposalId] += votingPower;
         hasVoted[proposalId][msg.sender] = true;
-        decayManager.refreshDecay(msg.sender);
+        decayManager.resetDecay(msg.sender);
         emit Voted(msg.sender, proposalId, votingPower);
     }
 
@@ -152,7 +152,7 @@ contract ExampleGovernance {
      */
     function refreshDecay() external {
         require(voters[msg.sender].isRegistered, "Not a registered voter");
-        decayManager.refreshDecay(msg.sender);
+        decayManager.resetDecay(msg.sender);
     }
 
     /*

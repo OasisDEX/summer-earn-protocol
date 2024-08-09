@@ -24,4 +24,6 @@ contract VotingDecayEvents {
 
     /* @notice Emitted when an account undelegates its voting power */
     event Undelegated(address indexed account);
+
+    event AuthorizedRefresherSet(address indexed refresher, bool isAuthorized);
 }

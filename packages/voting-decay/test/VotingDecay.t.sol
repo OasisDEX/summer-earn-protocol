@@ -14,6 +14,7 @@ contract VotingDecayTest is Test {
     VotingDecayManager internal decayManager;
     address internal user = address(1);
     address internal delegate = address(2);
+    address internal newOwner = address(3);
     uint256 internal constant INITIAL_VOTING_POWER = 1000e18;
     uint256 internal constant DECAY_RATE = 0.1e27; // 10% per year
 
@@ -58,7 +59,9 @@ contract VotingDecayTest is Test {
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
-        decayManager.refreshDecay(user);
+        vm.prank(newOwner);
+
+        decayManager.updateDecay(user);
 
         assertEq(
             decayManager.getCurrentDecayIndex(user),
@@ -70,10 +73,13 @@ contract VotingDecayTest is Test {
      * @notice Tests the reset of decay index
      */
     function test_ResetDecay() public {
+        decayManager.setAuthorizedRefresher(newOwner, true);
+
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
-        decayManager.refreshDecay(user);
+        vm.prank(newOwner);
+        decayManager.resetDecay(user);
 
         assertEq(
             decayManager.getCurrentDecayIndex(user),

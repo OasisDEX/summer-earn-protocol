@@ -4,19 +4,41 @@ pragma solidity 0.8.26;
 import "./VotingDecayLibrary.sol";
 import "./VotingDecayEvents.sol";
 import "./VotingDecayErrors.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 /*
  * @title VotingDecayManager
  * @notice Manages the decay of voting power for accounts in a governance system
  * @dev This contract handles the initialization, updating, and querying of voting power decay
  */
-contract VotingDecayManager {
+contract VotingDecayManager is Ownable {
     using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
 
     /* @notice Mapping of addresses to their voting decay accounts */
     mapping(address => VotingDecayLibrary.DecayInfo) private decayInfoByAccount;
     /* @notice Mapping of addresses to their delegators */
     mapping(address => address[]) public delegators;
+    mapping(address => bool) public authorizedRefreshers;
+
+    constructor() Ownable(msg.sender) {}
+
+    // Modifier to check if the caller is authorized to reset decay
+    modifier onlyAuthorized() {
+        if (!authorizedRefreshers[msg.sender]) revert NotAuthorizedToReset();
+        _;
+    }
+
+    // Modifier to update decay after function execution
+    modifier decayUpdate(address toRefresh) {
+        _;
+        _updateDecayIndex(toRefresh);
+    }
+
+    // Modifier to reset decay after function execution
+    modifier decayReset(address toRefresh) {
+        _;
+        _resetDecay(toRefresh);
+    }
 
     // External functions
 
@@ -26,9 +48,12 @@ contract VotingDecayManager {
      * @param rate The new decay rate
      */
     function setDecayRate(address accountAddress, uint256 rate) external {
-        if (!VotingDecayLibrary.isValidDecayRate(rate)) revert InvalidDecayRate();
+        if (!VotingDecayLibrary.isValidDecayRate(rate))
+            revert InvalidDecayRate();
         _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[accountAddress];
+        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
+            accountAddress
+        ];
         account.decayRate = rate;
         emit VotingDecayEvents.DecayRateSet(accountAddress, rate);
     }
@@ -50,13 +75,28 @@ contract VotingDecayManager {
         emit VotingDecayEvents.DecayFreeWindowSet(accountAddress, window);
     }
 
+    function setAuthorizedRefresher(
+        address refresher,
+        bool isAuthorized
+    ) external onlyOwner {
+        authorizedRefreshers[refresher] = isAuthorized;
+        emit VotingDecayEvents.AuthorizedRefresherSet(refresher, isAuthorized);
+    }
+
     /*
-     * @notice Refresh the decay for an account
+     * @notice Reset the decay for an account
      * @param accountAddress The address of the account to refresh
      */
-    function refreshDecay(address accountAddress) external {
-        _updateDecayIndex(accountAddress);
+    function resetDecay(address accountAddress) public onlyAuthorized {
         _resetDecay(accountAddress);
+    }
+
+    /*
+     * @notice Update the decay for a given user
+     * @param accountAddress The address of the account to refresh
+     */
+    function updateDecay(address accountAddress) public {
+        _updateDecayIndex(accountAddress);
     }
 
     /*
@@ -64,15 +104,15 @@ contract VotingDecayManager {
      * @param from The address delegating power
      * @param to The address receiving the delegation
      */
-    function delegate(address from, address to) external {
+    function delegate(address from, address to) external decayReset(from) {
         _initializeAccountIfNew(from);
         _initializeAccountIfNew(to);
 
-        VotingDecayLibrary.DecayInfo storage fromAccount = decayInfoByAccount[from];
+        VotingDecayLibrary.DecayInfo storage fromAccount = decayInfoByAccount[
+            from
+        ];
         if (fromAccount.delegateTo != address(0)) revert AlreadyDelegated();
         if (from == to) revert CannotDelegateToSelf();
-
-        _updateDecayIndex(from);
 
         // Remove 'from' from previous delegate's delegators list (if any)
         address currentDelegate = fromAccount.delegateTo;
@@ -93,9 +133,13 @@ contract VotingDecayManager {
      * @notice Remove delegation for an account
      * @param accountAddress The address to undelegate
      */
-    function undelegate(address accountAddress) external {
+    function undelegate(
+        address accountAddress
+    ) external decayReset(accountAddress) {
         _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage decayInfo = decayInfoByAccount[accountAddress];
+        VotingDecayLibrary.DecayInfo storage decayInfo = decayInfoByAccount[
+            accountAddress
+        ];
         if (decayInfo.delegateTo == address(0)) revert NotDelegated();
 
         address currentDelegate = decayInfo.delegateTo;
@@ -150,19 +194,24 @@ contract VotingDecayManager {
             accountAddress
         ];
         if (account.lastUpdateTimestamp == 0) {
-            return VotingDecayLibrary.RAY; // Return initial decay index for uninitialized accounts
+            return VotingDecayLibrary.RAY;
         }
         if (account.delegateTo != address(0)) {
             return getCurrentDecayIndex(account.delegateTo);
         }
 
         uint256 elapsed = block.timestamp - account.lastUpdateTimestamp;
+        if (elapsed <= account.decayFreeWindow) {
+            return account.decayIndex; // No decay within the decay-free window
+        }
+
+        uint256 decayPeriod = elapsed - account.decayFreeWindow;
         return
             VotingDecayLibrary.calculateDecayIndex(
                 account.decayIndex,
-                elapsed,
+                decayPeriod,
                 account.decayRate,
-                account.decayFreeWindow
+                0 // We've already accounted for the decay-free window
             );
     }
 
@@ -220,11 +269,14 @@ contract VotingDecayManager {
             return;
         }
 
-        uint256 newDecayIndex = getCurrentDecayIndex(accountAddress);
-        account.decayIndex = newDecayIndex;
+        uint256 elapsed = block.timestamp - account.lastUpdateTimestamp;
+        if (elapsed > account.decayFreeWindow) {
+            uint256 newDecayIndex = getCurrentDecayIndex(accountAddress);
+            account.decayIndex = newDecayIndex;
+        }
         account.lastUpdateTimestamp = block.timestamp;
 
-        emit VotingDecayEvents.DecayUpdated(accountAddress, newDecayIndex);
+        emit VotingDecayEvents.DecayUpdated(accountAddress, account.decayIndex);
     }
 
     /*
