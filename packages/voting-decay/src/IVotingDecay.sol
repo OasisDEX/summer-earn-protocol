@@ -6,7 +6,7 @@ interface IVotingDecay {
         uint256 votingPower;
         uint256 lastUpdateTimestamp;
         uint256 decayRate;
-        address delegate;
+        address delegateTo;
     }
 
     function calculateDecay(uint256 notionalAmount, uint256 elapsedTime) external view returns (uint256);

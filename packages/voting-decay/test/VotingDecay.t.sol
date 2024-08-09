@@ -8,86 +8,88 @@ import "../src/IVotingDecay.sol";
 contract VotingDecayTest is Test {
     using VotingDecay for IVotingDecay.Account;
 
-    IVotingDecay.Account internal account;
+    mapping(address => IVotingDecay.Account) internal accounts;
     address internal user = address(1);
     uint256 internal constant INITIAL_VOTING_POWER = 1000e18;
     uint256 internal constant DECAY_RATE = 0.1e18; // 10% per year
 
     function setUp() public {
+        IVotingDecay.Account storage account = accounts[user];
         account.votingPower = INITIAL_VOTING_POWER;
         account.lastUpdateTimestamp = block.timestamp;
         account.decayRate = DECAY_RATE;
-        account.delegate = address(0);
+        account.delegateTo = address(0);
     }
 
-    function testInitialVotingPower() public {
-        assertEq(account.getCurrentVotingPower(), INITIAL_VOTING_POWER);
+    function test_InitialVotingPower() public view {
+        assertEq(VotingDecay.getCurrentVotingPower(accounts[user]), INITIAL_VOTING_POWER);
     }
 
-    function testDecayOverOneYear() public {
+    function test_DecayOverOneYear() public {
         // Fast forward one year
         vm.warp(block.timestamp + 365 days);
 
         uint256 expectedVotingPower = INITIAL_VOTING_POWER * 9 / 10; // 90% of initial
-        assertApproxEqAbs(account.getCurrentVotingPower(), expectedVotingPower, 1e18);
+        assertApproxEqAbs(VotingDecay.getCurrentVotingPower(accounts[user]), expectedVotingPower, 1e18);
     }
 
-    function testUpdateDecay() public {
+    function test_UpdateDecay() public {
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
-        account.updateDecay();
+        VotingDecay.updateDecay(accounts[user]);
 
         uint256 expectedVotingPower = INITIAL_VOTING_POWER * 95 / 100; // Roughly 95% of initial
-        assertApproxEqAbs(account.votingPower, expectedVotingPower, 1e18);
-        assertEq(account.lastUpdateTimestamp, block.timestamp);
+        assertApproxEqAbs(accounts[user].votingPower, expectedVotingPower, 1e18);
+        assertEq(accounts[user].lastUpdateTimestamp, block.timestamp);
     }
 
-    function testResetDecay() public {
+    function test_ResetDecay() public {
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
-        account.resetDecay();
+        VotingDecay.resetDecay(accounts[user]);
 
-        assertEq(account.lastUpdateTimestamp, block.timestamp);
-        assertEq(account.votingPower, INITIAL_VOTING_POWER); // Voting power shouldn't change on reset
+        assertEq(accounts[user].lastUpdateTimestamp, block.timestamp);
+        assertEq(accounts[user].votingPower, INITIAL_VOTING_POWER); // Voting power shouldn't change on reset
     }
 
-    function testSetDecayRate() public {
+    function test_SetDecayRate() public {
         uint256 newRate = 0.2e18; // 20% per year
-        account.setDecayRate(newRate);
-        assertEq(account.decayRate, newRate);
+        VotingDecay.setDecayRate(accounts[user], newRate);
+        assertEq(accounts[user].decayRate, newRate);
     }
 
-    function testFailSetInvalidDecayRate() public {
+    function testFail_SetInvalidDecayRate() public {
         uint256 invalidRate = 1.1e18; // 110% per year
-        account.setDecayRate(invalidRate);
+        VotingDecay.setDecayRate(accounts[user], invalidRate);
     }
 
-    function testDelegate() public {
-        IVotingDecay.Account storage delegateAccount = accounts[address(2)];
-        account.delegate(delegateAccount);
+    function test_Delegate() public {
+        address delegateAddress = address(2);
+        IVotingDecay.Account storage delegateAccount = accounts[delegateAddress];
 
-        assertEq(account.votingPower, 0);
-        assertEq(account.delegate, address(delegateAccount));
+        VotingDecay.delegate(accounts[user], delegateAccount);
+
+        assertEq(accounts[user].votingPower, 0);
+        assertEq(accounts[user].delegateTo, delegateAddress);
         assertEq(delegateAccount.votingPower, INITIAL_VOTING_POWER);
     }
 
-    function testUndelegate() public {
-        IVotingDecay.Account storage delegateAccount = accounts[address(2)];
-        account.delegate(delegateAccount);
+    function test_Undelegate() public {
+        address delegateAddress = address(2);
+        IVotingDecay.Account storage delegateAccount = accounts[delegateAddress];
+
+        VotingDecay.delegate(accounts[user], delegateAccount);
 
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
-        account.undelegate();
+        VotingDecay.undelegate(accounts[user], accounts);
 
         uint256 expectedVotingPower = INITIAL_VOTING_POWER * 95 / 100; // Roughly 95% of initial
-        assertApproxEqAbs(account.votingPower, expectedVotingPower, 1e18);
-        assertEq(account.delegate, address(0));
+        assertApproxEqAbs(accounts[user].votingPower, expectedVotingPower, 1e18);
+        assertEq(accounts[user].delegateTo, address(0));
         assertEq(delegateAccount.votingPower, 0);
     }
-
-    // Helper function to simulate multiple accounts
-    mapping(address => IVotingDecay.Account) accounts;
 }
