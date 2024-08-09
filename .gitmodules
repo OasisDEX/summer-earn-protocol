@@ -9,8 +9,8 @@
 	path = packages/core-contracts/lib/metamorpho
 	url = https://github.com/morpho-org/metamorpho
 [submodule "packages/voting-decay/lib/openzeppelin-contracts"]
-    path = packages/voting-decay/lib/openzeppelin-contracts
-    url = https://github.com/openzeppelin/openzeppelin-contracts
+	path = packages/voting-decay/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
     ignore = dirty
 [submodule "packages/voting-decay/lib/forge-std"]
 	path = packages/voting-decay/lib/forge-std
