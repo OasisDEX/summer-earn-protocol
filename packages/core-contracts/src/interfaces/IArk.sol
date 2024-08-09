@@ -29,10 +29,22 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function raft() external view returns (address);
 
     /**
-     * @notice Returns the maximum allocation for this Ark
-     * @return The maximum allocation amount
+     * @notice Returns the deposit cap for this Ark
+     * @return The maximum amount of tokens that can be deposited into the Ark
      */
-    function maxAllocation() external view returns (uint256);
+    function depositCap() external view returns (uint256);
+
+    /**
+     * @notice Returns the maximum amount that can be moved to this Ark in one rebalance
+     * @return maximum amount that can be moved to this Ark in one rebalance
+     */
+    function moveToMax() external view returns (uint256);
+
+    /**
+     * @notice Returns the maximum amount that can be moved from this Ark in one rebalance
+     * @return maximum amount that can be moved from this Ark in one rebalance
+     */
+    function moveFromMax() external view returns (uint256);
 
     /**
      * @notice Returns the ERC20 token managed by this Ark
@@ -97,9 +109,19 @@ interface IArk is IArkAccessManaged, IArkEvents {
 
     /**
      * @notice Sets a new maximum allocation for the Ark
-     * @param newMaxAllocation The new maximum allocation amount
+     * @param newDepositCap The new maximum allocation amount
      */
-    function setMaxAllocation(uint256 newMaxAllocation) external;
+    function setDepositCap(uint256 newDepositCap) external;
 
-    error InvalidVaultAddress();
+    /**
+     * @notice Sets a new maximum amount that can be moved from the Ark in one rebalance
+     * @param newMoveFromMax The new maximum amount that can be moved from the Ark
+     */
+    function setMoveFromMax(uint256 newMoveFromMax) external;
+
+    /**
+     * @notice Sets a new maximum amount that can be moved to the Ark in one rebalance
+     * @param newMoveToMax The new maximum amount that can be moved to the Ark
+     */
+    function setMoveToMax(uint256 newMoveToMax) external;
 }

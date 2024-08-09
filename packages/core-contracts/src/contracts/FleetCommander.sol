@@ -12,7 +12,9 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Tipper} from "./Tipper.sol";
 import {ITipper} from "../interfaces/ITipper.sol";
 import {Percentage} from "../types/Percentage.sol";
+import {PercentageUtils} from "../libraries/PercentageUtils.sol";
 import "../errors/FleetCommanderErrors.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -25,12 +27,14 @@ contract FleetCommander is
     CooldownEnforcer
 {
     using SafeERC20 for IERC20;
+    using PercentageUtils for uint256;
 
     address[] public arks;
     IArk public bufferArk;
     mapping(address => bool) public isArkActive;
     uint256 public minFundsBufferBalance;
     uint256 public depositCap;
+    Percentage public minimumRateDifference;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
@@ -49,6 +53,7 @@ contract FleetCommander is
         depositCap = params.depositCap;
         bufferArk = IArk(params.bufferArk);
         isArkActive[address(bufferArk)] = true;
+        minimumRateDifference = params.minimumRateDifference;
     }
 
     /**
@@ -343,22 +348,55 @@ contract FleetCommander is
         _removeArk(ark);
     }
 
-    function setMaxAllocation(
+    function setDepositCap(
         address ark,
-        uint256 newMaxAllocation
+        uint256 newDepositCap
     ) external onlyGovernor {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
 
-        IArk(ark).setMaxAllocation(newMaxAllocation);
+        IArk(ark).setDepositCap(newDepositCap);
 
-        emit ArkMaxAllocationUpdated(ark, newMaxAllocation);
+        emit ArkDepositCapUpdated(ark, newDepositCap);
+    }
+
+    function setArkMoveFromMax(
+        address ark,
+        uint256 newMoveFromMax
+    ) external onlyGovernor {
+        if (!isArkActive[ark]) {
+            revert FleetCommanderArkNotFound(ark);
+        }
+
+        IArk(ark).setMoveFromMax(newMoveFromMax);
+
+        emit ArkMoveFromMaxUpdated(ark, newMoveFromMax);
+    }
+
+    function setArkMoveToMax(
+        address ark,
+        uint256 newMoveToMax
+    ) external onlyGovernor {
+        if (!isArkActive[ark]) {
+            revert FleetCommanderArkNotFound(ark);
+        }
+
+        IArk(ark).setMoveToMax(newMoveToMax);
+
+        emit ArkMoveToMaxUpdated(ark, newMoveToMax);
     }
 
     function setMinBufferBalance(uint256 newBalance) external onlyGovernor {
         minFundsBufferBalance = newBalance;
         emit FleetCommanderMinFundsBufferBalanceUpdated(newBalance);
+    }
+
+    function setMinimumRateDifference(
+        Percentage newRateDifference
+    ) external onlyGovernor {
+        minimumRateDifference = newRateDifference;
+        emit FleetCommanderMinimumRateDifferenceUpdated(newRateDifference);
     }
 
     function updateRebalanceCooldown(
@@ -478,13 +516,28 @@ contract FleetCommander is
         if (amount == type(uint256).max) {
             amount = fromArk.totalAssets();
         }
-        uint256 toArkMaxAllocation = toArk.maxAllocation();
+        uint256 toArkMaxAllocation = toArk.depositCap();
 
-        if (address(toArk) != address(bufferArk)) {
+        if (
+            address(toArk) != address(bufferArk) &&
+            address(fromArk) != address(bufferArk)
+        ) {
             uint256 toArkRate = toArk.rate();
             uint256 fromArkRate = fromArk.rate();
-
             if (toArkRate < fromArkRate) {
+                revert FleetCommanderTargetArkRateTooLow(
+                    address(toArk),
+                    toArkRate,
+                    fromArkRate
+                );
+            }
+            Percentage rateDifference = PercentageUtils.fromFraction(
+                (toArkRate - fromArkRate) * 100,
+                fromArkRate
+            );
+            if (rateDifference < minimumRateDifference) {
+                console.log(Percentage.unwrap(minimumRateDifference));
+                console.log(Percentage.unwrap(rateDifference));
                 revert FleetCommanderTargetArkRateTooLow(
                     address(toArk),
                     toArkRate,
@@ -583,7 +636,7 @@ contract FleetCommander is
      */
     function _validateArkRemoval(address ark) internal view {
         IArk _ark = IArk(ark);
-        if (_ark.maxAllocation() > 0) {
+        if (_ark.depositCap() > 0) {
             revert FleetCommanderArkMaxAllocationGreaterThanZero(ark);
         }
         if (_ark.totalAssets() != 0) {
@@ -682,24 +735,38 @@ contract FleetCommander is
         }
 
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            if (rebalanceData[i].amount == 0) {
-                revert FleetCommanderRebalanceAmountZero(
-                    rebalanceData[i].toArk
-                );
+            address fromArk = rebalanceData[i].fromArk;
+            address toArk = rebalanceData[i].toArk;
+            uint256 amount = rebalanceData[i].amount;
+
+            if (amount == 0) {
+                revert FleetCommanderRebalanceAmountZero(toArk);
             }
-            if (address(rebalanceData[i].toArk) == address(0)) {
-                revert FleetCommanderArkNotFound(rebalanceData[i].toArk);
+            if (address(toArk) == address(0)) {
+                revert FleetCommanderArkNotFound(toArk);
             }
             if (address(rebalanceData[i].fromArk) == address(0)) {
-                revert FleetCommanderArkNotFound(rebalanceData[i].fromArk);
+                revert FleetCommanderArkNotFound(fromArk);
             }
-            if (!isArkActive[address(rebalanceData[i].toArk)]) {
-                revert FleetCommanderArkNotActive(rebalanceData[i].toArk);
+            if (!isArkActive[address(toArk)]) {
+                revert FleetCommanderArkNotActive(toArk);
             }
-            if (!isArkActive[address(rebalanceData[i].fromArk)]) {
-                revert FleetCommanderArkNotActive(rebalanceData[i].fromArk);
+            if (!isArkActive[address(fromArk)]) {
+                revert FleetCommanderArkNotActive(fromArk);
             }
-            if (IArk(rebalanceData[i].toArk).maxAllocation() == 0) {
+            uint256 moveFromMax = IArk(fromArk).moveFromMax();
+            if (amount > moveFromMax) {
+                revert FleetCommanderExceedsMoveFromMax(
+                    fromArk,
+                    amount,
+                    moveFromMax
+                );
+            }
+            uint256 moveToMax = IArk(toArk).moveToMax();
+            if (amount > moveToMax) {
+                revert FleetCommanderExceedsMoveToMax(toArk, amount, moveToMax);
+            }
+            if (IArk(toArk).depositCap() == 0) {
                 revert FleetCommanderArkMaxAllocationZero(
                     address(rebalanceData[i].toArk)
                 );

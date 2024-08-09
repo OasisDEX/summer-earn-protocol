@@ -172,10 +172,31 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     /**
      * @notice Sets a new maximum allocation for an Ark
      * @param ark The address of the Ark
-     * @param newMaxAllocation The new maximum allocation
+     * @param newDepositCap The new maximum allocation
      */
-    function setMaxAllocation(address ark, uint256 newMaxAllocation) external;
+    function setDepositCap(address ark, uint256 newDepositCap) external;
 
+    /**
+     * @notice Sets the moveFromMax for an Ark
+     * @dev Only callable by the governor
+     * @param ark The address of the Ark
+     * @param newMoveFromMax The new moveFromMax value
+     */
+    function setArkMoveFromMax(address ark, uint256 newMoveFromMax) external;
+
+    /**
+     * @notice Sets the moveToMax for an Ark
+     * @dev Only callable by the governor
+     * @param ark The address of the Ark
+     * @param newMoveToMax The new moveToMax value
+     */
+    function setArkMoveToMax(address ark, uint256 newMoveToMax) external;
+
+    /**
+     * @dev Sets the minimum rate difference for the Fleet Commander.
+     * @param newRateDifference The new minimum rate difference to be set.
+     */
+    function setMinimumRateDifference(Percentage newRateDifference) external;
     /**
      * @notice Updates the rebalance cooldown period
      * @param newCooldown The new cooldown period in seconds

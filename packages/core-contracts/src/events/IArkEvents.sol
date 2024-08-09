@@ -50,9 +50,9 @@ interface IArkEvents {
 
     /**
      * @notice Emitted when the maximum allocation of the Ark is updated
-     * @param newMaxAllocation The new maximum allocation value
+     * @param newDepositCap The new maximum allocation value
      */
-    event MaxAllocationUpdated(uint256 newMaxAllocation);
+    event MaxAllocationUpdated(uint256 newDepositCap);
 
     /**
      * @notice Emitted when the Raft address associated with the Ark is updated
@@ -76,4 +76,16 @@ interface IArkEvents {
      * @param timestamp The timestamp of the poke
      */
     event ArkPoked(uint256 currentPrice, uint256 timestamp);
+
+    /**
+     * @notice Emitted when the maximum amount that can be moved from the Ark is updated
+     * @param newMoveFromMax The new maximum amount that can be moved from the Ark
+     */
+    event MoveFromMaxUpdated(uint256 newMoveFromMax);
+
+    /**
+     * @notice Emitted when the maximum amount that can be moved to the Ark is updated
+     * @param newMoveToMax The new maximum amount that can be moved to the Ark
+     */
+    event MoveToMaxUpdated(uint256 newMoveToMax);
 }

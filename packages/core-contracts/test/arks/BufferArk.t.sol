@@ -41,7 +41,9 @@ contract BufferArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
         ark = new BufferArk(params);
 
@@ -56,11 +58,13 @@ contract BufferArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
         ark = new BufferArk(params);
         assertEq(address(ark.token()), address(mockToken));
-        assertEq(ark.maxAllocation(), type(uint256).max);
+        assertEq(ark.depositCap(), type(uint256).max);
     }
 
     function test_Board() public {

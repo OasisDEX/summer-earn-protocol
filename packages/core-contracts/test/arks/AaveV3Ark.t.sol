@@ -59,7 +59,9 @@ contract AaveV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
@@ -115,7 +117,9 @@ contract AaveV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
@@ -160,7 +164,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         assertEq(address(ark.aaveV3DataProvider()), aaveV3DataProvider);
 
         assertEq(address(ark.token()), address(mockToken));
-        assertEq(ark.maxAllocation(), type(uint256).max);
+        assertEq(ark.depositCap(), type(uint256).max);
         assertEq(ark.aToken(), address(0));
         assertEq(ark.name(), "TestArk");
     }

@@ -64,7 +64,9 @@ contract MorphoArkTestFork is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: USDC_ADDRESS,
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
 
         ark = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
@@ -82,7 +84,9 @@ contract MorphoArkTestFork is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(usdc),
-            maxAllocation: 1000
+            depositCap: 1000,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
 
         // Act & Assert
@@ -96,10 +100,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         new MorphoArk(MORPHO_ADDRESS, Id.wrap(0), params);
 
         MorphoArk newArk = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
-        assertTrue(
-            newArk.maxAllocation() == 1000,
-            "Max allocation should be set"
-        );
+        assertTrue(newArk.depositCap() == 1000, "Max allocation should be set");
         assertTrue(
             Id.unwrap(newArk.marketId()) == Id.unwrap(MARKET_ID),
             "Market ID should be set"

@@ -36,7 +36,7 @@ contract MetaMorphoArk is Ark {
     }
 
     function _board(uint256 amount) internal override {
-        token.approve(address(metaMorpho), amount);
+        config.token.approve(address(metaMorpho), amount);
         metaMorpho.deposit(amount, address(this));
         this.poke();
     }

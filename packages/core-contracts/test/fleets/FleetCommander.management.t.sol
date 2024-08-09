@@ -32,7 +32,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             symbol: "FC",
             depositCap: 10000,
             bufferArk: bufferArkAddress,
-            initialTipRate: Percentage.wrap(0)
+            initialTipRate: Percentage.wrap(0),
+            minimumRateDifference: Percentage.wrap(0)
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);
@@ -59,7 +60,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
                 address(0x123)
             )
         );
-        fleetCommander.setMaxAllocation(address(0x123), 1000);
+        fleetCommander.setDepositCap(address(0x123), 1000);
     }
 
     function test_SetMinBufferBalance() public {
@@ -92,7 +93,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RemoveSuccessful() public {
         // First, set max allocation to 0
         vm.prank(governor);
-        fleetCommander.setMaxAllocation(address(mockArk1), 0);
+        fleetCommander.setDepositCap(address(mockArk1), 0);
 
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
@@ -105,7 +106,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RemoveArkWithNonZeroAssets() public {
         // First, set max allocation to 0
         vm.prank(governor);
-        fleetCommander.setMaxAllocation(address(mockArk1), 0);
+        fleetCommander.setDepositCap(address(mockArk1), 0);
 
         // Mock non-zero assets
         mockToken.mint(address(mockArk1), 1000);
@@ -142,7 +143,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_RebalanceToArkWithZeroMaxAllocation() public {
         // Set max allocation of mockArk1 to 0
         vm.prank(governor);
-        fleetCommander.setMaxAllocation(address(mockArk1), 0);
+        fleetCommander.setDepositCap(address(mockArk1), 0);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({

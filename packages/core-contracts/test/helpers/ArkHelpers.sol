@@ -23,9 +23,9 @@ contract ArkTestHelpers is Test, Constants {
     }
 
     /**
-     * @notice Mocks the return value of `maxAllocation` for a given Ark contract
+     * @notice Mocks the return value of `depositCap` for a given Ark contract
      * @param contractAddress The address of the Ark contract whose `totalAssets` function is to be mocked
-     * @param returnValue The value to return when `maxAllocation` is called
+     * @param returnValue The value to return when `depositCap` is called
      */
     function mockArkMaxAllocation(
         address contractAddress,
@@ -33,9 +33,7 @@ contract ArkTestHelpers is Test, Constants {
     ) public {
         vm.mockCall(
             contractAddress,
-            abi.encodeWithSelector(
-                IArk(contractAddress).maxAllocation.selector
-            ),
+            abi.encodeWithSelector(IArk(contractAddress).depositCap.selector),
             abi.encode(returnValue)
         );
     }
@@ -47,6 +45,32 @@ contract ArkTestHelpers is Test, Constants {
      */
     function mockArkRate(address ark, uint256 rate) internal {
         vm.mockCall(ark, abi.encodeWithSignature("rate()"), abi.encode(rate));
+    }
+
+    /**
+     * @dev Mocks the `moveFromMax` function of the `IArk` contract.
+     * @param ark The address of the `IArk` contract.
+     * @param moveFromMax The value to be passed to the `moveFromMax` function.
+     */
+    function mockArkMoveFromMax(address ark, uint256 moveFromMax) internal {
+        vm.mockCall(
+            ark,
+            abi.encodeWithSelector(IArk.moveFromMax.selector),
+            abi.encode(moveFromMax)
+        );
+    }
+
+    /**
+     * @dev Mocks the `moveToMax` function of the `IArk` contract.
+     * @param ark The address of the `IArk` contract.
+     * @param moveToMax The value to be passed to the `moveToMax` function.
+     */
+    function mockArkMoveToMax(address ark, uint256 moveToMax) internal {
+        vm.mockCall(
+            ark,
+            abi.encodeWithSelector(IArk.moveToMax.selector),
+            abi.encode(moveToMax)
+        );
     }
 
     function test() public {}

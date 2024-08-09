@@ -96,7 +96,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(usdcTokenContract),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
         aaveArk = new AaveV3Ark(
             address(aaveV3PoolContract),

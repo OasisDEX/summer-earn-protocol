@@ -6,7 +6,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {CannotAddCommanderToArkWithCommander, CannotRemoveCommanderFromArkWithAssets} from "../errors/ArkErrors.sol";
-import {IArk, ArkParams} from "../interfaces/IArk.sol";
+import {IArk, ArkParams, ArkConfig} from "../interfaces/IArk.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../errors/AccessControlErrors.sol";
 import "../errors/ArkErrors.sol";
@@ -17,12 +17,7 @@ import "../errors/ArkErrors.sol";
 abstract contract Ark is IArk, ArkAccessManaged {
     using SafeERC20 for IERC20;
 
-    string public name;
-    address public commander;
-    address public raft;
-    uint256 public maxAllocation;
-
-    IERC20 public token;
+    ArkConfig public config;
     IConfigurationManager public manager;
 
     constructor(
@@ -34,23 +29,54 @@ abstract contract Ark is IArk, ArkAccessManaged {
         if (_params.token == address(0)) {
             revert CannotDeployArkWithoutToken();
         }
-        if (
-            keccak256(abi.encodePacked(_params.name)) ==
-            keccak256(abi.encodePacked(""))
-        ) {
+        if (bytes(_params.name).length == 0) {
             revert CannotDeployArkWithEmptyName();
         }
         manager = IConfigurationManager(_params.configurationManager);
         if (manager.raft() == address(0)) {
             revert CannotDeployArkWithoutRaft();
         }
-        maxAllocation = _params.maxAllocation;
-        raft = manager.raft();
-        token = IERC20(_params.token);
-        name = _params.name;
+
+        config = ArkConfig({
+            token: IERC20(_params.token),
+            commander: address(0), // Will be set later
+            raft: manager.raft(),
+            depositCap: _params.depositCap,
+            moveFromMax: _params.moveFromMax,
+            moveToMax: _params.moveToMax,
+            name: _params.name
+        });
     }
 
     /* PUBLIC */
+    function name() public view returns (string memory) {
+        return config.name;
+    }
+
+    function raft() public view returns (address) {
+        return config.raft;
+    }
+
+    function depositCap() public view returns (uint256) {
+        return config.depositCap;
+    }
+
+    function token() public view returns (IERC20) {
+        return config.token;
+    }
+
+    function commander() public view returns (address) {
+        return config.commander;
+    }
+
+    function moveFromMax() public view returns (uint256) {
+        return config.moveFromMax;
+    }
+
+    function moveToMax() public view returns (uint256) {
+        return config.moveToMax;
+    }
+
     /* @inheritdoc IArk */
     function totalAssets() public view virtual returns (uint256) {}
 
@@ -69,40 +95,53 @@ abstract contract Ark is IArk, ArkAccessManaged {
 
     /* EXTERNAL - COMMANDER */
     /* @inheritdoc IArk */
-    function board(uint256 amount) external onlyAuthorizedToBoard(commander) {
+    function board(
+        uint256 amount
+    ) external onlyAuthorizedToBoard(config.commander) {
         address msgSender = _msgSender();
-        token.safeTransferFrom(msgSender, address(this), amount);
+        config.token.safeTransferFrom(msgSender, address(this), amount);
         _board(amount);
 
-        emit Boarded(msgSender, address(token), amount);
+        emit Boarded(msgSender, address(config.token), amount);
     }
 
     /* @inheritdoc IArk */
     function disembark(uint256 amount) external onlyCommander {
         address msgSender = _msgSender();
         _disembark(amount);
-        token.safeTransfer(msgSender, amount);
+        config.token.safeTransfer(msgSender, amount);
 
-        emit Disembarked(msgSender, address(token), amount);
+        emit Disembarked(msgSender, address(config.token), amount);
     }
 
     /* @inheritdoc IArk */
     function move(uint256 amount, address receiverArk) external onlyCommander {
         _disembark(amount);
 
-        token.approve(receiverArk, amount);
+        config.token.approve(receiverArk, amount);
         IArk(receiverArk).board(amount);
 
-        emit Moved(address(this), receiverArk, address(token), amount);
+        emit Moved(address(this), receiverArk, address(config.token), amount);
     }
 
     /* @inheritdoc IArk */
-    function setMaxAllocation(uint256 newMaxAllocation) external onlyCommander {
-        maxAllocation = newMaxAllocation;
-        emit MaxAllocationUpdated(newMaxAllocation);
+    function setDepositCap(uint256 newDepositCap) external onlyCommander {
+        config.depositCap = newDepositCap;
+        emit MaxAllocationUpdated(newDepositCap);
+    }
+
+    function setMoveFromMax(uint256 newMoveFromMax) external onlyCommander {
+        config.moveFromMax = newMoveFromMax;
+        emit MoveFromMaxUpdated(newMoveFromMax);
+    }
+
+    function setMoveToMax(uint256 newMoveToMax) external onlyCommander {
+        config.moveToMax = newMoveToMax;
+        emit MoveToMaxUpdated(newMoveToMax);
     }
 
     /* @inheritdoc IArk */
+
     function poke() public virtual {}
 
     /* EXTERNAL - GOVERNANCE */
@@ -117,10 +156,10 @@ abstract contract Ark is IArk, ArkAccessManaged {
     function _beforeGrantRoleHook(
         address newComander
     ) internal virtual override(ArkAccessManaged) onlyGovernor {
-        if (commander != address(0)) {
+        if (config.commander != address(0)) {
             revert CannotAddCommanderToArkWithCommander();
         }
-        commander = newComander;
+        config.commander = newComander;
     }
 
     /**
@@ -133,7 +172,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
         if (this.totalAssets() > 0) {
             revert CannotRemoveCommanderFromArkWithAssets();
         }
-        commander = address(0);
+        config.commander = address(0);
     }
 
     /* INTERNAL */

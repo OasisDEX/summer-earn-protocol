@@ -55,7 +55,9 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(asset),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
 
         ark = new MetaMorphoArk(METAMORPHO_ADDRESS, params);
@@ -243,7 +245,9 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(asset),
-            maxAllocation: 1000
+            depositCap: 1000,
+            moveFromMax: type(uint256).max,
+            moveToMax: type(uint256).max
         });
 
         // Act
