@@ -15,6 +15,7 @@ cache
 abis
 artifacts
 packages/core-contracts/lib/**
+packages/voting-decay/lib/**
 **/.sst/**
 **/.turbo/**
 packages/**/src/generated

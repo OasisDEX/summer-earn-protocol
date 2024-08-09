@@ -2,11 +2,17 @@
 pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import { UD60x18, ud, unwrap } from "@prb/math/src/UD60x18.sol";
+import {UD60x18, ud, unwrap} from "@prb/math/src/UD60x18.sol";
 
+/*
+ * @title VotingDecayMath
+ * @notice A library for advanced mathematical operations used in voting decay calculations
+ * @dev Utilizes OpenZeppelin's Math library and PRBMath for precise calculations
+ */
 library VotingDecayMath {
     using Math for uint256;
 
+    /* @notice Constant representing the scale factor for calculations (18 decimal places) */
     uint256 private constant SCALE = 1e18;
 
     /**
@@ -16,7 +22,11 @@ library VotingDecayMath {
      * @param denominator The number to divide by
      * @return The result of (a * b) / denominator, rounded down
      */
-    function mulDiv(uint256 a, uint256 b, uint256 denominator) internal pure returns (uint256) {
+    function mulDiv(
+        uint256 a,
+        uint256 b,
+        uint256 denominator
+    ) internal pure returns (uint256) {
         return Math.mulDiv(a, b, denominator);
     }
 
@@ -27,7 +37,11 @@ library VotingDecayMath {
      * @param time The time elapsed in seconds
      * @return The decayed value
      */
-    function exponentialDecay(uint256 initialValue, uint256 decayRate, uint256 time) internal pure returns (uint256) {
+    function exponentialDecay(
+        uint256 initialValue,
+        uint256 decayRate,
+        uint256 time
+    ) internal pure returns (uint256) {
         if (time == 0 || decayRate == 0) {
             return initialValue;
         }
@@ -49,7 +63,11 @@ library VotingDecayMath {
      * @param time The time elapsed in seconds
      * @return The decayed value
      */
-    function linearDecay(uint256 initialValue, uint256 decayRate, uint256 time) internal pure returns (uint256) {
+    function linearDecay(
+        uint256 initialValue,
+        uint256 decayRate,
+        uint256 time
+    ) internal pure returns (uint256) {
         UD60x18 totalDecay = ud(decayRate).mul(ud(time));
         UD60x18 result = ud(initialValue).sub(totalDecay);
         return unwrap(result.gt(ud(0)) ? result : ud(0));
@@ -70,7 +88,10 @@ library VotingDecayMath {
      * @param exponent The exponent (integer value)
      * @return The result of base^exponent, scaled by 1e18
      */
-    function pow(uint256 base, uint256 exponent) internal pure returns (uint256) {
+    function pow(
+        uint256 base,
+        uint256 exponent
+    ) internal pure returns (uint256) {
         return unwrap(ud(base).powu(exponent));
     }
 
