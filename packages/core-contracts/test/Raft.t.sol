@@ -3,239 +3,334 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
-import {IRaftEvents} from "../src/interfaces/IRaftEvents.sol";
+import {IRaftEvents} from "../src/events/IRaftEvents.sol";
 import {Raft} from "../src/contracts/Raft.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SwapData} from "../src/types/RaftTypes.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
+import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
+import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
+import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
 import "../src/errors/RaftErrors.sol";
 import "../src/errors/AccessControlErrors.sol";
+import "../src/types/RaftTypes.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ArkMock, ArkParams} from "./mocks/ArkMock.sol";
+import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 
 contract RaftTest is Test, IRaftEvents {
+    using PercentageUtils for uint256;
+
+    ArkMock public mockArk;
     Raft public raft;
     IProtocolAccessManager public accessManager;
 
     address public governor = address(1);
-    address public mockArk = address(5);
-    address public mockToken = address(7);
+    address public buyer = address(2);
     address public superKeeper = address(8);
-    address public mockRewardToken = address(9);
-    address public newSwapProvider = address(10);
-
-    MockSwapProvider public mockSwapProvider;
+    ERC20Mock public mockRewardToken;
+    ERC20Mock public mockPaymentToken;
 
     uint256 constant REWARD_AMOUNT = 100;
-    uint256 constant BALANCE_BEFORE_SWAP = 0;
-    uint256 constant BALANCE_AFTER_SWAP = 200;
+    uint256 constant BALANCE_AFTER_AUCTION = 200;
+    Percentage public KICKER_REWARD_PERCENTAGE =
+        PercentageUtils.fromDecimalPercentage(5);
 
     function setUp() public {
-        mockSwapProvider = new MockSwapProvider();
-
+        mockRewardToken = new ERC20Mock();
+        mockPaymentToken = new ERC20Mock();
         accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
         accessManager.grantSuperKeeperRole(superKeeper);
 
-        raft = new Raft(address(mockSwapProvider), address(accessManager));
+        raft = new Raft(address(accessManager));
 
-        _setupMockCalls();
+        ConfigurationManager configurationManager = new ConfigurationManager(
+            ConfigurationManagerParams({
+                accessManager: address(accessManager),
+                raft: address(raft),
+                tipJar: address(0)
+            })
+        );
+
+        ArkParams memory params = ArkParams({
+            name: "TestArk",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            token: address(mockPaymentToken),
+            maxAllocation: type(uint256).max
+        });
+
+        mockArk = new ArkMock(params);
+
+        mockRewardToken.mint(address(address(mockArk)), REWARD_AMOUNT);
+        mockPaymentToken.mint(address(buyer), 10000 ether);
+
+        vm.label(governor, "governor");
+        vm.label(address(address(mockArk)), "address(mockArk)");
+        vm.label(address(mockPaymentToken), "mockPaymentToken");
+        vm.label(superKeeper, "superKeeper");
+        vm.label(address(mockRewardToken), "mockRewardToken");
+        vm.label(address(mockPaymentToken), "mockPaymentToken");
+        vm.label(address(raft), "raft");
+        vm.label(address(accessManager), "accessManager");
     }
 
     function test_Harvest() public {
         vm.expectEmit(true, true, true, true);
-        emit ArkHarvested(mockArk, mockRewardToken);
+        emit ArkHarvested(address(mockArk), address(mockRewardToken));
 
-        raft.harvest(mockArk, mockRewardToken, bytes(""));
+        vm.prank(superKeeper);
+        raft.harvest(
+            address(mockArk),
+            address(mockRewardToken),
+            abi.encode(REWARD_AMOUNT)
+        );
 
         assertEq(
-            raft.getHarvestedRewards(mockArk, mockRewardToken),
+            raft.getHarvestedRewards(
+                address(mockArk),
+                address(mockRewardToken)
+            ),
             REWARD_AMOUNT
         );
     }
 
-    function test_HarvestAndBoard() public {
-        SwapData memory swapData = SwapData({
-            fromAsset: mockRewardToken,
-            amount: REWARD_AMOUNT,
-            receiveAtLeast: REWARD_AMOUNT,
-            withData: abi.encode()
-        });
+    function test_HarvestAndStartAuction() public {
+        vm.prank(superKeeper);
+        vm.expectEmit(true, true, true, true);
+        emit ArkHarvested(address(mockArk), address(mockRewardToken));
 
         vm.expectEmit(true, true, true, true);
-        emit RewardSwapped(
-            mockRewardToken,
-            mockToken,
-            REWARD_AMOUNT,
-            BALANCE_AFTER_SWAP
+        emit DutchAuctionEvents.AuctionCreated(
+            0,
+            superKeeper,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE),
+            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+        );
+
+        raft.harvestAndStartAuction(
+            address(mockArk),
+            address(mockRewardToken),
+            address(mockPaymentToken),
+            abi.encode(REWARD_AMOUNT)
+        );
+
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory state
+        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        assertEq(
+            state.remainingTokens,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+        );
+    }
+
+    function test_StartAuction() public {
+        vm.prank(superKeeper);
+        raft.harvest(
+            address(mockArk),
+            address(mockRewardToken),
+            abi.encode(REWARD_AMOUNT)
         );
 
         vm.expectEmit(true, true, true, true);
-        emit RewardBoarded(
-            mockArk,
-            mockRewardToken,
-            address(mockToken),
-            BALANCE_AFTER_SWAP
+        emit DutchAuctionEvents.AuctionCreated(
+            0,
+            superKeeper,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE),
+            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
         );
 
         vm.prank(superKeeper);
-        raft.harvestAndBoard(mockArk, mockRewardToken, swapData, bytes(""));
+        raft.startAuction(
+            address(mockArk),
+            address(mockRewardToken),
+            address(mockPaymentToken)
+        );
+
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory state
+        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        assertEq(
+            state.remainingTokens,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+        );
     }
 
-    function test_SwapAndBoard() public {
-        vm.mockCall(
-            mockArk,
-            abi.encodeWithSelector(
-                IArk.harvest.selector,
-                mockRewardToken,
-                bytes("")
-            ),
-            abi.encode(REWARD_AMOUNT)
+    function test_BuyTokens() public {
+        _setupAuction();
+
+        uint256 buyAmount = 50;
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raft), buyAmount);
+        raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
+        vm.stopPrank();
+
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory state
+        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        assertEq(
+            state.remainingTokens,
+            REWARD_AMOUNT -
+                buyAmount -
+                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
         );
-        raft.harvest(mockArk, mockRewardToken, bytes(""));
+    }
 
-        SwapData memory swapData = SwapData({
-            fromAsset: mockRewardToken,
-            amount: REWARD_AMOUNT,
-            receiveAtLeast: REWARD_AMOUNT,
-            withData: abi.encode()
-        });
+    function test_FinalizeAuction() public {
+        _setupAuction();
 
-        vm.expectEmit(true, true, true, true);
-        emit RewardSwapped(
-            mockRewardToken,
-            mockToken,
-            REWARD_AMOUNT,
-            BALANCE_AFTER_SWAP
-        );
+        // Warp to after auction end time
+        vm.warp(block.timestamp + 2 days);
 
+        raft.finalizeAuction(address(mockArk), address(mockRewardToken));
+
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory state
+        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        assertTrue(state.isFinalized);
+    }
+
+    function test_BuyAllAndSettleAuction() public {
+        _setupAuction();
+
+        uint256 buyAmount = REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE);
+
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raft), buyAmount);
         vm.expectEmit(true, true, true, true);
         emit RewardBoarded(
-            mockArk,
-            mockRewardToken,
-            address(mockToken),
-            BALANCE_AFTER_SWAP
+            address(mockArk),
+            address(mockRewardToken),
+            address(mockPaymentToken),
+            buyAmount
         );
+        raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
+        vm.stopPrank();
 
-        vm.prank(superKeeper);
-        raft.swapAndBoard(mockArk, mockRewardToken, swapData);
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory state
+        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        assertTrue(state.isFinalized);
     }
 
-    function test_SwapAmountExceedsHarvested() public {
-        vm.mockCall(
-            mockArk,
-            abi.encodeWithSelector(
-                IArk.harvest.selector,
-                mockRewardToken,
-                bytes("")
-            ),
-            abi.encode(REWARD_AMOUNT)
-        );
-        raft.harvest(mockArk, mockRewardToken, bytes(""));
-
-        SwapData memory swapData = SwapData({
-            fromAsset: mockRewardToken,
-            amount: REWARD_AMOUNT + 1, // Exceeds harvested amount
-            receiveAtLeast: REWARD_AMOUNT,
-            withData: abi.encode()
+    function test_UpdateAuctionConfig() public {
+        AuctionConfig memory newConfig = AuctionConfig({
+            duration: 2 days,
+            startPrice: 2e18,
+            endPrice: 2,
+            kickerRewardPercentage: PercentageUtils.fromDecimalPercentage(10),
+            decayType: DecayFunctions.DecayType.Exponential
         });
 
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true);
+        emit AuctionConfigUpdated(newConfig);
+
+        raft.updateAuctionConfig(newConfig);
+
+        (
+            uint40 duration,
+            uint256 startPrice,
+            uint256 endPrice,
+            Percentage kickerRewardPercentage,
+            DecayFunctions.DecayType decayType
+        ) = raft.auctionConfig();
+        assertEq(duration, newConfig.duration);
+        assertEq(startPrice, newConfig.startPrice);
+        assertEq(endPrice, newConfig.endPrice);
+        assertEq(
+            Percentage.unwrap(kickerRewardPercentage),
+            Percentage.unwrap(newConfig.kickerRewardPercentage)
+        );
+        assertEq(uint256(decayType), uint256(newConfig.decayType));
+    }
+
+    function test_CannotStartAuctionTwice() public {
+        _setupAuction();
+
+        vm.prank(superKeeper);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SwapAmountExceedsHarvestedAmount.selector,
-                REWARD_AMOUNT + 1,
-                REWARD_AMOUNT,
-                mockRewardToken
+                Raft.AuctionAlreadyRunning.selector,
+                address(mockArk),
+                address(mockRewardToken)
             )
         );
-
-        vm.prank(superKeeper);
-        raft.swapAndBoard(mockArk, mockRewardToken, swapData);
-    }
-
-    function test_SetSwapProvider() public {
-        // Attempt to set new swap provider as non-superkeeper
-        address notGovernor = address(0x123);
-        vm.prank(notGovernor);
-        vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotSuperKeeper.selector, notGovernor)
+        raft.startAuction(
+            address(mockArk),
+            address(mockRewardToken),
+            address(mockPaymentToken)
         );
-        raft.setSwapProvider(newSwapProvider);
-
-        // Set new swap provider as superkeeper
-        vm.prank(superKeeper);
-        raft.setSwapProvider(newSwapProvider);
-
-        // Verify the swap provider has been updated
-        assertEq(raft.swapProvider(), newSwapProvider);
     }
 
-    function _setupMockCalls() internal {
-        vm.mockCall(
-            mockArk,
-            abi.encodeWithSelector(
-                IArk.harvest.selector,
-                mockRewardToken,
-                bytes("")
-            ),
+    function test_CannotStartAuctionWithNoTokens() public {
+        vm.prank(superKeeper);
+        vm.expectRevert(Raft.NoTokensToAuction.selector);
+        raft.startAuction(
+            address(mockArk),
+            address(mockRewardToken),
+            address(mockPaymentToken)
+        );
+    }
+
+    function test_CannotFinalizeAuctionBeforeEndTime() public {
+        _setupAuction();
+
+        vm.expectRevert(abi.encodeWithSignature("AuctionNotEnded()"));
+        raft.finalizeAuction(address(mockArk), address(mockRewardToken));
+    }
+
+    function test_UnsoldTokensHandling() public {
+        _setupAuction();
+
+        // Buy half of the tokens
+        uint256 buyAmount = (REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)) / 2;
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raft), buyAmount);
+        raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
+        vm.stopPrank();
+
+        // Finalize the auction
+        vm.warp(block.timestamp + 2 days);
+        raft.finalizeAuction(address(mockArk), address(mockRewardToken));
+
+        // Check unsold tokens
+        uint256 expectedUnsoldTokens = REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE) -
+            buyAmount;
+        assertEq(
+            raft.unsoldTokens(address(mockArk), address(mockRewardToken)),
+            expectedUnsoldTokens
+        );
+    }
+
+    function _setupAuction() internal {
+        vm.startPrank(superKeeper);
+        raft.harvest(
+            address(mockArk),
+            address(mockRewardToken),
             abi.encode(REWARD_AMOUNT)
         );
-
-        vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSelector(IERC20.balanceOf.selector, address(raft)),
-            abi.encode(REWARD_AMOUNT)
+        raft.startAuction(
+            address(mockArk),
+            address(mockRewardToken),
+            address(mockPaymentToken)
         );
-
-        vm.mockCall(
-            mockToken,
-            abi.encodeWithSelector(IERC20.balanceOf.selector, address(raft)),
-            abi.encode(BALANCE_AFTER_SWAP)
-        );
-
-        vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSelector(
-                IERC20.approve.selector,
-                mockSwapProvider,
-                REWARD_AMOUNT
-            ),
-            abi.encode(true)
-        );
-
-        vm.mockCall(
-            mockToken,
-            abi.encodeWithSelector(
-                IERC20.approve.selector,
-                mockArk,
-                BALANCE_AFTER_SWAP
-            ),
-            abi.encode(true)
-        );
-
-        vm.mockCall(
-            mockArk,
-            abi.encodeWithSelector(IArk.token.selector),
-            abi.encode(mockToken)
-        );
-
-        vm.mockCall(
-            mockArk,
-            abi.encodeWithSelector(IArk.board.selector, BALANCE_AFTER_SWAP),
-            abi.encode()
-        );
+        vm.stopPrank();
     }
-}
-
-contract MockSwapProvider {
-    bool public shouldFail = false;
-
-    function setShouldFail(bool _shouldFail) external {
-        shouldFail = _shouldFail;
-    }
-
-    fallback() external {
-        require(!shouldFail, "Swap failed");
-    }
-
-    function test() external {}
 }

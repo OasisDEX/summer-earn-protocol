@@ -16,3 +16,6 @@
 [submodule "packages/dutch-auction/lib/prb-math"]
 	path = packages/dutch-auction/lib/prb-math
 	url = https://github.com/PaulRBerg/prb-math
+[submodule "packages/core-contracts/lib/prb-math"]
+	path = packages/core-contracts/lib/prb-math
+	url = https://github.com/PaulRBerg/prb-math

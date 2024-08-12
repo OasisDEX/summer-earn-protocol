@@ -52,9 +52,12 @@ contract ArkAccessManaged is
         if (!hasCommanderRole()) {
             address msgSender = _msgSender();
             bool isRaft = msgSender == IArk(address(this)).raft();
-            bool isArk = IFleetCommander(commander).isArkActive(msgSender);
-            if (!isArk && !isRaft) {
-                revert CallerIsNotAuthorizedToBoard(msgSender);
+
+            if (!isRaft) {
+                bool isArk = IFleetCommander(commander).isArkActive(msgSender);
+                if (!isArk) {
+                    revert CallerIsNotAuthorizedToBoard(msgSender);
+                }
             }
         }
         _;

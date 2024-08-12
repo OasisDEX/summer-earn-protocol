@@ -119,7 +119,7 @@ library DutchAuctionLibrary {
      */
     function createAuction(
         AuctionParams memory params
-    ) external returns (Auction memory auction) {
+    ) internal returns (Auction memory auction) {
         if (params.duration == 0) revert DutchAuctionErrors.InvalidDuration();
         if (params.startPrice <= params.endPrice) {
             revert DutchAuctionErrors.InvalidPrices();
@@ -179,7 +179,7 @@ library DutchAuctionLibrary {
      */
     function getCurrentPrice(
         Auction memory auction
-    ) public view returns (uint256) {
+    ) internal view returns (uint256) {
         uint256 timeElapsed = block.timestamp - auction.config.startTime;
         uint256 totalDuration = auction.config.endTime -
             auction.config.startTime;
@@ -199,7 +199,7 @@ library DutchAuctionLibrary {
      * @param auction The storage pointer to the auction
      * @param _amount The number of tokens to purchase
      */
-    function buyTokens(Auction storage auction, uint256 _amount) external {
+    function buyTokens(Auction storage auction, uint256 _amount) internal {
         if (auction.state.isFinalized) {
             revert DutchAuctionErrors.AuctionAlreadyFinalized();
         }
@@ -242,7 +242,7 @@ library DutchAuctionLibrary {
      * @dev This function can be called by anyone after the auction end time
      * @param auction The storage pointer to the auction to be finalized
      */
-    function finalizeAuction(Auction storage auction) external {
+    function finalizeAuction(Auction storage auction) internal {
         if (auction.state.isFinalized) {
             revert DutchAuctionErrors.AuctionAlreadyFinalized();
         }
