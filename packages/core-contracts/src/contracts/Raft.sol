@@ -26,10 +26,6 @@ contract Raft is IRaft, ArkAccessManaged {
     AuctionConfig public auctionConfig;
     uint256 public nextAuctionId;
 
-    error AuctionAlreadyRunning(address ark, address rewardToken);
-    error NoTokensToAuction();
-    error AuctionNotFinalized();
-
     constructor(address accessManager) ArkAccessManaged(accessManager) {
         auctionConfig = AuctionConfig({
             duration: 1 days,

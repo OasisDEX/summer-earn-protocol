@@ -5,12 +5,12 @@ import {IRaftEvents} from "../events/IRaftEvents.sol";
 
 /**
  * @title IRaft
- * @notice Interface for the Raft contract which manages harvesting, swapping, and reinvesting of rewards.
+ * @notice Interface for the Raft contract which manages harvesting, auctioning, and reinvesting of rewards.
  * @dev This interface defines the core functionality for managing rewards from various Arks.
  */
 interface IRaft is IRaftEvents {
     /**
-     * @notice Harvests rewards from the specified Ark without swapping or reinvesting.
+     * @notice Harvests rewards from the specified Ark without auctioning or reinvesting.
      * @dev This function only collects rewards, storing them in the Raft contract for later use.
      * @param ark The address of the Ark contract to harvest rewards from.
      * @param rewardToken The address of the reward token to be harvested.
@@ -33,4 +33,38 @@ interface IRaft is IRaftEvents {
         address ark,
         address rewardToken
     ) external view returns (uint256);
+
+    /**
+     * @notice Starts a Dutch auction for the harvested rewards of a specific Ark and reward token.
+     * @dev This function initiates the auction process for selling harvested rewards.
+     * @param ark The address of the Ark contract.
+     * @param rewardToken The address of the reward token to be auctioned.
+     * @param paymentToken The address of the token used for payment in the auction.
+     */
+    function startAuction(
+        address ark,
+        address rewardToken,
+        address paymentToken
+    ) external;
+
+    /**
+     * @notice Allows users to buy tokens from an active auction.
+     * @dev This function handles the token purchase process in the Dutch auction.
+     * @param ark The address of the Ark contract.
+     * @param rewardToken The address of the reward token being auctioned.
+     * @param amount The amount of tokens to purchase.
+     */
+    function buyTokens(
+        address ark,
+        address rewardToken,
+        uint256 amount
+    ) external;
+
+    /**
+     * @notice Finalizes an auction after its end time has been reached.
+     * @dev This function settles the auction and handles unsold tokens.
+     * @param ark The address of the Ark contract.
+     * @param rewardToken The address of the reward token that was auctioned.
+     */
+    function finalizeAuction(address ark, address rewardToken) external;
 }

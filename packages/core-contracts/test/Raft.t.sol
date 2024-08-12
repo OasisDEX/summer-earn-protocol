@@ -265,7 +265,7 @@ contract RaftTest is Test, IRaftEvents {
         vm.prank(superKeeper);
         vm.expectRevert(
             abi.encodeWithSelector(
-                Raft.AuctionAlreadyRunning.selector,
+                AuctionAlreadyRunning.selector,
                 address(mockArk),
                 address(mockRewardToken)
             )
@@ -279,7 +279,7 @@ contract RaftTest is Test, IRaftEvents {
 
     function test_CannotStartAuctionWithNoTokens() public {
         vm.prank(superKeeper);
-        vm.expectRevert(Raft.NoTokensToAuction.selector);
+        vm.expectRevert(NoTokensToAuction.selector);
         raft.startAuction(
             address(mockArk),
             address(mockRewardToken),
