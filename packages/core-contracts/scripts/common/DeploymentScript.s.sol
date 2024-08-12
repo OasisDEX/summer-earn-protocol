@@ -41,6 +41,7 @@ contract DeploymentScript is Script {
         address configurationManager;
         address usdcToken;
         address aaveV3Pool;
+        address aaveV3RewardsController;
         address compoundV3Pool;
         address harborCommand;
         address bufferArk;
@@ -83,7 +84,12 @@ contract DeploymentScript is Script {
         _config.aaveV3Pool = _readAddressFromJson(
             json,
             _network_,
-            "aaveV3Pool"
+            "aaveV3.pool"
+        );
+        _config.aaveV3RewardsController = _readAddressFromJson(
+            json,
+            _network_,
+            "aaveV3.rewards"
         );
         _config.compoundV3Pool = _readAddressFromJson(
             json,
@@ -178,7 +184,7 @@ contract DeploymentScript is Script {
     function getContractKey(
         string memory _network,
         string memory _contractName
-    ) internal view returns (string memory) {
+    ) internal pure returns (string memory) {
         string memory networkKey = string.concat(".", _network);
         string memory contractKey = string.concat(".", _contractName);
         return string.concat(networkKey, contractKey);

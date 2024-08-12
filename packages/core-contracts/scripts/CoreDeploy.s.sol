@@ -44,11 +44,11 @@ contract CoreDeploy is DeploymentScript {
             revert("TipJar address not set");
         }
 
-        _deployRaft(config.swapProvider, protocolAccessManager);
+        address raft = _deployRaft(config.swapProvider, protocolAccessManager);
 
         _deployConfigurationManager(
             protocolAccessManager,
-            config.raft,
+            raft,
             config.tipJar
         );
 

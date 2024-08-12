@@ -18,6 +18,13 @@ contract BufferArkDeploy is ArkDeploymentScript {
             ? config.usdcToken
             : customToken;
 
+        if (config.protocolAccessManager == address(0)) {
+            revert("Protocol access manager address not set");
+        }
+        if (config.configurationManager == address(0)) {
+            revert("Configuration manager address not set");
+        }
+
         ArkParams memory params = ArkParams({
             name: "BufferArk",
             accessManager: config.protocolAccessManager,
