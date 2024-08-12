@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
 import "../src/DutchAuctionLibrary.sol";
 import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+import {PERCENTAGE_100, Percentage} from "../src/lib/Percentage.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "forge-std/Test.sol";
 
 contract DutchAuctionFuzzTest is Test {
     //   address constant address(DutchAuctionLibrary) = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
 
-    using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
+    using DutchAuctionLibrary for DutchAuctionLibrary.AuctionState;
 
-    DutchAuctionLibrary.Auction auction;
+    uint256 public constant KICKER_REWARD_PERCENTAGE = 5 * 1e18;
+    DutchAuctionLibrary.AuctionState auction;
     DutchAuctionManager public auctionManager;
     ERC20Mock auctionToken;
     ERC20Mock paymentToken;
@@ -21,8 +24,8 @@ contract DutchAuctionFuzzTest is Test {
         auctionToken = new ERC20Mock();
         paymentToken = new ERC20Mock();
         auctionManager = new DutchAuctionManager();
-        auctionToken.mint(address(auctionManager), 1000000e18);
-        paymentToken.mint(address(this), 1000000e18);
+        auctionToken.mint(address(auctionManager), 1_000_000e18);
+        paymentToken.mint(address(this), 1_000_000e18);
     }
 
     function testFuzz_GetCurrentPrice_Linear(
@@ -37,9 +40,13 @@ contract DutchAuctionFuzzTest is Test {
         _duration = bound(_duration, 1 hours, 30 days);
         _startPrice = bound(_startPrice, 1e18, 1000e18);
         _endPrice = bound(_endPrice, 1, _startPrice - 1);
-        _totalTokens = bound(_totalTokens, 1e18, 1000000e18);
+        _totalTokens = bound(_totalTokens, 1e18, 1_000_000e18);
         _elapsedTime = bound(_elapsedTime, 0, _duration);
-        _kickerRewardPercentage = bound(_kickerRewardPercentage, 0, 99);
+        _kickerRewardPercentage = bound(
+            _kickerRewardPercentage,
+            0,
+            100 * 1e18 - 1
+        );
 
         auctionToken.approve(address(auctionManager), _totalTokens);
         // Create auction
@@ -50,9 +57,9 @@ contract DutchAuctionFuzzTest is Test {
             _startPrice,
             _endPrice,
             _totalTokens,
-            _kickerRewardPercentage,
+            Percentage.wrap(_kickerRewardPercentage),
             address(this),
-            true // Linear decay
+            DecayFunctions.DecayType.Linear
         );
 
         // Warp to some time within the auction duration
@@ -80,7 +87,7 @@ contract DutchAuctionFuzzTest is Test {
         _duration = bound(_duration, 1 hours, 30 days);
         _startPrice = bound(_startPrice, 1e18, 1000e18);
         _endPrice = bound(_endPrice, 1, _startPrice - 1);
-        _totalTokens = bound(_totalTokens, 1e18, 1000000e18);
+        _totalTokens = bound(_totalTokens, 1e18, 1_000_000e18);
         _elapsedTime = bound(_elapsedTime, 0, _duration);
         _kickerRewardPercentage = bound(_kickerRewardPercentage, 0, 99);
 
@@ -93,10 +100,11 @@ contract DutchAuctionFuzzTest is Test {
             _startPrice,
             _endPrice,
             _totalTokens,
-            _kickerRewardPercentage,
+            Percentage.wrap(_kickerRewardPercentage),
             address(this),
-            false // Exponential decay
+            DecayFunctions.DecayType.Exponential
         );
+        // Exponential decay
 
         // Warp to some time within the auction duration
         vm.warp(block.timestamp + _elapsedTime);
@@ -122,7 +130,7 @@ contract DutchAuctionFuzzTest is Test {
         _duration = bound(_duration, 1 hours, 30 days);
         _startPrice = bound(_startPrice, 1e18, 1000e18);
         _endPrice = bound(_endPrice, 1, _startPrice - 1);
-        _totalTokens = bound(_totalTokens, 1e18, 1000000e18);
+        _totalTokens = bound(_totalTokens, 1e18, 1_000_000e18);
 
         auctionToken.approve(address(auctionManager), _totalTokens);
         // Create auction
@@ -133,9 +141,9 @@ contract DutchAuctionFuzzTest is Test {
             _startPrice,
             _endPrice,
             _totalTokens,
-            5, // 5% kicker reward
+            Percentage.wrap(KICKER_REWARD_PERCENTAGE), // 5% kicker reward
             address(this),
-            true // Linear decay (works for both linear and exponential)
+            DecayFunctions.DecayType.Linear
         );
 
         // Test at start time

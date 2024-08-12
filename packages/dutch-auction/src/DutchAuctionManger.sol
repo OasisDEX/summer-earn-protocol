@@ -1,23 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "./DutchAuctionLibrary.sol";
+import "./DecayFunctions.sol";
 import "./DutchAuctionErrors.sol";
 import "./DutchAuctionEvents.sol";
+import "./DutchAuctionLibrary.sol";
+
+import {Percentage} from "./lib/Percentage.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title Dutch Auction Manager
  * @author Your Name
  * @notice This contract manages multiple Dutch auctions using the DutchAuctionLibrary
- * @dev This contract is responsible for creating and managing auctions, and acts as the interface for users to interact with auctions
+ * @dev This contract is responsible for creating and managing auctions, and acts as the interface for users to interact
+ * with auctions
  */
 contract DutchAuctionManager is
     ReentrancyGuard,
     DutchAuctionErrors,
     DutchAuctionEvents
 {
-    using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
+    using DutchAuctionLibrary for DutchAuctionLibrary.AuctionState;
 
     mapping(uint256 => DutchAuctionLibrary.Auction) public auctions;
     uint256 public auctionCounter;
@@ -33,7 +37,7 @@ contract DutchAuctionManager is
      * @param _totalTokens The total number of tokens being auctioned
      * @param _kickerRewardPercentage The percentage of sold tokens to be given as reward to the auction kicker
      * @param _unsoldTokensRecipient The address to receive any unsold tokens at the end of the auction
-     * @param _isLinearDecay Whether the price decay should be linear (true) or exponential (false)
+     * @param _decayType The type of price decay function to use for the auction
      * @return The unique identifier of the created auction
      */
     function createAuction(
@@ -43,24 +47,25 @@ contract DutchAuctionManager is
         uint256 _startPrice,
         uint256 _endPrice,
         uint256 _totalTokens,
-        uint256 _kickerRewardPercentage,
+        Percentage _kickerRewardPercentage,
         address _unsoldTokensRecipient,
-        bool _isLinearDecay
+        DecayFunctions.DecayType _decayType
     ) external nonReentrant returns (uint256) {
         uint256 auctionId = auctionCounter++;
-        DutchAuctionLibrary.createAuction(
-            auctions,
-            auctionId,
-            _auctionToken,
-            _paymentToken,
-            _duration,
-            _startPrice,
-            _endPrice,
-            _totalTokens,
-            _kickerRewardPercentage,
-            msg.sender,
-            _unsoldTokensRecipient,
-            _isLinearDecay
+        auctions[auctionId] = DutchAuctionLibrary.createAuction(
+            DutchAuctionLibrary.AuctionParams(
+                auctionId,
+                _auctionToken,
+                _paymentToken,
+                _duration,
+                _startPrice,
+                _endPrice,
+                _totalTokens,
+                _kickerRewardPercentage,
+                msg.sender,
+                _unsoldTokensRecipient,
+                _decayType
+            )
         );
         return auctionId;
     }

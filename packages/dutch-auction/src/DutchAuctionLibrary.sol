@@ -1,25 +1,67 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./DecayFunctions.sol";
 import "./DutchAuctionErrors.sol";
 import "./DutchAuctionEvents.sol";
+
+import "./DutchAuctionMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import {Percentage} from "./lib/Percentage.sol";
+import {PercentageUtils} from "./lib/PercentageUtils.sol";
 
 /**
  * @title Dutch Auction Library
  * @author halaprix
  * @notice This library implements core functionality for running Dutch auctions
  * @dev This library is designed to be used by a contract managing multiple auctions
+ *
+ * @dev Auction Mechanics:
+ *
+ * 1. Auction Lifecycle:
+ *    - Creation: An auction is created with specified parameters (tokens, duration, prices, etc.).
+ *    - Active Period: The auction is active from its start time until its end time or until all tokens are sold.
+ *    - Finalization: The auction is finalized either when all tokens are sold or after the end time is reached.
+ *
+ * 2. Price Movement:
+ *    - The price is calculated on-demand based on the current timestamp using a specified decay function.
+ *    - It's not updated per block, but rather computed when `getCurrentPrice` is called, using current timestamp.
+ *    - This ensures smooth price decay over time, independent of block creation.
+ *
+ * 3. Buying Limits:
+ *    - Users can buy any amount of tokens up to the remaining amount in the auction.
+ *    - There's no minimum purchase amount enforced by the contract.
+ *
+ * 4. Price Calculation and Rounding:
+ *    - The current price is calculated using the specified decay function (linear or exponential).
+ *    - Rounding is done towards zero (floor) to ensure the contract never overcharges.
+ *    - For utmost precision, all calculations use the PRBMath library for fixed-point arithmetic.
+ *
+ * 5. Token Handling:
+ *    - The auctioning contract must be pre-approved to spend the tokens used for payment.
+ *    - Tokens should be transferred to the auctioning contract before or during auction creation.
+ *    - The contract holds the tokens and transfers them to buyers upon successful purchases.
+ *
+ * 6. Kicker Reward:
+ *    - A portion of the auctioned tokens is set aside as a reward for the auction initiator (kicker).
+ *    - This reward is transferred to the kicker immediately upon auction creation.
+ *
+ * 7. Unsold Tokens:
+ *    - Any unsold tokens at the end of the auction are transferred to a specified recipient address.
+ *    - This transfer occurs during the finalization of the auction.
  */
 library DutchAuctionLibrary {
     using SafeERC20 for IERC20;
-
+    using PercentageUtils for uint256;
     /**
-     * @notice Struct representing a single Dutch auction
-     * @dev This struct contains all necessary information to run and manage an auction
+     * @notice Struct representing the configuration of a Dutch auction
+     * @dev This struct contains all the fixed parameters set at auction creation
      */
-    struct Auction {
+
+    struct AuctionConfig {
+        uint256 id; // The unique identifier of the auction
         IERC20 auctionToken; // The token being auctioned
         IERC20 paymentToken; // The token used for payment
         uint256 startTime; // The start time of the auction
@@ -27,113 +69,136 @@ library DutchAuctionLibrary {
         uint256 startPrice; // The starting price of the auctioned token
         uint256 endPrice; // The ending price of the auctioned token
         uint256 totalTokens; // The total number of tokens being auctioned
-        uint256 remainingTokens; // The number of tokens remaining to be sold
         address auctionKicker; // The address that initiated the auction
         uint256 kickerRewardAmount; // The amount of tokens reserved as kicker reward
         address unsoldTokensRecipient; // The address to receive any unsold tokens
-        bool isLinearDecay; // Whether the price decay is linear (true) or exponential (false)
+        DecayFunctions.DecayType decayType; // The type of price decay for the auction
+    }
+
+    /**
+     * @notice Struct representing the dynamic state of a Dutch auction
+     * @dev This struct contains all the variables that change during the auction's lifecycle
+     */
+    struct AuctionState {
+        uint256 remainingTokens; // The number of tokens remaining to be sold
         bool isFinalized; // Whether the auction has been finalized
+    }
+
+    /**
+     * @notice Struct representing a complete Dutch auction
+     * @dev This struct combines the fixed configuration and dynamic state of an auction
+     */
+    struct Auction {
+        AuctionConfig config;
+        AuctionState state;
+    }
+
+    /**
+     * @notice Struct containing parameters for creating a new auction
+     * @dev This struct is used as an input to the createAuction function
+     */
+    struct AuctionParams {
+        uint256 auctionId; // The unique identifier for the new auction
+        IERC20 auctionToken; // The token being auctioned
+        IERC20 paymentToken; // The token used for payment
+        uint256 duration; // The duration of the auction in seconds
+        uint256 startPrice; // The starting price of the auctioned token
+        uint256 endPrice; // The ending price of the auctioned token
+        uint256 totalTokens; // The total number of tokens to be auctioned
+        Percentage kickerRewardPercentage; // The percentage of tokens to be given as kicker reward
+        address kicker; // The address of the auction initiator
+        address unsoldTokensRecipient; // The address to receive any unsold tokens
+        DecayFunctions.DecayType decayType; // The type of price decay for the auction
     }
 
     /**
      * @notice Creates a new Dutch auction
      * @dev This function initializes a new auction with the given parameters
-     * @param auctions The storage mapping of all auctions
-     * @param auctionId The unique identifier for this auction
-     * @param _auctionToken The address of the token being auctioned
-     * @param _paymentToken The address of the token used for payment
-     * @param _duration The duration of the auction in seconds
-     * @param _startPrice The starting price of the auctioned token
-     * @param _endPrice The ending price of the auctioned token
-     * @param _totalTokens The total number of tokens being auctioned
-     * @param _kickerRewardPercentage The percentage of total tokens to be given as reward to the auction kicker
-     * @param _kicker The address of the auction kicker
-     * @param _unsoldTokensRecipient The address to receive any unsold tokens at the end of the auction
-     * @param _isLinearDecay Whether the price decay should be linear (true) or exponential (false)
+     * @param params The parameters for the new auction
+     * @return The created Auction struct
      */
     function createAuction(
-        mapping(uint256 => Auction) storage auctions,
-        uint256 auctionId,
-        IERC20 _auctionToken,
-        IERC20 _paymentToken,
-        uint256 _duration,
-        uint256 _startPrice,
-        uint256 _endPrice,
-        uint256 _totalTokens,
-        uint256 _kickerRewardPercentage,
-        address _kicker,
-        address _unsoldTokensRecipient,
-        bool _isLinearDecay
-    ) external {
-        if (_duration == 0) revert DutchAuctionErrors.InvalidDuration();
-        if (_startPrice <= _endPrice) revert DutchAuctionErrors.InvalidPrices();
-        if (_totalTokens == 0) revert DutchAuctionErrors.InvalidTokenAmount();
-        if (_kickerRewardPercentage >= 100)
+        AuctionParams memory params
+    ) external returns (Auction memory) {
+        if (params.duration == 0) revert DutchAuctionErrors.InvalidDuration();
+        if (params.startPrice <= params.endPrice) {
+            revert DutchAuctionErrors.InvalidPrices();
+        }
+        if (params.totalTokens == 0) {
+            revert DutchAuctionErrors.InvalidTokenAmount();
+        }
+
+        if (
+            !PercentageUtils.isPercentageInRange(params.kickerRewardPercentage)
+        ) {
             revert DutchAuctionErrors.InvalidKickerRewardPercentage();
-
-        Auction storage auction = auctions[auctionId];
-
-        uint256 kickerRewardAmount = (_totalTokens * _kickerRewardPercentage) /
-            100;
-        uint256 auctionedTokens = _totalTokens - kickerRewardAmount;
-
-        {
-            auction.auctionToken = _auctionToken;
-            auction.paymentToken = _paymentToken;
-            auction.startTime = block.timestamp;
-            auction.endTime = block.timestamp + _duration;
-            auction.startPrice = _startPrice;
-            auction.endPrice = _endPrice;
-            auction.totalTokens = auctionedTokens;
         }
-        {
-            auction.remainingTokens = auctionedTokens;
-            auction.auctionKicker = _kicker;
-            auction.kickerRewardAmount = kickerRewardAmount;
-            auction.unsoldTokensRecipient = _unsoldTokensRecipient;
-            auction.isLinearDecay = _isLinearDecay;
-            auction.isFinalized = false;
-        }
-        {
-            _claimKickerReward(auction);
 
-            emit DutchAuctionEvents.AuctionCreated(
-                auctionId,
-                msg.sender,
-                auctionedTokens,
-                kickerRewardAmount
-            );
-        }
+        uint256 kickerRewardAmount = params.totalTokens.applyPercentage(
+            params.kickerRewardPercentage
+        );
+        uint256 auctionedTokens = params.totalTokens - kickerRewardAmount;
+
+        Auction memory auction;
+
+        // Set up AuctionConfig
+        auction.config = AuctionConfig({
+            id: params.auctionId,
+            auctionToken: params.auctionToken,
+            paymentToken: params.paymentToken,
+            startTime: block.timestamp,
+            endTime: block.timestamp + params.duration,
+            startPrice: params.startPrice,
+            endPrice: params.endPrice,
+            totalTokens: auctionedTokens,
+            auctionKicker: params.kicker,
+            kickerRewardAmount: kickerRewardAmount,
+            unsoldTokensRecipient: params.unsoldTokensRecipient,
+            decayType: params.decayType
+        });
+
+        // Set up AuctionState
+        auction.state = AuctionState({
+            remainingTokens: auctionedTokens,
+            isFinalized: false
+        });
+
+        _claimKickerReward(auction);
+
+        emit DutchAuctionEvents.AuctionCreated(
+            params.auctionId,
+            msg.sender,
+            auctionedTokens,
+            kickerRewardAmount
+        );
+        return auction;
     }
 
     /**
      * @notice Calculates the current price of tokens in an ongoing auction
      * @dev This function computes the price based on the elapsed time and decay function
-     * @param auction The storage pointer to the auction
+     * @param auction The Auction struct
      * @return The current price of tokens in the auction
      */
     function getCurrentPrice(
-        Auction storage auction
+        Auction memory auction
     ) public view returns (uint256) {
-        if (block.timestamp >= auction.endTime) {
-            return auction.endPrice;
+        if (block.timestamp >= auction.config.endTime) {
+            return auction.config.endPrice;
         }
 
-        uint256 timeElapsed = block.timestamp - auction.startTime;
-        uint256 totalDuration = auction.endTime - auction.startTime;
-        uint256 priceDifference = auction.startPrice - auction.endPrice;
+        uint256 timeElapsed = block.timestamp - auction.config.startTime;
+        uint256 totalDuration = auction.config.endTime -
+            auction.config.startTime;
 
-        if (auction.isLinearDecay) {
-            return
-                auction.startPrice -
-                ((priceDifference * timeElapsed) / totalDuration);
-        } else {
-            // Exponential decay
-            return
-                auction.endPrice +
-                ((priceDifference * (totalDuration - timeElapsed) ** 2) /
-                    totalDuration ** 2);
-        }
+        return
+            DecayFunctions.calculateDecay(
+                auction.config.decayType,
+                auction.config.startPrice,
+                auction.config.endPrice,
+                timeElapsed,
+                totalDuration
+            );
     }
 
     /**
@@ -143,33 +208,39 @@ library DutchAuctionLibrary {
      * @param _amount The number of tokens to purchase
      */
     function buyTokens(Auction storage auction, uint256 _amount) external {
-        if (auction.isFinalized)
+        if (auction.state.isFinalized) {
             revert DutchAuctionErrors.AuctionAlreadyFinalized();
-        if (block.timestamp >= auction.endTime)
+        }
+        if (block.timestamp >= auction.config.endTime) {
             revert DutchAuctionErrors.AuctionNotActive();
-        if (_amount > auction.remainingTokens)
+        }
+        if (_amount > auction.state.remainingTokens) {
             revert DutchAuctionErrors.InsufficientTokensAvailable();
+        }
 
         uint256 currentPrice = getCurrentPrice(auction);
-        uint256 totalCost = currentPrice * _amount;
+        uint256 totalCost = DutchAuctionMath.calculateTotalCost(
+            currentPrice,
+            _amount
+        );
 
-        auction.paymentToken.safeTransferFrom(
+        auction.state.remainingTokens -= _amount;
+
+        auction.config.paymentToken.safeTransferFrom(
             msg.sender,
             address(this),
             totalCost
         );
-        auction.auctionToken.safeTransfer(msg.sender, _amount);
-
-        auction.remainingTokens -= _amount;
+        auction.config.auctionToken.safeTransfer(msg.sender, _amount);
 
         emit DutchAuctionEvents.TokensPurchased(
-            0,
+            auction.config.id,
             msg.sender,
             _amount,
             currentPrice
         );
 
-        if (auction.remainingTokens == 0) {
+        if (auction.state.remainingTokens == 0) {
             _finalizeAuction(auction);
         }
     }
@@ -180,10 +251,12 @@ library DutchAuctionLibrary {
      * @param auction The storage pointer to the auction to be finalized
      */
     function finalizeAuction(Auction storage auction) external {
-        if (auction.isFinalized)
+        if (auction.state.isFinalized) {
             revert DutchAuctionErrors.AuctionAlreadyFinalized();
-        if (block.timestamp < auction.endTime)
+        }
+        if (block.timestamp < auction.config.endTime) {
             revert DutchAuctionErrors.AuctionNotEnded();
+        }
         _finalizeAuction(auction);
     }
 
@@ -193,34 +266,43 @@ library DutchAuctionLibrary {
      * @param auction The storage pointer to the auction to be finalized
      */
     function _finalizeAuction(Auction storage auction) internal {
-        uint256 soldTokens = auction.totalTokens - auction.remainingTokens;
+        uint256 soldTokens = auction.config.totalTokens -
+            auction.state.remainingTokens;
 
-        if (auction.remainingTokens > 0) {
-            auction.auctionToken.safeTransfer(
-                auction.unsoldTokensRecipient,
-                auction.remainingTokens
+        if (auction.state.remainingTokens > 0) {
+            auction.config.auctionToken.safeTransfer(
+                auction.config.unsoldTokensRecipient,
+                auction.state.remainingTokens
             );
         }
 
-        auction.isFinalized = true;
+        auction.state.isFinalized = true;
 
         emit DutchAuctionEvents.AuctionFinalized(
-            0,
+            auction.config.id,
             soldTokens,
-            auction.remainingTokens
+            auction.state.remainingTokens
         );
     }
 
-    function _claimKickerReward(Auction storage auction) internal {
-        auction.auctionToken.safeTransfer(
-            auction.auctionKicker,
-            auction.kickerRewardAmount
+    /**
+     * @notice Claims the kicker reward for the auction
+     * @dev Transfers the kicker reward to the kicker's address immediately upon auction creation
+     * @param auction The auction to claim the kicker reward from
+     */
+    function _claimKickerReward(Auction memory auction) internal {
+        if (auction.config.kickerRewardAmount == 0) {
+            return;
+        }
+        auction.config.auctionToken.safeTransfer(
+            auction.config.auctionKicker,
+            auction.config.kickerRewardAmount
         );
 
         emit DutchAuctionEvents.KickerRewardClaimed(
-            0,
-            auction.auctionKicker,
-            auction.kickerRewardAmount
+            auction.config.id,
+            auction.config.auctionKicker,
+            auction.config.kickerRewardAmount
         );
     }
 }

@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "forge-std/Test.sol";
-import "forge-std/StdJson.sol";
+import {DecayFunctions} from "../src/DecayFunctions.sol";
 import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+import {PERCENTAGE_100, Percentage} from "../src/lib/Percentage.sol";
+import {PercentageUtils} from "../src/lib/PercentageUtils.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "forge-std/StdJson.sol";
+import "forge-std/Test.sol";
 
 contract DutchAuctionLibraryTest is Test {
     using stdJson for string;
+    using PercentageUtils for uint256;
 
     DutchAuctionManager public auctionManager;
     ERC20Mock public auctionToken1;
@@ -25,7 +30,8 @@ contract DutchAuctionLibraryTest is Test {
     uint256 public constant START_PRICE = 100 ether;
     uint256 public constant END_PRICE = 50 ether;
     uint256 public constant TOTAL_TOKENS = 1000 ether;
-    uint256 public constant KICKER_REWARD_PERCENTAGE = 5;
+    Percentage public constant KICKER_REWARD_PERCENTAGE =
+        Percentage.wrap(5 * 1e18);
 
     // JSON data for expected prices
     string constant EXPECTED_PRICES_PATH = "./utils/expected_prices.json";
@@ -69,9 +75,9 @@ contract DutchAuctionLibraryTest is Test {
             START_PRICE,
             END_PRICE,
             TOTAL_TOKENS,
-            5,
+            KICKER_REWARD_PERCENTAGE,
             UNSOLD_RECIPIENT,
-            true
+            DecayFunctions.DecayType.Linear
         );
 
         vm.expectRevert(abi.encodeWithSignature("InvalidPrices()"));
@@ -83,9 +89,9 @@ contract DutchAuctionLibraryTest is Test {
             END_PRICE, // Start price <= end price
             END_PRICE,
             TOTAL_TOKENS,
-            5,
+            KICKER_REWARD_PERCENTAGE,
             UNSOLD_RECIPIENT,
-            true
+            DecayFunctions.DecayType.Linear
         );
 
         vm.expectRevert(abi.encodeWithSignature("InvalidTokenAmount()"));
@@ -97,9 +103,9 @@ contract DutchAuctionLibraryTest is Test {
             START_PRICE,
             END_PRICE,
             0, // Invalid token amount
-            5,
+            KICKER_REWARD_PERCENTAGE,
             UNSOLD_RECIPIENT,
-            true
+            DecayFunctions.DecayType.Linear
         );
 
         vm.expectRevert(
@@ -113,14 +119,17 @@ contract DutchAuctionLibraryTest is Test {
             START_PRICE,
             END_PRICE,
             TOTAL_TOKENS,
-            100, // Invalid percentage
+            PERCENTAGE_100 + Percentage.wrap(1),
             UNSOLD_RECIPIENT,
-            true
+            DecayFunctions.DecayType.Linear
         );
     }
 
     function testPriceDecayLinear() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
         // Load expected prices from JSON
         string memory json = vm.readFile(EXPECTED_PRICES_PATH);
 
@@ -146,7 +155,10 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testPriceDecayExponential() public {
-        uint256 auctionId = _createAuction(auctionToken1, false);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Exponential
+        );
         string memory json = vm.readFile(EXPECTED_PRICES_PATH);
 
         string[] memory keys = vm.parseJsonKeys(json, ".exponential");
@@ -171,21 +183,28 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testAuctionLifecycle_Linear() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
         _testAuctionLifecycle(auctionId, true);
     }
 
     function testAuctionLifecycle_Exponential() public {
-        uint256 auctionId = _createAuction(auctionToken1, false);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Exponential
+        );
         _testAuctionLifecycle(auctionId, false);
     }
 
     function testClaimedRewards() public {
-        uint256 kickerRewardAmount = (TOTAL_TOKENS * KICKER_REWARD_PERCENTAGE) /
-            100;
+        uint256 kickerRewardAmount = TOTAL_TOKENS.applyPercentage(
+            KICKER_REWARD_PERCENTAGE
+        );
         uint256 creatorBalanceBefore = auctionToken1.balanceOf(AUCTION_KICKER);
 
-        _createAuction(auctionToken1, true);
+        _createAuction(auctionToken1, DecayFunctions.DecayType.Linear);
 
         uint256 creatorBalanceAfter = auctionToken1.balanceOf(AUCTION_KICKER);
 
@@ -197,8 +216,14 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testMultipleAuctions() public {
-        uint256 auctionId1 = _createAuction(auctionToken1, true);
-        uint256 auctionId2 = _createAuction(auctionToken2, false);
+        uint256 auctionId1 = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
+        uint256 auctionId2 = _createAuction(
+            auctionToken2,
+            DecayFunctions.DecayType.Exponential
+        );
 
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
 
@@ -221,7 +246,10 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testMultipleBuyersSameBlock() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
 
@@ -253,7 +281,10 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testMultipleBuyersDifferentBlocks() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
         uint256 buyAmount = 100 ether;
 
@@ -292,7 +323,10 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testPriceDecreaseOverTime() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
         uint256 initialPrice = auctionManager.getCurrentPrice(auctionId);
 
@@ -324,9 +358,14 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testBuyingAllTokens() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
-        uint256 kickerReward = (TOTAL_TOKENS * KICKER_REWARD_PERCENTAGE) / 100;
+        uint256 kickerReward = TOTAL_TOKENS.applyPercentage(
+            KICKER_REWARD_PERCENTAGE
+        );
         uint256 availableTokens = TOTAL_TOKENS - kickerReward;
 
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
@@ -379,9 +418,14 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testBuyingAllTokensAndFinalizing() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
-        uint256 kickerReward = (TOTAL_TOKENS * KICKER_REWARD_PERCENTAGE) / 100;
+        uint256 kickerReward = TOTAL_TOKENS.applyPercentage(
+            KICKER_REWARD_PERCENTAGE
+        );
         uint256 availableTokens = TOTAL_TOKENS - kickerReward;
 
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
@@ -429,26 +473,11 @@ contract DutchAuctionLibraryTest is Test {
         );
     }
 
-    function testInvalidKickerRewardPercentage() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("InvalidKickerRewardPercentage()")
-        );
-        vm.prank(AUCTION_KICKER);
-        auctionManager.createAuction(
-            IERC20(address(auctionToken1)),
-            IERC20(address(paymentToken)),
-            AUCTION_DURATION,
-            START_PRICE,
-            END_PRICE,
-            TOTAL_TOKENS,
-            101, // Invalid percentage (> 100)
-            UNSOLD_RECIPIENT,
-            true
-        );
-    }
-
     function testAuctionNotActive() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
         // Try to buy tokens after auction ends
         vm.warp(block.timestamp + AUCTION_DURATION + 1);
@@ -458,9 +487,14 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testInsufficientTokensAvailable() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
-        uint256 kickerReward = (TOTAL_TOKENS * KICKER_REWARD_PERCENTAGE) / 100;
+        uint256 kickerReward = TOTAL_TOKENS.applyPercentage(
+            KICKER_REWARD_PERCENTAGE
+        );
         uint256 availableTokens = TOTAL_TOKENS - kickerReward;
 
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
@@ -473,7 +507,10 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testAuctionNotEnded() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
 
@@ -483,7 +520,10 @@ contract DutchAuctionLibraryTest is Test {
     }
 
     function testImmediateAuctionStart() public {
-        uint256 auctionId = _createAuction(auctionToken1, true);
+        uint256 auctionId = _createAuction(
+            auctionToken1,
+            DecayFunctions.DecayType.Linear
+        );
 
         // Try to buy tokens immediately after creation
         vm.prank(BUYER1);
@@ -499,7 +539,7 @@ contract DutchAuctionLibraryTest is Test {
 
     function _createAuction(
         ERC20Mock _auctionToken,
-        bool _isLinearDecay
+        DecayFunctions.DecayType _decayType
     ) internal returns (uint256) {
         vm.prank(AUCTION_KICKER);
         return
@@ -512,7 +552,7 @@ contract DutchAuctionLibraryTest is Test {
                 TOTAL_TOKENS,
                 KICKER_REWARD_PERCENTAGE,
                 UNSOLD_RECIPIENT,
-                _isLinearDecay
+                _decayType
             );
     }
 
@@ -563,7 +603,7 @@ contract DutchAuctionLibraryTest is Test {
         // Verify unsold tokens sent to recipient
         uint256 unsoldAmount = TOTAL_TOKENS -
             buyAmount -
-            ((TOTAL_TOKENS * KICKER_REWARD_PERCENTAGE) / 100);
+            TOTAL_TOKENS.applyPercentage(KICKER_REWARD_PERCENTAGE);
         assertEq(
             auctionToken1.balanceOf(UNSOLD_RECIPIENT),
             unsoldAmount,

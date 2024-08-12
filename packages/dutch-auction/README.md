@@ -16,6 +16,7 @@ This project implements a Dutch Auction system using Solidity smart contracts. I
     - [DutchAuctionLibrary](#dutchauctionlibrary)
     - [DutchAuctionErrors](#dutchauctionerrors)
     - [DutchAuctionEvents](#dutchauctionevents)
+  - [Dutch Auction Lifecycle](#dutch-auction-lifecycle)
   - [Python Script for Price Data](#python-script-for-price-data)
     - [Features](#features)
     - [Usage](#usage)
@@ -104,11 +105,22 @@ forge test -vvv
 
 ### DutchAuctionManager
 
-The main contract that handles the creation and management of auctions.
+The example implementation contract that handles the creation and management of auctions.
 
 ### DutchAuctionLibrary
 
 A library containing the core logic for Dutch auctions, including price calculations and token purchases.
+
+Important note for usage:
+The contract using this library is responsible for:
+- Storing the auctions
+- Managing auction IDs
+- Checking for duplicate auction IDs
+- Handling any additional logic specific to the implementation
+
+The library itself does not manage these aspects, as it's designed to be flexible and reusable.
+
+For an example of how to implement these responsibilities, please refer to the DutchAuctionManager contract. This contract demonstrates how to use the DutchAuctionLibrary while managing auction storage, IDs, and other implementation-specific details.
 
 ### DutchAuctionErrors
 
@@ -117,6 +129,26 @@ A contract defining custom errors used throughout the system.
 ### DutchAuctionEvents
 
 A contract defining events emitted by the auction system.
+
+## Dutch Auction Lifecycle
+
+The following diagram illustrates the lifecycle of a Dutch Auction:
+
+![Dutch Auction Lifecycle](./utils/lifecycle.png)
+
+1. **Auction Creation**: The auction is created with specified parameters (tokens, duration, prices, etc.).
+2. **Auction Starts**: The auction begins, and the price starts decreasing over time.
+3. **Active Auction**: During this phase, buyers can purchase tokens at the current price.
+4. **Token Purchase**: When a buyer purchases tokens, the remaining token amount is updated.
+5. **Auction End Time Reached**: If the auction duration elapses before all tokens are sold, the auction enters the finalization phase.
+6. **Finalize Auction**: Any unsold tokens are transferred to the specified recipient.
+7. **Auction Finalized**: The auction is marked as finalized, and an event is emitted.
+
+The auction can end in two ways:
+- All tokens are sold before the end time is reached.
+- The end time is reached with some tokens remaining unsold.
+
+In both cases, the auction is finalized, and any necessary token transfers are completed.
 
 ## Python Script for Price Data
 
@@ -128,6 +160,7 @@ A Python script (`utils/generate_price_data.py`) is provided to generate expecte
 
 - **Configurable Intervals**: Adjust the number of intervals to compute prices over the auction duration.
 - **Output**: Generates a JSON file (`expected_prices.json`) with expected prices and a PNG file (`price_decay_comparison.png`) for visual comparison.
+- 
 
 ### Usage
 
