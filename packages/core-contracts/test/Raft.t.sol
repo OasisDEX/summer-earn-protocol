@@ -120,10 +120,10 @@ contract RaftTest is Test, IRaftEvents {
             abi.encode(REWARD_AMOUNT)
         );
 
-        (
-            DutchAuctionLibrary.AuctionConfig memory config,
-            DutchAuctionLibrary.AuctionState memory state
-        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        (, DutchAuctionLibrary.AuctionState memory state) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
         assertEq(
             state.remainingTokens,
             REWARD_AMOUNT -
@@ -155,10 +155,10 @@ contract RaftTest is Test, IRaftEvents {
             address(mockPaymentToken)
         );
 
-        (
-            DutchAuctionLibrary.AuctionConfig memory config,
-            DutchAuctionLibrary.AuctionState memory state
-        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        (, DutchAuctionLibrary.AuctionState memory state) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
         assertEq(
             state.remainingTokens,
             REWARD_AMOUNT -
@@ -175,10 +175,10 @@ contract RaftTest is Test, IRaftEvents {
         raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
         vm.stopPrank();
 
-        (
-            DutchAuctionLibrary.AuctionConfig memory config,
-            DutchAuctionLibrary.AuctionState memory state
-        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        (, DutchAuctionLibrary.AuctionState memory state) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
         assertEq(
             state.remainingTokens,
             REWARD_AMOUNT -
@@ -195,10 +195,10 @@ contract RaftTest is Test, IRaftEvents {
 
         raft.finalizeAuction(address(mockArk), address(mockRewardToken));
 
-        (
-            DutchAuctionLibrary.AuctionConfig memory config,
-            DutchAuctionLibrary.AuctionState memory state
-        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        (, DutchAuctionLibrary.AuctionState memory state) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
         assertTrue(state.isFinalized);
     }
 
@@ -220,10 +220,10 @@ contract RaftTest is Test, IRaftEvents {
         raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
         vm.stopPrank();
 
-        (
-            DutchAuctionLibrary.AuctionConfig memory config,
-            DutchAuctionLibrary.AuctionState memory state
-        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+        (, DutchAuctionLibrary.AuctionState memory state) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
         assertTrue(state.isFinalized);
     }
 
