@@ -57,7 +57,7 @@ contract DutchAuctionManager is
                 auctionId,
                 _auctionToken,
                 _paymentToken,
-                _duration,
+                uint40(_duration),
                 _startPrice,
                 _endPrice,
                 _totalTokens,

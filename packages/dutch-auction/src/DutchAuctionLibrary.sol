@@ -9,8 +9,8 @@ import "./DutchAuctionMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {Percentage} from "./lib/Percentage.sol";
-import {PercentageUtils} from "./lib/PercentageUtils.sol";
+import { Percentage } from "./lib/Percentage.sol";
+import { PercentageUtils } from "./lib/PercentageUtils.sol";
 
 /**
  * @title Dutch Auction Library
@@ -55,24 +55,24 @@ import {PercentageUtils} from "./lib/PercentageUtils.sol";
 library DutchAuctionLibrary {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
+
     /**
      * @notice Struct representing the configuration of a Dutch auction
      * @dev This struct contains all the fixed parameters set at auction creation
      */
-
     struct AuctionConfig {
-        uint256 id; // The unique identifier of the auction
         IERC20 auctionToken; // The token being auctioned
         IERC20 paymentToken; // The token used for payment
-        uint256 startTime; // The start time of the auction
-        uint256 endTime; // The end time of the auction
+        uint40 startTime; // The start time of the auction
+        uint40 endTime; // The end time of the auction
+        address auctionKicker; // The address that initiated the auction
+        address unsoldTokensRecipient; // The address to receive any unsold tokens
+        uint40 id; // The unique identifier of the auction
+        DecayFunctions.DecayType decayType; // The type of price decay for the auction
         uint256 startPrice; // The starting price of the auctioned token
         uint256 endPrice; // The ending price of the auctioned token
         uint256 totalTokens; // The total number of tokens being auctioned
-        address auctionKicker; // The address that initiated the auction
         uint256 kickerRewardAmount; // The amount of tokens reserved as kicker reward
-        address unsoldTokensRecipient; // The address to receive any unsold tokens
-        DecayFunctions.DecayType decayType; // The type of price decay for the auction
     }
 
     /**
@@ -101,7 +101,7 @@ library DutchAuctionLibrary {
         uint256 auctionId; // The unique identifier for the new auction
         IERC20 auctionToken; // The token being auctioned
         IERC20 paymentToken; // The token used for payment
-        uint256 duration; // The duration of the auction in seconds
+        uint40 duration; // The duration of the auction in seconds
         uint256 startPrice; // The starting price of the auctioned token
         uint256 endPrice; // The ending price of the auctioned token
         uint256 totalTokens; // The total number of tokens to be auctioned
@@ -117,9 +117,7 @@ library DutchAuctionLibrary {
      * @param params The parameters for the new auction
      * @return auction The created Auction struct
      */
-    function createAuction(
-        AuctionParams memory params
-    ) external returns (Auction memory auction) {
+    function createAuction(AuctionParams memory params) external returns (Auction memory auction) {
         if (params.duration == 0) revert DutchAuctionErrors.InvalidDuration();
         if (params.startPrice <= params.endPrice) {
             revert DutchAuctionErrors.InvalidPrices();
@@ -128,24 +126,20 @@ library DutchAuctionLibrary {
             revert DutchAuctionErrors.InvalidTokenAmount();
         }
 
-        if (
-            !PercentageUtils.isPercentageInRange(params.kickerRewardPercentage)
-        ) {
+        if (!PercentageUtils.isPercentageInRange(params.kickerRewardPercentage)) {
             revert DutchAuctionErrors.InvalidKickerRewardPercentage();
         }
 
-        uint256 kickerRewardAmount = params.totalTokens.applyPercentage(
-            params.kickerRewardPercentage
-        );
+        uint256 kickerRewardAmount = params.totalTokens.applyPercentage(params.kickerRewardPercentage);
         uint256 auctionedTokens = params.totalTokens - kickerRewardAmount;
 
         // Set up AuctionConfig
         auction.config = AuctionConfig({
-            id: params.auctionId,
+            id: uint40(params.auctionId),
             auctionToken: params.auctionToken,
             paymentToken: params.paymentToken,
-            startTime: block.timestamp,
-            endTime: block.timestamp + params.duration,
+            startTime: uint40(block.timestamp),
+            endTime: uint40(block.timestamp + params.duration),
             startPrice: params.startPrice,
             endPrice: params.endPrice,
             totalTokens: auctionedTokens,
@@ -156,19 +150,11 @@ library DutchAuctionLibrary {
         });
 
         // Set up AuctionState
-        auction.state = AuctionState({
-            remainingTokens: auctionedTokens,
-            isFinalized: false
-        });
+        auction.state = AuctionState({ remainingTokens: auctionedTokens, isFinalized: false });
 
         _claimKickerReward(auction);
 
-        emit DutchAuctionEvents.AuctionCreated(
-            params.auctionId,
-            msg.sender,
-            auctionedTokens,
-            kickerRewardAmount
-        );
+        emit DutchAuctionEvents.AuctionCreated(params.auctionId, msg.sender, auctionedTokens, kickerRewardAmount);
     }
 
     /**
@@ -177,20 +163,12 @@ library DutchAuctionLibrary {
      * @param auction The Auction struct
      * @return The current price of tokens in the auction
      */
-    function getCurrentPrice(
-        Auction memory auction
-    ) public view returns (uint256) {
+    function getCurrentPrice(Auction memory auction) public view returns (uint256) {
         uint256 timeElapsed = block.timestamp - auction.config.startTime;
-        uint256 totalDuration = auction.config.endTime -
-            auction.config.startTime;
-        return
-            DecayFunctions.calculateDecay(
-                auction.config.decayType,
-                auction.config.startPrice,
-                auction.config.endPrice,
-                timeElapsed,
-                totalDuration
-            );
+        uint256 totalDuration = auction.config.endTime - auction.config.startTime;
+        return DecayFunctions.calculateDecay(
+            auction.config.decayType, auction.config.startPrice, auction.config.endPrice, timeElapsed, totalDuration
+        );
     }
 
     /**
@@ -211,26 +189,14 @@ library DutchAuctionLibrary {
         }
 
         uint256 currentPrice = getCurrentPrice(auction);
-        uint256 totalCost = DutchAuctionMath.calculateTotalCost(
-            currentPrice,
-            _amount
-        );
+        uint256 totalCost = DutchAuctionMath.calculateTotalCost(currentPrice, _amount);
 
         auction.state.remainingTokens -= _amount;
 
-        auction.config.paymentToken.safeTransferFrom(
-            msg.sender,
-            address(this),
-            totalCost
-        );
+        auction.config.paymentToken.safeTransferFrom(msg.sender, address(this), totalCost);
         auction.config.auctionToken.safeTransfer(msg.sender, _amount);
 
-        emit DutchAuctionEvents.TokensPurchased(
-            auction.config.id,
-            msg.sender,
-            _amount,
-            currentPrice
-        );
+        emit DutchAuctionEvents.TokensPurchased(auction.config.id, msg.sender, _amount, currentPrice);
 
         if (auction.state.remainingTokens == 0) {
             _finalizeAuction(auction);
@@ -258,23 +224,17 @@ library DutchAuctionLibrary {
      * @param auction The storage pointer to the auction to be finalized
      */
     function _finalizeAuction(Auction storage auction) internal {
-        uint256 soldTokens = auction.config.totalTokens -
-            auction.state.remainingTokens;
+        uint256 soldTokens = auction.config.totalTokens - auction.state.remainingTokens;
 
         if (auction.state.remainingTokens > 0) {
             auction.config.auctionToken.safeTransfer(
-                auction.config.unsoldTokensRecipient,
-                auction.state.remainingTokens
+                auction.config.unsoldTokensRecipient, auction.state.remainingTokens
             );
         }
 
         auction.state.isFinalized = true;
 
-        emit DutchAuctionEvents.AuctionFinalized(
-            auction.config.id,
-            soldTokens,
-            auction.state.remainingTokens
-        );
+        emit DutchAuctionEvents.AuctionFinalized(auction.config.id, soldTokens, auction.state.remainingTokens);
     }
 
     /**
@@ -286,15 +246,10 @@ library DutchAuctionLibrary {
         if (auction.config.kickerRewardAmount == 0) {
             return;
         }
-        auction.config.auctionToken.safeTransfer(
-            auction.config.auctionKicker,
-            auction.config.kickerRewardAmount
-        );
+        auction.config.auctionToken.safeTransfer(auction.config.auctionKicker, auction.config.kickerRewardAmount);
 
         emit DutchAuctionEvents.KickerRewardClaimed(
-            auction.config.id,
-            auction.config.auctionKicker,
-            auction.config.kickerRewardAmount
+            auction.config.id, auction.config.auctionKicker, auction.config.kickerRewardAmount
         );
     }
 }
