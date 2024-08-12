@@ -64,7 +64,7 @@ def plot_price_decays(price_data):
     print("Plot saved as price_decay_comparison.png")
 
 def main():
-    num_intervals = 100  # Change this to configure the number of intervals
+    num_intervals = 10  # Change this to configure the number of intervals
     price_data = generate_price_data(num_intervals)
     write_price_data_to_json(price_data)
     print(f"Expected prices for {num_intervals} intervals written to expected_prices.json")

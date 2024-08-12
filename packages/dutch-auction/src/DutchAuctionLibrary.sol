@@ -115,11 +115,11 @@ library DutchAuctionLibrary {
      * @notice Creates a new Dutch auction
      * @dev This function initializes a new auction with the given parameters
      * @param params The parameters for the new auction
-     * @return The created Auction struct
+     * @return auction The created Auction struct
      */
     function createAuction(
         AuctionParams memory params
-    ) external returns (Auction memory) {
+    ) external returns (Auction memory auction) {
         if (params.duration == 0) revert DutchAuctionErrors.InvalidDuration();
         if (params.startPrice <= params.endPrice) {
             revert DutchAuctionErrors.InvalidPrices();
@@ -138,8 +138,6 @@ library DutchAuctionLibrary {
             params.kickerRewardPercentage
         );
         uint256 auctionedTokens = params.totalTokens - kickerRewardAmount;
-
-        Auction memory auction;
 
         // Set up AuctionConfig
         auction.config = AuctionConfig({
@@ -171,7 +169,6 @@ library DutchAuctionLibrary {
             auctionedTokens,
             kickerRewardAmount
         );
-        return auction;
     }
 
     /**
@@ -183,14 +180,9 @@ library DutchAuctionLibrary {
     function getCurrentPrice(
         Auction memory auction
     ) public view returns (uint256) {
-        if (block.timestamp >= auction.config.endTime) {
-            return auction.config.endPrice;
-        }
-
         uint256 timeElapsed = block.timestamp - auction.config.startTime;
         uint256 totalDuration = auction.config.endTime -
             auction.config.startTime;
-
         return
             DecayFunctions.calculateDecay(
                 auction.config.decayType,

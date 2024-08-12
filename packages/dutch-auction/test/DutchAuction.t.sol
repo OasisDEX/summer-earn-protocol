@@ -2,8 +2,9 @@
 pragma solidity 0.8.26;
 
 import {DecayFunctions} from "../src/DecayFunctions.sol";
-import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
 
+import {DutchAuctionLibrary} from "../src/DutchAuctionLibrary.sol";
+import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
 import {PERCENTAGE_100, Percentage} from "../src/lib/Percentage.sol";
 import {PercentageUtils} from "../src/lib/PercentageUtils.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -32,6 +33,7 @@ contract DutchAuctionLibraryTest is Test {
     uint256 public constant TOTAL_TOKENS = 1000 ether;
     Percentage public constant KICKER_REWARD_PERCENTAGE =
         Percentage.wrap(5 * 1e18);
+    uint256 public constant KICKER_REWARD_AMOUNT = 50 ether;
 
     // JSON data for expected prices
     string constant EXPECTED_PRICES_PATH = "./utils/expected_prices.json";
@@ -122,6 +124,149 @@ contract DutchAuctionLibraryTest is Test {
             PERCENTAGE_100 + Percentage.wrap(1),
             UNSOLD_RECIPIENT,
             DecayFunctions.DecayType.Linear
+        );
+
+        // success
+        vm.prank(AUCTION_KICKER);
+        uint256 auctionId = auctionManager.createAuction(
+            IERC20(address(auctionToken1)),
+            IERC20(address(paymentToken)),
+            AUCTION_DURATION,
+            START_PRICE,
+            END_PRICE,
+            TOTAL_TOKENS,
+            KICKER_REWARD_PERCENTAGE,
+            UNSOLD_RECIPIENT,
+            DecayFunctions.DecayType.Linear
+        );
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory state
+        ) = auctionManager.auctions(auctionId);
+        assertEq(config.id, auctionId, "Auction ID not set correctly");
+        assertEq(
+            address(config.auctionToken),
+            address(auctionToken1),
+            "Auction token not set correctly"
+        );
+        assertEq(
+            address(config.paymentToken),
+            address(paymentToken),
+            "Payment token not set correctly"
+        );
+
+        assertEq(
+            config.startPrice,
+            START_PRICE,
+            "Start price not set correctly"
+        );
+        assertEq(config.endPrice, END_PRICE, "End price not set correctly");
+        assertEq(
+            config.totalTokens,
+            TOTAL_TOKENS - KICKER_REWARD_AMOUNT,
+            "Total tokens not set correctly"
+        );
+        assertEq(
+            config.kickerRewardAmount,
+            TOTAL_TOKENS.applyPercentage(KICKER_REWARD_PERCENTAGE),
+            "Kicker reward percentage not set correctly"
+        );
+        assertEq(
+            address(config.unsoldTokensRecipient),
+            UNSOLD_RECIPIENT,
+            "Unsold tokens recipient not set correctly"
+        );
+        assertEq(
+            config.startTime,
+            block.timestamp,
+            "Start time not set correctly"
+        );
+        assertEq(
+            config.endTime,
+            block.timestamp + AUCTION_DURATION,
+            "End time not set correctly"
+        );
+        assertEq(
+            state.remainingTokens,
+            TOTAL_TOKENS - KICKER_REWARD_AMOUNT,
+            "Remaining tokens not set correctly"
+        );
+        assertEq(state.isFinalized, false, "Auction should not be finalized");
+
+        auctionToken1.mint(address(this), 100 ether);
+
+        DutchAuctionLibrary.Auction memory auction = DutchAuctionLibrary
+            .createAuction(
+                DutchAuctionLibrary.AuctionParams(
+                    0,
+                    IERC20(address(auctionToken1)),
+                    IERC20(address(paymentToken)),
+                    AUCTION_DURATION,
+                    START_PRICE,
+                    END_PRICE,
+                    TOTAL_TOKENS,
+                    KICKER_REWARD_PERCENTAGE,
+                    AUCTION_KICKER,
+                    UNSOLD_RECIPIENT,
+                    DecayFunctions.DecayType.Linear
+                )
+            );
+
+        assertEq(auction.config.id, auctionId, "Auction ID not set correctly");
+        assertEq(
+            address(auction.config.auctionToken),
+            address(auctionToken1),
+            "Auction token not set correctly"
+        );
+        assertEq(
+            address(auction.config.paymentToken),
+            address(paymentToken),
+            "Payment token not set correctly"
+        );
+        assertEq(
+            auction.config.startPrice,
+            START_PRICE,
+            "Start price not set correctly"
+        );
+        assertEq(
+            auction.config.endPrice,
+            END_PRICE,
+            "End price not set correctly"
+        );
+        assertEq(
+            auction.config.totalTokens,
+            TOTAL_TOKENS - KICKER_REWARD_AMOUNT,
+            "Total tokens not set correctly"
+        );
+        assertEq(
+            auction.config.kickerRewardAmount,
+            TOTAL_TOKENS.applyPercentage(KICKER_REWARD_PERCENTAGE),
+            "Kicker reward percentage not set correctly"
+        );
+        assertEq(
+            address(auction.config.unsoldTokensRecipient),
+            UNSOLD_RECIPIENT,
+            "Unsold tokens recipient not set correctly"
+        );
+        assertEq(
+            auction.config.startTime,
+            block.timestamp,
+            "Start time not set correctly"
+        );
+        assertEq(
+            auction.config.endTime,
+            block.timestamp + AUCTION_DURATION,
+            "End time not set correctly"
+        );
+        assertEq(
+            auction.state.remainingTokens,
+            TOTAL_TOKENS - KICKER_REWARD_AMOUNT,
+            "Remaining tokens not set correctly"
+        );
+        assertEq(
+            auction.state.isFinalized,
+            false,
+            "Auction should not be finalized"
         );
     }
 
@@ -232,7 +377,11 @@ contract DutchAuctionLibraryTest is Test {
         auctionManager.buyTokens(auctionId1, buyAmount);
         auctionManager.buyTokens(auctionId2, buyAmount);
         vm.stopPrank();
-
+        assertEq(
+            auctionId2,
+            auctionId1 + 1,
+            "Auction IDs should be sequential"
+        );
         assertEq(
             auctionToken1.balanceOf(BUYER1),
             buyAmount,
@@ -439,7 +588,10 @@ contract DutchAuctionLibraryTest is Test {
         vm.prank(BUYER3);
         auctionManager.buyTokens(auctionId, (availableTokens / 4) - 1);
 
-        vm.warp(block.timestamp + AUCTION_DURATION / 2);
+        vm.warp(block.timestamp + AUCTION_DURATION * 3);
+
+        uint256 price = auctionManager.getCurrentPrice(auctionId);
+        assertEq(price, END_PRICE, "Price should be end price");
 
         // Finalize the auction, should
         vm.prank(AUCTION_KICKER);

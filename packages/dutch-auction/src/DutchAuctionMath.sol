@@ -25,9 +25,6 @@ library DutchAuctionMath {
         uint256 timeElapsed,
         uint256 totalDuration
     ) internal pure returns (uint256) {
-        if (timeElapsed >= totalDuration) {
-            return endPrice;
-        }
         uint256 priceDifference = startPrice - endPrice;
         uint256 decay = (priceDifference * timeElapsed) / totalDuration;
         return startPrice - decay;
@@ -48,9 +45,6 @@ library DutchAuctionMath {
         uint256 timeElapsed,
         uint256 totalDuration
     ) internal pure returns (uint256) {
-        if (timeElapsed >= totalDuration) {
-            return endPrice;
-        }
         UD60x18 priceDifference = ud(startPrice - endPrice);
         UD60x18 timeRemaining = convert(totalDuration - timeElapsed);
         UD60x18 totalDurationUD = convert(totalDuration);

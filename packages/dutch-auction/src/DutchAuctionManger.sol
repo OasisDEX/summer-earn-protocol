@@ -38,7 +38,7 @@ contract DutchAuctionManager is
      * @param _kickerRewardPercentage The percentage of sold tokens to be given as reward to the auction kicker
      * @param _unsoldTokensRecipient The address to receive any unsold tokens at the end of the auction
      * @param _decayType The type of price decay function to use for the auction
-     * @return The unique identifier of the created auction
+     * @return auctionId The unique identifier of the created auction
      */
     function createAuction(
         IERC20 _auctionToken,
@@ -50,8 +50,8 @@ contract DutchAuctionManager is
         Percentage _kickerRewardPercentage,
         address _unsoldTokensRecipient,
         DecayFunctions.DecayType _decayType
-    ) external nonReentrant returns (uint256) {
-        uint256 auctionId = auctionCounter++;
+    ) external nonReentrant returns (uint256 auctionId) {
+        auctionId = auctionCounter++;
         auctions[auctionId] = DutchAuctionLibrary.createAuction(
             DutchAuctionLibrary.AuctionParams(
                 auctionId,
@@ -67,7 +67,6 @@ contract DutchAuctionManager is
                 _decayType
             )
         );
-        return auctionId;
     }
 
     /**
