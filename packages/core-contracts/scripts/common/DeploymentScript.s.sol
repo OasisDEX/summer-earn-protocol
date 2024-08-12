@@ -101,8 +101,8 @@ contract DeploymentScript is Script {
         );
 
         // Tokens
-        _config.usdcToken = _readAddressFromJson(json, _network_, "usdcToken");
-        _config.daiToken = _readAddressFromJson(json, _network_, "daiToken");
+        _config.usdcToken = _readAddressFromJson(json, _network_, "tokens.usdc");
+        _config.daiToken = _readAddressFromJson(json, _network_, "tokens.dai");
 
         // AAVE V3
         _config.aaveV3Pool = _readAddressFromJson(
@@ -114,28 +114,6 @@ contract DeploymentScript is Script {
             json,
             _network_,
             "aaveV3.rewards"
-        );
-
-        // COMPOUND V3
-        _config.compoundV3UsdcPool = _readAddressFromJson(
-            json,
-            _network_,
-            "compound.usdc.pool"
-        );
-        _config.compoundV3UsdcRewards = _readAddressFromJson(
-            json,
-            _network_,
-            "compound.usdc.rewards"
-        );
-
-        // MORPHO BLUE
-        _config.morphoBlue.blue = _readAddressFromJson(
-            json,
-            _network_,
-            "morpho.blue"
-        );
-        _config.morphoBlue.usdcMarketId = Id.wrap(
-            _readBytes32FromJson(json, _network_, "morpho.usdcMarketId")
         );
 
         // META MORPHO

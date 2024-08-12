@@ -21,10 +21,12 @@
     "tipRate": "100"
   },
   "base": {
+    "tokens": {
+      "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
+    },
     "governor": "0xAb1a4Ae0F851700CC42442c588f458B553cB2620",
     "tipJar": "0x96c1b171c861c8725daB1Cb30Cb88e80817060A3",
-    "usdcToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "daiToken": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
     "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
     "aaveV3": {
       "pool": "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
@@ -33,13 +35,17 @@
     "compound": {
       "usdc": {
         "pool": "0xb125E6687d4313864e53df431d5425969c15Eb2F",
-        "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1",
-        "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+        "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1"
       }
     },
     "morpho": {
       "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-      "usdcMarketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
+      "usdc": {
+        "marketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
+      },
+      "dai": {
+        "marketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
+      }
     },
     "metaMorpho": {
       "steakhouseUsdc": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
@@ -58,7 +64,8 @@
     "daiAaveV3Ark": "0xFdfD148f804122C50BB7dDeFC7b3C77b25D720D2",
     "usdcCompoundV3Ark": "0x1B34F9C28Ea16f03f0A42873dC6D8279e38cABD3",
     "metamorphoSteakhouseUsdcArk": "0x0000000000000000000000000000000000000000",
-    "morphoUsdcArk": "0x0000000000000000000000000000000000000000",
+    "usdcMorphoArk": "0x5f472d1e80b20F752F762d8E7e0C5507029c6eC2",
+    "daiMorphoArk": "0xd45CD5AD788E5b5F7E5641C79B1127Cb8668B803",
     "tipRate": "100"
   }
 }

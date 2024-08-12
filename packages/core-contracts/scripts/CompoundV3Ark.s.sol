@@ -20,7 +20,7 @@ contract CompoundV3ArkDeploy is ArkDeploymentScript {
 
         string memory poolKey = string(abi.encodePacked("compound.", lowercaseTokenName, ".pool"));
         string memory rewardsKey = string(abi.encodePacked("compound.", lowercaseTokenName, ".rewards"));
-        string memory tokenKey = string(abi.encodePacked("compound.", lowercaseTokenName, ".token"));
+        string memory tokenKey = string(abi.encodePacked("token", lowercaseTokenName));
 
         address compoundV3Pool = _readAddressFromJson(json, network, poolKey);
         address compoundV3Rewards = _readAddressFromJson(json, network, rewardsKey);
