@@ -40,11 +40,14 @@ contract DeploymentScript is Script {
         address protocolAccessManager;
         address configurationManager;
         address usdcToken;
+        address daiToken;
         address aaveV3Pool;
         address aaveV3RewardsController;
-        address compoundV3Pool;
+        address compoundV3UsdcPool;
+        address compoundV3UsdcRewards;
         address harborCommand;
-        address bufferArk;
+        address usdcBufferArk;
+        address daiBufferArk;
         address tipJar;
         address swapProvider;
         MorphoBlueConfig morphoBlue;
@@ -68,6 +71,7 @@ contract DeploymentScript is Script {
         json = vm.readFile("scripts/config.json");
 
         Config memory _config;
+        // CORE
         _config.governor = _readAddressFromJson(json, _network_, "governor");
         _config.raft = _readAddressFromJson(json, _network_, "raft");
         _config.protocolAccessManager = _readAddressFromJson(
@@ -80,7 +84,27 @@ contract DeploymentScript is Script {
             _network_,
             "configurationManager"
         );
+        _config.harborCommand = _readAddressFromJson(
+            json,
+            _network_,
+            "harborCommand"
+        );
+        _config.usdcBufferArk = _readAddressFromJson(json, _network_, "bufferArk.usdc");
+        _config.daiBufferArk = _readAddressFromJson(json, _network_, "bufferArk.dai");
+
+        _config.tipJar = _readAddressFromJson(json, _network_, "tipJar");
+        _config.tipRate = _readUintFromJson(json, _network_, "tipRate");
+        _config.swapProvider = _readAddressFromJson(
+            json,
+            _network_,
+            "swapProvider"
+        );
+
+        // Tokens
         _config.usdcToken = _readAddressFromJson(json, _network_, "usdcToken");
+        _config.daiToken = _readAddressFromJson(json, _network_, "daiToken");
+
+        // AAVE V3
         _config.aaveV3Pool = _readAddressFromJson(
             json,
             _network_,
@@ -91,16 +115,20 @@ contract DeploymentScript is Script {
             _network_,
             "aaveV3.rewards"
         );
-        _config.compoundV3Pool = _readAddressFromJson(
+
+        // COMPOUND V3
+        _config.compoundV3UsdcPool = _readAddressFromJson(
             json,
             _network_,
-            "compound.usdcToken"
+            "compound.usdc.pool"
         );
-        _config.harborCommand = _readAddressFromJson(
+        _config.compoundV3UsdcRewards = _readAddressFromJson(
             json,
             _network_,
-            "harborCommand"
+            "compound.usdc.rewards"
         );
+
+        // MORPHO BLUE
         _config.morphoBlue.blue = _readAddressFromJson(
             json,
             _network_,
@@ -109,19 +137,14 @@ contract DeploymentScript is Script {
         _config.morphoBlue.usdcMarketId = Id.wrap(
             _readBytes32FromJson(json, _network_, "morpho.usdcMarketId")
         );
+
+        // META MORPHO
         _config.metaMorpho.steakhouseUsdc = _readAddressFromJson(
             json,
             _network_,
             "metaMorpho.steakhouseUsdc"
         );
-        _config.bufferArk = _readAddressFromJson(json, _network_, "bufferArk");
-        _config.tipJar = _readAddressFromJson(json, _network_, "tipJar");
-        _config.tipRate = _readUintFromJson(json, _network_, "tipRate");
-        _config.swapProvider = _readAddressFromJson(
-            json,
-            _network_,
-            "swapProvider"
-        );
+
         return _config;
     }
 
@@ -188,6 +211,19 @@ contract DeploymentScript is Script {
         string memory networkKey = string.concat(".", _network);
         string memory contractKey = string.concat(".", _contractName);
         return string.concat(networkKey, contractKey);
+    }
+
+    function toLowerCase(string memory str) internal pure returns (string memory) {
+        bytes memory bStr = bytes(str);
+        bytes memory bLower = new bytes(bStr.length);
+        for (uint i = 0; i < bStr.length; i++) {
+            if ((uint8(bStr[i]) >= 65) && (uint8(bStr[i]) <= 90)) {
+                bLower[i] = bytes1(uint8(bStr[i]) + 32);
+            } else {
+                bLower[i] = bStr[i];
+            }
+        }
+        return string(bLower);
     }
 
     modifier reloadConfig() {

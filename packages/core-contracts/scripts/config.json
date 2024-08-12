@@ -31,7 +31,11 @@
       "rewards": "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44"
     },
     "compound": {
-      "usdcToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
+      "usdc": {
+        "pool": "0xb125E6687d4313864e53df431d5425969c15Eb2F",
+        "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1",
+        "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      }
     },
     "morpho": {
       "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
@@ -46,10 +50,13 @@
     "usdcFleetCommander_1": "0x75d4F7cB1b2481385e0878c639f6F6d66592D399",
     "usdcFleetCommander_test": "0x0000000000000000000000000000000000000000",
     "harborCommand": "0x57b4850DaA32D1408f8fc6E870FBa9864e944A2A",
-    "bufferArk": "0xf4b5d0E6245CF4c4755670970aF6f4f080c8593b",
+    "bufferArk": {
+      "usdc": "0xf4b5d0E6245CF4c4755670970aF6f4f080c8593b",
+      "dai": "0x0000000000000000000000000000000000000000"
+    },
     "usdcAaveV3Ark": "0xa0AbBACcfE93Dddd9dEeEc2d7E3b7f65AFC4854b",
     "daiAaveV3Ark": "0xFdfD148f804122C50BB7dDeFC7b3C77b25D720D2",
-    "usdcCompoundV3Ark": "0x0000000000000000000000000000000000000000",
+    "usdcCompoundV3Ark": "0x1B34F9C28Ea16f03f0A42873dC6D8279e38cABD3",
     "metamorphoSteakhouseUsdcArk": "0x0000000000000000000000000000000000000000",
     "morphoUsdcArk": "0x0000000000000000000000000000000000000000",
     "tipRate": "100"

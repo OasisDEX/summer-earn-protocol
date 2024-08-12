@@ -19,6 +19,8 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
         string memory tokenName = vm.envString("SYMBOL");
         require(bytes(tokenName).length > 0, "SYMBOL environment variable is empty");
 
+        string memory lowercaseTokenName = toLowerCase(tokenName);
+
         if (config.aaveV3Pool == address(0)) {
             console.log("Aave V3 Pool address is not set");
             vm.stopBroadcast();
@@ -34,7 +36,7 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
 
         IArk ark = new AaveV3Ark(config.aaveV3Pool, config.aaveV3RewardsController, params);
 
-        string memory configKey = string(abi.encodePacked(tokenName, "AaveV3Ark"));
+        string memory configKey = string(abi.encodePacked(lowercaseTokenName, "AaveV3Ark"));
         updateAddressInConfig(network, configKey, address(ark));
         console.log("Deployed Aave V3 Ark");
         console.log(address(ark));
