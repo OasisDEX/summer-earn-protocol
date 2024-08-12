@@ -41,7 +41,7 @@ contract Raft is IRaft, ArkAccessManaged {
         address rewardToken,
         address paymentToken,
         bytes calldata extraHarvestData
-    ) external onlySuperKeeper {
+    ) external {
         _harvest(ark, rewardToken, extraHarvestData);
         _startAuction(ark, rewardToken, paymentToken);
     }
@@ -50,7 +50,7 @@ contract Raft is IRaft, ArkAccessManaged {
         address ark,
         address rewardToken,
         address paymentToken
-    ) public onlySuperKeeper {
+    ) public {
         _startAuction(ark, rewardToken, paymentToken);
     }
 
@@ -58,7 +58,7 @@ contract Raft is IRaft, ArkAccessManaged {
         address ark,
         address rewardToken,
         bytes calldata extraHarvestData
-    ) public onlySuperKeeper {
+    ) public {
         _harvest(ark, rewardToken, extraHarvestData);
     }
 
