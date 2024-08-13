@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ITipJar} from "../interfaces/ITipJar.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {PercentageUtils} from "../libraries/PercentageUtils.sol";

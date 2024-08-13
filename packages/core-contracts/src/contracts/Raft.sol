@@ -6,10 +6,10 @@ import {IArk} from "../interfaces/IArk.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
+
 import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
-import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
-import {IRaftEvents} from "../events/IRaftEvents.sol";
+
+
 import "../errors/RaftErrors.sol";
 import "../types/RaftTypes.sol";
 
