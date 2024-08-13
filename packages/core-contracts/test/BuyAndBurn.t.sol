@@ -19,8 +19,8 @@ import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 
-import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
-import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
+import {Percentage} from "@summerfi/percentage/src/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 contract BuyAndBurnTest is Test, IBuyAndBurnEvents {

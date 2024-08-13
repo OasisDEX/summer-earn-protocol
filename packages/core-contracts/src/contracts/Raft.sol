@@ -8,7 +8,7 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 
-import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
+import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
 
 import "../errors/RaftErrors.sol";
 import "../types/CommonAuctionTypes.sol";

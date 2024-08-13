@@ -5,8 +5,8 @@ import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
-import {Percentage, PERCENTAGE_100, toPercentage} from "../types/Percentage.sol";
-import {PercentageUtils} from "../libraries/PercentageUtils.sol";
+import {Percentage, PERCENTAGE_100, toPercentage} from "@summerfi/percentage/src/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
 import {MathUtils} from "../libraries/MathUtils.sol";
 import "../errors/TipperErrors.sol";
 

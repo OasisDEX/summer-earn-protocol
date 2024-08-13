@@ -1,6 +1,6 @@
 {
-  "name": "@summerfi/dutch-auction",
-  "description": "Dutch Auction contract for the Summerfi protocol",
+  "name": "@summerfi/percentage",
+  "description": "Percentage library",
   "version": "1.0.0",
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.1"
@@ -12,8 +12,7 @@
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
-    "@summerfi/typescript-config": "workspace:*",
-    "@summerfi/percentage": "workspace:*"
+    "@summerfi/typescript-config": "workspace:*"
   },
   "keywords": [
     "blockchain",
@@ -30,8 +29,7 @@
     "prettier:check": "prettier --check \"**/*.{json,md,yml}\" --ignore-path \".prettierignore\"",
     "prettier:write": "prettier --write \"**/*.{json,md,yml}\" --ignore-path \".prettierignore\"",
     "test": "forge test",
-    "test:coverage": "pnpm run gen:prices && forge coverage",
-    "test:coverage:report": "pnpm run gen:prices && forge coverage --ir-minimum --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
-    "gen:prices": "cd utils && python generate_price_data.py"
+    "test:coverage": "forge coverage",
+    "test:coverage:report": "forge coverage --ir-minimum --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
   }
 }

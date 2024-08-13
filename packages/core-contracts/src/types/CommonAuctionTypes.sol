@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
-import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
+import {Percentage} from "@summerfi/percentage/src/Percentage.sol";
 
 pragma solidity 0.8.26;
 

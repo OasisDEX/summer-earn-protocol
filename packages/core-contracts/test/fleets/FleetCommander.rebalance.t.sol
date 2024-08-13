@@ -9,7 +9,7 @@ import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnfo
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
 import "../../src/events/IArkEvents.sol";
 import "../../src/events/IFleetCommanderEvents.sol";
 

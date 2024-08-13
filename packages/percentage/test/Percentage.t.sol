@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import "../src/types/Percentage.sol";
+import "../src/Percentage.sol";
 
 contract PercentageTest is Test {
     function test_PercentageAddition() public pure {
