@@ -17,6 +17,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 
 import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
 import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
@@ -172,7 +173,12 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         vm.prank(governor);
         buyAndBurn.startAuction(address(tokenToAuction1));
 
-        vm.expectRevert(abi.encodeWithSelector(AuctionNotEnded.selector, 1));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DutchAuctionErrors.AuctionNotEnded.selector,
+                1
+            )
+        );
         vm.prank(governor);
         buyAndBurn.finalizeAuction(1);
     }
@@ -341,7 +347,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
 
     function test_CannotStartAuctionWithNoTokens() public {
         ERC20Mock emptyToken = new ERC20Mock();
-        vm.expectRevert(NoTokensToAuction.selector);
+        vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
         vm.prank(governor);
         buyAndBurn.startAuction(address(emptyToken));
     }

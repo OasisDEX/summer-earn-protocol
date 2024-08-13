@@ -51,10 +51,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
         }
 
         IERC20 auctionToken = IERC20(tokenToAuction);
-        uint256 balance = auctionToken.balanceOf(address(this));
-        if (balance == 0) {
-            revert NoTokensToAuction();
-        }
+        uint256 totalTokens = auctionToken.balanceOf(address(this));
 
         uint256 auctionId = ++nextAuctionId;
         DutchAuctionLibrary.AuctionParams memory params = DutchAuctionLibrary
@@ -65,7 +62,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
                 duration: auctionDefaultParameters.duration,
                 startPrice: auctionDefaultParameters.startPrice,
                 endPrice: auctionDefaultParameters.endPrice,
-                totalTokens: balance,
+                totalTokens: totalTokens,
                 kickerRewardPercentage: auctionDefaultParameters
                     .kickerRewardPercentage,
                 kicker: address(this),
@@ -77,14 +74,11 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
         ongoingAuctions[tokenToAuction] = auctionId;
         auctionSummerRaised[auctionId] = 0;
 
-        emit BuyAndBurnAuctionStarted(auctionId, tokenToAuction, balance);
+        emit BuyAndBurnAuctionStarted(auctionId, tokenToAuction, totalTokens);
     }
 
     function buyTokens(uint256 auctionId, uint256 amount) external override {
         DutchAuctionLibrary.Auction storage auction = auctions[auctionId];
-        if (auction.config.auctionToken == IERC20(address(0))) {
-            revert AuctionNotFound(auctionId);
-        }
 
         uint256 summerAmount = auction.buyTokens(amount);
 
@@ -97,13 +91,6 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
 
     function finalizeAuction(uint256 auctionId) external override onlyGovernor {
         DutchAuctionLibrary.Auction storage auction = auctions[auctionId];
-        if (auction.config.auctionToken == IERC20(address(0))) {
-            revert AuctionNotFound(auctionId);
-        }
-        if (block.timestamp < auction.config.endTime) {
-            revert AuctionNotEnded(auctionId);
-        }
-
         auction.finalizeAuction();
         _settleAuction(auction);
     }

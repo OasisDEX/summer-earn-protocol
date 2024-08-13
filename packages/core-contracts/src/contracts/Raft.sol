@@ -136,9 +136,6 @@ contract Raft is IRaft, ArkAccessManaged {
 
         uint256 totalTokens = harvestedRewards[ark][rewardToken] +
             unsoldTokens[ark][rewardToken];
-        if (totalTokens == 0) {
-            revert NoTokensToAuction();
-        }
 
         DutchAuctionLibrary.AuctionParams memory params = DutchAuctionLibrary
             .AuctionParams({

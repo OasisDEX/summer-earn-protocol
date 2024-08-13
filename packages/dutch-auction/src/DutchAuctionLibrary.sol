@@ -209,11 +209,16 @@ library DutchAuctionLibrary {
         Auction storage auction,
         uint256 _amount
     ) internal returns (uint256 totalCost) {
+        if (auction.config.auctionToken == IERC20(address(0))) {
+            revert DutchAuctionErrors.AuctionNotFound();
+        }
         if (auction.state.isFinalized) {
-            revert DutchAuctionErrors.AuctionAlreadyFinalized();
+            revert DutchAuctionErrors.AuctionAlreadyFinalized(
+                auction.config.id
+            );
         }
         if (block.timestamp >= auction.config.endTime) {
-            revert DutchAuctionErrors.AuctionNotActive();
+            revert DutchAuctionErrors.AuctionNotActive(auction.config.id);
         }
         if (_amount > auction.state.remainingTokens) {
             revert DutchAuctionErrors.InsufficientTokensAvailable();
@@ -249,11 +254,16 @@ library DutchAuctionLibrary {
      * @param auction The storage pointer to the auction to be finalized
      */
     function finalizeAuction(Auction storage auction) internal {
+        if (auction.config.auctionToken == IERC20(address(0))) {
+            revert DutchAuctionErrors.AuctionNotFound();
+        }
         if (auction.state.isFinalized) {
-            revert DutchAuctionErrors.AuctionAlreadyFinalized();
+            revert DutchAuctionErrors.AuctionAlreadyFinalized(
+                auction.config.id
+            );
         }
         if (block.timestamp < auction.config.endTime) {
-            revert DutchAuctionErrors.AuctionNotEnded();
+            revert DutchAuctionErrors.AuctionNotEnded(auction.config.id);
         }
         _finalizeAuction(auction);
     }

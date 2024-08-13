@@ -20,6 +20,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 
 import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
 import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
@@ -591,7 +592,7 @@ contract RaftTest is Test, IRaftEvents {
 
     function test_CannotStartAuctionWithNoTokens() public {
         vm.prank(superKeeper);
-        vm.expectRevert(NoTokensToAuction.selector);
+        vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
         raft.startAuction(
             address(mockArk),
             address(mockRewardToken),
@@ -602,7 +603,7 @@ contract RaftTest is Test, IRaftEvents {
     function test_CannotFinalizeAuctionBeforeEndTime() public {
         _setupAuction();
 
-        vm.expectRevert(abi.encodeWithSignature("AuctionNotEnded()"));
+        vm.expectRevert(abi.encodeWithSignature("AuctionNotEnded(uint256)", 0));
         raft.finalizeAuction(address(mockArk), address(mockRewardToken));
     }
 
