@@ -9,7 +9,6 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibra
 
 import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
 
-
 import "../errors/RaftErrors.sol";
 import "../types/RaftTypes.sol";
 

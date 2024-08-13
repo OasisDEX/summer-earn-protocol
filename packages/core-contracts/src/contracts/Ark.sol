@@ -5,7 +5,6 @@ import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
-
 import {IArk, ArkParams} from "../interfaces/IArk.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 

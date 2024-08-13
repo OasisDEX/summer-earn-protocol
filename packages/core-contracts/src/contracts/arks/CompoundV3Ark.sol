@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 import "../Ark.sol";
 import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 
-
 import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
 
 contract CompoundV3Ark is Ark {
