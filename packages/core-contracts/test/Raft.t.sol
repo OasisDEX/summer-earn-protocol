@@ -1,25 +1,29 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
-import {IArk} from "../src/interfaces/IArk.sol";
-import {IRaftEvents} from "../src/events/IRaftEvents.sol";
-import {Raft} from "../src/contracts/Raft.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
-import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
-import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
-import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
-import "../src/errors/RaftErrors.sol";
-import "../src/errors/AccessControlErrors.sol";
-import "../src/types/CommonAuctionTypes.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ArkMock, ArkParams} from "./mocks/ArkMock.sol";
 import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
+import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
+import {Raft} from "../src/contracts/Raft.sol";
+
+import "../src/errors/AccessControlErrors.sol";
+import "../src/errors/RaftErrors.sol";
+import {IRaftEvents} from "../src/events/IRaftEvents.sol";
+import {IArk} from "../src/interfaces/IArk.sol";
+
+import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
+
+import "../src/types/CommonAuctionTypes.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
+import {ArkMock, ArkParams} from "./mocks/ArkMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
+import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+
+import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
+import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract RaftTest is Test, IRaftEvents {
     using PercentageUtils for uint256;
@@ -34,7 +38,7 @@ contract RaftTest is Test, IRaftEvents {
     ERC20Mock public mockRewardToken;
     ERC20Mock public mockPaymentToken;
 
-    uint256 constant REWARD_AMOUNT = 100000000;
+    uint256 constant REWARD_AMOUNT = 100_000_000;
     Percentage public KICKER_REWARD_PERCENTAGE =
         PercentageUtils.fromDecimalPercentage(5);
 
@@ -66,7 +70,7 @@ contract RaftTest is Test, IRaftEvents {
         mockArk = new ArkMock(params);
 
         mockRewardToken.mint(address(address(mockArk)), REWARD_AMOUNT);
-        mockPaymentToken.mint(address(buyer), 10000 ether);
+        mockPaymentToken.mint(address(buyer), 10_000 ether);
 
         vm.label(governor, "governor");
         vm.label(address(address(mockArk)), "address(mockArk)");
@@ -155,7 +159,7 @@ contract RaftTest is Test, IRaftEvents {
 
         // Buy all tokens in the first auction
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), 1000000 ether);
+        mockPaymentToken.approve(address(raft), 1_000_000 ether);
         raft.buyTokens(
             address(mockArk),
             address(mockRewardToken),
@@ -238,7 +242,7 @@ contract RaftTest is Test, IRaftEvents {
         uint256 secondAuctionBuyAmount = (secondHarvestAmount -
             secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE)) / 2;
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), 100000 ether);
+        mockPaymentToken.approve(address(raft), 100_000 ether);
         raft.buyTokens(
             address(mockArk),
             address(mockRewardToken),
@@ -292,7 +296,7 @@ contract RaftTest is Test, IRaftEvents {
 
         // Buy half of the tokens in the first auction
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), 1000000 ether);
+        mockPaymentToken.approve(address(raft), 1_000_000 ether);
         raft.buyTokens(
             address(mockArk),
             address(mockRewardToken),
@@ -339,7 +343,7 @@ contract RaftTest is Test, IRaftEvents {
         );
 
         // Second harvest and auction cycle
-        uint256 secondHarvestAmount = 1500000000; // Different amount for the second harvest
+        uint256 secondHarvestAmount = 1_500_000_000; // Different amount for the second harvest
         mockRewardToken.mint(address(mockArk), secondHarvestAmount);
 
         vm.startPrank(superKeeper);
@@ -404,7 +408,7 @@ contract RaftTest is Test, IRaftEvents {
         uint256 secondAuctionBuyAmount = secondAuctionTotalAmount -
             secondAuctionTotalAmount.applyPercentage(KICKER_REWARD_PERCENTAGE);
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), 100000 ether);
+        mockPaymentToken.approve(address(raft), 100_000 ether);
         raft.buyTokens(
             address(mockArk),
             address(mockRewardToken),

@@ -1,22 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import {BuyAndBurn} from "../src/contracts/BuyAndBurn.sol";
-import {IBuyAndBurnEvents} from "../src/events/IBuyAndBurnEvents.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
-import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
-import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
-import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
-import "../src/errors/BuyAndBurnErrors.sol";
+import {SummerToken} from "../src/contracts/SummerToken.sol";
+
 import "../src/errors/AccessControlErrors.sol";
+import "../src/errors/BuyAndBurnErrors.sol";
+import {IBuyAndBurnEvents} from "../src/events/IBuyAndBurnEvents.sol";
+import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
+
 import "../src/types/CommonAuctionTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
+import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+
+import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
+import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
     using PercentageUtils for uint256;
@@ -27,14 +31,14 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
     address public governor = address(1);
     address public buyer = address(2);
     address public treasury = address(3);
-    ERC20Mock public summerToken;
+    SummerToken public summerToken;
     ERC20Mock public tokenToAuction1;
     ERC20Mock public tokenToAuction2;
 
-    uint256 constant AUCTION_AMOUNT = 100000000;
+    uint256 constant AUCTION_AMOUNT = 100_000_000;
 
     function setUp() public {
-        summerToken = new ERC20Mock();
+        summerToken = new SummerToken();
         tokenToAuction1 = new ERC20Mock();
         tokenToAuction2 = new ERC20Mock();
         accessManager = new ProtocolAccessManager(governor);
@@ -47,7 +51,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
 
         tokenToAuction1.mint(address(buyAndBurn), AUCTION_AMOUNT);
         tokenToAuction2.mint(address(buyAndBurn), AUCTION_AMOUNT);
-        summerToken.mint(buyer, 10000 ether);
+        deal(address(summerToken), buyer, 10_000 ether);
 
         vm.label(governor, "governor");
         vm.label(buyer, "buyer");
@@ -83,7 +87,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
         emit BuyAndBurnAuctionStarted(
-            0,
+            1,
             address(tokenToAuction1),
             AUCTION_AMOUNT
         );
@@ -93,7 +97,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         (
             DutchAuctionLibrary.AuctionConfig memory config,
             DutchAuctionLibrary.AuctionState memory state
-        ) = buyAndBurn.auctions(0);
+        ) = buyAndBurn.auctions(1);
         assertEq(address(config.auctionToken), address(tokenToAuction1));
         assertEq(state.remainingTokens, AUCTION_AMOUNT);
     }
@@ -116,16 +120,17 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         vm.prank(governor);
         buyAndBurn.startAuction(address(tokenToAuction1));
 
-        uint256 buyAmount = 50000000;
+        uint256 buyAmount = 50_000_000;
+        uint256 price = buyAndBurn.getCurrentPrice(1);
         vm.startPrank(buyer);
-        summerToken.approve(address(buyAndBurn), buyAmount);
+        summerToken.approve(address(buyAndBurn), 10_000 ether);
         vm.expectEmit(true, true, true, true);
-        emit TokensPurchased(0, buyer, buyAmount, buyAmount); // Assuming 1:1 price for simplicity
-        buyAndBurn.buyTokens(0, buyAmount);
+        emit DutchAuctionEvents.TokensPurchased(1, buyer, buyAmount, price);
+        buyAndBurn.buyTokens(1, buyAmount);
         vm.stopPrank();
 
         (, DutchAuctionLibrary.AuctionState memory state) = buyAndBurn.auctions(
-            0
+            1
         );
         assertEq(state.remainingTokens, AUCTION_AMOUNT - buyAmount);
     }
@@ -134,42 +139,42 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         vm.prank(governor);
         buyAndBurn.startAuction(address(tokenToAuction1));
 
-        uint256 buyAmount = 50000000;
+        uint256 buyAmount = 50_000_000;
         vm.startPrank(buyer);
-        summerToken.approve(address(buyAndBurn), buyAmount);
-        buyAndBurn.buyTokens(0, buyAmount);
+        summerToken.approve(address(buyAndBurn), 10_000 ether);
+        buyAndBurn.buyTokens(1, buyAmount);
         vm.stopPrank();
 
         vm.warp(block.timestamp + 8 days);
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit AuctionFinalized(
-            0,
-            buyAmount,
-            buyAmount,
-            AUCTION_AMOUNT - buyAmount
-        );
-        buyAndBurn.finalizeAuction(0);
+        emit SummerBurned(buyAmount);
+        buyAndBurn.finalizeAuction(1);
 
         (, DutchAuctionLibrary.AuctionState memory state) = buyAndBurn.auctions(
-            0
+            1
         );
         assertTrue(state.isFinalized);
-        assertEq(summerToken.balanceOf(address(buyAndBurn)), 0); // All SUMMER tokens should be burned
+        assertEq(
+            summerToken.balanceOf(address(buyAndBurn)),
+            0,
+            "All SUMMER tokens should be burned"
+        );
         assertEq(
             tokenToAuction1.balanceOf(treasury),
-            AUCTION_AMOUNT - buyAmount
-        ); // Unsold tokens should be in treasury
+            AUCTION_AMOUNT - buyAmount,
+            "Unsold tokens should be in treasury"
+        );
     }
 
     function test_CannotFinalizeAuctionBeforeEndTime() public {
         vm.prank(governor);
         buyAndBurn.startAuction(address(tokenToAuction1));
 
-        vm.expectRevert(abi.encodeWithSelector(AuctionNotEnded.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(AuctionNotEnded.selector, 1));
         vm.prank(governor);
-        buyAndBurn.finalizeAuction(0);
+        buyAndBurn.finalizeAuction(1);
     }
 
     function test_UpdateAuctionDefaultParameters() public {
@@ -217,42 +222,52 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
 
         uint256 firstAuctionBuyAmount = AUCTION_AMOUNT / 2;
         vm.startPrank(buyer);
-        summerToken.approve(address(buyAndBurn), firstAuctionBuyAmount);
-        buyAndBurn.buyTokens(0, firstAuctionBuyAmount);
-        vm.stopPrank();
-
-        vm.warp(block.timestamp + 8 days);
-        vm.prank(governor);
-        buyAndBurn.finalizeAuction(0);
-
-        // Verify first auction results
-        assertEq(summerToken.balanceOf(address(buyAndBurn)), 0); // All SUMMER tokens should be burned
-        assertEq(
-            tokenToAuction1.balanceOf(treasury),
-            AUCTION_AMOUNT - firstAuctionBuyAmount
-        );
-
-        // Second auction cycle
-        tokenToAuction2.mint(address(buyAndBurn), AUCTION_AMOUNT);
-
-        vm.prank(governor);
-        buyAndBurn.startAuction(address(tokenToAuction2));
-
-        uint256 secondAuctionBuyAmount = (AUCTION_AMOUNT * 3) / 4;
-        vm.startPrank(buyer);
-        summerToken.approve(address(buyAndBurn), secondAuctionBuyAmount);
-        buyAndBurn.buyTokens(1, secondAuctionBuyAmount);
+        summerToken.approve(address(buyAndBurn), 10_000 ether);
+        buyAndBurn.buyTokens(1, firstAuctionBuyAmount);
         vm.stopPrank();
 
         vm.warp(block.timestamp + 8 days);
         vm.prank(governor);
         buyAndBurn.finalizeAuction(1);
 
+        // Verify first auction results
+        assertEq(
+            summerToken.balanceOf(address(buyAndBurn)),
+            0,
+            "All SUMMER tokens should be burned"
+        );
+        assertEq(
+            tokenToAuction1.balanceOf(treasury),
+            AUCTION_AMOUNT - firstAuctionBuyAmount,
+            "Unsold tokens should be in treasury"
+        );
+
+        // Second auction cycle
+
+        vm.prank(governor);
+        buyAndBurn.startAuction(address(tokenToAuction2));
+
+        uint256 secondAuctionBuyAmount = (AUCTION_AMOUNT * 3) / 4;
+
+        vm.startPrank(buyer);
+        summerToken.approve(address(buyAndBurn), 10_000 ether);
+        buyAndBurn.buyTokens(2, secondAuctionBuyAmount);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 8 days);
+        vm.prank(governor);
+        buyAndBurn.finalizeAuction(2);
+
         // Verify second auction results
-        assertEq(summerToken.balanceOf(address(buyAndBurn)), 0); // All SUMMER tokens should be burned
+        assertEq(
+            summerToken.balanceOf(address(buyAndBurn)),
+            0,
+            "All SUMMER tokens should be burned"
+        );
         assertEq(
             tokenToAuction2.balanceOf(treasury),
-            AUCTION_AMOUNT - secondAuctionBuyAmount
+            AUCTION_AMOUNT - secondAuctionBuyAmount,
+            "Unsold tokens should be in treasury"
         );
     }
 
@@ -261,7 +276,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         buyAndBurn.startAuction(address(tokenToAuction1));
 
         DutchAuctionLibrary.Auction memory auctionInfo = buyAndBurn
-            .getAuctionInfo(0);
+            .getAuctionInfo(1);
         assertEq(
             address(auctionInfo.config.auctionToken),
             address(tokenToAuction1)
@@ -280,12 +295,12 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
 
         vm.startPrank(buyer);
         summerToken.approve(address(buyAndBurn), AUCTION_AMOUNT);
-        buyAndBurn.buyTokens(0, firstBuy);
-        buyAndBurn.buyTokens(0, secondBuy);
+        buyAndBurn.buyTokens(1, firstBuy);
+        buyAndBurn.buyTokens(1, secondBuy);
         vm.stopPrank();
 
         (, DutchAuctionLibrary.AuctionState memory state) = buyAndBurn.auctions(
-            0
+            1
         );
         assertEq(state.remainingTokens, AUCTION_AMOUNT - firstBuy - secondBuy);
     }
@@ -295,9 +310,11 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         buyAndBurn.startAuction(address(tokenToAuction1));
 
         vm.startPrank(buyer);
-        summerToken.approve(address(buyAndBurn), AUCTION_AMOUNT + 1);
-        vm.expectRevert("InsufficientTokensAvailable");
-        buyAndBurn.buyTokens(0, AUCTION_AMOUNT + 1);
+        summerToken.approve(address(buyAndBurn), 10_000 ether);
+        vm.expectRevert(
+            abi.encodeWithSignature("InsufficientTokensAvailable()")
+        );
+        buyAndBurn.buyTokens(1, AUCTION_AMOUNT + 1);
         vm.stopPrank();
     }
 
@@ -319,7 +336,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
             abi.encodeWithSelector(CallerIsNotGovernor.selector, buyer)
         );
         vm.prank(buyer);
-        buyAndBurn.finalizeAuction(0);
+        buyAndBurn.finalizeAuction(1);
     }
 
     function test_CannotStartAuctionWithNoTokens() public {

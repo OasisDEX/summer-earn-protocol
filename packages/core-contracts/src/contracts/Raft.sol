@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IRaft} from "../interfaces/IRaft.sol";
 import {IArk} from "../interfaces/IArk.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IRaft} from "../interfaces/IRaft.sol";
+
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 
 import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";

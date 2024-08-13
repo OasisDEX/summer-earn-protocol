@@ -205,7 +205,10 @@ library DutchAuctionLibrary {
      * @param auction The storage pointer to the auction
      * @param _amount The number of tokens to purchase
      */
-    function buyTokens(Auction storage auction, uint256 _amount) internal {
+    function buyTokens(
+        Auction storage auction,
+        uint256 _amount
+    ) internal returns (uint256 totalCost) {
         if (auction.state.isFinalized) {
             revert DutchAuctionErrors.AuctionAlreadyFinalized();
         }
@@ -217,10 +220,7 @@ library DutchAuctionLibrary {
         }
 
         uint256 currentPrice = getCurrentPrice(auction);
-        uint256 totalCost = DutchAuctionMath.calculateTotalCost(
-            currentPrice,
-            _amount
-        );
+        totalCost = DutchAuctionMath.calculateTotalCost(currentPrice, _amount);
 
         auction.state.remainingTokens -= _amount;
 

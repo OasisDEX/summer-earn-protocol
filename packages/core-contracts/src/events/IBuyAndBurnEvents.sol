@@ -10,18 +10,5 @@ interface IBuyAndBurnEvents is ICommonAuctionEvents {
         address indexed tokenToAuction,
         uint256 amount
     );
-
-    event TokensPurchased(
-        uint256 indexed auctionId,
-        address indexed buyer,
-        uint256 amount,
-        uint256 summerAmount
-    );
-
-    event AuctionFinalized(
-        uint256 indexed auctionId,
-        uint256 soldTokens,
-        uint256 burnedSummer,
-        uint256 unsoldTokens
-    );
+    event SummerBurned(uint256 amount);
 }

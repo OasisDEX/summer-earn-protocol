@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
+import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+
 import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
-import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
 
-import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
 import "../errors/BuyAndBurnErrors.sol";
+import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
 
-contract BuyAndBurn is ProtocolAccessManaged, IBuyAndBurnEvents {
+contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
     using SafeERC20 for ERC20Burnable;
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
@@ -41,7 +43,9 @@ contract BuyAndBurn is ProtocolAccessManaged, IBuyAndBurnEvents {
         });
     }
 
-    function startAuction(address tokenToAuction) external onlyGovernor {
+    function startAuction(
+        address tokenToAuction
+    ) external override onlyGovernor {
         if (ongoingAuctions[tokenToAuction] != 0) {
             revert BuyAndBurnAuctionAlreadyRunning(tokenToAuction);
         }
@@ -52,7 +56,7 @@ contract BuyAndBurn is ProtocolAccessManaged, IBuyAndBurnEvents {
             revert NoTokensToAuction();
         }
 
-        uint256 auctionId = nextAuctionId++;
+        uint256 auctionId = ++nextAuctionId;
         DutchAuctionLibrary.AuctionParams memory params = DutchAuctionLibrary
             .AuctionParams({
                 auctionId: auctionId,
@@ -76,26 +80,22 @@ contract BuyAndBurn is ProtocolAccessManaged, IBuyAndBurnEvents {
         emit BuyAndBurnAuctionStarted(auctionId, tokenToAuction, balance);
     }
 
-    function buyTokens(uint256 auctionId, uint256 amount) external {
+    function buyTokens(uint256 auctionId, uint256 amount) external override {
         DutchAuctionLibrary.Auction storage auction = auctions[auctionId];
         if (auction.config.auctionToken == IERC20(address(0))) {
             revert AuctionNotFound(auctionId);
         }
 
-        uint256 summerAmount = DutchAuctionMath.calculateTotalCost(
-            auction.getCurrentPrice(),
-            amount
-        );
-
-        SUMMER.safeTransferFrom(msg.sender, address(this), summerAmount);
-        auction.buyTokens(amount);
+        uint256 summerAmount = auction.buyTokens(amount);
 
         auctionSummerRaised[auctionId] += summerAmount;
 
-        emit TokensPurchased(auctionId, msg.sender, amount, summerAmount);
+        if (auction.state.remainingTokens == 0) {
+            _settleAuction(auction);
+        }
     }
 
-    function finalizeAuction(uint256 auctionId) external onlyGovernor {
+    function finalizeAuction(uint256 auctionId) external override onlyGovernor {
         DutchAuctionLibrary.Auction storage auction = auctions[auctionId];
         if (auction.config.auctionToken == IERC20(address(0))) {
             revert AuctionNotFound(auctionId);
@@ -105,38 +105,47 @@ contract BuyAndBurn is ProtocolAccessManaged, IBuyAndBurnEvents {
         }
 
         auction.finalizeAuction();
+        _settleAuction(auction);
+    }
 
-        uint256 soldTokens = auction.config.totalTokens -
-            auction.state.remainingTokens;
-        uint256 burnedSummer = auctionSummerRaised[auctionId];
+    function _settleAuction(
+        DutchAuctionLibrary.Auction memory auction
+    ) internal {
+        uint256 burnedSummer = auctionSummerRaised[auction.config.id];
+
         SUMMER.burn(burnedSummer);
+        emit SummerBurned(burnedSummer);
 
         address auctionTokenAddress = address(auction.config.auctionToken);
         ongoingAuctions[auctionTokenAddress] = 0;
-        delete auctionSummerRaised[auctionId];
-
-        emit AuctionFinalized(
-            auctionId,
-            soldTokens,
-            burnedSummer,
-            auction.state.remainingTokens
-        );
+        delete auctionSummerRaised[auction.config.id];
     }
 
     function getAuctionInfo(
         uint256 auctionId
-    ) external view returns (DutchAuctionLibrary.Auction memory auction) {
+    )
+        external
+        view
+        override
+        returns (DutchAuctionLibrary.Auction memory auction)
+    {
         auction = auctions[auctionId];
+    }
+
+    function getCurrentPrice(
+        uint256 auctionId
+    ) external view override returns (uint256) {
+        return auctions[auctionId].getCurrentPrice();
     }
 
     function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newParameters
-    ) external onlyGovernor {
+    ) external override onlyGovernor {
         auctionDefaultParameters = newParameters;
         emit AuctionDefaultParametersUpdated(newParameters);
     }
 
-    function setTreasury(address newTreasury) external onlyGovernor {
+    function setTreasury(address newTreasury) external override onlyGovernor {
         treasury = newTreasury;
     }
 }
