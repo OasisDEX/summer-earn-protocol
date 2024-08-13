@@ -41,7 +41,11 @@ contract ExampleGovernance {
      * @notice Constructor that initializes the VotingDecayManager
      */
     constructor() {
-        decayManager = new VotingDecayManager(INITIAL_DECAY_FREE_WINDOW, INITIAL_DECAY_RATE, address(this));
+        decayManager = new VotingDecayManager(
+            INITIAL_DECAY_FREE_WINDOW,
+            INITIAL_DECAY_RATE,
+            address(this)
+        );
     }
 
     /*

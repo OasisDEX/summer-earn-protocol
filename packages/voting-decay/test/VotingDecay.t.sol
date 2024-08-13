@@ -25,7 +25,11 @@ contract VotingDecayTest is Test {
      * @dev Deploys a new VotingDecayManager and sets an initial decay rate
      */
     function setUp() public {
-        decayManager = new VotingDecayManager(INITIAL_DECAY_FREE_WINDOW, INITIAL_DECAY_RATE, owner);
+        decayManager = new VotingDecayManager(
+            INITIAL_DECAY_FREE_WINDOW,
+            INITIAL_DECAY_RATE,
+            owner
+        );
 
         vm.label(user, "User");
         vm.label(delegate, "Delegate");

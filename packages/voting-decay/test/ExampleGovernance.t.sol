@@ -107,7 +107,6 @@ contract ExampleGovernanceTest is Test {
         vm.prank(alice);
         governance.updateVotingPower(newVotingPower);
 
-
         (uint256 baseVotingPower, ) = governance.voters(alice);
         assertEq(baseVotingPower, newVotingPower);
     }

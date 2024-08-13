@@ -23,7 +23,11 @@ contract VotingDecayManager is Ownable {
     uint40 public decayFreeWindow;
     uint256 public decayRate;
 
-    constructor(uint40 decayFreeWindow_, uint256 decayRate_, address owner) Ownable(owner) {
+    constructor(
+        uint40 decayFreeWindow_,
+        uint256 decayRate_,
+        address owner
+    ) Ownable(owner) {
         decayFreeWindow = decayFreeWindow_;
         decayRate = decayRate_;
     }
@@ -65,9 +69,7 @@ contract VotingDecayManager is Ownable {
      * @notice Set the decay-free window for an account
      * @param window The new decay-free window duration
      */
-    function setDecayFreeWindow(
-        uint40 newWindow
-    ) external {
+    function setDecayFreeWindow(uint40 newWindow) external {
         decayFreeWindow = newWindow;
         emit VotingDecayEvents.DecayFreeWindowSet(newWindow);
     }
