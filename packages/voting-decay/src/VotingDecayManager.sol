@@ -20,7 +20,13 @@ contract VotingDecayManager is Ownable {
     mapping(address => address[]) public delegators;
     mapping(address => bool) public authorizedRefreshers;
 
-    constructor() Ownable(msg.sender) {}
+    uint40 public decayFreeWindow;
+    uint256 public decayRate;
+
+    constructor(uint40 decayFreeWindow_, uint256 decayRate_, address owner) Ownable(owner) {
+        decayFreeWindow = decayFreeWindow_;
+        decayRate = decayRate_;
+    }
 
     // Modifier to check if the caller is authorized to reset decay
     modifier onlyAuthorized() {
@@ -44,35 +50,26 @@ contract VotingDecayManager is Ownable {
 
     /*
      * @notice Set the decay rate for an account
-     * @param accountAddress The address of the account
-     * @param rate The new decay rate
+     * @param newRate The new decay rate
      */
-    function setDecayRate(address accountAddress, uint256 rate) external {
-        if (!VotingDecayLibrary.isValidDecayRate(rate))
+    function setDecayRate(uint256 newRate) external {
+        if (!VotingDecayLibrary.isValidDecayRate(newRate)) {
             revert InvalidDecayRate();
-        _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
-            accountAddress
-        ];
-        account.decayRate = rate;
-        emit VotingDecayEvents.DecayRateSet(accountAddress, rate);
+        }
+
+        decayRate = newRate;
+        emit VotingDecayEvents.DecayRateSet(newRate);
     }
 
     /*
      * @notice Set the decay-free window for an account
-     * @param accountAddress The address of the account
      * @param window The new decay-free window duration
      */
     function setDecayFreeWindow(
-        address accountAddress,
-        uint256 window
+        uint40 newWindow
     ) external {
-        _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
-            accountAddress
-        ];
-        account.decayFreeWindow = window;
-        emit VotingDecayEvents.DecayFreeWindowSet(accountAddress, window);
+        decayFreeWindow = newWindow;
+        emit VotingDecayEvents.DecayFreeWindowSet(newWindow);
     }
 
     function setAuthorizedRefresher(
@@ -87,7 +84,7 @@ contract VotingDecayManager is Ownable {
      * @notice Reset the decay for an account
      * @param accountAddress The address of the account to refresh
      */
-    function resetDecay(address accountAddress) public onlyAuthorized {
+    function resetDecay(address accountAddress) public onlyOwner {
         _resetDecay(accountAddress);
     }
 
@@ -161,12 +158,17 @@ contract VotingDecayManager is Ownable {
         address accountAddress,
         uint256 originalVotingPower
     ) external view returns (uint256) {
+        if (decayInfoByAccount[accountAddress].lastUpdateTimestamp == 0) {
+            revert AccountNotInitialized();
+        }
         uint256 decayIndex = getCurrentDecayIndex(accountAddress);
-        return
-            VotingDecayLibrary.applyDecayToVotingPower(
-                originalVotingPower,
-                decayIndex
-            );
+
+        uint256 newVotingPower = VotingDecayLibrary.applyDecayToVotingPower(
+            originalVotingPower,
+            decayIndex
+        );
+
+        return newVotingPower;
     }
 
     /*
@@ -193,37 +195,27 @@ contract VotingDecayManager is Ownable {
         VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
             accountAddress
         ];
+
         if (account.lastUpdateTimestamp == 0) {
-            return VotingDecayLibrary.RAY;
+            revert AccountNotInitialized();
         }
+
         if (account.delegateTo != address(0)) {
             return getCurrentDecayIndex(account.delegateTo);
         }
 
-        uint256 elapsed = block.timestamp - account.lastUpdateTimestamp;
-        if (elapsed <= account.decayFreeWindow) {
+        uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
+        if (decayPeriod <= decayFreeWindow) {
             return account.decayIndex; // No decay within the decay-free window
         }
 
-        uint256 decayPeriod = elapsed - account.decayFreeWindow;
         return
             VotingDecayLibrary.calculateDecayIndex(
                 account.decayIndex,
                 decayPeriod,
-                account.decayRate,
-                0 // We've already accounted for the decay-free window
+                decayRate,
+                decayFreeWindow
             );
-    }
-
-    /*
-     * @notice Get the decay rate for an account
-     * @param accountAddress The address of the account
-     * @return The decay rate of the account
-     */
-    function getDecayRate(
-        address accountAddress
-    ) public view returns (uint256) {
-        return decayInfoByAccount[accountAddress].decayRate;
     }
 
     /*
@@ -237,6 +229,10 @@ contract VotingDecayManager is Ownable {
         return decayInfoByAccount[accountAddress];
     }
 
+    function initializeAccount(address accountAddress) public {
+        _initializeAccountIfNew(accountAddress);
+    }
+
     // Internal functions
 
     /*
@@ -248,9 +244,7 @@ contract VotingDecayManager is Ownable {
             decayInfoByAccount[accountAddress] = VotingDecayLibrary.DecayInfo({
                 decayIndex: VotingDecayLibrary.RAY,
                 lastUpdateTimestamp: block.timestamp,
-                decayRate: 0,
-                delegateTo: address(0),
-                decayFreeWindow: 0
+                delegateTo: address(0)
             });
         }
     }
@@ -269,8 +263,8 @@ contract VotingDecayManager is Ownable {
             return;
         }
 
-        uint256 elapsed = block.timestamp - account.lastUpdateTimestamp;
-        if (elapsed > account.decayFreeWindow) {
+        uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
+        if (decayPeriod > decayFreeWindow) {
             uint256 newDecayIndex = getCurrentDecayIndex(accountAddress);
             account.decayIndex = newDecayIndex;
         }

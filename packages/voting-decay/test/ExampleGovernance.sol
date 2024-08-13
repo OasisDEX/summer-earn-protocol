@@ -26,7 +26,7 @@ contract ExampleGovernance {
     mapping(uint256 => uint256) public proposalVotes;
 
     uint256 public constant INITIAL_DECAY_RATE = 0.1e27; // 10% annual decay (using RAY)
-    uint256 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
+    uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
     uint256 public proposalCounter;
 
     event VoterRegistered(address indexed voter, uint256 baseVotingPower);
@@ -41,7 +41,7 @@ contract ExampleGovernance {
      * @notice Constructor that initializes the VotingDecayManager
      */
     constructor() {
-        decayManager = new VotingDecayManager();
+        decayManager = new VotingDecayManager(INITIAL_DECAY_FREE_WINDOW, INITIAL_DECAY_RATE, address(this));
     }
 
     /*
@@ -54,8 +54,8 @@ contract ExampleGovernance {
             baseVotingPower: baseVotingPower,
             isRegistered: true
         });
-        decayManager.setDecayRate(msg.sender, INITIAL_DECAY_RATE);
-        decayManager.setDecayFreeWindow(msg.sender, INITIAL_DECAY_FREE_WINDOW);
+        decayManager.initializeAccount(msg.sender);
+
         emit VoterRegistered(msg.sender, baseVotingPower);
     }
 
@@ -139,12 +139,11 @@ contract ExampleGovernance {
     }
 
     /*
-     * @notice Set a new decay rate for the caller
+     * @notice Set a new decay rate
      * @param newRate The new decay rate to set
      */
     function setDecayRate(uint256 newRate) external {
-        require(voters[msg.sender].isRegistered, "Not a registered voter");
-        decayManager.setDecayRate(msg.sender, newRate);
+        decayManager.setDecayRate(newRate);
     }
 
     /*
@@ -156,12 +155,11 @@ contract ExampleGovernance {
     }
 
     /*
-     * @notice Set a new decay-free window for the caller
-     * @param window The new decay-free window duration
+     * @notice Set a new decay-free window for the system
+     * @param newWindow The new decay-free window duration
      */
-    function setDecayFreeWindow(uint256 window) external {
-        require(voters[msg.sender].isRegistered, "Not a registered voter");
-        decayManager.setDecayFreeWindow(msg.sender, window);
+    function setDecayFreeWindow(uint40 newWindow) external {
+        decayManager.setDecayFreeWindow(newWindow);
     }
 
     /*

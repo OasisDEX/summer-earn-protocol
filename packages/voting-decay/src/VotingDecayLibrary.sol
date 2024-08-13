@@ -21,16 +21,12 @@ library VotingDecayLibrary {
      * @notice Structure representing an account's voting decay information
      * @param decayIndex The current decay index of the account
      * @param lastUpdateTimestamp The timestamp of the last update to the account
-     * @param decayRate The rate at which the account's voting power decays
      * @param delegateTo The address to which this account has delegated voting power
-     * @param decayFreeWindow The duration for which decay is not applied after an update
      */
     struct DecayInfo {
         uint256 decayIndex;
         uint256 lastUpdateTimestamp;
-        uint256 decayRate;
         address delegateTo;
-        uint256 decayFreeWindow;
     }
 
     /*
@@ -53,6 +49,7 @@ library VotingDecayLibrary {
         uint256 decayTime = elapsedTime - decayFreeWindow;
         uint256 yearFraction = (decayTime * RAY) / SECONDS_PER_YEAR;
         uint256 decayFactor = RAY - ((yearFraction * decayRate) / RAY);
+
         return (currentIndex * decayFactor) / RAY;
     }
 

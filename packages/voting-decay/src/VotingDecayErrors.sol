@@ -6,3 +6,4 @@ error AlreadyDelegated();
 error CannotDelegateToSelf();
 error NotDelegated();
 error NotAuthorizedToReset();
+error AccountNotInitialized();

@@ -12,15 +12,19 @@ contract ExampleGovernanceTest is Test {
     ExampleGovernance public governance;
     address public alice = address(0x1);
     address public bob = address(0x2);
+    address public governor = address(0x3);
     uint256 public constant INITIAL_VOTING_POWER = 100e18;
 
     /*
      * @notice Set up the test environment
      */
     function setUp() public {
+        vm.prank(governor);
         governance = new ExampleGovernance();
+
         vm.label(alice, "Alice");
         vm.label(bob, "Bob");
+        vm.label(governor, "Governor");
     }
 
     /*
@@ -98,8 +102,11 @@ contract ExampleGovernanceTest is Test {
         vm.startPrank(alice);
         governance.registerVoter(INITIAL_VOTING_POWER);
         uint256 newVotingPower = INITIAL_VOTING_POWER * 2;
-        governance.updateVotingPower(newVotingPower);
         vm.stopPrank();
+
+        vm.prank(alice);
+        governance.updateVotingPower(newVotingPower);
+
 
         (uint256 baseVotingPower, ) = governance.voters(alice);
         assertEq(baseVotingPower, newVotingPower);
@@ -115,10 +122,8 @@ contract ExampleGovernanceTest is Test {
         governance.setDecayRate(newDecayRate);
         vm.stopPrank();
 
-        VotingDecayLibrary.DecayInfo memory aliceInfo = governance.getDecayInfo(
-            alice
-        );
-        assertEq(aliceInfo.decayRate, newDecayRate);
+        uint256 decayRate = governance.decayManager().decayRate();
+        assertEq(decayRate, newDecayRate);
     }
 
     /*
@@ -127,13 +132,11 @@ contract ExampleGovernanceTest is Test {
     function test_SetDecayFreeWindow() public {
         vm.startPrank(alice);
         governance.registerVoter(INITIAL_VOTING_POWER);
-        uint256 newWindow = 60 days;
+        uint40 newWindow = 60 days;
         governance.setDecayFreeWindow(newWindow);
         vm.stopPrank();
 
-        VotingDecayLibrary.DecayInfo memory aliceInfo = governance.getDecayInfo(
-            alice
-        );
-        assertEq(aliceInfo.decayFreeWindow, newWindow);
+        uint40 decayFreeWindow = governance.decayManager().decayFreeWindow();
+        assertEq(decayFreeWindow, newWindow);
     }
 }

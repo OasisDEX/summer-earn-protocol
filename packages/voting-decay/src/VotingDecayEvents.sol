@@ -10,14 +10,14 @@ contract VotingDecayEvents {
     /* @notice Emitted when an account's decay index is updated */
     event DecayUpdated(address indexed account, uint256 newDecayIndex);
 
-    /* @notice Emitted when an account's decay rate is set */
-    event DecayRateSet(address indexed account, uint256 newRate);
+    /* @notice Emitted when the decay rate is set */
+    event DecayRateSet(uint256 newRate);
 
     /* @notice Emitted when an account's decay is reset */
     event DecayReset(address indexed account);
 
-    /* @notice Emitted when an account's decay-free window is set */
-    event DecayFreeWindowSet(address indexed account, uint256 window);
+    /* @notice Emitted when the decay-free window is set */
+    event DecayFreeWindowSet(uint256 window);
 
     /* @notice Emitted when an account delegates its voting power */
     event Delegated(address indexed from, address indexed to);
