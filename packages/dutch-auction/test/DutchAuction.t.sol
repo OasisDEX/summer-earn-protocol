@@ -126,6 +126,33 @@ contract DutchAuctionLibraryTest is Test {
             DecayFunctions.DecayType.Linear
         );
 
+        vm.expectRevert(abi.encodeWithSignature("InvalidAuctionToken()"));
+        vm.prank(AUCTION_KICKER);
+        auctionManager.createAuction(
+            IERC20(address(0)),
+            IERC20(address(paymentToken)),
+            AUCTION_DURATION,
+            START_PRICE,
+            END_PRICE,
+            TOTAL_TOKENS,
+            KICKER_REWARD_PERCENTAGE,
+            UNSOLD_RECIPIENT,
+            DecayFunctions.DecayType.Linear
+        );
+        vm.expectRevert(abi.encodeWithSignature("InvalidPaymentToken()"));
+        vm.prank(AUCTION_KICKER);
+        auctionManager.createAuction(
+            IERC20(address(auctionToken1)),
+            IERC20(address(0)),
+            AUCTION_DURATION,
+            START_PRICE,
+            END_PRICE,
+            TOTAL_TOKENS,
+            KICKER_REWARD_PERCENTAGE,
+            UNSOLD_RECIPIENT,
+            DecayFunctions.DecayType.Linear
+        );
+
         // success
         vm.prank(AUCTION_KICKER);
         uint256 gas = gasleft();
