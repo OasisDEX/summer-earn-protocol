@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
@@ -16,7 +16,7 @@ import {ArkMock} from "../mocks/ArkMock.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
-import "../../src/types/Percentage.sol";
+
 import "../../src/libraries/PercentageUtils.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {

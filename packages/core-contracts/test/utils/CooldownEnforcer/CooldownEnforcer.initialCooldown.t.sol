@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
-
 import "../../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
-import "../../../src/utils/CooldownEnforcer/ICooldownEnforcerEvents.sol";
 
 import {CooldownEnforcer_TestBase} from "./CooldownEnforcerTestBase.sol";
 

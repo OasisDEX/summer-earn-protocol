@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import "../../src/contracts/ConfigurationManager.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import "../../src/types/Percentage.sol";
+
 import "../../src/libraries/MathUtils.sol";
 
 contract RPowTest is Test {

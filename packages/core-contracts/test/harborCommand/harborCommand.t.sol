@@ -6,7 +6,7 @@ import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {FleetCommanderAlreadyEnlisted, FleetCommanderNotEnlisted} from "../../src/errors/HarborCommandErrors.sol";
 import {CallerIsNotGovernor} from "../../src/errors/AccessControlErrors.sol";
-import {IHarborCommand} from "../../src/interfaces/IHarborCommand.sol";
+
 import {IHarborCommandEvents} from "../../src/events/IHarborCommandEvents.sol";
 
 contract HarborCommandTest is Test {
