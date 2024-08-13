@@ -3,8 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {CompoundV3Ark, ArkParams} from "../../src/contracts/arks/CompoundV3Ark.sol";
-import "../../src/errors/AccessControlErrors.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
@@ -53,7 +52,9 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(usdc),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 

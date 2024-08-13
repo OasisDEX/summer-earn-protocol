@@ -2,12 +2,11 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-import "../../src/errors/FleetCommanderErrors.sol";
-import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
@@ -486,6 +485,45 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Test successful force redeem
         vm.prank(mockUser);
         uint256 withdrawnAmount = fleetCommander.redeemFromArks(
+            userShares,
+            mockUser,
+            mockUser
+        );
+        assertEq(
+            withdrawnAmount,
+            DEPOSIT_AMOUNT,
+            "Should force redeem full amount"
+        );
+    }
+
+    function test_ValidateRedeemFromBuffer() public {
+        uint256 userShares = fleetCommander.balanceOf(mockUser);
+        // Test unauthorized redemption
+        vm.prank(nonOwner);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedRedemption(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+        fleetCommander.redeemFromBuffer(DEPOSIT_AMOUNT, nonOwner, mockUser);
+
+        // Test exceeding max redeem
+        vm.prank(mockUser);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxRedeem(address,uint256,uint256)",
+                mockUser,
+                userShares + 1,
+                userShares
+            )
+        );
+        fleetCommander.redeemFromBuffer(DEPOSIT_AMOUNT + 1, mockUser, mockUser);
+
+        // Test successful redeem from buffer
+        vm.prank(mockUser);
+        uint256 withdrawnAmount = fleetCommander.redeemFromBuffer(
             userShares,
             mockUser,
             mockUser

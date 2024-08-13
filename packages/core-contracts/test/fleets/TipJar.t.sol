@@ -5,9 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {ITipJar} from "../../src/interfaces/ITipJar.sol";
 import {ITipJarEvents} from "../../src/interfaces/ITipJarEvents.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {TipJar} from "../../src/contracts/TipJar.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";

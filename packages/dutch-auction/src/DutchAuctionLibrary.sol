@@ -119,7 +119,7 @@ library DutchAuctionLibrary {
      */
     function createAuction(
         AuctionParams memory params
-    ) internal returns (Auction memory auction) {
+    ) external returns (Auction memory auction) {
         if (params.duration == 0) revert DutchAuctionErrors.InvalidDuration();
         if (params.startPrice <= params.endPrice) {
             revert DutchAuctionErrors.InvalidPrices();
@@ -185,7 +185,7 @@ library DutchAuctionLibrary {
      */
     function getCurrentPrice(
         Auction memory auction
-    ) internal view returns (uint256) {
+    ) public view returns (uint256) {
         uint256 timeElapsed = block.timestamp - auction.config.startTime;
         uint256 totalDuration = auction.config.endTime -
             auction.config.startTime;
@@ -277,14 +277,14 @@ library DutchAuctionLibrary {
         uint256 soldTokens = auction.config.totalTokens -
             auction.state.remainingTokens;
 
+        auction.state.isFinalized = true;
+
         if (auction.state.remainingTokens > 0) {
             auction.config.auctionToken.safeTransfer(
                 auction.config.unsoldTokensRecipient,
                 auction.state.remainingTokens
             );
         }
-
-        auction.state.isFinalized = true;
 
         emit DutchAuctionEvents.AuctionFinalized(
             auction.config.id,

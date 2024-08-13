@@ -11,10 +11,9 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {DataTypes} from "../../src/interfaces/aave-v3/DataTypes.sol";
+
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-import "../../src/errors/AccessControlErrors.sol";
 
 contract ArkTest is Test, IArkEvents, ArkTestHelpers {
     ArkMock public ark;
@@ -44,7 +43,9 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         ark = new ArkMock(params);
@@ -57,7 +58,9 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             accessManager: address(0),
             configurationManager: address(0),
             token: address(0),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         vm.expectRevert(

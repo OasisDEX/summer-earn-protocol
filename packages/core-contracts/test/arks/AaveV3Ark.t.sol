@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
-import "../../src/errors/AccessControlErrors.sol";
+
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
@@ -11,10 +11,6 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {DataTypes} from "../../src/interfaces/aave-v3/DataTypes.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IPoolDataProvider} from "../../src/interfaces/aave-v3/IPoolDataProvider.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents {
     using SafeERC20 for IERC20;
@@ -59,7 +55,9 @@ contract AaveV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
@@ -115,7 +113,9 @@ contract AaveV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
@@ -160,7 +160,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         assertEq(address(ark.aaveV3DataProvider()), aaveV3DataProvider);
 
         assertEq(address(ark.token()), address(mockToken));
-        assertEq(ark.maxAllocation(), type(uint256).max);
+        assertEq(ark.depositCap(), type(uint256).max);
         assertEq(ark.aToken(), address(0));
         assertEq(ark.name(), "TestArk");
     }

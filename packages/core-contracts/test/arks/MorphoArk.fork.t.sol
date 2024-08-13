@@ -3,16 +3,14 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
-import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {IMorpho, Id, MarketParams, IMorphoBase} from "morpho-blue/interfaces/IMorpho.sol";
-import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 
 contract MorphoArkTestFork is Test, IArkEvents {
     MorphoArk public ark;
@@ -64,7 +62,9 @@ contract MorphoArkTestFork is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: USDC_ADDRESS,
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         ark = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
@@ -82,7 +82,9 @@ contract MorphoArkTestFork is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(usdc),
-            maxAllocation: 1000
+            depositCap: 1000,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         // Act & Assert
@@ -96,10 +98,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         new MorphoArk(MORPHO_ADDRESS, Id.wrap(0), params);
 
         MorphoArk newArk = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
-        assertTrue(
-            newArk.maxAllocation() == 1000,
-            "Max allocation should be set"
-        );
+        assertTrue(newArk.depositCap() == 1000, "Max allocation should be set");
         assertTrue(
             Id.unwrap(newArk.marketId()) == Id.unwrap(MARKET_ID),
             "Market ID should be set"

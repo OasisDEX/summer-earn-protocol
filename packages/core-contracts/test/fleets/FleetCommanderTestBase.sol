@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
@@ -16,7 +16,7 @@ import {ArkMock} from "../mocks/ArkMock.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
-import "../../src/types/Percentage.sol";
+
 import "../../src/libraries/PercentageUtils.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
@@ -108,7 +108,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 accessManager: address(accessManager),
                 token: underlyingToken,
                 configurationManager: address(configurationManager),
-                maxAllocation: type(uint256).max
+                depositCap: type(uint256).max,
+                maxRebalanceOutflow: type(uint256).max,
+                maxRebalanceInflow: type(uint256).max
             })
         );
         bufferArkAddress = address(bufferArk);
@@ -130,7 +132,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             symbol: "TEST-SUM",
             initialTipRate: initialTipRate,
             depositCap: type(uint256).max,
-            bufferArk: bufferArkAddress
+            bufferArk: bufferArkAddress,
+            minimumRateDifference: Percentage.wrap(0)
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
@@ -165,7 +168,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
 
     function createMockArk(
         address tokenAddress,
-        uint256 maxAllocation
+        uint256 depositCap
     ) internal returns (ArkMock) {
         return
             new ArkMock(
@@ -174,7 +177,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     accessManager: address(accessManager),
                     token: tokenAddress,
                     configurationManager: address(configurationManager),
-                    maxAllocation: maxAllocation
+                    depositCap: depositCap,
+                    maxRebalanceOutflow: type(uint256).max,
+                    maxRebalanceInflow: type(uint256).max
                 })
             );
     }

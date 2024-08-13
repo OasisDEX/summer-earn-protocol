@@ -3,15 +3,14 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/CompoundV3Ark.sol";
-import "../../src/errors/AccessControlErrors.sol";
+
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ICometRewards} from "../../src/interfaces/compound-v3/ICometRewards.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
@@ -48,7 +47,9 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
@@ -63,12 +64,14 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
         assertEq(address(ark.comet()), address(comet));
         assertEq(address(ark.token()), address(mockToken));
-        assertEq(ark.maxAllocation(), type(uint256).max);
+        assertEq(ark.depositCap(), type(uint256).max);
     }
 
     function test_Board() public {

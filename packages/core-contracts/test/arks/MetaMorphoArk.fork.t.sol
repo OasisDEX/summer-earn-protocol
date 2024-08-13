@@ -4,16 +4,14 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {IMorpho, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
-import {IMetaMorpho, IMetaMorphoBase} from "metamorpho/interfaces/IMetaMorpho.sol";
+
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import "../../src/contracts/arks/MetaMorphoArk.sol";
-import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "../../src/events/IArkEvents.sol";
 
 contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
@@ -55,7 +53,9 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(asset),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         ark = new MetaMorphoArk(METAMORPHO_ADDRESS, params);
@@ -243,7 +243,9 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(asset),
-            maxAllocation: 1000
+            depositCap: 1000,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         // Act

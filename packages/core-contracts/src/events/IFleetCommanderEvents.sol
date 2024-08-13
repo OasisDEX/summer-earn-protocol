@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {Percentage} from "../types/Percentage.sol";
 
 interface IFleetCommanderEvents {
     /* EVENTS */
@@ -71,16 +72,6 @@ interface IFleetCommanderEvents {
     event ArkRemoved(address indexed ark);
 
     /**
-     * @notice Emitted when an Ark's maximum allocation is updated
-     * @param ark The address of the Ark
-     * @param newMaxAllocation The new maximum allocation for the Ark (token units)
-     */
-    event ArkMaxAllocationUpdated(
-        address indexed ark,
-        uint256 newMaxAllocation
-    );
-
-    /**
      * @notice Emitted when the funds buffer balance is updated
      * @param user The address of the user who triggered the update
      * @param prevBalance The previous buffer balance
@@ -128,5 +119,13 @@ interface IFleetCommanderEvents {
         address indexed owner,
         address receiver,
         uint256 totalRedeemed
+    );
+
+    /**
+     * @notice Emitted when the minimum rate difference is updated
+     * @param newMinimumRateDiff The new minimum rate difference
+     */
+    event FleetCommanderMinimumRateDifferenceUpdated(
+        Percentage newMinimumRateDiff
     );
 }

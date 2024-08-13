@@ -7,3 +7,4 @@ error CannotDeployArkWithoutConfigurationManager();
 error CannotDeployArkWithoutRaft();
 error CannotDeployArkWithoutToken();
 error CannotDeployArkWithEmptyName();
+error InvalidVaultAddress();

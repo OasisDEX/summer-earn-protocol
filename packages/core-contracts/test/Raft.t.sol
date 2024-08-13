@@ -65,7 +65,9 @@ contract RaftTest is Test, IRaftEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockPaymentToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         mockArk = new ArkMock(params);
