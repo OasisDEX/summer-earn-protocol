@@ -15,7 +15,6 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
-
 contract ArkTest is Test, IArkEvents, ArkTestHelpers {
     ArkMock public ark;
     ArkMock public otherArk;

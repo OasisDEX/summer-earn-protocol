@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 import {CompoundV3Ark, ArkParams} from "../../src/contracts/arks/CompoundV3Ark.sol";
 
-
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";

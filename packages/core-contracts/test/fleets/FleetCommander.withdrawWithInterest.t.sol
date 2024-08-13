@@ -5,9 +5,6 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
-
-
-
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";

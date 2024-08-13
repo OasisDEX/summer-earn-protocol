@@ -12,10 +12,6 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
-
-
-
-
 contract AaveV3ArkTest is Test, IArkEvents {
     using SafeERC20 for IERC20;
 

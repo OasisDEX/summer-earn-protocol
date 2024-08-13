@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
 
-
 import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
@@ -12,7 +11,6 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {IMorpho, Id, MarketParams, IMorphoBase} from "morpho-blue/interfaces/IMorpho.sol";
-
 
 contract MorphoArkTestFork is Test, IArkEvents {
     MorphoArk public ark;

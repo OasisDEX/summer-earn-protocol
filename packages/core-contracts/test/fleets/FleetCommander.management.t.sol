@@ -13,7 +13,6 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "../../src/types/Percentage.sol";
 
-
 contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;

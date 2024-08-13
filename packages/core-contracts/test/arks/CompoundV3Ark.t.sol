@@ -12,7 +12,6 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
-
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
     IProtocolAccessManager accessManager;
