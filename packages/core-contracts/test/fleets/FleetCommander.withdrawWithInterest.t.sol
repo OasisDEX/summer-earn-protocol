@@ -45,7 +45,7 @@ contract WithdrawWithInterestTest is
         fleetCommander.setMinBufferBalance(0);
     }
 
-    function test_ConversionRateChange() public {
+    function test_ConversionRateChange() public view {
         uint256 newConversionRate = fleetCommander.convertToAssets(100000);
         assertGt(
             newConversionRate,
@@ -156,7 +156,7 @@ contract WithdrawWithInterestTest is
         );
     }
 
-    function test_MaxWithdrawIncreasedWithInterest() public {
+    function test_MaxWithdrawIncreasedWithInterest() public view {
         uint256 maxWithdraw = fleetCommander.maxWithdraw(mockUser);
         assertGt(
             maxWithdraw,

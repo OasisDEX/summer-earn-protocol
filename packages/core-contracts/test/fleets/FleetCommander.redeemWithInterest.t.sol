@@ -45,7 +45,7 @@ contract RedeemWithInterestTest is
         fleetCommander.setMinBufferBalance(0);
     }
 
-    function test_ConversionRateChange() public {
+    function test_ConversionRateChange() public view {
         uint256 newConversionRate = fleetCommander.convertToAssets(100000);
         assertGt(
             newConversionRate,
@@ -150,7 +150,7 @@ contract RedeemWithInterestTest is
         );
     }
 
-    function test_MaxRedeemUnchangedWithInterest() public {
+    function test_MaxRedeemUnchangedWithInterest() public view {
         uint256 maxRedeem = fleetCommander.maxRedeem(mockUser);
         assertEq(
             maxRedeem,
