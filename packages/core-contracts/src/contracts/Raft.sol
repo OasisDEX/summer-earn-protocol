@@ -84,11 +84,11 @@ contract Raft is IRaft, ArkAccessManaged {
         _settleAuction(ark, rewardToken, auction);
     }
 
-    function updateAuctionConfig(
+    function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newConfig
     ) external onlyGovernor {
         auctionDefaultParameters = newConfig;
-        emit AuctionConfigUpdated(newConfig);
+        emit AuctionDefaultParametersUpdated(newConfig);
     }
 
     function getHarvestedRewards(

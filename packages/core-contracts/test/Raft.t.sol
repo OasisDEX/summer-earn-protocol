@@ -254,9 +254,9 @@ contract RaftTest is Test, IRaftEvents {
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit AuctionConfigUpdated(newConfig);
+        emit AuctionDefaultParametersUpdated(newConfig);
 
-        raft.updateAuctionConfig(newConfig);
+        raft.updateAuctionDefaultParameters(newConfig);
 
         (
             uint40 duration,
