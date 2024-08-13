@@ -10,7 +10,6 @@ import {HarborCommand} from "../src/contracts/HarborCommand.sol";
 import {TipJar} from "../src/contracts/TipJar.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 
-
 /**
  * @title CoreDeploy
  * @notice Script for deploying core components of the protocol
@@ -46,11 +45,7 @@ contract CoreDeploy is DeploymentScript {
 
         address raft = _deployRaft(config.swapProvider, protocolAccessManager);
 
-        _deployConfigurationManager(
-            protocolAccessManager,
-            raft,
-            config.tipJar
-        );
+        _deployConfigurationManager(protocolAccessManager, raft, config.tipJar);
 
         _deployHarborCommand(protocolAccessManager);
 
@@ -83,23 +78,16 @@ contract CoreDeploy is DeploymentScript {
         return address(protocolAccessManager);
     }
 
-    function _deployTipJar(address protocolAccessManager, address treasury) internal returns (address) {
+    function _deployTipJar(
+        address protocolAccessManager,
+        address treasury
+    ) internal returns (address) {
         if (protocolAccessManager == address(0)) {
             revert("ProtocolAccessManager not deployed");
         }
-        TipJar tipJar = new TipJar(
-            protocolAccessManager,
-            treasury
-        );
-        updateAddressInConfig(
-            network,
-            "tipJar",
-            address(tipJar)
-        );
-        console.log(
-            "Deployed TipJar:",
-            address(tipJar)
-        );
+        TipJar tipJar = new TipJar(protocolAccessManager, treasury);
+        updateAddressInConfig(network, "tipJar", address(tipJar));
+        console.log("Deployed TipJar:", address(tipJar));
         return address(tipJar);
     }
 

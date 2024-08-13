@@ -14,16 +14,29 @@ contract CompoundV3ArkDeploy is ArkDeploymentScript {
         vm.startBroadcast(deployerPrivateKey);
 
         string memory tokenName = vm.envString("SYMBOL");
-        require(bytes(tokenName).length > 0, "SYMBOL environment variable is empty");
+        require(
+            bytes(tokenName).length > 0,
+            "SYMBOL environment variable is empty"
+        );
 
         string memory lowercaseTokenName = toLowerCase(tokenName);
 
-        string memory poolKey = string(abi.encodePacked("compound.", lowercaseTokenName, ".pool"));
-        string memory rewardsKey = string(abi.encodePacked("compound.", lowercaseTokenName, ".rewards"));
-        string memory tokenKey = string(abi.encodePacked("token", lowercaseTokenName));
+        string memory poolKey = string(
+            abi.encodePacked("compound.", lowercaseTokenName, ".pool")
+        );
+        string memory rewardsKey = string(
+            abi.encodePacked("compound.", lowercaseTokenName, ".rewards")
+        );
+        string memory tokenKey = string(
+            abi.encodePacked("token", lowercaseTokenName)
+        );
 
         address compoundV3Pool = _readAddressFromJson(json, network, poolKey);
-        address compoundV3Rewards = _readAddressFromJson(json, network, rewardsKey);
+        address compoundV3Rewards = _readAddressFromJson(
+            json,
+            network,
+            rewardsKey
+        );
         address compoundV3Token = _readAddressFromJson(json, network, tokenKey);
 
         if (compoundV3Pool == address(0)) {
@@ -54,7 +67,9 @@ contract CompoundV3ArkDeploy is ArkDeploymentScript {
 
         IArk ark = new CompoundV3Ark(compoundV3Pool, compoundV3Rewards, params);
 
-        string memory configKey = string(abi.encodePacked(tokenName, "CompoundV3Ark"));
+        string memory configKey = string(
+            abi.encodePacked(tokenName, "CompoundV3Ark")
+        );
         updateAddressInConfig(network, configKey, address(ark));
 
         console.log("Deployed Compound V3 Ark");

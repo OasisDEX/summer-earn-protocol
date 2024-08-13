@@ -17,7 +17,10 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
         require(arkAssetToken != address(0), "ark asset token invalid");
 
         string memory tokenName = vm.envString("SYMBOL");
-        require(bytes(tokenName).length > 0, "SYMBOL environment variable is empty");
+        require(
+            bytes(tokenName).length > 0,
+            "SYMBOL environment variable is empty"
+        );
 
         string memory lowercaseTokenName = toLowerCase(tokenName);
 
@@ -34,9 +37,15 @@ contract AaveV3ArkDeploy is ArkDeploymentScript {
             maxAllocation: maxAllocation
         });
 
-        IArk ark = new AaveV3Ark(config.aaveV3Pool, config.aaveV3RewardsController, params);
+        IArk ark = new AaveV3Ark(
+            config.aaveV3Pool,
+            config.aaveV3RewardsController,
+            params
+        );
 
-        string memory configKey = string(abi.encodePacked(lowercaseTokenName, "AaveV3Ark"));
+        string memory configKey = string(
+            abi.encodePacked(lowercaseTokenName, "AaveV3Ark")
+        );
         updateAddressInConfig(network, configKey, address(ark));
         console.log("Deployed Aave V3 Ark");
         console.log(address(ark));

@@ -14,9 +14,21 @@ contract BufferArkDeploy is ArkDeploymentScript {
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
-        address arkAssetToken = customToken == address(0)
-            ? config.usdcToken
-            : customToken;
+        string memory tokenName = vm.envString("SYMBOL");
+        require(
+            bytes(tokenName).length > 0,
+            "SYMBOL environment variable is empty"
+        );
+
+        string memory lowercaseTokenName = toLowerCase(tokenName);
+        string memory tokenKey = string(
+            abi.encodePacked("tokens.", lowercaseTokenName)
+        );
+        address arkAssetToken = _readAddressFromJson(json, network, tokenKey);
+
+        if (arkAssetToken == address(0)) {
+            revert("Ark asset token invalid");
+        }
 
         if (config.protocolAccessManager == address(0)) {
             revert("Protocol access manager address not set");
@@ -37,7 +49,12 @@ contract BufferArkDeploy is ArkDeploymentScript {
 
         console.log("Deployed Buffer Ark");
         console.log(address(ark));
-        updateAddressInConfig(network, "bufferArk", address(ark));
+
+        string memory configKey = string(
+            abi.encodePacked("bufferArk.", tokenName)
+        );
+        updateAddressInConfig(network, configKey, address(ark));
+
         vm.stopBroadcast();
     }
 }

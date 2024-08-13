@@ -89,8 +89,16 @@ contract DeploymentScript is Script {
             _network_,
             "harborCommand"
         );
-        _config.usdcBufferArk = _readAddressFromJson(json, _network_, "bufferArk.usdc");
-        _config.daiBufferArk = _readAddressFromJson(json, _network_, "bufferArk.dai");
+        _config.usdcBufferArk = _readAddressFromJson(
+            json,
+            _network_,
+            "bufferArk.usdc"
+        );
+        _config.daiBufferArk = _readAddressFromJson(
+            json,
+            _network_,
+            "bufferArk.dai"
+        );
 
         _config.tipJar = _readAddressFromJson(json, _network_, "tipJar");
         _config.tipRate = _readUintFromJson(json, _network_, "tipRate");
@@ -101,7 +109,11 @@ contract DeploymentScript is Script {
         );
 
         // Tokens
-        _config.usdcToken = _readAddressFromJson(json, _network_, "tokens.usdc");
+        _config.usdcToken = _readAddressFromJson(
+            json,
+            _network_,
+            "tokens.usdc"
+        );
         _config.daiToken = _readAddressFromJson(json, _network_, "tokens.dai");
 
         // AAVE V3
@@ -191,7 +203,9 @@ contract DeploymentScript is Script {
         return string.concat(networkKey, contractKey);
     }
 
-    function toLowerCase(string memory str) internal pure returns (string memory) {
+    function toLowerCase(
+        string memory str
+    ) internal pure returns (string memory) {
         bytes memory bStr = bytes(str);
         bytes memory bLower = new bytes(bStr.length);
         for (uint i = 0; i < bStr.length; i++) {
