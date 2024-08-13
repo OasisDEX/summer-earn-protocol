@@ -7,6 +7,7 @@ import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol"
 import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../src/contracts/Raft.sol";
 import {HarborCommand} from "../src/contracts/HarborCommand.sol";
+import {TipJar} from "../src/contracts/TipJar.sol";
 import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
 
 /**
@@ -30,21 +31,21 @@ contract CoreDeploy is DeploymentScript {
         if (config.swapProvider == address(0)) {
             revert("SwapProvider address not set");
         }
-        if (config.tipJar == address(0)) {
-            revert("TipJar address not set");
-        }
 
         address protocolAccessManager = _deployProtocolAccessManager(
             config.governor
         );
 
-        _deployRaft(config.swapProvider, protocolAccessManager);
+        // TODO: Update with real treasury address
+        address tipJar = _deployTipJar(protocolAccessManager, config.governor);
 
-        _deployConfigurationManager(
-            protocolAccessManager,
-            config.raft,
-            config.tipJar
-        );
+        if (tipJar == address(0)) {
+            revert("TipJar address not set");
+        }
+
+        address raft = _deployRaft(config.swapProvider, protocolAccessManager);
+
+        _deployConfigurationManager(protocolAccessManager, raft, config.tipJar);
 
         _deployHarborCommand(protocolAccessManager);
 
@@ -75,6 +76,19 @@ contract CoreDeploy is DeploymentScript {
             address(protocolAccessManager)
         );
         return address(protocolAccessManager);
+    }
+
+    function _deployTipJar(
+        address protocolAccessManager,
+        address treasury
+    ) internal returns (address) {
+        if (protocolAccessManager == address(0)) {
+            revert("ProtocolAccessManager not deployed");
+        }
+        TipJar tipJar = new TipJar(protocolAccessManager, treasury);
+        updateAddressInConfig(network, "tipJar", address(tipJar));
+        console.log("Deployed TipJar:", address(tipJar));
+        return address(tipJar);
     }
 
     /**

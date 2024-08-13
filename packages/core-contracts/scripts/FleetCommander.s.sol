@@ -32,17 +32,46 @@ contract FleetCommanderDeploy is DeploymentScript {
             address[] memory initialArks
         ) = _loadInitialArkConfigurations();
 
+        string memory tokenSymbol = vm.envString("SYMBOL");
+        if (bytes(tokenSymbol).length == 0) {
+            console.log("SYMBOL environment variable is empty");
+            vm.stopBroadcast();
+            return;
+        }
+
+        address bufferArk = _readAddressFromJson(
+            json,
+            network,
+            string(abi.encodePacked("bufferArk.", tokenSymbol))
+        );
+        if (bufferArk == address(0)) {
+            console.log("BufferArk address not found in config");
+            vm.stopBroadcast();
+            return;
+        }
+
+        address tokenAddress = _readAddressFromJson(
+            json,
+            network,
+            string(abi.encodePacked("tokens.", toLowerCase(tokenSymbol)))
+        );
+        if (tokenAddress == address(0)) {
+            console.log("Token address not found in config");
+            vm.stopBroadcast();
+            return;
+        }
+
         FleetCommanderParams memory params = FleetCommanderParams({
             configurationManager: config.configurationManager,
             accessManager: config.protocolAccessManager,
             initialArks: initialArks,
             initialMinimumFundsBufferBalance: 1 * 10 ** 6,
             initialRebalanceCooldown: 3 minutes,
-            asset: config.usdcToken,
+            asset: tokenAddress,
             name: fleetName,
             symbol: fleetSymbol,
             depositCap: type(uint256).max,
-            bufferArk: config.bufferArk,
+            bufferArk: bufferArk,
             initialTipRate: Percentage.wrap(config.tipRate)
         });
 
@@ -53,7 +82,7 @@ contract FleetCommanderDeploy is DeploymentScript {
         for (uint256 i = 0; i < initialArks.length; i++) {
             IArk(initialArks[i]).grantCommanderRole(address(commander));
         }
-        IArk(config.bufferArk).grantCommanderRole(address(commander));
+        IArk(bufferArk).grantCommanderRole(address(commander));
 
         // enlist the fleet commander in the harbor command
         HarborCommand harborCommand = HarborCommand(config.harborCommand);
@@ -61,7 +90,12 @@ contract FleetCommanderDeploy is DeploymentScript {
 
         updateAddressInConfig(
             network,
-            "usdcFleetCommander_1",
+            string(
+                abi.encodePacked(
+                    toLowerCase(tokenSymbol),
+                    "FleetCommander_test"
+                )
+            ),
             address(commander)
         );
         vm.stopBroadcast();

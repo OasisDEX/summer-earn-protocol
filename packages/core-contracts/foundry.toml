@@ -8,6 +8,7 @@ cbor_metadata = true
 viaIR = false
 fs_permissions = [
     { access = "read-write", path = "./scripts/config.json"},
+    { access = "read", path = "./scripts/fleets/dai-fleet-def-test.json"},
     { access = "read", path = "./scripts/fleets/usdc-fleet-def-test.json"},
     { access = "read", path = "./scripts/fleets/usdc-fleet-def-1.json"}
 ]
