@@ -2,11 +2,11 @@
 pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderCantUseMaxUintForBufferAdjustement, FleetCommanderRebalanceAmountZero, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderInvalidBufferAdjustment, FleetCommanderInsufficientBuffer, FleetCommanderInsufficientBuffer, FleetCommanderCantRebalanceToArk} from "../../src/errors/FleetCommanderErrors.sol";
-import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
@@ -451,7 +451,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         mockArkRate(ark1, 105);
         mockArkMaxAllocation(ark1, ark1MaxAllocation);
-        mockArkTotalAssets(ark1, ark1MaxAllocation);
+        mockToken.mint(address(ark1), ark1MaxAllocation);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -483,7 +483,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         mockArkRate(ark1, 105);
         mockArkMaxAllocation(ark1, ark1MaxAllocation);
-        mockArkTotalAssets(ark1, ark1MaxAllocation);
+        mockToken.mint(address(ark1), ark1MaxAllocation);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -516,7 +516,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArkRate(ark1, 105);
         mockArkMaxAllocation(ark1, ark1MaxAllocation);
         // Max allocation is one unit less than the rebalance amount
-        mockArkTotalAssets(ark1, ark1MaxAllocation - rebalanceAmount + 1);
+        mockToken.mint(address(ark1), ark1MaxAllocation - rebalanceAmount + 1);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({

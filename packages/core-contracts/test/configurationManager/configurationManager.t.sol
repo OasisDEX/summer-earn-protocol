@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import "forge-std/Test.sol";
 import "../../src/contracts/ConfigurationManager.sol";
 import "../../src/contracts/ProtocolAccessManager.sol";
-import "../../src/types/ConfigurationManagerTypes.sol";
+
 
 contract ConfigurationManagerTest is Test {
     ConfigurationManager public configManager;
