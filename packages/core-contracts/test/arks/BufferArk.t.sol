@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {BufferArk, ArkParams} from "../../src/contracts/arks/BufferArk.sol";
-import "../../src/errors/AccessControlErrors.sol";
+
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
