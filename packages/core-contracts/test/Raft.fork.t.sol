@@ -15,7 +15,7 @@ import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol"
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderMock} from "./mocks/FleetCommanderMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {PercentageUtils} from "../src/libraries/PercentageUtils.sol";
+import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
 import "../src/errors/RaftErrors.sol";
 
 contract RaftForkTest is Test, IRaftEvents {

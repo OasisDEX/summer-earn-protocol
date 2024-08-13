@@ -25,6 +25,8 @@
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
-    "@summerfi/typescript-config": "workspace:*"
+    "@summerfi/typescript-config": "workspace:*",
+    "@summerfi/dutch-auction": "workspace:*",
+    "@summerfi/percentage": "workspace:*"
   }
 }

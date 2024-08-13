@@ -5,8 +5,8 @@ import {ITipJar} from "../interfaces/ITipJar.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {PercentageUtils} from "../libraries/PercentageUtils.sol";
-import {Percentage, fromPercentage, toPercentage, PERCENTAGE_100} from "../types/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
+import {Percentage, fromPercentage, toPercentage, PERCENTAGE_100} from "@summerfi/percentage/src/Percentage.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import "../errors/TipJarErrors.sol";
 

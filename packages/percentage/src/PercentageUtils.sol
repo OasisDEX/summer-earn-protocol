@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Percentage, PERCENTAGE_FACTOR, PERCENTAGE_100} from "../types/Percentage.sol";
+import {PERCENTAGE_100, PERCENTAGE_FACTOR, Percentage} from "./Percentage.sol";
 
 /**
  * @title PercentageUtils

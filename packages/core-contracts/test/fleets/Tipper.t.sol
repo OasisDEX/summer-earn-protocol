@@ -9,8 +9,8 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
-import {Percentage} from "../../src/types/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
+import {Percentage} from "@summerfi/percentage/src/Percentage.sol";
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 
 contract TipperTest is Test, ITipperEvents {

@@ -17,7 +17,7 @@ import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWrite
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 
-import "../../src/libraries/PercentageUtils.sol";
+import "@summerfi/percentage/src/PercentageUtils.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
