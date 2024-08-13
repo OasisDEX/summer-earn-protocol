@@ -38,12 +38,12 @@ struct ArkParams {
      * @notice The maximum amount of tokens that can be moved from this Ark in a single transaction
      * @dev This limit helps to prevent large, sudden outflows
      */
-    uint256 moveFromMax;
+    uint256 maxRebalanceOutflow;
     /**
      * @notice The maximum amount of tokens that can be moved to this Ark in a single transaction
      * @dev This limit helps to prevent large, sudden inflows
      */
-    uint256 moveToMax;
+    uint256 maxRebalanceInflow;
 }
 
 /**
@@ -76,12 +76,12 @@ struct ArkConfig {
      * @notice The current maximum amount of tokens that can be moved from this Ark in a single transaction
      * @dev This can be adjusted to manage liquidity and risk
      */
-    uint256 moveFromMax;
+    uint256 maxRebalanceOutflow;
     /**
      * @notice The current maximum amount of tokens that can be moved to this Ark in a single transaction
      * @dev This can be adjusted to manage inflows and capacity
      */
-    uint256 moveToMax;
+    uint256 maxRebalanceInflow;
     /**
      * @notice The name of the Ark
      * @dev This is typically set at initialization and not changed

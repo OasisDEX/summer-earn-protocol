@@ -84,8 +84,8 @@ contract RaftForkTest is Test, IRaftEvents {
             configurationManager: address(configurationManager),
             token: USDC,
             depositCap: type(uint256).max,
-            moveFromMax: type(uint256).max,
-            moveToMax: type(uint256).max
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         ark = new CompoundV3Ark(COMET_ADDRESS, COMET_REWARDS, params);
         commander.addArk(address(ark));

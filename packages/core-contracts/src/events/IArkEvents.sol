@@ -72,14 +72,14 @@ interface IArkEvents {
     event ArkPoked(uint256 currentPrice, uint256 timestamp);
 
     /**
-     * @notice Emitted when the maximum amount that can be moved from the Ark is updated
-     * @param newMoveFromMax The new maximum amount that can be moved from the Ark
+     * @notice Emitted when the maximum outflow limit for the Ark during rebalancing is updated
+     * @param newMaxOutflow The new maximum amount that can be transferred out of the Ark during a rebalance
      */
-    event MoveFromMaxUpdated(uint256 newMoveFromMax);
+    event MaxRebalanceOutflowUpdated(uint256 newMaxOutflow);
 
     /**
-     * @notice Emitted when the maximum amount that can be moved to the Ark is updated
-     * @param newMoveToMax The new maximum amount that can be moved to the Ark
+     * @notice Emitted when the maximum inflow limit for the Ark during rebalancing is updated
+     * @param newMaxInflow The new maximum amount that can be transferred into the Ark during a rebalance
      */
-    event MoveToMaxUpdated(uint256 newMoveToMax);
+    event MaxRebalanceInflowUpdated(uint256 newMaxInflow);
 }

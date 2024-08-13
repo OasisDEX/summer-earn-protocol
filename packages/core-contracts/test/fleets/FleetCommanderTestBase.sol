@@ -109,8 +109,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 token: underlyingToken,
                 configurationManager: address(configurationManager),
                 depositCap: type(uint256).max,
-                moveFromMax: type(uint256).max,
-                moveToMax: type(uint256).max
+                maxRebalanceOutflow: type(uint256).max,
+                maxRebalanceInflow: type(uint256).max
             })
         );
         bufferArkAddress = address(bufferArk);
@@ -178,8 +178,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     token: tokenAddress,
                     configurationManager: address(configurationManager),
                     depositCap: depositCap,
-                    moveFromMax: type(uint256).max,
-                    moveToMax: type(uint256).max
+                    maxRebalanceOutflow: type(uint256).max,
+                    maxRebalanceInflow: type(uint256).max
                 })
             );
     }

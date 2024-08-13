@@ -122,27 +122,6 @@ interface IFleetCommanderEvents {
     );
 
     /**
-     * @notice Emitted when an Ark's maximum allocation is updated
-     * @param ark The address of the Ark
-     * @param newDepositCap The new maximum allocation for the Ark (token units)
-     */
-    event ArkDepositCapUpdated(address indexed ark, uint256 newDepositCap);
-
-    /**
-     * @notice Emitted when an Ark's move from max is updated
-     * @param ark The address of the Ark
-     * @param newMoveFromMax The new move from max for the Ark (token units)
-     */
-    event ArkMoveFromMaxUpdated(address indexed ark, uint256 newMoveFromMax);
-
-    /**
-     * @notice Emitted when an Ark's move to max is updated
-     * @param ark The address of the Ark
-     * @param newMoveToMax The new move to max for the Ark (token units)
-     */
-    event ArkMoveToMaxUpdated(address indexed ark, uint256 newMoveToMax);
-
-    /**
      * @notice Emitted when the minimum rate difference is updated
      * @param newMinimumRateDiff The new minimum rate difference
      */

@@ -31,13 +31,13 @@ error FleetCommanderUnauthorizedWithdrawal(address caller, address owner);
 error FleetCommanderUnauthorizedRedemption(address caller, address owner);
 error FleetCommanderCantUseRebalanceOnBufferArk();
 error FleetCommanderCantUseMaxUintForBufferAdjustement();
-error FleetCommanderExceedsMoveFromMax(
+error FleetCommanderExceedsMaxOutflow(
     address fromArk,
     uint256 amount,
-    uint256 moveFromMax
+    uint256 maxRebalanceOutflow
 );
-error FleetCommanderExceedsMoveToMax(
+error FleetCommanderExceedsMaxInflow(
     address fromArk,
     uint256 amount,
-    uint256 moveToMax
+    uint256 maxRebalanceInflow
 );

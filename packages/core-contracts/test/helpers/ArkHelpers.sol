@@ -48,28 +48,34 @@ contract ArkTestHelpers is Test, Constants {
     }
 
     /**
-     * @dev Mocks the `moveFromMax` function of the `IArk` contract.
+     * @dev Mocks the `maxRebalanceOutflow` function of the `IArk` contract.
      * @param ark The address of the `IArk` contract.
-     * @param moveFromMax The value to be passed to the `moveFromMax` function.
+     * @param maxRebalanceOutflow The value to be passed to the `maxRebalanceOutflow` function.
      */
-    function mockArkMoveFromMax(address ark, uint256 moveFromMax) internal {
+    function mockArkMaxRebalanceOutflow(
+        address ark,
+        uint256 maxRebalanceOutflow
+    ) internal {
         vm.mockCall(
             ark,
-            abi.encodeWithSelector(IArk.moveFromMax.selector),
-            abi.encode(moveFromMax)
+            abi.encodeWithSelector(IArk.maxRebalanceOutflow.selector),
+            abi.encode(maxRebalanceOutflow)
         );
     }
 
     /**
-     * @dev Mocks the `moveToMax` function of the `IArk` contract.
+     * @dev Mocks the `maxRebalanceInflow` function of the `IArk` contract.
      * @param ark The address of the `IArk` contract.
-     * @param moveToMax The value to be passed to the `moveToMax` function.
+     * @param maxRebalanceInflow The value to be passed to the `maxRebalanceInflow` function.
      */
-    function mockArkMoveToMax(address ark, uint256 moveToMax) internal {
+    function mockArkMoveToMax(
+        address ark,
+        uint256 maxRebalanceInflow
+    ) internal {
         vm.mockCall(
             ark,
-            abi.encodeWithSelector(IArk.moveToMax.selector),
-            abi.encode(moveToMax)
+            abi.encodeWithSelector(IArk.maxRebalanceInflow.selector),
+            abi.encode(maxRebalanceInflow)
         );
     }
 

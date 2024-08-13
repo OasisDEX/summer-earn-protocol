@@ -89,9 +89,15 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function setArkDepositCap(address ark, uint256 newDepositCap) external {}
 
-    function setArkMoveFromMax(address ark, uint256 newMoveFromMax) external {}
+    function setArkMaxRebalanceOutflow(
+        address ark,
+        uint256 newMaxRebalanceOutflow
+    ) external {}
 
-    function setArkMoveToMax(address ark, uint256 newMoveToMax) external {}
+    function setArkMaxRebalanceInflow(
+        address ark,
+        uint256 newMaxRebalanceInflow
+    ) external {}
 
     function setDepositCap(address ark, uint256 newDepositCap) external {}
 

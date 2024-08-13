@@ -45,8 +45,8 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             configurationManager: address(configurationManager),
             token: address(mockToken),
             depositCap: type(uint256).max,
-            moveFromMax: type(uint256).max,
-            moveToMax: type(uint256).max
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         ark = new ArkMock(params);
@@ -60,8 +60,8 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             configurationManager: address(0),
             token: address(0),
             depositCap: type(uint256).max,
-            moveFromMax: type(uint256).max,
-            moveToMax: type(uint256).max
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
 
         vm.expectRevert(

@@ -60,8 +60,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
             configurationManager: address(configurationManager),
             token: address(mockToken),
             depositCap: type(uint256).max,
-            moveFromMax: type(uint256).max,
-            moveToMax: type(uint256).max
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
@@ -118,8 +118,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
             configurationManager: address(configurationManager),
             token: address(mockToken),
             depositCap: type(uint256).max,
-            moveFromMax: type(uint256).max,
-            moveToMax: type(uint256).max
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder

@@ -657,16 +657,16 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             "Higher rate ark balance should increase"
         );
     }
-    function test_RebalanceExceedsMoveFromMax() public {
+    function test_RebalanceExceedsMoveMaxRebalanceOutflow() public {
         // Arrange
-        uint256 moveFromMax = 500 * 10 ** 6;
+        uint256 maxRebalanceOutflow = 500 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
         mockToken.mint(ark1, 5000 * 10 ** 6);
         mockToken.mint(ark2, 5000 * 10 ** 6);
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
-        mockArkMoveFromMax(ark1, moveFromMax);
+        mockArkMaxRebalanceOutflow(ark1, maxRebalanceOutflow);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -680,10 +680,10 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderExceedsMoveFromMax(address,uint256,uint256)",
+                "FleetCommanderExceedsMaxOutflow(address,uint256,uint256)",
                 ark1,
                 rebalanceAmount,
-                moveFromMax
+                maxRebalanceOutflow
             )
         );
         fleetCommander.rebalance(rebalanceData);
@@ -691,14 +691,14 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_RebalanceExceedsMoveToMax() public {
         // Arrange
-        uint256 moveToMax = 500 * 10 ** 6;
+        uint256 maxRebalanceInflow = 500 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
         mockToken.mint(ark1, 5000 * 10 ** 6);
         mockToken.mint(ark2, 5000 * 10 ** 6);
         mockArkRate(ark1, 105);
         mockArkRate(ark2, 110);
-        mockArkMoveToMax(ark2, moveToMax);
+        mockArkMoveToMax(ark2, maxRebalanceInflow);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -712,10 +712,10 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderExceedsMoveToMax(address,uint256,uint256)",
+                "FleetCommanderExceedsMaxInflow(address,uint256,uint256)",
                 ark2,
                 rebalanceAmount,
-                moveToMax
+                maxRebalanceInflow
             )
         );
         fleetCommander.rebalance(rebalanceData);

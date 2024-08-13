@@ -42,46 +42,52 @@ abstract contract Ark is IArk, ArkAccessManaged {
             commander: address(0), // Will be set later
             raft: manager.raft(),
             depositCap: _params.depositCap,
-            moveFromMax: _params.moveFromMax,
-            moveToMax: _params.moveToMax,
+            maxRebalanceOutflow: _params.maxRebalanceOutflow,
+            maxRebalanceInflow: _params.maxRebalanceInflow,
             name: _params.name
         });
     }
 
-    /* PUBLIC */
-    function name() public view returns (string memory) {
+    /* EXTERNAL */
+    function name() external view returns (string memory) {
         return config.name;
     }
 
-    function raft() public view returns (address) {
+    /* @inheritdoc IArk */
+    function raft() external view returns (address) {
         return config.raft;
     }
 
-    function depositCap() public view returns (uint256) {
+    /* @inheritdoc IArk */
+    function depositCap() external view returns (uint256) {
         return config.depositCap;
     }
 
-    function token() public view returns (IERC20) {
+    /* @inheritdoc IArk */
+    function token() external view returns (IERC20) {
         return config.token;
     }
 
-    function commander() public view returns (address) {
+    /* @inheritdoc IArk */
+    function commander() external view returns (address) {
         return config.commander;
     }
 
-    function moveFromMax() public view returns (uint256) {
-        return config.moveFromMax;
-    }
-
-    function moveToMax() public view returns (uint256) {
-        return config.moveToMax;
+    /* @inheritdoc IArk */
+    function maxRebalanceOutflow() external view returns (uint256) {
+        return config.maxRebalanceOutflow;
     }
 
     /* @inheritdoc IArk */
-    function totalAssets() public view virtual returns (uint256) {}
+    function maxRebalanceInflow() external view returns (uint256) {
+        return config.maxRebalanceInflow;
+    }
 
     /* @inheritdoc IArk */
-    function rate() public view virtual returns (uint256) {}
+    function totalAssets() external view virtual returns (uint256) {}
+
+    /* @inheritdoc IArk */
+    function rate() external view virtual returns (uint256) {}
 
     /* EXTERNAL - RAFT */
     /* @inheritdoc IArk */
@@ -130,18 +136,23 @@ abstract contract Ark is IArk, ArkAccessManaged {
         emit DepositCapUpdated(newDepositCap);
     }
 
-    function setMoveFromMax(uint256 newMoveFromMax) external onlyCommander {
-        config.moveFromMax = newMoveFromMax;
-        emit MoveFromMaxUpdated(newMoveFromMax);
-    }
-
-    function setMoveToMax(uint256 newMoveToMax) external onlyCommander {
-        config.moveToMax = newMoveToMax;
-        emit MoveToMaxUpdated(newMoveToMax);
+    /* @inheritdoc IArk */
+    function setMaxRebalanceOutflow(
+        uint256 newMaxRebalanceOutflow
+    ) external onlyCommander {
+        config.maxRebalanceOutflow = newMaxRebalanceOutflow;
+        emit MaxRebalanceOutflowUpdated(newMaxRebalanceOutflow);
     }
 
     /* @inheritdoc IArk */
+    function setMaxRebalanceInflow(
+        uint256 newMaxRebalanceInflow
+    ) external onlyCommander {
+        config.maxRebalanceInflow = newMaxRebalanceInflow;
+        emit MaxRebalanceInflowUpdated(newMaxRebalanceInflow);
+    }
 
+    /* @inheritdoc IArk */
     function poke() public virtual {}
 
     /* EXTERNAL - GOVERNANCE */

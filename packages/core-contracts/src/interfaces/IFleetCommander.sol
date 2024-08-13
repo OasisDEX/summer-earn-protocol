@@ -178,20 +178,26 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function setArkDepositCap(address ark, uint256 newDepositCap) external;
 
     /**
-     * @notice Sets the moveFromMax for an Ark
+     * @notice Sets the maxRebalanceOutflow for an Ark
      * @dev Only callable by the governor
      * @param ark The address of the Ark
-     * @param newMoveFromMax The new moveFromMax value
+     * @param newMaxRebalanceOutflow The new maxRebalanceOutflow value
      */
-    function setArkMoveFromMax(address ark, uint256 newMoveFromMax) external;
+    function setArkMaxRebalanceOutflow(
+        address ark,
+        uint256 newMaxRebalanceOutflow
+    ) external;
 
     /**
-     * @notice Sets the moveToMax for an Ark
+     * @notice Sets the maxRebalanceInflow for an Ark
      * @dev Only callable by the governor
      * @param ark The address of the Ark
-     * @param newMoveToMax The new moveToMax value
+     * @param newMaxRebalanceInflow The new maxRebalanceInflow value
      */
-    function setArkMoveToMax(address ark, uint256 newMoveToMax) external;
+    function setArkMaxRebalanceInflow(
+        address ark,
+        uint256 newMaxRebalanceInflow
+    ) external;
 
     /**
      * @dev Sets the minimum rate difference for the Fleet Commander.

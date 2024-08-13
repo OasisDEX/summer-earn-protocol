@@ -38,13 +38,13 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @notice Returns the maximum amount that can be moved to this Ark in one rebalance
      * @return maximum amount that can be moved to this Ark in one rebalance
      */
-    function moveToMax() external view returns (uint256);
+    function maxRebalanceInflow() external view returns (uint256);
 
     /**
      * @notice Returns the maximum amount that can be moved from this Ark in one rebalance
      * @return maximum amount that can be moved from this Ark in one rebalance
      */
-    function moveFromMax() external view returns (uint256);
+    function maxRebalanceOutflow() external view returns (uint256);
 
     /**
      * @notice Returns the ERC20 token managed by this Ark
@@ -115,13 +115,13 @@ interface IArk is IArkAccessManaged, IArkEvents {
 
     /**
      * @notice Sets a new maximum amount that can be moved from the Ark in one rebalance
-     * @param newMoveFromMax The new maximum amount that can be moved from the Ark
+     * @param newMaxRebalanceOutflow The new maximum amount that can be moved from the Ark
      */
-    function setMoveFromMax(uint256 newMoveFromMax) external;
+    function setMaxRebalanceOutflow(uint256 newMaxRebalanceOutflow) external;
 
     /**
      * @notice Sets a new maximum amount that can be moved to the Ark in one rebalance
-     * @param newMoveToMax The new maximum amount that can be moved to the Ark
+     * @param newMaxRebalanceInflow The new maximum amount that can be moved to the Ark
      */
-    function setMoveToMax(uint256 newMoveToMax) external;
+    function setMaxRebalanceInflow(uint256 newMaxRebalanceInflow) external;
 }

@@ -358,34 +358,28 @@ contract FleetCommander is
         }
 
         IArk(ark).setDepositCap(newDepositCap);
-
-        emit ArkDepositCapUpdated(ark, newDepositCap);
     }
 
-    function setArkMoveFromMax(
+    function setArkMaxRebalanceOutflow(
         address ark,
-        uint256 newMoveFromMax
+        uint256 newMaxRebalanceOutflow
     ) external onlyGovernor {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
 
-        IArk(ark).setMoveFromMax(newMoveFromMax);
-
-        emit ArkMoveFromMaxUpdated(ark, newMoveFromMax);
+        IArk(ark).setMaxRebalanceOutflow(newMaxRebalanceOutflow);
     }
 
-    function setArkMoveToMax(
+    function setArkMaxRebalanceInflow(
         address ark,
-        uint256 newMoveToMax
+        uint256 newMaxRebalanceInflow
     ) external onlyGovernor {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
 
-        IArk(ark).setMoveToMax(newMoveToMax);
-
-        emit ArkMoveToMaxUpdated(ark, newMoveToMax);
+        IArk(ark).setMaxRebalanceInflow(newMaxRebalanceInflow);
     }
 
     function setMinBufferBalance(uint256 newBalance) external onlyGovernor {
@@ -758,12 +752,6 @@ contract FleetCommander is
      *      - Each operation has valid amounts and addresses
      *      - Arks involved in the operations are active and have proper allocations
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
-     * @custom:error FleetCommanderRebalanceTooManyOperations Thrown when the number of operations exceeds the maximum allowed
-     * @custom:error FleetCommanderRebalanceNoOperations Thrown when the rebalance data array is empty
-     * @custom:error FleetCommanderRebalanceAmountZero Thrown when one of the amounts to move is zero
-     * @custom:error FleetCommanderArkNotFound Thrown when either the source or destination Ark address is zero
-     * @custom:error FleetCommanderArkNotActive Thrown when either the source or destination Ark is not active
-     * @custom:error FleetCommanderCantRebalanceToArk Thrown when trying to rebalance to an Ark with zero max allocation
      */
     function _validateReallocateAllAssets(
         RebalanceData[] calldata rebalanceData
@@ -781,39 +769,60 @@ contract FleetCommander is
             address fromArk = rebalanceData[i].fromArk;
             address toArk = rebalanceData[i].toArk;
             uint256 amount = rebalanceData[i].amount;
+            _validateReallocateAssets(fromArk, toArk, amount);
+        }
+    }
 
-            if (amount == 0) {
-                revert FleetCommanderRebalanceAmountZero(toArk);
-            }
-            if (address(toArk) == address(0)) {
-                revert FleetCommanderArkNotFound(toArk);
-            }
-            if (address(rebalanceData[i].fromArk) == address(0)) {
-                revert FleetCommanderArkNotFound(fromArk);
-            }
-            if (!isArkActive[address(toArk)]) {
-                revert FleetCommanderArkNotActive(toArk);
-            }
-            if (!isArkActive[address(fromArk)]) {
-                revert FleetCommanderArkNotActive(fromArk);
-            }
-            uint256 moveFromMax = IArk(fromArk).moveFromMax();
-            if (amount > moveFromMax) {
-                revert FleetCommanderExceedsMoveFromMax(
-                    fromArk,
-                    amount,
-                    moveFromMax
-                );
-            }
-            uint256 moveToMax = IArk(toArk).moveToMax();
-            if (amount > moveToMax) {
-                revert FleetCommanderExceedsMoveToMax(toArk, amount, moveToMax);
-            }
-            if (IArk(toArk).depositCap() == 0) {
-                revert FleetCommanderArkDepositCapZero(
-                    address(rebalanceData[i].toArk)
-                );
-            }
+    /**
+     * @notice Validates the reallocation of assets between two ARKs.
+     * @param fromArk The address of the source ARK.
+     * @param toArk The address of the destination ARK.
+     * @param amount The amount of assets to be reallocated.
+     * @custom:error FleetCommanderRebalanceAmountZero if the amount is zero.
+     * @custom:error FleetCommanderArkNotFound if the source or destination ARK is not found.
+     * @custom:error FleetCommanderArkNotActive if the source or destination ARK is not active.
+     * @custom:error FleetCommanderExceedsMaxOutflow if the amount exceeds the maximum move from limit of the source ARK.
+     * @custom:error FleetCommanderExceedsMaxInflow if the amount exceeds the maximum move to limit of the destination ARK.
+     * @custom:error FleetCommanderArkDepositCapZero if the deposit cap of the destination ARK is zero.
+     */
+    function _validateReallocateAssets(
+        address fromArk,
+        address toArk,
+        uint256 amount
+    ) internal view {
+        if (amount == 0) {
+            revert FleetCommanderRebalanceAmountZero(toArk);
+        }
+        if (toArk == address(0)) {
+            revert FleetCommanderArkNotFound(toArk);
+        }
+        if (address(fromArk) == address(0)) {
+            revert FleetCommanderArkNotFound(fromArk);
+        }
+        if (!isArkActive[address(toArk)]) {
+            revert FleetCommanderArkNotActive(toArk);
+        }
+        if (!isArkActive[address(fromArk)]) {
+            revert FleetCommanderArkNotActive(fromArk);
+        }
+        uint256 maxRebalanceOutflow = IArk(fromArk).maxRebalanceOutflow();
+        if (amount > maxRebalanceOutflow) {
+            revert FleetCommanderExceedsMaxOutflow(
+                fromArk,
+                amount,
+                maxRebalanceOutflow
+            );
+        }
+        uint256 maxRebalanceInflow = IArk(toArk).maxRebalanceInflow();
+        if (amount > maxRebalanceInflow) {
+            revert FleetCommanderExceedsMaxInflow(
+                toArk,
+                amount,
+                maxRebalanceInflow
+            );
+        }
+        if (IArk(toArk).depositCap() == 0) {
+            revert FleetCommanderArkDepositCapZero(toArk);
         }
     }
 
