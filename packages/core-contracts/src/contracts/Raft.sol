@@ -168,10 +168,6 @@ contract Raft is IRaft, ArkAccessManaged {
         address rewardToken,
         DutchAuctionLibrary.Auction memory auction
     ) internal {
-        if (!auction.state.isFinalized) {
-            revert AuctionNotFinalized();
-        }
-
         unsoldTokens[ark][rewardToken] += auction.state.remainingTokens;
 
         IERC20 paymentToken = IERC20(auction.config.paymentToken);

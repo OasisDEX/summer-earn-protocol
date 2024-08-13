@@ -12,8 +12,3 @@ error AuctionAlreadyRunning(address ark, address rewardToken);
  * @notice Thrown when trying to start an auction with no tokens available to auction
  */
 error NoTokensToAuction();
-
-/**
- * @notice Thrown when attempting to settle an auction that has not been finalized
- */
-error AuctionNotFinalized();
