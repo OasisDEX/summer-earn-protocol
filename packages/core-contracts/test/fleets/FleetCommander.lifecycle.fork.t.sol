@@ -11,22 +11,9 @@ import "../../src/contracts/arks/AaveV3Ark.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
 import "../../src/contracts/arks/MetaMorphoArk.sol";
 
-
 import "../../src/events/IArkEvents.sol";
 
-
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * @title Lifecycle test suite for FleetCommander
@@ -96,7 +83,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(usdcTokenContract),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         aaveArk = new AaveV3Ark(
             address(aaveV3PoolContract),

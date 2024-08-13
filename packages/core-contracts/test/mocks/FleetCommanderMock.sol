@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-
-
 import {ERC4626Mock, ERC4626, ERC20} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
@@ -85,9 +83,23 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function emergencyShutdown() external {}
 
-    function setDepositCap(uint256 newCap) external {}
+    function setFleetDepositCap(uint256 newCap) external {}
 
-    function setMaxAllocation(address ark, uint256 newMaxAllocation) external {}
+    function setArkDepositCap(address ark, uint256 newDepositCap) external {}
+
+    function setArkMaxRebalanceOutflow(
+        address ark,
+        uint256 newMaxRebalanceOutflow
+    ) external {}
+
+    function setArkMaxRebalanceInflow(
+        address ark,
+        uint256 newMaxRebalanceInflow
+    ) external {}
+
+    function setDepositCap(address ark, uint256 newDepositCap) external {}
+
+    function setMinimumRateDifference(Percentage newRateDifference) external {}
 
     function rebalance(RebalanceData[] calldata data) external {}
 

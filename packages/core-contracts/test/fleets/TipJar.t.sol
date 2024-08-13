@@ -6,8 +6,6 @@ import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {ITipJar} from "../../src/interfaces/ITipJar.sol";
 import {ITipJarEvents} from "../../src/interfaces/ITipJarEvents.sol";
 
-
-
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {TipJar} from "../../src/contracts/TipJar.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";

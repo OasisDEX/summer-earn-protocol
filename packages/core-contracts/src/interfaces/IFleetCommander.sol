@@ -131,11 +131,6 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function adjustBuffer(RebalanceData[] calldata data) external;
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
-    /**
-     * @notice Sets a new deposit cap
-     * @param newCap The new deposit cap value
-     */
-    function setDepositCap(uint256 newCap) external;
 
     /**
      * @notice Sets a new tip jar address
@@ -170,12 +165,45 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function removeArk(address ark) external;
 
     /**
-     * @notice Sets a new maximum allocation for an Ark
-     * @param ark The address of the Ark
-     * @param newMaxAllocation The new maximum allocation
+     * @notice Sets a new deposit cap for Fleet
+     * @param newDepositCap The new deposit cap
      */
-    function setMaxAllocation(address ark, uint256 newMaxAllocation) external;
+    function setFleetDepositCap(uint256 newDepositCap) external;
 
+    /**
+     * @notice Sets a new deposit cap for an Ark
+     * @param ark The address of the Ark
+     * @param newDepositCap The new deposit cap
+     */
+    function setArkDepositCap(address ark, uint256 newDepositCap) external;
+
+    /**
+     * @notice Sets the maxRebalanceOutflow for an Ark
+     * @dev Only callable by the governor
+     * @param ark The address of the Ark
+     * @param newMaxRebalanceOutflow The new maxRebalanceOutflow value
+     */
+    function setArkMaxRebalanceOutflow(
+        address ark,
+        uint256 newMaxRebalanceOutflow
+    ) external;
+
+    /**
+     * @notice Sets the maxRebalanceInflow for an Ark
+     * @dev Only callable by the governor
+     * @param ark The address of the Ark
+     * @param newMaxRebalanceInflow The new maxRebalanceInflow value
+     */
+    function setArkMaxRebalanceInflow(
+        address ark,
+        uint256 newMaxRebalanceInflow
+    ) external;
+
+    /**
+     * @dev Sets the minimum rate difference for the Fleet Commander.
+     * @param newRateDifference The new minimum rate difference to be set.
+     */
+    function setMinimumRateDifference(Percentage newRateDifference) external;
     /**
      * @notice Updates the rebalance cooldown period
      * @param newCooldown The new cooldown period in seconds

@@ -108,7 +108,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 accessManager: address(accessManager),
                 token: underlyingToken,
                 configurationManager: address(configurationManager),
-                maxAllocation: type(uint256).max
+                depositCap: type(uint256).max,
+                maxRebalanceOutflow: type(uint256).max,
+                maxRebalanceInflow: type(uint256).max
             })
         );
         bufferArkAddress = address(bufferArk);
@@ -130,7 +132,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             symbol: "TEST-SUM",
             initialTipRate: initialTipRate,
             depositCap: type(uint256).max,
-            bufferArk: bufferArkAddress
+            bufferArk: bufferArkAddress,
+            minimumRateDifference: Percentage.wrap(0)
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
@@ -165,7 +168,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
 
     function createMockArk(
         address tokenAddress,
-        uint256 maxAllocation
+        uint256 depositCap
     ) internal returns (ArkMock) {
         return
             new ArkMock(
@@ -174,7 +177,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     accessManager: address(accessManager),
                     token: tokenAddress,
                     configurationManager: address(configurationManager),
-                    maxAllocation: maxAllocation
+                    depositCap: depositCap,
+                    maxRebalanceOutflow: type(uint256).max,
+                    maxRebalanceInflow: type(uint256).max
                 })
             );
     }

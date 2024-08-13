@@ -5,7 +5,6 @@ import "forge-std/Test.sol";
 import "../../src/contracts/ConfigurationManager.sol";
 import "../../src/contracts/ProtocolAccessManager.sol";
 
-
 contract ConfigurationManagerTest is Test {
     ConfigurationManager public configManager;
     ProtocolAccessManager public accessManager;
