@@ -54,4 +54,14 @@ contract DutchAuctionErrors {
      * @dev auction is finalized when either the end time is reached or all tokens are sold
      */
     error AuctionAlreadyFinalized();
+
+    /**
+     * @notice Thrown when the auction token is invalid
+     */
+    error InvalidAuctionToken();
+
+    /**
+     * @notice Thrown when the payment token is invalid
+     */
+    error InvalidPaymentToken();
 }

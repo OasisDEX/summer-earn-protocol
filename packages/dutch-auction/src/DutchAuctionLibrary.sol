@@ -133,6 +133,12 @@ library DutchAuctionLibrary {
         ) {
             revert DutchAuctionErrors.InvalidKickerRewardPercentage();
         }
+        if (address(params.auctionToken) == address(0)) {
+            revert DutchAuctionErrors.InvalidAuctionToken();
+        }
+        if (address(params.paymentToken) == address(0)) {
+            revert DutchAuctionErrors.InvalidPaymentToken();
+        }
 
         uint256 kickerRewardAmount = params.totalTokens.applyPercentage(
             params.kickerRewardPercentage
