@@ -9,8 +9,8 @@ import "./DutchAuctionMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {Percentage} from "./lib/Percentage.sol";
-import {PercentageUtils} from "./lib/PercentageUtils.sol";
+import {Percentage} from "@summerfi/percentage/src/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
 
 /**
  * @title Dutch Auction Library

@@ -118,6 +118,9 @@ importers:
       '@summerfi/jest-config':
         specifier: workspace:*
         version: link:../jest-config
+      '@summerfi/percentage':
+        specifier: workspace:*
+        version: link:../percentage
       '@summerfi/tenderly-utils':
         specifier: workspace:*
         version: link:../tenderly-utils

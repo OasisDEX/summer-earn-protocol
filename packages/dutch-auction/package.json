@@ -12,7 +12,8 @@
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
-    "@summerfi/typescript-config": "workspace:*"
+    "@summerfi/typescript-config": "workspace:*",
+    "@summerfi/percentage": "workspace:*"
   },
   "keywords": [
     "blockchain",
