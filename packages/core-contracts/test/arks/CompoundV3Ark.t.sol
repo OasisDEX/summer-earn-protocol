@@ -12,7 +12,6 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
-
 contract CompoundV3ArkTest is Test, IArkEvents {
     CompoundV3Ark public ark;
     IProtocolAccessManager accessManager;
@@ -48,7 +47,9 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
@@ -63,12 +64,14 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
         assertEq(address(ark.comet()), address(comet));
         assertEq(address(ark.token()), address(mockToken));
-        assertEq(ark.maxAllocation(), type(uint256).max);
+        assertEq(ark.depositCap(), type(uint256).max);
     }
 
     function test_Board() public {

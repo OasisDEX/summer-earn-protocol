@@ -6,7 +6,6 @@ import {Test, console} from "forge-std/Test.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
-
 import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";

@@ -12,10 +12,6 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
-
-
-
-
 contract AaveV3ArkTest is Test, IArkEvents {
     using SafeERC20 for IERC20;
 
@@ -59,7 +55,9 @@ contract AaveV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
@@ -115,7 +113,9 @@ contract AaveV3ArkTest is Test, IArkEvents {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: address(mockToken),
-            maxAllocation: type(uint256).max
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
@@ -160,7 +160,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         assertEq(address(ark.aaveV3DataProvider()), aaveV3DataProvider);
 
         assertEq(address(ark.token()), address(mockToken));
-        assertEq(ark.maxAllocation(), type(uint256).max);
+        assertEq(ark.depositCap(), type(uint256).max);
         assertEq(ark.aToken(), address(0));
         assertEq(ark.name(), "TestArk");
     }

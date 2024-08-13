@@ -85,3 +85,7 @@ venv/
 *.egg-info/
 dist/
 build/
+
+cache
+.cache
+broadcast

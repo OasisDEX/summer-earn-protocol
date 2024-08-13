@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Ark} from "../Ark.sol";
+import "../Ark.sol";
 import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
 import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
 import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
 import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IArk, ArkParams} from "../../interfaces/IArk.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
@@ -34,7 +32,7 @@ contract AaveV3Ark is Ark {
             aaveV3AddressesProvider.getPoolDataProvider()
         );
         DataTypes.ReserveData memory reserveData = aaveV3Pool.getReserveData(
-            address(token)
+            address(config.token)
         );
         aToken = reserveData.aTokenAddress;
         rewardsController = IRewardsController(_rewardsController);
@@ -42,7 +40,7 @@ contract AaveV3Ark is Ark {
 
     function rate() public view override returns (uint256) {
         (, , , , , uint256 liquidityRate, , , , , , ) = aaveV3DataProvider
-            .getReserveData(address(token));
+            .getReserveData(address(config.token));
         return liquidityRate;
     }
 
@@ -55,7 +53,7 @@ contract AaveV3Ark is Ark {
         bytes calldata
     ) internal override returns (uint256 claimedRewardsBalance) {
         (, address aTokenAddress, ) = aaveV3DataProvider
-            .getReserveTokensAddresses(address(token));
+            .getReserveTokensAddresses(address(config.token));
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = aTokenAddress;
 
@@ -64,17 +62,17 @@ contract AaveV3Ark is Ark {
             type(uint256).max,
             rewardToken
         );
-        IERC20(rewardToken).safeTransfer(raft, claimedRewardsBalance);
+        IERC20(rewardToken).safeTransfer(config.raft, claimedRewardsBalance);
 
         emit Harvested(claimedRewardsBalance);
     }
 
     function _board(uint256 amount) internal override {
-        token.approve(address(aaveV3Pool), amount);
-        aaveV3Pool.supply(address(token), amount, address(this), 0);
+        config.token.approve(address(aaveV3Pool), amount);
+        aaveV3Pool.supply(address(config.token), amount, address(this), 0);
     }
 
     function _disembark(uint256 amount) internal override {
-        aaveV3Pool.withdraw(address(token), amount, address(this));
+        aaveV3Pool.withdraw(address(config.token), amount, address(this));
     }
 }

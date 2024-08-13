@@ -2,3 +2,4 @@ packages:
   - 'packages/**'
   - '!**/test/**'
   - '!packages/core-contracts/lib/**'
+  - '!packages/dutch-auction/lib/**'

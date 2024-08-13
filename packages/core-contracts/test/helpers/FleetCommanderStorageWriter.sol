@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 
-
 /**
  * @title FleetCommanderStorageWriter
  * @notice Helper contract to write to FleetCommander internal storage variables

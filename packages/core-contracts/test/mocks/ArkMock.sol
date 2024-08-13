@@ -15,7 +15,7 @@ contract ArkMock is Ark {
 
     function totalAssets() public view override returns (uint256) {
         // Mock implementation, returns the total token balance of this contract
-        return IERC20(token).balanceOf(address(this));
+        return IERC20(config.token).balanceOf(address(this));
     }
 
     function _board(uint256 amount) internal override {}
