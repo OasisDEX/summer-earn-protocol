@@ -267,14 +267,14 @@ library DutchAuctionLibrary {
         uint256 soldTokens = auction.config.totalTokens -
             auction.state.remainingTokens;
 
+        auction.state.isFinalized = true;
+
         if (auction.state.remainingTokens > 0) {
             auction.config.auctionToken.safeTransfer(
                 auction.config.unsoldTokensRecipient,
                 auction.state.remainingTokens
             );
         }
-
-        auction.state.isFinalized = true;
 
         emit DutchAuctionEvents.AuctionFinalized(
             auction.config.id,
