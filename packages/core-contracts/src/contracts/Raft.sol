@@ -10,7 +10,7 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibra
 import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
 
 import "../errors/RaftErrors.sol";
-import "../types/RaftTypes.sol";
+import "../types/CommonAuctionTypes.sol";
 
 contract Raft is IRaft, ArkAccessManaged {
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
@@ -84,6 +84,13 @@ contract Raft is IRaft, ArkAccessManaged {
         _settleAuction(ark, rewardToken, auction);
     }
 
+    function getAuctionInfo(
+        address ark,
+        address rewardToken
+    ) external view returns (DutchAuctionLibrary.Auction memory auction) {
+        auction = auctions[ark][rewardToken];
+    }
+
     function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newConfig
     ) external onlyGovernor {
@@ -123,7 +130,7 @@ contract Raft is IRaft, ArkAccessManaged {
             existingAuction.config.auctionToken != IERC20(address(0)) &&
             !existingAuction.state.isFinalized
         ) {
-            revert AuctionAlreadyRunning(ark, rewardToken);
+            revert RaftAuctionAlreadyRunning(ark, rewardToken);
         }
 
         uint256 totalTokens = harvestedRewards[ark][rewardToken] +

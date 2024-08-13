@@ -6,12 +6,12 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.sol";
-import {ICommonAuctionEvents} from "../events/ICommonAuctionEvents.sol";
+import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
 
 import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
-import "../errors/CommonAuctionErrors.sol";
+import "../errors/BuyAndBurnErrors.sol";
 
-contract BuyAndBurn is ProtocolAccessManaged, ICommonAuctionEvents {
+contract BuyAndBurn is ProtocolAccessManaged, IBuyAndBurnEvents {
     using SafeERC20 for ERC20Burnable;
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
@@ -43,7 +43,7 @@ contract BuyAndBurn is ProtocolAccessManaged, ICommonAuctionEvents {
 
     function startAuction(address tokenToAuction) external onlyGovernor {
         if (ongoingAuctions[tokenToAuction] != 0) {
-            revert AuctionAlreadyRunning(tokenToAuction);
+            revert BuyAndBurnAuctionAlreadyRunning(tokenToAuction);
         }
 
         IERC20 auctionToken = IERC20(tokenToAuction);
@@ -73,7 +73,7 @@ contract BuyAndBurn is ProtocolAccessManaged, ICommonAuctionEvents {
         ongoingAuctions[tokenToAuction] = auctionId;
         auctionSummerRaised[auctionId] = 0;
 
-        emit AuctionStarted(auctionId, tokenToAuction, balance);
+        emit BuyAndBurnAuctionStarted(auctionId, tokenToAuction, balance);
     }
 
     function buyTokens(uint256 auctionId, uint256 amount) external {
@@ -125,29 +125,8 @@ contract BuyAndBurn is ProtocolAccessManaged, ICommonAuctionEvents {
 
     function getAuctionInfo(
         uint256 auctionId
-    )
-        external
-        view
-        returns (
-            address auctionToken,
-            uint256 startTime,
-            uint256 endTime,
-            uint256 currentPrice,
-            uint256 remainingTokens,
-            bool isFinalized,
-            uint256 summerRaised
-        )
-    {
-        DutchAuctionLibrary.Auction storage auction = auctions[auctionId];
-        return (
-            address(auction.config.auctionToken),
-            auction.config.startTime,
-            auction.config.endTime,
-            auction.getCurrentPrice(),
-            auction.state.remainingTokens,
-            auction.state.isFinalized,
-            auctionSummerRaised[auctionId]
-        );
+    ) external view returns (DutchAuctionLibrary.Auction memory auction) {
+        auction = auctions[auctionId];
     }
 
     function updateAuctionDefaultParameters(

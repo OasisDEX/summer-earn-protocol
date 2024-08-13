@@ -15,7 +15,7 @@ import {PercentageUtils} from "@summerfi/dutch-auction/src/lib/PercentageUtils.s
 import {Percentage} from "@summerfi/dutch-auction/src/lib/Percentage.sol";
 import "../src/errors/RaftErrors.sol";
 import "../src/errors/AccessControlErrors.sol";
-import "../src/types/RaftTypes.sol";
+import "../src/types/CommonAuctionTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ArkMock, ArkParams} from "./mocks/ArkMock.sol";
 import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
@@ -573,7 +573,7 @@ contract RaftTest is Test, IRaftEvents {
         vm.prank(superKeeper);
         vm.expectRevert(
             abi.encodeWithSelector(
-                AuctionAlreadyRunning.selector,
+                RaftAuctionAlreadyRunning.selector,
                 address(mockArk),
                 address(mockRewardToken)
             )
