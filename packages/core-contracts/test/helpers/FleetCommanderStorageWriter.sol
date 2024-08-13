@@ -42,5 +42,6 @@ contract FleetCommanderStorageWriter is Test {
     function setDepositCap(uint256 value) public {
         vm.store(fleetCommander, bytes32(DepositCapSlot), bytes32(value));
     }
+
     function test() public {}
 }

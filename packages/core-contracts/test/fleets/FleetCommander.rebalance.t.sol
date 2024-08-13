@@ -72,6 +72,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             "Total assets should remain unchanged"
         );
     }
+
     function test_RebalanceWithMaxUint() public {
         // Arrange
         uint256 initialBufferBalance = 15000 * 10 ** 6;
@@ -115,6 +116,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             "Total assets should remain unchanged"
         );
     }
+
     function test_RebalanceMultipleArks() public {
         // Arrange
         uint256 initialBufferBalance = 15000 * 10 ** 6;

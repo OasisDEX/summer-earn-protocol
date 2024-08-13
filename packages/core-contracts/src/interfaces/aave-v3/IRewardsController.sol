@@ -13,7 +13,8 @@ interface IRewardsController {
      * @param amount The amount of rewards to claim
      * @param reward The address of the reward token
      * @return The amount of rewards claimed
-     **/
+     *
+     */
     function claimRewardsToSelf(
         address[] calldata assets,
         uint256 amount,

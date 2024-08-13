@@ -5,3 +5,5 @@ forge-std/=lib/forge-std/src/
 openzeppelin-contracts/=lib/openzeppelin-contracts/
 morpho-blue/=lib/metamorpho/lib/morpho-blue/src/
 metamorpho/=lib/metamorpho/src/
+@summerfi/dutch-auction/src/=node_modules/@summerfi/dutch-auction/src/
+@prb/math/=lib/prb-math/

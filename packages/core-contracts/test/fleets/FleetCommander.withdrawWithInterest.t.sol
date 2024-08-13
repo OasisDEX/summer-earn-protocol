@@ -223,7 +223,7 @@ contract WithdrawWithInterestTest is
 
     function test_WithdrawAfterMultipleInterestAccruals() public {
         // Simulate multiple interest accruals
-        for (uint i = 0; i < 3; i++) {
+        for (uint256 i = 0; i < 3; i++) {
             mockToken.mint(ark2, INTEREST_AMOUNT / 3);
         }
 
