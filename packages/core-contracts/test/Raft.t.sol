@@ -34,8 +34,7 @@ contract RaftTest is Test, IRaftEvents {
     ERC20Mock public mockRewardToken;
     ERC20Mock public mockPaymentToken;
 
-    uint256 constant REWARD_AMOUNT = 100;
-    uint256 constant BALANCE_AFTER_AUCTION = 200;
+    uint256 constant REWARD_AMOUNT = 100000000;
     Percentage public KICKER_REWARD_PERCENTAGE =
         PercentageUtils.fromDecimalPercentage(5);
 
@@ -144,6 +143,299 @@ contract RaftTest is Test, IRaftEvents {
             state.remainingTokens,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+        );
+    }
+
+    function test_MultipleAuctionsCycle() public {
+        // First auction cycle
+        _setupAuction();
+
+        uint256 firstAuctionAmount = REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE);
+
+        // Buy all tokens in the first auction
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raft), 1000000 ether);
+        raft.buyTokens(
+            address(mockArk),
+            address(mockRewardToken),
+            firstAuctionAmount
+        );
+        vm.stopPrank();
+
+        // Verify first auction is finalized
+        (, DutchAuctionLibrary.AuctionState memory state) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        assertTrue(state.isFinalized, "First auction should be finalized");
+        assertEq(
+            state.remainingTokens,
+            0,
+            "First auction should have no remaining tokens"
+        );
+
+        // Verify rewards were boarded
+        assertEq(
+            mockPaymentToken.balanceOf(address(mockArk)),
+            firstAuctionAmount,
+            "Rewards should be boarded"
+        );
+
+        // Second harvest and auction cycle
+        uint256 secondHarvestAmount = 150; // Different amount for the second harvest
+        mockRewardToken.mint(address(mockArk), secondHarvestAmount);
+
+        vm.startPrank(superKeeper);
+        vm.expectEmit(true, true, true, true);
+        emit ArkHarvested(address(mockArk), address(mockRewardToken));
+
+        raft.harvest(
+            address(mockArk),
+            address(mockRewardToken),
+            abi.encode(secondHarvestAmount)
+        );
+
+        // Start second auction
+        vm.expectEmit(true, true, true, true);
+        emit DutchAuctionEvents.AuctionCreated(
+            1, // This should be the next auction ID
+            superKeeper,
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE),
+            secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE)
+        );
+
+        raft.startAuction(
+            address(mockArk),
+            address(mockRewardToken),
+            address(mockPaymentToken)
+        );
+        vm.stopPrank();
+
+        // Verify second auction setup
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory newState
+        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+
+        assertEq(config.id, 1, "Should be the second auction ID");
+        assertEq(
+            config.totalTokens,
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE),
+            "Should have the correct total tokens"
+        );
+        assertEq(
+            newState.remainingTokens,
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE),
+            "Should have the correct remaining tokens"
+        );
+        assertFalse(newState.isFinalized, "Should not be finalized");
+
+        // Buy half of the tokens in the second auction
+        uint256 secondAuctionBuyAmount = (secondHarvestAmount -
+            secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE)) / 2;
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raft), 100000 ether);
+        raft.buyTokens(
+            address(mockArk),
+            address(mockRewardToken),
+            secondAuctionBuyAmount
+        );
+        vm.stopPrank();
+
+        // Finalize the second auction
+        vm.warp(block.timestamp + 2 days);
+        raft.finalizeAuction(address(mockArk), address(mockRewardToken));
+
+        // Verify final state
+        (, DutchAuctionLibrary.AuctionState memory finalState) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        assertTrue(finalState.isFinalized, "Should be finalized");
+
+        assertEq(
+            finalState.remainingTokens,
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE) -
+                secondAuctionBuyAmount,
+            "Should have the correct remaining tokens"
+        );
+
+        // Verify unsold tokens
+        assertEq(
+            raft.unsoldTokens(address(mockArk), address(mockRewardToken)),
+            secondHarvestAmount -
+                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE) -
+                secondAuctionBuyAmount,
+            "Should have unsold tokens"
+        );
+
+        // Verify total rewards boarded
+        assertEq(
+            mockPaymentToken.balanceOf(address(mockArk)),
+            firstAuctionAmount + secondAuctionBuyAmount,
+            "Should have total rewards boarded"
+        );
+    }
+
+    function test_MultipleAuctionsCycleWithUnsoldTokens() public {
+        // First auction cycle
+        _setupAuction();
+
+        uint256 firstAuctionTotalAmount = REWARD_AMOUNT -
+            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE);
+        uint256 firstAuctionBuyAmount = firstAuctionTotalAmount / 2; // Buy only half of the tokens
+
+        // Buy half of the tokens in the first auction
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raft), 1000000 ether);
+        raft.buyTokens(
+            address(mockArk),
+            address(mockRewardToken),
+            firstAuctionBuyAmount
+        );
+        vm.stopPrank();
+
+        // Finalize the first auction after some time
+        vm.warp(block.timestamp + 2 days);
+        raft.finalizeAuction(address(mockArk), address(mockRewardToken));
+
+        // Verify first auction is finalized with unsold tokens
+        (, DutchAuctionLibrary.AuctionState memory state) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        assertTrue(state.isFinalized, "First auction should be finalized");
+        assertEq(
+            state.remainingTokens,
+            firstAuctionTotalAmount - firstAuctionBuyAmount,
+            "First auction should have remaining tokens"
+        );
+
+        // Verify rewards were boarded and unsold tokens are recorded
+        assertEq(
+            mockPaymentToken.balanceOf(address(mockArk)),
+            firstAuctionBuyAmount,
+            "Partial rewards should be boarded"
+        );
+        assertEq(
+            mockRewardToken.balanceOf(address(mockArk)),
+            0,
+            "All rewards should be harvested"
+        );
+        assertEq(
+            mockRewardToken.balanceOf(address(raft)),
+            firstAuctionTotalAmount - firstAuctionBuyAmount,
+            "Half of rewards should be auctioned"
+        );
+        assertEq(
+            raft.unsoldTokens(address(mockArk), address(mockRewardToken)),
+            firstAuctionTotalAmount - firstAuctionBuyAmount,
+            "Unsold tokens should be recorded"
+        );
+
+        // Second harvest and auction cycle
+        uint256 secondHarvestAmount = 1500000000; // Different amount for the second harvest
+        mockRewardToken.mint(address(mockArk), secondHarvestAmount);
+
+        vm.startPrank(superKeeper);
+        vm.expectEmit(true, true, true, true);
+        emit ArkHarvested(address(mockArk), address(mockRewardToken));
+
+        raft.harvest(
+            address(mockArk),
+            address(mockRewardToken),
+            abi.encode(secondHarvestAmount)
+        );
+
+        // Calculate total tokens for second auction (new harvest + unsold tokens from first auction)
+        uint256 secondAuctionTotalAmount = secondHarvestAmount +
+            (firstAuctionTotalAmount - firstAuctionBuyAmount);
+
+        // Start second auction
+        vm.expectEmit(true, true, true, true);
+        emit DutchAuctionEvents.AuctionCreated(
+            1, // This should be the next auction ID
+            superKeeper,
+            secondAuctionTotalAmount -
+                secondAuctionTotalAmount.applyPercentage(
+                    KICKER_REWARD_PERCENTAGE
+                ),
+            secondAuctionTotalAmount.applyPercentage(KICKER_REWARD_PERCENTAGE)
+        );
+
+        raft.startAuction(
+            address(mockArk),
+            address(mockRewardToken),
+            address(mockPaymentToken)
+        );
+        vm.stopPrank();
+
+        // Verify second auction setup
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory newState
+        ) = raft.auctions(address(mockArk), address(mockRewardToken));
+
+        assertEq(config.id, 1, "Should be the second auction ID");
+        assertEq(
+            config.totalTokens,
+            secondAuctionTotalAmount -
+                secondAuctionTotalAmount.applyPercentage(
+                    KICKER_REWARD_PERCENTAGE
+                ),
+            "Should have the correct total tokens including unsold from first auction"
+        );
+        assertEq(
+            newState.remainingTokens,
+            secondAuctionTotalAmount -
+                secondAuctionTotalAmount.applyPercentage(
+                    KICKER_REWARD_PERCENTAGE
+                ),
+            "Should have the correct remaining tokens"
+        );
+        assertFalse(newState.isFinalized, "Should not be finalized");
+
+        // Buy all tokens in the second auction
+        uint256 secondAuctionBuyAmount = secondAuctionTotalAmount -
+            secondAuctionTotalAmount.applyPercentage(KICKER_REWARD_PERCENTAGE);
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raft), 100000 ether);
+        raft.buyTokens(
+            address(mockArk),
+            address(mockRewardToken),
+            secondAuctionBuyAmount
+        );
+        vm.stopPrank();
+
+        // Verify final state
+        (, DutchAuctionLibrary.AuctionState memory finalState) = raft.auctions(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        assertTrue(finalState.isFinalized, "Should be finalized");
+        assertEq(
+            finalState.remainingTokens,
+            0,
+            "Should have no remaining tokens"
+        );
+
+        // Verify unsold tokens
+        assertEq(
+            raft.unsoldTokens(address(mockArk), address(mockRewardToken)),
+            0,
+            "Should have no unsold tokens"
+        );
+
+        // Verify total rewards boarded
+        assertEq(
+            mockPaymentToken.balanceOf(address(mockArk)),
+            firstAuctionBuyAmount + secondAuctionBuyAmount,
+            "Should have total rewards boarded from both auctions"
         );
     }
 
