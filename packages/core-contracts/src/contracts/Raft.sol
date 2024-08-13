@@ -23,11 +23,11 @@ contract Raft is IRaft, ArkAccessManaged {
     mapping(address ark => mapping(address rewardToken => uint256 remainingTokens))
         public unsoldTokens;
 
-    AuctionConfig public auctionConfig;
+    AuctionDefaultParameters public auctionDefaultParameters;
     uint256 public nextAuctionId;
 
     constructor(address accessManager) ArkAccessManaged(accessManager) {
-        auctionConfig = AuctionConfig({
+        auctionDefaultParameters = AuctionDefaultParameters({
             duration: 1 days,
             startPrice: 1e18,
             endPrice: 1,
@@ -86,9 +86,9 @@ contract Raft is IRaft, ArkAccessManaged {
     }
 
     function updateAuctionConfig(
-        AuctionConfig calldata newConfig
+        AuctionDefaultParameters calldata newConfig
     ) external onlyGovernor {
-        auctionConfig = newConfig;
+        auctionDefaultParameters = newConfig;
         emit AuctionConfigUpdated(newConfig);
     }
 
@@ -138,14 +138,15 @@ contract Raft is IRaft, ArkAccessManaged {
                 auctionId: nextAuctionId++,
                 auctionToken: IERC20(rewardToken),
                 paymentToken: IERC20(paymentToken),
-                duration: auctionConfig.duration,
-                startPrice: auctionConfig.startPrice,
-                endPrice: auctionConfig.endPrice,
+                duration: auctionDefaultParameters.duration,
+                startPrice: auctionDefaultParameters.startPrice,
+                endPrice: auctionDefaultParameters.endPrice,
                 totalTokens: totalTokens,
-                kickerRewardPercentage: auctionConfig.kickerRewardPercentage,
+                kickerRewardPercentage: auctionDefaultParameters
+                    .kickerRewardPercentage,
                 kicker: msg.sender,
                 unsoldTokensRecipient: address(this),
-                decayType: auctionConfig.decayType
+                decayType: auctionDefaultParameters.decayType
             });
 
         DutchAuctionLibrary.Auction memory newAuction = DutchAuctionLibrary

@@ -79,6 +79,22 @@ contract RaftTest is Test, IRaftEvents {
         vm.label(address(accessManager), "accessManager");
     }
 
+    function test_Constructor() public {
+        Raft newRaft = new Raft(address(accessManager));
+        (
+            uint40 duration,
+            uint256 startPrice,
+            uint256 endPrice,
+            Percentage kickerRewardPercentage,
+            DecayFunctions.DecayType decayType
+        ) = newRaft.auctionDefaultParameters();
+        assertEq(duration, 1 days);
+        assertEq(startPrice, 1e18);
+        assertEq(endPrice, 1);
+        assertEq(Percentage.unwrap(kickerRewardPercentage), 5 * 1e18);
+        assertEq(uint256(decayType), uint256(DecayFunctions.DecayType.Linear));
+    }
+
     function test_Harvest() public {
         vm.expectEmit(true, true, true, true);
         emit ArkHarvested(address(mockArk), address(mockRewardToken));
@@ -228,7 +244,7 @@ contract RaftTest is Test, IRaftEvents {
     }
 
     function test_UpdateAuctionConfig() public {
-        AuctionConfig memory newConfig = AuctionConfig({
+        AuctionDefaultParameters memory newConfig = AuctionDefaultParameters({
             duration: 2 days,
             startPrice: 2e18,
             endPrice: 2,
@@ -248,7 +264,7 @@ contract RaftTest is Test, IRaftEvents {
             uint256 endPrice,
             Percentage kickerRewardPercentage,
             DecayFunctions.DecayType decayType
-        ) = raft.auctionConfig();
+        ) = raft.auctionDefaultParameters();
         assertEq(duration, newConfig.duration);
         assertEq(startPrice, newConfig.startPrice);
         assertEq(endPrice, newConfig.endPrice);

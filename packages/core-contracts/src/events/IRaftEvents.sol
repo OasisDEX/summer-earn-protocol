@@ -12,7 +12,7 @@ interface IRaftEvents {
      * @notice Emitted when the auction configuration is updated
      * @param newConfig The new auction configuration
      */
-    event AuctionConfigUpdated(AuctionConfig newConfig);
+    event AuctionConfigUpdated(AuctionDefaultParameters newConfig);
 
     /**
      * @notice Emitted when a new auction is started for an Ark's reward token

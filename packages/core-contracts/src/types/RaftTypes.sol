@@ -5,7 +5,7 @@ import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 
 pragma solidity 0.8.26;
 
-struct AuctionConfig {
+struct AuctionDefaultParameters {
     uint40 duration;
     uint256 startPrice;
     uint256 endPrice;
