@@ -25,6 +25,7 @@ contract RaftDecimalsTest is Test {
     MockERC20 public rewardToken8Dec;
     MockERC20 public rewardToken18Dec;
     MockERC20 public paymentToken18Dec;
+    AuctionDefaultParameters newParams;
 
     address public governor = address(1);
     address public buyer = address(2);
@@ -40,8 +41,14 @@ contract RaftDecimalsTest is Test {
         accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
         accessManager.grantSuperKeeperRole(superKeeper);
-
-        raft = new Raft(address(accessManager));
+        newParams = AuctionDefaultParameters({
+            duration: uint40(AUCTION_DURATION),
+            startPrice: START_PRICE,
+            endPrice: END_PRICE,
+            kickerRewardPercentage: Percentage.wrap(KICKER_REWARD_PERCENTAGE),
+            decayType: DecayFunctions.DecayType.Linear
+        });
+        raft = new Raft(address(accessManager), newParams);
 
         configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
@@ -96,17 +103,6 @@ contract RaftDecimalsTest is Test {
         vm.label(address(raft), "raft");
         vm.label(address(accessManager), "accessManager");
         vm.label(address(mockArk), "mockArk");
-
-        AuctionDefaultParameters memory newParams = AuctionDefaultParameters({
-            duration: uint40(AUCTION_DURATION),
-            startPrice: START_PRICE,
-            endPrice: END_PRICE,
-            kickerRewardPercentage: Percentage.wrap(KICKER_REWARD_PERCENTAGE),
-            decayType: DecayFunctions.DecayType.Linear
-        });
-
-        vm.prank(governor);
-        raft.updateAuctionDefaultParameters(newParams);
     }
 
     function testAuction6Dec() public {

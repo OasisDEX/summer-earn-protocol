@@ -22,6 +22,7 @@ contract BuyAndBurnDecimalsTest is Test {
     MockERC20 public tokenToAuction6Dec;
     MockERC20 public tokenToAuction8Dec;
     MockERC20 public tokenToAuction18Dec;
+    AuctionDefaultParameters newParams;
 
     address public governor = address(1);
     address public buyer = address(2);
@@ -47,11 +48,18 @@ contract BuyAndBurnDecimalsTest is Test {
         tokenToAuction8Dec.initialize("Auction Token 8 Dec", "AT8", 8);
         tokenToAuction18Dec = new MockERC20();
         tokenToAuction18Dec.initialize("Auction Token 18 Dec", "AT18", 18);
-
+        newParams = AuctionDefaultParameters({
+            duration: uint40(AUCTION_DURATION),
+            startPrice: START_PRICE,
+            endPrice: END_PRICE,
+            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
+            decayType: DecayFunctions.DecayType.Linear
+        });
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             treasury,
-            address(accessManager)
+            address(accessManager),
+            newParams
         );
 
         // Mint tokens for auctions
@@ -86,17 +94,6 @@ contract BuyAndBurnDecimalsTest is Test {
         vm.label(address(tokenToAuction18Dec), "tokenToAuction18Dec");
         vm.label(address(buyAndBurn), "buyAndBurn");
         vm.label(address(accessManager), "accessManager");
-
-        AuctionDefaultParameters memory newParams = AuctionDefaultParameters({
-            duration: uint40(AUCTION_DURATION),
-            startPrice: START_PRICE,
-            endPrice: END_PRICE,
-            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
-            decayType: DecayFunctions.DecayType.Linear
-        });
-
-        vm.prank(governor);
-        buyAndBurn.updateAuctionDefaultParameters(newParams);
     }
 
     function testAuction6Dec() public {

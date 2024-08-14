@@ -9,7 +9,7 @@ import "../src/errors/AccessControlErrors.sol";
 import "../src/errors/RaftErrors.sol";
 import {IRaftEvents} from "../src/events/IRaftEvents.sol";
 import {IArk} from "../src/interfaces/IArk.sol";
-
+import {IAuctionManagerBaseEvents} from "../src/events/IAuctionManagerBaseEvents.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 
 import "../src/types/CommonAuctionTypes.sol";
@@ -38,6 +38,7 @@ contract RaftTest is Test, IRaftEvents {
     address public superKeeper = address(8);
     ERC20Mock public mockRewardToken;
     ERC20Mock public mockPaymentToken;
+    AuctionDefaultParameters newParams;
 
     uint256 constant REWARD_AMOUNT = 100_000_000;
     Percentage public KICKER_REWARD_PERCENTAGE =
@@ -52,8 +53,14 @@ contract RaftTest is Test, IRaftEvents {
         accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
         accessManager.grantSuperKeeperRole(superKeeper);
-
-        raft = new Raft(address(accessManager));
+        newParams = AuctionDefaultParameters({
+            duration: uint40(AUCTION_DURATION),
+            startPrice: START_PRICE,
+            endPrice: END_PRICE,
+            kickerRewardPercentage: KICKER_REWARD_PERCENTAGE,
+            decayType: DecayFunctions.DecayType.Linear
+        });
+        raft = new Raft(address(accessManager), newParams);
 
         ConfigurationManager configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
@@ -86,21 +93,10 @@ contract RaftTest is Test, IRaftEvents {
         vm.label(address(mockPaymentToken), "mockPaymentToken");
         vm.label(address(raft), "raft");
         vm.label(address(accessManager), "accessManager");
-
-        AuctionDefaultParameters memory newParams = AuctionDefaultParameters({
-            duration: uint40(AUCTION_DURATION),
-            startPrice: START_PRICE,
-            endPrice: END_PRICE,
-            kickerRewardPercentage: KICKER_REWARD_PERCENTAGE,
-            decayType: DecayFunctions.DecayType.Linear
-        });
-
-        vm.prank(governor);
-        raft.updateAuctionDefaultParameters(newParams);
     }
 
     function test_Constructor() public {
-        Raft newRaft = new Raft(address(accessManager));
+        Raft newRaft = new Raft(address(accessManager), newParams);
         (
             uint40 duration,
             uint256 startPrice,
@@ -108,10 +104,13 @@ contract RaftTest is Test, IRaftEvents {
             Percentage kickerRewardPercentage,
             DecayFunctions.DecayType decayType
         ) = newRaft.auctionDefaultParameters();
-        assertEq(duration, 1 days);
-        assertEq(startPrice, 1e18);
-        assertEq(endPrice, 1);
-        assertEq(Percentage.unwrap(kickerRewardPercentage), 5 * 1e18);
+        assertEq(duration, AUCTION_DURATION);
+        assertEq(startPrice, START_PRICE);
+        assertEq(endPrice, END_PRICE);
+        assertEq(
+            Percentage.unwrap(kickerRewardPercentage),
+            Percentage.unwrap(KICKER_REWARD_PERCENTAGE)
+        );
         assertEq(uint256(decayType), uint256(DecayFunctions.DecayType.Linear));
     }
 
@@ -142,7 +141,7 @@ contract RaftTest is Test, IRaftEvents {
 
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
-            0,
+            1,
             superKeeper,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE),
@@ -220,7 +219,7 @@ contract RaftTest is Test, IRaftEvents {
         // Start second auction
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
-            1, // This should be the next auction ID
+            2, // This should be the next auction ID
             superKeeper,
             secondHarvestAmount -
                 secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE),
@@ -240,7 +239,7 @@ contract RaftTest is Test, IRaftEvents {
             DutchAuctionLibrary.AuctionState memory newState
         ) = raft.auctions(address(mockArk), address(mockRewardToken));
 
-        assertEq(config.id, 1, "Should be the second auction ID");
+        assertEq(config.id, 2, "Should be the second auction ID");
         assertEq(
             config.totalTokens,
             secondHarvestAmount -
@@ -380,7 +379,7 @@ contract RaftTest is Test, IRaftEvents {
         // Start second auction
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
-            1, // This should be the next auction ID
+            2, // This should be the next auction ID
             superKeeper,
             secondAuctionTotalAmount -
                 secondAuctionTotalAmount.applyPercentage(
@@ -402,7 +401,7 @@ contract RaftTest is Test, IRaftEvents {
             DutchAuctionLibrary.AuctionState memory newState
         ) = raft.auctions(address(mockArk), address(mockRewardToken));
 
-        assertEq(config.id, 1, "Should be the second auction ID");
+        assertEq(config.id, 2, "Should be the second auction ID");
         assertEq(
             config.totalTokens,
             secondAuctionTotalAmount -
@@ -470,7 +469,7 @@ contract RaftTest is Test, IRaftEvents {
 
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
-            0,
+            1,
             superKeeper,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE),
@@ -567,7 +566,9 @@ contract RaftTest is Test, IRaftEvents {
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit AuctionDefaultParametersUpdated(newConfig);
+        emit IAuctionManagerBaseEvents.AuctionDefaultParametersUpdated(
+            newConfig
+        );
 
         raft.updateAuctionDefaultParameters(newConfig);
 
@@ -619,7 +620,7 @@ contract RaftTest is Test, IRaftEvents {
     function test_CannotFinalizeAuctionBeforeEndTime() public {
         _setupAuction();
 
-        vm.expectRevert(abi.encodeWithSignature("AuctionNotEnded(uint256)", 0));
+        vm.expectRevert(abi.encodeWithSignature("AuctionNotEnded(uint256)", 1));
         raft.finalizeAuction(address(mockArk), address(mockRewardToken));
     }
 

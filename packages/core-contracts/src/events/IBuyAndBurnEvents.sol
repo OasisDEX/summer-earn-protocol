@@ -2,9 +2,8 @@
 pragma solidity 0.8.26;
 
 import "../types/CommonAuctionTypes.sol";
-import {ICommonAuctionEvents} from "./ICommonAuctionEvents.sol";
 
-interface IBuyAndBurnEvents is ICommonAuctionEvents {
+interface IBuyAndBurnEvents {
     event BuyAndBurnAuctionStarted(
         uint256 indexed auctionId,
         address indexed tokenToAuction,

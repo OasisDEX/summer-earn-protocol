@@ -9,6 +9,7 @@ import {SummerToken} from "../src/contracts/SummerToken.sol";
 import "../src/errors/AccessControlErrors.sol";
 import "../src/errors/BuyAndBurnErrors.sol";
 import {IBuyAndBurnEvents} from "../src/events/IBuyAndBurnEvents.sol";
+import {IAuctionManagerBaseEvents} from "../src/events/IAuctionManagerBaseEvents.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 
 import "../src/types/CommonAuctionTypes.sol";
@@ -35,6 +36,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
     SummerToken public summerToken;
     ERC20Mock public tokenToAuction1;
     ERC20Mock public tokenToAuction2;
+    AuctionDefaultParameters newParams;
 
     uint256 constant AUCTION_AMOUNT = 100_000_000;
     uint256 constant AUCTION_DURATION = 7 days;
@@ -49,11 +51,18 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         tokenToAuction1 = new ERC20Mock();
         tokenToAuction2 = new ERC20Mock();
         accessManager = new ProtocolAccessManager(governor);
-
+        newParams = AuctionDefaultParameters({
+            duration: uint40(AUCTION_DURATION),
+            startPrice: START_PRICE,
+            endPrice: END_PRICE,
+            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
+            decayType: DecayFunctions.DecayType.Linear
+        });
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             treasury,
-            address(accessManager)
+            address(accessManager),
+            newParams
         );
 
         tokenToAuction1.mint(address(buyAndBurn), AUCTION_AMOUNT);
@@ -68,24 +77,14 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         vm.label(address(tokenToAuction2), "tokenToAuction2");
         vm.label(address(buyAndBurn), "buyAndBurn");
         vm.label(address(accessManager), "accessManager");
-
-        AuctionDefaultParameters memory newParams = AuctionDefaultParameters({
-            duration: uint40(AUCTION_DURATION),
-            startPrice: START_PRICE,
-            endPrice: END_PRICE,
-            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
-            decayType: DecayFunctions.DecayType.Linear
-        });
-
-        vm.prank(governor);
-        buyAndBurn.updateAuctionDefaultParameters(newParams);
     }
 
     function test_Constructor() public {
         BuyAndBurn newBuyAndBurn = new BuyAndBurn(
             address(summerToken),
             treasury,
-            address(accessManager)
+            address(accessManager),
+            newParams
         );
         (
             uint40 duration,
@@ -204,7 +203,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
     }
 
     function test_UpdateAuctionDefaultParameters() public {
-        AuctionDefaultParameters memory newParams = AuctionDefaultParameters({
+        newParams = AuctionDefaultParameters({
             duration: 5 days,
             startPrice: 2e18,
             endPrice: 5e17,
@@ -214,7 +213,9 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit AuctionDefaultParametersUpdated(newParams);
+        emit IAuctionManagerBaseEvents.AuctionDefaultParametersUpdated(
+            newParams
+        );
         buyAndBurn.updateAuctionDefaultParameters(newParams);
 
         (

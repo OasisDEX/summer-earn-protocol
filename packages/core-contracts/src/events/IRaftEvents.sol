@@ -2,13 +2,12 @@
 pragma solidity 0.8.26;
 
 import "../types/CommonAuctionTypes.sol";
-import {ICommonAuctionEvents} from "./ICommonAuctionEvents.sol";
 
 /**
  * @title IRaftEvents
  * @notice Interface defining events emitted by the Raft contract
  */
-interface IRaftEvents is ICommonAuctionEvents {
+interface IRaftEvents {
     /**
      * @notice Emitted when a new auction is started for an Ark's reward token
      * @param auctionId The unique identifier of the auction

@@ -3,21 +3,13 @@ pragma solidity 0.8.26;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IRaft} from "../interfaces/IRaft.sol";
-
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
-
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
+import {AuctionManagerBase, DutchAuctionLibrary, AuctionDefaultParameters} from "./AuctionManagerBase.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../errors/RaftErrors.sol";
-import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
 
-contract Raft is IRaft, ArkAccessManaged {
-    using SafeERC20 for IERC20;
+contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
-
     mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount))
         public harvestedRewards;
     mapping(address ark => mapping(address rewardToken => DutchAuctionLibrary.Auction))
@@ -27,18 +19,10 @@ contract Raft is IRaft, ArkAccessManaged {
     mapping(address ark => mapping(address rewardToken => uint256 paymentTokensToBoard))
         public paymentTokensToBoard;
 
-    AuctionDefaultParameters public auctionDefaultParameters;
-    uint256 public nextAuctionId;
-
-    constructor(address accessManager) ArkAccessManaged(accessManager) {
-        auctionDefaultParameters = AuctionDefaultParameters({
-            duration: 1 days,
-            startPrice: 1e18,
-            endPrice: 1,
-            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(5),
-            decayType: DecayFunctions.DecayType.Linear
-        });
-    }
+    constructor(
+        address accessManager,
+        AuctionDefaultParameters memory defaultParameters
+    ) ArkAccessManaged(accessManager) AuctionManagerBase(defaultParameters) {}
 
     function harvestAndStartAuction(
         address ark,
@@ -94,22 +78,21 @@ contract Raft is IRaft, ArkAccessManaged {
     function getAuctionInfo(
         address ark,
         address rewardToken
-    ) external view returns (DutchAuctionLibrary.Auction memory auction) {
-        auction = auctions[ark][rewardToken];
+    ) external view returns (DutchAuctionLibrary.Auction memory) {
+        return auctions[ark][rewardToken];
     }
 
     function getCurrentPrice(
         address ark,
         address rewardToken
     ) external view returns (uint256) {
-        return auctions[ark][rewardToken].getCurrentPrice();
+        return _getCurrentPrice(auctions[ark][rewardToken]);
     }
 
     function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newConfig
     ) external onlyGovernor {
-        auctionDefaultParameters = newConfig;
-        emit AuctionDefaultParametersUpdated(newConfig);
+        _updateAuctionDefaultParameters(newConfig);
     }
 
     function getHarvestedRewards(
@@ -150,31 +133,19 @@ contract Raft is IRaft, ArkAccessManaged {
         uint256 totalTokens = harvestedRewards[ark][rewardToken] +
             unsoldTokens[ark][rewardToken];
 
-        DutchAuctionLibrary.AuctionParams memory params = DutchAuctionLibrary
-            .AuctionParams({
-                auctionId: nextAuctionId++,
-                auctionToken: IERC20(rewardToken),
-                paymentToken: IERC20(paymentToken),
-                duration: auctionDefaultParameters.duration,
-                startPrice: auctionDefaultParameters.startPrice,
-                endPrice: auctionDefaultParameters.endPrice,
-                totalTokens: totalTokens,
-                kickerRewardPercentage: auctionDefaultParameters
-                    .kickerRewardPercentage,
-                kicker: msg.sender,
-                unsoldTokensRecipient: address(this),
-                decayType: auctionDefaultParameters.decayType
-            });
-
-        DutchAuctionLibrary.Auction memory newAuction = DutchAuctionLibrary
-            .createAuction(params);
+        DutchAuctionLibrary.Auction memory newAuction = _createAuction(
+            IERC20(rewardToken),
+            IERC20(paymentToken),
+            totalTokens,
+            address(this)
+        );
         auctions[ark][rewardToken] = newAuction;
 
         harvestedRewards[ark][rewardToken] = 0;
         unsoldTokens[ark][rewardToken] = 0;
 
         emit ArkRewardTokenAuctionStarted(
-            params.auctionId,
+            newAuction.config.id,
             ark,
             rewardToken,
             totalTokens

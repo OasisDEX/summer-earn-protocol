@@ -5,43 +5,31 @@ import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
 import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
-
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
+import {AuctionManagerBase, DutchAuctionLibrary, AuctionDefaultParameters} from "./AuctionManagerBase.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../errors/BuyAndBurnErrors.sol";
-import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
 
-contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
-    using SafeERC20 for ERC20Burnable;
+contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
     ERC20Burnable public immutable summerToken;
     address public treasury;
-    uint256 public nextAuctionId;
 
     mapping(uint256 => DutchAuctionLibrary.Auction) public auctions;
     mapping(address => uint256) public ongoingAuctions;
     mapping(uint256 => uint256) public auctionSummerRaised;
 
-    AuctionDefaultParameters public auctionDefaultParameters;
-
     constructor(
         address _summer,
         address _treasury,
-        address _accessManager
-    ) ProtocolAccessManaged(_accessManager) {
+        address _accessManager,
+        AuctionDefaultParameters memory _defaultParameters
+    )
+        ProtocolAccessManaged(_accessManager)
+        AuctionManagerBase(_defaultParameters)
+    {
         summerToken = ERC20Burnable(_summer);
         treasury = _treasury;
-        auctionDefaultParameters = AuctionDefaultParameters({
-            duration: 7 days,
-            startPrice: 100 * 10 ** 18,
-            endPrice: (0.1 * 10) ** 18,
-            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
-            decayType: DecayFunctions.DecayType.Linear
-        });
     }
 
     function startAuction(
@@ -54,24 +42,14 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
         IERC20 auctionToken = IERC20(tokenToAuction);
         uint256 totalTokens = auctionToken.balanceOf(address(this));
 
-        uint256 auctionId = ++nextAuctionId;
-        DutchAuctionLibrary.AuctionParams memory params = DutchAuctionLibrary
-            .AuctionParams({
-                auctionId: auctionId,
-                auctionToken: auctionToken,
-                paymentToken: summerToken,
-                duration: auctionDefaultParameters.duration,
-                startPrice: auctionDefaultParameters.startPrice,
-                endPrice: auctionDefaultParameters.endPrice,
-                totalTokens: totalTokens,
-                kickerRewardPercentage: auctionDefaultParameters
-                    .kickerRewardPercentage,
-                kicker: address(this),
-                unsoldTokensRecipient: treasury,
-                decayType: auctionDefaultParameters.decayType
-            });
-
-        auctions[auctionId] = DutchAuctionLibrary.createAuction(params);
+        DutchAuctionLibrary.Auction memory newAuction = _createAuction(
+            auctionToken,
+            summerToken,
+            totalTokens,
+            treasury
+        );
+        uint256 auctionId = nextAuctionId;
+        auctions[auctionId] = newAuction;
         ongoingAuctions[tokenToAuction] = auctionId;
         auctionSummerRaised[auctionId] = 0;
 
@@ -99,6 +77,28 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
         _settleAuction(auction);
     }
 
+    function getAuctionInfo(
+        uint256 auctionId
+    ) external view override returns (DutchAuctionLibrary.Auction memory) {
+        return auctions[auctionId];
+    }
+
+    function getCurrentPrice(
+        uint256 auctionId
+    ) external view returns (uint256) {
+        return _getCurrentPrice(auctions[auctionId]);
+    }
+
+    function updateAuctionDefaultParameters(
+        AuctionDefaultParameters calldata newParameters
+    ) external override onlyGovernor {
+        _updateAuctionDefaultParameters(newParameters);
+    }
+
+    function setTreasury(address newTreasury) external override onlyGovernor {
+        treasury = newTreasury;
+    }
+
     function _settleAuction(
         DutchAuctionLibrary.Auction memory auction
     ) internal {
@@ -110,33 +110,5 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
         address auctionTokenAddress = address(auction.config.auctionToken);
         ongoingAuctions[auctionTokenAddress] = 0;
         delete auctionSummerRaised[auction.config.id];
-    }
-
-    function getAuctionInfo(
-        uint256 auctionId
-    )
-        external
-        view
-        override
-        returns (DutchAuctionLibrary.Auction memory auction)
-    {
-        auction = auctions[auctionId];
-    }
-
-    function getCurrentPrice(
-        uint256 auctionId
-    ) external view override returns (uint256) {
-        return auctions[auctionId].getCurrentPrice();
-    }
-
-    function updateAuctionDefaultParameters(
-        AuctionDefaultParameters calldata newParameters
-    ) external override onlyGovernor {
-        auctionDefaultParameters = newParameters;
-        emit AuctionDefaultParametersUpdated(newParameters);
-    }
-
-    function setTreasury(address newTreasury) external override onlyGovernor {
-        treasury = newTreasury;
     }
 }

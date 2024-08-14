@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import "../types/CommonAuctionTypes.sol";
 
-interface ICommonAuctionEvents {
+interface IAuctionManagerBaseEvents {
     /**
      * @notice Emitted when the auction configuration is updated
      * @param newConfig The new auction configuration
