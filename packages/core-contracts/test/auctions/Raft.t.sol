@@ -1,74 +1,48 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ConfigurationManager} from "../src/contracts/ConfigurationManager.sol";
-import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
-import {Raft} from "../src/contracts/Raft.sol";
-
-import "../src/errors/AccessControlErrors.sol";
-import "../src/errors/RaftErrors.sol";
-import {IRaftEvents} from "../src/events/IRaftEvents.sol";
-import {IArk} from "../src/interfaces/IArk.sol";
-import {IAuctionManagerBaseEvents} from "../src/events/IAuctionManagerBaseEvents.sol";
-import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
-
-import "../src/types/CommonAuctionTypes.sol";
-import {ConfigurationManagerParams} from "../src/types/ConfigurationManagerTypes.sol";
-import {ArkMock, ArkParams} from "./mocks/ArkMock.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
+import "./AuctionTestBase.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
+import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import "../../src/errors/RaftErrors.sol";
+import {IRaftEvents} from "../../src/events/IRaftEvents.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
+import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Test, console} from "forge-std/Test.sol";
-
-contract RaftTest is Test, IRaftEvents {
+contract RaftTest is AuctionTestBase, IRaftEvents {
     using PercentageUtils for uint256;
 
-    ArkMock public mockArk;
     Raft public raft;
-    IProtocolAccessManager public accessManager;
-
-    address public governor = address(1);
-    address public buyer = address(2);
-    address public superKeeper = address(8);
-    ERC20Mock public mockRewardToken;
-    ERC20Mock public mockPaymentToken;
-    AuctionDefaultParameters newParams;
+    ArkMock public mockArk;
+    MockERC20 public mockRewardToken;
+    MockERC20 public mockPaymentToken;
+    ConfigurationManager public configurationManager;
 
     uint256 constant REWARD_AMOUNT = 100_000_000;
-    Percentage public KICKER_REWARD_PERCENTAGE =
-        PercentageUtils.fromIntegerPercentage(5);
-    uint256 constant AUCTION_DURATION = 1 days;
-    uint256 constant START_PRICE = 1 * 10 ** 18;
-    uint256 constant END_PRICE = 1;
 
-    function setUp() public {
-        mockRewardToken = new ERC20Mock();
-        mockPaymentToken = new ERC20Mock();
-        accessManager = new ProtocolAccessManager(governor);
-        vm.prank(governor);
-        accessManager.grantSuperKeeperRole(superKeeper);
-        newParams = AuctionDefaultParameters({
-            duration: uint40(AUCTION_DURATION),
-            startPrice: START_PRICE,
-            endPrice: END_PRICE,
-            kickerRewardPercentage: KICKER_REWARD_PERCENTAGE,
-            decayType: DecayFunctions.DecayType.Linear
-        });
-        raft = new Raft(address(accessManager), newParams);
+    function setUp() public override {
+        super.setUp();
+        KICKER_REWARD_PERCENTAGE = 5 * 10 ** 18;
+        defaultParams.kickerRewardPercentage = Percentage.wrap(
+            KICKER_REWARD_PERCENTAGE
+        );
+        raft = new Raft(address(accessManager), defaultParams);
 
-        ConfigurationManager configurationManager = new ConfigurationManager(
+        configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
                 raft: address(raft),
                 tipJar: address(0)
             })
         );
+
+        mockRewardToken = createMockToken("Reward Token", "RWD", 18);
+        mockPaymentToken = createMockToken("Payment Token", "PAY", 18);
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
@@ -82,21 +56,17 @@ contract RaftTest is Test, IRaftEvents {
 
         mockArk = new ArkMock(params);
 
-        mockRewardToken.mint(address(address(mockArk)), REWARD_AMOUNT);
-        mockPaymentToken.mint(address(buyer), 10_000 ether);
+        mintTokens(address(mockRewardToken), address(mockArk), REWARD_AMOUNT);
+        mintTokens(address(mockPaymentToken), buyer, 10_000_000_000 ether);
 
-        vm.label(governor, "governor");
-        vm.label(address(address(mockArk)), "address(mockArk)");
-        vm.label(address(mockPaymentToken), "mockPaymentToken");
-        vm.label(superKeeper, "superKeeper");
+        vm.label(address(mockArk), "mockArk");
         vm.label(address(mockRewardToken), "mockRewardToken");
         vm.label(address(mockPaymentToken), "mockPaymentToken");
         vm.label(address(raft), "raft");
-        vm.label(address(accessManager), "accessManager");
     }
 
     function test_Constructor() public {
-        Raft newRaft = new Raft(address(accessManager), newParams);
+        Raft newRaft = new Raft(address(accessManager), defaultParams);
         (
             uint40 duration,
             uint256 startPrice,
@@ -109,7 +79,7 @@ contract RaftTest is Test, IRaftEvents {
         assertEq(endPrice, END_PRICE);
         assertEq(
             Percentage.unwrap(kickerRewardPercentage),
-            Percentage.unwrap(KICKER_REWARD_PERCENTAGE)
+            Percentage.unwrap(Percentage.wrap(KICKER_REWARD_PERCENTAGE))
         );
         assertEq(uint256(decayType), uint256(DecayFunctions.DecayType.Linear));
     }
@@ -144,8 +114,12 @@ contract RaftTest is Test, IRaftEvents {
             1,
             superKeeper,
             REWARD_AMOUNT -
-                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE),
-            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )
         );
 
         raft.harvestAndStartAuction(
@@ -162,7 +136,9 @@ contract RaftTest is Test, IRaftEvents {
         assertEq(
             state.remainingTokens,
             REWARD_AMOUNT -
-                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                )
         );
     }
 
@@ -171,11 +147,18 @@ contract RaftTest is Test, IRaftEvents {
         _setupAuction();
 
         uint256 firstAuctionAmount = REWARD_AMOUNT -
-            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE);
-
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            );
+        uint256 currentPrice = raft.getCurrentPrice(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        uint256 firstAuctionAmountToSpend = (firstAuctionAmount *
+            currentPrice) / 1e18;
         // Buy all tokens in the first auction
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), 1_000_000 ether);
+        mockPaymentToken.approve(address(raft), firstAuctionAmountToSpend);
         raft.buyTokens(
             address(mockArk),
             address(mockRewardToken),
@@ -198,13 +181,13 @@ contract RaftTest is Test, IRaftEvents {
         // Verify rewards were boarded
         assertEq(
             mockPaymentToken.balanceOf(address(mockArk)),
-            firstAuctionAmount,
+            firstAuctionAmountToSpend,
             "Rewards should be boarded"
         );
 
         // Second harvest and auction cycle
         uint256 secondHarvestAmount = 150; // Different amount for the second harvest
-        mockRewardToken.mint(address(mockArk), secondHarvestAmount);
+        deal(address(mockRewardToken), address(mockArk), secondHarvestAmount);
 
         vm.startPrank(superKeeper);
         vm.expectEmit(true, true, true, true);
@@ -222,8 +205,12 @@ contract RaftTest is Test, IRaftEvents {
             2, // This should be the next auction ID
             superKeeper,
             secondHarvestAmount -
-                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE),
-            secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE)
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            secondHarvestAmount.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )
         );
 
         raft.startAuction(
@@ -243,22 +230,34 @@ contract RaftTest is Test, IRaftEvents {
         assertEq(
             config.totalTokens,
             secondHarvestAmount -
-                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE),
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
             "Should have the correct total tokens"
         );
         assertEq(
             newState.remainingTokens,
             secondHarvestAmount -
-                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE),
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
             "Should have the correct remaining tokens"
         );
         assertFalse(newState.isFinalized, "Should not be finalized");
 
         // Buy half of the tokens in the second auction
         uint256 secondAuctionBuyAmount = (secondHarvestAmount -
-            secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE)) / 2;
+            secondHarvestAmount.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )) / 2;
+        currentPrice = raft.getCurrentPrice(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        uint256 secondAuctionAmountToSpend = (secondAuctionBuyAmount *
+            currentPrice) / 1e18;
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), 100_000 ether);
+        mockPaymentToken.approve(address(raft), secondAuctionAmountToSpend);
         raft.buyTokens(
             address(mockArk),
             address(mockRewardToken),
@@ -267,7 +266,7 @@ contract RaftTest is Test, IRaftEvents {
         vm.stopPrank();
 
         // Finalize the second auction
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(block.timestamp + 8 days);
         raft.finalizeAuction(address(mockArk), address(mockRewardToken));
 
         // Verify final state
@@ -280,7 +279,9 @@ contract RaftTest is Test, IRaftEvents {
         assertEq(
             finalState.remainingTokens,
             secondHarvestAmount -
-                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE) -
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ) -
                 secondAuctionBuyAmount,
             "Should have the correct remaining tokens"
         );
@@ -289,7 +290,9 @@ contract RaftTest is Test, IRaftEvents {
         assertEq(
             raft.unsoldTokens(address(mockArk), address(mockRewardToken)),
             secondHarvestAmount -
-                secondHarvestAmount.applyPercentage(KICKER_REWARD_PERCENTAGE) -
+                secondHarvestAmount.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ) -
                 secondAuctionBuyAmount,
             "Should have unsold tokens"
         );
@@ -297,7 +300,7 @@ contract RaftTest is Test, IRaftEvents {
         // Verify total rewards boarded
         assertEq(
             mockPaymentToken.balanceOf(address(mockArk)),
-            firstAuctionAmount + secondAuctionBuyAmount,
+            firstAuctionAmountToSpend + secondAuctionAmountToSpend,
             "Should have total rewards boarded"
         );
     }
@@ -307,12 +310,20 @@ contract RaftTest is Test, IRaftEvents {
         _setupAuction();
 
         uint256 firstAuctionTotalAmount = REWARD_AMOUNT -
-            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE);
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            );
         uint256 firstAuctionBuyAmount = firstAuctionTotalAmount / 2; // Buy only half of the tokens
+        uint256 currentPrice = raft.getCurrentPrice(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        uint256 firstAuctionBuyAmountToSpend = (firstAuctionBuyAmount *
+            currentPrice) / 1e18;
 
         // Buy half of the tokens in the first auction
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), 1_000_000 ether);
+        mockPaymentToken.approve(address(raft), firstAuctionBuyAmountToSpend);
         raft.buyTokens(
             address(mockArk),
             address(mockRewardToken),
@@ -321,7 +332,7 @@ contract RaftTest is Test, IRaftEvents {
         vm.stopPrank();
 
         // Finalize the first auction after some time
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(block.timestamp + 8 days);
         raft.finalizeAuction(address(mockArk), address(mockRewardToken));
 
         // Verify first auction is finalized with unsold tokens
@@ -339,7 +350,7 @@ contract RaftTest is Test, IRaftEvents {
         // Verify rewards were boarded and unsold tokens are recorded
         assertEq(
             mockPaymentToken.balanceOf(address(mockArk)),
-            firstAuctionBuyAmount,
+            firstAuctionBuyAmountToSpend,
             "Partial rewards should be boarded"
         );
         assertEq(
@@ -360,7 +371,7 @@ contract RaftTest is Test, IRaftEvents {
 
         // Second harvest and auction cycle
         uint256 secondHarvestAmount = 1_500_000_000; // Different amount for the second harvest
-        mockRewardToken.mint(address(mockArk), secondHarvestAmount);
+        deal(address(mockRewardToken), address(mockArk), secondHarvestAmount);
 
         vm.startPrank(superKeeper);
         vm.expectEmit(true, true, true, true);
@@ -383,9 +394,11 @@ contract RaftTest is Test, IRaftEvents {
             superKeeper,
             secondAuctionTotalAmount -
                 secondAuctionTotalAmount.applyPercentage(
-                    KICKER_REWARD_PERCENTAGE
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
                 ),
-            secondAuctionTotalAmount.applyPercentage(KICKER_REWARD_PERCENTAGE)
+            secondAuctionTotalAmount.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )
         );
 
         raft.startAuction(
@@ -406,7 +419,7 @@ contract RaftTest is Test, IRaftEvents {
             config.totalTokens,
             secondAuctionTotalAmount -
                 secondAuctionTotalAmount.applyPercentage(
-                    KICKER_REWARD_PERCENTAGE
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
                 ),
             "Should have the correct total tokens including unsold from first auction"
         );
@@ -414,7 +427,7 @@ contract RaftTest is Test, IRaftEvents {
             newState.remainingTokens,
             secondAuctionTotalAmount -
                 secondAuctionTotalAmount.applyPercentage(
-                    KICKER_REWARD_PERCENTAGE
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
                 ),
             "Should have the correct remaining tokens"
         );
@@ -422,9 +435,17 @@ contract RaftTest is Test, IRaftEvents {
 
         // Buy all tokens in the second auction
         uint256 secondAuctionBuyAmount = secondAuctionTotalAmount -
-            secondAuctionTotalAmount.applyPercentage(KICKER_REWARD_PERCENTAGE);
+            secondAuctionTotalAmount.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            );
+        currentPrice = raft.getCurrentPrice(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        uint256 secondAuctionBuyAmountToSpend = (secondAuctionBuyAmount *
+            currentPrice) / 1e18;
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), 100_000 ether);
+        mockPaymentToken.approve(address(raft), secondAuctionBuyAmountToSpend);
         raft.buyTokens(
             address(mockArk),
             address(mockRewardToken),
@@ -454,7 +475,7 @@ contract RaftTest is Test, IRaftEvents {
         // Verify total rewards boarded
         assertEq(
             mockPaymentToken.balanceOf(address(mockArk)),
-            firstAuctionBuyAmount + secondAuctionBuyAmount,
+            firstAuctionBuyAmountToSpend + secondAuctionBuyAmountToSpend,
             "Should have total rewards boarded from both auctions"
         );
     }
@@ -472,8 +493,12 @@ contract RaftTest is Test, IRaftEvents {
             1,
             superKeeper,
             REWARD_AMOUNT -
-                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE),
-            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )
         );
 
         vm.prank(superKeeper);
@@ -490,7 +515,9 @@ contract RaftTest is Test, IRaftEvents {
         assertEq(
             state.remainingTokens,
             REWARD_AMOUNT -
-                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                )
         );
     }
 
@@ -498,8 +525,13 @@ contract RaftTest is Test, IRaftEvents {
         _setupAuction();
 
         uint256 buyAmount = 50;
+        uint256 currentPrice = raft.getCurrentPrice(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        uint256 amountToSpend = (buyAmount * currentPrice) / 1e18;
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), buyAmount);
+        mockPaymentToken.approve(address(raft), amountToSpend);
         raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
         vm.stopPrank();
 
@@ -511,7 +543,9 @@ contract RaftTest is Test, IRaftEvents {
             state.remainingTokens,
             REWARD_AMOUNT -
                 buyAmount -
-                REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                )
         );
     }
 
@@ -519,7 +553,7 @@ contract RaftTest is Test, IRaftEvents {
         _setupAuction();
 
         // Warp to after auction end time
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(block.timestamp + 8 days);
 
         raft.finalizeAuction(address(mockArk), address(mockRewardToken));
 
@@ -532,18 +566,24 @@ contract RaftTest is Test, IRaftEvents {
 
     function test_BuyAllAndSettleAuction() public {
         _setupAuction();
-
+        uint256 currentPrice = raft.getCurrentPrice(
+            address(mockArk),
+            address(mockRewardToken)
+        );
         uint256 buyAmount = REWARD_AMOUNT -
-            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE);
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            );
+        uint256 amountToSpend = (buyAmount * currentPrice) / 1e18;
 
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), buyAmount);
+        mockPaymentToken.approve(address(raft), amountToSpend);
         vm.expectEmit(true, true, true, true);
         emit RewardBoarded(
             address(mockArk),
             address(mockRewardToken),
             address(mockPaymentToken),
-            buyAmount
+            amountToSpend
         );
         raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
         vm.stopPrank();
@@ -629,19 +669,28 @@ contract RaftTest is Test, IRaftEvents {
 
         // Buy half of the tokens
         uint256 buyAmount = (REWARD_AMOUNT -
-            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE)) / 2;
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            )) / 2;
+        uint256 currentPrice = raft.getCurrentPrice(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        uint256 buyAmountToSpend = (buyAmount * currentPrice) / 1e18;
         vm.startPrank(buyer);
-        mockPaymentToken.approve(address(raft), buyAmount);
+        mockPaymentToken.approve(address(raft), buyAmountToSpend);
         raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
         vm.stopPrank();
 
         // Finalize the auction
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(block.timestamp + 8 days);
         raft.finalizeAuction(address(mockArk), address(mockRewardToken));
 
         // Check unsold tokens
         uint256 expectedUnsoldTokens = REWARD_AMOUNT -
-            REWARD_AMOUNT.applyPercentage(KICKER_REWARD_PERCENTAGE) -
+            REWARD_AMOUNT.applyPercentage(
+                Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+            ) -
             buyAmount;
         assertEq(
             raft.unsoldTokens(address(mockArk), address(mockRewardToken)),

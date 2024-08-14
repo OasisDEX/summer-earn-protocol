@@ -1,99 +1,63 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {BuyAndBurn} from "../src/contracts/BuyAndBurn.sol";
-import {SummerToken} from "../src/contracts/SummerToken.sol";
-import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
-import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Test, console} from "forge-std/Test.sol";
+import "./AuctionTestBase.sol";
+import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
-import {AuctionDefaultParameters} from "../src/types/CommonAuctionTypes.sol";
 
-contract BuyAndBurnDecimalsTest is Test {
+contract BuyAndBurnDecimalsTest is AuctionTestBase {
     using PercentageUtils for uint256;
-
     BuyAndBurn public buyAndBurn;
-    ProtocolAccessManager public accessManager;
-
     SummerToken public summerToken;
     MockERC20 public tokenToAuction6Dec;
     MockERC20 public tokenToAuction8Dec;
     MockERC20 public tokenToAuction18Dec;
-    AuctionDefaultParameters newParams;
 
-    address public governor = address(1);
-    address public buyer = address(2);
-    address public treasury = address(3);
+    function setUp() public override {
+        super.setUp();
 
-    uint256 constant AUCTION_DURATION = 7 days;
-    uint256 constant KICKER_REWARD_PERCENTAGE = 0;
-    uint8 constant SUMMER_DECIMALS = 18;
-
-    uint256 constant START_PRICE = 100 * 10 ** SUMMER_DECIMALS;
-    uint256 constant END_PRICE = (0.1 * 10) ** SUMMER_DECIMALS;
-
-    function setUp() public {
-        accessManager = new ProtocolAccessManager(governor);
-
-        // Create SUMMER token with 18 decimals
         summerToken = new SummerToken();
-
-        // Create tokens to auction with different decimals
-        tokenToAuction6Dec = new MockERC20();
-        tokenToAuction6Dec.initialize("Auction Token 6 Dec", "AT6", 6);
-        tokenToAuction8Dec = new MockERC20();
-        tokenToAuction8Dec.initialize("Auction Token 8 Dec", "AT8", 8);
-        tokenToAuction18Dec = new MockERC20();
-        tokenToAuction18Dec.initialize("Auction Token 18 Dec", "AT18", 18);
-        newParams = AuctionDefaultParameters({
-            duration: uint40(AUCTION_DURATION),
-            startPrice: START_PRICE,
-            endPrice: END_PRICE,
-            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
-            decayType: DecayFunctions.DecayType.Linear
-        });
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             treasury,
             address(accessManager),
-            newParams
+            defaultParams
         );
 
-        // Mint tokens for auctions
-        deal(
+        tokenToAuction6Dec = createMockToken("Auction Token 6 Dec", "AT6", 6);
+        tokenToAuction8Dec = createMockToken("Auction Token 8 Dec", "AT8", 8);
+        tokenToAuction18Dec = createMockToken(
+            "Auction Token 18 Dec",
+            "AT18",
+            18
+        );
+
+        mintTokens(
             address(tokenToAuction6Dec),
             address(buyAndBurn),
             1_000_000 * 10 ** 6
         );
-        deal(
+        mintTokens(
             address(tokenToAuction8Dec),
             address(buyAndBurn),
             1_000_000 * 10 ** 8
         );
-        deal(
+        mintTokens(
             address(tokenToAuction18Dec),
             address(buyAndBurn),
             1_000_000 * 10 ** 18
         );
-
-        // Mint SUMMER tokens for the buyer
-        deal(address(summerToken), buyer, 10_000_000 * 10 ** 18);
+        mintTokens(address(summerToken), buyer, 10_000_000 * 10 ** 18);
 
         vm.prank(buyer);
         summerToken.approve(address(buyAndBurn), type(uint256).max);
 
-        vm.label(governor, "governor");
-        vm.label(buyer, "buyer");
-        vm.label(treasury, "treasury");
         vm.label(address(summerToken), "summerToken");
         vm.label(address(tokenToAuction6Dec), "tokenToAuction6Dec");
         vm.label(address(tokenToAuction8Dec), "tokenToAuction8Dec");
         vm.label(address(tokenToAuction18Dec), "tokenToAuction18Dec");
         vm.label(address(buyAndBurn), "buyAndBurn");
-        vm.label(address(accessManager), "accessManager");
     }
 
     function testAuction6Dec() public {

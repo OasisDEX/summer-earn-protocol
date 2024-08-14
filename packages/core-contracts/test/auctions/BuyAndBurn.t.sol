@@ -1,82 +1,57 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {BuyAndBurn} from "../src/contracts/BuyAndBurn.sol";
-
-import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
-import {SummerToken} from "../src/contracts/SummerToken.sol";
-
-import "../src/errors/AccessControlErrors.sol";
-import "../src/errors/BuyAndBurnErrors.sol";
-import {IBuyAndBurnEvents} from "../src/events/IBuyAndBurnEvents.sol";
-import {IAuctionManagerBaseEvents} from "../src/events/IAuctionManagerBaseEvents.sol";
-import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
-
-import "../src/types/CommonAuctionTypes.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
+import "./AuctionTestBase.sol";
+import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
+import "../../src/errors/AccessControlErrors.sol";
+import "../../src/errors/BuyAndBurnErrors.sol";
+import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
+import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Test, console} from "forge-std/Test.sol";
-
-contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
-    using PercentageUtils for uint256;
-
+contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     BuyAndBurn public buyAndBurn;
-    IProtocolAccessManager public accessManager;
-
-    address public governor = address(1);
-    address public buyer = address(2);
-    address public treasury = address(3);
     SummerToken public summerToken;
-    ERC20Mock public tokenToAuction1;
-    ERC20Mock public tokenToAuction2;
-    AuctionDefaultParameters newParams;
+    MockERC20 public tokenToAuction1;
+    MockERC20 public tokenToAuction2;
 
     uint256 constant AUCTION_AMOUNT = 100_000_000;
-    uint256 constant AUCTION_DURATION = 7 days;
-    uint256 constant KICKER_REWARD_PERCENTAGE = 0;
-    uint8 constant SUMMER_DECIMALS = 18;
 
-    uint256 constant START_PRICE = 100 * 10 ** SUMMER_DECIMALS;
-    uint256 constant END_PRICE = (0.1 * 10) ** SUMMER_DECIMALS;
-
-    function setUp() public {
+    function setUp() public override {
+        super.setUp();
+        defaultParams.kickerRewardPercentage = Percentage.wrap(
+            KICKER_REWARD_PERCENTAGE
+        );
         summerToken = new SummerToken();
-        tokenToAuction1 = new ERC20Mock();
-        tokenToAuction2 = new ERC20Mock();
-        accessManager = new ProtocolAccessManager(governor);
-        newParams = AuctionDefaultParameters({
-            duration: uint40(AUCTION_DURATION),
-            startPrice: START_PRICE,
-            endPrice: END_PRICE,
-            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
-            decayType: DecayFunctions.DecayType.Linear
-        });
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             treasury,
             address(accessManager),
-            newParams
+            defaultParams
         );
 
-        tokenToAuction1.mint(address(buyAndBurn), AUCTION_AMOUNT);
-        tokenToAuction2.mint(address(buyAndBurn), AUCTION_AMOUNT);
-        deal(address(summerToken), buyer, 10_000 ether);
+        tokenToAuction1 = createMockToken("Token1", "TKN1", 18);
+        tokenToAuction2 = createMockToken("Token2", "TKN2", 18);
 
-        vm.label(governor, "governor");
-        vm.label(buyer, "buyer");
-        vm.label(treasury, "treasury");
+        mintTokens(
+            address(tokenToAuction1),
+            address(buyAndBurn),
+            AUCTION_AMOUNT
+        );
+        mintTokens(
+            address(tokenToAuction2),
+            address(buyAndBurn),
+            AUCTION_AMOUNT
+        );
+        mintTokens(address(summerToken), buyer, 10_000 ether);
+
         vm.label(address(summerToken), "summerToken");
         vm.label(address(tokenToAuction1), "tokenToAuction1");
         vm.label(address(tokenToAuction2), "tokenToAuction2");
         vm.label(address(buyAndBurn), "buyAndBurn");
-        vm.label(address(accessManager), "accessManager");
     }
 
     function test_Constructor() public {
@@ -84,7 +59,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
             address(summerToken),
             treasury,
             address(accessManager),
-            newParams
+            defaultParams
         );
         (
             uint40 duration,
@@ -203,7 +178,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
     }
 
     function test_UpdateAuctionDefaultParameters() public {
-        newParams = AuctionDefaultParameters({
+        defaultParams = AuctionDefaultParameters({
             duration: 5 days,
             startPrice: 2e18,
             endPrice: 5e17,
@@ -214,9 +189,9 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
         emit IAuctionManagerBaseEvents.AuctionDefaultParametersUpdated(
-            newParams
+            defaultParams
         );
-        buyAndBurn.updateAuctionDefaultParameters(newParams);
+        buyAndBurn.updateAuctionDefaultParameters(defaultParams);
 
         (
             uint40 duration,
@@ -225,14 +200,14 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
             Percentage kickerRewardPercentage,
             DecayFunctions.DecayType decayType
         ) = buyAndBurn.auctionDefaultParameters();
-        assertEq(duration, newParams.duration);
-        assertEq(startPrice, newParams.startPrice);
-        assertEq(endPrice, newParams.endPrice);
+        assertEq(duration, defaultParams.duration);
+        assertEq(startPrice, defaultParams.startPrice);
+        assertEq(endPrice, defaultParams.endPrice);
         assertEq(
             Percentage.unwrap(kickerRewardPercentage),
-            Percentage.unwrap(newParams.kickerRewardPercentage)
+            Percentage.unwrap(defaultParams.kickerRewardPercentage)
         );
-        assertEq(uint256(decayType), uint256(newParams.decayType));
+        assertEq(uint256(decayType), uint256(defaultParams.decayType));
     }
 
     function test_SetTreasury() public {
@@ -369,7 +344,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
     }
 
     function test_CannotStartAuctionWithNoTokens() public {
-        ERC20Mock emptyToken = new ERC20Mock();
+        MockERC20 emptyToken = new MockERC20();
         vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
         vm.prank(governor);
         buyAndBurn.startAuction(address(emptyToken));
