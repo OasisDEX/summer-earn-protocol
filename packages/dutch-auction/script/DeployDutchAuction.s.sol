@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.25 <0.9.0;
 
-import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
+import {DutchAuctionManager} from "../src/DutchAuctionManager.sol";
 import {Script, console} from "forge-std/Script.sol";
 
 contract DeployDutchAuction is Script {

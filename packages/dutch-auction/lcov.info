@@ -97,7 +97,7 @@ BRF:12
 BRH:12
 end_of_record
 TN:
-SF:src/DutchAuctionManger.sol
+SF:src/DutchAuctionManager.sol
 FN:43,DutchAuctionManager.createAuction
 FNDA:822,DutchAuctionManager.createAuction
 DA:54,822

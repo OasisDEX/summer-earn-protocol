@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {DecayFunctions} from "../src/DecayFunctions.sol";
 
 import {DutchAuctionLibrary} from "../src/DutchAuctionLibrary.sol";
-import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
+import {DutchAuctionManager} from "../src/DutchAuctionManager.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";

@@ -14,19 +14,39 @@ contract MorphoArkDeploy is ArkDeploymentScript {
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
-        address arkAssetToken = customToken == address(0)
-            ? config.usdcToken
-            : customToken;
-        if (config.morphoBlue.blue == address(0)) {
+        address morphoBlue = _readAddressFromJson(json, network, "morpho.blue");
+
+        if (morphoBlue == address(0)) {
             console.log("Morpho Blue address is not set");
             vm.stopBroadcast();
             return;
         }
-        if (Id.unwrap(config.morphoBlue.usdcMarketId) == 0) {
-            console.log("Morpho USDC Market ID is not set");
+
+        string memory tokenName = vm.envString("SYMBOL");
+        if (bytes(tokenName).length == 0) {
+            console.log("SYMBOL environment variable is empty");
             vm.stopBroadcast();
             return;
         }
+
+        string memory lowercaseTokenName = toLowerCase(tokenName);
+
+        string memory marketKey = string(
+            abi.encodePacked("morpho.", lowercaseTokenName, ".marketId")
+        );
+        string memory tokenKey = string(
+            abi.encodePacked("tokens.", lowercaseTokenName)
+        );
+
+        bytes32 marketId = _readBytes32FromJson(json, network, marketKey);
+        address arkAssetToken = _readAddressFromJson(json, network, tokenKey);
+
+        if (marketId == 0) {
+            console.log("Morpho Market ID is not set");
+            vm.stopBroadcast();
+            return;
+        }
+
         ArkParams memory params = ArkParams({
             name: "MorphoArk",
             accessManager: config.protocolAccessManager,
@@ -35,12 +55,12 @@ contract MorphoArkDeploy is ArkDeploymentScript {
             maxAllocation: maxAllocation
         });
 
-        IArk ark = new MorphoArk(
-            config.morphoBlue.blue,
-            config.morphoBlue.usdcMarketId,
-            params
+        IArk ark = new MorphoArk(morphoBlue, Id.wrap(marketId), params);
+
+        string memory configKey = string(
+            abi.encodePacked(tokenName, "MorphoArk")
         );
-        updateAddressInConfig(network, "morphoUsdcArk", address(ark));
+        updateAddressInConfig(network, configKey, address(ark));
         console.log("Deployed Morpho Ark");
         console.log(address(ark));
 
