@@ -5,15 +5,17 @@ import {IArk} from "../interfaces/IArk.sol";
 import {IRaft} from "../interfaces/IRaft.sol";
 
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 import "../errors/RaftErrors.sol";
-import "../types/CommonAuctionTypes.sol";
+import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
 
 contract Raft is IRaft, ArkAccessManaged {
+    using SafeERC20 for IERC20;
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
     mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount))
@@ -22,6 +24,8 @@ contract Raft is IRaft, ArkAccessManaged {
         public auctions;
     mapping(address ark => mapping(address rewardToken => uint256 remainingTokens))
         public unsoldTokens;
+    mapping(address ark => mapping(address rewardToken => uint256 paymentTokensToBoard))
+        public paymentTokensToBoard;
 
     AuctionDefaultParameters public auctionDefaultParameters;
     uint256 public nextAuctionId;
@@ -66,11 +70,13 @@ contract Raft is IRaft, ArkAccessManaged {
         address ark,
         address rewardToken,
         uint256 amount
-    ) external {
+    ) external returns (uint256 paymentAmount) {
         DutchAuctionLibrary.Auction storage auction = auctions[ark][
             rewardToken
         ];
-        auction.buyTokens(amount);
+        paymentAmount = auction.buyTokens(amount);
+
+        paymentTokensToBoard[ark][rewardToken] += paymentAmount;
 
         if (auction.state.remainingTokens == 0) {
             _settleAuction(ark, rewardToken, auction);
@@ -90,6 +96,13 @@ contract Raft is IRaft, ArkAccessManaged {
         address rewardToken
     ) external view returns (DutchAuctionLibrary.Auction memory auction) {
         auction = auctions[ark][rewardToken];
+    }
+
+    function getCurrentPrice(
+        address ark,
+        address rewardToken
+    ) external view returns (uint256) {
+        return auctions[ark][rewardToken].getCurrentPrice();
     }
 
     function updateAuctionDefaultParameters(
@@ -176,8 +189,7 @@ contract Raft is IRaft, ArkAccessManaged {
         unsoldTokens[ark][rewardToken] += auction.state.remainingTokens;
 
         IERC20 paymentToken = IERC20(auction.config.paymentToken);
-        uint256 balance = auction.config.totalTokens -
-            auction.state.remainingTokens;
+        uint256 balance = paymentTokensToBoard[ark][rewardToken];
         if (balance > 0) {
             paymentToken.approve(ark, balance);
             IArk(ark).board(balance);
@@ -188,6 +200,7 @@ contract Raft is IRaft, ArkAccessManaged {
                 address(paymentToken),
                 balance
             );
+            paymentTokensToBoard[ark][rewardToken] = 0;
         }
     }
 }

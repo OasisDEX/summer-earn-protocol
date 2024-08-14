@@ -6,6 +6,6 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 
 contract SummerToken is ERC20, ERC20Burnable {
     constructor() ERC20("SummerToken", "SUMMER") {
-        _mint(msg.sender, 1_000_000 * 10 ** decimals());
+        _mint(msg.sender, 1_000_000_000 * 10 ** decimals());
     }
 }

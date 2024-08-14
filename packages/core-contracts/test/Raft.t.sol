@@ -42,6 +42,9 @@ contract RaftTest is Test, IRaftEvents {
     uint256 constant REWARD_AMOUNT = 100_000_000;
     Percentage public KICKER_REWARD_PERCENTAGE =
         PercentageUtils.fromIntegerPercentage(5);
+    uint256 constant AUCTION_DURATION = 1 days;
+    uint256 constant START_PRICE = 1 * 10 ** 18;
+    uint256 constant END_PRICE = 1;
 
     function setUp() public {
         mockRewardToken = new ERC20Mock();
@@ -83,6 +86,17 @@ contract RaftTest is Test, IRaftEvents {
         vm.label(address(mockPaymentToken), "mockPaymentToken");
         vm.label(address(raft), "raft");
         vm.label(address(accessManager), "accessManager");
+
+        AuctionDefaultParameters memory newParams = AuctionDefaultParameters({
+            duration: uint40(AUCTION_DURATION),
+            startPrice: START_PRICE,
+            endPrice: END_PRICE,
+            kickerRewardPercentage: KICKER_REWARD_PERCENTAGE,
+            decayType: DecayFunctions.DecayType.Linear
+        });
+
+        vm.prank(governor);
+        raft.updateAuctionDefaultParameters(newParams);
     }
 
     function test_Constructor() public {

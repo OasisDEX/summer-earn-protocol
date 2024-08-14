@@ -37,6 +37,12 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
     ERC20Mock public tokenToAuction2;
 
     uint256 constant AUCTION_AMOUNT = 100_000_000;
+    uint256 constant AUCTION_DURATION = 7 days;
+    uint256 constant KICKER_REWARD_PERCENTAGE = 0;
+    uint8 constant SUMMER_DECIMALS = 18;
+
+    uint256 constant START_PRICE = 100 * 10 ** SUMMER_DECIMALS;
+    uint256 constant END_PRICE = (0.1 * 10) ** SUMMER_DECIMALS;
 
     function setUp() public {
         summerToken = new SummerToken();
@@ -62,6 +68,17 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         vm.label(address(tokenToAuction2), "tokenToAuction2");
         vm.label(address(buyAndBurn), "buyAndBurn");
         vm.label(address(accessManager), "accessManager");
+
+        AuctionDefaultParameters memory newParams = AuctionDefaultParameters({
+            duration: uint40(AUCTION_DURATION),
+            startPrice: START_PRICE,
+            endPrice: END_PRICE,
+            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
+            decayType: DecayFunctions.DecayType.Linear
+        });
+
+        vm.prank(governor);
+        buyAndBurn.updateAuctionDefaultParameters(newParams);
     }
 
     function test_Constructor() public {
@@ -77,10 +94,13 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
             Percentage kickerRewardPercentage,
             DecayFunctions.DecayType decayType
         ) = newBuyAndBurn.auctionDefaultParameters();
-        assertEq(duration, 7 days);
-        assertEq(startPrice, 1e18);
-        assertEq(endPrice, 1e17);
-        assertEq(Percentage.unwrap(kickerRewardPercentage), 0);
+        assertEq(duration, AUCTION_DURATION);
+        assertEq(startPrice, START_PRICE);
+        assertEq(endPrice, END_PRICE);
+        assertEq(
+            Percentage.unwrap(kickerRewardPercentage),
+            KICKER_REWARD_PERCENTAGE
+        );
         assertEq(uint256(decayType), uint256(DecayFunctions.DecayType.Linear));
     }
 
@@ -143,14 +163,14 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         uint256 buyAmount = 50_000_000;
         vm.startPrank(buyer);
         summerToken.approve(address(buyAndBurn), 10_000 ether);
-        buyAndBurn.buyTokens(1, buyAmount);
+        uint256 summerSpent = buyAndBurn.buyTokens(1, buyAmount);
         vm.stopPrank();
 
         vm.warp(block.timestamp + 8 days);
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit SummerBurned(buyAmount);
+        emit SummerBurned(summerSpent);
         buyAndBurn.finalizeAuction(1);
 
         (, DutchAuctionLibrary.AuctionState memory state) = buyAndBurn.auctions(
@@ -160,7 +180,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         assertEq(
             summerToken.balanceOf(address(buyAndBurn)),
             0,
-            "All SUMMER tokens should be burned"
+            "All summerToken tokens should be burned"
         );
         assertEq(
             tokenToAuction1.balanceOf(treasury),
@@ -240,7 +260,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         assertEq(
             summerToken.balanceOf(address(buyAndBurn)),
             0,
-            "All SUMMER tokens should be burned"
+            "All summerToken tokens should be burned"
         );
         assertEq(
             tokenToAuction1.balanceOf(treasury),
@@ -268,7 +288,7 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         assertEq(
             summerToken.balanceOf(address(buyAndBurn)),
             0,
-            "All SUMMER tokens should be burned"
+            "All summerToken tokens should be burned"
         );
         assertEq(
             tokenToAuction2.balanceOf(treasury),
@@ -299,8 +319,10 @@ contract BuyAndBurnTest is Test, IBuyAndBurnEvents {
         uint256 firstBuy = AUCTION_AMOUNT / 4;
         uint256 secondBuy = AUCTION_AMOUNT / 4;
 
+        uint256 currentPrice = buyAndBurn.getCurrentPrice(1);
+
         vm.startPrank(buyer);
-        summerToken.approve(address(buyAndBurn), AUCTION_AMOUNT);
+        summerToken.approve(address(buyAndBurn), currentPrice * AUCTION_AMOUNT);
         buyAndBurn.buyTokens(1, firstBuy);
         buyAndBurn.buyTokens(1, secondBuy);
         vm.stopPrank();

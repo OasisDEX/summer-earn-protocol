@@ -22,9 +22,13 @@ interface IBuyAndBurn is IBuyAndBurnEvents {
      * @notice Allows users to buy tokens from an ongoing auction
      * @param auctionId The ID of the auction
      * @param amount The amount of tokens to buy
+     * @return summerAmount The amount of SUMMER tokens required to purchase the specified amount of auction tokens
      * @dev Emits a TokensPurchased event
      */
-    function buyTokens(uint256 auctionId, uint256 amount) external;
+    function buyTokens(
+        uint256 auctionId,
+        uint256 amount
+    ) external returns (uint256 summerAmount);
 
     /**
      * @notice Finalizes an auction after its end time

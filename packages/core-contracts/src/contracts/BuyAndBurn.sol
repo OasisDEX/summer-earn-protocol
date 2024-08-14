@@ -4,9 +4,10 @@ pragma solidity 0.8.26;
 import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
 import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -17,7 +18,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
     using SafeERC20 for ERC20Burnable;
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
-    ERC20Burnable public immutable SUMMER;
+    ERC20Burnable public immutable summerToken;
     address public treasury;
     uint256 public nextAuctionId;
 
@@ -32,12 +33,12 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
         address _treasury,
         address _accessManager
     ) ProtocolAccessManaged(_accessManager) {
-        SUMMER = ERC20Burnable(_summer);
+        summerToken = ERC20Burnable(_summer);
         treasury = _treasury;
         auctionDefaultParameters = AuctionDefaultParameters({
             duration: 7 days,
-            startPrice: 1e18,
-            endPrice: 1e17,
+            startPrice: 100 * 10 ** 18,
+            endPrice: (0.1 * 10) ** 18,
             kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(0),
             decayType: DecayFunctions.DecayType.Linear
         });
@@ -58,7 +59,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
             .AuctionParams({
                 auctionId: auctionId,
                 auctionToken: auctionToken,
-                paymentToken: SUMMER,
+                paymentToken: summerToken,
                 duration: auctionDefaultParameters.duration,
                 startPrice: auctionDefaultParameters.startPrice,
                 endPrice: auctionDefaultParameters.endPrice,
@@ -77,10 +78,13 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
         emit BuyAndBurnAuctionStarted(auctionId, tokenToAuction, totalTokens);
     }
 
-    function buyTokens(uint256 auctionId, uint256 amount) external override {
+    function buyTokens(
+        uint256 auctionId,
+        uint256 amount
+    ) external override returns (uint256 summerAmount) {
         DutchAuctionLibrary.Auction storage auction = auctions[auctionId];
 
-        uint256 summerAmount = auction.buyTokens(amount);
+        summerAmount = auction.buyTokens(amount);
 
         auctionSummerRaised[auctionId] += summerAmount;
 
@@ -100,7 +104,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged {
     ) internal {
         uint256 burnedSummer = auctionSummerRaised[auction.config.id];
 
-        SUMMER.burn(burnedSummer);
+        summerToken.burn(burnedSummer);
         emit SummerBurned(burnedSummer);
 
         address auctionTokenAddress = address(auction.config.auctionToken);

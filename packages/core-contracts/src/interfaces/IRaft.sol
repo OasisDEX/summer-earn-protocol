@@ -53,12 +53,13 @@ interface IRaft is IRaftEvents {
      * @param ark The address of the Ark contract.
      * @param rewardToken The address of the reward token being auctioned.
      * @param amount The amount of tokens to purchase.
+     * @return paymentAmount The amount of payment tokens required to purchase the specified amount of reward tokens.
      */
     function buyTokens(
         address ark,
         address rewardToken,
         uint256 amount
-    ) external;
+    ) external returns (uint256 paymentAmount);
 
     /**
      * @notice Finalizes an auction after its end time has been reached.
@@ -67,4 +68,15 @@ interface IRaft is IRaftEvents {
      * @param rewardToken The address of the reward token that was auctioned.
      */
     function finalizeAuction(address ark, address rewardToken) external;
+
+    /**
+     * @dev Returns the current price of a given asset in terms of the reward token.
+     * @param ark The address of the asset.
+     * @param rewardToken The address of the reward token.
+     * @return The current price of the asset.
+     */
+    function getCurrentPrice(
+        address ark,
+        address rewardToken
+    ) external view returns (uint256);
 }
