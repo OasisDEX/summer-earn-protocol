@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import "./VotingDecayLibrary.sol";
 import "./VotingDecayEvents.sol";
 import "./VotingDecayErrors.sol";
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /*
  * @title VotingDecayManager

@@ -3,3 +3,4 @@ packages:
   - '!**/test/**'
   - '!packages/core-contracts/lib/**'
   - '!packages/dutch-auction/lib/**'
+  - '!packages/voting-decay/lib/**'
