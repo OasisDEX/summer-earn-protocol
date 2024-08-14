@@ -9,7 +9,7 @@ import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnfo
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import "../../src/events/IArkEvents.sol";
 import "../../src/events/IFleetCommanderEvents.sol";
 
@@ -743,7 +743,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArkRate(ark2, highRate);
         vm.prank(governor);
         fleetCommander.setMinimumRateDifference(
-            PercentageUtils.fromDecimalPercentage(2)
+            PercentageUtils.fromIntegerPercentage(2)
         );
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
@@ -779,7 +779,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockArkRate(ark2, highRate);
         vm.prank(governor);
         fleetCommander.setMinimumRateDifference(
-            PercentageUtils.fromDecimalPercentage(2)
+            PercentageUtils.fromIntegerPercentage(2)
         );
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);

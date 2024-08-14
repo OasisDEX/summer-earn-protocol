@@ -17,7 +17,7 @@ import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWrite
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 
-import "../../src/libraries/PercentageUtils.sol";
+import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
@@ -76,7 +76,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         setupFleetCommander(
             address(mockToken),
             initialArks,
-            PercentageUtils.fromDecimalPercentage(initialTipRate)
+            PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
         grantRoles(initialArks, address(bufferArk), keeper);
     }
@@ -89,7 +89,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         setupFleetCommander(
             underlyingToken,
             new address[](0),
-            PercentageUtils.fromDecimalPercentage(initialTipRate)
+            PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
     }
 

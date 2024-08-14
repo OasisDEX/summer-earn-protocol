@@ -9,8 +9,8 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
-import {Percentage} from "../../src/types/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 
 contract TipperTest is Test, ITipperEvents {
@@ -28,7 +28,7 @@ contract TipperTest is Test, ITipperEvents {
     function setUp() public {
         underlyingToken = new ERC20Mock();
         tipJar = address(0x123);
-        initialTipRate = PercentageUtils.fromDecimalPercentage(1);
+        initialTipRate = PercentageUtils.fromIntegerPercentage(1);
         configManager = ConfigurationManagerMock(
             address(new ConfigurationManagerImplMock(tipJar))
         );
@@ -50,7 +50,7 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_SetTipRate() public {
-        Percentage newTipRate = PercentageUtils.fromDecimalPercentage(2);
+        Percentage newTipRate = PercentageUtils.fromIntegerPercentage(2);
         vm.expectEmit(true, true, false, true);
         emit TipRateUpdated(newTipRate);
         fleetCommander.setTipRate(newTipRate);
@@ -112,7 +112,7 @@ contract TipperTest is Test, ITipperEvents {
         vm.expectRevert(
             abi.encodeWithSignature("TipRateCannotExceedOneHundredPercent()")
         );
-        fleetCommander.setTipRate(PercentageUtils.fromDecimalPercentage(101));
+        fleetCommander.setTipRate(PercentageUtils.fromIntegerPercentage(101));
     }
 
     function test_SetTipJarCannotBeZeroAddress() public {
@@ -228,8 +228,8 @@ contract ConfigurationManagerImplMock is ConfigurationManagerMock {
 contract TipperHarness is Tipper {
     constructor(
         address configurationManager
-    ) Tipper(configurationManager, PercentageUtils.fromDecimalPercentage(0)) {
-        tipRate = PercentageUtils.fromDecimalPercentage(1); // 1%
+    ) Tipper(configurationManager, PercentageUtils.fromIntegerPercentage(0)) {
+        tipRate = PercentageUtils.fromIntegerPercentage(1); // 1%
     }
 
     function exposed_calculateTip(

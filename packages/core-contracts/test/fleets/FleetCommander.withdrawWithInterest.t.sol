@@ -8,7 +8,7 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 
 contract WithdrawWithInterestTest is

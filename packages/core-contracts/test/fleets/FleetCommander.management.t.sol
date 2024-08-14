@@ -12,7 +12,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
-import {Percentage} from "../../src/types/Percentage.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
