@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Percentage, toPercentage} from "@summerfi/percentage/src/Percentage.sol";
+import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title MathUtils

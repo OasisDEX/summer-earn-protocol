@@ -96,7 +96,7 @@ importers:
       '@summerfi/jest-config':
         specifier: workspace:*
         version: link:../jest-config
-      '@summerfi/percentage':
+      '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
       '@summerfi/tenderly-utils':
@@ -118,7 +118,7 @@ importers:
       '@summerfi/jest-config':
         specifier: workspace:*
         version: link:../jest-config
-      '@summerfi/percentage':
+      '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
       '@summerfi/tenderly-utils':

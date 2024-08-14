@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ITipperEvents} from "../events/ITipperEvents.sol";
-import {Percentage} from "@summerfi/percentage/src/Percentage.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title ITipper Interface

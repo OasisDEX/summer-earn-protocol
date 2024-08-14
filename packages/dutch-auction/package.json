@@ -13,7 +13,7 @@
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
-    "@summerfi/percentage": "workspace:*"
+    "@summerfi/percentage-solidity": "workspace:*"
   },
   "keywords": [
     "blockchain",

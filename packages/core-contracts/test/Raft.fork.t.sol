@@ -15,7 +15,7 @@ import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol"
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderMock} from "./mocks/FleetCommanderMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import "../src/errors/RaftErrors.sol";
 
 contract RaftForkTest is Test, IRaftEvents {
@@ -74,7 +74,7 @@ contract RaftForkTest is Test, IRaftEvents {
         commander = new FleetCommanderMock(
             USDC,
             address(configurationManager),
-            PercentageUtils.fromDecimalPercentage(1)
+            PercentageUtils.fromIntegerPercentage(1)
         );
 
         // Setup and deploy CompoundV3Ark

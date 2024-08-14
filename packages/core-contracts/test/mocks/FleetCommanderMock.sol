@@ -6,8 +6,8 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 
-import {Percentage} from "@summerfi/percentage/src/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 
 contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {

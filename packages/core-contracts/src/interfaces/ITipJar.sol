@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ITipJarEvents} from "./ITipJarEvents.sol";
-import {Percentage} from "@summerfi/percentage/src/Percentage.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IFleetCommander} from "./IFleetCommander.sol";
 
 /**
