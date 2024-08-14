@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {DecayFunctions} from "../src/DecayFunctions.sol";
 import {DutchAuctionLibrary} from "../src/DutchAuctionLibrary.sol";
-import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
+import {DutchAuctionManager} from "../src/DutchAuctionManager.sol";
 import {PERCENTAGE_100, Percentage} from "../src/lib/Percentage.sol";
 import {PercentageUtils} from "../src/lib/PercentageUtils.sol";
 
