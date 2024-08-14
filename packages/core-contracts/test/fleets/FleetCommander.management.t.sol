@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {IArk, ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderArkAlreadyExists, FleetCommanderRebalanceAmountZero, FleetCommanderInvalidSourceArk, FleetCommanderInvalidArkAddress, FleetCommanderNoExcessFunds, FleetCommanderInvalidBufferAdjustment, FleetCommanderInsufficientBuffer, FleetCommanderCantRebalanceToArk, FleetCommanderArkNotFound, FleetCommanderArkDepositCapZero, FleetCommanderArkDepositCapGreaterThanZero, FleetCommanderArkAssetsNotZero, FleetCommanderTransfersDisabled} from "../../src/errors/FleetCommanderErrors.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
@@ -37,10 +37,16 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);
+        (
+            IArk bufferArk,
+            uint256 minimumFundsBufferBalance,
+            uint256 depositCap,
 
-        assertEq(newFleetCommander.minFundsBufferBalance(), 1000);
-        assertEq(newFleetCommander.depositCap(), 10000);
-        assertEq(address(newFleetCommander.bufferArk()), bufferArkAddress);
+        ) = newFleetCommander.config();
+
+        assertEq(minimumFundsBufferBalance, 1000);
+        assertEq(depositCap, 10000);
+        assertEq(address(bufferArk), bufferArkAddress);
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
 
@@ -65,13 +71,15 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_SetMinBufferBalance() public {
         uint256 newBalance = 2000;
+
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
-        emit IFleetCommanderEvents.FleetCommanderMinFundsBufferBalanceUpdated(
-            newBalance
-        );
-        fleetCommander.setMinBufferBalance(newBalance);
-        assertEq(fleetCommander.minFundsBufferBalance(), newBalance);
+        emit IFleetCommanderEvents
+            .FleetCommanderMinimumFundsBufferBalanceUpdated(newBalance);
+        fleetCommander.setMinimumBufferBalance(newBalance);
+
+        (, uint256 minimumFundsBufferBalance, , ) = fleetCommander.config();
+        assertEq(minimumFundsBufferBalance, newBalance);
     }
 
     function test_TransferDisabled() public {
@@ -170,7 +178,9 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         emit IFleetCommanderEvents.DepositCapUpdated(newDepositCap);
 
         fleetCommander.setFleetDepositCap(newDepositCap);
-        assertEq(fleetCommander.depositCap(), newDepositCap);
+
+        (, , uint256 depositCap, ) = fleetCommander.config();
+        assertEq(depositCap, newDepositCap);
     }
 
     function test_setArkDepositCap() public {

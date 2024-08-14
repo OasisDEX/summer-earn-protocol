@@ -199,6 +199,8 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
         uint256 newMaxRebalanceInflow
     ) external;
 
+    function setMinimumBufferBalance(uint256 newMinimumBalance) external;
+
     /**
      * @dev Sets the minimum rate difference for the Fleet Commander.
      * @param newRateDifference The new minimum rate difference to be set.

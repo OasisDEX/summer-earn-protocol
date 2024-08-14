@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import "./Percentage.sol";
+import "../interfaces/IArk.sol";
 
 /**
  * @notice Configuration parameters for the FleetCommander contract
@@ -18,6 +19,18 @@ struct FleetCommanderParams {
     uint256 initialRebalanceCooldown;
     uint256 depositCap;
     Percentage initialTipRate;
+    Percentage minimumRateDifference;
+}
+
+/**
+ * @title FleetConfig
+ * @notice Configuration of the FleetCommander contract
+ * @dev This struct stores the current configuration of a FleetCommander, which can be updated during its lifecycle
+ */
+struct FleetConfig {
+    IArk bufferArk;
+    uint256 minimumFundsBufferBalance;
+    uint256 depositCap;
     Percentage minimumRateDifference;
 }
 

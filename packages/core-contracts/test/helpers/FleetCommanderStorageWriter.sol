@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title FleetCommanderStorageWriter
@@ -13,33 +14,28 @@ contract FleetCommanderStorageWriter is Test {
 
     address public fleetCommander;
 
-    uint256 public MinFundsBufferBalanceSlot;
-    uint256 public DepositCapSlot;
+    uint256 public configSlot;
 
     constructor(address fleetCommander_) {
         fleetCommander = fleetCommander_;
 
-        MinFundsBufferBalanceSlot = stdstore
+        configSlot = stdstore
             .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).minFundsBufferBalance.selector)
-            .find();
-
-        DepositCapSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).depositCap.selector)
+            .sig(FleetCommander(fleetCommander).config.selector)
             .find();
     }
 
-    function setMinFundsBufferBalance(uint256 value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(MinFundsBufferBalanceSlot),
-            bytes32(value)
-        );
+    function setMinimumFundsBufferBalance(uint256 value) public {
+        bytes32 slot = bytes32(configSlot);
+        bytes32 minimumFundsBufferBalanceSlot = bytes32(uint256(slot) + 1); // Offset for minimumFundsBufferBalance in the struct
+        vm.store(fleetCommander, minimumFundsBufferBalanceSlot, bytes32(value));
     }
 
     function setDepositCap(uint256 value) public {
-        vm.store(fleetCommander, bytes32(DepositCapSlot), bytes32(value));
+        bytes32 slot = bytes32(configSlot);
+        bytes32 depositCapSlot = bytes32(uint256(slot) + 2); // Offset for depositCap in the struct
+        vm.store(fleetCommander, depositCapSlot, bytes32(value));
     }
+
     function test() public {}
 }

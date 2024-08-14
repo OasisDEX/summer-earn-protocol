@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
@@ -193,16 +194,15 @@ contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 assets = fleetCommander.previewMint(shares);
         mockToken.mint(mockUser, assets);
 
-        uint256 initialBufferBalance = IArk(fleetCommander.bufferArk())
-            .totalAssets();
+        (IArk bufferArk, , , ) = fleetCommander.config();
+        uint256 initialBufferBalance = bufferArk.totalAssets();
 
         vm.startPrank(mockUser);
         mockToken.approve(address(fleetCommander), assets);
         fleetCommander.mint(shares, mockUser);
         vm.stopPrank();
 
-        uint256 finalBufferBalance = IArk(fleetCommander.bufferArk())
-            .totalAssets();
+        uint256 finalBufferBalance = bufferArk.totalAssets();
         assertEq(
             finalBufferBalance,
             initialBufferBalance + assets,
