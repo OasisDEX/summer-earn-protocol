@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../src/DutchAuctionLibrary.sol";
-import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
+import {DutchAuctionManager} from "../src/DutchAuctionManager.sol";
 
 import {PERCENTAGE_100, Percentage} from "../src/lib/Percentage.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
