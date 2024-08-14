@@ -7,4 +7,4 @@ morpho-blue/=lib/metamorpho/lib/morpho-blue/src/
 metamorpho/=lib/metamorpho/src/
 @summerfi/dutch-auction/src/=node_modules/@summerfi/dutch-auction/src/
 @prb/math/=lib/prb-math/
-@summerfi/percentage/src/=node_modules/@summerfi/percentage/src/
+@summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/

@@ -97,7 +97,7 @@ BRF:12
 BRH:12
 end_of_record
 TN:
-SF:src/DutchAuctionManger.sol
+SF:src/DutchAuctionManager.sol
 FN:43,DutchAuctionManager.createAuction
 FNDA:822,DutchAuctionManager.createAuction
 DA:54,822
@@ -164,8 +164,8 @@ DA:69,820
 FN:80,PercentageUtils.fromFraction
 FNDA:0,PercentageUtils.fromFraction
 DA:84,0
-FN:94,PercentageUtils.fromDecimalPercentage
-FNDA:0,PercentageUtils.fromDecimalPercentage
+FN:94,PercentageUtils.fromIntegerPercentage
+FNDA:0,PercentageUtils.fromIntegerPercentage
 DA:97,0
 FNF:6
 FNH:2

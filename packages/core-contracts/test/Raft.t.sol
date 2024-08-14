@@ -22,8 +22,8 @@ import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 
-import {Percentage} from "@summerfi/percentage/src/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 contract RaftTest is Test, IRaftEvents {
@@ -41,7 +41,7 @@ contract RaftTest is Test, IRaftEvents {
 
     uint256 constant REWARD_AMOUNT = 100_000_000;
     Percentage public KICKER_REWARD_PERCENTAGE =
-        PercentageUtils.fromDecimalPercentage(5);
+        PercentageUtils.fromIntegerPercentage(5);
 
     function setUp() public {
         mockRewardToken = new ERC20Mock();
@@ -547,7 +547,7 @@ contract RaftTest is Test, IRaftEvents {
             duration: 2 days,
             startPrice: 2e18,
             endPrice: 2,
-            kickerRewardPercentage: PercentageUtils.fromDecimalPercentage(10),
+            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(10),
             decayType: DecayFunctions.DecayType.Exponential
         });
 

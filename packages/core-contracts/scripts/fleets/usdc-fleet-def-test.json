@@ -1,12 +1,12 @@
 {
   "base": {
     "fleetName": "FleetCommander_BaseUSDC_Test",
-    "symbol": "FCBUSD",
+    "symbol": "FUSDC",
     "arks": [
-      "0x348015DBDB6353B553164f092ddd207bC05Bebac",
-      "0x926A20d893f14922084b4d32AEb41E3E1D4Ca905",
-      "0x87E8277E6c17274d65448862d778aaCFB9a6ae8c",
-      "0x6b790D0943cb5f33308C9Ad8A7284FE93F2cc2Fb"
+      "0xa0AbBACcfE93Dddd9dEeEc2d7E3b7f65AFC4854b",
+      "0x1B34F9C28Ea16f03f0A42873dC6D8279e38cABD3",
+      "0x5f472d1e80b20F752F762d8E7e0C5507029c6eC2",
+      "0xea94566E675F3e6a44E698421d3FB1C07CAFb108"
     ]
   }
 }

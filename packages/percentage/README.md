@@ -41,7 +41,7 @@ The `PercentageUtils` library provides utility functions for applying percentage
 - `applyPercentage(uint256 amount, Percentage percentage) -> uint256`
 - `isPercentageInRange(Percentage percentage) -> bool`
 - `fromFraction(uint256 numerator, uint256 denominator) -> Percentage`
-- `fromDecimalPercentage(uint256 percentage) -> Percentage`
+- `fromIntegerPercentage(uint256 percentage) -> Percentage`
 
 ## Usage Examples
 
@@ -53,8 +53,8 @@ import {PercentageUtils} from "./PercentageUtils.sol";
 contract ExampleContract {
     function exampleUsage() public pure returns (uint256) {
         // Create a Percentage (50%)
-        Percentage fiftyPercent = Percentage.wrap(50 * PERCENTAGE_FACTOR);
-        // or PercentageUtils.fromDecimalPercentage(50)
+        Percentage fiftyPercent = PercentageUtils.fromIntegerPercentage(50);
+        // or Percentage.wrap(50 * PERCENTAGE_FACTOR)
 
         // Apply the percentage to an amount
         uint256 amount = 1000;
@@ -74,7 +74,7 @@ contract ExampleContract {
 
     function exampleConversion() public pure returns (Percentage) {
         // Convert from fraction to Percentage
-        return PercentageUtils.fromFraction(1, 4); // Returns 0.25%
+        return PercentageUtils.fromFraction(1, 4); // Returns 25%
     }
 }
 ```

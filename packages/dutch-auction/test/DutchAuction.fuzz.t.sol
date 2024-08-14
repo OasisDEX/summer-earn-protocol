@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "../src/DutchAuctionLibrary.sol";
-import {DutchAuctionManager} from "../src/DutchAuctionManger.sol";
+import {DutchAuctionManager} from "../src/DutchAuctionManager.sol";
 
-import {PERCENTAGE_100, Percentage} from "@summerfi/percentage/src/Percentage.sol";
+import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "forge-std/Test.sol";

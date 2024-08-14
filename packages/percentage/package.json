@@ -1,5 +1,5 @@
 {
-  "name": "@summerfi/percentage",
+  "name": "@summerfi/percentage-solidity",
   "description": "Percentage library",
   "version": "1.0.0",
   "dependencies": {

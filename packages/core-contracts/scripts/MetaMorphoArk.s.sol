@@ -14,9 +14,7 @@ contract MetaMorphoArkDeploy is ArkDeploymentScript {
         uint256 deployerPrivateKey = _getDeployerPrivateKey();
         vm.startBroadcast(deployerPrivateKey);
 
-        address arkAssetToken = customToken == address(0)
-            ? config.usdcToken
-            : customToken;
+        address arkAssetToken = config.usdcToken;
         if (config.metaMorpho.steakhouseUsdc == address(0)) {
             console.log("MetaMorpho Steakhouse USDC address is not set");
             vm.stopBroadcast();

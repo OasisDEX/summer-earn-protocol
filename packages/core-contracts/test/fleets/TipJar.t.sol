@@ -9,8 +9,8 @@ import {ITipJarEvents} from "../../src/interfaces/ITipJarEvents.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {TipJar} from "../../src/contracts/TipJar.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
-import {Percentage, fromPercentage} from "@summerfi/percentage/src/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import "../../src/errors/TipJarErrors.sol";
 import "../../src/errors/AccessControlErrors.sol";
@@ -37,7 +37,7 @@ contract TipJarTest is Test, ITipJarEvents {
         underlyingToken = new ERC20Mock();
         configManager = new ConfigurationManagerImplMock(address(tipJar));
 
-        Percentage initialTipRate = PercentageUtils.fromDecimalPercentage(1); // 1%
+        Percentage initialTipRate = PercentageUtils.fromIntegerPercentage(1); // 1%
         fleetCommander = new FleetCommanderMock(
             address(underlyingToken),
             address(configManager),
@@ -64,7 +64,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.prank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(20),
+            PercentageUtils.fromIntegerPercentage(20),
             block.timestamp + 1 days
         );
 
@@ -73,7 +73,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         assertEq(stream.recipient, mockTipStreamRecipient);
         assertTrue(
-            stream.allocation == PercentageUtils.fromDecimalPercentage(20)
+            stream.allocation == PercentageUtils.fromIntegerPercentage(20)
         );
         assertEq(stream.lockedUntilEpoch, block.timestamp + 1 days);
     }
@@ -82,14 +82,14 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp + 1 days
         );
 
         vm.warp(block.timestamp + 2 days);
         tipJar.updateTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp + 3 days
         );
         vm.stopPrank();
@@ -104,7 +104,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(20),
+            PercentageUtils.fromIntegerPercentage(20),
             block.timestamp + 1 days
         );
 
@@ -125,12 +125,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(20),
+            PercentageUtils.fromIntegerPercentage(20),
             block.timestamp + 1 days
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp + 2 days
         );
         vm.stopPrank();
@@ -148,12 +148,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(60),
+            PercentageUtils.fromIntegerPercentage(60),
             block.timestamp
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp
         );
         vm.stopPrank();
@@ -186,12 +186,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(60),
+            PercentageUtils.fromIntegerPercentage(60),
             block.timestamp
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            PercentageUtils.fromDecimalPercentage(40),
+            PercentageUtils.fromIntegerPercentage(40),
             block.timestamp
         );
         vm.stopPrank();
@@ -224,12 +224,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(60),
+            PercentageUtils.fromIntegerPercentage(60),
             block.timestamp
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp
         );
         vm.stopPrank();
@@ -238,7 +238,7 @@ contract TipJarTest is Test, ITipJarEvents {
         FleetCommanderMock fleetCommander2 = new FleetCommanderMock(
             address(underlyingToken),
             address(configManager),
-            PercentageUtils.fromDecimalPercentage(1)
+            PercentageUtils.fromIntegerPercentage(1)
         );
 
         // Setup mock fleet commanders with some balance
@@ -274,12 +274,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(60),
+            PercentageUtils.fromIntegerPercentage(60),
             block.timestamp
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp
         );
         vm.stopPrank();
@@ -333,12 +333,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             address(4),
-            PercentageUtils.fromDecimalPercentage(20),
+            PercentageUtils.fromIntegerPercentage(20),
             block.timestamp
         );
         tipJar.addTipStream(
             address(5),
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp
         );
         vm.stopPrank();
@@ -351,7 +351,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.prank(governor);
         tipJar.addTipStream(
             address(6),
-            PercentageUtils.fromDecimalPercentage(25),
+            PercentageUtils.fromIntegerPercentage(25),
             block.timestamp
         );
 
@@ -419,12 +419,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidTipStreamAllocation.selector,
-                PercentageUtils.fromDecimalPercentage(0)
+                PercentageUtils.fromIntegerPercentage(0)
             )
         );
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(0),
+            PercentageUtils.fromIntegerPercentage(0),
             block.timestamp
         );
 
@@ -432,12 +432,12 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidTipStreamAllocation.selector,
-                PercentageUtils.fromDecimalPercentage(101)
+                PercentageUtils.fromIntegerPercentage(101)
             )
         );
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(101),
+            PercentageUtils.fromIntegerPercentage(101),
             block.timestamp
         );
 
@@ -458,17 +458,17 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             recipient1,
-            PercentageUtils.fromDecimalPercentage(20),
+            PercentageUtils.fromIntegerPercentage(20),
             block.timestamp
         );
         tipJar.addTipStream(
             recipient2,
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp
         );
         tipJar.addTipStream(
             recipient3,
-            PercentageUtils.fromDecimalPercentage(10),
+            PercentageUtils.fromIntegerPercentage(10),
             block.timestamp
         );
         vm.stopPrank();
@@ -491,7 +491,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(20),
+            PercentageUtils.fromIntegerPercentage(20),
             block.timestamp + 1 days
         );
     }
@@ -500,7 +500,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.prank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(20),
+            PercentageUtils.fromIntegerPercentage(20),
             block.timestamp + 1 days
         );
 
@@ -513,7 +513,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         tipJar.updateTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(30),
+            PercentageUtils.fromIntegerPercentage(30),
             block.timestamp + 2 days
         );
     }
@@ -524,7 +524,7 @@ contract TipJarTest is Test, ITipJarEvents {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromDecimalPercentage(60),
+            PercentageUtils.fromIntegerPercentage(60),
             block.timestamp
         );
         vm.expectRevert(
@@ -534,7 +534,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,
-            PercentageUtils.fromDecimalPercentage(50),
+            PercentageUtils.fromIntegerPercentage(50),
             block.timestamp
         );
     }

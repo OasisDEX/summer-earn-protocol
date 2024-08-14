@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import "../src/Percentage.sol";
+import "../contracts/Percentage.sol";
 
 contract PercentageTest is Test {
     function test_PercentageAddition() public pure {

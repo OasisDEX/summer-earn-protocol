@@ -8,7 +8,7 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 
-import {PercentageUtils} from "@summerfi/percentage/src/PercentageUtils.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 import "../errors/RaftErrors.sol";
 import "../types/CommonAuctionTypes.sol";
@@ -31,7 +31,7 @@ contract Raft is IRaft, ArkAccessManaged {
             duration: 1 days,
             startPrice: 1e18,
             endPrice: 1,
-            kickerRewardPercentage: PercentageUtils.fromDecimalPercentage(5),
+            kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(5),
             decayType: DecayFunctions.DecayType.Linear
         });
     }
