@@ -118,9 +118,6 @@ importers:
       '@summerfi/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
-      forge-std:
-        specifier: github:foundry-rs/forge-std#v1.8.1
-        version: github.com/foundry-rs/forge-std/bb4ceea94d6f10eeb5b41dc2391c6c8bf8e734ef
       prettier:
         specifier: ^3.0.0
         version: 3.3.2
@@ -226,9 +223,6 @@ importers:
         specifier: ^5.0.1
         version: link:lib/openzeppelin-contracts/contracts
     devDependencies:
-      forge-std:
-        specifier: github:foundry-rs/forge-std#v1.8.1
-        version: github.com/foundry-rs/forge-std/bb4ceea94d6f10eeb5b41dc2391c6c8bf8e734ef
       prettier:
         specifier: ^3.0.0
         version: 3.3.2
@@ -12629,10 +12623,4 @@ packages:
     resolution: {tarball: https://codeload.github.com/foundry-rs/forge-std/tar.gz/978ac6fadb62f5f0b723c996f64be52eddba6801}
     name: forge-std
     version: 1.8.2
-    dev: true
-
-  github.com/foundry-rs/forge-std/bb4ceea94d6f10eeb5b41dc2391c6c8bf8e734ef:
-    resolution: {tarball: https://codeload.github.com/foundry-rs/forge-std/tar.gz/bb4ceea94d6f10eeb5b41dc2391c6c8bf8e734ef}
-    name: forge-std
-    version: 1.7.6
     dev: true
