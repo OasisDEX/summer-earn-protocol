@@ -25,14 +25,20 @@ contract VotingDecayFuzzTest is Test {
         assertLe(finalIndex, initialIndex);
     }
 
-    function testFuzz_VotingPowerDecay(uint256 initialVotingPower, uint256 elapsedTime) public {
+    function testFuzz_VotingPowerDecay(
+        uint256 initialVotingPower,
+        uint256 elapsedTime
+    ) public {
         vm.assume(initialVotingPower <= 1e36);
         vm.assume(elapsedTime <= 1000 days);
 
         decayManager.initializeAccount(user);
         vm.warp(block.timestamp + elapsedTime);
 
-        uint256 decayedVotingPower = decayManager.getVotingPower(user, initialVotingPower);
+        uint256 decayedVotingPower = decayManager.getVotingPower(
+            user,
+            initialVotingPower
+        );
         assertLe(decayedVotingPower, initialVotingPower);
     }
 
@@ -68,10 +74,15 @@ contract VotingDecayFuzzTest is Test {
         assertEq(userIndex, delegateIndex);
 
         decayManager.undelegate(user);
-        assertEq(decayManager.getCurrentDecayIndex(user), VotingDecayLibrary.RAY);
+        assertEq(
+            decayManager.getCurrentDecayIndex(user),
+            VotingDecayLibrary.RAY
+        );
     }
 
-    function testFuzz_MultipleAccountsDecay(uint256[] memory elapsedTimes) public {
+    function testFuzz_MultipleAccountsDecay(
+        uint256[] memory elapsedTimes
+    ) public {
         vm.assume(elapsedTimes.length <= 10);
 
         address[] memory accounts = new address[](elapsedTimes.length);
@@ -109,9 +120,25 @@ contract VotingDecayFuzzTest is Test {
 
         uint256 resetIndex = decayManager.getCurrentDecayIndex(user);
 
-        assertEq(initialIndex, VotingDecayLibrary.RAY, "Initial index should be RAY");
-        assertLe(decayedIndex, initialIndex, "Decayed index should be less than or equal to initial index");
-        assertEq(resetIndex, VotingDecayLibrary.RAY, "Reset index should be RAY");
-        assertGe(resetIndex, decayedIndex, "Reset index should be greater than or equal to decayed index");
+        assertEq(
+            initialIndex,
+            VotingDecayLibrary.RAY,
+            "Initial index should be RAY"
+        );
+        assertLe(
+            decayedIndex,
+            initialIndex,
+            "Decayed index should be less than or equal to initial index"
+        );
+        assertEq(
+            resetIndex,
+            VotingDecayLibrary.RAY,
+            "Reset index should be RAY"
+        );
+        assertGe(
+            resetIndex,
+            decayedIndex,
+            "Reset index should be greater than or equal to decayed index"
+        );
     }
 }
