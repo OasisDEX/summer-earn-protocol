@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
-import "../types/Percentage.sol";
+import "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import "../types/ArkTypes.sol";
 import "../events/IArkEvents.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";

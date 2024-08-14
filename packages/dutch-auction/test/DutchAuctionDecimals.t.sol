@@ -4,8 +4,8 @@ pragma solidity 0.8.26;
 import {DecayFunctions} from "../src/DecayFunctions.sol";
 import {DutchAuctionLibrary} from "../src/DutchAuctionLibrary.sol";
 import {DutchAuctionManager} from "../src/DutchAuctionManager.sol";
-import {PERCENTAGE_100, Percentage} from "../src/lib/Percentage.sol";
-import {PercentageUtils} from "../src/lib/PercentageUtils.sol";
+import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";

@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {RebalanceData} from "../types/FleetCommanderTypes.sol";
-import {Percentage} from "../types/Percentage.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 interface IFleetCommanderEvents {
     /* EVENTS */

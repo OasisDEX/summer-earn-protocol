@@ -6,7 +6,7 @@ import "./DutchAuctionErrors.sol";
 import "./DutchAuctionEvents.sol";
 import "./DutchAuctionLibrary.sol";
 
-import {Percentage} from "./lib/Percentage.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**

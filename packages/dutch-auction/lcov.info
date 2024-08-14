@@ -164,8 +164,8 @@ DA:69,820
 FN:80,PercentageUtils.fromFraction
 FNDA:0,PercentageUtils.fromFraction
 DA:84,0
-FN:94,PercentageUtils.fromDecimalPercentage
-FNDA:0,PercentageUtils.fromDecimalPercentage
+FN:94,PercentageUtils.fromIntegerPercentage
+FNDA:0,PercentageUtils.fromIntegerPercentage
 DA:97,0
 FNF:6
 FNH:2
