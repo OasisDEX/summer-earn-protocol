@@ -20,3 +20,6 @@
 [submodule "packages/core-contracts/lib/prb-math"]
 	path = packages/core-contracts/lib/prb-math
 	url = https://github.com/PaulRBerg/prb-math
+[submodule "packages/core-contracts/lib/morpho-blue"]
+	path = packages/core-contracts/lib/morpho-blue
+	url = https://github.com/morpho-org/morpho-blue
