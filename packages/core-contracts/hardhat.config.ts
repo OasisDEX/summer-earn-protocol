@@ -12,6 +12,37 @@ const config: HardhatUserConfig = {
   paths: {
     sources: "./src",
   },
+  networks: {
+    hardhat: {
+      accounts: [
+        {
+          privateKey: `0x${process.env.DEPLOYER_PRIV_KEY}`,
+          balance: "1000000000000000000000" // 1000 ETH in wei
+        },
+      ]
+    },
+    // mainnets
+    mainnet: {
+      url: `${process.env.MAINNET_RPC_URL}`,
+      accounts: [
+        `0x${process.env.DEPLOYER_PRIV_KEY}`,
+      ]
+    },
+    // optimism: {},
+    // arbitrum: {},
+    base: {
+      url: `${process.env.BASE_RPC_URL}`,
+      accounts: [
+        `0x${process.env.DEPLOYER_PRIV_KEY}`,
+      ]
+    },
+
+    // testnets
+    sepolia_mainnet: {},
+    // sepolia_optimism: {},
+    // sepolia_arbitrum: {},
+    sepolia_base: {}
+  }
 };
 
 export default config;

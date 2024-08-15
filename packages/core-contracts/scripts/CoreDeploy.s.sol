@@ -45,7 +45,7 @@ contract CoreDeploy is DeploymentScript {
 
         address raft = _deployRaft(config.swapProvider, protocolAccessManager);
 
-        _deployConfigurationManager(protocolAccessManager, raft, config.tipJar);
+        _deployConfigurationManager(protocolAccessManager, raft, tipJar);
 
         _deployHarborCommand(protocolAccessManager);
 
