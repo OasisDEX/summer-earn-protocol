@@ -1,13 +1,10 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-export default buildModule("Protocol Core", (m) => {
+export default buildModule("ProtocolCore", (m) => {
     // Addresses
     const deployer = m.getAccount(0);
-    const multiSigTreasury = process.env.MULTISIG_TREASURY_ADDRESS || "";
-    const swapProvider = process.env.SWAP_PROVIDER || "";
-
-    if (multiSigTreasury == '') throw new Error("Multi-sig Treasury not defined");
-    if (swapProvider == '') throw new Error("Swap provider not defined");
+    const swapProvider = m.getParameter("swapProvider");
+    const multiSigTreasury = m.getParameter("multiSigTreasury");
 
     const protocolAccessManager = m.contract("ProtocolAccessManager", [deployer]);
     const tipJar = m.contract("TipJar", [protocolAccessManager, multiSigTreasury]);

@@ -1,3 +1,10 @@
+import { default as dotenv } from 'dotenv'
+import { resolve } from 'path'
+
+// WARNING: Do not move the loading of the .env as the import for `getHardhatConfig`
+// needs the variables to be preloaded
+dotenv.config({ path: resolve(__dirname, './.env') })
+
 import type { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-foundry";
 import "@nomicfoundation/hardhat-ignition-viem";
@@ -38,10 +45,10 @@ const config: HardhatUserConfig = {
     },
 
     // testnets
-    sepolia_mainnet: {},
+    // sepolia_mainnet: {},
     // sepolia_optimism: {},
     // sepolia_arbitrum: {},
-    sepolia_base: {}
+    // sepolia_base: {}
   }
 };
 
