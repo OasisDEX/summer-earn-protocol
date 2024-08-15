@@ -1,7 +1,9 @@
 [profile.default]
 src = "src"
 out = "out"
-libs = ["lib"]
+libs = ['node_modules', 'lib']
+test = 'test'
+cache_path  = 'cache_forge'
 solc = "0.8.26"
 evm_version = "cancun"
 cbor_metadata = true
