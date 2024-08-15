@@ -51,6 +51,7 @@ artifacts
 
 # other generated files
 /packages/**/src/generated/
+/packages/**/typechain-types/
 
 # nx files
 .nx

@@ -3,7 +3,15 @@ import "@nomicfoundation/hardhat-toolbox"
 import "@nomicfoundation/hardhat-foundry";
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.24",
+  solidity: {
+    version: "0.8.26",
+    settings: {
+      viaIR: true,
+    },
+  },
+  paths: {
+    sources: "./src",
+  },
 };
 
 export default config;

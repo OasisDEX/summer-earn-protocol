@@ -4,3 +4,4 @@ out/
 lcov.info
 
 broadcast/
+typechain-types/
