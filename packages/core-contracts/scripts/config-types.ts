@@ -3,19 +3,20 @@ export interface BaseConfig {
     usdc: string
     dai: string
   }
-  treasury: string
-  governor: string
-  tipJar: string
-  swapProvider: string
+  core: {
+    treasury: string
+    governor: string
+    tipJar: string
+    swapProvider: string
+    raft: string
+    protocolAccessManager: string
+    configurationManager: string
+    harborCommand: string
+    tipRate: string
+  }
   aaveV3: {
     pool: string
     rewards: string
-  }
-  compound: {
-    usdc: {
-      pool: string
-      rewards: string
-    }
   }
   morpho: {
     blue: string
@@ -29,23 +30,6 @@ export interface BaseConfig {
   metaMorpho: {
     steakhouseUsdc: string
   }
-  raft: string
-  protocolAccessManager: string
-  configurationManager: string
-  usdcFleetCommander_test: string
-  daiFleetCommander_test: string
-  harborCommand: string
-  bufferArk: {
-    usdc: string
-    dai: string
-  }
-  usdcAaveV3Ark: string
-  daiAaveV3Ark: string
-  usdcCompoundV3Ark: string
-  metamorphoSteakhouseUsdcArk: string
-  usdcMorphoArk: string
-  daiMorphoArk: string
-  tipRate: string
 }
 
 export interface Config {

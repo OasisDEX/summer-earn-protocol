@@ -4,7 +4,7 @@ import kleur from 'kleur'
 import { Config, BaseConfig } from './config-types'
 
 export function getConfigByNetwork(network: string): BaseConfig {
-  const configPath = path.resolve(__dirname, 'config.json')
+  const configPath = path.resolve(__dirname, '../ignition/config/index.json')
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`)
   }
@@ -30,26 +30,10 @@ export function getConfigByNetwork(network: string): BaseConfig {
 function validateConfig(config: BaseConfig): void {
   const requiredFields: (keyof BaseConfig)[] = [
     'tokens',
-    'treasury',
-    'governor',
-    'tipJar',
-    'swapProvider',
+    'core',
     'aaveV3',
-    'compound',
     'morpho',
-    'metaMorpho',
-    'raft',
-    'protocolAccessManager',
-    'configurationManager',
-    'harborCommand',
-    'bufferArk',
-    'usdcAaveV3Ark',
-    'daiAaveV3Ark',
-    'usdcCompoundV3Ark',
-    'metamorphoSteakhouseUsdcArk',
-    'usdcMorphoArk',
-    'daiMorphoArk',
-    'tipRate',
+    'metaMorpho'
   ]
 
   for (const field of requiredFields) {
@@ -67,17 +51,20 @@ function validateConfig(config: BaseConfig): void {
 
   validateAddress(config.tokens.usdc, 'tokens.usdc')
   validateAddress(config.tokens.dai, 'tokens.dai')
-  validateAddress(config.treasury, 'treasury')
-  validateAddress(config.governor, 'governor')
-  validateAddress(config.tipJar, 'tipJar')
-  validateAddress(config.swapProvider, 'swapProvider')
+  validateAddress(config.core.treasury, 'core.treasury')
+  validateAddress(config.core.governor, 'core.governor')
+  validateAddress(config.core.tipJar, 'core.tipJar')
+  validateAddress(config.core.raft, 'core.raft')
+  validateAddress(config.core.protocolAccessManager, 'core.protocolAccessManager')
+  validateAddress(config.core.configurationManager, 'core.configurationManager')
+  validateAddress(config.core.harborCommand, 'core.harborCommand')
 
   // Validate tip rate
   if (
-    isNaN(Number(config.tipRate)) ||
-    Number(config.tipRate) < 0 ||
-    Number(config.tipRate) > 10000
+    isNaN(Number(config.core.tipRate)) ||
+    Number(config.core.tipRate) < 0 ||
+    Number(config.core.tipRate) > 10000
   ) {
-    throw new Error(`Invalid tipRate: ${config.tipRate}. Should be a number between 0 and 10000.`)
+    throw new Error(`Invalid tipRate: ${config.core.tipRate}. Should be a number between 0 and 10000.`)
   }
 }

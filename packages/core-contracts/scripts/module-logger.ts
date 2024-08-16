@@ -1,6 +1,7 @@
 import { CoreContracts } from '../ignition/modules/core'
 import { AaveV3ArkContracts } from '../ignition/modules/aavev3-ark'
 import { CompoundV3ArkContracts } from '../ignition/modules/compoundv3-ark'
+import { FleetContracts } from '../ignition/modules/fleet'
 
 export class ModuleLogger {
   private moduleName: string
@@ -42,6 +43,13 @@ export class ModuleLogger {
   static logCompoundV3Ark(contracts: CompoundV3ArkContracts): void {
     const logger = new ModuleLogger('CompoundV3ArkModule', {
       'Compound V3 Ark': contracts.compoundV3Ark,
+    })
+    logger.logAddresses()
+  }
+
+  static logFleet(contracts: FleetContracts): void {
+    const logger = new ModuleLogger('FleetModule', {
+      'Fleet Commander': contracts.fleetCommander,
     })
     logger.logAddresses()
   }
