@@ -1,42 +1,40 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import AaveV3ArkModule, { AaveV3ArkContracts } from '../ignition/modules/aavev3-ark'
+import CompoundV3ArkModule, { CompoundV3ArkContracts } from '../ignition/modules/compoundv3-ark'
 import { getConfigByNetwork } from './config-handler'
 import { ModuleLogger } from './module-logger'
 
-export async function deployAaveV3Ark() {
+export async function deployCompoundV3Ark() {
   const config = getConfigByNetwork(hre.network.name)
 
-  console.log(kleur.green().bold('Starting AaveV3Ark deployment process...'))
+  console.log(kleur.green().bold('Starting CompoundV3Ark deployment process...'))
 
   const userInput = await getUserInput()
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
-    const deployedAaveV3Ark = (await hre.ignition.deploy(AaveV3ArkModule, {
+    const deployedCompoundV3Ark = (await hre.ignition.deploy(CompoundV3ArkModule, {
       parameters: {
-        AaveV3ArkModule: {
-          aaveV3Pool: config.aaveV3.pool,
-          rewardsController: config.aaveV3.rewards,
+        CompoundV3ArkModule: {
+          compoundV3Pool: userInput.compoundV3Pool,
+          compoundV3Rewards: userInput.compoundV3Rewards,
           arkParams: {
-            name: 'AaveV3Ark',
+            name: 'CompoundV3Ark',
             accessManager: config.protocolAccessManager,
             configurationManager: config.configurationManager,
             token: userInput.token,
-            depositCap: userInput.depositCap,
-            maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-            maxRebalanceInflow: userInput.maxRebalanceInflow,
+            maxAllocation: userInput.depositCap,
           },
         },
       },
-    })) as AaveV3ArkContracts
+    })) as CompoundV3ArkContracts
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
     // Logging
-    ModuleLogger.logAaveV3Ark(deployedAaveV3Ark)
+    ModuleLogger.logCompoundV3Ark(deployedCompoundV3Ark)
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -44,6 +42,16 @@ export async function deployAaveV3Ark() {
 
 async function getUserInput() {
   return await prompts([
+    {
+      type: 'text',
+      name: 'compoundV3Pool',
+      message: 'Enter the Compound V3 Pool address:',
+    },
+    {
+      type: 'text',
+      name: 'compoundV3Rewards',
+      message: 'Enter the Compound V3 Rewards address:',
+    },
     {
       type: 'text',
       name: 'token',
@@ -69,6 +77,8 @@ async function getUserInput() {
 
 async function confirmDeployment(userInput: any) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
+  console.log(kleur.yellow(`Compound V3 Pool: ${userInput.compoundV3Pool}`))
+  console.log(kleur.yellow(`Compound V3 Rewards: ${userInput.compoundV3Rewards}`))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
@@ -83,7 +93,7 @@ async function confirmDeployment(userInput: any) {
   return confirmed
 }
 
-deployAaveV3Ark().catch((error) => {
+deployCompoundV3Ark().catch((error) => {
   console.error(kleur.red().bold('An error occurred:'), error)
   process.exit(1)
 })
