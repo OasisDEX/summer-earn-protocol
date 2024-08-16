@@ -7,12 +7,15 @@ export default buildModule('FleetModule', (m) => {
     const fleetSymbol = m.getParameter<string>('fleetSymbol');
     const asset = m.getParameter<string>('asset');
     const initialArks = m.getParameter<string[]>('initialArks');
-    const bufferArk = m.getParameter<string>('bufferArk');
     const initialMinimumFundsBufferBalance = m.getParameter<string>('initialMinimumFundsBufferBalance');
     const initialRebalanceCooldown = m.getParameter<string>('initialRebalanceCooldown');
     const depositCap = m.getParameter<string>('depositCap');
     const initialTipRate = m.getParameter<string>('initialTipRate');
     const minimumRateDifference = m.getParameter<string>('minimumRateDifference');
+    const bufferArkParams = m.getParameter<any>('bufferArkParams');
+
+    // Deploy BufferArk directly
+    const bufferArk = m.contract('BufferArk', [bufferArkParams]);
 
     const fleetCommander = m.contract('FleetCommander', [
         {
@@ -31,9 +34,10 @@ export default buildModule('FleetModule', (m) => {
         }
     ]);
 
-    return { fleetCommander };
+    return { fleetCommander, bufferArk };
 });
 
 export type FleetContracts = {
     fleetCommander: { address: string };
+    bufferArk: { address: string };
 };
