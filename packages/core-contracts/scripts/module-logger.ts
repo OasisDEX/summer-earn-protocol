@@ -1,4 +1,4 @@
-import { ProtocolCoreContracts } from '../ignition/modules/protocol-core';
+import { CoreContracts } from '../ignition/modules/core';
 
 export class ModuleLogger {
     private moduleName: string;
@@ -20,8 +20,8 @@ export class ModuleLogger {
         console.log('======================================\n');
     }
 
-    static logProtocolCore(contracts: ProtocolCoreContracts): void {
-        const logger = new ModuleLogger('Protocol Core', {
+    static logCore(contracts: CoreContracts): void {
+        const logger = new ModuleLogger('Core', {
             'Protocol Access Manager': contracts.protocolAccessManager,
             'Tip Jar': contracts.tipJar,
             'Raft': contracts.raft,

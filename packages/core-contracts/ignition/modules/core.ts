@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-export default buildModule('ProtocolCore', (m) => {
+export default buildModule('Core', (m) => {
   // Addresses
   const deployer = m.getAccount(0)
   const swapProvider = m.getParameter('swapProvider')
@@ -17,7 +17,7 @@ export default buildModule('ProtocolCore', (m) => {
   return { protocolAccessManager, tipJar, raft, configurationManager }
 })
 
-export type ProtocolCoreContracts = {
+export type CoreContracts = {
   protocolAccessManager: { address: string }
   tipJar: { address: string }
   raft: { address: string }
