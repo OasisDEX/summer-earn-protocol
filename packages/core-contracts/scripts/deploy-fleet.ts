@@ -9,6 +9,15 @@ import { loadFleetDefinition } from './fleet-definition-handler';
 import kleur from 'kleur';
 import prompts from 'prompts';
 
+/**
+ * Main function to deploy a fleet.
+ * This function orchestrates the entire deployment process, including:
+ * - Loading the fleet definition
+ * - Getting core contract addresses
+ * - Collecting BufferArk parameters
+ * - Deploying the fleet and BufferArk contracts
+ * - Logging deployment results
+ */
 async function deployFleet() {
     const network = hre.network.name;
     const config = getConfigByNetwork(network);
@@ -37,6 +46,10 @@ async function deployFleet() {
     }
 }
 
+/**
+ * Prompts the user for the fleet definition file and loads it.
+ * @returns {Promise<any>} The loaded fleet definition object.
+ */
 async function getFleetDefinition() {
     const response = await prompts({
         type: 'text',
@@ -51,7 +64,14 @@ async function getFleetDefinition() {
     return loadFleetDefinition(fleetDefinitionPath);
 }
 
-function getAssetAddress(assetSymbol: string, config: any) {
+/**
+ * Retrieves the asset address from the config based on the asset symbol.
+ * @param {string} assetSymbol - The symbol of the asset.
+ * @param {BaseConfig} config - The configuration object.
+ * @returns {string} The address of the asset.
+ * @throws {Error} If the asset symbol is not found in the config.
+ */
+function getAssetAddress(assetSymbol: string, config: BaseConfig): string {
     const assetSymbolLower = assetSymbol.toLowerCase() as keyof typeof config.tokens;
     if (!Object.keys(config.tokens).includes(assetSymbolLower)) {
         throw new Error(`No token address for symbol ${assetSymbol} found in config`);
@@ -59,6 +79,12 @@ function getAssetAddress(assetSymbol: string, config: any) {
     return config.tokens[assetSymbolLower];
 }
 
+/**
+ * Prompts the user for BufferArk parameters.
+ * @param {BaseConfig['core']} coreContracts - The core contract addresses.
+ * @param {string} asset - The address of the asset.
+ * @returns {Promise<any>} An object containing the BufferArk parameters.
+ */
 async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: string) {
     return await prompts([
         {
@@ -88,7 +114,13 @@ async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: stri
     ]);
 }
 
-async function confirmDeployment(fleetDefinition: any, bufferArkParams: any) {
+/**
+ * Displays a summary of the deployment parameters and asks for user confirmation.
+ * @param {any} fleetDefinition - The fleet definition object.
+ * @param {any} bufferArkParams - The BufferArk parameters.
+ * @returns {Promise<boolean>} True if the user confirms, false otherwise.
+ */
+async function confirmDeployment(fleetDefinition: any, bufferArkParams: any): Promise<boolean> {
     console.log(kleur.cyan().bold('\nSummary of collected values:'));
     console.log(kleur.yellow('Fleet Definition:'));
     console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)));
@@ -104,7 +136,15 @@ async function confirmDeployment(fleetDefinition: any, bufferArkParams: any) {
     return confirmed;
 }
 
-async function deployFleetContracts(fleetDefinition: any, coreContracts: BaseConfig['core'], asset: string, bufferArkParams: any) {
+/**
+ * Deploys the Fleet and BufferArk contracts using Hardhat Ignition.
+ * @param {any} fleetDefinition - The fleet definition object.
+ * @param {BaseConfig['core']} coreContracts - The core contract addresses.
+ * @param {string} asset - The address of the asset.
+ * @param {any} bufferArkParams - The BufferArk parameters.
+ * @returns {Promise<FleetContracts>} The deployed fleet contracts.
+ */
+async function deployFleetContracts(fleetDefinition: any, coreContracts: BaseConfig['core'], asset: string, bufferArkParams: any): Promise<FleetContracts> {
     return (await hre.ignition.deploy(FleetModule, {
         parameters: {
             FleetModule: {
@@ -130,6 +170,10 @@ async function deployFleetContracts(fleetDefinition: any, coreContracts: BaseCon
     })) as FleetContracts;
 }
 
+/**
+ * Logs the results of the deployment, including important addresses and next steps.
+ * @param {FleetContracts} deployedFleet - The deployed fleet contracts.
+ */
 function logDeploymentResults(deployedFleet: FleetContracts) {
     ModuleLogger.logFleet(deployedFleet);
 
@@ -148,6 +192,7 @@ function logDeploymentResults(deployedFleet: FleetContracts) {
     console.log(kleur.yellow('Fleet Commander Address:'), kleur.cyan(deployedFleet.fleetCommander.address));
 }
 
+// Execute the deployFleet function and handle any errors
 deployFleet().catch((error) => {
     console.error(kleur.red('Error during fleet deployment:'));
     console.error(error);

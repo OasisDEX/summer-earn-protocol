@@ -40,18 +40,36 @@ const config: HardhatUserConfig = {
       url: `${process.env.MAINNET_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
     },
-    // optimism: {},
-    // arbitrum: {},
+    optimism: {
+      url: `${process.env.OPTIMISM_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+    },
+    arbitrum: {
+      url: `${process.env.ARBITRUM_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+    },
     base: {
       url: `${process.env.BASE_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
     },
 
     // testnets
-    // sepolia_mainnet: {},
-    // sepolia_optimism: {},
-    // sepolia_arbitrum: {},
-    // sepolia_base: {}
+    sepolia_mainnet: {
+      url: `${process.env.SEPOLIA_MAINNET_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+    },
+    sepolia_optimism: {
+      url: `${process.env.SEPOLIA_OPTIMISM_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+    },
+    sepolia_arbitrum: {
+      url: `${process.env.SEPOLIA_ARBITRUM_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+    },
+    sepolia_base: {
+      url: `${process.env.SEPOLIA_BASE_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+    },
   },
 }
 
