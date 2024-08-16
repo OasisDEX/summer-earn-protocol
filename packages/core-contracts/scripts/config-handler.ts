@@ -28,13 +28,7 @@ export function getConfigByNetwork(network: string): BaseConfig {
 }
 
 function validateConfig(config: BaseConfig): void {
-  const requiredFields: (keyof BaseConfig)[] = [
-    'tokens',
-    'core',
-    'aaveV3',
-    'morpho',
-    'metaMorpho'
-  ]
+  const requiredFields: (keyof BaseConfig)[] = ['tokens', 'core', 'aaveV3', 'morpho', 'metaMorpho']
 
   for (const field of requiredFields) {
     if (!(field in config)) {
@@ -65,6 +59,8 @@ function validateConfig(config: BaseConfig): void {
     Number(config.core.tipRate) < 0 ||
     Number(config.core.tipRate) > 10000
   ) {
-    throw new Error(`Invalid tipRate: ${config.core.tipRate}. Should be a number between 0 and 10000.`)
+    throw new Error(
+      `Invalid tipRate: ${config.core.tipRate}. Should be a number between 0 and 10000.`,
+    )
   }
 }
