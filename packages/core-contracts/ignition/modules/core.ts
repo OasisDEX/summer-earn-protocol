@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-export default buildModule('Core', (m) => {
+export default buildModule('CoreModule', (m) => {
   // Addresses
   const deployer = m.getAccount(0)
   const swapProvider = m.getParameter('swapProvider')

@@ -1,7 +1,7 @@
-import {deployCore} from "./deploy-core";
+import { deployCore } from './deploy-core'
 
 async function main() {
-    await deployCore();
+  await deployCore()
 }
 
 main().catch((error) => {

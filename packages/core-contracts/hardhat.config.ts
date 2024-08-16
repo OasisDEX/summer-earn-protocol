@@ -20,6 +20,9 @@ const config: HardhatUserConfig = {
     sources: './src',
   },
   networks: {
+    local: {
+      url: `http://127.0.0.1:8545`,
+    },
     hardhat: {
       accounts: [
         {
