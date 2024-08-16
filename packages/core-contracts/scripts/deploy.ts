@@ -1,21 +1,27 @@
-import hre from "hardhat";
-import ProtocolCore from "../ignition/modules/protocol-core";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import fs from 'fs';
-import path from 'path';
-
-// Load the addresses from the JSON file
-const addresses = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'addresses.json'), 'utf8'));
+import hre from 'hardhat'
+import ProtocolCore, {ProtocolCoreContracts} from '../ignition/modules/protocol-core'
+import {getConfigByNetwork} from "./config-handler";
+import {ModuleLogger} from "./module-logger";
 
 async function main() {
-    const { protocolAccessManager, tipJar, raft, configurationManager } = await hre.ignition.deploy(ProtocolCore, {
-        parameters: { ProtocolCore: { swapProvider: '0x0', multiSigTreasury: '0x0' } },
-    });
+  const config = getConfigByNetwork(hre.network.name)
+  const deployedProtocolCore = (await hre.ignition.deploy(
+    ProtocolCore,
+    {
+      parameters: {
+        ProtocolCore: {
+          swapProvider: config.swapProvider,
+          treasury: config.treasury,
+        },
+      },
+    },
+  )) as ProtocolCoreContracts;
 
-    // Logging
-
-    // Store addresses
-    // console.log(`Pro deployed to: ${await apollo.getAddress()}`);
+  // Logging
+  ModuleLogger.logProtocolCore(deployedProtocolCore);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error)
+  process.exit(1)
+})

@@ -5,43 +5,39 @@ import { resolve } from 'path'
 // needs the variables to be preloaded
 dotenv.config({ path: resolve(__dirname, './.env') })
 
-import type { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-foundry";
-import "@nomicfoundation/hardhat-ignition-viem";
+import type { HardhatUserConfig } from 'hardhat/config'
+import '@nomicfoundation/hardhat-foundry'
+import '@nomicfoundation/hardhat-ignition-viem'
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.26",
+    version: '0.8.26',
     settings: {
       viaIR: true,
     },
   },
   paths: {
-    sources: "./src",
+    sources: './src',
   },
   networks: {
     hardhat: {
       accounts: [
         {
           privateKey: `0x${process.env.DEPLOYER_PRIV_KEY}`,
-          balance: "1000000000000000000000" // 1000 ETH in wei
+          balance: '1000000000000000000000', // 1000 ETH in wei
         },
-      ]
+      ],
     },
     // mainnets
     mainnet: {
       url: `${process.env.MAINNET_RPC_URL}`,
-      accounts: [
-        `0x${process.env.DEPLOYER_PRIV_KEY}`,
-      ]
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
     },
     // optimism: {},
     // arbitrum: {},
     base: {
       url: `${process.env.BASE_RPC_URL}`,
-      accounts: [
-        `0x${process.env.DEPLOYER_PRIV_KEY}`,
-      ]
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
     },
 
     // testnets
@@ -49,7 +45,7 @@ const config: HardhatUserConfig = {
     // sepolia_optimism: {},
     // sepolia_arbitrum: {},
     // sepolia_base: {}
-  }
-};
+  },
+}
 
-export default config;
+export default config
