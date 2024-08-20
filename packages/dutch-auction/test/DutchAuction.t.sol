@@ -599,6 +599,14 @@ contract DutchAuctionLibraryTest is Test {
         );
     }
 
+    function test_BuyTokens_AuctionNotFound() public {
+        vm.expectRevert(abi.encodeWithSignature("AuctionNotFound()"));
+        auctionManager.buyTokens(999, 0);
+    }
+    function test_FinalizeAuction_AuctionNotFound() public {
+        vm.expectRevert(abi.encodeWithSignature("AuctionNotFound()"));
+        auctionManager.finalizeAuction(999);
+    }
     function testBuyingAllTokensAndFinalizing() public {
         uint256 auctionId = _createAuction(
             auctionToken1,

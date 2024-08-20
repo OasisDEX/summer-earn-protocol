@@ -272,7 +272,64 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
             "Unsold tokens should be in treasury"
         );
     }
+    function test_BuyAllTokensAndAutoSettle() public {
+        // Start the auction
+        vm.prank(governor);
+        buyAndBurn.startAuction(address(tokenToAuction1));
 
+        // Get the current price
+        uint256 currentPrice = buyAndBurn.getCurrentPrice(1);
+
+        // Calculate the total cost to buy all tokens
+        uint256 totalCost = (currentPrice * AUCTION_AMOUNT) / 1e18;
+
+        // Approve and buy all tokens
+        vm.startPrank(buyer);
+        summerToken.approve(address(buyAndBurn), totalCost);
+
+        // Expect the SummerBurned event to be emitted
+        vm.expectEmit(true, true, true, true);
+        emit SummerBurned(totalCost);
+
+        // Buy all tokens
+        buyAndBurn.buyTokens(1, AUCTION_AMOUNT);
+        vm.stopPrank();
+
+        // Check that the auction is finalized
+        (, DutchAuctionLibrary.AuctionState memory state) = buyAndBurn.auctions(
+            1
+        );
+        assertTrue(state.isFinalized, "Auction should be finalized");
+        assertEq(state.remainingTokens, 0, "All tokens should be sold");
+
+        // Check that SUMMER tokens were burned
+        assertEq(
+            summerToken.balanceOf(address(buyAndBurn)),
+            0,
+            "All SUMMER tokens should be burned"
+        );
+
+        // Check that auctioned tokens were transferred to the buyer
+        assertEq(
+            tokenToAuction1.balanceOf(buyer),
+            AUCTION_AMOUNT,
+            "All auctioned tokens should be transferred to the buyer"
+        );
+
+        // Check that the auction is removed from ongoingAuctions
+        assertEq(
+            buyAndBurn.ongoingAuctions(address(tokenToAuction1)),
+            0,
+            "Auction should be removed from ongoingAuctions"
+        );
+
+        // Check that auctionSummerRaised is reset
+        assertEq(
+            buyAndBurn.auctionSummerRaised(1),
+            0,
+            "auctionSummerRaised should be reset"
+        );
+    }
     function test_GetAuctionInfo() public {
         vm.prank(governor);
         buyAndBurn.startAuction(address(tokenToAuction1));

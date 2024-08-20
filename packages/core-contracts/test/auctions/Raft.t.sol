@@ -697,7 +697,126 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             expectedUnsoldTokens
         );
     }
+    function test_GetAuctionInfo() public {
+        // Setup the auction
+        _setupAuction();
 
+        // Get the auction info
+        DutchAuctionLibrary.Auction memory auctionInfo = raft.getAuctionInfo(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+
+        // Verify the auction config
+        assertEq(auctionInfo.config.id, 1, "Auction ID should be 1");
+        assertEq(
+            address(auctionInfo.config.auctionToken),
+            address(mockRewardToken),
+            "Auction token should be mockRewardToken"
+        );
+        assertEq(
+            address(auctionInfo.config.paymentToken),
+            address(mockPaymentToken),
+            "Payment token should be mockPaymentToken"
+        );
+        assertEq(
+            auctionInfo.config.totalTokens,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            "Total tokens should be correct"
+        );
+        assertEq(
+            auctionInfo.config.startTime,
+            block.timestamp,
+            "Start time should be current block timestamp"
+        );
+        assertEq(
+            auctionInfo.config.endTime,
+            block.timestamp + AUCTION_DURATION,
+            "End time should be start time + duration"
+        );
+        assertEq(
+            auctionInfo.config.startPrice,
+            START_PRICE,
+            "Start price should be correct"
+        );
+        assertEq(
+            auctionInfo.config.endPrice,
+            END_PRICE,
+            "End price should be correct"
+        );
+        assertEq(
+            uint8(auctionInfo.config.decayType),
+            uint8(DecayFunctions.DecayType.Linear),
+            "Decay type should be Linear"
+        );
+
+        // Verify the auction state
+        assertEq(
+            auctionInfo.state.remainingTokens,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ),
+            "Remaining tokens should be total tokens"
+        );
+        assertFalse(
+            auctionInfo.state.isFinalized,
+            "Auction should not be finalized"
+        );
+
+        // Buy some tokens
+        uint256 buyAmount = 1000;
+        uint256 currentPrice = raft.getCurrentPrice(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+        uint256 amountToSpend = (buyAmount * currentPrice) / 1e18;
+
+        vm.startPrank(buyer);
+        mockPaymentToken.approve(address(raft), amountToSpend);
+        raft.buyTokens(address(mockArk), address(mockRewardToken), buyAmount);
+        vm.stopPrank();
+
+        // Get the updated auction info
+        auctionInfo = raft.getAuctionInfo(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+
+        // Verify the updated state
+        assertEq(
+            auctionInfo.state.remainingTokens,
+            REWARD_AMOUNT -
+                REWARD_AMOUNT.applyPercentage(
+                    Percentage.wrap(KICKER_REWARD_PERCENTAGE)
+                ) -
+                buyAmount,
+            "Remaining tokens should be updated"
+        );
+        assertFalse(
+            auctionInfo.state.isFinalized,
+            "Auction should still not be finalized"
+        );
+
+        // Finalize the auction
+        vm.warp(block.timestamp + AUCTION_DURATION + 1);
+        raft.finalizeAuction(address(mockArk), address(mockRewardToken));
+
+        // Get the final auction info
+        auctionInfo = raft.getAuctionInfo(
+            address(mockArk),
+            address(mockRewardToken)
+        );
+
+        // Verify the final state
+        assertTrue(
+            auctionInfo.state.isFinalized,
+            "Auction should be finalized"
+        );
+    }
     function _setupAuction() internal {
         vm.startPrank(governor);
         raft.harvest(

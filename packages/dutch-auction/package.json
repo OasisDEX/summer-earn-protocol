@@ -31,7 +31,7 @@
     "prettier:write": "prettier --write \"**/*.{json,md,yml}\" --ignore-path \".prettierignore\"",
     "test": "forge test",
     "test:coverage": "pnpm run gen:prices && forge coverage",
-    "test:coverage:report": "pnpm run gen:prices && forge coverage --ir-minimum --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
+    "test:coverage:report": "pnpm run gen:prices && forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage",
     "gen:prices": "cd utils && python generate_price_data.py"
   }
 }
