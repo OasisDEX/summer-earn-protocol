@@ -36,7 +36,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 ark2RebalanceAmount = 2000 * 10 ** 6;
 
         // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 
@@ -125,7 +125,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 ark1RebalanceAmount = 3000 * 10 ** 6;
 
         // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 
@@ -164,7 +164,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 bufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(bufferBalance);
+        fleetCommanderStorageWriter.setminimumBufferBalance(bufferBalance);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -189,7 +189,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 
@@ -224,7 +224,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 
@@ -259,7 +259,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 ark1RebalanceAmount = 3000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 
@@ -294,7 +294,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         (IArk bufferArk, , , ) = fleetCommander.config();
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArk), initialBufferBalance);
@@ -346,7 +346,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         (IArk bufferArk, , , ) = fleetCommander.config();
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArk), initialBufferBalance);
@@ -375,7 +375,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 initialBufferBalance = 10000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -403,7 +403,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -434,7 +434,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -466,7 +466,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1MaxAllocation = 5000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -500,7 +500,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1MaxAllocation = 5000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -534,7 +534,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1MaxAllocation = 5000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -569,7 +569,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 2000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -600,7 +600,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 2000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 

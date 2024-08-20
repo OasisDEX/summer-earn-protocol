@@ -25,10 +25,10 @@ contract FleetCommanderStorageWriter is Test {
             .find();
     }
 
-    function setMinimumFundsBufferBalance(uint256 value) public {
+    function setminimumBufferBalance(uint256 value) public {
         bytes32 slot = bytes32(configSlot);
-        bytes32 minimumFundsBufferBalanceSlot = bytes32(uint256(slot) + 1); // Offset for minimumFundsBufferBalance in the struct
-        vm.store(fleetCommander, minimumFundsBufferBalanceSlot, bytes32(value));
+        bytes32 minimumBufferBalanceSlot = bytes32(uint256(slot) + 1); // Offset for minimumBufferBalance in the struct
+        vm.store(fleetCommander, minimumBufferBalanceSlot, bytes32(value));
     }
 
     function setDepositCap(uint256 value) public {

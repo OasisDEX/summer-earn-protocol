@@ -36,7 +36,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 
@@ -81,7 +81,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = type(uint256).max;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 
@@ -131,7 +131,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 ark2IntitialBalance = 2500 * 10 ** 6;
         uint256 ark3IntitialBalance = 2500 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 
@@ -476,7 +476,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 

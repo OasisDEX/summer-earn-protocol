@@ -24,7 +24,7 @@ contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinimumFundsBufferBalance(
+        fleetCommanderStorageWriter.setminimumBufferBalance(
             minBufferBalance
         );
 

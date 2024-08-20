@@ -25,7 +25,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             configurationManager: address(configurationManager),
             accessManager: address(accessManager),
             initialArks: new address[](0),
-            initialMinimumFundsBufferBalance: 1000,
+            initialMinimumBufferBalance: 1000,
             initialRebalanceCooldown: 1 hours,
             asset: address(mockToken),
             name: "Fleet Commander",
@@ -39,12 +39,12 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         FleetCommander newFleetCommander = new FleetCommander(params);
         (
             IArk bufferArk,
-            uint256 minimumFundsBufferBalance,
+            uint256 minimumBufferBalance,
             uint256 depositCap,
 
         ) = newFleetCommander.config();
 
-        assertEq(minimumFundsBufferBalance, 1000);
+        assertEq(minimumBufferBalance, 1000);
         assertEq(depositCap, 10000);
         assertEq(address(bufferArk), bufferArkAddress);
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
@@ -75,11 +75,11 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
         emit IFleetCommanderEvents
-            .FleetCommanderMinimumFundsBufferBalanceUpdated(newBalance);
+            .FleetCommanderminimumBufferBalanceUpdated(newBalance);
         fleetCommander.setMinimumBufferBalance(newBalance);
 
-        (, uint256 minimumFundsBufferBalance, , ) = fleetCommander.config();
-        assertEq(minimumFundsBufferBalance, newBalance);
+        (, uint256 minimumBufferBalance, , ) = fleetCommander.config();
+        assertEq(minimumBufferBalance, newBalance);
     }
 
     function test_TransferDisabled() public {

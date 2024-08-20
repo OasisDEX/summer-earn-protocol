@@ -15,7 +15,7 @@ struct FleetCommanderParams {
     address accessManager;
     address asset;
     address bufferArk;
-    uint256 initialMinimumFundsBufferBalance;
+    uint256 initialMinimumBufferBalance;
     uint256 initialRebalanceCooldown;
     uint256 depositCap;
     Percentage initialTipRate;
@@ -41,7 +41,7 @@ struct FleetConfig {
      *      available for withdrawals or rebalancing operations. It's denominated in the
      *      smallest unit of the underlying asset (e.g., wei for ETH).
      */
-    uint256 minimumFundsBufferBalance;
+    uint256 minimumBufferBalance;
     /**
      * @notice The maximum total value of assets that can be deposited into the FleetCommander
      * @dev This cap helps manage the total assets under management and can be used to

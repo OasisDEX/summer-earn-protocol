@@ -44,7 +44,7 @@ contract FleetCommander is
     {
         config = FleetConfig({
             bufferArk: IArk(params.bufferArk),
-            minimumFundsBufferBalance: params.initialMinimumFundsBufferBalance,
+            minimumBufferBalance: params.initialMinimumBufferBalance,
             depositCap: params.depositCap,
             minimumRateDifference: params.minimumRateDifference
         });
@@ -108,7 +108,7 @@ contract FleetCommander is
     ) public collectTip returns (uint256 assets) {
         _validateRedeem(shares, owner);
 
-        uint256 prevQueueBalance = config.bufferArk.totalAssets();
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
 
         assets = previewRedeem(shares);
         _disembark(address(config.bufferArk), assets);
@@ -116,7 +116,7 @@ contract FleetCommander is
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
-            prevQueueBalance,
+            previousFundsBufferBalance,
             config.bufferArk.totalAssets()
         );
     }
@@ -184,7 +184,7 @@ contract FleetCommander is
     ) public override(ERC4626, IERC4626) collectTip returns (uint256 shares) {
         _validateDeposit(assets, _msgSender());
 
-        uint256 prevQueueBalance = config.bufferArk.totalAssets();
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
 
         shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
@@ -192,7 +192,7 @@ contract FleetCommander is
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
-            prevQueueBalance,
+            previousFundsBufferBalance,
             config.bufferArk.totalAssets()
         );
     }
@@ -203,7 +203,7 @@ contract FleetCommander is
     ) public override(ERC4626, IERC4626) collectTip returns (uint256 assets) {
         _validateMint(shares, _msgSender());
 
-        uint256 prevQueueBalance = config.bufferArk.totalAssets();
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
 
         assets = previewMint(shares);
         _deposit(_msgSender(), receiver, assets, shares);
@@ -211,7 +211,7 @@ contract FleetCommander is
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
-            prevQueueBalance,
+            previousFundsBufferBalance,
             config.bufferArk.totalAssets()
         );
     }
@@ -386,8 +386,8 @@ contract FleetCommander is
     function setMinimumBufferBalance(
         uint256 newMinimumBalance
     ) external onlyGovernor {
-        config.minimumFundsBufferBalance = newMinimumBalance;
-        emit FleetCommanderMinimumFundsBufferBalanceUpdated(newMinimumBalance);
+        config.minimumBufferBalance = newMinimumBalance;
+        emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
 
     function setMinimumRateDifference(
@@ -648,11 +648,11 @@ contract FleetCommander is
         }
 
         if (!isMovingToBuffer) {
-            if (initialBufferBalance <= config.minimumFundsBufferBalance) {
+            if (initialBufferBalance <= config.minimumBufferBalance) {
                 revert FleetCommanderNoExcessFunds();
             }
             uint256 excessFunds = initialBufferBalance -
-                config.minimumFundsBufferBalance;
+                config.minimumBufferBalance;
             if (totalToMove > excessFunds) {
                 revert FleetCommanderInsufficientBuffer();
             }

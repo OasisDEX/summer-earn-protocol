@@ -65,7 +65,7 @@ contract FleetCommanderDeploy is DeploymentScript {
             configurationManager: config.configurationManager,
             accessManager: config.protocolAccessManager,
             initialArks: initialArks,
-            initialMinimumFundsBufferBalance: 1 * 10 ** 6,
+            initialMinimumBufferBalance: 1 * 10 ** 6,
             initialRebalanceCooldown: 3 minutes,
             asset: tokenAddress,
             name: fleetName,
