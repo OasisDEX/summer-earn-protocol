@@ -1,8 +1,8 @@
 import hre from 'hardhat'
 import CoreModule, { CoreContracts } from '../ignition/modules/core'
-import { getConfigByNetwork } from './config-handler'
-import { BaseConfig } from './config-types'
-import { ModuleLogger } from './module-logger'
+import { getConfigByNetwork } from './helpers/config-handler'
+import { BaseConfig } from '../ignition/config/config-types'
+import { ModuleLogger } from './helpers/module-logger'
 
 /**
  * Main function to deploy the core contracts.

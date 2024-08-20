@@ -2,9 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import AaveV3ArkModule, { AaveV3ArkContracts } from '../ignition/modules/aavev3-ark'
-import { getConfigByNetwork } from './config-handler'
-import { BaseConfig } from './config-types'
-import { ModuleLogger } from './module-logger'
+import { getConfigByNetwork } from './helpers/config-handler'
+import { BaseConfig } from '../ignition/config/config-types'
+import { ModuleLogger } from './helpers/module-logger'
 
 /**
  * Main function to deploy an AaveV3Ark.

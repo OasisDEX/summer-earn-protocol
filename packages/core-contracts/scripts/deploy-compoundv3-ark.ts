@@ -2,9 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import CompoundV3ArkModule, { CompoundV3ArkContracts } from '../ignition/modules/compoundv3-ark'
-import { getConfigByNetwork } from './config-handler'
-import { BaseConfig } from './config-types'
-import { ModuleLogger } from './module-logger'
+import { getConfigByNetwork } from './helpers/config-handler'
+import { BaseConfig } from '../ignition/config/config-types'
+import { ModuleLogger } from './helpers/module-logger'
 
 /**
  * Main function to deploy a CompoundV3Ark.
