@@ -18,7 +18,7 @@ import "../errors/TipJarErrors.sol";
 contract TipJar is ITipJar, ProtocolAccessManaged {
     using PercentageUtils for uint256;
 
-    mapping(address => TipStream) public tipStreams;
+    mapping(address recipient => TipStream tipStream) public tipStreams;
     address[] public tipStreamRecipients;
     address public treasuryAddress;
 

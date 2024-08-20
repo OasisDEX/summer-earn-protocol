@@ -224,7 +224,7 @@ contract RaftDecimalsTest is AuctionTestBase {
         );
 
         // Harvest rewards
-        vm.prank(superKeeper);
+        vm.prank(governor);
         raft.harvest(
             address(params.mockArk),
             address(params.rewardToken),
@@ -232,7 +232,7 @@ contract RaftDecimalsTest is AuctionTestBase {
         );
 
         // Start auction
-        vm.prank(superKeeper);
+        vm.prank(governor);
         raft.startAuction(
             address(params.mockArk),
             address(params.rewardToken),

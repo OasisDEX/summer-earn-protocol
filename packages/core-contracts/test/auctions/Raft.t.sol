@@ -88,7 +88,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.expectEmit(true, true, true, true);
         emit ArkHarvested(address(mockArk), address(mockRewardToken));
 
-        vm.prank(superKeeper);
+        vm.prank(governor);
         raft.harvest(
             address(mockArk),
             address(mockRewardToken),
@@ -105,14 +105,14 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     }
 
     function test_HarvestAndStartAuction() public {
-        vm.prank(superKeeper);
+        vm.prank(governor);
         vm.expectEmit(true, true, true, true);
         emit ArkHarvested(address(mockArk), address(mockRewardToken));
 
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
             1,
-            superKeeper,
+            governor,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -189,7 +189,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         uint256 secondHarvestAmount = 150; // Different amount for the second harvest
         deal(address(mockRewardToken), address(mockArk), secondHarvestAmount);
 
-        vm.startPrank(superKeeper);
+        vm.startPrank(governor);
         vm.expectEmit(true, true, true, true);
         emit ArkHarvested(address(mockArk), address(mockRewardToken));
 
@@ -203,7 +203,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
             2, // This should be the next auction ID
-            superKeeper,
+            governor,
             secondHarvestAmount -
                 secondHarvestAmount.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -373,7 +373,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         uint256 secondHarvestAmount = 1_500_000_000; // Different amount for the second harvest
         deal(address(mockRewardToken), address(mockArk), secondHarvestAmount);
 
-        vm.startPrank(superKeeper);
+        vm.startPrank(governor);
         vm.expectEmit(true, true, true, true);
         emit ArkHarvested(address(mockArk), address(mockRewardToken));
 
@@ -391,7 +391,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
             2, // This should be the next auction ID
-            superKeeper,
+            governor,
             secondAuctionTotalAmount -
                 secondAuctionTotalAmount.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -481,7 +481,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     }
 
     function test_StartAuction() public {
-        vm.prank(superKeeper);
+        vm.prank(governor);
         raft.harvest(
             address(mockArk),
             address(mockRewardToken),
@@ -491,7 +491,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
             1,
-            superKeeper,
+            governor,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -501,7 +501,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             )
         );
 
-        vm.prank(superKeeper);
+        vm.prank(governor);
         raft.startAuction(
             address(mockArk),
             address(mockRewardToken),
@@ -632,7 +632,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     function test_CannotStartAuctionTwice() public {
         _setupAuction();
 
-        vm.prank(superKeeper);
+        vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSelector(
                 RaftAuctionAlreadyRunning.selector,
@@ -648,7 +648,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     }
 
     function test_CannotStartAuctionWithNoTokens() public {
-        vm.prank(superKeeper);
+        vm.prank(governor);
         vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
         raft.startAuction(
             address(mockArk),
@@ -699,7 +699,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     }
 
     function _setupAuction() internal {
-        vm.startPrank(superKeeper);
+        vm.startPrank(governor);
         raft.harvest(
             address(mockArk),
             address(mockRewardToken),

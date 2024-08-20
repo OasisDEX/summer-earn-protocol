@@ -8,14 +8,23 @@ import {AuctionManagerBase, DutchAuctionLibrary, AuctionDefaultParameters} from 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../errors/RaftErrors.sol";
 
+/**
+ * @title Raft
+ * @notice This contract manages the harvesting of rewards from Arks and conducts Dutch auctions for the reward tokens.
+ * @dev Inherits from IRaft, ArkAccessManaged, and AuctionManagerBase to handle access control and auction mechanics.
+ */
 contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
+    /// @notice Mapping of harvested rewards for each Ark and reward token
     mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount))
         public harvestedRewards;
+    /// @notice Mapping of ongoing auctions for each Ark and reward token
     mapping(address ark => mapping(address rewardToken => DutchAuctionLibrary.Auction))
         public auctions;
+    /// @notice Mapping of unsold tokens for each Ark and reward token
     mapping(address ark => mapping(address rewardToken => uint256 remainingTokens))
         public unsoldTokens;
+    /// @notice Mapping of payment tokens boarded to each Ark and reward token
     mapping(address ark => mapping(address rewardToken => uint256 paymentTokensToBoard))
         public paymentTokensToBoard;
 
@@ -24,24 +33,25 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         AuctionDefaultParameters memory defaultParameters
     ) ArkAccessManaged(accessManager) AuctionManagerBase(defaultParameters) {}
 
+    /* @inheritdoc IRaft */
     function harvestAndStartAuction(
         address ark,
         address rewardToken,
         address paymentToken,
         bytes calldata extraHarvestData
-    ) external {
+    ) external onlyGovernor {
         _harvest(ark, rewardToken, extraHarvestData);
         _startAuction(ark, rewardToken, paymentToken);
     }
-
+    /* @inheritdoc IRaft */
     function startAuction(
         address ark,
         address rewardToken,
         address paymentToken
-    ) public {
+    ) public onlyGovernor {
         _startAuction(ark, rewardToken, paymentToken);
     }
-
+    /* @inheritdoc IRaft */
     function harvest(
         address ark,
         address rewardToken,
@@ -49,7 +59,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     ) public {
         _harvest(ark, rewardToken, extraHarvestData);
     }
-
+    /* @inheritdoc IRaft */
     function buyTokens(
         address ark,
         address rewardToken,
@@ -66,7 +76,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
             _settleAuction(ark, rewardToken, auction);
         }
     }
-
+    /* @inheritdoc IRaft */
     function finalizeAuction(address ark, address rewardToken) external {
         DutchAuctionLibrary.Auction storage auction = auctions[ark][
             rewardToken
@@ -74,27 +84,27 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         auction.finalizeAuction();
         _settleAuction(ark, rewardToken, auction);
     }
-
+    /* @inheritdoc IRaft */
     function getAuctionInfo(
         address ark,
         address rewardToken
     ) external view returns (DutchAuctionLibrary.Auction memory) {
         return auctions[ark][rewardToken];
     }
-
+    /* @inheritdoc IRaft */
     function getCurrentPrice(
         address ark,
         address rewardToken
     ) external view returns (uint256) {
         return _getCurrentPrice(auctions[ark][rewardToken]);
     }
-
+    /* @inheritdoc IRaft */
     function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newConfig
     ) external onlyGovernor {
         _updateAuctionDefaultParameters(newConfig);
     }
-
+    /* @inheritdoc IRaft */
     function getHarvestedRewards(
         address ark,
         address rewardToken
@@ -152,6 +162,12 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         );
     }
 
+    /**
+     * @dev Settles the auction by handling unsold tokens and boarding payment tokens
+     * @param ark The address of the Ark
+     * @param rewardToken The address of the reward token
+     * @param auction The auction to be settled
+     */
     function _settleAuction(
         address ark,
         address rewardToken,

@@ -9,15 +9,27 @@ import {AuctionManagerBase, DutchAuctionLibrary, AuctionDefaultParameters} from 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../errors/BuyAndBurnErrors.sol";
 
+/**
+ * @title BuyAndBurn
+ * @notice This contract manages auctions for tokens, accepting SUMMER tokens as payment and burning them.
+ * @dev Inherits from IBuyAndBurn, ProtocolAccessManaged, and AuctionManagerBase to handle auctions and access control.
+ */
 contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
     ERC20Burnable public immutable summerToken;
     address public treasury;
 
-    mapping(uint256 => DutchAuctionLibrary.Auction) public auctions;
-    mapping(address => uint256) public ongoingAuctions;
-    mapping(uint256 => uint256) public auctionSummerRaised;
+    /// @notice Mapping of auction IDs to their respective auction data
+    mapping(uint256 auctionId => DutchAuctionLibrary.Auction auction)
+        public auctions;
+
+    /// @notice Mapping of token addresses to their ongoing auction IDs (0 if no ongoing auction)
+    mapping(address tokenAddress => uint256 auctionId) public ongoingAuctions;
+
+    /// @notice Mapping of auction IDs to the amount of SUMMER tokens raised in that auction
+    mapping(uint256 auctionId => uint256 amountRaised)
+        public auctionSummerRaised;
 
     constructor(
         address _summer,
@@ -32,6 +44,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
         treasury = _treasury;
     }
 
+    /* @inheritdoc IBuyAndBurn */
     function startAuction(
         address tokenToAuction
     ) external override onlyGovernor {
@@ -56,6 +69,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
         emit BuyAndBurnAuctionStarted(auctionId, tokenToAuction, totalTokens);
     }
 
+    /* @inheritdoc IBuyAndBurn */
     function buyTokens(
         uint256 auctionId,
         uint256 amount
@@ -71,34 +85,39 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
         }
     }
 
+    /* @inheritdoc IBuyAndBurn */
     function finalizeAuction(uint256 auctionId) external override onlyGovernor {
         DutchAuctionLibrary.Auction storage auction = auctions[auctionId];
         auction.finalizeAuction();
         _settleAuction(auction);
     }
-
+    /* @inheritdoc IBuyAndBurn */
     function getAuctionInfo(
         uint256 auctionId
     ) external view override returns (DutchAuctionLibrary.Auction memory) {
         return auctions[auctionId];
     }
-
+    /* @inheritdoc IBuyAndBurn */
     function getCurrentPrice(
         uint256 auctionId
     ) external view returns (uint256) {
         return _getCurrentPrice(auctions[auctionId]);
     }
-
+    /* @inheritdoc IBuyAndBurn */
     function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newParameters
     ) external override onlyGovernor {
         _updateAuctionDefaultParameters(newParameters);
     }
-
+    /* @inheritdoc IBuyAndBurn */
     function setTreasury(address newTreasury) external override onlyGovernor {
         treasury = newTreasury;
     }
 
+    /**
+     * @notice Settles an auction by burning the raised SUMMER tokens and cleaning up state
+     * @param auction The auction to settle
+     */
     function _settleAuction(
         DutchAuctionLibrary.Auction memory auction
     ) internal {
