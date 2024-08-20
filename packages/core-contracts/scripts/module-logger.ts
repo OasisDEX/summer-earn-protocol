@@ -3,6 +3,7 @@ import { AaveV3ArkContracts } from '../ignition/modules/aavev3-ark'
 import { CompoundV3ArkContracts } from '../ignition/modules/compoundv3-ark'
 import { FleetContracts } from '../ignition/modules/fleet'
 import { MorphoArkContracts } from '../ignition/modules/morpho-ark'
+import { MetaMorphoArkContracts } from '../ignition/modules/metamorpho-ark'
 
 export class ModuleLogger {
   private moduleName: string
@@ -58,6 +59,13 @@ export class ModuleLogger {
   static logMorphoArk(contracts: MorphoArkContracts): void {
     const logger = new ModuleLogger('MorphoArkModule', {
       'Morpho Ark': contracts.morphoArk,
+    })
+    logger.logAddresses()
+  }
+
+  static logMetaMorphoArk(contracts: MetaMorphoArkContracts): void {
+    const logger = new ModuleLogger('MetaMorphoArkModule', {
+      'MetaMorpho Ark': contracts.metaMorphoArk,
     })
     logger.logAddresses()
   }
