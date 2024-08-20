@@ -27,9 +27,6 @@
       "dai": {
         "marketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
       }
-    },
-    "metaMorpho": {
-      "steakhouseUsdc": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
     }
   }
 }

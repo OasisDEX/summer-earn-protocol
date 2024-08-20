@@ -27,9 +27,6 @@ export interface BaseConfig {
       marketId: string
     }
   }
-  metaMorpho: {
-    steakhouseUsdc: string
-  }
 }
 
 export interface Config {

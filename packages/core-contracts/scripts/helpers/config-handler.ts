@@ -4,7 +4,7 @@ import kleur from 'kleur'
 import { Config, BaseConfig } from '../../ignition/config/config-types'
 
 export function getConfigByNetwork(network: string): BaseConfig {
-  const configPath = path.resolve(__dirname, '../ignition/config/index.json')
+  const configPath = path.resolve(__dirname, '../../ignition/config/index.json')
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`)
   }
@@ -28,7 +28,7 @@ export function getConfigByNetwork(network: string): BaseConfig {
 }
 
 function validateConfig(config: BaseConfig): void {
-  const requiredFields: (keyof BaseConfig)[] = ['tokens', 'core', 'aaveV3', 'morpho', 'metaMorpho']
+  const requiredFields: (keyof BaseConfig)[] = ['tokens', 'core', 'aaveV3', 'morpho']
 
   for (const field of requiredFields) {
     if (!(field in config)) {
