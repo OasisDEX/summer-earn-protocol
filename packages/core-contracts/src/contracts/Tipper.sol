@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {FleetCommander} from "./FleetCommander.sol";
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {Percentage, PERCENTAGE_100, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";

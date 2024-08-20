@@ -33,8 +33,9 @@ contract DutchAuctionErrors {
     /**
      * @notice Thrown when trying to buy tokens outside the active auction period
      * @dev This can occur if trying to buy after the auction has ended
+     * @param auctionId The ID of the auction being interacted with
      */
-    error AuctionNotActive();
+    error AuctionNotActive(uint256 auctionId);
 
     /**
      * @notice Thrown when trying to buy more tokens than are available in the auction
@@ -45,15 +46,17 @@ contract DutchAuctionErrors {
     /**
      * @notice Thrown when trying to finalize an auction before its end time
      * @dev The auction can only be finalized after its scheduled end time
+     * @param auctionId The ID of the auction being interacted with
      */
-    error AuctionNotEnded();
+    error AuctionNotEnded(uint256 auctionId);
 
     /**
      * @notice Thrown when trying to interact with an auction that has already been finalized
      * @dev Once an auction is finalized, no further interactions should be possible
      * @dev auction is finalized when either the end time is reached or all tokens are sold
+     * @param auctionId The ID of the auction being interacted with
      */
-    error AuctionAlreadyFinalized();
+    error AuctionAlreadyFinalized(uint256 auctionId);
 
     /**
      * @notice Thrown when the auction token is invalid
@@ -64,4 +67,9 @@ contract DutchAuctionErrors {
      * @notice Thrown when the payment token is invalid
      */
     error InvalidPaymentToken();
+
+    /**
+     * @notice Thrown when the auction has not been found
+     */
+    error AuctionNotFound();
 }

@@ -96,4 +96,9 @@ contract BufferArkTest is Test, IArkEvents {
         vm.prank(commander); // Execute the next call as the commander
         ark.disembark(amount);
     }
+
+    function test_RateIsZero() public {
+        // Assert
+        assertEq(ark.rate(), 0);
+    }
 }
