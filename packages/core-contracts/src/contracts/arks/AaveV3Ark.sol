@@ -11,6 +11,7 @@ import {IArk, ArkParams} from "../../interfaces/IArk.sol";
 
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
+
     uint256 public constant WAD = 1e18;
     uint256 public constant RAY = 1e27;
     uint256 public constant SECONDS_PER_YEAR = 365 days;

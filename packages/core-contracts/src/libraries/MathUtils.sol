@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Percentage, toPercentage} from "../types/Percentage.sol";
+import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title MathUtils
@@ -43,11 +43,7 @@ library MathUtils {
         assembly {
             n := div(n, 2)
 
-            for {
-
-            } n {
-
-            } {
+            for {} n {} {
                 let xx := mul(x, x)
                 if iszero(eq(div(xx, x), x)) {
                     revert(0, 0)

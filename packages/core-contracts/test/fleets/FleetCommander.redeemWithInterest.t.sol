@@ -7,7 +7,7 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 
 contract RedeemWithInterestTest is
@@ -210,7 +210,7 @@ contract RedeemWithInterestTest is
 
     function test_RedeemAfterMultipleInterestAccruals() public {
         // Simulate multiple interest accruals
-        for (uint i = 0; i < 3; i++) {
+        for (uint256 i = 0; i < 3; i++) {
             mockToken.mint(ark2, INTEREST_AMOUNT / 3);
         }
 

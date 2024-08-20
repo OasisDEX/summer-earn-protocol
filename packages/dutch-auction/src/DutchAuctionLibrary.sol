@@ -4,13 +4,14 @@ pragma solidity 0.8.26;
 import "./DecayFunctions.sol";
 import "./DutchAuctionErrors.sol";
 import "./DutchAuctionEvents.sol";
+import "./lib/TokenLibrary.sol";
 
 import "./DutchAuctionMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {Percentage} from "./lib/Percentage.sol";
-import {PercentageUtils} from "./lib/PercentageUtils.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title Dutch Auction Library
@@ -55,6 +56,7 @@ import {PercentageUtils} from "./lib/PercentageUtils.sol";
 library DutchAuctionLibrary {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
+    using TokenLibrary for IERC20;
 
     /**
      * @notice Struct representing the configuration of a Dutch auction
@@ -65,6 +67,8 @@ library DutchAuctionLibrary {
         IERC20 paymentToken; // The token used for payment
         uint40 startTime; // The start time of the auction
         uint40 endTime; // The end time of the auction
+        uint8 auctionTokenDecimals; // The number of decimals for the auction token
+        uint8 paymentTokenDecimals; // The number of decimals for the payment token
         address auctionKicker; // The address that initiated the auction
         address unsoldTokensRecipient; // The address to receive any unsold tokens
         uint40 id; // The unique identifier of the auction
@@ -150,6 +154,8 @@ library DutchAuctionLibrary {
             id: uint40(params.auctionId),
             auctionToken: params.auctionToken,
             paymentToken: params.paymentToken,
+            auctionTokenDecimals: params.auctionToken.getDecimals(),
+            paymentTokenDecimals: params.paymentToken.getDecimals(),
             startTime: uint40(block.timestamp),
             endTime: uint40(block.timestamp + params.duration),
             startPrice: params.startPrice,
@@ -189,13 +195,16 @@ library DutchAuctionLibrary {
         uint256 timeElapsed = block.timestamp - auction.config.startTime;
         uint256 totalDuration = auction.config.endTime -
             auction.config.startTime;
+
         return
             DecayFunctions.calculateDecay(
                 auction.config.decayType,
                 auction.config.startPrice,
                 auction.config.endPrice,
                 timeElapsed,
-                totalDuration
+                totalDuration,
+                auction.config.paymentTokenDecimals,
+                auction.config.paymentTokenDecimals
             );
     }
 
@@ -205,21 +214,33 @@ library DutchAuctionLibrary {
      * @param auction The storage pointer to the auction
      * @param _amount The number of tokens to purchase
      */
-    function buyTokens(Auction storage auction, uint256 _amount) external {
+    function buyTokens(
+        Auction storage auction,
+        uint256 _amount
+    ) internal returns (uint256 totalCost) {
+        if (auction.config.auctionToken == IERC20(address(0))) {
+            revert DutchAuctionErrors.AuctionNotFound();
+        }
         if (auction.state.isFinalized) {
-            revert DutchAuctionErrors.AuctionAlreadyFinalized();
+            revert DutchAuctionErrors.AuctionAlreadyFinalized(
+                auction.config.id
+            );
         }
         if (block.timestamp >= auction.config.endTime) {
-            revert DutchAuctionErrors.AuctionNotActive();
+            revert DutchAuctionErrors.AuctionNotActive(auction.config.id);
         }
         if (_amount > auction.state.remainingTokens) {
             revert DutchAuctionErrors.InsufficientTokensAvailable();
         }
 
         uint256 currentPrice = getCurrentPrice(auction);
-        uint256 totalCost = DutchAuctionMath.calculateTotalCost(
+
+        totalCost = DutchAuctionMath.calculateTotalCost(
             currentPrice,
-            _amount
+            _amount,
+            auction.config.paymentTokenDecimals,
+            auction.config.auctionTokenDecimals,
+            auction.config.paymentTokenDecimals
         );
 
         auction.state.remainingTokens -= _amount;
@@ -248,12 +269,17 @@ library DutchAuctionLibrary {
      * @dev This function can be called by anyone after the auction end time
      * @param auction The storage pointer to the auction to be finalized
      */
-    function finalizeAuction(Auction storage auction) external {
+    function finalizeAuction(Auction storage auction) internal {
+        if (auction.config.auctionToken == IERC20(address(0))) {
+            revert DutchAuctionErrors.AuctionNotFound();
+        }
         if (auction.state.isFinalized) {
-            revert DutchAuctionErrors.AuctionAlreadyFinalized();
+            revert DutchAuctionErrors.AuctionAlreadyFinalized(
+                auction.config.id
+            );
         }
         if (block.timestamp < auction.config.endTime) {
-            revert DutchAuctionErrors.AuctionNotEnded();
+            revert DutchAuctionErrors.AuctionNotEnded(auction.config.id);
         }
         _finalizeAuction(auction);
     }

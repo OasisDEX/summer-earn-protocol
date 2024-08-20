@@ -103,7 +103,7 @@ contract ConfigurationManagerTest is Test {
         newRafts[1] = address(8);
         newRafts[2] = address(9);
 
-        for (uint i = 0; i < newRafts.length; i++) {
+        for (uint256 i = 0; i < newRafts.length; i++) {
             vm.prank(governor);
             vm.expectEmit(true, true, true, true);
             emit RaftUpdated(newRafts[i]);
@@ -122,7 +122,7 @@ contract ConfigurationManagerTest is Test {
         newTipJars[1] = address(11);
         newTipJars[2] = address(12);
 
-        for (uint i = 0; i < newTipJars.length; i++) {
+        for (uint256 i = 0; i < newTipJars.length; i++) {
             vm.prank(governor);
             vm.expectEmit(true, true, true, true);
             emit TipJarUpdated(newTipJars[i]);

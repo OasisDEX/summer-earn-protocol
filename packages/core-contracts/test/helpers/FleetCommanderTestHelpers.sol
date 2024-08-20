@@ -31,4 +31,6 @@ contract FleetCommanderTestHelpers is Test {
         });
         return data;
     }
+
+    function testSkipper() public {}
 }

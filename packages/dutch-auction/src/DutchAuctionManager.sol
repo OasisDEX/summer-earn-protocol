@@ -6,7 +6,7 @@ import "./DutchAuctionErrors.sol";
 import "./DutchAuctionEvents.sol";
 import "./DutchAuctionLibrary.sol";
 
-import {Percentage} from "./lib/Percentage.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
@@ -88,8 +88,8 @@ contract DutchAuctionManager is
     function buyTokens(
         uint256 _auctionId,
         uint256 _amount
-    ) external nonReentrant {
-        DutchAuctionLibrary.buyTokens(auctions[_auctionId], _amount);
+    ) external nonReentrant returns (uint256) {
+        return DutchAuctionLibrary.buyTokens(auctions[_auctionId], _amount);
     }
 
     /**
