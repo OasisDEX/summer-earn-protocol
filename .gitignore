@@ -92,3 +92,4 @@ cache
 broadcast
 
 **/cache_forge
+**/ignition/deployments/*/build-info

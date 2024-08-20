@@ -21,6 +21,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * @returns {FleetContracts} An object containing the addresses of the deployed FleetCommander and BufferArk contracts
  */
 export default buildModule('FleetModule', (m) => {
+  // Fleet module params exc. BufferArk
   const configurationManager = m.getParameter<string>('configurationManager')
   const protocolAccessManager = m.getParameter<string>('protocolAccessManager')
   const fleetName = m.getParameter<string>('fleetName')
@@ -34,9 +35,9 @@ export default buildModule('FleetModule', (m) => {
   const depositCap = m.getParameter<string>('depositCap')
   const initialTipRate = m.getParameter<string>('initialTipRate')
   const minimumRateDifference = m.getParameter<string>('minimumRateDifference')
-  const bufferArkParams = m.getParameter<any>('bufferArkParams')
 
-  // Deploy BufferArk directly
+  // Deploy BufferArk
+  const bufferArkParams = m.getParameter<any>('bufferArkParams')
   const bufferArk = m.contract('BufferArk', [bufferArkParams])
 
   const fleetCommander = m.contract('FleetCommander', [
