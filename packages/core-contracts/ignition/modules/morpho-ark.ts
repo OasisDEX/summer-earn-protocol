@@ -12,18 +12,18 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * @returns {MorphoArkContracts} An object containing the address of the deployed MorphoArk contract
  */
 export default buildModule('MorphoArkModule', (m) => {
-    const morphoBlue = m.getParameter('morphoBlue')
-    const marketId = m.getParameter('marketId')
-    const arkParams = m.getParameter('arkParams')
+  const morphoBlue = m.getParameter('morphoBlue')
+  const marketId = m.getParameter('marketId')
+  const arkParams = m.getParameter('arkParams')
 
-    const morphoArk = m.contract('MorphoArk', [morphoBlue, marketId, arkParams])
+  const morphoArk = m.contract('MorphoArk', [morphoBlue, marketId, arkParams])
 
-    return { morphoArk }
+  return { morphoArk }
 })
 
 /**
  * Type definition for the returned contract address
  */
 export type MorphoArkContracts = {
-    morphoArk: { address: string }
+  morphoArk: { address: string }
 }

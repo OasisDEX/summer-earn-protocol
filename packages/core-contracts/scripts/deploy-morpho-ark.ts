@@ -16,24 +16,24 @@ import { ModuleLogger } from './helpers/module-logger'
  * - Logging deployment results
  */
 export async function deployMorphoArk() {
-    const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name)
 
-    console.log(kleur.green().bold('Starting MorphoArk deployment process...'))
+  console.log(kleur.green().bold('Starting MorphoArk deployment process...'))
 
-    const userInput = await getUserInput()
+  const userInput = await getUserInput()
 
-    if (await confirmDeployment(userInput)) {
-        console.log(kleur.green().bold('Proceeding with deployment...'))
+  if (await confirmDeployment(userInput)) {
+    console.log(kleur.green().bold('Proceeding with deployment...'))
 
-        const deployedMorphoArk = await deployMorphoArkContract(config, userInput)
+    const deployedMorphoArk = await deployMorphoArkContract(config, userInput)
 
-        console.log(kleur.green().bold('Deployment completed successfully!'))
+    console.log(kleur.green().bold('Deployment completed successfully!'))
 
-        // Logging
-        ModuleLogger.logMorphoArk(deployedMorphoArk)
-    } else {
-        console.log(kleur.red().bold('Deployment cancelled by user.'))
-    }
+    // Logging
+    ModuleLogger.logMorphoArk(deployedMorphoArk)
+  } else {
+    console.log(kleur.red().bold('Deployment cancelled by user.'))
+  }
 }
 
 /**
@@ -41,23 +41,23 @@ export async function deployMorphoArk() {
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput() {
-    return await prompts([
-        {
-            type: 'text',
-            name: 'token',
-            message: 'Enter the token address:',
-        },
-        {
-            type: 'text',
-            name: 'marketId',
-            message: 'Enter the Morpho market ID:',
-        },
-        {
-            type: 'number',
-            name: 'maxAllocation',
-            message: 'Enter the max allocation:',
-        },
-    ])
+  return await prompts([
+    {
+      type: 'text',
+      name: 'token',
+      message: 'Enter the token address:',
+    },
+    {
+      type: 'text',
+      name: 'marketId',
+      message: 'Enter the Morpho market ID:',
+    },
+    {
+      type: 'number',
+      name: 'maxAllocation',
+      message: 'Enter the max allocation:',
+    },
+  ])
 }
 
 /**
@@ -66,18 +66,18 @@ async function getUserInput() {
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
 async function confirmDeployment(userInput: any) {
-    console.log(kleur.cyan().bold('\nSummary of collected values:'))
-    console.log(kleur.yellow(`Token: ${userInput.token}`))
-    console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
-    console.log(kleur.yellow(`Max Allocation: ${userInput.maxAllocation}`))
+  console.log(kleur.cyan().bold('\nSummary of collected values:'))
+  console.log(kleur.yellow(`Token: ${userInput.token}`))
+  console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
+  console.log(kleur.yellow(`Max Allocation: ${userInput.maxAllocation}`))
 
-    const { confirmed } = await prompts({
-        type: 'confirm',
-        name: 'confirmed',
-        message: 'Do you want to continue with the deployment?',
-    })
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: 'Do you want to continue with the deployment?',
+  })
 
-    return confirmed
+  return confirmed
 }
 
 /**
@@ -87,28 +87,28 @@ async function confirmDeployment(userInput: any) {
  * @returns {Promise<MorphoArkContracts>} The deployed MorphoArk contract.
  */
 async function deployMorphoArkContract(
-    config: BaseConfig,
-    userInput: any,
+  config: BaseConfig,
+  userInput: any,
 ): Promise<MorphoArkContracts> {
-    return (await hre.ignition.deploy(MorphoArkModule, {
-        parameters: {
-            MorphoArkModule: {
-                morphoBlue: config.morpho.blue,
-                marketId: userInput.marketId,
-                arkParams: {
-                    name: 'MorphoArk',
-                    accessManager: config.core.protocolAccessManager,
-                    configurationManager: config.core.configurationManager,
-                    token: userInput.token,
-                    maxAllocation: userInput.maxAllocation,
-                },
-            },
+  return (await hre.ignition.deploy(MorphoArkModule, {
+    parameters: {
+      MorphoArkModule: {
+        morphoBlue: config.morpho.blue,
+        marketId: userInput.marketId,
+        arkParams: {
+          name: 'MorphoArk',
+          accessManager: config.core.protocolAccessManager,
+          configurationManager: config.core.configurationManager,
+          token: userInput.token,
+          maxAllocation: userInput.maxAllocation,
         },
-    })) as MorphoArkContracts
+      },
+    },
+  })) as MorphoArkContracts
 }
 
 // Execute the deployMorphoArk function and handle any errors
 deployMorphoArk().catch((error) => {
-    console.error(kleur.red().bold('An error occurred:'), error)
-    process.exit(1)
+  console.error(kleur.red().bold('An error occurred:'), error)
+  process.exit(1)
 })

@@ -11,17 +11,17 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * @returns {MetaMorphoArkContracts} An object containing the address of the deployed MetaMorphoArk contract
  */
 export default buildModule('MetaMorphoArkModule', (m) => {
-    const strategyVault = m.getParameter('strategyVault');
-    const arkParams = m.getParameter('arkParams')
+  const strategyVault = m.getParameter('strategyVault')
+  const arkParams = m.getParameter('arkParams')
 
-    const metaMorphoArk = m.contract('MetaMorphoArk', [strategyVault, arkParams])
+  const metaMorphoArk = m.contract('MetaMorphoArk', [strategyVault, arkParams])
 
-    return { metaMorphoArk }
+  return { metaMorphoArk }
 })
 
 /**
  * Type definition for the returned contract address
  */
 export type MetaMorphoArkContracts = {
-    metaMorphoArk: { address: string }
+  metaMorphoArk: { address: string }
 }

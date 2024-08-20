@@ -16,24 +16,24 @@ import { ModuleLogger } from './helpers/module-logger'
  * - Logging deployment results
  */
 export async function deployMetaMorphoArk() {
-    const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name)
 
-    console.log(kleur.green().bold('Starting MetaMorphoArk deployment process...'))
+  console.log(kleur.green().bold('Starting MetaMorphoArk deployment process...'))
 
-    const userInput = await getUserInput()
+  const userInput = await getUserInput()
 
-    if (await confirmDeployment(userInput)) {
-        console.log(kleur.green().bold('Proceeding with deployment...'))
+  if (await confirmDeployment(userInput)) {
+    console.log(kleur.green().bold('Proceeding with deployment...'))
 
-        const deployedMetaMorphoArk = await deployMetaMorphoArkContract(config, userInput)
+    const deployedMetaMorphoArk = await deployMetaMorphoArkContract(config, userInput)
 
-        console.log(kleur.green().bold('Deployment completed successfully!'))
+    console.log(kleur.green().bold('Deployment completed successfully!'))
 
-        // Logging
-        ModuleLogger.logMetaMorphoArk(deployedMetaMorphoArk)
-    } else {
-        console.log(kleur.red().bold('Deployment cancelled by user.'))
-    }
+    // Logging
+    ModuleLogger.logMetaMorphoArk(deployedMetaMorphoArk)
+  } else {
+    console.log(kleur.red().bold('Deployment cancelled by user.'))
+  }
 }
 
 /**
@@ -41,23 +41,23 @@ export async function deployMetaMorphoArk() {
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput() {
-    return await prompts([
-        {
-            type: 'text',
-            name: 'token',
-            message: 'Enter the token address:',
-        },
-        {
-            type: 'text',
-            name: 'strategyVault',
-            message: 'Enter the strategy vault address:',
-        },
-        {
-            type: 'number',
-            name: 'maxAllocation',
-            message: 'Enter the max allocation:',
-        },
-    ])
+  return await prompts([
+    {
+      type: 'text',
+      name: 'token',
+      message: 'Enter the token address:',
+    },
+    {
+      type: 'text',
+      name: 'strategyVault',
+      message: 'Enter the strategy vault address:',
+    },
+    {
+      type: 'number',
+      name: 'maxAllocation',
+      message: 'Enter the max allocation:',
+    },
+  ])
 }
 
 /**
@@ -66,17 +66,17 @@ async function getUserInput() {
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
 async function confirmDeployment(userInput: any) {
-    console.log(kleur.cyan().bold('\nSummary of collected values:'))
-    console.log(kleur.yellow(`Token: ${userInput.token}`))
-    console.log(kleur.yellow(`Max Allocation: ${userInput.maxAllocation}`))
+  console.log(kleur.cyan().bold('\nSummary of collected values:'))
+  console.log(kleur.yellow(`Token: ${userInput.token}`))
+  console.log(kleur.yellow(`Max Allocation: ${userInput.maxAllocation}`))
 
-    const { confirmed } = await prompts({
-        type: 'confirm',
-        name: 'confirmed',
-        message: 'Do you want to continue with the deployment?',
-    })
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: 'Do you want to continue with the deployment?',
+  })
 
-    return confirmed
+  return confirmed
 }
 
 /**
@@ -86,27 +86,27 @@ async function confirmDeployment(userInput: any) {
  * @returns {Promise<MetaMorphoArkContracts>} The deployed MetaMorphoArk contract.
  */
 async function deployMetaMorphoArkContract(
-    config: BaseConfig,
-    userInput: any,
+  config: BaseConfig,
+  userInput: any,
 ): Promise<MetaMorphoArkContracts> {
-    return (await hre.ignition.deploy(MetaMorphoArkModule, {
-        parameters: {
-            MetaMorphoArkModule: {
-                strategyVault: userInput.strategyVault,
-                arkParams: {
-                    name: 'MetaMorphoArk',
-                    accessManager: config.core.protocolAccessManager,
-                    configurationManager: config.core.configurationManager,
-                    token: userInput.token,
-                    maxAllocation: userInput.maxAllocation,
-                },
-            },
+  return (await hre.ignition.deploy(MetaMorphoArkModule, {
+    parameters: {
+      MetaMorphoArkModule: {
+        strategyVault: userInput.strategyVault,
+        arkParams: {
+          name: 'MetaMorphoArk',
+          accessManager: config.core.protocolAccessManager,
+          configurationManager: config.core.configurationManager,
+          token: userInput.token,
+          maxAllocation: userInput.maxAllocation,
         },
-    })) as MetaMorphoArkContracts
+      },
+    },
+  })) as MetaMorphoArkContracts
 }
 
 // Execute the deployMetaMorphoArk function and handle any errors
 deployMetaMorphoArk().catch((error) => {
-    console.error(kleur.red().bold('An error occurred:'), error)
-    process.exit(1)
+  console.error(kleur.red().bold('An error occurred:'), error)
+  process.exit(1)
 })
