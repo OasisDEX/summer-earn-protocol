@@ -74,8 +74,9 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
-        emit IFleetCommanderEvents
-            .FleetCommanderminimumBufferBalanceUpdated(newBalance);
+        emit IFleetCommanderEvents.FleetCommanderminimumBufferBalanceUpdated(
+            newBalance
+        );
         fleetCommander.setMinimumBufferBalance(newBalance);
 
         (, uint256 minimumBufferBalance, , ) = fleetCommander.config();

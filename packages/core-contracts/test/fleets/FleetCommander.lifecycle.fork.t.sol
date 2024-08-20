@@ -141,9 +141,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setminimumBufferBalance(
-            minBufferBalance
-        );
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         // Set deposit cap
         fleetCommanderStorageWriter.setDepositCap(depositCap);
@@ -215,9 +213,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setminimumBufferBalance(
-            minBufferBalance
-        );
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         // Set deposit cap
         fleetCommanderStorageWriter.setDepositCap(depositCap);
