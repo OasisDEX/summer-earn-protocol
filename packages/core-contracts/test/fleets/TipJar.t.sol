@@ -178,6 +178,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         assertEq(underlyingToken.balanceOf(treasury), 100 ether);
     }
+
     function test_ShakeWith100PercentAllocations() public {
         address anotherMockTipStreamParticipant = address(5);
 
@@ -215,6 +216,7 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         assertEq(underlyingToken.balanceOf(treasury), 0 ether);
     }
+
     function test_ShakeMultiple() public {
         address anotherMockTipStreamParticipant = address(5);
 

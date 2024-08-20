@@ -558,12 +558,16 @@ contract DutchAuctionLibraryTest is Test {
         auctionManager.buyTokens(auctionId, availableTokens / 4);
 
         // Try to buy more tokens, should revert
-        vm.expectRevert(abi.encodeWithSignature("AuctionAlreadyFinalized()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("AuctionAlreadyFinalized(uint256)", 0)
+        );
         vm.prank(BUYER1);
         auctionManager.buyTokens(auctionId, 1);
 
         // Finalize the auction, should revert since it was finalized on the last buy
-        vm.expectRevert(abi.encodeWithSignature("AuctionAlreadyFinalized()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("AuctionAlreadyFinalized(uint256)", 0)
+        );
         vm.prank(AUCTION_KICKER);
         auctionManager.finalizeAuction(auctionId);
 
@@ -595,6 +599,14 @@ contract DutchAuctionLibraryTest is Test {
         );
     }
 
+    function test_BuyTokens_AuctionNotFound() public {
+        vm.expectRevert(abi.encodeWithSignature("AuctionNotFound()"));
+        auctionManager.buyTokens(999, 0);
+    }
+    function test_FinalizeAuction_AuctionNotFound() public {
+        vm.expectRevert(abi.encodeWithSignature("AuctionNotFound()"));
+        auctionManager.finalizeAuction(999);
+    }
     function testBuyingAllTokensAndFinalizing() public {
         uint256 auctionId = _createAuction(
             auctionToken1,
@@ -662,7 +674,9 @@ contract DutchAuctionLibraryTest is Test {
 
         // Try to buy tokens after auction ends
         vm.warp(block.timestamp + AUCTION_DURATION + 1);
-        vm.expectRevert(abi.encodeWithSignature("AuctionNotActive()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("AuctionNotActive(uint256)", 0)
+        );
         vm.prank(BUYER1);
         auctionManager.buyTokens(auctionId, 1 ether);
     }
@@ -695,7 +709,7 @@ contract DutchAuctionLibraryTest is Test {
 
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
 
-        vm.expectRevert(abi.encodeWithSignature("AuctionNotEnded()"));
+        vm.expectRevert(abi.encodeWithSignature("AuctionNotEnded(uint256)", 0));
         vm.prank(AUCTION_KICKER);
         auctionManager.finalizeAuction(auctionId);
     }

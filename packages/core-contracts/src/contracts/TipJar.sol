@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ITipJar} from "../interfaces/ITipJar.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -18,7 +18,7 @@ import "../errors/TipJarErrors.sol";
 contract TipJar is ITipJar, ProtocolAccessManaged {
     using PercentageUtils for uint256;
 
-    mapping(address => TipStream) public tipStreams;
+    mapping(address recipient => TipStream tipStream) public tipStreams;
     address[] public tipStreamRecipients;
     address public treasuryAddress;
 
