@@ -32,5 +32,5 @@ contract FleetCommanderTestHelpers is Test {
         return data;
     }
 
-    function test() public {}
+    function testSkipper() public {}
 }
