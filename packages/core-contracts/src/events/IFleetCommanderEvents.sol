@@ -95,7 +95,7 @@ interface IFleetCommanderEvents {
      *
      * @param newBalance New minimum funds buffer balance
      */
-    event FleetCommanderMinFundsBufferBalanceUpdated(uint256 newBalance);
+    event FleetCommanderminimumBufferBalanceUpdated(uint256 newBalance);
 
     /**
      * @notice Emitted when funds are withdrawn from Arks

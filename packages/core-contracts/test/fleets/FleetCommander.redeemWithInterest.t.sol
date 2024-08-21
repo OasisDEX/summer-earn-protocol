@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
@@ -25,6 +26,7 @@ contract RedeemWithInterestTest is
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
+        (IArk bufferArk, , , ) = fleetCommander.config();
 
         // Deposit for tests
         mockToken.mint(mockUser, DEPOSIT_AMOUNT);
@@ -36,10 +38,10 @@ contract RedeemWithInterestTest is
         initialConversionRate = fleetCommander.convertToAssets(100000);
 
         // Simulate interest accrual
-        mockToken.mint(address(fleetCommander.bufferArk()), INTEREST_AMOUNT);
+        mockToken.mint(address(bufferArk), INTEREST_AMOUNT);
 
         vm.prank(governor);
-        fleetCommander.setMinBufferBalance(0);
+        fleetCommander.setMinimumBufferBalance(0);
     }
 
     function test_ConversionRateChange() public view {
@@ -78,14 +80,12 @@ contract RedeemWithInterestTest is
     }
 
     function test_RedeemBufferPlusOne() public {
+        (IArk bufferArk, , , ) = fleetCommander.config();
+
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(
-                address(fleetCommander.bufferArk()),
-                ark1,
-                DEPOSIT_AMOUNT / 2
-            )
+            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
         );
         vm.stopPrank();
 
@@ -264,6 +264,8 @@ contract RedeemWithInterestTest is
 
     function test_TwoUsersRedeemAllShares() public {
         // Setup second user
+        (IArk bufferArk, , , ) = fleetCommander.config();
+
         address secondUser = address(0x456);
         mockToken.mint(secondUser, DEPOSIT_AMOUNT);
         vm.startPrank(secondUser);
@@ -275,7 +277,7 @@ contract RedeemWithInterestTest is
         vm.stopPrank();
 
         // Simulate more interest accrual
-        mockToken.mint(address(fleetCommander.bufferArk()), INTEREST_AMOUNT);
+        mockToken.mint(address(bufferArk), INTEREST_AMOUNT);
 
         uint256 totalAssets = fleetCommander.totalAssets();
         uint256 user1Shares = fleetCommander.balanceOf(mockUser);
