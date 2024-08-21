@@ -44,6 +44,7 @@ contract OneInchHelpersTest is Test, OneInchHelpers {
             Protocol.UniswapV3, // Assuming UniswapV3, adjust as needed
             false, // shouldUnwrapWeth
             false, // shouldWrapWeth
+            false, // zeroForOne
             false // usePermit2
         );
 

@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import {console} from "forge-std/console.sol";
+
 interface IFleetCommander {
     function deposit(
         uint256 assets,
@@ -107,7 +107,6 @@ contract AdmiralsQuarters is Ownable {
             if (swapCalldatas[i].length > 0) {
                 // Swap is needed
                 fleetToken.forceApprove(oneInchRouter, fleetTokenReceived);
-                console.log("xxxx");
                 (bool success, bytes memory returnData) = oneInchRouter.call(
                     swapCalldatas[i]
                 );

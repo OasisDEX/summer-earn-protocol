@@ -19,6 +19,7 @@ contract OneInchHelpers {
     uint256 private constant _WETH_NOT_WRAP_FLAG = 1 << 251;
     uint256 private constant _USE_PERMIT2_FLAG = 1 << 250;
     uint256 private constant _LOW_160_BIT_MASK = (1 << 160) - 1;
+    uint256 private constant _UNISWAP_V3_ZERO_FOR_ONE_OFFSET = 247;
 
     /**
      * @dev Enum representing supported DEX protocols
@@ -104,6 +105,7 @@ contract OneInchHelpers {
      * @param protocol The protocol to be used for the swap
      * @param shouldUnwrapWeth Whether the resulting WETH should be unwrapped to ETH
      * @param shouldWrapWeth Whether the input ETH should be wrapped to WETH
+     * @param zeroForOne The direction of the swap, true for token0 to token1, false for token1 to token0
      * @param usePermit2 Whether to use Permit2 for token approvals
      * @return The encoded function call data for the unoswap function
      */
@@ -115,6 +117,7 @@ contract OneInchHelpers {
         Protocol protocol,
         bool shouldUnwrapWeth,
         bool shouldWrapWeth,
+        bool zeroForOne,
         bool usePermit2
     ) public pure returns (bytes memory) {
         uint256 encodedDex = uint256(uint160(dex));
@@ -132,7 +135,9 @@ contract OneInchHelpers {
         if (usePermit2) {
             encodedDex |= _USE_PERMIT2_FLAG;
         }
-
+        if (zeroForOne) {
+            encodedDex |= _UNISWAP_V3_ZERO_FOR_ONE_OFFSET;
+        }
         return
             abi.encodeWithSelector(
                 bytes4(keccak256("unoswap(uint256,uint256,uint256,uint256)")),

@@ -92,6 +92,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             Protocol.UniswapV3,
             false,
             false,
+            false,
             false
         );
 
@@ -139,6 +140,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             Protocol.UniswapV3,
             false,
             false,
+            true,
             false
         );
         decodeUnoswapData(daiToUsdcSwap);
