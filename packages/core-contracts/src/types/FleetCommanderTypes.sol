@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import "../interfaces/IArk.sol";
 import "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -14,10 +15,48 @@ struct FleetCommanderParams {
     address accessManager;
     address asset;
     address bufferArk;
-    uint256 initialMinimumFundsBufferBalance;
+    uint256 initialMinimumBufferBalance;
     uint256 initialRebalanceCooldown;
     uint256 depositCap;
     Percentage initialTipRate;
+    Percentage minimumRateDifference;
+}
+
+/**
+ * @title FleetConfig
+ * @notice Configuration parameters for the FleetCommander contract
+ * @dev This struct encapsulates the mutable configuration settings of a FleetCommander.
+ *      These parameters can be updated during the contract's lifecycle to adjust its behavior.
+ */
+struct FleetConfig {
+    /**
+     * @notice The buffer Ark associated with this FleetCommander
+     * @dev This Ark is used as a temporary holding area for funds before they are allocated
+     *      to other Arks or when they need to be quickly accessed for withdrawals.
+     */
+    IArk bufferArk;
+    /**
+     * @notice The minimum balance that should be maintained in the buffer Ark
+     * @dev This value is used to ensure there's always a certain amount of funds readily
+     *      available for withdrawals or rebalancing operations. It's denominated in the
+     *      smallest unit of the underlying asset (e.g., wei for ETH).
+     */
+    uint256 minimumBufferBalance;
+    /**
+     * @notice The maximum total value of assets that can be deposited into the FleetCommander
+     * @dev This cap helps manage the total assets under management and can be used to
+     *      implement controlled growth strategies. It's denominated in the smallest unit
+     *      of the underlying asset.
+     */
+    uint256 depositCap;
+    /**
+     * @notice The minimum rate difference required to trigger a rebalance between Arks
+     * @dev This percentage represents the threshold of rate difference between two Arks
+     *      that must be exceeded to justify a rebalancing operation. It helps prevent
+     *      excessive rebalancing for minor rate fluctuations.
+     * @dev The Percentage type is assumed to be a custom type representing a percentage,
+     *      likely with high precision (e.g., basis points).
+     */
     Percentage minimumRateDifference;
 }
 
