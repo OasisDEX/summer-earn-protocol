@@ -419,6 +419,14 @@ contract FleetCommander is
         revert FleetCommanderTransfersDisabled();
     }
 
+    function transferFrom(
+        address,
+        address,
+        uint256
+    ) public pure override(IERC20, ERC20) returns (bool) {
+        revert FleetCommanderTransfersDisabled();
+    }
+
     /* INTERNAL - TIPS */
     function _mintTip(
         address account,
