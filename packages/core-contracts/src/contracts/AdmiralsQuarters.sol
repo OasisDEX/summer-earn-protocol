@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
+import {console} from "forge-std/console.sol";
 interface IFleetCommander {
     function deposit(
         uint256 assets,
@@ -18,32 +18,13 @@ interface IFleetCommander {
     function asset() external view returns (address);
 }
 
-interface IAggregationRouterV5 {
-    struct SwapDescription {
-        IERC20 srcToken;
-        IERC20 dstToken;
-        address payable srcReceiver;
-        address payable dstReceiver;
-        uint256 amount;
-        uint256 minReturnAmount;
-        uint256 flags;
-    }
-
-    function swap(
-        address executor,
-        SwapDescription calldata desc,
-        bytes calldata permit,
-        bytes calldata data
-    ) external payable returns (uint256 returnAmount, uint256 spentAmount);
-}
-
 contract AdmiralsQuarters is Ownable {
     using SafeERC20 for IERC20;
 
-    IAggregationRouterV5 public oneInchRouter;
+    address public immutable oneInchRouter;
 
     constructor(address _oneInchRouter) Ownable(msg.sender) {
-        oneInchRouter = IAggregationRouterV5(_oneInchRouter);
+        oneInchRouter = _oneInchRouter;
     }
 
     function enterFleets(
@@ -76,25 +57,21 @@ contract AdmiralsQuarters is Ownable {
             uint256 fleetAllocation = (inputAmount * allocations[i]) /
                 totalAllocation;
 
-            inputToken.forceApprove(address(oneInchRouter), fleetAllocation);
+            uint256 amountToDeposit;
+            if (swapCalldatas[i].length > 0) {
+                inputToken.forceApprove(oneInchRouter, fleetAllocation);
+                (bool success, bytes memory returnData) = oneInchRouter.call(
+                    swapCalldatas[i]
+                );
+                require(success, "Swap failed");
+                amountToDeposit = abi.decode(returnData, (uint256));
+            } else {
+                // If no swap is needed, use the allocation directly
+                amountToDeposit = fleetAllocation;
+            }
 
-            (uint256 returnAmount, ) = oneInchRouter.swap(
-                address(this),
-                IAggregationRouterV5.SwapDescription({
-                    srcToken: inputToken,
-                    dstToken: fleetToken,
-                    srcReceiver: payable(address(this)),
-                    dstReceiver: payable(address(this)),
-                    amount: fleetAllocation,
-                    minReturnAmount: 0, // Set appropriate slippage protection
-                    flags: 0
-                }),
-                "",
-                swapCalldatas[i]
-            );
-
-            fleetToken.forceApprove(address(fleet), returnAmount);
-            fleet.deposit(returnAmount, msg.sender);
+            fleetToken.forceApprove(address(fleet), amountToDeposit);
+            fleet.deposit(amountToDeposit, msg.sender);
         }
     }
 
@@ -126,24 +103,25 @@ contract AdmiralsQuarters is Ownable {
                 address(this),
                 msg.sender
             );
-            fleetToken.forceApprove(address(oneInchRouter), fleetTokenReceived);
 
-            (uint256 returnAmount, ) = oneInchRouter.swap(
-                address(this),
-                IAggregationRouterV5.SwapDescription({
-                    srcToken: fleetToken,
-                    dstToken: outputToken,
-                    srcReceiver: payable(address(this)),
-                    dstReceiver: payable(address(this)),
-                    amount: fleetTokenReceived,
-                    minReturnAmount: 0, // Set appropriate slippage protection
-                    flags: 0
-                }),
-                "",
-                swapCalldatas[i]
-            );
-
-            totalOutputAmount += returnAmount;
+            if (swapCalldatas[i].length > 0) {
+                // Swap is needed
+                fleetToken.forceApprove(oneInchRouter, fleetTokenReceived);
+                console.log("xxxx");
+                (bool success, bytes memory returnData) = oneInchRouter.call(
+                    swapCalldatas[i]
+                );
+                require(success, "Swap failed");
+                uint256 returnAmount = abi.decode(returnData, (uint256));
+                totalOutputAmount += returnAmount;
+            } else {
+                // No swap needed, add directly to total if it's the output token
+                if (address(fleetToken) == address(outputToken)) {
+                    totalOutputAmount += fleetTokenReceived;
+                } else {
+                    revert("Asset mismatch: swap needed but not provided");
+                }
+            }
         }
 
         require(
