@@ -4,10 +4,10 @@ import prompts from 'prompts'
 import MorphoArkModule, { MorphoArkContracts } from '../ignition/modules/morpho-ark'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { BaseConfig } from '../ignition/config/config-types'
-import {handleDeploymentId} from "./helpers/deployment-id-handler";
-import {getChainId} from "./helpers/get-chainid";
+import { handleDeploymentId } from './helpers/deployment-id-handler'
+import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
-import {continueDeploymentCheck} from "./helpers/prompt-helpers";
+import { continueDeploymentCheck } from './helpers/prompt-helpers'
 
 /**
  * Main function to deploy a MorphoArk.
@@ -87,8 +87,8 @@ async function deployMorphoArkContract(
   config: BaseConfig,
   userInput: any,
 ): Promise<MorphoArkContracts> {
-  const chainId = getChainId();
-  const deploymentId = await handleDeploymentId(chainId);
+  const chainId = getChainId()
+  const deploymentId = await handleDeploymentId(chainId)
 
   return (await hre.ignition.deploy(MorphoArkModule, {
     parameters: {
@@ -104,7 +104,7 @@ async function deployMorphoArkContract(
         },
       },
     },
-    deploymentId
+    deploymentId,
   })) as MorphoArkContracts
 }
 

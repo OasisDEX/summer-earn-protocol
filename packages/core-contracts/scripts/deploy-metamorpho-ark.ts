@@ -4,10 +4,10 @@ import prompts from 'prompts'
 import MetaMorphoArkModule, { MetaMorphoArkContracts } from '../ignition/modules/metamorpho-ark'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { BaseConfig } from '../ignition/config/config-types'
-import {handleDeploymentId} from "./helpers/deployment-id-handler";
-import {getChainId} from "./helpers/get-chainid";
+import { handleDeploymentId } from './helpers/deployment-id-handler'
+import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
-import {continueDeploymentCheck} from "./helpers/prompt-helpers";
+import { continueDeploymentCheck } from './helpers/prompt-helpers'
 
 /**
  * Main function to deploy a MetaMorphoArk.
@@ -86,8 +86,8 @@ async function deployMetaMorphoArkContract(
   config: BaseConfig,
   userInput: any,
 ): Promise<MetaMorphoArkContracts> {
-  const chainId = getChainId();
-  const deploymentId = await handleDeploymentId(chainId);
+  const chainId = getChainId()
+  const deploymentId = await handleDeploymentId(chainId)
 
   return (await hre.ignition.deploy(MetaMorphoArkModule, {
     parameters: {
@@ -102,7 +102,7 @@ async function deployMetaMorphoArkContract(
         },
       },
     },
-    deploymentId
+    deploymentId,
   })) as MetaMorphoArkContracts
 }
 

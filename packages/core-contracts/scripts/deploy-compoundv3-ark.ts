@@ -4,10 +4,10 @@ import prompts from 'prompts'
 import CompoundV3ArkModule, { CompoundV3ArkContracts } from '../ignition/modules/compoundv3-ark'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { BaseConfig } from '../ignition/config/config-types'
-import {handleDeploymentId} from "./helpers/deployment-id-handler";
-import {getChainId} from "./helpers/get-chainid";
+import { handleDeploymentId } from './helpers/deployment-id-handler'
+import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
-import {continueDeploymentCheck} from "./helpers/prompt-helpers";
+import { continueDeploymentCheck } from './helpers/prompt-helpers'
 
 /**
  * Main function to deploy a CompoundV3Ark.
@@ -105,8 +105,8 @@ async function deployCompoundV3ArkContract(
   config: BaseConfig,
   userInput: any,
 ): Promise<CompoundV3ArkContracts> {
-  const chainId = getChainId();
-  const deploymentId = await handleDeploymentId(chainId);
+  const chainId = getChainId()
+  const deploymentId = await handleDeploymentId(chainId)
 
   return (await hre.ignition.deploy(CompoundV3ArkModule, {
     parameters: {
@@ -122,7 +122,7 @@ async function deployCompoundV3ArkContract(
         },
       },
     },
-    deploymentId
+    deploymentId,
   })) as CompoundV3ArkContracts
 }
 

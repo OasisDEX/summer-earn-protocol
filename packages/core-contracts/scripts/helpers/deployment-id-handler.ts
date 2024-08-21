@@ -1,5 +1,5 @@
-import prompts from 'prompts';
-import {continueDeploymentCheck} from "./prompt-helpers";
+import prompts from 'prompts'
+import { continueDeploymentCheck } from './prompt-helpers'
 
 /**
  * Handles the retrieval and confirmation of the DEPLOYMENT_ID.
@@ -12,31 +12,33 @@ import {continueDeploymentCheck} from "./prompt-helpers";
  * @throws {Error} If the user cancels the confirmation or input process
  */
 export async function handleDeploymentId(chainId: number): Promise<string> {
-    let deploymentId = process.env.DEPLOYMENT_ID;
+  let deploymentId = process.env.DEPLOYMENT_ID
 
-    if (deploymentId) {
-        const confirmed = await continueDeploymentCheck(`DEPLOYMENT_ID found: ${deploymentId}. Do you want to use this ID?`)
-        
-        if (!confirmed) {
-            deploymentId = undefined;  // Reset deploymentId if not confirmed
-        }
+  if (deploymentId) {
+    const confirmed = await continueDeploymentCheck(
+      `DEPLOYMENT_ID found: ${deploymentId}. Do you want to use this ID?`,
+    )
+
+    if (!confirmed) {
+      deploymentId = undefined // Reset deploymentId if not confirmed
+    }
+  }
+
+  if (!deploymentId) {
+    const { id } = await prompts({
+      type: 'text',
+      name: 'id',
+      message: 'Please enter a DEPLOYMENT_ID:',
+      initial: `chain-${chainId}-<insert-identifier>`,
+      validate: (value) => value.length > 0 || 'DEPLOYMENT_ID cannot be empty',
+    })
+
+    if (!id) {
+      throw new Error('DEPLOYMENT_ID input cancelled by user')
     }
 
-    if (!deploymentId) {
-        const { id } = await prompts({
-            type: 'text',
-            name: 'id',
-            message: 'Please enter a DEPLOYMENT_ID:',
-            initial: `chain-${chainId}-<insert-identifier>`,
-            validate: (value) => value.length > 0 || 'DEPLOYMENT_ID cannot be empty',
-        });
+    return id
+  }
 
-        if (!id) {
-            throw new Error('DEPLOYMENT_ID input cancelled by user');
-        }
-
-        return id;
-    }
-
-    throw new Error("No deployment ID resolved");
+  throw new Error('No deployment ID resolved')
 }

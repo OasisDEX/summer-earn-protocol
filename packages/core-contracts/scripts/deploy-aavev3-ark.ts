@@ -4,10 +4,10 @@ import prompts from 'prompts'
 import AaveV3ArkModule, { AaveV3ArkContracts } from '../ignition/modules/aavev3-ark'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { BaseConfig } from '../ignition/config/config-types'
-import {getChainId} from './helpers/get-chainid';
-import {handleDeploymentId} from "./helpers/deployment-id-handler";
+import { getChainId } from './helpers/get-chainid'
+import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { ModuleLogger } from './helpers/module-logger'
-import {continueDeploymentCheck} from "./helpers/prompt-helpers";
+import { continueDeploymentCheck } from './helpers/prompt-helpers'
 
 /**
  * Main function to deploy an AaveV3Ark.
@@ -90,11 +90,11 @@ async function confirmDeployment(userInput: any) {
  * @returns {Promise<AaveV3ArkContracts>} The deployed AaveV3Ark contract.
  */
 async function deployAaveV3ArkContract(
-    config: BaseConfig,
-    userInput: any,
+  config: BaseConfig,
+  userInput: any,
 ): Promise<AaveV3ArkContracts> {
-  const chainId = getChainId();
-  const deploymentId = await handleDeploymentId(chainId);
+  const chainId = getChainId()
+  const deploymentId = await handleDeploymentId(chainId)
 
   return (await hre.ignition.deploy(AaveV3ArkModule, {
     parameters: {
@@ -112,7 +112,7 @@ async function deployAaveV3ArkContract(
         },
       },
     },
-    deploymentId
+    deploymentId,
   })) as AaveV3ArkContracts
 }
 

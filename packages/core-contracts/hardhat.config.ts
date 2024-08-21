@@ -24,7 +24,7 @@ const config: HardhatUserConfig = {
   networks: {
     local: {
       url: `http://127.0.0.1:8545`,
-      chainId: 8453
+      chainId: 8453,
     },
     hardhat: {
       accounts: [

@@ -4,13 +4,13 @@ import path from 'path'
 import FleetModule, { FleetContracts } from '../ignition/modules/fleet'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { BaseConfig } from '../ignition/config/config-types'
-import {handleDeploymentId} from "./helpers/deployment-id-handler";
-import {getChainId} from "./helpers/get-chainid";
+import { handleDeploymentId } from './helpers/deployment-id-handler'
+import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
 import { loadFleetDefinition } from './helpers/fleet-definition-handler'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import {continueDeploymentCheck} from "./helpers/prompt-helpers";
+import { continueDeploymentCheck } from './helpers/prompt-helpers'
 
 /**
  * Main function to deploy a fleet.
@@ -155,8 +155,8 @@ async function deployFleetContracts(
   asset: string,
   bufferArkParams: any,
 ): Promise<FleetContracts> {
-  const chainId = getChainId();
-  const deploymentId = await handleDeploymentId(chainId);
+  const chainId = getChainId()
+  const deploymentId = await handleDeploymentId(chainId)
 
   return (await hre.ignition.deploy(FleetModule, {
     parameters: {
@@ -180,7 +180,7 @@ async function deployFleetContracts(
         },
       },
     },
-    deploymentId
+    deploymentId,
   })) as FleetContracts
 }
 

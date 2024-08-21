@@ -200,6 +200,12 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     ) external;
 
     /**
+     * @dev Sets the minimum buffer balance for the fleet commander.
+     * @param newMinimumBalance The new minimum buffer balance to be set.
+     */
+    function setMinimumBufferBalance(uint256 newMinimumBalance) external;
+
+    /**
      * @dev Sets the minimum rate difference for the Fleet Commander.
      * @param newRateDifference The new minimum rate difference to be set.
      */
