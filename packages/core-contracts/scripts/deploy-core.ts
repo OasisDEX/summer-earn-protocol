@@ -1,7 +1,10 @@
 import hre from 'hardhat'
+import kleur from "kleur";
 import CoreModule, { CoreContracts } from '../ignition/modules/core'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { BaseConfig } from '../ignition/config/config-types'
+import {handleDeploymentId} from "./helpers/deployment-id-handler";
+import {getChainId} from "./helpers/get-chainid";
 import { ModuleLogger } from './helpers/module-logger'
 
 /**
@@ -28,6 +31,9 @@ export async function deployCore() {
  * @returns {Promise<CoreContracts>} The deployed core contracts.
  */
 async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
+  const chainId = getChainId();
+  const deploymentId = await handleDeploymentId(chainId);
+
   return (await hre.ignition.deploy(CoreModule, {
     parameters: {
       CoreModule: {
@@ -35,11 +41,12 @@ async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
         treasury: config.core.treasury,
       },
     },
+    deploymentId
   })) as CoreContracts
 }
 
 // Execute the deployCore function and handle any errors
 deployCore().catch((error) => {
-  console.error(error)
+  console.error(kleur.red().bold('An error occurred:'), error)
   process.exit(1)
 })

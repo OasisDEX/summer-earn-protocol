@@ -7,4 +7,3 @@ broadcast/
 typechain-types/
 
 cache_forge
-ignition/deployments/*/build-info

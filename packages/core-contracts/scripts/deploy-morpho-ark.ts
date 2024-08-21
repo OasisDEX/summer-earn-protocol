@@ -4,7 +4,10 @@ import prompts from 'prompts'
 import MorphoArkModule, { MorphoArkContracts } from '../ignition/modules/morpho-ark'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { BaseConfig } from '../ignition/config/config-types'
+import {handleDeploymentId} from "./helpers/deployment-id-handler";
+import {getChainId} from "./helpers/get-chainid";
 import { ModuleLogger } from './helpers/module-logger'
+import {continueDeploymentCheck} from "./helpers/prompt-helpers";
 
 /**
  * Main function to deploy a MorphoArk.
@@ -71,13 +74,7 @@ async function confirmDeployment(userInput: any) {
   console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
   console.log(kleur.yellow(`Max Allocation: ${userInput.maxAllocation}`))
 
-  const { confirmed } = await prompts({
-    type: 'confirm',
-    name: 'confirmed',
-    message: 'Do you want to continue with the deployment?',
-  })
-
-  return confirmed
+  return await continueDeploymentCheck()
 }
 
 /**
@@ -90,6 +87,9 @@ async function deployMorphoArkContract(
   config: BaseConfig,
   userInput: any,
 ): Promise<MorphoArkContracts> {
+  const chainId = getChainId();
+  const deploymentId = await handleDeploymentId(chainId);
+
   return (await hre.ignition.deploy(MorphoArkModule, {
     parameters: {
       MorphoArkModule: {
@@ -104,6 +104,7 @@ async function deployMorphoArkContract(
         },
       },
     },
+    deploymentId
   })) as MorphoArkContracts
 }
 

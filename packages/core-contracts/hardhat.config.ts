@@ -1,8 +1,6 @@
 import { default as dotenv } from 'dotenv'
 import { resolve } from 'path'
 
-// WARNING: Do not move the loading of the .env as the import for `getHardhatConfig`
-// needs the variables to be preloaded
 dotenv.config({ path: resolve(__dirname, './.env') })
 
 import type { HardhatUserConfig } from 'hardhat/config'
@@ -26,6 +24,7 @@ const config: HardhatUserConfig = {
   networks: {
     local: {
       url: `http://127.0.0.1:8545`,
+      chainId: 8453
     },
     hardhat: {
       accounts: [

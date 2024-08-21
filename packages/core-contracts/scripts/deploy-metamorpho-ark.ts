@@ -4,7 +4,10 @@ import prompts from 'prompts'
 import MetaMorphoArkModule, { MetaMorphoArkContracts } from '../ignition/modules/metamorpho-ark'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { BaseConfig } from '../ignition/config/config-types'
+import {handleDeploymentId} from "./helpers/deployment-id-handler";
+import {getChainId} from "./helpers/get-chainid";
 import { ModuleLogger } from './helpers/module-logger'
+import {continueDeploymentCheck} from "./helpers/prompt-helpers";
 
 /**
  * Main function to deploy a MetaMorphoArk.
@@ -70,13 +73,7 @@ async function confirmDeployment(userInput: any) {
   console.log(kleur.yellow(`Token: ${userInput.token}`))
   console.log(kleur.yellow(`Max Allocation: ${userInput.maxAllocation}`))
 
-  const { confirmed } = await prompts({
-    type: 'confirm',
-    name: 'confirmed',
-    message: 'Do you want to continue with the deployment?',
-  })
-
-  return confirmed
+  return await continueDeploymentCheck()
 }
 
 /**
@@ -89,6 +86,9 @@ async function deployMetaMorphoArkContract(
   config: BaseConfig,
   userInput: any,
 ): Promise<MetaMorphoArkContracts> {
+  const chainId = getChainId();
+  const deploymentId = await handleDeploymentId(chainId);
+
   return (await hre.ignition.deploy(MetaMorphoArkModule, {
     parameters: {
       MetaMorphoArkModule: {
@@ -102,6 +102,7 @@ async function deployMetaMorphoArkContract(
         },
       },
     },
+    deploymentId
   })) as MetaMorphoArkContracts
 }
 

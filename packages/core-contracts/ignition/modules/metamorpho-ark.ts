@@ -5,7 +5,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  *
  * This module deploys the MetaMorphoArk contract, which integrates with the MetaMorpho protocol.
  *
- * @param {string} steakhouseUsdc - The address of the MetaMorpho Steakhouse USDC contract
+ * @param {string} strategyVault - The address of the MetaMorpho Strategy contract
  * @param {object} arkParams - An object containing the parameters for the Ark contract
  *
  * @returns {MetaMorphoArkContracts} An object containing the address of the deployed MetaMorphoArk contract
