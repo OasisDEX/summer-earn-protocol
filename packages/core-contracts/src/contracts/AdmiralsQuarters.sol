@@ -77,13 +77,13 @@ contract AdmiralsQuarters is Ownable {
 
     function exitFleets(
         address[] calldata fleetCommanders,
-        uint256[] calldata shareAmounts,
+        uint256[] calldata tokenAmounts,
         IERC20 outputToken,
         uint256 minOutputAmount,
         bytes[] calldata swapCalldatas
     ) external {
         require(
-            fleetCommanders.length == shareAmounts.length,
+            fleetCommanders.length == tokenAmounts.length,
             "Mismatched input lengths"
         );
         require(
@@ -99,7 +99,7 @@ contract AdmiralsQuarters is Ownable {
             IERC20 fleetToken = IERC20(fleet.asset());
 
             uint256 fleetTokenReceived = fleet.withdraw(
-                shareAmounts[i],
+                tokenAmounts[i],
                 address(this),
                 msg.sender
             );
