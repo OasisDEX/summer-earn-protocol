@@ -1,4 +1,4 @@
-ds-test/=lib/openzeppelin-contracts/lib/forge-std/lib/ds-test/src/
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
 forge-std/=lib/forge-std/src/
 morpho-blue/=lib/metamorpho/lib/morpho-blue/src/
@@ -6,3 +6,4 @@ metamorpho/=lib/metamorpho/src/
 @summerfi/dutch-auction/src/=node_modules/@summerfi/dutch-auction/src/
 @prb/math/=lib/prb-math/
 @summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/
+@summerfi/math-utils/contracts/=node_modules/@summerfi/math-utils/contracts/
