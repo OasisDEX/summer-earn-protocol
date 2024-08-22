@@ -288,14 +288,14 @@ contract AdmiralsQuarters is Ownable {
      * @param toToken The token to swap to
      * @param amount The amount of fromToken to swap
      * @param swapCalldata The 1inch swap calldata
-     * @return The amount of toToken received from the swap
+     * @return swappedAmount The amount of toToken received from the swap
      */
     function _swap(
         IERC20 fromToken,
         IERC20 toToken,
         uint256 amount,
         bytes calldata swapCalldata
-    ) internal returns (uint256) {
+    ) internal returns (uint256 swappedAmount) {
         if (swapCalldata.length == 0) {
             if (address(fromToken) != address(toToken)) revert AssetMismatch();
             return amount;
@@ -310,7 +310,7 @@ contract AdmiralsQuarters is Ownable {
         if (!success) revert SwapFailed();
 
         uint256 balanceAfter = toToken.balanceOf(address(this));
-        uint256 swappedAmount = balanceAfter - balanceBefore;
+        swappedAmount = balanceAfter - balanceBefore;
 
         uint256 returnedAmount = parseSwapReturnData(swapCalldata, returnData);
         require(swappedAmount == returnedAmount, "Swap amount mismatch");

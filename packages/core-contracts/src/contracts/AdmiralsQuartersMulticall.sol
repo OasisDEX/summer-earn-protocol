@@ -213,12 +213,14 @@ contract AdmiralsQuartersMulticall is Ownable, Multicall {
         );
     }
 
-    /// @dev Internal function to perform a token swap using 1inch
-    /// @param fromToken The token to swap from
-    /// @param toToken The token to swap to
-    /// @param amount The amount of fromToken to swap
-    /// @param swapCalldata The 1inch swap calldata
-    /// @return swappedAmount The amount of toToken received from the swap
+    /**
+     * @dev Internal function to perform a token swap using 1inch
+     * @param fromToken The token to swap from
+     * @param toToken The token to swap to
+     * @param amount The amount of fromToken to swap
+     * @param swapCalldata The 1inch swap calldata
+     * @return swappedAmount The amount of toToken received from the swap
+     */
     function _swap(
         IERC20 fromToken,
         IERC20 toToken,
@@ -251,10 +253,12 @@ contract AdmiralsQuartersMulticall is Ownable, Multicall {
         }
     }
 
-    /// @dev Internal function to parse the return data from 1inch swaps
-    /// @param swapCalldata The original swap calldata
-    /// @param returnData The return data from the swap call
-    /// @return swappedAmount The amount of tokens received from the swap
+    /**
+     * @dev Internal function to parse the return data from 1inch swaps
+     * @param swapCalldata The original swap calldata
+     * @param returnData The return data from the swap call
+     * @return swappedAmount The amount of tokens received from the swap
+     */
     function parseSwapReturnData(
         bytes calldata swapCalldata,
         bytes memory returnData
