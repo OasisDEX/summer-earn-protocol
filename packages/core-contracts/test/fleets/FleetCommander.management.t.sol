@@ -87,7 +87,10 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.expectRevert(FleetCommanderTransfersDisabled.selector);
         fleetCommander.transfer(address(0x123), 100);
     }
-
+    function test_TransferFromDisabled() public {
+        vm.expectRevert(FleetCommanderTransfersDisabled.selector);
+        fleetCommander.transferFrom(address(this), address(0x123), 100);
+    }
     function test_RemoveArkWithNonZeroAllocation() public {
         vm.prank(governor);
         vm.expectRevert(
