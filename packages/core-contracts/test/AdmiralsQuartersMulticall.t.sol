@@ -119,6 +119,7 @@ contract AdmiralsQuartersMulticallTest is
                 IERC20(USDC_ADDRESS),
                 IERC20(DAI_ADDRESS),
                 usdcAmount / 2,
+                0,
                 usdcToDaiSwap
             )
         );
@@ -129,7 +130,6 @@ contract AdmiralsQuartersMulticallTest is
 
         uint256 gasBefore = gasleft();
         admiralsQuarters.multicall(enterCalls);
-        uint256 gasUsed = gasBefore - gasleft();
 
         // Check balances after entering
         uint256 usdcFleetShares = usdcFleet.balanceOf(user1);
@@ -173,6 +173,7 @@ contract AdmiralsQuartersMulticallTest is
                 IERC20(DAI_ADDRESS),
                 IERC20(USDC_ADDRESS),
                 daiAssets,
+                0,
                 daiToUsdcSwap
             )
         );
@@ -183,7 +184,6 @@ contract AdmiralsQuartersMulticallTest is
 
         gasBefore = gasleft();
         admiralsQuarters.multicall(exitCalls);
-        gasUsed = gasBefore - gasleft();
 
         // Check balances after exiting
         uint256 finalUsdcBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
@@ -251,6 +251,7 @@ contract AdmiralsQuartersMulticallTest is
                 IERC20(USDC_ADDRESS),
                 IERC20(DAI_ADDRESS),
                 usdcAmount,
+                0,
                 usdcToDaiSwap
             )
         );
@@ -261,7 +262,6 @@ contract AdmiralsQuartersMulticallTest is
 
         uint256 gasBefore = gasleft();
         admiralsQuarters.multicall(moveCalls);
-        uint256 gasUsed = gasBefore - gasleft();
 
         // Check final balances
         assertEq(

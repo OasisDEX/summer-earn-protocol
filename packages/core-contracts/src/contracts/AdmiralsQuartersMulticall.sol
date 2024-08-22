@@ -189,6 +189,7 @@ contract AdmiralsQuartersMulticall is Ownable, Multicall {
      * @param fromToken The token to swap from
      * @param toToken The token to swap to
      * @param amount The amount of fromToken to swap
+     * @param minTokensReceived The minimum amount of toToken to receive after the swap
      * @param swapCalldata The calldata for the 1inch swap
      * @return swappedAmount The amount of toToken received after the swap
      */
@@ -196,13 +197,20 @@ contract AdmiralsQuartersMulticall is Ownable, Multicall {
         IERC20 fromToken,
         IERC20 toToken,
         uint256 amount,
+        uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) external nonReentrant returns (uint256 swappedAmount) {
         if (address(fromToken) == address(0) || address(toToken) == address(0))
             revert InvalidToken();
         if (amount == 0) revert ZeroAmount();
 
-        swappedAmount = _swap(fromToken, toToken, amount, swapCalldata);
+        swappedAmount = _swap(
+            fromToken,
+            toToken,
+            amount,
+            minTokensReceived,
+            swapCalldata
+        );
 
         emit Swapped(
             msg.sender,
@@ -218,6 +226,7 @@ contract AdmiralsQuartersMulticall is Ownable, Multicall {
      * @param fromToken The token to swap from
      * @param toToken The token to swap to
      * @param amount The amount of fromToken to swap
+     * @param minTokensReceived The minimum amount of toToken to receive after the swap
      * @param swapCalldata The 1inch swap calldata
      * @return swappedAmount The amount of toToken received from the swap
      */
@@ -225,6 +234,7 @@ contract AdmiralsQuartersMulticall is Ownable, Multicall {
         IERC20 fromToken,
         IERC20 toToken,
         uint256 amount,
+        uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) internal returns (uint256 swappedAmount) {
         if (swapCalldata.length == 0) {
@@ -248,6 +258,9 @@ contract AdmiralsQuartersMulticall is Ownable, Multicall {
         uint256 actualSwappedAmount = balanceAfter - balanceBefore;
 
         swappedAmount = parseSwapReturnData(swapCalldata, returnData);
+        if (swappedAmount < minTokensReceived) {
+            revert InsufficientOutputAmount();
+        }
         if (swappedAmount != actualSwappedAmount) {
             revert SwapAmountMismatch();
         }
