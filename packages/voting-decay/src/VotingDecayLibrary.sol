@@ -1,76 +1,94 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {UD60x18, ud, unwrap} from "@prb/math/src/UD60x18.sol";
+import "./VotingDecayMath.sol";
 
-/**
- * @title VotingDecayMath
- * @notice A library for precise mathematical operations used in voting decay calculations
- * @dev Utilizes PRBMath for high-precision fixed-point arithmetic
+/*
+ * @title VotingDecayLibrary
+ * @notice A library for managing voting power decay in governance systems
+ * @dev Utilizes VotingDecayMath for decay calculations
  */
-library VotingDecayMath {
-    /// @notice Constant representing 1 in 18 decimal fixed-point format (1e18)
-    uint256 private constant WAD = 1e18;
+library VotingDecayLibrary {
+    using VotingDecayMath for uint256;
 
-    /**
-     * @notice Performs a high-precision multiplication followed by a division
-     * @dev Uses PRBMath's UD60x18 type for increased accuracy
-     * @param a The first factor
-     * @param b The second factor
-     * @param denominator The divisor
-     * @return The result of (a * b) / denominator, with 18 decimal precision
-     */
-    function mulDiv(
-        uint256 a,
-        uint256 b,
-        uint256 denominator
-    ) internal pure returns (uint256) {
-        UD60x18 result = ud(a).mul(ud(b)).div(ud(denominator));
-        return unwrap(result);
+    /* @notice Constant representing 1 in the system's fixed-point arithmetic (18 decimal places) */
+    uint256 public constant WAD = 1e18;
+
+    /* @notice Number of seconds in a year, used for annualized rate calculations */
+    uint256 private constant SECONDS_PER_YEAR = 365 days;
+
+    /* @notice Enumeration of supported decay function types */
+    enum DecayFunction {
+        Linear,
+        Exponential
     }
 
-    /**
-     * @notice Calculates the exponential decay of a value over time
-     * @dev Uses PRBMath for high-precision exponential calculation
-     * @param initialValue The starting value before decay
-     * @param decayRatePerSecond The rate of decay per second (in WAD format)
-     * @param decayTimeInSeconds The duration of decay in seconds
-     * @return The decayed value, with 18 decimal precision
+    /*
+     * @notice Structure to store decay information for an account
+     * @param retentionFactor The current retention factor of the account's voting power
+     * @param lastUpdateTimestamp The timestamp of the last update to the account's decay info
+     * @param delegateTo The address to which this account has delegated its voting power, if any
      */
-    function exponentialDecay(
-        uint256 initialValue,
+    struct DecayInfo {
+        uint256 retentionFactor;
+        uint40 lastUpdateTimestamp;
+        address delegateTo;
+    }
+
+    /*
+     * @notice Calculates the new retention factor based on elapsed time and decay parameters
+     * @param currentRetentionFactor The current retention factor
+     * @param elapsedSeconds The number of seconds elapsed since the last update
+     * @param decayRatePerSecond The decay rate per second
+     * @param decayFreeWindow The duration (in seconds) during which no decay occurs
+     * @param decayFunction The type of decay function to use (Linear or Exponential)
+     * @return The newly calculated retention factor
+     */
+    function calculateRetentionFactor(
+        uint256 currentRetentionFactor,
+        uint256 elapsedSeconds,
         uint256 decayRatePerSecond,
-        uint256 decayTimeInSeconds
+        uint256 decayFreeWindow,
+        DecayFunction decayFunction
     ) internal pure returns (uint256) {
-        if (decayTimeInSeconds == 0 || decayRatePerSecond == 0) {
-            return initialValue;
+        if (elapsedSeconds <= decayFreeWindow) return currentRetentionFactor;
+
+        uint256 decayTime = elapsedSeconds - decayFreeWindow;
+
+        if (decayFunction == DecayFunction.Linear) {
+            return
+                currentRetentionFactor.linearDecay(
+                decayRatePerSecond,
+                decayTime
+            );
+        } else {
+            return
+                currentRetentionFactor.exponentialDecay(
+                decayRatePerSecond,
+                decayTime
+            );
         }
-
-        UD60x18 retentionRatePerSecond = ud(WAD - decayRatePerSecond);
-        UD60x18 retentionFactor = retentionRatePerSecond.powu(
-            decayTimeInSeconds
-        );
-        UD60x18 result = ud(initialValue).mul(retentionFactor);
-
-        return unwrap(result.gt(ud(0)) ? result.div(ud(1e18)) : ud(0));
     }
 
-    /**
-     * @notice Calculates the linear decay of a value over time
-     * @dev Applies a constant rate of decay per unit of time
-     * @param initialValue The starting value before decay
-     * @param decayRatePerSecond The rate of decay per second (in WAD format)
-     * @param decayTimeInSeconds The duration of decay in seconds
-     * @return The decayed value, with 18 decimal precision
+    /*
+     * @notice Applies the decay to the original voting power value
+     * @param originalValue The original voting power value
+     * @param retentionFactor The current retention factor
+     * @return The decayed voting power value
      */
-    function linearDecay(
-        uint256 initialValue,
-        uint256 decayRatePerSecond,
-        uint256 decayTimeInSeconds
+    function applyDecay(
+        uint256 originalValue,
+        uint256 retentionFactor
     ) internal pure returns (uint256) {
-        uint256 totalDecayFactor = decayRatePerSecond * decayTimeInSeconds;
-        uint256 retentionFactor = WAD - totalDecayFactor;
+        return VotingDecayMath.mulDiv(originalValue, retentionFactor, WAD);
+    }
 
-        return (initialValue * retentionFactor) / WAD;
+    /*
+     * @notice Checks if a given decay rate is valid
+     * @param rate The decay rate to check
+     * @return A boolean indicating whether the rate is valid (less than or equal to WAD)
+     */
+    function isValidDecayRate(uint256 rate) internal pure returns (bool) {
+        return rate <= WAD;
     }
 }
