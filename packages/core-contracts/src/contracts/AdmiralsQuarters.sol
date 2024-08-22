@@ -14,7 +14,36 @@ import {SwapFailed, AssetMismatch, InsufficientOutputAmount, InvalidFleetCommand
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
  *      with integrated swapping functionality using 1inch Router.
- * @notice This contract uses a custom nonReentrant modifier with transient storage for gas efficiency.
+ * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas efficiency.
+ * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored ReentrancyGuardTransient )
+ *
+ * @dev How to use this contract:
+ * 1. Deposit tokens: Use `depositTokens` to deposit ERC20 tokens into the contract.
+ * 2. Withdraw tokens: Use `withdrawTokens` to withdraw deposited tokens.
+ * 3. Enter a fleet: Use `enterFleet` to deposit tokens into a FleetCommander contract.
+ * 4. Exit a fleet: Use `exitFleet` to withdraw tokens from a FleetCommander contract.
+ * 5. Swap tokens: Use `swap` to exchange one token for another using the 1inch Router.
+ * 6. Rescue tokens: Contract owner can use `rescueTokens` to withdraw any tokens stuck in the contract.
+ *
+ * @dev Multicall functionality:
+ * This contract inherits from OpenZeppelin's Multicall, allowing multiple function calls to be batched into a single transaction.
+ * To use Multicall:
+ * 1. Encode each function call you want to make as calldata.
+ * 2. Pack these encoded function calls into an array of bytes.
+ * 3. Call the `multicall` function with this array as the argument.
+ *
+ * Example Multicall usage:
+ * bytes[] memory calls = new bytes[](2);
+ * calls[0] = abi.encodeWithSelector(this.depositTokens.selector, tokenAddress, amount);
+ * calls[1] = abi.encodeWithSelector(this.enterFleet.selector, fleetCommanderAddress, tokenAddress, amount);
+ * (bool[] memory successes, bytes[] memory results) = this.multicall(calls);
+ *
+ * @dev Security considerations:
+ * - All external functions are protected against reentrancy attacks.
+ * - The contract uses OpenZeppelin's SafeERC20 for safe token transfers.
+ * - Only the contract owner can rescue tokens.
+ * - Ensure that the 1inch Router address provided in the constructor is correct and trusted.
+ * - Since there is no data exchange between calls - make sure all the tokens are returned to the user
  */
 contract AdmiralsQuarters is
     Ownable,
