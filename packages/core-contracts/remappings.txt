@@ -6,3 +6,4 @@ metamorpho/=lib/metamorpho/src/
 @summerfi/dutch-auction/src/=node_modules/@summerfi/dutch-auction/src/
 @prb/math/=lib/prb-math/
 @summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/
+@summerfi/math-utils/contracts/=node_modules/@summerfi/math-utils/contracts/
