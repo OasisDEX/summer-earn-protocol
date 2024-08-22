@@ -35,6 +35,7 @@
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/percentage-solidity": "workspace:*",
+    "@summerfi/math-utils": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
     "@types/prompts": "^2.4.9",
