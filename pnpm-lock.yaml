@@ -151,9 +151,6 @@ importers:
       '@summerfi/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
-      forge-std:
-        specifier: github:foundry-rs/forge-std#v1.8.1
-        version: github.com/foundry-rs/forge-std/bb4ceea94d6f10eeb5b41dc2391c6c8bf8e734ef
       prettier:
         specifier: ^3.0.0
         version: 3.3.3
@@ -280,6 +277,19 @@ importers:
       '@tsconfig/node20':
         specifier: ^20.1.4
         version: 20.1.4
+
+  packages/voting-decay:
+    dependencies:
+      '@openzeppelin/contracts':
+        specifier: ^5.0.1
+        version: 5.0.2
+    devDependencies:
+      prettier:
+        specifier: ^3.0.0
+        version: 3.3.3
+      solhint:
+        specifier: ^3.6.2
+        version: 3.6.2(typescript@5.5.4)
 
 packages:
 

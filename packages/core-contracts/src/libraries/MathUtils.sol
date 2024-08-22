@@ -43,11 +43,7 @@ library MathUtils {
         assembly {
             n := div(n, 2)
 
-            for {
-
-            } n {
-
-            } {
+            for {} n {} {
                 let xx := mul(x, x)
                 if iszero(eq(div(xx, x), x)) {
                     revert(0, 0)

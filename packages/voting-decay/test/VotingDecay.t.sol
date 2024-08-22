@@ -16,18 +16,23 @@ contract VotingDecayTest is Test {
     address internal delegate = address(0x2);
     address internal owner = address(0x3);
     address internal refresher = address(0x4);
-    uint256 internal constant INITIAL_VOTING_POWER = 1000e18;
-    uint256 internal constant INITIAL_DECAY_RATE = 0.1e27; // 10% per year
+    uint256 internal constant INITIAL_VALUE = 1000e18;
     uint40 internal constant INITIAL_DECAY_FREE_WINDOW = 30 days;
+    // Define decay rate per second
+    // 0.1e18 per year is approximately 3.168808781402895e9 per second
+    // (0.1e18 / (365 * 24 * 60 * 60))
+    uint256 internal constant INITIAL_DECAY_RATE = 3.1709792e9; // ~10% per year
 
     /*
      * @notice Sets up the test environment before each test
      * @dev Deploys a new VotingDecayManager and sets an initial decay rate
      */
     function setUp() public {
+        vm.prank(owner);
         decayManager = new VotingDecayManager(
             INITIAL_DECAY_FREE_WINDOW,
             INITIAL_DECAY_RATE,
+            VotingDecayLibrary.DecayFunction.Linear,
             owner
         );
 
@@ -38,14 +43,14 @@ contract VotingDecayTest is Test {
     }
 
     /*
-     * @notice Tests that the initial decay index is set correctly
+     * @notice Tests that the initial retention factor is set correctly
      */
-    function test_InitialDecayIndex() public {
+    function test_InitialRetentionFactor() public {
         decayManager.initializeAccount(user);
 
         assertEq(
-            decayManager.getCurrentDecayIndex(user),
-            VotingDecayLibrary.RAY
+            decayManager.getCurrentRetentionFactor(user),
+            VotingDecayLibrary.WAD
         );
     }
 
@@ -58,34 +63,36 @@ contract VotingDecayTest is Test {
         // Fast forward one year
         vm.warp(block.timestamp + 365 days);
 
-        uint256 expectedDecayIndex = 0.9e27; // 90% of initial
+        uint256 expectedRetentionFactor = 0.9e18; // 90% of initial
         assertApproxEqAbs(
-            decayManager.getCurrentDecayIndex(user),
-            expectedDecayIndex,
+            decayManager.getCurrentRetentionFactor(user),
+            expectedRetentionFactor,
             1e25
         );
     }
 
     /*
-     * @notice Tests the update of decay index after refreshing
+     * @notice Tests the update of retention factor after refreshing
      */
-    function test_UpdateDecayIndex() public {
+    function test_UpdateRetentionFactor() public {
+        decayManager.initializeAccount(user);
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
         vm.prank(owner);
         decayManager.updateDecay(user);
 
-        assertEq(
-            decayManager.getCurrentDecayIndex(user),
-            VotingDecayLibrary.RAY
+        assertLt(
+            decayManager.getCurrentRetentionFactor(user),
+            VotingDecayLibrary.WAD
         );
     }
 
     /*
-     * @notice Tests the reset of decay index
+     * @notice Tests the reset of retention factor
      */
     function test_ResetDecay() public {
+        decayManager.initializeAccount(user);
         // Fast forward 6 months
         vm.warp(block.timestamp + 182 days);
 
@@ -93,29 +100,30 @@ contract VotingDecayTest is Test {
         decayManager.resetDecay(user);
 
         assertEq(
-            decayManager.getCurrentDecayIndex(user),
-            VotingDecayLibrary.RAY
+            decayManager.getCurrentRetentionFactor(user),
+            VotingDecayLibrary.WAD
         );
     }
 
     /*
-     * @notice Tests setting a new decay rate and its effect on the decay index
+     * @notice Tests setting a new decay rate and its effect on the retention factor
      */
-    function test_SetDecayRate() public {
+    function test_SetDecayRatePerSecond() public {
         decayManager.initializeAccount(user);
 
-        uint256 newRate = 0.2e27; // 20% per year
-        decayManager.setDecayRate(newRate);
+        uint256 newRate = uint256(2e17) / (365 * 24 * 60 * 60); // 20% per year
+        vm.prank(owner);
+        decayManager.setDecayRatePerSecond(newRate);
 
-        assertEq(decayManager.decayRate(), newRate);
+        assertEq(decayManager.decayRatePerSecond(), newRate);
 
-        // Fast-forward and check the decay index
+        // Fast-forward and check the retention factor
         vm.warp(block.timestamp + 365 days);
-        uint256 expectedDecayIndex = 0.816e27; // ~80% of initial
+        uint256 expectedRetentionFactor = 0.817e18; // 81.7% of initial
         assertApproxEqAbs(
-            decayManager.getCurrentDecayIndex(user),
-            expectedDecayIndex,
-            1e25
+            decayManager.getCurrentRetentionFactor(user),
+            expectedRetentionFactor,
+            1e16
         );
     }
 
@@ -124,25 +132,30 @@ contract VotingDecayTest is Test {
      */
     function testFail_SetInvalidDecayRate() public {
         uint256 invalidRate = 1.1e27; // 110% per year
-        decayManager.setDecayRate(invalidRate);
+        vm.prank(owner);
+        decayManager.setDecayRatePerSecond(invalidRate);
     }
 
     /*
-     * @notice Tests the delegation of voting power
+     * @notice Tests the delegation of value
      */
     function test_Delegate() public {
+        decayManager.initializeAccount(user);
+        decayManager.initializeAccount(delegate);
         decayManager.delegate(user, delegate);
 
         assertEq(
-            decayManager.getCurrentDecayIndex(user),
-            decayManager.getCurrentDecayIndex(delegate)
+            decayManager.getCurrentRetentionFactor(user),
+            decayManager.getCurrentRetentionFactor(delegate)
         );
     }
 
     /*
-     * @notice Tests the undelegation of voting power
+     * @notice Tests the undelegation of value
      */
     function test_Undelegate() public {
+        decayManager.initializeAccount(user);
+        decayManager.initializeAccount(delegate);
         decayManager.delegate(user, delegate);
 
         // Fast forward 6 months
@@ -151,20 +164,20 @@ contract VotingDecayTest is Test {
         decayManager.undelegate(user);
 
         assertEq(
-            decayManager.getCurrentDecayIndex(user),
-            VotingDecayLibrary.RAY
-        ); // Reset to full voting power
+            decayManager.getCurrentRetentionFactor(user),
+            VotingDecayLibrary.WAD
+        ); // Reset to full value
         assertApproxEqAbs(
-            decayManager.getCurrentDecayIndex(delegate),
-            0.95e27,
-            1e25
+            decayManager.getCurrentRetentionFactor(delegate),
+            0.95e18,
+            1e17
         );
     }
 
     /*
-     * @notice Tests the application of decay to voting power
+     * @notice Tests the application of decay to value
      */
-    function test_ApplyDecayToVotingPower() public {
+    function test_ApplyDecayToValue() public {
         decayManager.initializeAccount(user);
 
         // Fast forward 1 year
@@ -172,9 +185,9 @@ contract VotingDecayTest is Test {
 
         uint256 decayedVotingPower = decayManager.getVotingPower(
             user,
-            INITIAL_VOTING_POWER
+            INITIAL_VALUE
         );
-        uint256 expectedDecayedVotingPower = 908e18;
+        uint256 expectedDecayedVotingPower = 908e18; // 90.8% of initial
         assertApproxEqAbs(decayedVotingPower, expectedDecayedVotingPower, 1e18);
     }
 
@@ -185,20 +198,76 @@ contract VotingDecayTest is Test {
         decayManager.initializeAccount(user);
 
         uint40 newDecayFreeWindow = 60 days;
+        vm.prank(owner);
         decayManager.setDecayFreeWindow(newDecayFreeWindow);
 
-        // Fast forward 29 days (within decay-free window)
-        vm.warp(block.timestamp + 29 days);
+        // Fast forward 59 days (within decay-free window)
+        vm.warp(block.timestamp + 59 days);
         assertEq(
-            decayManager.getCurrentDecayIndex(user),
-            VotingDecayLibrary.RAY
+            decayManager.getCurrentRetentionFactor(user),
+            VotingDecayLibrary.WAD
         );
 
-        // Fast forward another 32 days (outside decay-free window)
-        vm.warp(block.timestamp + 32 days);
+        // Fast forward another 2 days (outside decay-free window)
+        vm.warp(block.timestamp + 2 days);
         assertLt(
-            decayManager.getCurrentDecayIndex(user),
-            VotingDecayLibrary.RAY
+            decayManager.getCurrentRetentionFactor(user),
+            VotingDecayLibrary.WAD
         );
+    }
+
+    /*
+     * @notice Tests setting and using different decay functions
+     */
+    function test_SetDecayFunction() public {
+        decayManager.initializeAccount(user);
+
+        // Test linear decay
+        vm.warp(block.timestamp + 365 days);
+        uint256 linearDecayedValue = decayManager.getVotingPower(
+            user,
+            INITIAL_VALUE
+        );
+
+        // Switch to exponential decay
+        vm.startPrank(owner);
+        decayManager.setDecayFunction(
+            VotingDecayLibrary.DecayFunction.Exponential
+        );
+        decayManager.resetDecay(user);
+        vm.stopPrank();
+
+        // Test exponential decay
+        vm.warp(block.timestamp + 365 days);
+        uint256 exponentialDecayedValue = decayManager.getVotingPower(
+            user,
+            INITIAL_VALUE
+        );
+
+        // Exponential decay should result in a higher value than linear decay after one year
+        assertGt(exponentialDecayedValue, linearDecayedValue);
+    }
+
+    /*
+     * @notice Tests authorized refresher functionality
+     */
+    function test_AuthorizedRefresher() public {
+        vm.prank(owner);
+        decayManager.setAuthorizedRefresher(refresher, true);
+
+        vm.prank(refresher);
+        decayManager.resetDecay(user);
+
+        assertEq(
+            decayManager.getCurrentRetentionFactor(user),
+            VotingDecayLibrary.WAD
+        );
+
+        vm.prank(owner);
+        decayManager.setAuthorizedRefresher(refresher, false);
+
+        vm.expectRevert();
+        vm.prank(refresher);
+        decayManager.resetDecay(user);
     }
 }
