@@ -58,15 +58,15 @@ library VotingDecayLibrary {
         if (decayFunction == DecayFunction.Linear) {
             return
                 currentRetentionFactor.linearDecay(
-                decayRatePerSecond,
-                decayTime
-            );
+                    decayRatePerSecond,
+                    decayTime
+                );
         } else {
             return
                 currentRetentionFactor.exponentialDecay(
-                decayRatePerSecond,
-                decayTime
-            );
+                    decayRatePerSecond,
+                    decayTime
+                );
         }
     }
 

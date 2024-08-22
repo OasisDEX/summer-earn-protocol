@@ -69,7 +69,9 @@ contract VotingDecayManager is Ownable {
      * @notice Sets a new decay rate per second
      * @param newRatePerSecond New decay rate (in WAD format)
      */
-    function setDecayRatePerSecond(uint256 newRatePerSecond) external onlyOwner {
+    function setDecayRatePerSecond(
+        uint256 newRatePerSecond
+    ) external onlyOwner {
         if (!VotingDecayLibrary.isValidDecayRate(newRatePerSecond)) {
             revert InvalidDecayRate();
         }
@@ -135,7 +137,9 @@ contract VotingDecayManager is Ownable {
         _initializeAccountIfNew(from);
         _initializeAccountIfNew(to);
 
-        VotingDecayLibrary.DecayInfo storage fromAccount = decayInfoByAccount[from];
+        VotingDecayLibrary.DecayInfo storage fromAccount = decayInfoByAccount[
+            from
+        ];
         if (fromAccount.delegateTo != address(0)) revert AlreadyDelegated();
         if (from == to) revert CannotDelegateToSelf();
 
@@ -154,9 +158,13 @@ contract VotingDecayManager is Ownable {
      * @notice Removes delegation for an account
      * @param accountAddress Address to remove delegation for
      */
-    function undelegate(address accountAddress) external decayReset(accountAddress) {
+    function undelegate(
+        address accountAddress
+    ) external decayReset(accountAddress) {
         _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage decayInfo = decayInfoByAccount[accountAddress];
+        VotingDecayLibrary.DecayInfo storage decayInfo = decayInfoByAccount[
+            accountAddress
+        ];
         if (decayInfo.delegateTo == address(0)) revert NotDelegated();
 
         address currentDelegate = decayInfo.delegateTo;
@@ -192,7 +200,9 @@ contract VotingDecayManager is Ownable {
      * @param account Address to get delegators for
      * @return Array of delegator addresses
      */
-    function getDelegators(address account) external view returns (address[] memory) {
+    function getDelegators(
+        address account
+    ) external view returns (address[] memory) {
         return delegators[account];
     }
 
@@ -201,8 +211,12 @@ contract VotingDecayManager is Ownable {
      * @param accountAddress Address to calculate retention factor for
      * @return Current retention factor
      */
-    function getCurrentRetentionFactor(address accountAddress) public view returns (uint256) {
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[accountAddress];
+    function getCurrentRetentionFactor(
+        address accountAddress
+    ) public view returns (uint256) {
+        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
+            accountAddress
+        ];
 
         if (account.lastUpdateTimestamp == 0) {
             revert AccountNotInitialized();
@@ -213,13 +227,14 @@ contract VotingDecayManager is Ownable {
         }
 
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
-        return VotingDecayLibrary.calculateRetentionFactor(
-            account.retentionFactor,
-            decayPeriod,
-            decayRatePerSecond,
-            decayFreeWindow,
-            decayFunction
-        );
+        return
+            VotingDecayLibrary.calculateRetentionFactor(
+                account.retentionFactor,
+                decayPeriod,
+                decayRatePerSecond,
+                decayFreeWindow,
+                decayFunction
+            );
     }
 
     /**
@@ -227,7 +242,9 @@ contract VotingDecayManager is Ownable {
      * @param accountAddress Address to get decay info for
      * @return DecayInfo struct containing decay information
      */
-    function getDecayInfo(address accountAddress) public view returns (VotingDecayLibrary.DecayInfo memory) {
+    function getDecayInfo(
+        address accountAddress
+    ) public view returns (VotingDecayLibrary.DecayInfo memory) {
         return decayInfoByAccount[accountAddress];
     }
 
@@ -259,7 +276,9 @@ contract VotingDecayManager is Ownable {
      */
     function _updateRetentionFactor(address accountAddress) internal {
         _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[accountAddress];
+        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
+            accountAddress
+        ];
 
         if (account.delegateTo != address(0)) {
             _updateRetentionFactor(account.delegateTo);
@@ -268,12 +287,17 @@ contract VotingDecayManager is Ownable {
 
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
         if (decayPeriod > decayFreeWindow) {
-            uint256 newRetentionFactor = getCurrentRetentionFactor(accountAddress);
+            uint256 newRetentionFactor = getCurrentRetentionFactor(
+                accountAddress
+            );
             account.retentionFactor = newRetentionFactor;
         }
         account.lastUpdateTimestamp = uint40(block.timestamp);
 
-        emit VotingDecayEvents.DecayUpdated(accountAddress, account.retentionFactor);
+        emit VotingDecayEvents.DecayUpdated(
+            accountAddress,
+            account.retentionFactor
+        );
     }
 
     /**
@@ -282,7 +306,9 @@ contract VotingDecayManager is Ownable {
      */
     function _resetDecay(address accountAddress) internal {
         _initializeAccountIfNew(accountAddress);
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[accountAddress];
+        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
+            accountAddress
+        ];
         account.lastUpdateTimestamp = uint40(block.timestamp);
         account.retentionFactor = VotingDecayLibrary.WAD;
         emit VotingDecayEvents.DecayReset(accountAddress);

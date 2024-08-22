@@ -7,8 +7,6 @@
     "solhint-plugin-prettier": "^0.1.0"
   },
   "devDependencies": {
-    "prettier": "^3.0.0",
-    "solhint": "^3.6.2",
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/percentage-solidity": "workspace:*",
