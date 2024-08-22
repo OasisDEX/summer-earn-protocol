@@ -29,8 +29,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
     uint256 constant FORK_BLOCK = 20576616;
 
     function setUp() public {
-        console.log("Setting up AdmiralsQuartersTest");
-
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
 
         uint256 initialTipRate = 0;
@@ -120,16 +118,12 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             swapCalldatas
         );
         uint256 gasUsed = gasBefore - gasleft();
-        console.log("Gas used for entering fleets:", gasUsed);
 
         // Check balances after entering
         uint256 usdcFleetShares = usdcFleet.balanceOf(user1);
         uint256 daiFleetShares = daiFleet.balanceOf(user1);
         uint256 daiAssets = daiFleet.convertToAssets(daiFleetShares);
         uint256 usdcAssets = usdcFleet.convertToAssets(usdcFleetShares);
-
-        console.log("USDC Fleet Shares:", usdcFleetShares);
-        console.log("DAI Fleet Shares:", daiFleetShares);
 
         assertGt(usdcFleetShares, 0, "Should have USDC fleet shares");
         assertGt(daiFleetShares, 0, "Should have DAI fleet shares");
@@ -166,12 +160,9 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             swapCalldatas
         );
         gasUsed = gasBefore - gasleft();
-        console.log("Gas used for exiting fleets:", gasUsed);
 
         // Check balances after exiting
         uint256 finalUsdcBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
-
-        console.log("Final USDC Balance:", finalUsdcBalance);
 
         assertGt(
             finalUsdcBalance,
@@ -230,7 +221,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             usdcToDaiSwap
         );
         uint256 gasUsed = gasBefore - gasleft();
-        console.log("Gas used for moving fleets:", gasUsed);
 
         // Check final balances
         assertEq(
@@ -242,7 +232,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
         assertGt(daiFleetShares, 0, "Should have DAI fleet shares after move");
 
         uint256 daiAssets = daiFleet.convertToAssets(daiFleetShares);
-        console.log("DAI assets received:", daiAssets);
 
         assertGe(
             daiAssets,

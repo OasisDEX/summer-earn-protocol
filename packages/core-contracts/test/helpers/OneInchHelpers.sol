@@ -19,7 +19,7 @@ contract OneInchHelpers {
     uint256 private constant _WETH_NOT_WRAP_FLAG = 1 << 251;
     uint256 private constant _USE_PERMIT2_FLAG = 1 << 250;
     uint256 private constant _LOW_160_BIT_MASK = (1 << 160) - 1;
-    uint256 private constant _UNISWAP_V3_ZERO_FOR_ONE_OFFSET = 247;
+    uint256 private constant _UNISWAP_V3_ZERO_FOR_ONE_FLAG = 1 << 247;
 
     /**
      * @dev Enum representing supported DEX protocols
@@ -136,7 +136,7 @@ contract OneInchHelpers {
             encodedDex |= _USE_PERMIT2_FLAG;
         }
         if (zeroForOne) {
-            encodedDex |= _UNISWAP_V3_ZERO_FOR_ONE_OFFSET;
+            encodedDex |= _UNISWAP_V3_ZERO_FOR_ONE_FLAG;
         }
         return
             abi.encodeWithSelector(

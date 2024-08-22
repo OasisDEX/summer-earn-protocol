@@ -31,8 +31,6 @@ contract AdmiralsQuartersMulticallTest is
     uint256 constant FORK_BLOCK = 20576616;
 
     function setUp() public {
-        console.log("Setting up AdmiralsQuartersMulticallTest");
-
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
 
         uint256 initialTipRate = 0;
@@ -79,9 +77,14 @@ contract AdmiralsQuartersMulticallTest is
             type(uint256).max
         );
         vm.stopPrank();
+        vm.label(address(daiFleet), "DAI Fleet");
+        vm.label(address(usdcFleet), "USDC Fleet");
+
+        vm.label(USDC_ADDRESS, "USDC");
+        vm.label(DAI_ADDRESS, "DAI");
     }
 
-    function test_EnterAndExitFleets() public {
+    function test_EnterAndExitFleetsX() public {
         uint256 usdcAmount = 1000e6; // 1000 USDC
         uint256 minDaiAmount = 499e18; // Expecting at least 499 DAI
 
@@ -101,34 +104,38 @@ contract AdmiralsQuartersMulticallTest is
         vm.startPrank(user1);
 
         // Enter fleets using multicall
-        bytes[] memory enterCalls = new bytes[](2);
+        bytes[] memory enterCalls = new bytes[](4);
         enterCalls[0] = abi.encodeCall(
-            admiralsQuarters.depositToFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount / 2, "")
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), usdcAmount)
         );
         enterCalls[1] = abi.encodeCall(
-            admiralsQuarters.depositToFleet,
+            admiralsQuarters.enterFleet,
+            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount / 2)
+        );
+        enterCalls[2] = abi.encodeCall(
+            admiralsQuarters.swap,
             (
-                address(daiFleet),
                 IERC20(USDC_ADDRESS),
+                IERC20(DAI_ADDRESS),
                 usdcAmount / 2,
                 usdcToDaiSwap
             )
+        );
+        enterCalls[3] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(daiFleet), IERC20(DAI_ADDRESS), 0)
         );
 
         uint256 gasBefore = gasleft();
         admiralsQuarters.multicall(enterCalls);
         uint256 gasUsed = gasBefore - gasleft();
-        console.log("Gas used for entering fleets:", gasUsed);
 
         // Check balances after entering
         uint256 usdcFleetShares = usdcFleet.balanceOf(user1);
         uint256 daiFleetShares = daiFleet.balanceOf(user1);
         uint256 daiAssets = daiFleet.convertToAssets(daiFleetShares);
         uint256 usdcAssets = usdcFleet.convertToAssets(usdcFleetShares);
-
-        console.log("USDC Fleet Shares:", usdcFleetShares);
-        console.log("DAI Fleet Shares:", daiFleetShares);
 
         assertGt(usdcFleetShares, 0, "Should have USDC fleet shares");
         assertGt(daiFleetShares, 0, "Should have DAI fleet shares");
@@ -137,7 +144,7 @@ contract AdmiralsQuartersMulticallTest is
         bytes memory daiToUsdcSwap = encodeUnoswapData(
             DAI_ADDRESS,
             daiAssets,
-            0, // Set min return to 0 for simplicity, adjust in production
+            1, // Set min return to 0 for simplicity, adjust in production
             UNISWAP_USDC_DAI_V3_POOL,
             Protocol.UniswapV3,
             false,
@@ -150,31 +157,36 @@ contract AdmiralsQuartersMulticallTest is
         daiFleet.approve(address(admiralsQuarters), daiFleetShares);
 
         // Exit fleets using multicall
-        bytes[] memory exitCalls = new bytes[](2);
+        bytes[] memory exitCalls = new bytes[](4);
         exitCalls[0] = abi.encodeCall(
-            admiralsQuarters.withdrawFromFleet,
-            (address(usdcFleet), usdcAssets, IERC20(USDC_ADDRESS), "", 0)
+            admiralsQuarters.exitFleet,
+            (address(usdcFleet), usdcAssets)
         );
+
         exitCalls[1] = abi.encodeCall(
-            admiralsQuarters.withdrawFromFleet,
+            admiralsQuarters.exitFleet,
+            (address(daiFleet), daiAssets)
+        );
+        exitCalls[2] = abi.encodeCall(
+            admiralsQuarters.swap,
             (
-                address(daiFleet),
-                daiAssets,
+                IERC20(DAI_ADDRESS),
                 IERC20(USDC_ADDRESS),
-                daiToUsdcSwap,
-                0
+                daiAssets,
+                daiToUsdcSwap
             )
+        );
+        exitCalls[3] = abi.encodeCall(
+            admiralsQuarters.withdrawTokens,
+            (IERC20(USDC_ADDRESS), 0)
         );
 
         gasBefore = gasleft();
         admiralsQuarters.multicall(exitCalls);
         gasUsed = gasBefore - gasleft();
-        console.log("Gas used for exiting fleets:", gasUsed);
 
         // Check balances after exiting
         uint256 finalUsdcBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
-
-        console.log("Final USDC Balance:", finalUsdcBalance);
 
         assertGt(
             finalUsdcBalance,
@@ -190,11 +202,11 @@ contract AdmiralsQuartersMulticallTest is
         vm.stopPrank();
     }
 
-    function test_MoveFleets() public {
+    function test_MoveFleetsX() public {
         uint256 usdcAmount = 1000e6; // 1000 USDC
         uint256 minDaiAmount = 999e18; // Expecting at least 999 DAI
 
-        // First, deposit USDC into the USDC fleet
+        // First, depositTokens USDC into the USDC fleet
         vm.startPrank(user1);
         IERC20(USDC_ADDRESS).approve(address(usdcFleet), usdcAmount);
         uint256 usdcShares = usdcFleet.deposit(usdcAmount, user1);
@@ -230,8 +242,8 @@ contract AdmiralsQuartersMulticallTest is
         // Move from USDC fleet to DAI fleet using multicall
         bytes[] memory moveCalls = new bytes[](3);
         moveCalls[0] = abi.encodeCall(
-            admiralsQuarters.withdrawFromFleet,
-            (address(usdcFleet), usdcShares, IERC20(USDC_ADDRESS), "", 0)
+            admiralsQuarters.exitFleet,
+            (address(usdcFleet), usdcShares)
         );
         moveCalls[1] = abi.encodeCall(
             admiralsQuarters.swap,
@@ -243,14 +255,13 @@ contract AdmiralsQuartersMulticallTest is
             )
         );
         moveCalls[2] = abi.encodeCall(
-            admiralsQuarters.depositToFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), minDaiAmount, "")
+            admiralsQuarters.enterFleet,
+            (address(daiFleet), IERC20(DAI_ADDRESS), 0)
         );
 
         uint256 gasBefore = gasleft();
         admiralsQuarters.multicall(moveCalls);
         uint256 gasUsed = gasBefore - gasleft();
-        console.log("Gas used for moving fleets:", gasUsed);
 
         // Check final balances
         assertEq(
@@ -262,7 +273,6 @@ contract AdmiralsQuartersMulticallTest is
         assertGt(daiFleetShares, 0, "Should have DAI fleet shares after move");
 
         uint256 daiAssets = daiFleet.convertToAssets(daiFleetShares);
-        console.log("DAI assets received:", daiAssets);
 
         assertGe(
             daiAssets,
