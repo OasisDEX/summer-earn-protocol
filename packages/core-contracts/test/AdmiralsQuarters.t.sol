@@ -9,7 +9,6 @@ import {AdmiralsQuarters} from "../src/contracts/AdmiralsQuarters.sol";
 import {OneInchHelpers} from "./helpers/OneInchHelpers.sol";
 import {FleetCommander} from "../src/contracts/FleetCommander.sol";
 
-type Address is uint256;
 contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
     AdmiralsQuarters public admiralsQuarters;
 
@@ -75,9 +74,14 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             type(uint256).max
         );
         vm.stopPrank();
+        vm.label(address(daiFleet), "DAI Fleet");
+        vm.label(address(usdcFleet), "USDC Fleet");
+
+        vm.label(USDC_ADDRESS, "USDC");
+        vm.label(DAI_ADDRESS, "DAI");
     }
 
-    function test_EnterAndExitFleets() public {
+    function test_EnterAndExitFleetsX() public {
         uint256 usdcAmount = 1000e6; // 1000 USDC
         uint256 minDaiAmount = 499e18; // Expecting at least 499 DAI
 
@@ -86,7 +90,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             USDC_ADDRESS,
             usdcAmount / 2,
             minDaiAmount,
-            0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168,
+            UNISWAP_USDC_DAI_V3_POOL,
             Protocol.UniswapV3,
             false,
             false,
@@ -94,30 +98,35 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             false
         );
 
-        address[] memory fleetCommanders = new address[](2);
-        fleetCommanders[0] = address(usdcFleet);
-        fleetCommanders[1] = address(daiFleet);
-
-        uint256[] memory allocations = new uint256[](2);
-        allocations[0] = 50; // 50% allocation to USDC fleet
-        allocations[1] = 50; // 50% allocation to DAI fleet
-
-        bytes[] memory swapCalldatas = new bytes[](2);
-        swapCalldatas[0] = ""; // No swap needed for USDC
-        swapCalldatas[1] = usdcToDaiSwap;
-
         vm.startPrank(user1);
 
-        // Measure gas for entering fleets
-        uint256 gasBefore = gasleft();
-        admiralsQuarters.enterFleets(
-            fleetCommanders,
-            allocations,
-            IERC20(USDC_ADDRESS),
-            usdcAmount,
-            swapCalldatas
+        // Enter fleets using multicall
+        bytes[] memory enterCalls = new bytes[](4);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), usdcAmount)
         );
-        uint256 gasUsed = gasBefore - gasleft();
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount / 2)
+        );
+        enterCalls[2] = abi.encodeCall(
+            admiralsQuarters.swap,
+            (
+                IERC20(USDC_ADDRESS),
+                IERC20(DAI_ADDRESS),
+                usdcAmount / 2,
+                0,
+                usdcToDaiSwap
+            )
+        );
+        enterCalls[3] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(daiFleet), IERC20(DAI_ADDRESS), 0)
+        );
+
+        uint256 gasBefore = gasleft();
+        admiralsQuarters.multicall(enterCalls);
 
         // Check balances after entering
         uint256 usdcFleetShares = usdcFleet.balanceOf(user1);
@@ -132,34 +141,46 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
         bytes memory daiToUsdcSwap = encodeUnoswapData(
             DAI_ADDRESS,
             daiAssets,
-            0, // Set min return to 0 for simplicity, adjust in production
-            0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168,
+            1, // Set min return to 0 for simplicity, adjust in production
+            UNISWAP_USDC_DAI_V3_POOL,
             Protocol.UniswapV3,
             false,
             false,
             true,
             false
         );
-        uint256[] memory shareAmounts = new uint256[](2);
-        shareAmounts[0] = usdcAssets;
-        shareAmounts[1] = daiAssets;
-
-        swapCalldatas[0] = ""; // No swap needed for USDC
-        swapCalldatas[1] = daiToUsdcSwap;
 
         usdcFleet.approve(address(admiralsQuarters), usdcFleetShares);
         daiFleet.approve(address(admiralsQuarters), daiFleetShares);
 
-        // Measure gas for exiting fleets
-        gasBefore = gasleft();
-        admiralsQuarters.exitFleets(
-            fleetCommanders,
-            shareAmounts,
-            IERC20(USDC_ADDRESS),
-            0, // Set min output amount to 0 for simplicity, adjust in production
-            swapCalldatas
+        // Exit fleets using multicall
+        bytes[] memory exitCalls = new bytes[](4);
+        exitCalls[0] = abi.encodeCall(
+            admiralsQuarters.exitFleet,
+            (address(usdcFleet), usdcAssets)
         );
-        gasUsed = gasBefore - gasleft();
+
+        exitCalls[1] = abi.encodeCall(
+            admiralsQuarters.exitFleet,
+            (address(daiFleet), daiAssets)
+        );
+        exitCalls[2] = abi.encodeCall(
+            admiralsQuarters.swap,
+            (
+                IERC20(DAI_ADDRESS),
+                IERC20(USDC_ADDRESS),
+                daiAssets,
+                0,
+                daiToUsdcSwap
+            )
+        );
+        exitCalls[3] = abi.encodeCall(
+            admiralsQuarters.withdrawTokens,
+            (IERC20(USDC_ADDRESS), 0)
+        );
+
+        gasBefore = gasleft();
+        admiralsQuarters.multicall(exitCalls);
 
         // Check balances after exiting
         uint256 finalUsdcBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
@@ -169,16 +190,20 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             0,
             "Should have received USDC after exiting"
         );
-        // assertLt(finalUsdcBalance, usdcAmount, "Should have less USDC due to fees and slippage");
+        assertLt(
+            finalUsdcBalance,
+            usdcAmount,
+            "Should have less USDC due to fees and slippage"
+        );
 
         vm.stopPrank();
     }
 
-    function test_MoveFleets() public {
+    function test_MoveFleetsX() public {
         uint256 usdcAmount = 1000e6; // 1000 USDC
         uint256 minDaiAmount = 999e18; // Expecting at least 999 DAI
 
-        // First, deposit USDC into the USDC fleet
+        // First, depositTokens USDC into the USDC fleet
         vm.startPrank(user1);
         IERC20(USDC_ADDRESS).approve(address(usdcFleet), usdcAmount);
         uint256 usdcShares = usdcFleet.deposit(usdcAmount, user1);
@@ -211,16 +236,29 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
         // Approve AdmiralsQuarters to spend user's USDC fleet shares
         usdcFleet.approve(address(admiralsQuarters), usdcShares);
 
-        // Measure gas for moving fleets
-        uint256 gasBefore = gasleft();
-        admiralsQuarters.moveFleets(
-            address(usdcFleet),
-            address(daiFleet),
-            usdcShares,
-            minDaiAmount,
-            usdcToDaiSwap
+        // Move from USDC fleet to DAI fleet using multicall
+        bytes[] memory moveCalls = new bytes[](3);
+        moveCalls[0] = abi.encodeCall(
+            admiralsQuarters.exitFleet,
+            (address(usdcFleet), usdcShares)
         );
-        uint256 gasUsed = gasBefore - gasleft();
+        moveCalls[1] = abi.encodeCall(
+            admiralsQuarters.swap,
+            (
+                IERC20(USDC_ADDRESS),
+                IERC20(DAI_ADDRESS),
+                usdcAmount,
+                0,
+                usdcToDaiSwap
+            )
+        );
+        moveCalls[2] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(daiFleet), IERC20(DAI_ADDRESS), 0)
+        );
+
+        uint256 gasBefore = gasleft();
+        admiralsQuarters.multicall(moveCalls);
 
         // Check final balances
         assertEq(
