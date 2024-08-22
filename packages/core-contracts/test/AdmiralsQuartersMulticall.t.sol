@@ -5,13 +5,15 @@ import {Test, console} from "forge-std/Test.sol";
 import {FleetCommanderTestBase} from "./fleets/FleetCommanderTestBase.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {AdmiralsQuarters} from "../src/contracts/AdmiralsQuarters.sol";
+import {AdmiralsQuartersMulticall} from "../src/contracts/AdmiralsQuartersMulticall.sol";
 import {OneInchHelpers} from "./helpers/OneInchHelpers.sol";
 import {FleetCommander} from "../src/contracts/FleetCommander.sol";
 
-type Address is uint256;
-contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
-    AdmiralsQuarters public admiralsQuarters;
+contract AdmiralsQuartersMulticallTest is
+    FleetCommanderTestBase,
+    OneInchHelpers
+{
+    AdmiralsQuartersMulticall public admiralsQuarters;
 
     address public constant ONE_INCH_ROUTER =
         0x111111125421cA6dc452d289314280a0f8842A65;
@@ -29,7 +31,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
     uint256 constant FORK_BLOCK = 20576616;
 
     function setUp() public {
-        console.log("Setting up AdmiralsQuartersTest");
+        console.log("Setting up AdmiralsQuartersMulticallTest");
 
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
 
@@ -44,7 +46,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
         vm.startPrank(governor);
         bufferArk.grantCommanderRole(address(fleetCommander));
 
-        admiralsQuarters = new AdmiralsQuarters(ONE_INCH_ROUTER);
+        admiralsQuarters = new AdmiralsQuartersMulticall(ONE_INCH_ROUTER);
 
         // Grant roles
         vm.startPrank(governor);
@@ -88,7 +90,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             USDC_ADDRESS,
             usdcAmount / 2,
             minDaiAmount,
-            0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168,
+            UNISWAP_USDC_DAI_V3_POOL,
             Protocol.UniswapV3,
             false,
             false,
@@ -96,29 +98,26 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             false
         );
 
-        address[] memory fleetCommanders = new address[](2);
-        fleetCommanders[0] = address(usdcFleet);
-        fleetCommanders[1] = address(daiFleet);
-
-        uint256[] memory allocations = new uint256[](2);
-        allocations[0] = 50; // 50% allocation to USDC fleet
-        allocations[1] = 50; // 50% allocation to DAI fleet
-
-        bytes[] memory swapCalldatas = new bytes[](2);
-        swapCalldatas[0] = ""; // No swap needed for USDC
-        swapCalldatas[1] = usdcToDaiSwap;
-
         vm.startPrank(user1);
 
-        // Measure gas for entering fleets
-        uint256 gasBefore = gasleft();
-        admiralsQuarters.enterFleets(
-            fleetCommanders,
-            allocations,
-            IERC20(USDC_ADDRESS),
-            usdcAmount,
-            swapCalldatas
+        // Enter fleets using multicall
+        bytes[] memory enterCalls = new bytes[](2);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositToFleet,
+            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount / 2, "")
         );
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.depositToFleet,
+            (
+                address(daiFleet),
+                IERC20(USDC_ADDRESS),
+                usdcAmount / 2,
+                usdcToDaiSwap
+            )
+        );
+
+        uint256 gasBefore = gasleft();
+        admiralsQuarters.multicall(enterCalls);
         uint256 gasUsed = gasBefore - gasleft();
         console.log("Gas used for entering fleets:", gasUsed);
 
@@ -139,32 +138,36 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             DAI_ADDRESS,
             daiAssets,
             0, // Set min return to 0 for simplicity, adjust in production
-            0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168,
+            UNISWAP_USDC_DAI_V3_POOL,
             Protocol.UniswapV3,
             false,
             false,
             true,
             false
         );
-        uint256[] memory shareAmounts = new uint256[](2);
-        shareAmounts[0] = usdcAssets;
-        shareAmounts[1] = daiAssets;
-
-        swapCalldatas[0] = ""; // No swap needed for USDC
-        swapCalldatas[1] = daiToUsdcSwap;
 
         usdcFleet.approve(address(admiralsQuarters), usdcFleetShares);
         daiFleet.approve(address(admiralsQuarters), daiFleetShares);
 
-        // Measure gas for exiting fleets
-        gasBefore = gasleft();
-        admiralsQuarters.exitFleets(
-            fleetCommanders,
-            shareAmounts,
-            IERC20(USDC_ADDRESS),
-            0, // Set min output amount to 0 for simplicity, adjust in production
-            swapCalldatas
+        // Exit fleets using multicall
+        bytes[] memory exitCalls = new bytes[](2);
+        exitCalls[0] = abi.encodeCall(
+            admiralsQuarters.withdrawFromFleet,
+            (address(usdcFleet), usdcAssets, IERC20(USDC_ADDRESS), "", 0)
         );
+        exitCalls[1] = abi.encodeCall(
+            admiralsQuarters.withdrawFromFleet,
+            (
+                address(daiFleet),
+                daiAssets,
+                IERC20(USDC_ADDRESS),
+                daiToUsdcSwap,
+                0
+            )
+        );
+
+        gasBefore = gasleft();
+        admiralsQuarters.multicall(exitCalls);
         gasUsed = gasBefore - gasleft();
         console.log("Gas used for exiting fleets:", gasUsed);
 
@@ -178,7 +181,11 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
             0,
             "Should have received USDC after exiting"
         );
-        // assertLt(finalUsdcBalance, usdcAmount, "Should have less USDC due to fees and slippage");
+        assertLt(
+            finalUsdcBalance,
+            usdcAmount,
+            "Should have less USDC due to fees and slippage"
+        );
 
         vm.stopPrank();
     }
@@ -220,15 +227,28 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
         // Approve AdmiralsQuarters to spend user's USDC fleet shares
         usdcFleet.approve(address(admiralsQuarters), usdcShares);
 
-        // Measure gas for moving fleets
-        uint256 gasBefore = gasleft();
-        admiralsQuarters.moveFleets(
-            address(usdcFleet),
-            address(daiFleet),
-            usdcShares,
-            minDaiAmount,
-            usdcToDaiSwap
+        // Move from USDC fleet to DAI fleet using multicall
+        bytes[] memory moveCalls = new bytes[](3);
+        moveCalls[0] = abi.encodeCall(
+            admiralsQuarters.withdrawFromFleet,
+            (address(usdcFleet), usdcShares, IERC20(USDC_ADDRESS), "", 0)
         );
+        moveCalls[1] = abi.encodeCall(
+            admiralsQuarters.swap,
+            (
+                IERC20(USDC_ADDRESS),
+                IERC20(DAI_ADDRESS),
+                usdcAmount,
+                usdcToDaiSwap
+            )
+        );
+        moveCalls[2] = abi.encodeCall(
+            admiralsQuarters.depositToFleet,
+            (address(daiFleet), IERC20(DAI_ADDRESS), minDaiAmount, "")
+        );
+
+        uint256 gasBefore = gasleft();
+        admiralsQuarters.multicall(moveCalls);
         uint256 gasUsed = gasBefore - gasleft();
         console.log("Gas used for moving fleets:", gasUsed);
 
