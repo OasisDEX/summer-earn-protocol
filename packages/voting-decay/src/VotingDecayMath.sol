@@ -45,7 +45,9 @@ library VotingDecayMath {
         }
 
         UD60x18 retentionRatePerSecond = ud(WAD - decayRatePerSecond);
-        UD60x18 retentionFactor = retentionRatePerSecond.powu(decayTimeInSeconds);
+        UD60x18 retentionFactor = retentionRatePerSecond.powu(
+            decayTimeInSeconds
+        );
         UD60x18 result = ud(initialValue).mul(retentionFactor);
 
         return unwrap(result.gt(ud(0)) ? result.div(ud(1e18)) : ud(0));

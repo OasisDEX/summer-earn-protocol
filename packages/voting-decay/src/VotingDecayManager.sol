@@ -1,22 +1,34 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
-
-import "./VotingDecayLibrary.sol";
-import "./VotingDecayEvents.sol";
-import "./VotingDecayErrors.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/**
+ * @title VotingDecayManager
+ * @notice Manages voting power decay for accounts in a governance system
+ * @dev Implements decay calculations, delegation, and administrative functions
+ */
 contract VotingDecayManager is Ownable {
     using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
 
+    /// @notice Stores decay information for each account
     mapping(address => VotingDecayLibrary.DecayInfo) private decayInfoByAccount;
+    /// @notice Maps delegates to their delegators
     mapping(address => address[]) public delegators;
+    /// @notice Addresses authorized to refresh decay
     mapping(address => bool) public authorizedRefreshers;
 
+    /// @notice Duration of the decay-free window in seconds
     uint40 public decayFreeWindow;
+    /// @notice Rate of decay per second (in WAD format)
     uint256 public decayRatePerSecond;
+    /// @notice Type of decay function used (Linear or Exponential)
     VotingDecayLibrary.DecayFunction public decayFunction;
 
+    /**
+     * @notice Constructor to initialize the VotingDecayManager
+     * @param decayFreeWindow_ Initial decay-free window duration
+     * @param decayRatePerSecond_ Initial decay rate per second
+     * @param decayFunction_ Initial decay function type
+     * @param owner Address of the contract owner
+     */
     constructor(
         uint40 decayFreeWindow_,
         uint256 decayRatePerSecond_,
@@ -29,22 +41,31 @@ contract VotingDecayManager is Ownable {
         authorizedRefreshers[owner] = true;
     }
 
+    /// @notice Modifier to ensure only authorized addresses can call a function
     modifier onlyAuthorized() {
         if (!authorizedRefreshers[msg.sender]) revert NotAuthorizedToReset();
         _;
     }
 
+    /// @notice Modifier to update decay after function execution
     modifier decayUpdate(address toRefresh) {
         _;
         _updateRetentionFactor(toRefresh);
     }
 
+    /// @notice Modifier to reset decay after function execution
     modifier decayReset(address toRefresh) {
         _;
         _resetDecay(toRefresh);
     }
 
-    function setDecayRatePerSecond(uint256 newRatePerSecond) external onlyOwner {
+    /**
+     * @notice Sets a new decay rate per second
+     * @param newRatePerSecond New decay rate (in WAD format)
+     */
+    function setDecayRatePerSecond(
+        uint256 newRatePerSecond
+    ) external onlyOwner {
         if (!VotingDecayLibrary.isValidDecayRate(newRatePerSecond)) {
             revert InvalidDecayRate();
         }
@@ -52,11 +73,19 @@ contract VotingDecayManager is Ownable {
         emit VotingDecayEvents.DecayRateSet(newRatePerSecond);
     }
 
+    /**
+     * @notice Sets a new decay-free window duration
+     * @param newWindow New decay-free window duration in seconds
+     */
     function setDecayFreeWindow(uint40 newWindow) external onlyOwner {
         decayFreeWindow = newWindow;
         emit VotingDecayEvents.DecayFreeWindowSet(newWindow);
     }
 
+    /**
+     * @notice Sets a new decay function type
+     * @param newFunction New decay function (Linear or Exponential)
+     */
     function setDecayFunction(
         VotingDecayLibrary.DecayFunction newFunction
     ) external onlyOwner {
@@ -64,6 +93,11 @@ contract VotingDecayManager is Ownable {
         emit VotingDecayEvents.DecayFunctionSet(uint8(newFunction));
     }
 
+    /**
+     * @notice Authorizes or deauthorizes an address to refresh decay
+     * @param refresher Address to authorize or deauthorize
+     * @param isAuthorized True to authorize, false to deauthorize
+     */
     function setAuthorizedRefresher(
         address refresher,
         bool isAuthorized
@@ -72,14 +106,27 @@ contract VotingDecayManager is Ownable {
         emit VotingDecayEvents.AuthorizedRefresherSet(refresher, isAuthorized);
     }
 
+    /**
+     * @notice Resets the decay for a given account
+     * @param accountAddress Address of the account to reset
+     */
     function resetDecay(address accountAddress) public onlyAuthorized {
         _resetDecay(accountAddress);
     }
 
+    /**
+     * @notice Updates the decay for a given account
+     * @param accountAddress Address of the account to update
+     */
     function updateDecay(address accountAddress) public {
         _updateRetentionFactor(accountAddress);
     }
 
+    /**
+     * @notice Delegates voting power from one account to another
+     * @param from Address delegating power
+     * @param to Address receiving delegation
+     */
     function delegate(address from, address to) external decayReset(from) {
         _initializeAccountIfNew(from);
         _initializeAccountIfNew(to);
@@ -101,6 +148,10 @@ contract VotingDecayManager is Ownable {
         emit VotingDecayEvents.Delegated(from, to);
     }
 
+    /**
+     * @notice Removes delegation for an account
+     * @param accountAddress Address to remove delegation for
+     */
     function undelegate(
         address accountAddress
     ) external decayReset(accountAddress) {
@@ -119,6 +170,12 @@ contract VotingDecayManager is Ownable {
         emit VotingDecayEvents.Undelegated(accountAddress);
     }
 
+    /**
+     * @notice Calculates the current voting power for an account
+     * @param accountAddress Address to calculate voting power for
+     * @param originalValue Original voting power value
+     * @return Current voting power after applying decay
+     */
     function getVotingPower(
         address accountAddress,
         uint256 originalValue
@@ -132,12 +189,22 @@ contract VotingDecayManager is Ownable {
         return VotingDecayLibrary.applyDecay(originalValue, retentionFactor);
     }
 
+    /**
+     * @notice Gets the list of delegators for a given account
+     * @param account Address to get delegators for
+     * @return Array of delegator addresses
+     */
     function getDelegators(
         address account
     ) external view returns (address[] memory) {
         return delegators[account];
     }
 
+    /**
+     * @notice Calculates the current retention factor for an account
+     * @param accountAddress Address to calculate retention factor for
+     * @return Current retention factor
+     */
     function getCurrentRetentionFactor(
         address accountAddress
     ) public view returns (uint256) {
@@ -164,16 +231,29 @@ contract VotingDecayManager is Ownable {
             );
     }
 
+    /**
+     * @notice Gets the decay information for an account
+     * @param accountAddress Address to get decay info for
+     * @return DecayInfo struct containing decay information
+     */
     function getDecayInfo(
         address accountAddress
     ) public view returns (VotingDecayLibrary.DecayInfo memory) {
         return decayInfoByAccount[accountAddress];
     }
 
+    /**
+     * @notice Initializes an account if it hasn't been initialized yet
+     * @param accountAddress Address of the account to initialize
+     */
     function initializeAccount(address accountAddress) public {
         _initializeAccountIfNew(accountAddress);
     }
 
+    /**
+     * @notice Internal function to initialize an account if it's new
+     * @param accountAddress Address of the account to initialize
+     */
     function _initializeAccountIfNew(address accountAddress) internal {
         if (decayInfoByAccount[accountAddress].lastUpdateTimestamp == 0) {
             decayInfoByAccount[accountAddress] = VotingDecayLibrary.DecayInfo({
@@ -184,11 +264,16 @@ contract VotingDecayManager is Ownable {
         }
     }
 
+    /**
+     * @notice Internal function to update the retention factor for an account
+     * @param accountAddress Address of the account to update
+     */
     function _updateRetentionFactor(address accountAddress) internal {
         _initializeAccountIfNew(accountAddress);
         VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
             accountAddress
         ];
+
         if (account.delegateTo != address(0)) {
             _updateRetentionFactor(account.delegateTo);
             return;
@@ -209,6 +294,10 @@ contract VotingDecayManager is Ownable {
         );
     }
 
+    /**
+     * @notice Internal function to reset the decay for an account
+     * @param accountAddress Address of the account to reset
+     */
     function _resetDecay(address accountAddress) internal {
         _initializeAccountIfNew(accountAddress);
         VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
@@ -219,6 +308,11 @@ contract VotingDecayManager is Ownable {
         emit VotingDecayEvents.DecayReset(accountAddress);
     }
 
+    /**
+     * @notice Internal function to remove a delegator from a delegate's list
+     * @param delegate_ Address of the delegate
+     * @param delegator Address of the delegator to remove
+     */
     function _removeDelegator(address delegate_, address delegator) internal {
         address[] storage delegatorList = delegators[delegate_];
         for (uint i = 0; i < delegatorList.length; i++) {

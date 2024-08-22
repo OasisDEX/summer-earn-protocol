@@ -65,7 +65,9 @@ contract ExampleGovernanceTest is Test {
         vm.prank(alice);
         governance.delegate(bob);
 
-        VotingDecayLibrary.DecayInfo memory aliceInfo = governance.getDecayInfo(alice);
+        VotingDecayLibrary.DecayInfo memory aliceInfo = governance.getDecayInfo(
+            alice
+        );
 
         assertEq(aliceInfo.delegateTo, bob);
         assertEq(governance.getAggregateValue(bob), INITIAL_VALUE * 2);
@@ -90,7 +92,9 @@ contract ExampleGovernanceTest is Test {
         governance.setDecayRatePerSecond(newDecayRate);
         vm.stopPrank();
 
-        uint256 decayRatePerSecond = governance.decayManager().decayRatePerSecond();
+        uint256 decayRatePerSecond = governance
+            .decayManager()
+            .decayRatePerSecond();
         assertEq(decayRatePerSecond, newDecayRate);
     }
 
@@ -108,11 +112,18 @@ contract ExampleGovernanceTest is Test {
     function test_SetDecayFunction() public {
         vm.startPrank(governor);
         governance.registerVoter(INITIAL_VALUE);
-        governance.setDecayFunction(VotingDecayLibrary.DecayFunction.Exponential);
+        governance.setDecayFunction(
+            VotingDecayLibrary.DecayFunction.Exponential
+        );
         vm.stopPrank();
 
-        VotingDecayLibrary.DecayFunction decayFunction = governance.decayManager().decayFunction();
-        assertEq(uint8(decayFunction), uint8(VotingDecayLibrary.DecayFunction.Exponential));
+        VotingDecayLibrary.DecayFunction decayFunction = governance
+            .decayManager()
+            .decayFunction();
+        assertEq(
+            uint8(decayFunction),
+            uint8(VotingDecayLibrary.DecayFunction.Exponential)
+        );
     }
 
     function test_CompareDecayFunctions() public {
@@ -128,9 +139,13 @@ contract ExampleGovernanceTest is Test {
         console.log(linearDecayedValue);
         // Reset decay and set exponential decay
         governance.refreshDecay();
-        governance.setDecayFunction(VotingDecayLibrary.DecayFunction.Exponential);
+        governance.setDecayFunction(
+            VotingDecayLibrary.DecayFunction.Exponential
+        );
         vm.warp(block.timestamp + 365 days);
-        uint256 exponentialDecayedValue = governance.getAggregateValue(governor);
+        uint256 exponentialDecayedValue = governance.getAggregateValue(
+            governor
+        );
 
         vm.stopPrank();
 
