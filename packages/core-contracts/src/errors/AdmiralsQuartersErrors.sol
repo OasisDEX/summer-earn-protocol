@@ -10,3 +10,4 @@ error UnsupportedSwapFunction();
 error SwapAmountMismatch();
 error ReentrancyGuard();
 error ZeroAmount();
+error InvalidRouterAddress();

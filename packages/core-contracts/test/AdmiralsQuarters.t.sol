@@ -81,7 +81,153 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
         vm.label(USDC_ADDRESS, "USDC");
         vm.label(DAI_ADDRESS, "DAI");
     }
+    function test_Constructor() public {
+        vm.startPrank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidRouterAddress()"));
+        new AdmiralsQuarters(address(0));
+        admiralsQuarters = new AdmiralsQuarters(ONE_INCH_ROUTER);
+        assertEq(
+            address(admiralsQuarters.owner()),
+            governor,
+            "Owner should be the governor"
+        );
+        assertEq(
+            address(admiralsQuarters.oneInchRouter()),
+            ONE_INCH_ROUTER,
+            "OneInchRouter should be set"
+        );
+        vm.stopPrank();
+    }
 
+    function test_Deposit_Reverts() public {
+        // RevertsOnInvalidToken
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
+        admiralsQuarters.depositTokens(IERC20(address(0)), 1000e6);
+        vm.stopPrank();
+        // RevertsOnZeroAmount
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("ZeroAmount()"));
+        admiralsQuarters.depositTokens(IERC20(USDC_ADDRESS), 0);
+        vm.stopPrank();
+
+        vm.startPrank(user1);
+        admiralsQuarters.depositTokens(IERC20(USDC_ADDRESS), 1);
+        vm.stopPrank();
+    }
+
+    function test_Withdraw_Reverts() public {
+        // RevertsOnInvalidToken
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
+        admiralsQuarters.withdrawTokens(IERC20(address(0)), 1000e6);
+        vm.stopPrank();
+    }
+
+    function test_EnterFleet_Reverts() public {
+        // RevertsOnInvalidFleetCommander
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidFleetCommander()"));
+        admiralsQuarters.enterFleet(address(0), IERC20(USDC_ADDRESS), 1000e6);
+        vm.stopPrank();
+        // RevertsOnInvalidToken
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
+        admiralsQuarters.enterFleet(
+            address(usdcFleet),
+            IERC20(address(0)),
+            1000e6
+        );
+        vm.stopPrank();
+        // RevertsOnInsufficientOutputAmount
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientOutputAmount()"));
+        admiralsQuarters.enterFleet(
+            address(usdcFleet),
+            IERC20(USDC_ADDRESS),
+            1000e6
+        );
+        vm.stopPrank();
+    }
+
+    function test_ExitFleet_Reverts() public {
+        // RevertsOnInvalidFleetCommander
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidFleetCommander()"));
+        admiralsQuarters.exitFleet(address(0), 1000e6);
+        vm.stopPrank();
+    }
+    function test_Swap_Reverts() public {
+        // RevertsOnInvalidToken
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
+        admiralsQuarters.swap(
+            IERC20(address(0)),
+            IERC20(DAI_ADDRESS),
+            1000e6,
+            0,
+            new bytes(0)
+        );
+        vm.stopPrank();
+
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
+        admiralsQuarters.swap(
+            IERC20(DAI_ADDRESS),
+            IERC20(address(0)),
+            1000e6,
+            0,
+            new bytes(0)
+        );
+        vm.stopPrank();
+
+        // RevertsOnAssetMismatch
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("AssetMismatch()"));
+        admiralsQuarters.swap(
+            IERC20(DAI_ADDRESS),
+            IERC20(DAI_ADDRESS),
+            1000e6,
+            0,
+            new bytes(0)
+        );
+        vm.stopPrank();
+
+        uint256 usdcAmount = 100e6; // 1000 USDC
+        uint256 minDaiAmount = 500e18; // Expecting at least 499 DAI
+        deal(USDC_ADDRESS, user1, usdcAmount);
+        // Encode unoswap data for USDC to DAI swap
+        bytes memory usdcToDaiSwap = encodeUnoswapData(
+            USDC_ADDRESS,
+            usdcAmount,
+            0,
+            UNISWAP_USDC_DAI_V3_POOL,
+            Protocol.UniswapV3,
+            false,
+            false,
+            false,
+            false
+        );
+
+        bytes[] memory enterCalls = new bytes[](4);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), usdcAmount)
+        );
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.swap,
+            (
+                IERC20(USDC_ADDRESS),
+                IERC20(DAI_ADDRESS),
+                minDaiAmount,
+                100000 ether,
+                usdcToDaiSwap
+            )
+        );
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientOutputAmount()"));
+        admiralsQuarters.multicall(enterCalls);
+    }
     function test_EnterAndExitFleetsX() public {
         uint256 usdcAmount = 1000e6; // 1000 USDC
         uint256 minDaiAmount = 499e18; // Expecting at least 499 DAI

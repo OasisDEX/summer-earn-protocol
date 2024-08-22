@@ -8,7 +8,7 @@ import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 import {ReentrancyGuardTransient} from "../libraries/ReentrancyGuardTransient.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
-import {SwapFailed, AssetMismatch, InsufficientOutputAmount, InvalidFleetCommander, InvalidToken, UnsupportedSwapFunction, SwapAmountMismatch, ReentrancyGuard, ZeroAmount} from "../errors/AdmiralsQuartersErrors.sol";
+import {SwapFailed, AssetMismatch, InsufficientOutputAmount, InvalidFleetCommander, InvalidToken, UnsupportedSwapFunction, SwapAmountMismatch, ReentrancyGuard, ZeroAmount, InvalidRouterAddress} from "../errors/AdmiralsQuartersErrors.sol";
 
 /**
  * @title AdmiralsQuarters
@@ -27,7 +27,7 @@ contract AdmiralsQuarters is
     address public immutable oneInchRouter;
 
     constructor(address _oneInchRouter) Ownable(msg.sender) {
-        require(_oneInchRouter != address(0), "Invalid 1inch Router address");
+        if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
         oneInchRouter = _oneInchRouter;
     }
 
@@ -80,16 +80,16 @@ contract AdmiralsQuarters is
     function exitFleet(
         address fleetCommander,
         uint256 amount
-    ) external nonReentrant returns (uint256 assets) {
+    ) external nonReentrant returns (uint256 shares) {
         if (fleetCommander == address(0)) revert InvalidFleetCommander();
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
 
         uint256 withdrawAmount = amount == 0 ? type(uint256).max : amount;
 
-        assets = fleet.withdraw(withdrawAmount, address(this), msg.sender);
+        shares = fleet.withdraw(withdrawAmount, address(this), msg.sender);
 
-        emit FleetExited(msg.sender, fleetCommander, withdrawAmount, assets);
+        emit FleetExited(msg.sender, fleetCommander, withdrawAmount, shares);
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -103,7 +103,9 @@ contract AdmiralsQuarters is
         if (address(fromToken) == address(0) || address(toToken) == address(0))
             revert InvalidToken();
         if (amount == 0) revert ZeroAmount();
-
+        if (address(fromToken) == address(toToken)) {
+            revert AssetMismatch();
+        }
         swappedAmount = _swap(
             fromToken,
             toToken,
@@ -137,13 +139,6 @@ contract AdmiralsQuarters is
         uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) internal returns (uint256 swappedAmount) {
-        if (swapCalldata.length == 0) {
-            if (address(fromToken) != address(toToken)) {
-                revert AssetMismatch();
-            }
-            return amount;
-        }
-
         uint256 balanceBefore = toToken.balanceOf(address(this));
 
         fromToken.forceApprove(oneInchRouter, amount);
