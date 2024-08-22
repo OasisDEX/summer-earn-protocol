@@ -67,7 +67,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_MaxWithdraw() public {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
-        uint256 bufferBalance = IArk(fleetCommander.bufferArk()).totalAssets();
+        (IArk bufferArk, , , ) = fleetCommander.config();
+        uint256 bufferBalance = bufferArk.totalAssets();
 
         // Mock user balance
         mockToken.mint(mockUser, userBalance);
@@ -90,7 +91,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_MaxRedeem() public {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
-        uint256 bufferBalance = IArk(fleetCommander.bufferArk()).totalAssets();
+        (IArk bufferArk, , , ) = fleetCommander.config();
+        uint256 bufferBalance = bufferArk.totalAssets();
 
         // Mock user balance
         mockToken.mint(mockUser, userBalance);
@@ -113,7 +115,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 mintAmount = 1000 * 10 ** 6;
         uint256 maxDepositCap = 100000 * 10 ** 6;
-        uint256 bufferBalance = IArk(fleetCommander.bufferArk()).totalAssets();
+        (IArk bufferArk, , , ) = fleetCommander.config();
+        uint256 bufferBalance = bufferArk.totalAssets();
 
         // Set buffer balance
         fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
@@ -133,7 +136,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
             "Mint should increase the user's balance"
         );
         assertEq(
-            IArk(fleetCommander.bufferArk()).totalAssets(),
+            bufferArk.totalAssets(),
             bufferBalance + mintAmount,
             "Buffer balance should be updated"
         );
@@ -155,7 +158,8 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockToken.approve(address(fleetCommander), depositAmount);
         fleetCommander.deposit(depositAmount, mockUser);
 
-        uint256 bufferBalance = IArk(fleetCommander.bufferArk()).totalAssets();
+        (IArk bufferArk, , , ) = fleetCommander.config();
+        uint256 bufferBalance = bufferArk.totalAssets();
 
         // Act
         fleetCommander.redeem(redeemAmount, mockUser, mockUser);
@@ -168,7 +172,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
             "Redeem should decrease the user's balance"
         );
         assertEq(
-            IArk(fleetCommander.bufferArk()).totalAssets(),
+            bufferArk.totalAssets(),
             bufferBalance - redeemAmount,
             "Buffer balance should be updated"
         );

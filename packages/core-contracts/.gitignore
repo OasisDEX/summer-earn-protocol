@@ -4,3 +4,6 @@ out/
 lcov.info
 
 broadcast/
+typechain-types/
+
+cache_forge

@@ -125,7 +125,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             initialArks: initialArks,
-            initialMinimumFundsBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
+            initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             asset: underlyingToken,
             name: fleetName,

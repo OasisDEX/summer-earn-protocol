@@ -36,7 +36,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         mockToken.mint(bufferArkAddress, initialBufferBalance);
         mockToken.mint(ark1, 5000 * 10 ** 6);
@@ -60,8 +60,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
+        (IArk bufferArk, , , ) = fleetCommander.config();
         assertEq(
-            IArk(fleetCommander.bufferArk()).totalAssets(),
+            bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -78,7 +79,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = type(uint256).max;
 
-        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         mockToken.mint(bufferArkAddress, initialBufferBalance);
         mockToken.mint(ark1, 5000 * 10 ** 6);
@@ -104,8 +105,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
+        (IArk bufferArk, , , ) = fleetCommander.config();
         assertEq(
-            IArk(fleetCommander.bufferArk()).totalAssets(),
+            bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -125,7 +127,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 ark2IntitialBalance = 2500 * 10 ** 6;
         uint256 ark3IntitialBalance = 2500 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
         mockToken.mint(ark1, ark1IntitialBalance);
@@ -154,8 +156,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
+        (IArk bufferArk, , , ) = fleetCommander.config();
         assertEq(
-            IArk(fleetCommander.bufferArk()).totalAssets(),
+            bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -467,7 +470,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
-        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         mockToken.mint(bufferArkAddress, initialBufferBalance);
         mockToken.mint(ark1, 5000 * 10 ** 6);
@@ -491,8 +494,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.forceRebalance(rebalanceData);
 
         // Assert
+        (IArk bufferArk, , , ) = fleetCommander.config();
         assertEq(
-            IArk(fleetCommander.bufferArk()).totalAssets(),
+            bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );

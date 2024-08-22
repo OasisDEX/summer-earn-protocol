@@ -10,7 +10,7 @@ load_dotenv()
 
 # Configuration
 INFURA_URL = os.getenv("BASE_RPC_URL")
-PRIVATE_KEY = os.getenv("PRIVATE_KEY")
+PRIVATE_KEY = os.getenv("DEPLOYER_PRIV_KEY")
 FLEET_COMMANDER_ADDRESS = os.getenv("FLEET_COMMANDER_ADDRESS")
 
 # Initialize Web3

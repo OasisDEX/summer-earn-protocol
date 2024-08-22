@@ -141,7 +141,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         // Set deposit cap
         fleetCommanderStorageWriter.setDepositCap(depositCap);
@@ -213,7 +213,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         // Set deposit cap
         fleetCommanderStorageWriter.setDepositCap(depositCap);
@@ -267,7 +267,6 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Second rebalance using max uint
         // we can only rebalance to an ark with rate higher than the current ark
-        uint256 aaveArkTotalAssets = aaveArk.totalAssets();
         uint256 morphoArkTotalAssets = morphoArk.totalAssets();
         uint256 metaMorphoArkTotalAssets = metaMorphoArk.totalAssets();
         uint256 compoundArkTotalAssets = compoundArk.totalAssets();
