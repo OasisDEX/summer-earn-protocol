@@ -2,87 +2,73 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import {Tipper} from "../../src/contracts/Tipper.sol";
-import "../../src/contracts/ConfigurationManager.sol";
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 
-import "../../src/libraries/MathUtils.sol";
-
+import {MathUtils} from "../contracts/MathUtils.sol";
+import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 contract RPowTest is Test {
     address public governor = address(1);
-    TipperHarness public tipper;
-
+    using MathUtils for uint256;
+    TestHarness public harness;
     function setUp() public {
-        ProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
-        IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: address(2),
-                raft: address(3)
-            })
-        );
-
-        tipper = new TipperHarness(address(configurationManager));
+        harness = new TestHarness();
     }
 
     function test_rpow_x_zero() public view {
-        assertEq(tipper.exposed_rpow(0, 5, 1e18), 0);
-        assertEq(tipper.exposed_rpow(0, 0, 1e18), 1e18);
+        assertEq(harness.rpow(0, 5, 1e18), 0);
+        assertEq(harness.rpow(0, 0, 1e18), 1e18);
     }
 
     function test_rpow_n_zero() public view {
-        assertEq(tipper.exposed_rpow(5, 0, 1e18), 1e18);
-        assertEq(tipper.exposed_rpow(1e18, 0, 1e18), 1e18);
+        assertEq(harness.rpow(5, 0, 1e18), 1e18);
+        assertEq(harness.rpow(1e18, 0, 1e18), 1e18);
     }
 
     function test_rpow_x_one() public view {
-        assertEq(tipper.exposed_rpow(1e18, 5, 1e18), 1e18);
-        assertEq(tipper.exposed_rpow(1e18, 100, 1e18), 1e18);
+        assertEq(harness.rpow(1e18, 5, 1e18), 1e18);
+        assertEq(harness.rpow(1e18, 100, 1e18), 1e18);
     }
 
     function test_rpow_n_one() public view {
-        assertEq(tipper.exposed_rpow(5e18, 1, 1e18), 5e18);
-        assertEq(tipper.exposed_rpow(1234e18, 1, 1e18), 1234e18);
+        assertEq(harness.rpow(5e18, 1, 1e18), 5e18);
+        assertEq(harness.rpow(1234e18, 1, 1e18), 1234e18);
     }
 
     function test_rpow_identity() public view {
-        assertEq(tipper.exposed_rpow(2e18, 3, 1e18), 8e18);
-        assertEq(tipper.exposed_rpow(10e18, 2, 1e18), 100e18);
+        assertEq(harness.rpow(2e18, 3, 1e18), 8e18);
+        assertEq(harness.rpow(10e18, 2, 1e18), 100e18);
     }
 
     function test_rpow_basic_fractional() public view {
         // 1.5^2 should be close to 2.25
-        assertApproxEqRel(tipper.exposed_rpow(1.5e18, 2, 1e18), 2.25e18, 1e15);
+        assertApproxEqRel(harness.rpow(1.5e18, 2, 1e18), 2.25e18, 1e15);
     }
 
     function test_rpow_high_precision() public view {
         // Test with high precision numbers
-        uint256 result = tipper.exposed_rpow(1.000000001e27, 365, 1e27);
+        uint256 result = harness.rpow(1.000000001e27, 365, 1e27);
         assertApproxEqRel(result, 1.000365003e27, 1e18);
     }
 
     function test_rpow_large_exponent() public view {
         // 1.0001^10000 should be approximately 2.718
-        uint256 result = tipper.exposed_rpow(1.0001e18, 10000, 1e18);
+        uint256 result = harness.rpow(1.0001e18, 10000, 1e18);
         assertApproxEqRel(result, 2.718e18, 1e16);
     }
 
     function test_rpow_large_base() public view {
         // 1000^3 = 1,000,000,000
-        assertEq(tipper.exposed_rpow(1000e18, 3, 1e18), 1_000_000_000e18);
+        assertEq(harness.rpow(1000e18, 3, 1e18), 1_000_000_000e18);
     }
 
     function test_rpow_fractional_exponent() public view {
         // This function doesn't support fractional exponents, so it should use the integer part
         // 2^2.5 should be treated as 2^2 = 4
-        assertEq(tipper.exposed_rpow(2e18, 2, 1e18), 4e18);
+        assertEq(harness.rpow(2e18, 2, 1e18), 4e18);
     }
 
     function test_rpow_precision_limit() public view {
         // Test the limits of precision
-        uint256 result = tipper.exposed_rpow(1.000000001e18, 1000000, 1e18);
+        uint256 result = harness.rpow(1.000000001e18, 1000000, 1e18);
         assertGt(result, 1e18);
         assertLt(result, 3e18);
     }
@@ -90,7 +76,7 @@ contract RPowTest is Test {
     function test_rpow_revert_on_overflow() public {
         // This should revert due to overflow
         vm.expectRevert();
-        tipper.exposed_rpow(2e18, 256, 1e18);
+        harness.rpow(2e18, 256, 1e18);
     }
 
     function test_Fuzz_rpow(uint256 x, uint256 n) public view {
@@ -102,7 +88,7 @@ contract RPowTest is Test {
 
         uint256 base = 1e18;
 
-        uint256 result = tipper.exposed_rpow(x, n, base);
+        uint256 result = harness.rpow(x, n, base);
 
         // Perform sanity checks
         if (x == 0) {
@@ -126,13 +112,13 @@ contract RPowTest is Test {
         uint256 n = 29848005564986788644735984644626;
 
         vm.expectRevert(); // We expect this call to revert due to overflow
-        tipper.exposed_rpow(x, n, 1e18);
+        harness.rpow(x, n, 1e18);
     }
 
     function test_rpow_gas_usage() public view {
         // Measure gas usage for a typical operation
         uint256 gasBefore = gasleft();
-        tipper.exposed_rpow(1.01e18, 365, 1e18);
+        harness.rpow(1.01e18, 365, 1e18);
         uint256 gasUsed = gasBefore - gasleft();
 
         // Log gas usage and ensure it's within expected range
@@ -141,27 +127,17 @@ contract RPowTest is Test {
     }
 }
 
-// Helper contract to expose the internal _rpow function for testing
-contract TipperHarness is Tipper {
+contract TestHarness {
     using MathUtils for Percentage;
 
-    constructor(
-        address configurationManager
-    ) Tipper(configurationManager, Percentage.wrap(0)) {}
-
-    function exposed_rpow(
+    function rpow(
         uint256 x,
         uint256 n,
         uint256 base
     ) public pure returns (uint256) {
         return
             Percentage.unwrap(
-                MathUtils.rpow(Percentage.wrap(x), n, Percentage.wrap(base))
+                Percentage.wrap(x).rpow(n, Percentage.wrap(base))
             );
     }
-
-    function _mintTip(
-        address account,
-        uint256 amount
-    ) internal virtual override {}
 }
