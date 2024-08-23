@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
-import "../src/contracts/SummerToken.sol";
+import "../../src/contracts/SummerToken.sol";
 
 contract SummerTokenTest is Test {
     SummerToken public summerToken;

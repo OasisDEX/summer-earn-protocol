@@ -97,7 +97,7 @@ contract BufferArkTest is Test, IArkEvents {
         ark.disembark(amount);
     }
 
-    function test_RateIsZero() public {
+    function test_RateIsZero() public view {
         // Assert
         assertEq(ark.rate(), 0);
     }

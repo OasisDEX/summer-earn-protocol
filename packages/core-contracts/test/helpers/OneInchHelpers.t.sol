@@ -73,7 +73,7 @@ contract OneInchHelpersTest is Test, OneInchHelpers {
         );
     }
 
-    function test_DecodeUnoswapData() public {
+    function test_DecodeUnoswapData() public pure {
         (
             address token,
             uint256 amount,
