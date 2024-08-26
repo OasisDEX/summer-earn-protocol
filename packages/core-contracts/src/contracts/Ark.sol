@@ -194,4 +194,8 @@ abstract contract Ark is IArk, ArkAccessManaged {
         address rewardToken,
         bytes calldata additionalData
     ) internal virtual returns (uint256);
+
+    function _balanceOfAsset() internal view virtual returns (uint256) {
+        return config.token.balanceOf(address(this));
+    }
 }
