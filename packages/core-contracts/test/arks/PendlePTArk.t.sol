@@ -95,7 +95,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
     function test_Board_PendlePTArk_fork() public {
         // Arrange
-        uint256 amount = 1000 * 10 ** 6; // USDE has 6 decimals
+        uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, amount);
 
         vm.startPrank(commander);
@@ -134,7 +134,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
     function test_Disembark_PendlePTArk_fork() public {
         // Arrange
-        uint256 amount = 1000 * 10 ** 6; // USDE has 6 decimals
+        uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, amount);
 
         vm.startPrank(commander);
@@ -172,7 +172,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
     function test_Harvest_PendlePTArk_fork() public {
         // Arrange
-        uint256 amount = 1000 * 10 ** 6; // USDE has 6 decimals
+        uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, amount);
 
         vm.startPrank(commander);
@@ -203,7 +203,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
     function test_RolloverIfNeeded_PendlePTArk_fork() public {
         console.log("timestamp y", block.timestamp);
         // Arrange
-        uint256 amount = 1000 * 10 ** 6; // USDE has 6 decimals
+        uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, 10 * amount);
 
         vm.startPrank(commander);
