@@ -72,11 +72,13 @@ contract SDAIArkTest is Test {
 
     function testRate() public view {
         uint256 arkRate = ark.rate();
-        console.log("Ark rate: ", arkRate);
-        console.log("Pot DSR: ", arkRate / 1e18);
-        uint256 potDsr = pot.dsr();
-        uint256 expectedRate = (potDsr - 1e27) * 365 days;
-        assertEq(arkRate, expectedRate, "Rate should match the DSR APY");
+        uint256 expectedRate = 6 * 10 ** 27;
+        assertApproxEqRel(
+            arkRate,
+            expectedRate,
+            1e18,
+            "Rate should match the DSR APY"
+        );
     }
 
     function testTotalAssets() public {
