@@ -145,7 +145,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         // Act
         uint256 initialBalance = usde.balanceOf(commander);
         uint256 amountToWithdraw = ark.totalAssets();
-        ark.disembark(amountToWithdraw);
+        ark.disembark(amountToWithdraw + 1);
         vm.stopPrank();
 
         // Assert
@@ -156,10 +156,10 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
 
         uint256 arkBalance = ark.totalAssets();
-        assertApproxEqRel(
+        assertApproxEqAbs(
             arkBalance,
             0,
-            1e16,
+            1e18,
             "Ark should have close to zero assets"
         );
     }

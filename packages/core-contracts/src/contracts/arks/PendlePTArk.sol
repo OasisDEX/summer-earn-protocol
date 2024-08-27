@@ -6,7 +6,7 @@ import {IStandardizedYield} from "../../interfaces/pendle/IStandardizedYield.sol
 import {IPendleOracle} from "../../interfaces/pendle/IPendleOracle.sol";
 import {IPendleRouter} from "../../interfaces/pendle/IPendleRouter.sol";
 import {IPendleMarket} from "../../interfaces/pendle/IPendleMarket.sol";
-
+import {console} from "forge-std/console.sol";
 /// @title PendlePTArk
 /// @notice This contract manages a Pendle Principal Token (PT) strategy within the Ark system
 /// @dev Inherits from Ark and implements Pendle-specific logic
@@ -51,7 +51,7 @@ contract PendlePTArk is Ark {
     ) Ark(_params) {
         market = _market;
         oracle = _oracle;
-        oracleDuration = 1800; // 1 hour default
+        oracleDuration = 1800; // half hour default
         slippageBPS = 50; // 0.5% default slippage
 
         (SY, PT, YT) = IPendleMarket(_market).readTokens();
@@ -126,19 +126,23 @@ contract PendlePTArk is Ark {
     /// @param amount Amount of PT to redeem
     function _redeemTokenFromPt(uint256 amount) internal {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        amount = (amount > ptBalance) ? ptBalance : amount;
+        uint256 withdrawAmountInPT = (_SYtoPT(amount) *
+            (MAX_BPS + slippageBPS)) / MAX_BPS;
 
-        uint256 expectedSyOut = _PTtoSY(ptBalance);
+        amount = (withdrawAmountInPT > ptBalance)
+            ? ptBalance
+            : withdrawAmountInPT;
+
+        uint256 expectedSyOut = _PTtoSY(amount);
         uint256 minSyOut = (expectedSyOut * (MAX_BPS - slippageBPS)) / MAX_BPS;
 
         (uint256 syAmount, ) = IPendleRouter(PENDLE_ROUTER).swapExactPtForSy(
             address(this),
             market,
-            ptBalance,
+            amount,
             minSyOut,
             emptyLimitOrderData
         );
-
         uint256 expectedTokenOut = IStandardizedYield(SY).previewRedeem(
             address(config.token),
             syAmount
