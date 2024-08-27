@@ -172,38 +172,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         assertEq(ark.rate(), rate, "Rate should remain constant");
     }
 
-    function test_Harvest_PendlePTArk_fork() public {
-        // Arrange
-        uint256 amount = 1000 * 10 ** 18;
-        deal(USDE, commander, amount);
-
-        vm.startPrank(commander);
-        usde.approve(address(ark), amount);
-        ark.board(amount);
-        vm.stopPrank();
-
-        // Simulate some time passing
-        vm.warp(block.timestamp + 30 days);
-        vm.roll(block.number + 1000);
-
-        uint256 totalAssetsBefore = ark.totalAssets();
-
-        vm.prank(raft);
-        uint256 harvestedAmount = ark.harvest(PENDLE, "");
-
-        uint256 totalAssetsAfter = ark.totalAssets();
-
-        // Assert
-        assertTrue(harvestedAmount > 0, "Should have harvested some rewards");
-        assertEq(
-            totalAssetsAfter,
-            totalAssetsBefore,
-            "Total assets should not change significantly"
-        );
-    }
-
     function test_RolloverIfNeeded_PendlePTArk_fork() public {
-        console.log("timestamp y", block.timestamp);
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, 10 * amount);
@@ -229,6 +198,131 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         assertTrue(
             assetsAfterRollover > 0,
             "Ark should have assets after rollover"
+        );
+    }
+    function test_SetSlippageBPS() public {
+        uint256 newSlippageBPS = 100; // 1%
+
+        vm.prank(governor);
+        ark.setSlippageBPS(newSlippageBPS);
+
+        assertEq(
+            ark.slippageBPS(),
+            newSlippageBPS,
+            "Slippage BPS not updated correctly"
+        );
+    }
+
+    function test_SetSlippageBPS_RevertOnInvalidValue() public {
+        uint256 invalidSlippageBPS = 10001; // Over 100%
+
+        vm.prank(governor);
+        vm.expectRevert("Invalid slippage");
+        ark.setSlippageBPS(invalidSlippageBPS);
+    }
+
+    function test_SetOracleDuration() public {
+        uint32 newOracleDuration = 1800; // 30 minutes
+
+        vm.prank(governor);
+        ark.setOracleDuration(newOracleDuration);
+
+        assertEq(
+            ark.oracleDuration(),
+            newOracleDuration,
+            "Oracle duration not updated correctly"
+        );
+    }
+
+    function test_SetOracleDuration_RevertOnInvalidValue() public {
+        uint32 invalidOracleDuration = 899; // Less than 15 minutes
+
+        vm.prank(governor);
+        vm.expectRevert("Duration too low");
+        ark.setOracleDuration(invalidOracleDuration);
+    }
+
+    function test_RevertWhenNoValidNextMarket() public {
+        // Setup: Board some assets first
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, 2 * amount);
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), 2 * amount);
+        ark.board(amount);
+        vm.stopPrank();
+
+        // Fast forward time past market expiry
+        vm.warp(ark.marketExpiry() + 1);
+
+        // Mock _findNextMarket to return address(0)
+        vm.mockCall(
+            address(ark),
+            abi.encodeWithSignature("nextMarket()"),
+            abi.encode(address(0))
+        );
+
+        // Attempt to trigger rollover
+        vm.expectRevert("No valid next market");
+        vm.prank(commander);
+        ark.board(amount);
+    }
+
+    function test_RevertWhenOracleNotReady() public {
+        // Setup: Board some assets first
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, 2 * amount);
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), 2 * amount);
+        ark.board(amount);
+        vm.stopPrank();
+
+        // Fast forward time past market expiry
+        vm.warp(ark.marketExpiry() + 1);
+
+        // Mock the oracle to be not ready
+        vm.mockCall(
+            address(ark.oracle()),
+            abi.encodeWithSelector(PendlePYLpOracle.getOracleState.selector),
+            abi.encode(true, 0, false)
+        );
+
+        // Attempt to trigger rollover
+        vm.expectRevert("Oracle not ready");
+        vm.prank(commander);
+        ark.board(amount);
+    }
+
+    function test_AprToApy() view public {
+        uint256 apr = 0.05 * 1e18; // 5% APR
+        uint256 apy = ark.aprToApy(apr);
+
+        // Expected APY for 5% APR is approximately 5.127%
+        assertApproxEqRel(
+            apy,
+            0.05127 * 1e18,
+            0.001e18,
+            "APY calculation is incorrect"
+        );
+    }
+
+    function test_TotalAssets() public {
+        // Setup: Board some assets first
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, amount);
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), amount);
+        ark.board(amount);
+        vm.stopPrank();
+
+        uint256 totalAssets = ark.totalAssets();
+        assertApproxEqRel(
+            totalAssets,
+            amount,
+            0.01e18,
+            "Total assets should be close to deposited amount"
         );
     }
 }

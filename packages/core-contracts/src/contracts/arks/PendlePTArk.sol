@@ -14,7 +14,7 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {MarketState} from "@pendle/core-v2/contracts/core/Market/MarketMathCore.sol";
 import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title PendlePTArk
  * @notice This contract manages a Pendle LP strategy within the Ark system
@@ -177,7 +177,7 @@ contract PendlePTArk is Ark {
     function _calculateFixedRate() internal view returns (uint256) {
         if (block.timestamp >= marketExpiry) return 0;
         MarketState memory state = IPMarketV3(market).readState(PENDLE_ROUTER);
-        return aprToApy(state.lastLnImpliedRate);
+        return aprToApy(state.lastLnImpliedRate * 1e9);
     }
 
     /**
@@ -242,7 +242,7 @@ contract PendlePTArk is Ark {
     function _rolloverIfNeeded() internal {
         if (block.timestamp < marketExpiry) return;
 
-        address newMarket = _findNextMarket();
+        address newMarket = this.nextMarket();
         require(newMarket != address(0), "No valid next market");
 
         _redeemAllToUnderlying();
@@ -302,7 +302,7 @@ contract PendlePTArk is Ark {
      * @notice Finds the next valid market
      * @return Address of the next market
      */
-    function _findNextMarket() internal pure returns (address) {
+    function nextMarket() public pure returns (address) {
         // TODO: Implement logic to find the next valid market
         return 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
     }
