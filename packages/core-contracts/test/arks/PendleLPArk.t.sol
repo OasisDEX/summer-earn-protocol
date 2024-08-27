@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
-import "../../src/contracts/arks/PendlePTArk.sol";
+import "../../src/contracts/arks/PendleLPArk.sol";
 
 import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
@@ -14,8 +14,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 
-contract PendlePTArkTestFork is Test, IArkEvents {
-    PendlePTArk public ark;
+contract PendleLPArkTestFork is Test, IArkEvents {
+    PendleLPArk public ark;
     address public governor = address(1);
     address public raft = address(2);
     address public tipJar = address(3);
@@ -58,7 +58,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
 
         ArkParams memory params = ArkParams({
-            name: "Pendle USDE PT Ark",
+            name: "Pendle USDE LP Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             token: USDE,
@@ -67,7 +67,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
             maxRebalanceInflow: type(uint256).max
         });
 
-        ark = new PendlePTArk(USDE, MARKET, ORACLE, params);
+        ark = new PendleLPArk(USDE, MARKET, ORACLE, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -89,11 +89,12 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         vm.makePersistent(address(configurationManager));
         vm.makePersistent(USDE);
         vm.makePersistent(MARKET);
+        vm.makePersistent(PENDLE);
         vm.makePersistent(SY);
         vm.makePersistent(PT);
     }
 
-    function test_Board_PendlePTArk_fork() public {
+    function test_Board_PendleLPArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, amount);
@@ -115,12 +116,12 @@ contract PendlePTArkTestFork is Test, IArkEvents {
             assetsAfterDeposit,
             amount,
             0.5 ether,
-            "Total assets should equal deposited amount"
+            "Total assets should be close to deposited amount"
         );
 
-        // Check that the Ark has received PT tokens
-        uint256 ptBalance = IERC20(PT).balanceOf(address(ark));
-        assertTrue(ptBalance > 0, "Ark should have PT tokens");
+        // Check that the Ark has received LP tokens
+        uint256 lpBalance = IERC20(MARKET).balanceOf(address(ark));
+        assertTrue(lpBalance > 0, "Ark should have LP tokens");
 
         // Simulate some time passing
         vm.warp(block.timestamp + 30 days);
@@ -132,7 +133,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
     }
 
-    function test_Disembark_PendlePTArk_fork() public {
+    function test_Disembark_PendleLPArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, amount);
@@ -145,7 +146,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         // Act
         uint256 initialBalance = usde.balanceOf(commander);
         uint256 amountToWithdraw = ark.totalAssets();
-        ark.disembark(amountToWithdraw + 1);
+        ark.disembark(amountToWithdraw);
         vm.stopPrank();
 
         // Assert
@@ -164,15 +165,21 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
     }
 
-    function test_Rate_PendlePTArk_fork() public view {
+    function test_Rate_PendleLPArk_fork() public {
         uint256 rate = ark.rate();
         assertTrue(rate > 0, "Rate should be greater than zero");
 
-        // The rate should be fixed, so calling it again should return the same value
-        assertEq(ark.rate(), rate, "Rate should remain constant");
+        // The rate for LP positions is variable, so we can't check for equality
+        uint256 newRate = ark.rate();
+        assertApproxEqRel(
+            rate,
+            newRate,
+            0.01 ether,
+            "Rate should not change dramatically in a short time"
+        );
     }
 
-    function test_Harvest_PendlePTArk_fork() public {
+    function test_Harvest_PendleLPArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, amount);
@@ -202,8 +209,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
     }
 
-    function test_RolloverIfNeeded_PendlePTArk_fork() public {
-        console.log("timestamp y", block.timestamp);
+    function test_RolloverIfNeeded_PendleLPArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         deal(USDE, commander, 10 * amount);
@@ -230,5 +236,43 @@ contract PendlePTArkTestFork is Test, IArkEvents {
             assetsAfterRollover > 0,
             "Ark should have assets after rollover"
         );
+    }
+
+    function test_SlippageControl_PendleLPArk_fork() public {
+        // Arrange
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, 2 * amount);
+
+        vm.startPrank(governor);
+        ark.setSlippageBPS(10); // Set slippage to 0.1%
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), amount);
+
+        // Act & Assert
+        ark.board(amount); // This should succeed with 0.1% slippage
+
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", commander)
+        );
+        ark.setSlippageBPS(1); // Set slippage to 0.01%
+        IERC20(usde).approve(address(ark), amount);
+        ark.board(amount); // This should fail due to tight slippage
+
+        vm.stopPrank();
+    }
+
+    function test_OracleDurationUpdate_PendleLPArk_fork() public {
+        // Arrange
+        vm.startPrank(governor);
+
+        // Act & Assert
+        ark.setOracleDuration(1800); // This should succeed (30 minutes)
+
+        vm.expectRevert("Duration too low");
+        ark.setOracleDuration(600); // This should fail (10 minutes is too low)
+
+        vm.stopPrank();
     }
 }

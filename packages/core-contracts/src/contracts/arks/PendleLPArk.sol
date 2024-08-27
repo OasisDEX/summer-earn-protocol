@@ -5,22 +5,19 @@ import "../Ark.sol";
 import {IStandardizedYield} from "@pendle/core-v2/contracts/interfaces/IStandardizedYield.sol";
 import {IPPrincipalToken} from "@pendle/core-v2/contracts/interfaces/IPPrincipalToken.sol";
 import {IPYieldToken} from "@pendle/core-v2/contracts/interfaces/IPYieldToken.sol";
-
-import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
-import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOracle.sol";
-import {console} from "forge-std/console.sol";
+import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
+import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
-import {MarketState} from "@pendle/core-v2/contracts/core/Market/MarketMathCore.sol";
 import {LimitOrderData, TokenOutput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 
 /**
- * @title PendlePTArk
- * @notice This contract manages a Pendle Principal Token (PT) strategy within the Ark system
- * @dev Inherits from Ark and implements Pendle-specific logic
+ * @title PendleLPArk
+ * @notice This contract manages a Pendle LP token strategy within the Ark system
+ * @dev Inherits from Ark and implements Pendle-specific logic for LP positions
  */
-contract PendlePTArk is Ark {
+contract PendleLPArk is Ark {
     using SafeERC20 for IERC20;
 
     // Constants
@@ -39,17 +36,18 @@ contract PendlePTArk is Ark {
     IPPrincipalToken public PT;
     IPYieldToken public YT;
     uint256 public slippageBPS;
-    uint256 public fixedRate;
     uint256 public marketExpiry;
     ApproxParams public routerParams;
     LimitOrderData emptyLimitOrderData;
+    SwapData public emptySwap;
+
     // Events
     event MarketRolledOver(address indexed newMarket);
     event SlippageUpdated(uint256 newSlippageBPS);
     event OracleDurationUpdated(uint32 newOracleDuration);
 
     /**
-     * @notice Constructor for PendlePTArk
+     * @notice Constructor for PendleLPArk
      * @param _asset Address of the underlying asset
      * @param _market Address of the Pendle market
      * @param _oracle Address of the Pendle oracle
@@ -94,7 +92,8 @@ contract PendlePTArk is Ark {
     function _setupApprovals(address _asset) private {
         IERC20(_asset).forceApprove(address(SY), type(uint256).max);
         IERC20(SY).forceApprove(PENDLE_ROUTER, type(uint256).max);
-        IERC20(PT).forceApprove(PENDLE_ROUTER, type(uint256).max);
+        IERC20(market).forceApprove(PENDLE_ROUTER, type(uint256).max);
+        IERC20(market).forceApprove(market, type(uint256).max);
     }
 
     /**
@@ -103,7 +102,7 @@ contract PendlePTArk is Ark {
      */
     function _board(uint256 amount) internal override {
         _rolloverIfNeeded();
-        _depositTokenForPt(amount);
+        _depositTokenForLp(amount);
     }
 
     /**
@@ -112,14 +111,14 @@ contract PendlePTArk is Ark {
      */
     function _disembark(uint256 amount) internal override {
         _rolloverIfNeeded();
-        _redeemTokenFromPt(amount);
+        _redeemTokenFromLp(amount);
     }
 
     /**
-     * @notice Deposits tokens for PT
+     * @notice Deposits tokens for LP
      * @param _amount Amount of tokens to deposit
      */
-    function _depositTokenForPt(uint256 _amount) internal {
+    function _depositTokenForLp(uint256 _amount) internal {
         uint256 sharesOut = IStandardizedYield(SY).previewDeposit(
             address(config.token),
             _amount
@@ -131,106 +130,63 @@ contract PendlePTArk is Ark {
             sharesOut
         );
 
-        uint256 minPTout = (_SYtoPT(syAmount) * (MAX_BPS - slippageBPS)) /
+        uint256 minLpOut = (_SYtoLP(syAmount) * (MAX_BPS - slippageBPS)) /
             MAX_BPS;
 
-        IPAllActionV3(PENDLE_ROUTER).swapExactSyForPt(
-            address(this),
-            market,
-            syAmount,
-            minPTout,
-            routerParams,
-            emptyLimitOrderData
-        );
+        (uint256 netLpOut, ) = IPAllActionV3(PENDLE_ROUTER)
+            .addLiquiditySingleSy(
+                address(this),
+                market,
+                syAmount,
+                minLpOut,
+                routerParams,
+                emptyLimitOrderData
+            );
+
+        require(netLpOut >= minLpOut, "Slippage: LP out");
     }
 
     /**
-     * @notice Redeems PT for tokens
-     * @param amount Amount of PT to redeem
+     * @notice Redeems LP for tokens
+     * @param amount Amount of underlying asset to redeem
      */
-    function _redeemTokenFromPt(uint256 amount) internal {
-        uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        uint256 withdrawAmountInPT = (_SYtoPT(amount) *
+    function _redeemTokenFromLp(uint256 amount) internal {
+        uint256 lpBalance = IERC20(market).balanceOf(address(this));
+        uint256 withdrawAmountInLp = (_assetToLP(amount) *
             (MAX_BPS + slippageBPS)) / MAX_BPS;
 
-        amount = (withdrawAmountInPT > ptBalance)
-            ? ptBalance
-            : withdrawAmountInPT;
+        uint256 lpToRedeem = (withdrawAmountInLp > lpBalance)
+            ? lpBalance
+            : withdrawAmountInLp;
 
-        uint256 expectedSyOut = _PTtoSY(amount);
-        uint256 minSyOut = (expectedSyOut * (MAX_BPS - slippageBPS)) / MAX_BPS;
-
-        (uint256 syAmount, ) = IPAllActionV3(PENDLE_ROUTER).swapExactPtForSy(
-            address(this),
-            market,
-            amount,
-            minSyOut,
-            emptyLimitOrderData
-        );
-        uint256 expectedTokenOut = IStandardizedYield(SY).previewRedeem(
-            address(config.token),
-            syAmount
-        );
-        uint256 minTokenOut = (expectedTokenOut * (MAX_BPS - slippageBPS)) /
+        uint256 expectedAssetOut = _LPtoAsset(lpToRedeem);
+        uint256 minAssetOut = (expectedAssetOut * (MAX_BPS - slippageBPS)) /
             MAX_BPS;
-
-        IStandardizedYield(SY).redeem(
-            address(this),
-            syAmount,
-            address(config.token),
-            minTokenOut,
-            false
-        );
+        IERC20(market).approve(PENDLE_ROUTER, type(uint256).max);
+        TokenOutput memory tokenOutput = TokenOutput({
+            tokenOut: address(config.token),
+            minTokenOut: minAssetOut,
+            tokenRedeemSy: address(config.token),
+            pendleSwap: address(0),
+            swapData: emptySwap
+        });
+        (uint256 netSyOut, , ) = IPAllActionV3(PENDLE_ROUTER)
+            .removeLiquiditySingleToken(
+                address(this),
+                market,
+                lpToRedeem,
+                tokenOutput,
+                emptyLimitOrderData
+            );
     }
 
     /**
-     * @notice Calculates the fixed rate for the current market
-     * @return The calculated fixed rate
-     */
-    function _calculateFixedRate() internal view returns (uint256) {
-        if (block.timestamp >= marketExpiry) return 0;
-        MarketState memory state = IPMarketV3(market).readState(PENDLE_ROUTER);
-        return aprToApy(state.lastLnImpliedRate);
-    }
-
-    /**
-     * @notice Converts APR to APY
-     * @param apr The APR to convert (in WAD format)
-     * @return The calculated APY (in WAD format)
-     */
-    function aprToApy(uint256 apr) public pure returns (uint256) {
-        uint256 x = apr;
-        uint256 result = WAD; // 1 in WAD format
-
-        // x
-        result += x;
-
-        // x^2 / 2!
-        x = (x * apr) / WAD;
-        result += x / 2;
-
-        // x^3 / 3!
-        x = (x * apr) / WAD;
-        result += x / 6;
-
-        // x^4 / 4!
-        x = (x * apr) / WAD;
-        result += x / 24;
-
-        // x^5 / 5!
-        x = (x * apr) / WAD;
-        result += x / 120;
-
-        // Subtract WAD to get (e^apr - 1)
-        return result - WAD;
-    }
-
-    /**
-     * @notice Returns the current fixed rate
-     * @return The current fixed rate
+     * @notice Returns the current rate (APY) for the LP position
+     * @return The current APY
      */
     function rate() public view override returns (uint256) {
-        return fixedRate;
+        if (block.timestamp >= marketExpiry) return 0;
+        return 1 ether;
     }
 
     /**
@@ -238,15 +194,14 @@ contract PendlePTArk is Ark {
      * @return The total assets in underlying token
      */
     function totalAssets() public view override returns (uint256) {
-        return (_PTtoAsset(_balanceOfPT()) * (MAX_BPS - slippageBPS)) / MAX_BPS;
+        return (_LPtoAsset(_balanceOfLP()) * (MAX_BPS - slippageBPS)) / MAX_BPS;
     }
 
     /**
-     * @notice Updates the market data (expiry and fixed rate)
+     * @notice Updates the market data (expiry)
      */
     function _updateMarketData() internal {
         marketExpiry = IPMarketV3(market).expiry();
-        fixedRate = _calculateFixedRate();
     }
 
     /**
@@ -256,7 +211,10 @@ contract PendlePTArk is Ark {
         if (block.timestamp < marketExpiry) return;
 
         address newMarket = _findNextMarket();
-        require(newMarket != address(0), "No valid next market");
+        require(
+            newMarket != address(0) && newMarket != market,
+            "No valid next market"
+        );
 
         _redeemAllToUnderlying();
         require((_isOracleReady(newMarket)), "Oracle not ready");
@@ -268,32 +226,29 @@ contract PendlePTArk is Ark {
     }
 
     /**
-     * @notice Redeems all PT and SY to underlying tokens
+     * @notice Redeems all LP and SY to underlying tokens
      */
     function _redeemAllToUnderlying() internal {
-        uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        if (ptBalance > 0) {
-            IPAllActionV3(PENDLE_ROUTER).redeemPyToSy(
-                address(this),
-                address(YT),
-                ptBalance,
-                0
-            );
-        }
-
-        uint256 syBalance = IERC20(SY).balanceOf(address(this));
-        if (syBalance > 0) {
-            uint256 tokensToRedeem = IStandardizedYield(SY).previewRedeem(
-                address(config.token),
-                syBalance
-            );
-            IStandardizedYield(SY).redeem(
-                address(this),
-                syBalance,
-                address(config.token),
-                tokensToRedeem,
-                false
-            );
+        uint256 lpBalance = IERC20(market).balanceOf(address(this));
+        uint256 expectedAssetOut = _LPtoAsset(lpBalance);
+        uint256 minAssetOut = (expectedAssetOut * (MAX_BPS - slippageBPS)) /
+            MAX_BPS;
+        if (lpBalance > 0) {
+            TokenOutput memory tokenOutput = TokenOutput({
+                tokenOut: address(config.token),
+                minTokenOut: minAssetOut,
+                tokenRedeemSy: address(config.token),
+                pendleSwap: address(0),
+                swapData: emptySwap
+            });
+            (uint256 netSyOut, , ) = IPAllActionV3(PENDLE_ROUTER)
+                .removeLiquiditySingleToken(
+                    address(this),
+                    market,
+                    lpBalance,
+                    tokenOutput,
+                    emptyLimitOrderData
+                );
         }
     }
 
@@ -308,7 +263,7 @@ contract PendlePTArk is Ark {
         IERC20(config.token).forceApprove(address(SY), type(uint256).max);
         IERC20(SY).forceApprove(newMarket, type(uint256).max);
         IERC20(SY).forceApprove(PENDLE_ROUTER, type(uint256).max);
-        IERC20(PT).forceApprove(PENDLE_ROUTER, type(uint256).max);
+        IERC20(newMarket).forceApprove(PENDLE_ROUTER, type(uint256).max);
     }
 
     /**
@@ -321,51 +276,63 @@ contract PendlePTArk is Ark {
     }
 
     /**
-     * @notice Converts SY amount to PT amount
+     * @notice Converts SY amount to LP amount
      * @param _amount Amount of SY to convert
-     * @return Equivalent amount of PT
+     * @return Equivalent amount of LP
      */
-    function _SYtoPT(uint256 _amount) internal view returns (uint256) {
-        uint256 ptToSyRate = PendlePYLpOracle(oracle).getPtToSyRate(
+    function _SYtoLP(uint256 _amount) internal view returns (uint256) {
+        uint256 lpToSyRate = PendlePYLpOracle(oracle).getLpToSyRate(
             market,
             oracleDuration
         );
-        return (_amount * WAD) / ptToSyRate;
+        return (_amount * WAD) / lpToSyRate;
     }
 
     /**
-     * @notice Converts PT amount to SY amount
-     * @param _amount Amount of PT to convert
+     * @notice Converts LP amount to SY amount
+     * @param _amount Amount of LP to convert
      * @return Equivalent amount of SY
      */
-    function _PTtoSY(uint256 _amount) internal view returns (uint256) {
-        uint256 ptToSyRate = PendlePYLpOracle(oracle).getPtToSyRate(
+    function _LPtoSY(uint256 _amount) internal view returns (uint256) {
+        uint256 lpToSyRate = PendlePYLpOracle(oracle).getLpToSyRate(
             market,
             oracleDuration
         );
-        return (_amount * ptToSyRate) / WAD;
+        return (_amount * lpToSyRate) / WAD;
     }
 
     /**
-     * @notice Converts PT amount to asset amount
-     * @param _amount Amount of PT to convert
+     * @notice Converts LP amount to asset amount
+     * @param _amount Amount of LP to convert
      * @return Equivalent amount of asset
      */
-    function _PTtoAsset(uint256 _amount) internal view returns (uint256) {
-        uint256 syAmount = _PTtoSY(_amount);
-        return
-            IStandardizedYield(SY).previewRedeem(
-                address(config.token),
-                syAmount
-            );
+    function _LPtoAsset(uint256 _amount) internal view returns (uint256) {
+        uint256 lpToAssetRate = PendlePYLpOracle(oracle).getLpToAssetRate(
+            market,
+            oracleDuration
+        );
+        return (_amount * lpToAssetRate) / WAD;
     }
 
     /**
-     * @notice Returns the balance of PT held by the contract
-     * @return Balance of PT
+     * @notice Converts asset amount to LP amount
+     * @param _amount Amount of asset to convert
+     * @return Equivalent amount of LP
      */
-    function _balanceOfPT() internal view returns (uint256) {
-        return IERC20(PT).balanceOf(address(this));
+    function _assetToLP(uint256 _amount) internal view returns (uint256) {
+        uint256 lpToAssetRate = PendlePYLpOracle(oracle).getLpToAssetRate(
+            market,
+            oracleDuration
+        );
+        return (_amount * WAD) / lpToAssetRate;
+    }
+
+    /**
+     * @notice Returns the balance of LP held by the contract
+     * @return Balance of LP
+     */
+    function _balanceOfLP() internal view returns (uint256) {
+        return IERC20(market).balanceOf(address(this));
     }
 
     /**

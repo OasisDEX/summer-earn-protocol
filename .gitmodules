@@ -23,3 +23,9 @@
 [submodule "packages/core-contracts/lib/morpho-blue"]
 	path = packages/core-contracts/lib/morpho-blue
 	url = https://github.com/morpho-org/morpho-blue
+[submodule "packages/core-contracts/lib/pendle-core-v2-public"]
+	path = packages/core-contracts/lib/pendle-core-v2-public
+	url = https://github.com/pendle-finance/pendle-core-v2-public
+[submodule "packages/core-contracts/lib/openzeppelin-contracts-upgradeable"]
+	path = packages/core-contracts/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
