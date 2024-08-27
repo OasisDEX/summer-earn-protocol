@@ -140,10 +140,12 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
         ark.board(amount);
-        console.log(ark.totalAssets());
+
+        vm.warp(block.timestamp + 1 days);
         // Act
         uint256 initialBalance = usde.balanceOf(commander);
-        ark.disembark(amount);
+        uint256 amountToWithdraw = ark.totalAssets();
+        ark.disembark(amountToWithdraw);
         vm.stopPrank();
 
         // Assert

@@ -203,7 +203,7 @@ contract PendlePTArk is Ark {
     /// @notice Returns the total assets held by the Ark
     /// @return The total assets in underlying token
     function totalAssets() public view override returns (uint256) {
-        return _PTtoAsset(_balanceOfPT());
+        return (_PTtoAsset(_balanceOfPT()) * (MAX_BPS - slippageBPS)) / MAX_BPS;
     }
 
     /// @notice Updates the market data (expiry and fixed rate)
@@ -220,7 +220,8 @@ contract PendlePTArk is Ark {
         require(newMarket != address(0), "No valid next market");
 
         _redeemAllToUnderlying();
-        _isOracleReady(newMarket);
+        require(!(_isOracleReady(newMarket)), "Oracle not ready");
+
         _updateMarketAndTokens(newMarket);
         _updateMarketData();
 
@@ -360,10 +361,7 @@ contract PendlePTArk is Ark {
             ,
             bool oldestObservationSatisfied
         ) = IPendleOracle(oracle).getOracleState(_market, oracleDuration);
-        require(
-            !(increaseCardinalityRequired || !oldestObservationSatisfied),
-            "Oracle not ready"
-        );
+        return (increaseCardinalityRequired || !oldestObservationSatisfied);
     }
 
     error OracleNotReady();
