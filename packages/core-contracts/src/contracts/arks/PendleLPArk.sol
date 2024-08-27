@@ -9,7 +9,7 @@ import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOrac
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
-import {LimitOrderData, TokenOutput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
+import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 
 /**
@@ -90,7 +90,7 @@ contract PendleLPArk is Ark {
      */
     function _setupApprovals(address _asset) private {
         IERC20(_asset).forceApprove(address(SY), type(uint256).max);
-        IERC20(SY).forceApprove(PENDLE_ROUTER, type(uint256).max);
+        IERC20(_asset).forceApprove(PENDLE_ROUTER, type(uint256).max);
         IERC20(market).forceApprove(PENDLE_ROUTER, type(uint256).max);
         IERC20(market).forceApprove(market, type(uint256).max);
     }
@@ -118,26 +118,21 @@ contract PendleLPArk is Ark {
      * @param _amount Amount of tokens to deposit
      */
     function _depositTokenForLp(uint256 _amount) internal {
-        uint256 sharesOut = IStandardizedYield(SY).previewDeposit(
-            address(config.token),
-            _amount
-        );
-        uint256 syAmount = IStandardizedYield(SY).deposit(
-            address(this),
-            address(config.token),
-            _amount,
-            sharesOut
-        );
-
-        uint256 minLpOut = (_SYtoLP(syAmount) * (MAX_BPS - slippageBPS)) /
+        uint256 minLpOut = (_assetToLP(_amount) * (MAX_BPS - slippageBPS)) /
             MAX_BPS;
-
-        IPAllActionV3(PENDLE_ROUTER).addLiquiditySingleSy(
+        TokenInput memory tokenInput = TokenInput({
+            tokenIn: address(config.token),
+            netTokenIn: _amount,
+            tokenMintSy: address(config.token),
+            pendleSwap: address(0),
+            swapData: emptySwap
+        });
+        IPAllActionV3(PENDLE_ROUTER).addLiquiditySingleToken(
             address(this),
             market,
-            syAmount,
             minLpOut,
             routerParams,
+            tokenInput,
             emptyLimitOrderData
         );
     }
@@ -270,32 +265,6 @@ contract PendleLPArk is Ark {
     }
 
     /**
-     * @notice Converts SY amount to LP amount
-     * @param _amount Amount of SY to convert
-     * @return Equivalent amount of LP
-     */
-    function _SYtoLP(uint256 _amount) internal view returns (uint256) {
-        uint256 lpToSyRate = PendlePYLpOracle(oracle).getLpToSyRate(
-            market,
-            oracleDuration
-        );
-        return (_amount * WAD) / lpToSyRate;
-    }
-
-    /**
-     * @notice Converts LP amount to SY amount
-     * @param _amount Amount of LP to convert
-     * @return Equivalent amount of SY
-     */
-    function _LPtoSY(uint256 _amount) internal view returns (uint256) {
-        uint256 lpToSyRate = PendlePYLpOracle(oracle).getLpToSyRate(
-            market,
-            oracleDuration
-        );
-        return (_amount * lpToSyRate) / WAD;
-    }
-
-    /**
      * @notice Converts LP amount to asset amount
      * @param _amount Amount of LP to convert
      * @return Equivalent amount of asset
@@ -312,6 +281,7 @@ contract PendleLPArk is Ark {
      * @notice Converts asset amount to LP amount
      * @param _amount Amount of asset to convert
      * @return Equivalent amount of LP
+     * @dev tehre is no reverse operation for `getLpToAssetRate`
      */
     function _assetToLP(uint256 _amount) internal view returns (uint256) {
         uint256 lpToAssetRate = PendlePYLpOracle(oracle).getLpToAssetRate(

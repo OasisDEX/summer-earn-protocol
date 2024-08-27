@@ -123,7 +123,7 @@ contract PendlePTArk is Ark {
     function _depositTokenForPt(uint256 _amount) internal {
         uint256 minPTout = (_SYtoPT(_amount) * (MAX_BPS - slippageBPS)) /
             MAX_BPS;
-        TokenInput memory tokenOutput = TokenInput({
+        TokenInput memory tokenInput = TokenInput({
             tokenIn: address(config.token),
             netTokenIn: _amount,
             tokenMintSy: address(config.token),
@@ -135,7 +135,7 @@ contract PendlePTArk is Ark {
             market,
             minPTout,
             routerParams,
-            tokenOutput,
+            tokenInput,
             emptyLimitOrderData
         );
     }
