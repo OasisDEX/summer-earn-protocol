@@ -12,12 +12,12 @@ import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOrac
 import {console} from "forge-std/console.sol";
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
 import {MarketState} from "@pendle/core-v2/contracts/core/Market/MarketMathCore.sol";
-import {LimitOrderData, TokenOutput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
+import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 
 /**
  * @title PendlePTArk
- * @notice This contract manages a Pendle Principal Token (PT) strategy within the Ark system
+ * @notice This contract manages a Pendle LP strategy within the Ark system
  * @dev Inherits from Ark and implements Pendle-specific logic
  */
 contract PendlePTArk is Ark {
@@ -26,7 +26,6 @@ contract PendlePTArk is Ark {
     // Constants
     uint256 private constant WAD = 1e18;
     uint256 private constant MAX_BPS = 10_000;
-    uint256 private constant SECONDS_IN_YEAR = 365 days;
     uint256 private constant MIN_ORACLE_DURATION = 900; // 15 minutes
     address private constant PENDLE_ROUTER =
         0x888888888889758F76e7103c6CbF23ABbF58F946;
@@ -43,6 +42,8 @@ contract PendlePTArk is Ark {
     uint256 public marketExpiry;
     ApproxParams public routerParams;
     LimitOrderData emptyLimitOrderData;
+    SwapData public emptySwap;
+
     // Events
     event MarketRolledOver(address indexed newMarket);
     event SlippageUpdated(uint256 newSlippageBPS);
@@ -92,7 +93,7 @@ contract PendlePTArk is Ark {
      * @param _asset Address of the underlying asset
      */
     function _setupApprovals(address _asset) private {
-        IERC20(_asset).forceApprove(address(SY), type(uint256).max);
+        IERC20(_asset).forceApprove(address(PENDLE_ROUTER), type(uint256).max);
         IERC20(SY).forceApprove(PENDLE_ROUTER, type(uint256).max);
         IERC20(PT).forceApprove(PENDLE_ROUTER, type(uint256).max);
     }
@@ -120,26 +121,21 @@ contract PendlePTArk is Ark {
      * @param _amount Amount of tokens to deposit
      */
     function _depositTokenForPt(uint256 _amount) internal {
-        uint256 sharesOut = IStandardizedYield(SY).previewDeposit(
-            address(config.token),
-            _amount
-        );
-        uint256 syAmount = IStandardizedYield(SY).deposit(
-            address(this),
-            address(config.token),
-            _amount,
-            sharesOut
-        );
-
-        uint256 minPTout = (_SYtoPT(syAmount) * (MAX_BPS - slippageBPS)) /
+        uint256 minPTout = (_SYtoPT(_amount) * (MAX_BPS - slippageBPS)) /
             MAX_BPS;
-
-        IPAllActionV3(PENDLE_ROUTER).swapExactSyForPt(
+        TokenInput memory tokenOutput = TokenInput({
+            tokenIn: address(config.token),
+            netTokenIn: _amount,
+            tokenMintSy: address(config.token),
+            pendleSwap: address(0),
+            swapData: emptySwap
+        });
+        IPAllActionV3(PENDLE_ROUTER).swapExactTokenForPt(
             address(this),
             market,
-            syAmount,
             minPTout,
             routerParams,
+            tokenOutput,
             emptyLimitOrderData
         );
     }
@@ -153,33 +149,24 @@ contract PendlePTArk is Ark {
         uint256 withdrawAmountInPT = (_SYtoPT(amount) *
             (MAX_BPS + slippageBPS)) / MAX_BPS;
 
-        amount = (withdrawAmountInPT > ptBalance)
+        uint256 finalPtAmount = (withdrawAmountInPT > ptBalance)
             ? ptBalance
             : withdrawAmountInPT;
 
-        uint256 expectedSyOut = _PTtoSY(amount);
-        uint256 minSyOut = (expectedSyOut * (MAX_BPS - slippageBPS)) / MAX_BPS;
+        TokenOutput memory tokenOutput = TokenOutput({
+            tokenOut: address(config.token),
+            minTokenOut: amount,
+            tokenRedeemSy: address(config.token),
+            pendleSwap: address(0),
+            swapData: emptySwap
+        });
 
-        (uint256 syAmount, ) = IPAllActionV3(PENDLE_ROUTER).swapExactPtForSy(
+        IPAllActionV3(PENDLE_ROUTER).swapExactPtForToken(
             address(this),
             market,
-            amount,
-            minSyOut,
+            finalPtAmount,
+            tokenOutput,
             emptyLimitOrderData
-        );
-        uint256 expectedTokenOut = IStandardizedYield(SY).previewRedeem(
-            address(config.token),
-            syAmount
-        );
-        uint256 minTokenOut = (expectedTokenOut * (MAX_BPS - slippageBPS)) /
-            MAX_BPS;
-
-        IStandardizedYield(SY).redeem(
-            address(this),
-            syAmount,
-            address(config.token),
-            minTokenOut,
-            false
         );
     }
 

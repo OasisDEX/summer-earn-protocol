@@ -23,7 +23,6 @@ contract PendleLPArk is Ark {
     // Constants
     uint256 private constant WAD = 1e18;
     uint256 private constant MAX_BPS = 10_000;
-    uint256 private constant SECONDS_IN_YEAR = 365 days;
     uint256 private constant MIN_ORACLE_DURATION = 900; // 15 minutes
     address private constant PENDLE_ROUTER =
         0x888888888889758F76e7103c6CbF23ABbF58F946;
@@ -133,17 +132,14 @@ contract PendleLPArk is Ark {
         uint256 minLpOut = (_SYtoLP(syAmount) * (MAX_BPS - slippageBPS)) /
             MAX_BPS;
 
-        (uint256 netLpOut, ) = IPAllActionV3(PENDLE_ROUTER)
-            .addLiquiditySingleSy(
-                address(this),
-                market,
-                syAmount,
-                minLpOut,
-                routerParams,
-                emptyLimitOrderData
-            );
-
-        require(netLpOut >= minLpOut, "Slippage: LP out");
+        IPAllActionV3(PENDLE_ROUTER).addLiquiditySingleSy(
+            address(this),
+            market,
+            syAmount,
+            minLpOut,
+            routerParams,
+            emptyLimitOrderData
+        );
     }
 
     /**
@@ -170,14 +166,13 @@ contract PendleLPArk is Ark {
             pendleSwap: address(0),
             swapData: emptySwap
         });
-        (uint256 netSyOut, , ) = IPAllActionV3(PENDLE_ROUTER)
-            .removeLiquiditySingleToken(
-                address(this),
-                market,
-                lpToRedeem,
-                tokenOutput,
-                emptyLimitOrderData
-            );
+        IPAllActionV3(PENDLE_ROUTER).removeLiquiditySingleToken(
+            address(this),
+            market,
+            lpToRedeem,
+            tokenOutput,
+            emptyLimitOrderData
+        );
     }
 
     /**
@@ -241,14 +236,13 @@ contract PendleLPArk is Ark {
                 pendleSwap: address(0),
                 swapData: emptySwap
             });
-            (uint256 netSyOut, , ) = IPAllActionV3(PENDLE_ROUTER)
-                .removeLiquiditySingleToken(
-                    address(this),
-                    market,
-                    lpBalance,
-                    tokenOutput,
-                    emptyLimitOrderData
-                );
+            IPAllActionV3(PENDLE_ROUTER).removeLiquiditySingleToken(
+                address(this),
+                market,
+                lpBalance,
+                tokenOutput,
+                emptyLimitOrderData
+            );
         }
     }
 
