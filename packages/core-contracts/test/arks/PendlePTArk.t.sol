@@ -294,7 +294,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         ark.board(amount);
     }
 
-    function test_AprToApy() view public {
+    function test_AprToApy() public view {
         uint256 apr = 0.05 * 1e18; // 5% APR
         uint256 apy = ark.aprToApy(apr);
 

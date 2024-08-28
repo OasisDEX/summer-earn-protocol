@@ -174,9 +174,9 @@ contract PendleLPArk is Ark {
      * @notice Returns the current rate (APY) for the LP position
      * @return The current APY
      */
-    function rate() public view override returns (uint256) {
-        if (block.timestamp >= marketExpiry) return 0;
-        return 1 ether;
+    function rate() public pure override returns (uint256) {
+        // TODO: rate will be deprcated in the future
+        return type(uint256).max;
     }
 
     /**

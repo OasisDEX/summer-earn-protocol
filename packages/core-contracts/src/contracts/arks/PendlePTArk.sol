@@ -38,7 +38,6 @@ contract PendlePTArk is Ark {
     IPPrincipalToken public PT;
     IPYieldToken public YT;
     uint256 public slippageBPS;
-    uint256 public fixedRate;
     uint256 public marketExpiry;
     ApproxParams public routerParams;
     LimitOrderData emptyLimitOrderData;
@@ -171,16 +170,6 @@ contract PendlePTArk is Ark {
     }
 
     /**
-     * @notice Calculates the fixed rate for the current market
-     * @return The calculated fixed rate
-     */
-    function _calculateFixedRate() internal view returns (uint256) {
-        if (block.timestamp >= marketExpiry) return 0;
-        MarketState memory state = IPMarketV3(market).readState(PENDLE_ROUTER);
-        return aprToApy(state.lastLnImpliedRate * 1e9);
-    }
-
-    /**
      * @notice Converts APR to APY
      * @param apr The APR to convert (in WAD format)
      * @return The calculated APY (in WAD format)
@@ -217,7 +206,8 @@ contract PendlePTArk is Ark {
      * @return The current fixed rate
      */
     function rate() public view override returns (uint256) {
-        return fixedRate;
+        // TODO: rate will be deprcated in the future
+        return type(uint256).max;
     }
 
     /**
@@ -233,7 +223,6 @@ contract PendlePTArk is Ark {
      */
     function _updateMarketData() internal {
         marketExpiry = IPMarketV3(market).expiry();
-        fixedRate = _calculateFixedRate();
     }
 
     /**
