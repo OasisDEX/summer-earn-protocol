@@ -183,6 +183,7 @@ contract PendleLPArk is Ark {
     /**
      * @notice Returns the total assets held by the Ark
      * @return The total assets in underlying token
+     * @dev we decrease the total assets by the allowed slippage so the redeemed amount is always higher than the requested amount
      */
     function totalAssets() public view override returns (uint256) {
         return (_LPtoAsset(_balanceOfLP()) * (MAX_BPS - slippageBPS)) / MAX_BPS;
