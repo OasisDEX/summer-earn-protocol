@@ -76,4 +76,60 @@ library MathUtils {
 
         return Percentage.wrap(result);
     }
+
+    function rpow(
+        uint256 x,
+        uint256 n,
+        uint256 base
+    ) internal pure returns (uint256 z) {
+        uint256 result;
+
+        // Step 1: Handle special cases
+        if (x == 0 || n == 0) {
+            return n == 0 ? base : 0;
+        }
+
+        // Step 2: Initialize result is based on whether n is odd or even
+        result = n % 2 == 0 ? base : x;
+
+        // Step 3: Prepare for the main loop
+        uint256 half = base / 2;
+
+        // Step 4: Main loop - Square-and-multiply algorithm
+        assembly {
+            n := div(n, 2)
+
+            for {} n {} {
+                let xx := mul(x, x)
+                if iszero(eq(div(xx, x), x)) {
+                    revert(0, 0)
+                }
+
+                let xxRound := add(xx, half)
+                if lt(xxRound, xx) {
+                    revert(0, 0)
+                }
+
+                x := div(xxRound, base)
+
+                if mod(n, 2) {
+                    let zx := mul(result, x)
+                    if and(iszero(iszero(x)), iszero(eq(div(zx, x), result))) {
+                        revert(0, 0)
+                    }
+
+                    let zxRound := add(zx, half)
+                    if lt(zxRound, zx) {
+                        revert(0, 0)
+                    }
+
+                    result := div(zxRound, base)
+                }
+
+                n := div(n, 2)
+            }
+        }
+
+        return result;
+    }
 }

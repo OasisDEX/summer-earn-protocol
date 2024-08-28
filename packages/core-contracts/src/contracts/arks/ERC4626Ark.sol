@@ -56,7 +56,7 @@ contract ERC4626Ark is Ark {
      * @return The total amount of underlying assets the Ark can withdraw from the vault
      */
     function totalAssets() public view override returns (uint256) {
-        return vault.maxWithdraw(address(this));
+        return vault.convertToAssets(vault.balanceOf(address(this)));
     }
 
     /**

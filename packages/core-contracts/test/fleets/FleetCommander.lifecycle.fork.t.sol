@@ -390,7 +390,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(user);
         token.approve(address(fleet), amount);
         uint256 previewShares = fleet.previewDeposit(amount);
+        uint256 gas = gasleft();
         uint256 depositedShares = fleet.deposit(amount, user);
+        console.log("Gas used for deposit:", gas - gasleft());
         assertEq(
             previewShares,
             depositedShares,
