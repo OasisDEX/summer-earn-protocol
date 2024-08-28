@@ -31,6 +31,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     MorphoArk public usdcMorphoArk;
     MetaMorphoArk public usdcMetaMorphoArk;
     ERC4626Ark public usdcGearboxERC4626Ark;
+    ERC4626Ark public usdcFluidERC4626Ark;
     BufferArk public usdcBufferArk;
 
     // DAI Fleet Arks
@@ -50,7 +51,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     IMetaMorpho public daiMetaMorphoContract;
     IERC4626 public sDAIContract;
     IPot public potContract;
-    IERC4626 public usdcVault;
+    IERC4626 public gearboxUsdcVault;
+    IERC4626 public fluidUsdcVault;
 
     // Constants
     address public constant USDC_ADDRESS =
@@ -75,8 +77,11 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         0x83F20F44975D03b1b09e64809B757c47f942BEeA;
     address public constant POT_ADDRESS =
         0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7;
-    address public constant USDC_VAULT_ADDRESS =
+    address public constant GEARBOX_USDC_VAULT_ADDRESS =
         0xda00000035fef4082F78dEF6A8903bee419FbF8E;
+    address public constant FLUID_USDC_VAULT_ADDRESS =
+        0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33;
+
     Id public constant USDC_MORPHO_MARKET_ID =
         Id.wrap(
             0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49
@@ -118,7 +123,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.label(DAI_METAMORPHO_ADDRESS, "DAI_METAMORPHO");
         vm.label(SDAI_ADDRESS, "SDAI");
         vm.label(POT_ADDRESS, "POT");
-        vm.label(USDC_VAULT_ADDRESS, "USDC_VAULT");
+        vm.label(GEARBOX_USDC_VAULT_ADDRESS, "USDC_VAULT");
+        vm.label(FLUID_USDC_VAULT_ADDRESS, "FLUID_USDC_VAULT");
         vm.label(address(usdcCompoundArk), "USDC_COMPOUND_ARK");
         vm.label(address(usdcAaveArk), "USDC_AAVE_ARK");
         vm.label(address(usdcMorphoArk), "USDC_MORPHO_ARK");
@@ -141,7 +147,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         daiMetaMorphoContract = IMetaMorpho(DAI_METAMORPHO_ADDRESS);
         sDAIContract = IERC4626(SDAI_ADDRESS);
         potContract = IPot(POT_ADDRESS);
-        usdcVault = IERC4626(USDC_VAULT_ADDRESS);
+        gearboxUsdcVault = IERC4626(GEARBOX_USDC_VAULT_ADDRESS);
+        fluidUsdcVault = IERC4626(FLUID_USDC_VAULT_ADDRESS);
     }
 
     function setupArks() internal {
@@ -186,10 +193,13 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             usdcArkParams
         );
         usdcGearboxERC4626Ark = new ERC4626Ark(
-            USDC_VAULT_ADDRESS,
+            GEARBOX_USDC_VAULT_ADDRESS,
             usdcArkParams
         );
-
+        usdcFluidERC4626Ark = new ERC4626Ark(
+            FLUID_USDC_VAULT_ADDRESS,
+            usdcArkParams
+        );
         // DAI Arks
         daiAaveArk = new AaveV3Ark(
             address(aaveV3PoolContract),
@@ -222,12 +232,13 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function addArksToFleetCommanders() internal {
         // Add USDC Arks to USDC Fleet Commander
-        address[] memory usdcArks = new address[](5);
+        address[] memory usdcArks = new address[](6);
         usdcArks[0] = address(usdcCompoundArk);
         usdcArks[1] = address(usdcAaveArk);
         usdcArks[2] = address(usdcMorphoArk);
         usdcArks[3] = address(usdcMetaMorphoArk);
         usdcArks[4] = address(usdcGearboxERC4626Ark);
+        usdcArks[5] = address(usdcFluidERC4626Ark);
         vm.prank(governor);
         usdcFleetCommander.addArks(usdcArks);
 
@@ -249,6 +260,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         usdcMorphoArk.grantCommanderRole(address(usdcFleetCommander));
         usdcMetaMorphoArk.grantCommanderRole(address(usdcFleetCommander));
         usdcGearboxERC4626Ark.grantCommanderRole(address(usdcFleetCommander));
+        usdcFluidERC4626Ark.grantCommanderRole(address(usdcFleetCommander));
         usdcBufferArk.grantCommanderRole(address(usdcFleetCommander));
 
         // Grant permissions for DAI Fleet
@@ -271,7 +283,11 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         console.log("USDC Compound Ark:", address(usdcCompoundArk));
         console.log("USDC Morpho Ark:", address(usdcMorphoArk));
         console.log("USDC MetaMorpho Ark:", address(usdcMetaMorphoArk));
-        console.log("USDC ERC4626 Ark:", address(usdcGearboxERC4626Ark));
+        console.log(
+            "USDC Gearbox ERC4626 Ark:",
+            address(usdcGearboxERC4626Ark)
+        );
+        console.log("USDC Fluid ERC4626 Ark:", address(usdcFluidERC4626Ark));
         // Log DAI Ark addresses
         console.log("DAI Aave Ark:", address(daiAaveArk));
         console.log("DAI Morpho Ark:", address(daiMorphoArk));
@@ -281,9 +297,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_DepositRebalanceForceWithdraw_BothFleets_Fork() public {
         // Arrange
-        uint256 usdcTotalDeposit = 5000 * 10 ** 6; // 5000 USDC
-        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 5000 DAI
-        uint256 usdcUserDeposit = usdcTotalDeposit / 5; // 1000 USDC per ark
+        uint256 usdcTotalDeposit = 6000 * 10 ** 6; // 6000 USDC
+        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 4000 DAI
+        uint256 usdcUserDeposit = usdcTotalDeposit / 6; // 1000 USDC per ark
         uint256 daiUserDeposit = daiTotalDeposit / 4; // 1000 DAI per ark
 
         // Set deposit caps and minimum buffer balances
@@ -490,9 +506,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_DepositRebalanceWithMaxUintWithdraw_BothFleets_Fork() public {
         // Arrange
-        uint256 usdcTotalDeposit = 5000 * 10 ** 6; // 5000 USDC
-        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 5000 DAI
-        uint256 usdcUserDeposit = usdcTotalDeposit / 5; // 1000 USDC per ark
+        uint256 usdcTotalDeposit = 6000 * 10 ** 6; // 6000 USDC
+        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 4000 DAI
+        uint256 usdcUserDeposit = usdcTotalDeposit / 6; // 1000 USDC per ark
         uint256 daiUserDeposit = daiTotalDeposit / 4; // 1000 DAI per ark
 
         // Set deposit caps and minimum buffer balances
