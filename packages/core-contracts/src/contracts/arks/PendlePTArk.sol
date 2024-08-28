@@ -9,12 +9,11 @@ import {IPYieldToken} from "@pendle/core-v2/contracts/interfaces/IPYieldToken.so
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOracle.sol";
-import {console} from "forge-std/console.sol";
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
 import {MarketState} from "@pendle/core-v2/contracts/core/Market/MarketMathCore.sol";
 import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title PendlePTArk
  * @notice This contract manages a Pendle LP strategy within the Ark system
@@ -27,11 +26,10 @@ contract PendlePTArk is Ark {
     uint256 private constant WAD = 1e18;
     uint256 private constant MAX_BPS = 10_000;
     uint256 private constant MIN_ORACLE_DURATION = 900; // 15 minutes
-    address private constant PENDLE_ROUTER =
-        0x888888888889758F76e7103c6CbF23ABbF58F946;
 
     // State variables
     address public market;
+    address public router;
     address public immutable oracle;
     uint32 public oracleDuration;
     IStandardizedYield public SY;
@@ -59,9 +57,11 @@ contract PendlePTArk is Ark {
         address _asset,
         address _market,
         address _oracle,
+        address _router,
         ArkParams memory _params
     ) Ark(_params) {
         market = _market;
+        router = _router;
         oracle = _oracle;
         oracleDuration = 1800; // half hour default
         slippageBPS = 50; // 0.5% default slippage
@@ -92,9 +92,9 @@ contract PendlePTArk is Ark {
      * @param _asset Address of the underlying asset
      */
     function _setupApprovals(address _asset) private {
-        IERC20(_asset).forceApprove(address(PENDLE_ROUTER), type(uint256).max);
-        IERC20(SY).forceApprove(PENDLE_ROUTER, type(uint256).max);
-        IERC20(PT).forceApprove(PENDLE_ROUTER, type(uint256).max);
+        IERC20(_asset).forceApprove(address(router), type(uint256).max);
+        IERC20(SY).forceApprove(router, type(uint256).max);
+        IERC20(PT).forceApprove(router, type(uint256).max);
     }
 
     /**
@@ -129,7 +129,7 @@ contract PendlePTArk is Ark {
             pendleSwap: address(0),
             swapData: emptySwap
         });
-        IPAllActionV3(PENDLE_ROUTER).swapExactTokenForPt(
+        IPAllActionV3(router).swapExactTokenForPt(
             address(this),
             market,
             minPTout,
@@ -160,7 +160,7 @@ contract PendlePTArk is Ark {
             swapData: emptySwap
         });
 
-        IPAllActionV3(PENDLE_ROUTER).swapExactPtForToken(
+        IPAllActionV3(router).swapExactPtForToken(
             address(this),
             market,
             finalPtAmount,
@@ -205,7 +205,7 @@ contract PendlePTArk is Ark {
      * @notice Returns the current fixed rate
      * @return The current fixed rate
      */
-    function rate() public view override returns (uint256) {
+    function rate() public pure override returns (uint256) {
         // TODO: rate will be deprcated in the future
         return type(uint256).max;
     }
@@ -249,11 +249,11 @@ contract PendlePTArk is Ark {
     function _redeemAllToUnderlying() internal {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
         if (ptBalance > 0) {
-            IPAllActionV3(PENDLE_ROUTER).redeemPyToSy(
+            IPAllActionV3(router).redeemPyToSy(
                 address(this),
                 address(YT),
                 ptBalance,
-                0
+                totalAssets()
             );
         }
 
@@ -283,8 +283,8 @@ contract PendlePTArk is Ark {
 
         IERC20(config.token).forceApprove(address(SY), type(uint256).max);
         IERC20(SY).forceApprove(newMarket, type(uint256).max);
-        IERC20(SY).forceApprove(PENDLE_ROUTER, type(uint256).max);
-        IERC20(PT).forceApprove(PENDLE_ROUTER, type(uint256).max);
+        IERC20(SY).forceApprove(router, type(uint256).max);
+        IERC20(PT).forceApprove(router, type(uint256).max);
     }
 
     /**

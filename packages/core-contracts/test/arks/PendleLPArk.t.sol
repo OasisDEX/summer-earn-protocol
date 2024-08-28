@@ -67,7 +67,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             maxRebalanceInflow: type(uint256).max
         });
 
-        ark = new PendleLPArk(USDE, MARKET, ORACLE, params);
+        ark = new PendleLPArk(USDE, MARKET, ORACLE, ROUTER, params);
 
         // Permissioning
         vm.startPrank(governor);

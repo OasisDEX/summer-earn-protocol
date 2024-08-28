@@ -24,11 +24,10 @@ contract PendleLPArk is Ark {
     uint256 private constant WAD = 1e18;
     uint256 private constant MAX_BPS = 10_000;
     uint256 private constant MIN_ORACLE_DURATION = 900; // 15 minutes
-    address private constant PENDLE_ROUTER =
-        0x888888888889758F76e7103c6CbF23ABbF58F946;
 
     // State variables
     address public market;
+    address public router;
     address public immutable oracle;
     uint32 public oracleDuration;
     IStandardizedYield public SY;
@@ -56,9 +55,11 @@ contract PendleLPArk is Ark {
         address _asset,
         address _market,
         address _oracle,
+        address _router,
         ArkParams memory _params
     ) Ark(_params) {
         market = _market;
+        router = _router;
         oracle = _oracle;
         oracleDuration = 1800; // half hour default
         slippageBPS = 50; // 0.5% default slippage
@@ -90,8 +91,8 @@ contract PendleLPArk is Ark {
      */
     function _setupApprovals(address _asset) private {
         IERC20(_asset).forceApprove(address(SY), type(uint256).max);
-        IERC20(_asset).forceApprove(PENDLE_ROUTER, type(uint256).max);
-        IERC20(market).forceApprove(PENDLE_ROUTER, type(uint256).max);
+        IERC20(_asset).forceApprove(router, type(uint256).max);
+        IERC20(market).forceApprove(router, type(uint256).max);
         IERC20(market).forceApprove(market, type(uint256).max);
     }
 
@@ -127,7 +128,7 @@ contract PendleLPArk is Ark {
             pendleSwap: address(0),
             swapData: emptySwap
         });
-        IPAllActionV3(PENDLE_ROUTER).addLiquiditySingleToken(
+        IPAllActionV3(router).addLiquiditySingleToken(
             address(this),
             market,
             minLpOut,
@@ -153,7 +154,7 @@ contract PendleLPArk is Ark {
         uint256 expectedAssetOut = _LPtoAsset(lpToRedeem);
         uint256 minAssetOut = (expectedAssetOut * (MAX_BPS - slippageBPS)) /
             MAX_BPS;
-        IERC20(market).approve(PENDLE_ROUTER, type(uint256).max);
+        IERC20(market).approve(router, type(uint256).max);
         TokenOutput memory tokenOutput = TokenOutput({
             tokenOut: address(config.token),
             minTokenOut: minAssetOut,
@@ -161,7 +162,7 @@ contract PendleLPArk is Ark {
             pendleSwap: address(0),
             swapData: emptySwap
         });
-        IPAllActionV3(PENDLE_ROUTER).removeLiquiditySingleToken(
+        IPAllActionV3(router).removeLiquiditySingleToken(
             address(this),
             market,
             lpToRedeem,
@@ -231,7 +232,7 @@ contract PendleLPArk is Ark {
                 pendleSwap: address(0),
                 swapData: emptySwap
             });
-            IPAllActionV3(PENDLE_ROUTER).removeLiquiditySingleToken(
+            IPAllActionV3(router).removeLiquiditySingleToken(
                 address(this),
                 market,
                 lpBalance,
@@ -251,8 +252,8 @@ contract PendleLPArk is Ark {
 
         IERC20(config.token).forceApprove(address(SY), type(uint256).max);
         IERC20(SY).forceApprove(newMarket, type(uint256).max);
-        IERC20(SY).forceApprove(PENDLE_ROUTER, type(uint256).max);
-        IERC20(newMarket).forceApprove(PENDLE_ROUTER, type(uint256).max);
+        IERC20(SY).forceApprove(router, type(uint256).max);
+        IERC20(newMarket).forceApprove(router, type(uint256).max);
     }
 
     /**
