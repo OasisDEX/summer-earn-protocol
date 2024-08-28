@@ -10,32 +10,50 @@ import "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
 import "../../src/contracts/arks/MetaMorphoArk.sol";
+import "../../src/contracts/arks/SDAIArk.sol";
 
 import "../../src/events/IArkEvents.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
- * @dev Test suite of full lifecycle tests EG Deposit -> Rebalance -> ForceWithdraw
+ * @dev Test suite of full lifecycle tests for both USDC and DAI fleets
  */
 contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
-    // Arks
-    CompoundV3Ark public compoundArk;
-    AaveV3Ark public aaveArk;
-    MorphoArk public morphoArk;
-    MetaMorphoArk public metaMorphoArk;
+    // USDC Fleet Arks
+    CompoundV3Ark public usdcCompoundArk;
+    AaveV3Ark public usdcAaveArk;
+    MorphoArk public usdcMorphoArk;
+    MetaMorphoArk public usdcMetaMorphoArk;
+    BufferArk public usdcBufferArk;
+
+    // DAI Fleet Arks
+    AaveV3Ark public daiAaveArk;
+    MorphoArk public daiMorphoArk;
+    MetaMorphoArk public daiMetaMorphoArk;
+    SDAIArk public sDAIArk;
+    BufferArk public daiBufferArk;
 
     // External contracts
     IComet public usdcCompoundCometContract;
     IPoolV3 public aaveV3PoolContract;
     IERC20 public usdcTokenContract;
+    IERC20 public daiTokenContract;
     IMorpho public morphoContract;
-    IMetaMorpho public metaMorphoContract;
+    IMetaMorpho public usdcMetaMorphoContract;
+    IMetaMorpho public daiMetaMorphoContract;
+    IERC4626 public sDAIContract;
+    IPot public potContract;
 
     // Constants
     address public constant USDC_ADDRESS =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant DAI_ADDRESS =
+        0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address public constant AAVE_V3_POOL_ADDRESS =
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address public constant COMPOUND_USDC_COMET_ADDRESS =
@@ -46,13 +64,27 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
     address public constant MORPHO_ADDRESS =
         0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
-    address public constant METAMORPHO_ADDRESS =
+    address public constant USDC_METAMORPHO_ADDRESS =
         0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB;
-    Id public constant MORPHO_MARKET_ID =
+    address public constant DAI_METAMORPHO_ADDRESS =
+        0x500331c9fF24D9d11aee6B07734Aa72343EA74a5;
+    address public constant SDAI_ADDRESS =
+        0x83F20F44975D03b1b09e64809B757c47f942BEeA;
+    address public constant POT_ADDRESS =
+        0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7;
+    Id public constant USDC_MORPHO_MARKET_ID =
         Id.wrap(
             0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49
         );
+    Id public constant DAI_MORPHO_MARKET_ID =
+        Id.wrap(
+            0xc581c5f70bd1afa283eed57d1418c6432cbff1d862f94eaf58fdd4e46afbb67f
+        );
     uint256 constant FORK_BLOCK = 20376149;
+
+    // Fleet Commanders
+    IFleetCommander public usdcFleetCommander;
+    IFleetCommander public daiFleetCommander;
 
     function setUp() public {
         console.log("Setting up LifecycleTest");
@@ -60,10 +92,10 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
 
         uint256 initialTipRate = 0;
-        initializeFleetCommanderWithoutArks(USDC_ADDRESS, initialTipRate);
         setupExternalContracts();
+        setupFleetCommanders(initialTipRate);
         setupArks();
-        addArksToFleetCommander();
+        addArksToFleetCommanders();
         grantPermissions();
 
         logSetupInfo();
@@ -71,277 +103,247 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function setupExternalContracts() internal {
         usdcTokenContract = IERC20(USDC_ADDRESS);
+        daiTokenContract = IERC20(DAI_ADDRESS);
         aaveV3PoolContract = IPoolV3(AAVE_V3_POOL_ADDRESS);
         usdcCompoundCometContract = IComet(COMPOUND_USDC_COMET_ADDRESS);
         morphoContract = IMorpho(MORPHO_ADDRESS);
-        metaMorphoContract = IMetaMorpho(METAMORPHO_ADDRESS);
+        usdcMetaMorphoContract = IMetaMorpho(USDC_METAMORPHO_ADDRESS);
+        daiMetaMorphoContract = IMetaMorpho(DAI_METAMORPHO_ADDRESS);
+        sDAIContract = IERC4626(SDAI_ADDRESS);
+        potContract = IPot(POT_ADDRESS);
+    }
+
+    function setupFleetCommanders(uint256 initialTipRate) internal {
+        // Setup USDC Fleet Commander
+        initializeFleetCommanderWithoutArks(USDC_ADDRESS, initialTipRate);
+        usdcFleetCommander = fleetCommander;
+        usdcBufferArk = bufferArk;
+
+        // Setup DAI Fleet Commander
+        initializeFleetCommanderWithoutArks(DAI_ADDRESS, initialTipRate);
+        daiFleetCommander = fleetCommander;
+        daiBufferArk = bufferArk;
     }
 
     function setupArks() internal {
-        ArkParams memory arkParams = ArkParams({
-            name: "TestArk",
+        ArkParams memory usdcArkParams = ArkParams({
+            name: "USDC Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(usdcTokenContract),
+            token: USDC_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max
         });
-        aaveArk = new AaveV3Ark(
+
+        ArkParams memory daiArkParams = ArkParams({
+            name: "DAI Ark",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            token: DAI_ADDRESS,
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
+        });
+
+        // USDC Arks
+        usdcAaveArk = new AaveV3Ark(
             address(aaveV3PoolContract),
             AAVE_V3_REWARDS_CONTROLLER,
-            arkParams
+            usdcArkParams
         );
-        compoundArk = new CompoundV3Ark(
+        usdcCompoundArk = new CompoundV3Ark(
             address(usdcCompoundCometContract),
             COMET_REWARDS,
-            arkParams
+            usdcArkParams
+        );
+        usdcMorphoArk = new MorphoArk(
+            MORPHO_ADDRESS,
+            USDC_MORPHO_MARKET_ID,
+            usdcArkParams
+        );
+        usdcMetaMorphoArk = new MetaMorphoArk(
+            USDC_METAMORPHO_ADDRESS,
+            usdcArkParams
         );
 
-        morphoArk = new MorphoArk(MORPHO_ADDRESS, MORPHO_MARKET_ID, arkParams);
-
-        metaMorphoArk = new MetaMorphoArk(METAMORPHO_ADDRESS, arkParams);
+        // DAI Arks
+        daiAaveArk = new AaveV3Ark(
+            address(aaveV3PoolContract),
+            AAVE_V3_REWARDS_CONTROLLER,
+            daiArkParams
+        );
+        daiMorphoArk = new MorphoArk(
+            MORPHO_ADDRESS,
+            DAI_MORPHO_MARKET_ID,
+            daiArkParams
+        );
+        daiMetaMorphoArk = new MetaMorphoArk(
+            DAI_METAMORPHO_ADDRESS,
+            daiArkParams
+        );
+        sDAIArk = new SDAIArk(SDAI_ADDRESS, POT_ADDRESS, daiArkParams);
     }
 
-    function addArksToFleetCommander() internal {
-        address[] memory arks = new address[](4);
-        arks[0] = address(compoundArk);
-        arks[1] = address(aaveArk);
-        arks[2] = address(morphoArk);
-        arks[3] = address(metaMorphoArk);
+    function addArksToFleetCommanders() internal {
+        // Add USDC Arks to USDC Fleet Commander
+        address[] memory usdcArks = new address[](4);
+        usdcArks[0] = address(usdcCompoundArk);
+        usdcArks[1] = address(usdcAaveArk);
+        usdcArks[2] = address(usdcMorphoArk);
+        usdcArks[3] = address(usdcMetaMorphoArk);
         vm.prank(governor);
-        fleetCommander.addArks(arks);
+        usdcFleetCommander.addArks(usdcArks);
+
+        // Add DAI Arks to DAI Fleet Commander
+        address[] memory daiArks = new address[](4);
+        daiArks[0] = address(daiAaveArk);
+        daiArks[1] = address(daiMorphoArk);
+        daiArks[2] = address(daiMetaMorphoArk);
+        daiArks[3] = address(sDAIArk);
+        vm.prank(governor);
+        daiFleetCommander.addArks(daiArks);
     }
 
     function grantPermissions() internal {
         vm.startPrank(governor);
-        compoundArk.grantCommanderRole(address(fleetCommander));
-        aaveArk.grantCommanderRole(address(fleetCommander));
-        morphoArk.grantCommanderRole(address(fleetCommander));
-        metaMorphoArk.grantCommanderRole(address(fleetCommander));
-        bufferArk.grantCommanderRole(address(fleetCommander));
+        // Grant permissions for USDC Fleet
+        usdcCompoundArk.grantCommanderRole(address(usdcFleetCommander));
+        usdcAaveArk.grantCommanderRole(address(usdcFleetCommander));
+        usdcMorphoArk.grantCommanderRole(address(usdcFleetCommander));
+        usdcMetaMorphoArk.grantCommanderRole(address(usdcFleetCommander));
+        usdcBufferArk.grantCommanderRole(address(usdcFleetCommander));
+
+        // Grant permissions for DAI Fleet
+        daiAaveArk.grantCommanderRole(address(daiFleetCommander));
+        daiMorphoArk.grantCommanderRole(address(daiFleetCommander));
+        daiMetaMorphoArk.grantCommanderRole(address(daiFleetCommander));
+        sDAIArk.grantCommanderRole(address(daiFleetCommander));
+        daiBufferArk.grantCommanderRole(address(daiFleetCommander));
+
+        // Grant keeper role
         accessManager.grantKeeperRole(keeper);
         vm.stopPrank();
     }
 
     function logSetupInfo() internal view {
-        console.log("aave ark:", address(aaveArk));
-        console.log("compound ark:", address(compoundArk));
-        console.log("morpho ark:", address(morphoArk));
-        console.log("metamorpho ark:", address(metaMorphoArk));
-        console.log("buffer ark:", address(bufferArk));
-        console.log("fleet commander:", address(fleetCommander));
+        console.log("USDC Fleet Commander:", address(usdcFleetCommander));
+        console.log("DAI Fleet Commander:", address(daiFleetCommander));
+        // Log USDC Ark addresses
+        console.log("USDC Aave Ark:", address(usdcAaveArk));
+        console.log("USDC Compound Ark:", address(usdcCompoundArk));
+        console.log("USDC Morpho Ark:", address(usdcMorphoArk));
+        console.log("USDC MetaMorpho Ark:", address(usdcMetaMorphoArk));
+        // Log DAI Ark addresses
+        console.log("DAI Aave Ark:", address(daiAaveArk));
+        console.log("DAI Morpho Ark:", address(daiMorphoArk));
+        console.log("DAI MetaMorpho Ark:", address(daiMetaMorphoArk));
+        console.log("SDAI Ark:", address(sDAIArk));
     }
 
-    function test_DepositRebalanceForceWithdraw_Fork() public {
+    function test_DepositRebalanceForceWithdraw_BothFleets_Fork() public {
         // Arrange
-        uint256 totalDeposit = 4000 * 10 ** 6; // 4000 USDC
-        uint256 userDeposit = totalDeposit / 4; // 1000 USDC per ark
-        uint256 depositCap = totalDeposit;
-        uint256 minBufferBalance = 0;
+        uint256 usdcTotalDeposit = 4000 * 10 ** 6; // 4000 USDC
+        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 4000 DAI
+        uint256 usdcUserDeposit = usdcTotalDeposit / 4; // 1000 USDC per ark
+        uint256 daiUserDeposit = daiTotalDeposit / 4; // 1000 DAI per ark
 
-        // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
+        // Set deposit caps and minimum buffer balances
+        setFleetParameters(usdcFleetCommander, usdcTotalDeposit, 0);
+        setFleetParameters(daiFleetCommander, daiTotalDeposit, 0);
 
-        // Set deposit cap
-        fleetCommanderStorageWriter.setDepositCap(depositCap);
+        // Mint tokens for users
+        address usdcUser = address(0x1);
+        address daiUser = address(0x2);
+        deal(USDC_ADDRESS, usdcUser, usdcTotalDeposit);
+        deal(DAI_ADDRESS, daiUser, daiTotalDeposit);
 
-        // Mint tokens for user
-        deal(address(usdcTokenContract), mockUser, totalDeposit);
+        // Users deposit
+        depositForUser(
+            usdcFleetCommander,
+            usdcTokenContract,
+            usdcUser,
+            usdcTotalDeposit
+        );
+        depositForUser(
+            daiFleetCommander,
+            daiTokenContract,
+            daiUser,
+            daiTotalDeposit
+        );
 
-        // User deposits
-        depositForUser(mockUser, totalDeposit);
-
-        // Rebalance funds to all Arks
-        RebalanceData[] memory rebalanceData = new RebalanceData[](4);
-        rebalanceData[0] = RebalanceData({
-            fromArk: address(bufferArk),
-            toArk: address(compoundArk),
-            amount: userDeposit
-        });
-        rebalanceData[1] = RebalanceData({
-            fromArk: address(bufferArk),
-            toArk: address(aaveArk),
-            amount: userDeposit
-        });
-        rebalanceData[2] = RebalanceData({
-            fromArk: address(bufferArk),
-            toArk: address(morphoArk),
-            amount: userDeposit
-        });
-        rebalanceData[3] = RebalanceData({
-            fromArk: address(bufferArk),
-            toArk: address(metaMorphoArk),
-            amount: userDeposit
-        });
-
-        // Advance time to move past cooldown window
-        vm.warp(block.timestamp + 1 days);
-        vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
-
-        metaMorphoArk.poke();
+        // Rebalance funds to all Arks for both fleets
+        rebalanceFleet(usdcFleetCommander, usdcUserDeposit);
+        rebalanceFleet(daiFleetCommander, daiUserDeposit);
 
         // Advance time to simulate interest accrual
         vm.warp(block.timestamp + 30 days);
 
-        // Accrue interest for Morpho
-        morphoContract.accrueInterest(
-            morphoContract.idToMarketParams(MORPHO_MARKET_ID)
+        // Accrue interest for Morpho markets
+        accrueInterestForMorphoMarkets();
+
+        // Check total assets and rates for both fleets
+        checkAssetsAndRates(usdcFleetCommander, "USDC");
+        checkAssetsAndRates(daiFleetCommander, "DAI");
+
+        // Users withdraw
+        withdrawForUser(
+            usdcFleetCommander,
+            usdcTokenContract,
+            usdcUser,
+            usdcTotalDeposit
         );
-
-        // Check total assets and rates
-        checkAssetsAndRates();
-
-        // User withdraws
-        withdrawForUser(mockUser, totalDeposit);
+        withdrawForUser(
+            daiFleetCommander,
+            daiTokenContract,
+            daiUser,
+            daiTotalDeposit
+        );
 
         // Assert
         assertApproxEqAbs(
-            fleetCommander.totalAssets(),
+            usdcFleetCommander.totalAssets(),
             0,
-            1000, // Allow for small rounding errors
-            "Total assets should be close to 0 after withdrawals"
+            1000,
+            "USDC Fleet: Total assets should be close to 0 after withdrawals"
         );
-    }
-
-    function test_DepositRebalanceWithMaxUintWithdraw_Fork() public {
-        // Arrange
-        uint256 totalDeposit = 4000 * 10 ** 6; // 4000 USDC
-        uint256 userDeposit = totalDeposit / 4; // 1000 USDC per ark
-        uint256 depositCap = totalDeposit;
-        uint256 minBufferBalance = 0;
-
-        // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
-
-        // Set deposit cap
-        fleetCommanderStorageWriter.setDepositCap(depositCap);
-
-        // Mint tokens for user
-        deal(address(usdcTokenContract), mockUser, totalDeposit);
-
-        // User deposits
-        depositForUser(mockUser, totalDeposit);
-
-        // Rebalance funds to all Arks
-        RebalanceData[] memory rebalanceData = new RebalanceData[](4);
-        rebalanceData[0] = RebalanceData({
-            fromArk: address(bufferArk),
-            toArk: address(compoundArk),
-            amount: userDeposit
-        });
-        rebalanceData[1] = RebalanceData({
-            fromArk: address(bufferArk),
-            toArk: address(aaveArk),
-            amount: userDeposit
-        });
-        rebalanceData[2] = RebalanceData({
-            fromArk: address(bufferArk),
-            toArk: address(morphoArk),
-            amount: userDeposit
-        });
-        rebalanceData[3] = RebalanceData({
-            fromArk: address(bufferArk),
-            toArk: address(metaMorphoArk),
-            amount: userDeposit
-        });
-
-        // Advance time to move past cooldown window
-        vm.warp(block.timestamp + 1 days);
-        vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
-
-        metaMorphoArk.poke();
-
-        // Advance time to simulate interest accrual
-        vm.warp(block.timestamp + 30 days);
-
-        // Accrue interest for Morpho
-        morphoContract.accrueInterest(
-            morphoContract.idToMarketParams(MORPHO_MARKET_ID)
-        );
-
-        // Check total assets and rates
-        checkAssetsAndRates();
-
-        // Second rebalance using max uint
-        // we can only rebalance to an ark with rate higher than the current ark
-        uint256 morphoArkTotalAssets = morphoArk.totalAssets();
-        uint256 metaMorphoArkTotalAssets = metaMorphoArk.totalAssets();
-        uint256 compoundArkTotalAssets = compoundArk.totalAssets();
-
-        RebalanceData[] memory secondRebalanceData = new RebalanceData[](3);
-        secondRebalanceData[0] = RebalanceData({
-            fromArk: address(compoundArk),
-            toArk: address(aaveArk),
-            amount: type(uint256).max
-        });
-        secondRebalanceData[1] = RebalanceData({
-            fromArk: address(morphoArk),
-            toArk: address(compoundArk),
-            amount: type(uint256).max
-        });
-        secondRebalanceData[2] = RebalanceData({
-            fromArk: address(metaMorphoArk),
-            toArk: address(aaveArk),
-            amount: type(uint256).max
-        });
-
-        vm.expectEmit();
-        emit IArkEvents.Moved(
-            address(compoundArk),
-            address(aaveArk),
-            address(usdcTokenContract),
-            compoundArkTotalAssets
-        );
-        vm.expectEmit();
-        emit IArkEvents.Moved(
-            address(morphoArk),
-            address(compoundArk),
-            address(usdcTokenContract),
-            morphoArkTotalAssets
-        );
-        vm.expectEmit();
-        emit IArkEvents.Moved(
-            address(metaMorphoArk),
-            address(aaveArk),
-            address(usdcTokenContract),
-            metaMorphoArkTotalAssets
-        );
-        vm.prank(keeper);
-        fleetCommander.rebalance(secondRebalanceData);
-
-        assertEq(
-            metaMorphoArk.totalAssets(),
-            0,
-            "MetaMorpho Ark assets should be 0"
-        );
-        assertEq(morphoArk.totalAssets(), 0, "Morpho Ark assets should be 0");
-        // User withdraws
-        withdrawForUser(mockUser, totalDeposit);
-
-        // Assert
         assertApproxEqAbs(
-            fleetCommander.totalAssets(),
+            daiFleetCommander.totalAssets(),
             0,
-            1, // Allow for small rounding errors
-            "Total assets should be close to 0 after withdrawals"
+            1e15, // Allow for slightly larger rounding errors due to DAI's 18 decimals
+            "DAI Fleet: Total assets should be close to 0 after withdrawals"
         );
     }
 
-    function depositForUser(address user, uint256 amount) internal {
+    function setFleetParameters(
+        IFleetCommander fleet,
+        uint256 depositCap,
+        uint256 minBufferBalance
+    ) internal {
+        FleetCommanderStorageWriter storageWriter = new FleetCommanderStorageWriter(
+                address(fleet)
+            );
+        storageWriter.setDepositCap(depositCap);
+        storageWriter.setminimumBufferBalance(minBufferBalance);
+    }
+
+    function depositForUser(
+        IFleetCommander fleet,
+        IERC20 token,
+        address user,
+        uint256 amount
+    ) internal {
         vm.startPrank(user);
-        usdcTokenContract.approve(address(fleetCommander), amount);
-        uint256 previewShares = fleetCommander.previewDeposit(amount);
-        uint256 depositedShares = fleetCommander.deposit(amount, user);
+        token.approve(address(fleet), amount);
+        uint256 previewShares = fleet.previewDeposit(amount);
+        uint256 depositedShares = fleet.deposit(amount, user);
         assertEq(
             previewShares,
             depositedShares,
             "Preview and deposited shares should be equal"
         );
         assertEq(
-            fleetCommander.balanceOf(user),
+            fleet.balanceOf(user),
             amount,
             "User balance should be equal to deposit"
         );
@@ -349,68 +351,236 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function withdrawForUser(
+        IFleetCommander fleet,
+        IERC20 token,
         address user,
         uint256 expectedMinimumAmount
     ) internal {
         vm.startPrank(user);
-        uint256 userShares = fleetCommander.balanceOf(user);
-        uint256 userAssets = fleetCommander.previewRedeem(userShares);
+        uint256 userShares = fleet.balanceOf(user);
+        uint256 userAssets = fleet.previewRedeem(userShares);
         console.log("User shares:", userShares);
         console.log("User assets:", userAssets);
-        fleetCommander.withdrawFromArks(userAssets, user, user);
+        fleet.withdrawFromArks(userAssets, user, user);
 
-        assertEq(fleetCommander.balanceOf(user), 0, "User balance should be 0");
+        assertEq(fleet.balanceOf(user), 0, "User balance should be 0");
         assertGe(
-            usdcTokenContract.balanceOf(user),
+            token.balanceOf(user),
             expectedMinimumAmount,
             "User should receive at least the expected minimum assets"
         );
         vm.stopPrank();
     }
 
-    function checkAssetsAndRates() internal view {
-        console.log("Compound Ark assets   :", compoundArk.totalAssets());
-        console.log("Aave Ark assets       :", aaveArk.totalAssets());
-        console.log("Morpho Ark assets     :", morphoArk.totalAssets());
-        console.log("MetaMorpho Ark assets :", metaMorphoArk.totalAssets());
+    function rebalanceFleet(
+        IFleetCommander fleet,
+        uint256 amountPerArk
+    ) internal {
+        address[] memory arks = fleet.getArks();
+        (IArk bufferArk, , , ) = fleet.config();
 
-        console.log("Compound Ark rate     :", compoundArk.rate());
-        console.log("Aave Ark rate         :", aaveArk.rate());
-        console.log("Morpho Ark rate       :", morphoArk.rate());
-        console.log("MetaMorpho Ark rate   :", metaMorphoArk.rate());
+        RebalanceData[] memory rebalanceData = new RebalanceData[](arks.length);
+        for (uint256 i = 0; i < arks.length; i++) {
+            rebalanceData[i] = RebalanceData({
+                fromArk: address(bufferArk),
+                toArk: arks[i],
+                amount: amountPerArk
+            });
+        }
 
-        assertTrue(
-            compoundArk.totalAssets() > 1000 * 10 ** 6,
-            "Compound Ark assets should have increased"
+        // Advance time to move past cooldown window
+        vm.warp(block.timestamp + 1 days);
+        vm.prank(keeper);
+        fleet.adjustBuffer(rebalanceData);
+    }
+
+    function accrueInterestForMorphoMarkets() internal {
+        morphoContract.accrueInterest(
+            morphoContract.idToMarketParams(USDC_MORPHO_MARKET_ID)
         );
-        assertTrue(
-            aaveArk.totalAssets() > 1000 * 10 ** 6,
-            "Aave Ark assets should have increased"
+        morphoContract.accrueInterest(
+            morphoContract.idToMarketParams(DAI_MORPHO_MARKET_ID)
         );
-        assertTrue(
-            morphoArk.totalAssets() > 1000 * 10 ** 6,
-            "Morpho Ark assets should have increased"
+    }
+
+    function checkAssetsAndRates(
+        IFleetCommander fleet,
+        string memory fleetName
+    ) internal view {
+        address[] memory arks = fleet.getArks();
+        for (uint256 i = 0; i < arks.length; i++) {
+            IArk ark = IArk(arks[i]);
+            console.log(
+                string.concat(
+                    fleetName,
+                    " Ark ",
+                    Strings.toString(i),
+                    " assets:"
+                ),
+                ark.totalAssets()
+            );
+            console.log(
+                string.concat(
+                    fleetName,
+                    " Ark ",
+                    Strings.toString(i),
+                    " rate:"
+                ),
+                ark.rate()
+            );
+
+            assertTrue(
+                ark.totalAssets() > 0,
+                string.concat(
+                    fleetName,
+                    " Ark ",
+                    Strings.toString(i),
+                    " assets should have increased"
+                )
+            );
+            assertTrue(
+                ark.rate() > 0,
+                string.concat(
+                    fleetName,
+                    " Ark ",
+                    Strings.toString(i),
+                    " rate should be greater than zero"
+                )
+            );
+        }
+    }
+
+    function test_DepositRebalanceWithMaxUintWithdraw_BothFleets_Fork() public {
+        // Arrange
+        uint256 usdcTotalDeposit = 4000 * 10 ** 6; // 4000 USDC
+        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 4000 DAI
+        uint256 usdcUserDeposit = usdcTotalDeposit / 4; // 1000 USDC per ark
+        uint256 daiUserDeposit = daiTotalDeposit / 4; // 1000 DAI per ark
+
+        // Set deposit caps and minimum buffer balances
+        setFleetParameters(usdcFleetCommander, usdcTotalDeposit, 0);
+        setFleetParameters(daiFleetCommander, daiTotalDeposit, 0);
+
+        // Mint tokens for users
+        address usdcUser = address(0x1);
+        address daiUser = address(0x2);
+        deal(USDC_ADDRESS, usdcUser, usdcTotalDeposit);
+        deal(DAI_ADDRESS, daiUser, daiTotalDeposit);
+
+        // Users deposit
+        depositForUser(
+            usdcFleetCommander,
+            usdcTokenContract,
+            usdcUser,
+            usdcTotalDeposit
         );
-        assertTrue(
-            metaMorphoArk.totalAssets() > 1000 * 10 ** 6,
-            "MetaMorpho Ark assets should have increased"
+        depositForUser(
+            daiFleetCommander,
+            daiTokenContract,
+            daiUser,
+            daiTotalDeposit
         );
 
-        assertTrue(
-            compoundArk.rate() > 0,
-            "Compound Ark rate should be greater than zero"
+        // Rebalance funds to all Arks for both fleets
+        rebalanceFleet(usdcFleetCommander, usdcUserDeposit);
+        rebalanceFleet(daiFleetCommander, daiUserDeposit);
+
+        // Advance time to simulate interest accrual
+        vm.warp(block.timestamp + 30 days);
+
+        // Accrue interest for Morpho markets
+        accrueInterestForMorphoMarkets();
+
+        // Check total assets and rates for both fleets
+        checkAssetsAndRates(usdcFleetCommander, "USDC");
+        checkAssetsAndRates(daiFleetCommander, "DAI");
+
+        // Second rebalance using max uint for both fleets
+        secondRebalanceWithMaxUint(usdcFleetCommander);
+        secondRebalanceWithMaxUint(daiFleetCommander);
+
+        // Users withdraw
+        withdrawForUser(
+            usdcFleetCommander,
+            usdcTokenContract,
+            usdcUser,
+            usdcTotalDeposit
         );
-        assertTrue(
-            aaveArk.rate() > 0,
-            "Aave Ark rate should be greater than zero"
+        withdrawForUser(
+            daiFleetCommander,
+            daiTokenContract,
+            daiUser,
+            daiTotalDeposit
         );
-        assertTrue(
-            morphoArk.rate() > 0,
-            "Morpho Ark rate should be greater than zero"
+
+        // Assert
+        assertApproxEqAbs(
+            usdcFleetCommander.totalAssets(),
+            0,
+            1000,
+            "USDC Fleet: Total assets should be close to 0 after withdrawals"
         );
-        assertTrue(
-            metaMorphoArk.rate() > 0,
-            "MetaMorpho Ark rate should be greater than zero"
+        assertApproxEqAbs(
+            daiFleetCommander.totalAssets(),
+            0,
+            1e15,
+            "DAI Fleet: Total assets should be close to 0 after withdrawals"
+        );
+    }
+
+    function secondRebalanceWithMaxUint(IFleetCommander fleet) internal {
+        address[] memory arks = fleet.getArks();
+        uint256[] memory arkRates = new uint256[](arks.length);
+        uint256[] memory arkTotalAssets = new uint256[](arks.length);
+
+        // Get rates and total assets for each ark
+        for (uint256 i = 0; i < arks.length; i++) {
+            arkRates[i] = IArk(arks[i]).rate();
+            arkTotalAssets[i] = IArk(arks[i]).totalAssets();
+        }
+
+        // Sort arks by rate (descending order)
+        for (uint256 i = 0; i < arks.length; i++) {
+            for (uint256 j = i + 1; j < arks.length; j++) {
+                if (arkRates[i] < arkRates[j]) {
+                    (arks[i], arks[j]) = (arks[j], arks[i]);
+                    (arkRates[i], arkRates[j]) = (arkRates[j], arkRates[i]);
+                    (arkTotalAssets[i], arkTotalAssets[j]) = (
+                        arkTotalAssets[j],
+                        arkTotalAssets[i]
+                    );
+                }
+            }
+        }
+
+        // Create rebalance data to move funds from lower rate arks to higher rate arks
+        RebalanceData[] memory rebalanceData = new RebalanceData[](
+            arks.length - 1
+        );
+        for (uint256 i = 1; i < arks.length; i++) {
+            rebalanceData[i - 1] = RebalanceData({
+                fromArk: arks[i],
+                toArk: arks[0],
+                amount: type(uint256).max
+            });
+        }
+
+        vm.prank(keeper);
+        fleet.rebalance(rebalanceData);
+
+        // Verify that all funds are now in the highest rate ark
+        for (uint256 i = 1; i < arks.length; i++) {
+            assertEq(
+                IArk(arks[i]).totalAssets(),
+                0,
+                "Lower rate ark should have 0 assets"
+            );
+        }
+        assertApproxEqAbs(
+            IArk(arks[0]).totalAssets(),
+            fleet.totalAssets(),
+            1000,
+            "Highest rate ark should have all assets"
         );
     }
 }
