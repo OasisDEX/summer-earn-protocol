@@ -18,6 +18,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import "../../src/contracts/arks/ERC4626Ark.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
@@ -29,6 +30,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     AaveV3Ark public usdcAaveArk;
     MorphoArk public usdcMorphoArk;
     MetaMorphoArk public usdcMetaMorphoArk;
+    ERC4626Ark public usdcGearboxERC4626Ark;
     BufferArk public usdcBufferArk;
 
     // DAI Fleet Arks
@@ -48,6 +50,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     IMetaMorpho public daiMetaMorphoContract;
     IERC4626 public sDAIContract;
     IPot public potContract;
+    IERC4626 public usdcVault;
 
     // Constants
     address public constant USDC_ADDRESS =
@@ -72,6 +75,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         0x83F20F44975D03b1b09e64809B757c47f942BEeA;
     address public constant POT_ADDRESS =
         0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7;
+    address public constant USDC_VAULT_ADDRESS =
+        0xda00000035fef4082F78dEF6A8903bee419FbF8E;
     Id public constant USDC_MORPHO_MARKET_ID =
         Id.wrap(
             0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49
@@ -99,8 +104,33 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         grantPermissions();
 
         logSetupInfo();
+        setupLabels();
     }
-
+    function setupLabels() internal {
+        vm.label(USDC_ADDRESS, "USDC");
+        vm.label(DAI_ADDRESS, "DAI");
+        vm.label(AAVE_V3_POOL_ADDRESS, "AAVE_V3_POOL");
+        vm.label(COMPOUND_USDC_COMET_ADDRESS, "COMPOUND_USDC_COMET");
+        vm.label(COMET_REWARDS, "COMET_REWARDS");
+        vm.label(AAVE_V3_REWARDS_CONTROLLER, "AAVE_V3_REWARDS_CONTROLLER");
+        vm.label(MORPHO_ADDRESS, "MORPHO");
+        vm.label(USDC_METAMORPHO_ADDRESS, "USDC_METAMORPHO");
+        vm.label(DAI_METAMORPHO_ADDRESS, "DAI_METAMORPHO");
+        vm.label(SDAI_ADDRESS, "SDAI");
+        vm.label(POT_ADDRESS, "POT");
+        vm.label(USDC_VAULT_ADDRESS, "USDC_VAULT");
+        vm.label(address(usdcCompoundArk), "USDC_COMPOUND_ARK");
+        vm.label(address(usdcAaveArk), "USDC_AAVE_ARK");
+        vm.label(address(usdcMorphoArk), "USDC_MORPHO_ARK");
+        vm.label(address(usdcMetaMorphoArk), "USDC_METAMORPHO_ARK");
+        vm.label(address(usdcGearboxERC4626Ark), "USDC_ERC4626_ARK");
+        vm.label(address(usdcBufferArk), "USDC_BUFFER_ARK");
+        vm.label(address(daiAaveArk), "DAI_AAVE_ARK");
+        vm.label(address(daiMorphoArk), "DAI_MORPHO_ARK");
+        vm.label(address(daiMetaMorphoArk), "DAI_METAMORPHO_ARK");
+        vm.label(address(sDAIArk), "SDAI_ARK");
+        vm.label(address(daiBufferArk), "DAI_BUFFER_ARK");
+    }
     function setupExternalContracts() internal {
         usdcTokenContract = IERC20(USDC_ADDRESS);
         daiTokenContract = IERC20(DAI_ADDRESS);
@@ -111,18 +141,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         daiMetaMorphoContract = IMetaMorpho(DAI_METAMORPHO_ADDRESS);
         sDAIContract = IERC4626(SDAI_ADDRESS);
         potContract = IPot(POT_ADDRESS);
-    }
-
-    function setupFleetCommanders(uint256 initialTipRate) internal {
-        // Setup USDC Fleet Commander
-        initializeFleetCommanderWithoutArks(USDC_ADDRESS, initialTipRate);
-        usdcFleetCommander = fleetCommander;
-        usdcBufferArk = bufferArk;
-
-        // Setup DAI Fleet Commander
-        initializeFleetCommanderWithoutArks(DAI_ADDRESS, initialTipRate);
-        daiFleetCommander = fleetCommander;
-        daiBufferArk = bufferArk;
+        usdcVault = IERC4626(USDC_VAULT_ADDRESS);
     }
 
     function setupArks() internal {
@@ -166,6 +185,10 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             USDC_METAMORPHO_ADDRESS,
             usdcArkParams
         );
+        usdcGearboxERC4626Ark = new ERC4626Ark(
+            USDC_VAULT_ADDRESS,
+            usdcArkParams
+        );
 
         // DAI Arks
         daiAaveArk = new AaveV3Ark(
@@ -185,13 +208,26 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         sDAIArk = new SDAIArk(SDAI_ADDRESS, POT_ADDRESS, daiArkParams);
     }
 
+    function setupFleetCommanders(uint256 initialTipRate) internal {
+        // Setup USDC Fleet Commander
+        initializeFleetCommanderWithoutArks(USDC_ADDRESS, initialTipRate);
+        usdcFleetCommander = fleetCommander;
+        usdcBufferArk = bufferArk;
+
+        // Setup DAI Fleet Commander
+        initializeFleetCommanderWithoutArks(DAI_ADDRESS, initialTipRate);
+        daiFleetCommander = fleetCommander;
+        daiBufferArk = bufferArk;
+    }
+
     function addArksToFleetCommanders() internal {
         // Add USDC Arks to USDC Fleet Commander
-        address[] memory usdcArks = new address[](4);
+        address[] memory usdcArks = new address[](5);
         usdcArks[0] = address(usdcCompoundArk);
         usdcArks[1] = address(usdcAaveArk);
         usdcArks[2] = address(usdcMorphoArk);
         usdcArks[3] = address(usdcMetaMorphoArk);
+        usdcArks[4] = address(usdcGearboxERC4626Ark);
         vm.prank(governor);
         usdcFleetCommander.addArks(usdcArks);
 
@@ -212,6 +248,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         usdcAaveArk.grantCommanderRole(address(usdcFleetCommander));
         usdcMorphoArk.grantCommanderRole(address(usdcFleetCommander));
         usdcMetaMorphoArk.grantCommanderRole(address(usdcFleetCommander));
+        usdcGearboxERC4626Ark.grantCommanderRole(address(usdcFleetCommander));
         usdcBufferArk.grantCommanderRole(address(usdcFleetCommander));
 
         // Grant permissions for DAI Fleet
@@ -234,6 +271,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         console.log("USDC Compound Ark:", address(usdcCompoundArk));
         console.log("USDC Morpho Ark:", address(usdcMorphoArk));
         console.log("USDC MetaMorpho Ark:", address(usdcMetaMorphoArk));
+        console.log("USDC ERC4626 Ark:", address(usdcGearboxERC4626Ark));
         // Log DAI Ark addresses
         console.log("DAI Aave Ark:", address(daiAaveArk));
         console.log("DAI Morpho Ark:", address(daiMorphoArk));
@@ -243,9 +281,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_DepositRebalanceForceWithdraw_BothFleets_Fork() public {
         // Arrange
-        uint256 usdcTotalDeposit = 4000 * 10 ** 6; // 4000 USDC
-        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 4000 DAI
-        uint256 usdcUserDeposit = usdcTotalDeposit / 4; // 1000 USDC per ark
+        uint256 usdcTotalDeposit = 5000 * 10 ** 6; // 5000 USDC
+        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 5000 DAI
+        uint256 usdcUserDeposit = usdcTotalDeposit / 5; // 1000 USDC per ark
         uint256 daiUserDeposit = daiTotalDeposit / 4; // 1000 DAI per ark
 
         // Set deposit caps and minimum buffer balances
@@ -452,9 +490,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_DepositRebalanceWithMaxUintWithdraw_BothFleets_Fork() public {
         // Arrange
-        uint256 usdcTotalDeposit = 4000 * 10 ** 6; // 4000 USDC
-        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 4000 DAI
-        uint256 usdcUserDeposit = usdcTotalDeposit / 4; // 1000 USDC per ark
+        uint256 usdcTotalDeposit = 5000 * 10 ** 6; // 5000 USDC
+        uint256 daiTotalDeposit = 4000 * 10 ** 18; // 5000 DAI
+        uint256 usdcUserDeposit = usdcTotalDeposit / 5; // 1000 USDC per ark
         uint256 daiUserDeposit = daiTotalDeposit / 4; // 1000 DAI per ark
 
         // Set deposit caps and minimum buffer balances
