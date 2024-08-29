@@ -116,6 +116,16 @@ contract PendleLPArk is Ark, IPendleArkEvents {
     /**
      * @notice Deposits tokens for LP
      * @param _amount Amount of tokens to deposit
+     * @dev This function performs the following steps:
+     * 1. Calculate the minimum LP tokens to receive based on the input amount and slippage
+     *    - We use the slippage protection to ensure we receive at least the calculated minimum LP tokens
+     *    - We use pendle LP oracle to calculate the LP amount
+     * 2. Prepare the input token data for the Pendle router
+     * 3. Call the Pendle router to add liquidity using a single token (our asset)
+     *
+     * We use slippage protection here to ensure we receive at least the calculated minimum LP tokens.
+     * This protects against sudden price movements between our calculation and the actual swap execution.
+     * We assume it's not economically viable to front-run the Ark contract to exploit the slippage protection, assuming the TWAP period.
      */
     function _depositTokenForLp(uint256 _amount) internal {
         uint256 minLpOut = _assetToLP(_amount).subtractPercentage(
@@ -142,6 +152,16 @@ contract PendleLPArk is Ark, IPendleArkEvents {
     /**
      * @notice Redeems LP for tokens
      * @param amount Amount of underlying asset to redeem
+     * @dev This function performs the following steps:
+     * 1. Calculate the amount of LP tokens needed to redeem the requested asset amount
+     * 2. Adjust the LP amount for slippage to ensure we have enough
+     * 3. Calculate the expected asset output and apply slippage protection
+     * 4. Prepare the output token data for the Pendle router
+     * 5. Call the Pendle router to remove liquidity and receive a single token (our asset)
+     *
+     * We use slippage protection in both directions:
+     * - When calculating LP tokens to redeem, we add slippage to ensure we have enough
+     * - When calculating minimum asset output, we subtract slippage to protect against price movements
      */
     function _redeemTokenFromLp(uint256 amount) internal {
         uint256 lpBalance = IERC20(market).balanceOf(address(this));
@@ -186,7 +206,9 @@ contract PendleLPArk is Ark, IPendleArkEvents {
     /**
      * @notice Returns the total assets held by the Ark
      * @return The total assets in underlying token
-     * @dev we decrease the total assets by the allowed slippage so the redeemed amount is always higher than the requested amount
+     * @dev We decrease the total assets by the allowed slippage so the redeemed amount is always higher than the requested amount.
+     * This is a conservative approach to ensure we can always fulfill withdrawal requests, even in volatile market conditions.
+     * The actual redeemed amount may be higher.
      */
     function totalAssets() public view override returns (uint256) {
         return
@@ -277,6 +299,9 @@ contract PendleLPArk is Ark, IPendleArkEvents {
      * @notice Converts LP amount to asset amount
      * @param _amount Amount of LP to convert
      * @return Equivalent amount of asset
+     * @dev We use the Pendle oracle to get the current LP to asset rate.
+     * This rate is used to calculate the equivalent asset amount for a given LP amount.
+     * Since the oracle is TWAP based, the rate lag is expected.
      */
     function _LPtoAsset(uint256 _amount) internal view returns (uint256) {
         uint256 lpToAssetRate = PendlePYLpOracle(oracle).getLpToAssetRate(
@@ -290,7 +315,9 @@ contract PendleLPArk is Ark, IPendleArkEvents {
      * @notice Converts asset amount to LP amount
      * @param _amount Amount of asset to convert
      * @return Equivalent amount of LP
-     * @dev tehre is no reverse operation for `getLpToAssetRate`
+     * @dev There is no reverse operation for `getLpToAssetRate` in the Pendle oracle,
+     * so we invert the LP to asset rate to calculate the asset to LP rate.
+     * This is an approximation and may not be exact due to rounding errors.
      */
     function _assetToLP(uint256 _amount) internal view returns (uint256) {
         uint256 lpToAssetRate = PendlePYLpOracle(oracle).getLpToAssetRate(

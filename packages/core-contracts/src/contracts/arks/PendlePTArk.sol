@@ -5,12 +5,10 @@ import "../Ark.sol";
 import {IStandardizedYield} from "@pendle/core-v2/contracts/interfaces/IStandardizedYield.sol";
 import {IPPrincipalToken} from "@pendle/core-v2/contracts/interfaces/IPPrincipalToken.sol";
 import {IPYieldToken} from "@pendle/core-v2/contracts/interfaces/IPYieldToken.sol";
-
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOracle.sol";
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
-import {MarketState} from "@pendle/core-v2/contracts/core/Market/MarketMathCore.sol";
 import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -19,8 +17,8 @@ import {IPendleArkEvents} from "../../events/arks/IPendleArkEvents.sol";
 
 /**
  * @title PendlePTArk
- * @notice This contract manages a Pendle LP strategy within the Ark system
- * @dev Inherits from Ark and implements Pendle-specific logic
+ * @notice This contract manages a Pendle Principal Token (PT) strategy within the Ark system
+ * @dev Inherits from Ark and implements Pendle-specific logic for PT positions
  */
 contract PendlePTArk is Ark, IPendleArkEvents {
     using SafeERC20 for IERC20;
@@ -44,13 +42,6 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     LimitOrderData emptyLimitOrderData;
     SwapData public emptySwap;
 
-    /**
-     * @notice Constructor for PendlePTArk
-     * @param _asset Address of the underlying asset
-     * @param _market Address of the Pendle market
-     * @param _oracle Address of the Pendle oracle
-     * @param _params ArkParams struct containing initialization parameters
-     */
     constructor(
         address _asset,
         address _market,
@@ -58,13 +49,17 @@ contract PendlePTArk is Ark, IPendleArkEvents {
         address _router,
         ArkParams memory _params
     ) Ark(_params) {
+        // Initialize contract state variables
         market = _market;
         router = _router;
         oracle = _oracle;
-        oracleDuration = 30 minutes; // half hour default
-        slippagePercentage = PercentageUtils.fromFraction(5, 1000); // 0.5% default
+        oracleDuration = 30 minutes; // Default oracle duration
+        slippagePercentage = PercentageUtils.fromFraction(5, 1000); // 0.5% default slippage
 
+        // Get token addresses from the Pendle market
         (SY, PT, YT) = IPMarketV3(_market).readTokens();
+
+        // Ensure the underlying asset is compatible with the Standardized Yield (SY) token
         if (
             !IStandardizedYield(SY).isValidTokenIn(_asset) ||
             !IStandardizedYield(SY).isValidTokenOut(_asset)
@@ -78,16 +73,17 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Internal function to set up router parameters
+     * @notice Internal function to set up router parameters for Pendle swaps
+     * @dev These parameters are used to control the approximation algorithm in Pendle's router
      */
     function _setupRouterParams() private {
-        routerParams.guessMax = type(uint256).max;
-        routerParams.maxIteration = 256;
-        routerParams.eps = 1e15; // 0.1% precision
+        routerParams.guessMax = type(uint256).max; // Maximum guess for binary search
+        routerParams.maxIteration = 256; // Maximum iterations for approximation
+        routerParams.eps = 1e15; // 0.1% precision (1e15 = 0.001 * 1e18)
     }
 
     /**
-     * @notice Internal function to set up token approvals
+     * @notice Set up token approvals for Pendle interactions
      * @param _asset Address of the underlying asset
      */
     function _setupApprovals(address _asset) private {
@@ -97,8 +93,8 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Boards (deposits) assets into the Ark
-     * @param amount Amount of assets to board
+     * @notice Deposits assets into the Ark and converts them to Principal Tokens (PT)
+     * @param amount Amount of assets to deposit
      */
     function _board(uint256 amount) internal override {
         _rolloverIfNeeded();
@@ -106,8 +102,8 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Disembarks (withdraws) assets from the Ark
-     * @param amount Amount of assets to disembark
+     * @notice Withdraws assets from the Ark by redeeming Principal Tokens (PT)
+     * @param amount Amount of assets to withdraw
      */
     function _disembark(uint256 amount) internal override {
         _rolloverIfNeeded();
@@ -115,13 +111,18 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Deposits tokens for PT
+     * @notice Deposits tokens and swaps them for Principal Tokens (PT)
      * @param _amount Amount of tokens to deposit
+     * @dev This function calculates the minimum PT output based on the current exchange rate and slippage,
+     *      then performs the swap using Pendle's router
      */
     function _depositTokenForPt(uint256 _amount) internal {
+        // Calculate the minimum PT output, accounting for slippage
         uint256 minPTout = _SYtoPT(_amount).subtractPercentage(
             slippagePercentage
         );
+
+        // Prepare the token input data for the swap
         TokenInput memory tokenInput = TokenInput({
             tokenIn: address(config.token),
             netTokenIn: _amount,
@@ -129,6 +130,8 @@ contract PendlePTArk is Ark, IPendleArkEvents {
             pendleSwap: address(0),
             swapData: emptySwap
         });
+
+        // Execute the swap using Pendle's router
         IPAllActionV3(router).swapExactTokenForPt(
             address(this),
             market,
@@ -140,19 +143,25 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Redeems PT for tokens
-     * @param amount Amount of PT to redeem
+     * @notice Redeems Principal Tokens (PT) for underlying tokens
+     * @param amount Amount of underlying tokens to redeem
+     * @dev This function calculates the PT amount to redeem based on the current exchange rate and slippage,
+     *      then performs the swap using Pendle's router
      */
     function _redeemTokenFromPt(uint256 amount) internal {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
+
+        // Calculate the amount of PT needed to redeem the requested amount of tokens, accounting for slippage
         uint256 withdrawAmountInPT = _SYtoPT(amount).addPercentage(
             slippagePercentage
         );
 
+        // Use the lesser of the calculated amount or the entire balance
         uint256 finalPtAmount = (withdrawAmountInPT > ptBalance)
             ? ptBalance
             : withdrawAmountInPT;
 
+        // Prepare the token output data for the swap
         TokenOutput memory tokenOutput = TokenOutput({
             tokenOut: address(config.token),
             minTokenOut: amount,
@@ -161,6 +170,7 @@ contract PendlePTArk is Ark, IPendleArkEvents {
             swapData: emptySwap
         });
 
+        // Execute the swap using Pendle's router
         IPAllActionV3(router).swapExactPtForToken(
             address(this),
             market,
@@ -171,50 +181,20 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Converts APR to APY
-     * @param apr The APR to convert (in WAD format)
-     * @return The calculated APY (in WAD format)
-     */
-    function aprToApy(uint256 apr) public pure returns (uint256) {
-        uint256 x = apr;
-        uint256 result = WAD; // 1 in WAD format
-
-        // x
-        result += x;
-
-        // x^2 / 2!
-        x = (x * apr) / WAD;
-        result += x / 2;
-
-        // x^3 / 3!
-        x = (x * apr) / WAD;
-        result += x / 6;
-
-        // x^4 / 4!
-        x = (x * apr) / WAD;
-        result += x / 24;
-
-        // x^5 / 5!
-        x = (x * apr) / WAD;
-        result += x / 120;
-
-        // Subtract WAD to get (e^apr - 1)
-        return result - WAD;
-    }
-
-    /**
-     * @notice Returns the current fixed rate
-     * @return The current fixed rate
+     * @notice Returns the current fixed rate (to be deprecated)
+     * @return The maximum uint256 value as a placeholder
+     * @dev This function will be deprecated in the future
      */
     function rate() public pure override returns (uint256) {
-        // TODO: rate will be deprcated in the future
         return type(uint256).max;
     }
 
     /**
-     * @notice Returns the total assets held by the Ark
+     * @notice Calculates the total assets held by the Ark
      * @return The total assets in underlying token
-     * @dev we decrease the total assets by the allowed slippage so the redeemed amount is always higher than the requested amount
+     * @dev We decrease the total assets by the allowed slippage to ensure the redeemed amount
+     *      is always higher than the requested amount. This provides a conservative estimate
+     *      and protects against potential slippage during withdrawals.
      */
     function totalAssets() public view override returns (uint256) {
         return
@@ -222,7 +202,7 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Updates the market data (expiry and fixed rate)
+     * @notice Updates the market data (expiry)
      */
     function _updateMarketData() internal {
         marketExpiry = IPMarketV3(market).expiry();
@@ -230,6 +210,8 @@ contract PendlePTArk is Ark, IPendleArkEvents {
 
     /**
      * @notice Rolls over to a new market if the current one has expired
+     * @dev This function checks if the current market has expired, finds a new market,
+     *      redeems all assets, and updates to the new market
      */
     function _rolloverIfNeeded() internal {
         if (block.timestamp < marketExpiry) return;
@@ -243,6 +225,7 @@ contract PendlePTArk is Ark, IPendleArkEvents {
         if (!_isOracleReady(newMarket)) {
             revert OracleNotReady();
         }
+
         _updateMarketAndTokens(newMarket);
         _updateMarketData();
 
@@ -251,6 +234,7 @@ contract PendlePTArk is Ark, IPendleArkEvents {
 
     /**
      * @notice Redeems all PT and SY to underlying tokens
+     * @dev This function is called during market rollover to convert all positions back to the underlying asset
      */
     function _redeemAllToUnderlying() internal {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
@@ -351,8 +335,9 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Sets the slippage tolerance in basis points
-     * @param _slippagePercentage New slippage tolerance
+     * @notice Sets the slippage tolerance
+     * @param _slippagePercentage New slippage tolerance as a Percentage
+     * @dev This function can only be called by the governor
      */
     function setSlippagePercentage(
         Percentage _slippagePercentage
@@ -369,7 +354,8 @@ contract PendlePTArk is Ark, IPendleArkEvents {
 
     /**
      * @notice Sets the oracle duration
-     * @param _oracleDuration New oracle duration
+     * @param _oracleDuration New oracle duration in seconds
+     * @dev This function can only be called by the governor
      */
     function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
         if (_oracleDuration < MIN_ORACLE_DURATION) {
@@ -382,6 +368,7 @@ contract PendlePTArk is Ark, IPendleArkEvents {
     /**
      * @notice Harvests rewards from the market
      * @return Total amount of rewards harvested
+     * @dev This function redeems rewards from the Pendle market and transfers them to the commander
      */
     function _harvest(
         address,

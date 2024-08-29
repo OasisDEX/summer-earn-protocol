@@ -310,19 +310,6 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         ark.board(amount);
     }
 
-    function test_AprToApy() public view {
-        uint256 apr = 0.05 * 1e18; // 5% APR
-        uint256 apy = ark.aprToApy(apr);
-
-        // Expected APY for 5% APR is approximately 5.127%
-        assertApproxEqRel(
-            apy,
-            0.05127 * 1e18,
-            0.001e18,
-            "APY calculation is incorrect"
-        );
-    }
-
     function test_TotalAssets() public {
         // Setup: Board some assets first
         uint256 amount = 1000 * 10 ** 18;
