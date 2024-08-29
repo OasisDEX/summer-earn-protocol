@@ -7,4 +7,5 @@ contract Constants {
     uint256 public constant WAD_TO_RAY = 1e9;
     uint256 public constant SECONDS_PER_DAY = 1 days;
     uint256 public constant SECONDS_PER_YEAR = 365 days;
+    uint256 public constant MAX_UINT256 = type(uint256).max;
 }

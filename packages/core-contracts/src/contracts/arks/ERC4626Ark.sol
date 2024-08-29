@@ -18,9 +18,6 @@ contract ERC4626Ark is Ark {
     /// @notice The ERC4626 vault this Ark interacts with
     IERC4626 public immutable vault;
 
-    /// @notice Constant for the maximum uint256 value
-    uint256 private constant MAX_UINT256 = type(uint256).max;
-
     /**
      * @dev Constructor to set up the ERC4626Ark
      * @param _vault Address of the ERC4626-compliant vault
