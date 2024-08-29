@@ -8,3 +8,4 @@ error CannotDeployArkWithoutRaft();
 error CannotDeployArkWithoutToken();
 error CannotDeployArkWithEmptyName();
 error InvalidVaultAddress();
+error ERC4626AssetMismatch();
