@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
 import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";

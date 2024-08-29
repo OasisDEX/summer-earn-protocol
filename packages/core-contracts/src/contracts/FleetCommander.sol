@@ -9,7 +9,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Tipper} from "./Tipper.sol";
-import {ITipper} from "../interfaces/ITipper.sol";
+
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import "../errors/FleetCommanderErrors.sol";

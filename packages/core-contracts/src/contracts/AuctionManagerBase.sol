@@ -3,8 +3,7 @@ pragma solidity 0.8.26;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
 import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
 import {IAuctionManagerBaseEvents} from "../events/IAuctionManagerBaseEvents.sol";
 

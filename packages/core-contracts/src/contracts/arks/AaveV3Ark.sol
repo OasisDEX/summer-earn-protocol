@@ -7,7 +7,6 @@ import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
 import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
 import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
-import {IArk, ArkParams} from "../../interfaces/IArk.sol";
 
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
