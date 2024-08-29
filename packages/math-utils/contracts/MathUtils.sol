@@ -9,28 +9,44 @@ import {Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/
  */
 library MathUtils {
     /**
-     * @notice Calculates x^n with precision of 1e18 (base)
+     * @notice Calculates x^n with precision of base (typically 1e18)
      * @dev Uses an optimized assembly implementation for efficiency
+     * @dev This function handles Percentage wrapped inputs and outputs
      * @dev Is equivalent to exp(ln((rate))*(secondsSince))
      * @dev Is derived from this function on MakerDAO's Pot.sol
      *      https://github.com/makerdao/dss/blob/fa4f6630afb0624d04a003e920b0d71a00331d98/src/pot.sol#L85
      * @param wrappedX The base number wrapped as Percentage
-     * @param n The exponent
+     * @param n The exponent (not wrapped, treated as a whole number)
      * @param wrappedBase The precision factor (typically 1e18) wrapped as Percentage
-     * @return z The result of x^n, representing x^n * base wrapped as Percentage
+     * @return result The result of x^n, representing (x^n) * base, wrapped as Percentage
      */
     function rpow(
         Percentage wrappedX,
         uint256 n,
         Percentage wrappedBase
-    ) internal pure returns (Percentage z) {
+    ) internal pure returns (Percentage result) {
         uint256 x = Percentage.unwrap(wrappedX);
         uint256 base = Percentage.unwrap(wrappedBase);
-        uint256 result;
+        result = Percentage.wrap(rpow(x, n, base));
+    }
 
+    /**
+     * @notice Calculates x^n with precision of base (typically 1e18)
+     * @dev This is an overloaded version that accepts and returns unwrapped uint256 values
+     * @dev Uses the same optimized assembly implementation as the wrapped version
+     * @param x The base number (unwrapped)
+     * @param n The exponent (treated as a whole number)
+     * @param base The precision factor (typically 1e18, unwrapped)
+     * @return result The result of x^n, representing (x^n) * base (unwrapped)
+     */
+    function rpow(
+        uint256 x,
+        uint256 n,
+        uint256 base
+    ) internal pure returns (uint256 result) {
         // Step 1: Handle special cases
         if (x == 0 || n == 0) {
-            return n == 0 ? wrappedBase : toPercentage(0);
+            return n == 0 ? base : 0;
         }
 
         // Step 2: Initialize result is based on whether n is odd or even
@@ -73,7 +89,5 @@ library MathUtils {
                 n := div(n, 2)
             }
         }
-
-        return Percentage.wrap(result);
     }
 }

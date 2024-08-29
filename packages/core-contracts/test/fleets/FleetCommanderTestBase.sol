@@ -94,14 +94,18 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     }
 
     function setupBaseContracts(address underlyingToken) internal {
-        accessManager = new ProtocolAccessManager(governor);
-        configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
+        if (address(accessManager) == address(0)) {
+            accessManager = new ProtocolAccessManager(governor);
+        }
+        if (address(configurationManager) == address(0)) {
+            configurationManager = new ConfigurationManager(
+                ConfigurationManagerParams({
+                    accessManager: address(accessManager),
+                    tipJar: tipJar,
+                    raft: raft
+                })
+            );
+        }
         bufferArk = new BufferArk(
             ArkParams({
                 name: "TestArk",

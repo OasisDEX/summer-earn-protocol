@@ -2,8 +2,9 @@
 pragma solidity 0.8.26;
 
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {FleetCommanderParams, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderParams, RebalanceData, FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import {IArk} from "./IArk.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -22,6 +23,16 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      * @notice Retrieves the arks currently linked to fleet
      */
     function getArks() external view returns (address[] memory);
+
+    function config()
+        external
+        view
+        returns (
+            IArk bufferArk,
+            uint256 minimumBufferBalance,
+            uint256 depositCap,
+            Percentage minimumRateDifference
+        );
 
     /**
      * @notice Checks if the ark is part of the fleet

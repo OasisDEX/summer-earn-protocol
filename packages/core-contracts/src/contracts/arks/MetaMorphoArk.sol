@@ -7,8 +7,6 @@ import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 contract MetaMorphoArk is Ark {
     using SafeERC20 for IERC20;
 
-    uint256 public constant WAD = 1e18;
-    uint256 public constant RAY = 1e27;
     IMetaMorpho public immutable metaMorpho;
     uint256 lastUpdate;
     uint256 lastPrice;
