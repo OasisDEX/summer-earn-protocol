@@ -248,11 +248,7 @@ contract PendlePTArk is BasePendleArk {
      * @return Equivalent amount of PT
      */
     function _SYtoPT(uint256 _amount) internal view returns (uint256) {
-        uint256 ptToSyRate = PendlePYLpOracle(oracle).getPtToSyRate(
-            market,
-            oracleDuration
-        );
-        return (_amount * WAD) / ptToSyRate;
+        return (_amount * WAD) / fetchPtToSyRate();
     }
 
     /**
@@ -261,13 +257,17 @@ contract PendlePTArk is BasePendleArk {
      * @return Equivalent amount of SY
      */
     function _PTtoSY(uint256 _amount) internal view returns (uint256) {
-        uint256 ptToSyRate = PendlePYLpOracle(oracle).getPtToSyRate(
-            market,
-            oracleDuration
-        );
-        return (_amount * ptToSyRate) / WAD;
+        return (_amount * fetchPtToSyRate()) / WAD;
     }
 
+    /**
+     * @dev Fetches the PT to SY rate from the PendlePYLpOracle contract.
+     * @return The PT to asset rate as a uint256 value.
+     */
+    function fetchPtToSyRate() internal view returns (uint256) {
+        return PendlePYLpOracle(oracle).getPtToSyRate(market, oracleDuration);
+    }
+    
     /**
      * @notice Converts PT amount to asset amount
      * @param _amount Amount of PT to convert

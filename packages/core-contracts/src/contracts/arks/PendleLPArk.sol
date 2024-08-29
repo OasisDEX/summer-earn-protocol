@@ -212,11 +212,7 @@ contract PendleLPArk is BasePendleArk {
      * Since the oracle is TWAP based, the rate lag is expected.
      */
     function _LPtoAsset(uint256 _amount) internal view returns (uint256) {
-        uint256 lpToAssetRate = PendlePYLpOracle(oracle).getLpToAssetRate(
-            market,
-            oracleDuration
-        );
-        return (_amount * lpToAssetRate) / WAD;
+        return (_amount * _fetchLpToAssetRate()) / WAD;
     }
 
     /**
@@ -228,13 +224,17 @@ contract PendleLPArk is BasePendleArk {
      * This is an approximation and may not be exact due to rounding errors.
      */
     function _assetToLP(uint256 _amount) internal view returns (uint256) {
-        uint256 lpToAssetRate = PendlePYLpOracle(oracle).getLpToAssetRate(
-            market,
-            oracleDuration
-        );
-        return (_amount * WAD) / lpToAssetRate;
+        return (_amount * WAD) / _fetchLpToAssetRate();
     }
 
+    /**
+     * @dev Fetches the LP to Asset rate from the PendlePYLpOracle contract.
+     * @return The LP to Asset rate.
+     */
+    function _fetchLpToAssetRate() internal view returns (uint256) {
+        return
+            PendlePYLpOracle(oracle).getLpToAssetRate(market, oracleDuration);
+    }
     /**
      * @notice Returns the balance of LP held by the contract
      * @return Balance of LP
