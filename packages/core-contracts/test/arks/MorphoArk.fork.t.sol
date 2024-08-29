@@ -157,13 +157,6 @@ contract MorphoArkTestFork is Test, IArkEvents {
             assetsAfterAccrual > assetsAfterDeposit,
             "Assets should increase after accrual"
         );
-
-        // Check rate
-        uint256 currentRate = ark.rate();
-        assertTrue(
-            currentRate == 46471864329936000000000000,
-            "Rate should be equal to 4.647% at that exact block"
-        );
     }
 
     function test_Disembark_MorphoArk_fork() public {
@@ -208,28 +201,5 @@ contract MorphoArkTestFork is Test, IArkEvents {
             remainingAssets > 1000 * 10 ** 6 - amountToWithdraw,
             "Remaining assets should more than initial balance minus withdrawn amount (accounting the accrued interest)"
         );
-    }
-
-    function test_Rate_Zero_fork() public {
-        // Arrange
-        Market memory market = Market({
-            totalSupplyShares: 0,
-            totalSupplyAssets: 0,
-            totalBorrowShares: 0,
-            totalBorrowAssets: 0,
-            fee: 0,
-            lastUpdate: 0
-        });
-        vm.mockCall(
-            MORPHO_ADDRESS,
-            abi.encodeWithSelector(IMorpho.market.selector, MARKET_ID),
-            abi.encode(market)
-        );
-
-        // Act
-        uint256 rate = ark.rate();
-
-        // Assert
-        assertTrue(rate == 0, "Rate should be zero");
     }
 }

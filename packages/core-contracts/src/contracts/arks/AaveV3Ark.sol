@@ -35,12 +35,6 @@ contract AaveV3Ark is Ark {
         rewardsController = IRewardsController(_rewardsController);
     }
 
-    function rate() public view override returns (uint256) {
-        (, , , , , uint256 liquidityRate, , , , , , ) = aaveV3DataProvider
-            .getReserveData(address(config.token));
-        return liquidityRate;
-    }
-
     function totalAssets() public view override returns (uint256) {
         return IERC20(aToken).balanceOf(address(this));
     }

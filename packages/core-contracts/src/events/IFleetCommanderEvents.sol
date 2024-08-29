@@ -120,12 +120,4 @@ interface IFleetCommanderEvents {
         address receiver,
         uint256 totalRedeemed
     );
-
-    /**
-     * @notice Emitted when the minimum rate difference is updated
-     * @param newMinimumRateDiff The new minimum rate difference
-     */
-    event FleetCommanderMinimumRateDifferenceUpdated(
-        Percentage newMinimumRateDiff
-    );
 }

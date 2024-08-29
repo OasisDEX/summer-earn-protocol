@@ -30,8 +30,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
         returns (
             IArk bufferArk,
             uint256 minimumBufferBalance,
-            uint256 depositCap,
-            Percentage minimumRateDifference
+            uint256 depositCap
         );
 
     /**
@@ -216,11 +215,6 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      */
     function setMinimumBufferBalance(uint256 newMinimumBalance) external;
 
-    /**
-     * @dev Sets the minimum rate difference for the Fleet Commander.
-     * @param newRateDifference The new minimum rate difference to be set.
-     */
-    function setMinimumRateDifference(Percentage newRateDifference) external;
     /**
      * @notice Updates the rebalance cooldown period
      * @param newCooldown The new cooldown period in seconds

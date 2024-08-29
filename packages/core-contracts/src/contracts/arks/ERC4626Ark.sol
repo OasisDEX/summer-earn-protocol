@@ -40,15 +40,6 @@ contract ERC4626Ark is Ark {
     }
 
     /**
-     * @notice Returns the current rate of the vault
-     * @dev This function always returns 1000 * 10 ** 18 (so it doesnt cause overflow with Percentage)
-     * @return rate The rate of the vault
-     */
-    function rate() public pure override returns (uint256) {
-        return 1000 ether;
-    }
-
-    /**
      * @notice Calculates the total assets held by this Ark in the vault
      * @return The total amount of underlying assets the Ark can withdraw from the vault
      */

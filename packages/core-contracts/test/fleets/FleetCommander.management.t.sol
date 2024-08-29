@@ -32,16 +32,14 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             symbol: "FC",
             depositCap: 10000,
             bufferArk: bufferArkAddress,
-            initialTipRate: Percentage.wrap(0),
-            minimumRateDifference: Percentage.wrap(0)
+            initialTipRate: Percentage.wrap(0)
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);
         (
             IArk bufferArk,
             uint256 minimumBufferBalance,
-            uint256 depositCap,
-
+            uint256 depositCap
         ) = newFleetCommander.config();
 
         assertEq(minimumBufferBalance, 1000);
@@ -79,7 +77,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.setMinimumBufferBalance(newBalance);
 
-        (, uint256 minimumBufferBalance, , ) = fleetCommander.config();
+        (, uint256 minimumBufferBalance, ) = fleetCommander.config();
         assertEq(minimumBufferBalance, newBalance);
     }
 
@@ -183,7 +181,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         fleetCommander.setFleetDepositCap(newDepositCap);
 
-        (, , uint256 depositCap, ) = fleetCommander.config();
+        (, , uint256 depositCap) = fleetCommander.config();
         assertEq(depositCap, newDepositCap);
     }
 

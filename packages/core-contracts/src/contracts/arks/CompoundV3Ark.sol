@@ -20,12 +20,6 @@ contract CompoundV3Ark is Ark {
         cometRewards = ICometRewards(_cometRewards);
     }
 
-    function rate() public view override returns (uint256 supplyRate) {
-        uint256 utilization = comet.getUtilization();
-        uint256 supplyRatePerSecond = comet.getSupplyRate(utilization);
-        supplyRate = supplyRatePerSecond * SECONDS_PER_YEAR * WAD_TO_RAY;
-    }
-
     function totalAssets()
         public
         view

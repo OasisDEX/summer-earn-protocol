@@ -58,12 +58,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
     function totalAssets() external view returns (uint256);
 
     /**
-     * @notice Returns the current rate of the Ark
-     * @return The current rate in RAY precision
-     */
-    function rate() external view returns (uint256);
-
-    /**
      * @notice Returns the address of the Fleet commander managing the ark
      * @return address Address of Fleet commander managing the ark if a Commander is assigned, address(0) otherwise
      */

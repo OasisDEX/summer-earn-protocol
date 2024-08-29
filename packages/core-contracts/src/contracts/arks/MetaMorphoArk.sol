@@ -18,17 +18,6 @@ contract MetaMorphoArk is Ark {
         metaMorpho = IMetaMorpho(_metaMorpho);
     }
 
-    function rate() public view override returns (uint256 supplyRate) {
-        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
-        uint256 timeDelta = block.timestamp - lastUpdate;
-
-        if (timeDelta > 0 && lastPrice > 0) {
-            supplyRate =
-                ((currentPrice - lastPrice) * 365 days * RAY) /
-                (lastPrice * timeDelta);
-        }
-    }
-
     function totalAssets() public view override returns (uint256 assets) {
         return metaMorpho.convertToAssets(metaMorpho.balanceOf(address(this)));
     }

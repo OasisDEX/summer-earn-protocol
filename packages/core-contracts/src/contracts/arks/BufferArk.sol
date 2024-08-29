@@ -6,10 +6,6 @@ import "../Ark.sol";
 contract BufferArk is Ark {
     constructor(ArkParams memory _params) Ark(_params) {}
 
-    function rate() public pure override returns (uint256) {
-        return 0;
-    }
-
     function totalAssets() public view override returns (uint256) {
         return config.token.balanceOf(address(this));
     }

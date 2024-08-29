@@ -43,32 +43,6 @@ contract MorphoArk is Ark {
         marketParams = MORPHO.idToMarketParams(_marketId);
     }
 
-    function rate() public view override returns (uint256) {
-        Market memory market = MORPHO.market(marketId);
-        if (market.lastUpdate == 0) {
-            return 0;
-        }
-
-        IIrm interestRateModel = IIrm(marketParams.irm);
-        // Calculate borrow rate
-        uint256 borrowRate = interestRateModel.borrowRateView(
-            marketParams,
-            market
-        );
-        // Calculate utilization
-        uint256 utilization = market.totalSupplyAssets == 0
-            ? 0
-            : (market.totalBorrowAssets * WAD) / market.totalSupplyAssets;
-        // Calculate fee percentage
-        uint256 feePercentage = WAD - market.fee;
-        // Calculate supply rate
-        uint256 supplyRatePerSecond = (borrowRate *
-            utilization *
-            feePercentage) / (WAD * WAD);
-        // Convert to APY
-        return (supplyRatePerSecond * SECONDS_PER_YEAR * (RAY / WAD));
-    }
-
     function totalAssets() public view override returns (uint256) {
         Position memory position = MORPHO.position(marketId, address(this));
         Market memory market = MORPHO.market(marketId);

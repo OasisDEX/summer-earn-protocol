@@ -45,8 +45,7 @@ contract FleetCommander is
         config = FleetConfig({
             bufferArk: IArk(params.bufferArk),
             minimumBufferBalance: params.initialMinimumBufferBalance,
-            depositCap: params.depositCap,
-            minimumRateDifference: params.minimumRateDifference
+            depositCap: params.depositCap
         });
         isArkActive[address(config.bufferArk)] = true;
 
@@ -152,8 +151,8 @@ contract FleetCommander is
     {
         totalSharesToRedeem = previewWithdraw(assets);
         _validateForceWithdraw(assets, totalSharesToRedeem, owner);
-        address[] memory sortedArks = _getSortedArks();
-        _forceDisembarkFromSortedArks(sortedArks, assets);
+        address[] memory withdrawableArks = _getWithdrawableArks();
+        _forceDisembarkFromSortedArks(withdrawableArks, assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
         _setLastActionTimestamp(0);
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
@@ -171,8 +170,8 @@ contract FleetCommander is
     {
         _validateForceRedeem(shares, owner);
         totalAssetsToWithdraw = previewRedeem(shares);
-        address[] memory sortedArks = _getSortedArks();
-        _forceDisembarkFromSortedArks(sortedArks, totalAssetsToWithdraw);
+        address[] memory withdrawableArks = _getWithdrawableArks();
+        _forceDisembarkFromSortedArks(withdrawableArks, totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
         _setLastActionTimestamp(0);
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
@@ -390,13 +389,6 @@ contract FleetCommander is
         emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
 
-    function setMinimumRateDifference(
-        Percentage newRateDifference
-    ) external onlyGovernor {
-        config.minimumRateDifference = newRateDifference;
-        emit FleetCommanderMinimumRateDifferenceUpdated(newRateDifference);
-    }
-
     function updateRebalanceCooldown(
         uint256 newCooldown
     ) external onlyGovernor {
@@ -505,12 +497,10 @@ contract FleetCommander is
     /**
      * @notice Reallocates assets from one Ark to another
      * @dev This function handles the reallocation of assets between Arks, considering:
-     *      1. The rates of the source and destination Arks
-     *      2. The maximum allocation of the destination Ark
-     *      3. The current allocation of the destination Ark
+     *      1. The maximum allocation of the destination Ark
+     *      2. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
      * @return amount uint256 The actual amount of assets reallocated
-     * @custom:error FleetCommanderTargetArkRateTooLow Thrown when the destination Ark's rate is lower than the source Ark's rate
      * @custom:error FleetCommanderCantRebalanceToArk Thrown when the destination Ark is already at or above its maximum allocation
      */
     function _reallocateAssets(
@@ -537,39 +527,36 @@ contract FleetCommander is
 
     /**
      * @notice Retrieves and sorts the arks based on their rates
-     * @dev This function creates a sorted list of all active arks plus the buffer ark
-     *      arks are sorted by their rates in ascending order. Buffer ark is always the last one
-     * @return A sorted array of ark addresses, with the buffer ark at the end
+     * @dev This will be deprecated, leaving it here until further changes are applied
+     * @return List of arks
      */
-    function _getSortedArks() internal view returns (address[] memory) {
-        address[] memory sortedArks = new address[](arks.length + 1);
-        uint256[] memory rates = new uint256[](arks.length);
-
+    function _getWithdrawableArks() internal view returns (address[] memory) {
+        address[] memory withdrawableArks = new address[](arks.length + 1);
+        uint256[] memory arksTotalAssets = new uint256[](arks.length);
         for (uint256 i = 0; i < arks.length; i++) {
-            rates[i] = IArk(arks[i]).rate();
-            sortedArks[i] = arks[i];
+            arksTotalAssets[i] = IArk(arks[i]).totalAssets();
+            withdrawableArks[i] = arks[i];
         }
+        _sortArksByTotalAssets(arks, arksTotalAssets);
+        withdrawableArks[arks.length] = address(config.bufferArk);
 
-        _sortArksByRate(sortedArks, rates);
-        sortedArks[arks.length] = address(config.bufferArk);
-
-        return sortedArks;
+        return withdrawableArks;
     }
 
     /**
-     * @notice Sorts the arks based on their rates in ascending order
+     * @notice Sorts the arks based on their assets in ascending order
      * @dev This function implements a simple bubble sort algorithm
      * @param _arks An array of ark addresses to be sorted
-     * @param rates An array of corresponding rates for each ark
+     * @param assets An array of corresponding amount of assets for each ark
      */
-    function _sortArksByRate(
+    function _sortArksByTotalAssets(
         address[] memory _arks,
-        uint256[] memory rates
+        uint256[] memory assets
     ) internal pure {
-        for (uint256 i = 0; i < rates.length; i++) {
-            for (uint256 j = i + 1; j < rates.length; j++) {
-                if (rates[i] > rates[j]) {
-                    (rates[i], rates[j]) = (rates[j], rates[i]);
+        for (uint256 i = 0; i < assets.length; i++) {
+            for (uint256 j = i + 1; j < assets.length; j++) {
+                if (assets[i] > assets[j]) {
+                    (assets[i], assets[j]) = (assets[j], assets[i]);
                     (_arks[i], _arks[j]) = (_arks[j], _arks[i]);
                 }
             }
@@ -579,22 +566,21 @@ contract FleetCommander is
     /**
      * @notice Withdraws assets from multiple arks in a specific order
      * @dev This function attempts to withdraw the requested amount from arks,
-     *      starting with the lowest rate ark and moving to higher rate arks,
-     *      where buffer ark is the last one in arks array
-     * @param sortedArks An array of ark addresses sorted by their rates
+     *      that allow such operations, in the order of total assets held
+     * @param withdrawableArks An array of ark addresses that can be force withdrawn from
      * @param assets The total amount of assets to withdraw
      */
     function _forceDisembarkFromSortedArks(
-        address[] memory sortedArks,
+        address[] memory withdrawableArks,
         uint256 assets
     ) internal {
-        for (uint256 i = 0; i < sortedArks.length; i++) {
-            uint256 assetsInArk = IArk(sortedArks[i]).totalAssets();
+        for (uint256 i = 0; i < withdrawableArks.length; i++) {
+            uint256 assetsInArk = IArk(withdrawableArks[i]).totalAssets();
             if (assetsInArk >= assets) {
-                _disembark(sortedArks[i], assets);
+                _disembark(withdrawableArks[i], assets);
                 break;
             } else if (assetsInArk > 0) {
-                _disembark(sortedArks[i], assetsInArk);
+                _disembark(withdrawableArks[i], assetsInArk);
                 assets -= assetsInArk;
             }
         }
@@ -672,7 +658,6 @@ contract FleetCommander is
      * @dev This function performs a series of checks on each rebalance operation:
      *      1. Ensures general reallocation constraints are met
      *      2. Verifies the buffer ark is not directly involved in rebalancing
-     *      3. Checks that funds are only moved to higher rate arks, with an exception for over-allocated arks
      * @param rebalanceData An array of RebalanceData structs, each representing a rebalance operation
      */
     function _validateRebalance(
@@ -680,31 +665,6 @@ contract FleetCommander is
     ) internal view {
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             _validateBufferArkNotInvolved(rebalanceData[i]);
-
-            uint256 toArkRate = IArk(rebalanceData[i].toArk).rate();
-            uint256 fromArkRate = IArk(rebalanceData[i].fromArk).rate();
-
-            if (toArkRate < fromArkRate) {
-                _validateRebalanceToLowerRate(
-                    IArk(rebalanceData[i].fromArk),
-                    rebalanceData[i].amount,
-                    fromArkRate,
-                    toArkRate,
-                    rebalanceData[i].toArk
-                );
-            } else {
-                Percentage rateDifference = PercentageUtils.fromFraction(
-                    (toArkRate - fromArkRate),
-                    fromArkRate
-                );
-                if (rateDifference < config.minimumRateDifference) {
-                    revert FleetCommanderTargetArkRateTooLow(
-                        address(rebalanceData[i].toArk),
-                        toArkRate,
-                        fromArkRate
-                    );
-                }
-            }
         }
     }
 
@@ -722,39 +682,6 @@ contract FleetCommander is
             data.fromArk == address(config.bufferArk)
         ) {
             revert FleetCommanderCantUseRebalanceOnBufferArk();
-        }
-    }
-
-    /**
-     * @notice Validates a rebalance operation that moves funds to a lower rate ark
-     * @dev This function checks if the rebalance to a lower rate ark is allowed due to over-allocation
-     *      It's only permissible to move funds to a lower rate ark if:
-     *      1. The source ark is over-allocated (total assets > max allocation)
-     *      2. The amount being moved is less than or equal to the excess allocation
-     * @param fromArk The source ark contract
-     * @param amount The amount of assets being moved in the rebalance operation
-     * @param fromArkRate The rate of the source ark
-     * @param toArkRate The rate of the destination ark
-     * @param toArkAddress The address of the destination ark
-     */
-    function _validateRebalanceToLowerRate(
-        IArk fromArk,
-        uint256 amount,
-        uint256 fromArkRate,
-        uint256 toArkRate,
-        address toArkAddress
-    ) internal view {
-        uint256 fromArkDepositCap = fromArk.depositCap();
-        uint256 fromArkTotalAssets = fromArk.totalAssets();
-        if (
-            fromArkTotalAssets <= fromArkDepositCap ||
-            fromArkTotalAssets - fromArkDepositCap < amount
-        ) {
-            revert FleetCommanderTargetArkRateTooLow(
-                toArkAddress,
-                toArkRate,
-                fromArkRate
-            );
         }
     }
 

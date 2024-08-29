@@ -194,7 +194,7 @@ contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 assets = fleetCommander.previewMint(shares);
         mockToken.mint(mockUser, assets);
 
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         uint256 initialBufferBalance = bufferArk.totalAssets();
 
         vm.startPrank(mockUser);

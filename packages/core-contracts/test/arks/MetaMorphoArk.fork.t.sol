@@ -115,10 +115,6 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             assetsAfterAccrual >= assetsAfterDeposit,
             "Assets should not decrease after accrual"
         );
-
-        // Check rate
-        uint256 currentRate = ark.rate();
-        assertTrue(currentRate > 0, "Rate should be greater than zero");
     }
 
     function test_Disembark_MetaMorphoArk_fork() public {

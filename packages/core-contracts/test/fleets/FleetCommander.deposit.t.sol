@@ -190,7 +190,7 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 amount = DEPOSIT_AMOUNT;
         mockToken.mint(mockUser, amount);
 
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         uint256 initialBufferBalance = bufferArk.totalAssets();
 
         vm.startPrank(mockUser);

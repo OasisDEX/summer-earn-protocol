@@ -26,7 +26,7 @@ contract RedeemWithInterestTest is
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         // Deposit for tests
         mockToken.mint(mockUser, DEPOSIT_AMOUNT);
@@ -80,7 +80,7 @@ contract RedeemWithInterestTest is
     }
 
     function test_RedeemBufferPlusOne() public {
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
@@ -264,7 +264,7 @@ contract RedeemWithInterestTest is
 
     function test_TwoUsersRedeemAllShares() public {
         // Setup second user
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         address secondUser = address(0x456);
         mockToken.mint(secondUser, DEPOSIT_AMOUNT);

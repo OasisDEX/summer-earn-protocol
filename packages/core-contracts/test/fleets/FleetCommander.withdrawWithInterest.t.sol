@@ -37,7 +37,7 @@ contract WithdrawWithInterestTest is
         initialConversionRate = fleetCommander.convertToAssets(100000);
 
         // Simulate interest accrual
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         mockToken.mint(address(bufferArk), INTEREST_AMOUNT);
 
         vm.prank(governor);
@@ -77,7 +77,7 @@ contract WithdrawWithInterestTest is
     }
 
     function test_WithdrawBufferPlusOne() public {
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
@@ -251,7 +251,7 @@ contract WithdrawWithInterestTest is
     }
 
     function test_TwoUsersWithdrawAllAssets() public {
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         // Setup second user
         address secondUser = address(0x456);

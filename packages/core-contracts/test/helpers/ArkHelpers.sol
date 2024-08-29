@@ -39,15 +39,6 @@ contract ArkTestHelpers is Test, Constants {
     }
 
     /**
-     * @notice Mocks the return value of `rate` for a given Ark contract
-     * @param ark The address of the Ark contract whose `rate` function is to be mocked
-     * @param rate The value to return when `rate` is called
-     */
-    function mockArkRate(address ark, uint256 rate) internal {
-        vm.mockCall(ark, abi.encodeWithSignature("rate()"), abi.encode(rate));
-    }
-
-    /**
      * @dev Mocks the `maxRebalanceOutflow` function of the `IArk` contract.
      * @param ark The address of the `IArk` contract.
      * @param maxRebalanceOutflow The value to be passed to the `maxRebalanceOutflow` function.

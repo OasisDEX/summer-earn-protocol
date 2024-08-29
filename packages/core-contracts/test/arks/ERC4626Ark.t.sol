@@ -98,10 +98,6 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
         assertEq(ark.name(), "USDC ERC4626 Ark", "Ark name should match");
     }
 
-    function test_Rate() public view {
-        assertEq(ark.rate(), 1000 ether, "Rate should return max uint256");
-    }
-
     function test_Board() public {
         uint256 amount = 1000 * 1e6; // 1000 USDC
         deal(USDC_ADDRESS, commander, amount);

@@ -234,7 +234,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_RedeemUpdatesBufferBalance() public {
         uint256 redeemAmount = fleetCommander.maxRedeem(mockUser) / 2;
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         uint256 initialBufferBalance = bufferArk.totalAssets();
 
         vm.prank(mockUser);
@@ -256,7 +256,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 userShares = fleetCommander.balanceOf(mockUser);
         vm.prank(governor);
         fleetCommander.setMinimumBufferBalance(0);
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         // Move some funds to different arks
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
@@ -376,7 +376,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         fleetCommander.adjustBuffer(
             generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
         );
@@ -414,7 +414,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_MaxBufferRedeem() public {
         uint256 maxBufferRedeem = fleetCommander.maxBufferRedeem(mockUser);
         uint256 userShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         assertEq(
             userShares,

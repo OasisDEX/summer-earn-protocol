@@ -102,8 +102,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function setMinimumBufferBalance(uint256 newMinimumBalance) external {}
 
-    function setMinimumRateDifference(Percentage newRateDifference) external {}
-
     function rebalance(RebalanceData[] calldata data) external {}
 
     function forceRebalance(RebalanceData[] calldata data) external {}
