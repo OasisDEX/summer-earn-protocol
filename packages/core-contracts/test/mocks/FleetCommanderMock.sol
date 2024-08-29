@@ -8,11 +8,12 @@ import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {RebalanceData, FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     using PercentageUtils for uint256;
 
+    FleetConfig public config;
     address[] public arks;
     mapping(address => bool) public isArkActive;
 

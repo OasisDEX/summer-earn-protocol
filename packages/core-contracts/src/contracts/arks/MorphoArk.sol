@@ -23,9 +23,6 @@ contract MorphoArk is Ark {
     using MorphoLib for IMorpho;
     using MorphoBalancesLib for IMorpho;
 
-    uint256 constant WAD = 10 ** 18;
-    uint256 constant RAY = 10 ** 27;
-    uint256 constant SECONDS_PER_YEAR = 365 days;
     IMorpho public immutable MORPHO;
     Id public marketId;
     MarketParams public marketParams;

@@ -8,8 +8,6 @@ import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
 contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;
 
-    uint256 public constant SECONDS_PER_YEAR = 31536000;
-    uint256 public constant WAD_TO_RAY = 1e9;
     IComet public comet;
     ICometRewards public cometRewards;
 
