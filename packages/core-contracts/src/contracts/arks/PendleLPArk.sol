@@ -268,7 +268,7 @@ contract PendleLPArk is Ark, IPendleArkEvents {
     function _rolloverIfNeeded() internal {
         if (block.timestamp < marketExpiry) return;
 
-        address newMarket = _findNextMarket();
+        address newMarket = this.nextMarket();
         if (newMarket == address(0) || newMarket == market) {
             revert NoValidNextMarket();
         }
@@ -301,7 +301,7 @@ contract PendleLPArk is Ark, IPendleArkEvents {
      * @notice Finds the next valid market
      * @return Address of the next market
      */
-    function _findNextMarket() internal pure returns (address) {
+    function nextMarket() public pure returns (address) {
         // TODO: Implement logic to find the next valid market
         return 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
     }

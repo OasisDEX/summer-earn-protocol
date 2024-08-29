@@ -37,6 +37,8 @@ contract PendlePTArkTestFork is Test, IArkEvents {
     IERC20 public usde;
     IPMarketV3 public pendleMarket;
     IPAllActionV3 public pendleRouter;
+    IProtocolAccessManager public accessManager;
+    IConfigurationManager public configurationManager;
 
     uint256 forkBlock = 20300752;
     uint256 forkId;
@@ -48,11 +50,9 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         pendleMarket = IPMarketV3(MARKET);
         pendleRouter = IPAllActionV3(ROUTER);
 
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
+        accessManager = new ProtocolAccessManager(governor);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
+        configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
                 tipJar: tipJar,
@@ -359,6 +359,50 @@ contract PendlePTArkTestFork is Test, IArkEvents {
             amount,
             0.01e18,
             "Total assets should be close to deposited amount"
+        );
+    }
+
+    function test_RevertOnInvalidAssetForSY() public {
+        address invalidAsset = address(0x123); // Some random address
+
+        vm.mockCall(
+            SY,
+            abi.encodeWithSignature("isValidTokenIn(address)", invalidAsset),
+            abi.encode(false)
+        );
+        vm.mockCall(
+            SY,
+            abi.encodeWithSignature("isValidTokenOut(address)", invalidAsset),
+            abi.encode(false)
+        );
+
+        ArkParams memory params = ArkParams({
+            name: "Invalid Asset Ark",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            token: invalidAsset,
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
+        });
+
+        vm.expectRevert(InvalidAssetForSY.selector);
+        new PendlePTArk(invalidAsset, MARKET, ORACLE, ROUTER, params);
+    }
+    function test_SetupRouterParams() public view {
+        // This test assumes routerParams is made public for testing purposes
+        (, uint256 guessMax, , uint256 maxIteration, uint256 eps) = ark
+            .routerParams();
+        assertEq(guessMax, type(uint256).max, "Incorrect guessMax");
+        assertEq(maxIteration, 256, "Incorrect maxIteration");
+        assertEq(eps, 1e15, "Incorrect eps");
+    }
+    function test_UpdateMarketData() public view {
+        uint256 expectedExpiry = IPMarketV3(MARKET).expiry();
+        assertEq(
+            ark.marketExpiry(),
+            expectedExpiry,
+            "Market expiry not updated correctly"
         );
     }
 }

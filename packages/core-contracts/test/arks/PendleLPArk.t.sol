@@ -37,6 +37,8 @@ contract PendleLPArkTestFork is Test, IArkEvents {
     IERC20 public usde;
     IPMarketV3 public pendleMarket;
     IPAllActionV3 public pendleRouter;
+    IProtocolAccessManager public accessManager;
+    IConfigurationManager public configurationManager;
 
     uint256 forkBlock = 20300752;
     uint256 forkId;
@@ -48,11 +50,9 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         pendleMarket = IPMarketV3(MARKET);
         pendleRouter = IPAllActionV3(ROUTER);
 
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
+        accessManager = new ProtocolAccessManager(governor);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
+        configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
                 tipJar: tipJar,
@@ -168,18 +168,12 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         );
     }
 
-    function test_Rate_PendleLPArk_fork() public {
+    function test_Rate_PendleLPArk_fork() public view {
         uint256 rate = ark.rate();
         assertTrue(rate > 0, "Rate should be greater than zero");
 
-        // The rate for LP positions is variable, so we can't check for equality
-        uint256 newRate = ark.rate();
-        assertApproxEqRel(
-            rate,
-            newRate,
-            0.01 ether,
-            "Rate should not change dramatically in a short time"
-        );
+        // The rate should be fixed, so calling it again should return the same value
+        assertEq(ark.rate(), rate, "Rate should remain constant");
     }
 
     function test_Harvest_PendleLPArk_fork() public {
@@ -296,14 +290,21 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(governor);
         ark.setSlippagePercentage(PercentageUtils.fromFraction(1, 1000)); // Set slippage to 0.1%
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SlippagePercentageTooHigh.selector,
+                PercentageUtils.fromFraction(101, 100),
+                PERCENTAGE_100
+            )
+        );
+        ark.setSlippagePercentage(PercentageUtils.fromFraction(101, 100)); // Set slippage to 101%
         vm.stopPrank();
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-
         // Act & Assert
         ark.board(amount); // This should succeed with 0.1% slippage
-
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotGovernor(address)", commander)
         );
@@ -331,5 +332,58 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         ark.setOracleDuration(600); // This should fail (10 minutes is too low)
 
         vm.stopPrank();
+    }
+
+    function test_RevertOnInvalidAssetForSY() public {
+        address invalidAsset = address(0x123); // Some random address
+
+        vm.mockCall(
+            SY,
+            abi.encodeWithSignature("isValidTokenIn(address)", invalidAsset),
+            abi.encode(false)
+        );
+        vm.mockCall(
+            SY,
+            abi.encodeWithSignature("isValidTokenOut(address)", invalidAsset),
+            abi.encode(false)
+        );
+
+        ArkParams memory params = ArkParams({
+            name: "Invalid Asset Ark",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            token: invalidAsset,
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
+        });
+
+        vm.expectRevert(InvalidAssetForSY.selector);
+        new PendleLPArk(invalidAsset, MARKET, ORACLE, ROUTER, params);
+    }
+    function test_RevertWhenNoValidNextMarket() public {
+        // Setup: Board some assets first
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, 2 * amount);
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), 2 * amount);
+        ark.board(amount);
+        vm.stopPrank();
+
+        // Fast forward time past market expiry
+        vm.warp(ark.marketExpiry() + 1);
+
+        // Mock _findNextMarket to return address(0)
+        vm.mockCall(
+            address(ark),
+            abi.encodeWithSignature("nextMarket()"),
+            abi.encode(address(0))
+        );
+
+        // Attempt to trigger rollover
+        vm.expectRevert(abi.encodeWithSelector(NoValidNextMarket.selector));
+        vm.prank(commander);
+        ark.board(amount);
     }
 }
