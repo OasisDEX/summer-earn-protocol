@@ -12,9 +12,9 @@ import {IArk, ArkParams} from "../../interfaces/IArk.sol";
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
 
+    address public aToken;
     IPoolV3 public aaveV3Pool;
     IPoolDataProvider public aaveV3DataProvider;
-    address public aToken;
     IRewardsController public rewardsController;
 
     constructor(
