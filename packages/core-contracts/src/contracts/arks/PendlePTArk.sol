@@ -13,6 +13,7 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {MarketState} from "@pendle/core-v2/contracts/core/Market/MarketMathCore.sol";
 import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
+import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title PendlePTArk
@@ -21,9 +22,10 @@ import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapA
  */
 contract PendlePTArk is Ark {
     using SafeERC20 for IERC20;
+    using PercentageUtils for uint256;
 
     // Constants
-    uint256 private constant MAX_BPS = 10_000;
+    Percentage private constant MAX_BPS = PERCENTAGE_100;
     uint256 private constant MIN_ORACLE_DURATION = 900; // 15 minutes
 
     // State variables
@@ -34,7 +36,7 @@ contract PendlePTArk is Ark {
     IStandardizedYield public SY;
     IPPrincipalToken public PT;
     IPYieldToken public YT;
-    uint256 public slippageBPS;
+    Percentage public slippageBPS;
     uint256 public marketExpiry;
     ApproxParams public routerParams;
     LimitOrderData emptyLimitOrderData;
@@ -42,7 +44,7 @@ contract PendlePTArk is Ark {
 
     // Events
     event MarketRolledOver(address indexed newMarket);
-    event SlippageUpdated(uint256 newSlippageBPS);
+    event SlippageUpdated(Percentage newSlippageBPS);
     event OracleDurationUpdated(uint32 newOracleDuration);
 
     /**
@@ -62,8 +64,8 @@ contract PendlePTArk is Ark {
         market = _market;
         router = _router;
         oracle = _oracle;
-        oracleDuration = 1800; // half hour default
-        slippageBPS = 50; // 0.5% default slippage
+        oracleDuration = 30 minutes; // half hour default
+        slippageBPS = PercentageUtils.fromFraction(5, 1000); // 0.5% default
 
         (SY, PT, YT) = IPMarketV3(_market).readTokens();
         require(
@@ -119,8 +121,7 @@ contract PendlePTArk is Ark {
      * @param _amount Amount of tokens to deposit
      */
     function _depositTokenForPt(uint256 _amount) internal {
-        uint256 minPTout = (_SYtoPT(_amount) * (MAX_BPS - slippageBPS)) /
-            MAX_BPS;
+        uint256 minPTout = _SYtoPT(_amount).subtractPercentage(slippageBPS);
         TokenInput memory tokenInput = TokenInput({
             tokenIn: address(config.token),
             netTokenIn: _amount,
@@ -144,8 +145,7 @@ contract PendlePTArk is Ark {
      */
     function _redeemTokenFromPt(uint256 amount) internal {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        uint256 withdrawAmountInPT = (_SYtoPT(amount) *
-            (MAX_BPS + slippageBPS)) / MAX_BPS;
+        uint256 withdrawAmountInPT = _SYtoPT(amount).addPercentage(slippageBPS);
 
         uint256 finalPtAmount = (withdrawAmountInPT > ptBalance)
             ? ptBalance
@@ -215,7 +215,7 @@ contract PendlePTArk is Ark {
      * @dev we decrease the total assets by the allowed slippage so the redeemed amount is always higher than the requested amount
      */
     function totalAssets() public view override returns (uint256) {
-        return (_PTtoAsset(_balanceOfPT()) * (MAX_BPS - slippageBPS)) / MAX_BPS;
+        return _PTtoAsset(_balanceOfPT()).subtractPercentage(slippageBPS);
     }
 
     /**
@@ -346,12 +346,14 @@ contract PendlePTArk is Ark {
 
     /**
      * @notice Sets the slippage tolerance in basis points
-     * @param _slippageBPS New slippage tolerance
+     * @param _slippagePercentage New slippage tolerance
      */
-    function setSlippageBPS(uint256 _slippageBPS) external onlyGovernor {
-        require(_slippageBPS <= MAX_BPS, "Invalid slippage");
-        slippageBPS = _slippageBPS;
-        emit SlippageUpdated(_slippageBPS);
+    function setSlippageBPS(
+        Percentage _slippagePercentage
+    ) external onlyGovernor {
+        require(_slippagePercentage <= MAX_BPS, "Invalid slippage");
+        slippageBPS = _slippagePercentage;
+        emit SlippageUpdated(_slippagePercentage);
     }
 
     /**

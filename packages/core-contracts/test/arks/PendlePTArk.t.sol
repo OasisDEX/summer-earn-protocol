@@ -13,6 +13,7 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
+import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract PendlePTArkTestFork is Test, IArkEvents {
     PendlePTArk public ark;
@@ -201,20 +202,19 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
     }
     function test_SetSlippageBPS() public {
-        uint256 newSlippageBPS = 100; // 1%
+        Percentage newSlippageBPS = PercentageUtils.fromFraction(1, 100);
 
         vm.prank(governor);
         ark.setSlippageBPS(newSlippageBPS);
 
-        assertEq(
-            ark.slippageBPS(),
-            newSlippageBPS,
+        assertTrue(
+            ark.slippageBPS() == newSlippageBPS,
             "Slippage BPS not updated correctly"
         );
     }
 
     function test_SetSlippageBPS_RevertOnInvalidValue() public {
-        uint256 invalidSlippageBPS = 10001; // Over 100%
+        Percentage invalidSlippageBPS = PercentageUtils.fromFraction(101, 100);
 
         vm.prank(governor);
         vm.expectRevert("Invalid slippage");

@@ -13,6 +13,7 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
+import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract PendleLPArkTestFork is Test, IArkEvents {
     PendleLPArk public ark;
@@ -244,7 +245,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         deal(USDE, commander, 2 * amount);
 
         vm.startPrank(governor);
-        ark.setSlippageBPS(10); // Set slippage to 0.1%
+        ark.setSlippageBPS(PercentageUtils.fromFraction(1, 1000)); // Set slippage to 0.1%
         vm.stopPrank();
 
         vm.startPrank(commander);
@@ -256,7 +257,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotGovernor(address)", commander)
         );
-        ark.setSlippageBPS(1); // Set slippage to 0.01%
+        ark.setSlippageBPS(PercentageUtils.fromFraction(1, 10000)); // Set slippage to 0.01%
         IERC20(usde).approve(address(ark), amount);
         ark.board(amount); // This should fail due to tight slippage
 
