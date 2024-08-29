@@ -4,7 +4,7 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/PercentageUtil
 
 error OracleNotReady();
 error InvalidAssetForSY();
-error NoValidNextMarket();
+error InvalidNextMarket();
 error OracleDurationTooLow(uint32 providedDuration, uint256 minimumDuration);
 error SlippagePercentageTooHigh(
     Percentage providedSlippage,

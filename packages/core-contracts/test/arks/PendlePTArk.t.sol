@@ -14,7 +14,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {OracleNotReady, NoValidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../src/errors/arks/PendleArkErrors.sol";
+import {OracleNotReady, InvalidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../src/errors/arks/PendleArkErrors.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 
 contract PendlePTArkTestFork is Test, IArkEvents {
@@ -71,7 +71,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
             maxRebalanceInflow: type(uint256).max
         });
 
-        ark = new PendlePTArk(USDE, MARKET, ORACLE, ROUTER, params);
+        ark = new PendlePTArk(MARKET, ORACLE, ROUTER, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -339,7 +339,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
 
         // Attempt to trigger rollover
-        vm.expectRevert(abi.encodeWithSelector(NoValidNextMarket.selector));
+        vm.expectRevert(abi.encodeWithSelector(InvalidNextMarket.selector));
         vm.prank(commander);
         ark.board(amount);
     }
@@ -388,7 +388,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         });
 
         vm.expectRevert(InvalidAssetForSY.selector);
-        new PendlePTArk(invalidAsset, MARKET, ORACLE, ROUTER, params);
+        new PendlePTArk(MARKET, ORACLE, ROUTER, params);
     }
     function test_SetupRouterParams() public view {
         // This test assumes routerParams is made public for testing purposes
