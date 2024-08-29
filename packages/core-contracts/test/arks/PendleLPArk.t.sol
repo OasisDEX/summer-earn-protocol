@@ -26,6 +26,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
     address constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
     address constant MARKET = 0x19588F29f9402Bb508007FeADd415c875Ee3f19F;
     address constant NEXT_MARKET = 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
+    uint256 constant MARKET_EXPIRY_BLOCK = 20379839;
     address constant SY = 0x42862F48eAdE25661558AFE0A630b132038553D0;
     address constant PT = 0xa0021EF8970104c2d008F38D92f115ad56a9B8e1;
     address constant YT = 0x1e3d13932C31d7355fCb3FEc680b0cD159dC1A07;
@@ -208,6 +209,54 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             totalAssetsAfter,
             totalAssetsBefore,
             "Total assets should not change significantly"
+        );
+    }
+    function test_DepositToExpiredMarket_PendleLPArk_fork() public {
+        // Arrange
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, 10 * amount);
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), amount);
+        ark.board(amount);
+        vm.stopPrank();
+
+        vm.rollFork(MARKET_EXPIRY_BLOCK);
+
+        // Act
+        vm.startPrank(commander);
+
+        deal(USDE, commander, 10 * amount);
+        usde.approve(address(ark), amount);
+        vm.expectRevert(abi.encodeWithSignature("MarketExpired()"));
+        ark.board(amount);
+
+        vm.stopPrank();
+    }
+    function test_WithdrawFromExpiredMarket_PendleLPArk_fork() public {
+        // Arrange
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, 10 * amount);
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), amount);
+        ark.board(amount);
+        vm.stopPrank();
+
+        vm.rollFork(MARKET_EXPIRY_BLOCK);
+
+        // Act
+        vm.startPrank(commander);
+        ark.disembark(ark.totalAssets());
+        vm.stopPrank();
+
+        // Assert
+        uint256 assetsAfterDisembark = ark.totalAssets();
+        assertApproxEqAbs(
+            assetsAfterDisembark,
+            0,
+            1,
+            "Ark should have no assets after disembark"
         );
     }
 

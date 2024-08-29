@@ -12,7 +12,7 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {OracleNotReady, NoValidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../errors/arks/PendleArkErrors.sol";
+import {MarketExpired, NoValidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../errors/arks/PendleArkErrors.sol";
 import {IPendleArkEvents} from "../../events/arks/IPendleArkEvents.sol";
 
 /**
@@ -117,17 +117,22 @@ contract PendleLPArk is Ark, IPendleArkEvents {
      * @notice Deposits tokens for LP
      * @param _amount Amount of tokens to deposit
      * @dev This function performs the following steps:
-     * 1. Calculate the minimum LP tokens to receive based on the input amount and slippage
-     *    - We use the slippage protection to ensure we receive at least the calculated minimum LP tokens
-     *    - We use pendle LP oracle to calculate the LP amount
-     * 2. Prepare the input token data for the Pendle router
-     * 3. Call the Pendle router to add liquidity using a single token (our asset)
+     * 1. Check if the market has expired. If so, revert the transaction.
+     * 2. Calculate the minimum LP tokens to receive based on the input amount and slippage:
+     *    - We use the Pendle LP oracle to get the current LP to asset rate.
+     *    - We convert the input amount to LP tokens using this rate.
+     *    - We subtract the slippage percentage from this amount to set a minimum acceptable output.
+     * 3. Prepare the input token data for the Pendle router.
+     * 4. Call the Pendle router to add liquidity using a single token (our asset).
      *
-     * We use slippage protection here to ensure we receive at least the calculated minimum LP tokens.
-     * This protects against sudden price movements between our calculation and the actual swap execution.
-     * We assume it's not economically viable to front-run the Ark contract to exploit the slippage protection, assuming the TWAP period.
+     * Slippage protection ensures we receive at least the calculated minimum LP tokens.
+     * This guards against price movements between our calculation and the actual swap execution.
+     * The use of a TWAP oracle helps mitigate the risk of short-term price manipulations.
      */
     function _depositTokenForLp(uint256 _amount) internal {
+        if (block.timestamp >= marketExpiry) {
+            revert MarketExpired();
+        }
         uint256 minLpOut = _assetToLP(_amount).subtractPercentage(
             slippagePercentage
         );
@@ -152,35 +157,51 @@ contract PendleLPArk is Ark, IPendleArkEvents {
     /**
      * @notice Redeems LP for tokens
      * @param amount Amount of underlying asset to redeem
-     * @dev This function performs the following steps:
-     * 1. Calculate the amount of LP tokens needed to redeem the requested asset amount
-     * 2. Adjust the LP amount for slippage to ensure we have enough
-     * 3. Calculate the expected asset output and apply slippage protection
-     * 4. Prepare the output token data for the Pendle router
-     * 5. Call the Pendle router to remove liquidity and receive a single token (our asset)
+     * @dev This function handles redemptions differently based on whether the market has expired:
+     * 1. If the market has expired:
+     *    - We use the input amount directly as the minimum token output.
+     *    - We convert the input amount to LP tokens without applying slippage.
+     * 2. If the market has not expired:
+     *    - We calculate the LP amount needed to redeem the requested asset amount, adding slippage.
+     *    - We use the lesser of the calculated LP amount and the current LP balance.
+     *    - We use the input amount as the minimum token output.
+     * 3. In both cases, we call the internal _removeLiquidity function to execute the redemption.
      *
-     * We use slippage protection in both directions:
-     * - When calculating LP tokens to redeem, we add slippage to ensure we have enough
-     * - When calculating minimum asset output, we subtract slippage to protect against price movements
+     * Slippage protection is applied differently before and after expiry:
+     * - Before expiry: We add slippage when calculating LP tokens to ensure we have enough.
+     * - After expiry: We don't apply slippage as the redemption rate is fixed at 1:1.
      */
     function _redeemTokenFromLp(uint256 amount) internal {
-        uint256 lpBalance = IERC20(market).balanceOf(address(this));
-        uint256 withdrawAmountInLp = _assetToLP(amount).addPercentage(
-            slippagePercentage
-        );
-        uint256 lpToRedeem = (withdrawAmountInLp > lpBalance)
-            ? lpBalance
-            : withdrawAmountInLp;
+        if (block.timestamp >= marketExpiry) {
+            uint256 minTokenOut = amount;
+            uint256 lpAmount = _assetToLP(amount);
+            _removeLiquidity(lpAmount, minTokenOut);
+        } else {
+            uint256 lpBalance = IERC20(market).balanceOf(address(this));
 
-        uint256 expectedAssetOut = _LPtoAsset(lpToRedeem);
-        uint256 minAssetOut = expectedAssetOut.subtractPercentage(
-            slippagePercentage
-        );
+            // Calculate the LP amount needed to redeem the requested asset amount, accounting for slippage
+            uint256 withdrawAmountInLp = _assetToLP(amount).addPercentage(
+                slippagePercentage
+            );
+            // Use the lesser of the calculated LP amount and the current LP balance /// TODO: check that thoroughly if it can be explited
+            uint256 lpAmount = (withdrawAmountInLp > lpBalance)
+                ? lpBalance
+                : withdrawAmountInLp;
 
-        IERC20(market).approve(router, type(uint256).max);
+            _removeLiquidity(lpAmount, amount);
+        }
+    }
+
+    /**
+     * @notice Internal function to remove liquidity from the Pendle market
+     * @param lpAmount Amount of LP tokens to remove
+     * @param minTokenOut Minimum amount of underlying tokens to receive
+     * @dev This function prepares the token output data and calls the Pendle router to remove liquidity
+     */
+    function _removeLiquidity(uint256 lpAmount, uint256 minTokenOut) internal {
         TokenOutput memory tokenOutput = TokenOutput({
             tokenOut: address(config.token),
-            minTokenOut: minAssetOut,
+            minTokenOut: minTokenOut,
             tokenRedeemSy: address(config.token),
             pendleSwap: address(0),
             swapData: emptySwap
@@ -188,10 +209,21 @@ contract PendleLPArk is Ark, IPendleArkEvents {
         IPAllActionV3(router).removeLiquiditySingleToken(
             address(this),
             market,
-            lpToRedeem,
+            lpAmount,
             tokenOutput,
             emptyLimitOrderData
         );
+    }
+    /**
+     * @notice Redeems all LP and SY to underlying tokens
+     */
+    function _redeemAllTokensFromLp() internal {
+        uint256 lpBalance = _balanceOfLP();
+        uint256 expectedTokenOut = _LPtoAsset(lpBalance);
+
+        if (lpBalance > 0) {
+            _removeLiquidity(lpBalance, expectedTokenOut);
+        }
     }
 
     /**
@@ -206,13 +238,21 @@ contract PendleLPArk is Ark, IPendleArkEvents {
     /**
      * @notice Returns the total assets held by the Ark
      * @return The total assets in underlying token
-     * @dev We decrease the total assets by the allowed slippage so the redeemed amount is always higher than the requested amount.
-     * This is a conservative approach to ensure we can always fulfill withdrawal requests, even in volatile market conditions.
-     * The actual redeemed amount may be higher.
+     * @dev We handle this differently based on whether the market has expired:
+     * 1. After expiry: We return the full amount of assets held by the LP without applying slippage.
+     * 2. Before expiry: We decrease the total assets by the allowed slippage.
+     *
+     * Subtracting slippage before expiry provides a conservative estimate of total assets.
+     * This ensures we can always fulfill withdrawal requests, even in volatile market conditions.
+     * The actual redeemed amount may be higher, which is beneficial for users.
      */
     function totalAssets() public view override returns (uint256) {
         return
-            _LPtoAsset(_balanceOfLP()).subtractPercentage(slippagePercentage);
+            (block.timestamp >= marketExpiry)
+                ? _LPtoAsset(_balanceOfLP())
+                : _LPtoAsset(_balanceOfLP()).subtractPercentage(
+                    slippagePercentage
+                );
     }
 
     /**
@@ -233,43 +273,14 @@ contract PendleLPArk is Ark, IPendleArkEvents {
             revert NoValidNextMarket();
         }
 
-        _redeemAllToUnderlying();
         if (!_isOracleReady(newMarket)) {
-            revert OracleNotReady();
+            return;
         }
-
+        _redeemAllTokensFromLp();
         _updateMarketAndTokens(newMarket);
         _updateMarketData();
 
         emit MarketRolledOver(newMarket);
-    }
-
-    /**
-     * @notice Redeems all LP and SY to underlying tokens
-     */
-    function _redeemAllToUnderlying() internal {
-        uint256 lpBalance = IERC20(market).balanceOf(address(this));
-        uint256 expectedAssetOut = _LPtoAsset(lpBalance);
-        uint256 minAssetOut = expectedAssetOut.subtractPercentage(
-            slippagePercentage
-        );
-
-        if (lpBalance > 0) {
-            TokenOutput memory tokenOutput = TokenOutput({
-                tokenOut: address(config.token),
-                minTokenOut: minAssetOut,
-                tokenRedeemSy: address(config.token),
-                pendleSwap: address(0),
-                swapData: emptySwap
-            });
-            IPAllActionV3(router).removeLiquiditySingleToken(
-                address(this),
-                market,
-                lpBalance,
-                tokenOutput,
-                emptyLimitOrderData
-            );
-        }
     }
 
     /**

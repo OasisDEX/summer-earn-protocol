@@ -26,6 +26,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
     address constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
     address constant MARKET = 0x19588F29f9402Bb508007FeADd415c875Ee3f19F;
     address constant NEXT_MARKET = 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
+    uint256 constant MARKET_EXPIRY_BLOCK = 20379839;
     address constant SY = 0x42862F48eAdE25661558AFE0A630b132038553D0;
     address constant PT = 0xa0021EF8970104c2d008F38D92f115ad56a9B8e1;
     address constant YT = 0x1e3d13932C31d7355fCb3FEc680b0cD159dC1A07;
@@ -174,6 +175,64 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         assertEq(ark.rate(), rate, "Rate should remain constant");
     }
 
+    function test_DepositToExpireMarket_PendlePTArk_fork() public {
+        // Arrange
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, 10 * amount);
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), amount);
+        ark.board(amount);
+        vm.stopPrank();
+        console.log(ark.marketExpiry());
+        // exactly 1 block after expiry
+        vm.rollFork(MARKET_EXPIRY_BLOCK);
+
+        // Act
+        vm.startPrank(commander);
+
+        deal(USDE, commander, 10 * amount);
+        usde.approve(address(ark), amount);
+        vm.expectRevert(abi.encodeWithSignature("MarketExpired()"));
+        ark.board(amount);
+
+        vm.stopPrank();
+    }
+    function test_WithdrawFromExpireMarket_PendlePTArk_fork() public {
+        // Arrange
+        uint256 amount = 1000 * 10 ** 18;
+        deal(USDE, commander, 1 * amount);
+
+        vm.startPrank(commander);
+        usde.approve(address(ark), amount);
+        ark.board(amount);
+        vm.stopPrank();
+        console.log(ark.marketExpiry());
+        // exactly 1 block after expiry
+        vm.rollFork(MARKET_EXPIRY_BLOCK);
+
+        // Act
+        vm.startPrank(commander);
+        console.log(IERC20(PT).balanceOf(address(ark)));
+        console.log(ark.totalAssets());
+        ark.disembark(ark.totalAssets());
+
+        vm.stopPrank();
+
+        // Assert
+        uint256 assetsAfterDisembark = ark.totalAssets();
+        console.log(IERC20(PT).balanceOf(address(ark)));
+        uint256 commanderBalance = usde.balanceOf(commander);
+        console.log(commanderBalance);
+        assertTrue(
+            assetsAfterDisembark == 0,
+            "Ark should have no assets after disembark"
+        );
+        assertTrue(
+            usde.balanceOf(commander) > 0,
+            "Commander should have received USDE back"
+        );
+    }
     function test_RolloverIfNeeded_PendlePTArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
@@ -280,32 +339,6 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         // Attempt to trigger rollover
         vm.expectRevert(abi.encodeWithSelector(NoValidNextMarket.selector));
-        vm.prank(commander);
-        ark.board(amount);
-    }
-
-    function test_RevertWhenOracleNotReady() public {
-        // Setup: Board some assets first
-        uint256 amount = 1000 * 10 ** 18;
-        deal(USDE, commander, 2 * amount);
-
-        vm.startPrank(commander);
-        usde.approve(address(ark), 2 * amount);
-        ark.board(amount);
-        vm.stopPrank();
-
-        // Fast forward time past market expiry
-        vm.warp(ark.marketExpiry() + 1);
-
-        // Mock the oracle to be not ready
-        vm.mockCall(
-            address(ark.oracle()),
-            abi.encodeWithSelector(PendlePYLpOracle.getOracleState.selector),
-            abi.encode(true, 0, false)
-        );
-
-        // Attempt to trigger rollover
-        vm.expectRevert(abi.encodeWithSelector(OracleNotReady.selector));
         vm.prank(commander);
         ark.board(amount);
     }

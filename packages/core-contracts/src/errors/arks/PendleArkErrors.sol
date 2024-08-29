@@ -10,3 +10,4 @@ error SlippagePercentageTooHigh(
     Percentage providedSlippage,
     Percentage maxSlippage
 );
+error MarketExpired();
