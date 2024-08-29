@@ -23,7 +23,6 @@ contract PendlePTArk is Ark {
     using SafeERC20 for IERC20;
 
     // Constants
-    uint256 private constant WAD = 1e18;
     uint256 private constant MAX_BPS = 10_000;
     uint256 private constant MIN_ORACLE_DURATION = 900; // 15 minutes
 
