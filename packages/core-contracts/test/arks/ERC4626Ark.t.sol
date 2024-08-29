@@ -26,6 +26,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
 
     IERC4626 public vault;
     IERC20 public usdc;
+    ArkParams public params;
 
     uint256 forkBlock = 20000000; // A recent block number
     uint256 forkId;
@@ -48,7 +49,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
             })
         );
 
-        ArkParams memory params = ArkParams({
+        params = ArkParams({
             name: "USDC ERC4626 Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
@@ -66,7 +67,24 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
         vm.stopPrank();
     }
 
-    function test_Constructor() public view {
+    function test_Constructor() public {
+        // Invalid vault address
+        vm.expectRevert(abi.encodeWithSignature("InvalidVaultAddress()"));
+        ark = new ERC4626Ark(address(0), params);
+
+        // Asset mismatch
+        vm.mockCall(
+            VAULT_ADDRESS,
+            abi.encodeWithSelector(IERC4626.asset.selector),
+            abi.encode(address(9))
+        );
+        vm.expectRevert(abi.encodeWithSignature("ERC4626AssetMismatch()"));
+        ark = new ERC4626Ark(VAULT_ADDRESS, params);
+        vm.clearMockedCalls();
+
+        // Valid constructor
+        ark = new ERC4626Ark(VAULT_ADDRESS, params);
+
         assertEq(
             address(ark.vault()),
             VAULT_ADDRESS,
