@@ -15,6 +15,7 @@ import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {OracleNotReady, NoValidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../src/errors/arks/PendleArkErrors.sol";
+import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 
 contract PendlePTArkTestFork is Test, IArkEvents {
     PendlePTArk public ark;
@@ -403,6 +404,68 @@ contract PendlePTArkTestFork is Test, IArkEvents {
             ark.marketExpiry(),
             expectedExpiry,
             "Market expiry not updated correctly"
+        );
+    }
+
+    function test_Harvest_PendlePTArk_fork() public {
+        // Setup: Mock reward tokens and amounts
+        address[] memory mockRewardTokens = new address[](2);
+        mockRewardTokens[0] = address(0x1111);
+        mockRewardTokens[1] = address(0x2222);
+
+        uint256[] memory mockRewardAmounts = new uint256[](2);
+        mockRewardAmounts[0] = 100 * 1e18;
+        mockRewardAmounts[1] = 200 * 1e18;
+
+        // Mock IPMarketV3.getRewardTokens()
+        vm.mockCall(
+            MARKET,
+            abi.encodeWithSignature("getRewardTokens()"),
+            abi.encode(mockRewardTokens)
+        );
+
+        // Mock IPMarketV3.redeemRewards()
+        vm.mockCall(
+            MARKET,
+            abi.encodeWithSignature("redeemRewards(address)", address(ark)),
+            abi.encode(mockRewardAmounts)
+        );
+
+        // Mock IERC20.transfer() for both reward tokens
+        for (uint256 i = 0; i < mockRewardTokens.length; i++) {
+            vm.mockCall(
+                mockRewardTokens[i],
+                abi.encodeWithSelector(
+                    IERC20.transfer.selector,
+                    commander,
+                    mockRewardAmounts[i]
+                ),
+                abi.encode(true)
+            );
+        }
+
+        // Act: Call harvest function
+        vm.prank(raft);
+        // Verify that transfer was called for each reward token
+        for (uint256 i = 0; i < mockRewardTokens.length; i++) {
+            vm.expectCall(
+                mockRewardTokens[i],
+                abi.encodeWithSelector(
+                    IERC20.transfer.selector,
+                    commander,
+                    mockRewardAmounts[i]
+                )
+            );
+        }
+        uint256 harvestedAmount = ark.harvest(address(0), "");
+
+        // Assert: Check if the harvested amount matches the sum of mock reward amounts
+        uint256 expectedTotalRewards = mockRewardAmounts[0] +
+            mockRewardAmounts[1];
+        assertEq(
+            harvestedAmount,
+            expectedTotalRewards,
+            "Harvested amount should match total rewards"
         );
     }
 }

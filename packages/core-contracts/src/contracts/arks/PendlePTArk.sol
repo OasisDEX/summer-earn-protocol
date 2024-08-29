@@ -14,7 +14,7 @@ import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapA
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {MarketExpired, NoValidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../errors/arks/PendleArkErrors.sol";
 import {IPendleArkEvents} from "../../events/arks/IPendleArkEvents.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title PendlePTArk
  * @notice This contract manages a Pendle Principal Token (PT) strategy within the Ark system
@@ -430,18 +430,17 @@ contract PendlePTArk is Ark, IPendleArkEvents {
 
     /**
      * @notice Harvests rewards from the market
-     * @return Total amount of rewards harvested
+     * @return totalRewards amount of rewards harvested
      * @dev This function redeems rewards from the Pendle market and transfers them to the commander
      */
     function _harvest(
         address,
         bytes calldata
-    ) internal override returns (uint256) {
+    ) internal override returns (uint256 totalRewards) {
         address[] memory rewardTokens = IPMarketV3(market).getRewardTokens();
         uint256[] memory rewardAmounts = IPMarketV3(market).redeemRewards(
             address(this)
         );
-        uint256 totalRewards = 0;
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             IERC20(rewardTokens[i]).safeTransfer(
@@ -450,8 +449,6 @@ contract PendlePTArk is Ark, IPendleArkEvents {
             );
             totalRewards += rewardAmounts[i];
         }
-
-        return totalRewards;
     }
 
     /**
