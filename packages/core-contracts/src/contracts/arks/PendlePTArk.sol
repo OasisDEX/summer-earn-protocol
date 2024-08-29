@@ -14,18 +14,20 @@ import {MarketState} from "@pendle/core-v2/contracts/core/Market/MarketMathCore.
 import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {OracleNotReady, NoValidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../errors/arks/PendleArkErrors.sol";
+import {IPendleArkEvents} from "../../events/arks/IPendleArkEvents.sol";
 
 /**
  * @title PendlePTArk
  * @notice This contract manages a Pendle LP strategy within the Ark system
  * @dev Inherits from Ark and implements Pendle-specific logic
  */
-contract PendlePTArk is Ark {
+contract PendlePTArk is Ark, IPendleArkEvents {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
     // Constants
-    Percentage private constant MAX_BPS = PERCENTAGE_100;
+    Percentage private constant MAX_SLIPPAGE_PERCENTAGE = PERCENTAGE_100;
     uint256 private constant MIN_ORACLE_DURATION = 900; // 15 minutes
 
     // State variables
@@ -36,16 +38,11 @@ contract PendlePTArk is Ark {
     IStandardizedYield public SY;
     IPPrincipalToken public PT;
     IPYieldToken public YT;
-    Percentage public slippageBPS;
+    Percentage public slippagePercentage;
     uint256 public marketExpiry;
     ApproxParams public routerParams;
     LimitOrderData emptyLimitOrderData;
     SwapData public emptySwap;
-
-    // Events
-    event MarketRolledOver(address indexed newMarket);
-    event SlippageUpdated(Percentage newSlippageBPS);
-    event OracleDurationUpdated(uint32 newOracleDuration);
 
     /**
      * @notice Constructor for PendlePTArk
@@ -65,14 +62,15 @@ contract PendlePTArk is Ark {
         router = _router;
         oracle = _oracle;
         oracleDuration = 30 minutes; // half hour default
-        slippageBPS = PercentageUtils.fromFraction(5, 1000); // 0.5% default
+        slippagePercentage = PercentageUtils.fromFraction(5, 1000); // 0.5% default
 
         (SY, PT, YT) = IPMarketV3(_market).readTokens();
-        require(
-            IStandardizedYield(SY).isValidTokenIn(_asset) &&
-                IStandardizedYield(SY).isValidTokenOut(_asset),
-            "Invalid asset for SY"
-        );
+        if (
+            !IStandardizedYield(SY).isValidTokenIn(_asset) ||
+            !IStandardizedYield(SY).isValidTokenOut(_asset)
+        ) {
+            revert InvalidAssetForSY();
+        }
 
         _setupRouterParams();
         _setupApprovals(_asset);
@@ -121,7 +119,9 @@ contract PendlePTArk is Ark {
      * @param _amount Amount of tokens to deposit
      */
     function _depositTokenForPt(uint256 _amount) internal {
-        uint256 minPTout = _SYtoPT(_amount).subtractPercentage(slippageBPS);
+        uint256 minPTout = _SYtoPT(_amount).subtractPercentage(
+            slippagePercentage
+        );
         TokenInput memory tokenInput = TokenInput({
             tokenIn: address(config.token),
             netTokenIn: _amount,
@@ -145,7 +145,9 @@ contract PendlePTArk is Ark {
      */
     function _redeemTokenFromPt(uint256 amount) internal {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        uint256 withdrawAmountInPT = _SYtoPT(amount).addPercentage(slippageBPS);
+        uint256 withdrawAmountInPT = _SYtoPT(amount).addPercentage(
+            slippagePercentage
+        );
 
         uint256 finalPtAmount = (withdrawAmountInPT > ptBalance)
             ? ptBalance
@@ -215,7 +217,8 @@ contract PendlePTArk is Ark {
      * @dev we decrease the total assets by the allowed slippage so the redeemed amount is always higher than the requested amount
      */
     function totalAssets() public view override returns (uint256) {
-        return _PTtoAsset(_balanceOfPT()).subtractPercentage(slippageBPS);
+        return
+            _PTtoAsset(_balanceOfPT()).subtractPercentage(slippagePercentage);
     }
 
     /**
@@ -232,11 +235,14 @@ contract PendlePTArk is Ark {
         if (block.timestamp < marketExpiry) return;
 
         address newMarket = this.nextMarket();
-        require(newMarket != address(0), "No valid next market");
+        if (newMarket == address(0) || newMarket == market) {
+            revert NoValidNextMarket();
+        }
 
         _redeemAllToUnderlying();
-        require((_isOracleReady(newMarket)), "Oracle not ready");
-
+        if (!_isOracleReady(newMarket)) {
+            revert OracleNotReady();
+        }
         _updateMarketAndTokens(newMarket);
         _updateMarketData();
 
@@ -348,11 +354,16 @@ contract PendlePTArk is Ark {
      * @notice Sets the slippage tolerance in basis points
      * @param _slippagePercentage New slippage tolerance
      */
-    function setSlippageBPS(
+    function setSlippagePercentage(
         Percentage _slippagePercentage
     ) external onlyGovernor {
-        require(_slippagePercentage <= MAX_BPS, "Invalid slippage");
-        slippageBPS = _slippagePercentage;
+        if (_slippagePercentage > MAX_SLIPPAGE_PERCENTAGE) {
+            revert SlippagePercentageTooHigh(
+                _slippagePercentage,
+                MAX_SLIPPAGE_PERCENTAGE
+            );
+        }
+        slippagePercentage = _slippagePercentage;
         emit SlippageUpdated(_slippagePercentage);
     }
 
@@ -361,7 +372,9 @@ contract PendlePTArk is Ark {
      * @param _oracleDuration New oracle duration
      */
     function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
-        require(_oracleDuration >= MIN_ORACLE_DURATION, "Duration too low");
+        if (_oracleDuration < MIN_ORACLE_DURATION) {
+            revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
+        }
         oracleDuration = _oracleDuration;
         emit OracleDurationUpdated(_oracleDuration);
     }
@@ -414,6 +427,4 @@ contract PendlePTArk is Ark {
         // Note: We negate the result because the original conditions check for when the oracle is NOT ready
         return !(increaseCardinalityRequired || !oldestObservationSatisfied);
     }
-
-    error OracleNotReady();
 }

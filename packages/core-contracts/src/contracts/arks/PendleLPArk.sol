@@ -12,18 +12,20 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {OracleNotReady, NoValidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../errors/arks/PendleArkErrors.sol";
+import {IPendleArkEvents} from "../../events/arks/IPendleArkEvents.sol";
 
 /**
  * @title PendleLPArk
  * @notice This contract manages a Pendle LP token strategy within the Ark system
  * @dev Inherits from Ark and implements Pendle-specific logic for LP positions
  */
-contract PendleLPArk is Ark {
+contract PendleLPArk is Ark, IPendleArkEvents {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
     // Constants
-    Percentage private constant MAX_BPS = PERCENTAGE_100;
+    Percentage private constant MAX_SLIPPAGE_PERCENTAGE = PERCENTAGE_100;
     uint256 private constant MIN_ORACLE_DURATION = 15 minutes;
 
     // State variables
@@ -34,16 +36,11 @@ contract PendleLPArk is Ark {
     IStandardizedYield public SY;
     IPPrincipalToken public PT;
     IPYieldToken public YT;
-    Percentage public slippageBPS;
+    Percentage public slippagePercentage;
     uint256 public marketExpiry;
     ApproxParams public routerParams;
     LimitOrderData emptyLimitOrderData;
     SwapData public emptySwap;
-
-    // Events
-    event MarketRolledOver(address indexed newMarket);
-    event SlippageUpdated(Percentage newSlippageBPS);
-    event OracleDurationUpdated(uint32 newOracleDuration);
 
     /**
      * @notice Constructor for PendleLPArk
@@ -63,14 +60,15 @@ contract PendleLPArk is Ark {
         router = _router;
         oracle = _oracle;
         oracleDuration = 30 minutes;
-        slippageBPS = PercentageUtils.fromFraction(5, 1000); // 0.5% default
+        slippagePercentage = PercentageUtils.fromFraction(5, 1000); // 0.5% default
 
         (SY, PT, YT) = IPMarketV3(_market).readTokens();
-        require(
-            IStandardizedYield(SY).isValidTokenIn(_asset) &&
-                IStandardizedYield(SY).isValidTokenOut(_asset),
-            "Invalid asset for SY"
-        );
+        if (
+            !IStandardizedYield(SY).isValidTokenIn(_asset) ||
+            !IStandardizedYield(SY).isValidTokenOut(_asset)
+        ) {
+            revert InvalidAssetForSY();
+        }
 
         _setupRouterParams();
         _setupApprovals(_asset);
@@ -120,7 +118,9 @@ contract PendleLPArk is Ark {
      * @param _amount Amount of tokens to deposit
      */
     function _depositTokenForLp(uint256 _amount) internal {
-        uint256 minLpOut = _assetToLP(_amount).subtractPercentage(slippageBPS);
+        uint256 minLpOut = _assetToLP(_amount).subtractPercentage(
+            slippagePercentage
+        );
 
         TokenInput memory tokenInput = TokenInput({
             tokenIn: address(config.token),
@@ -146,14 +146,16 @@ contract PendleLPArk is Ark {
     function _redeemTokenFromLp(uint256 amount) internal {
         uint256 lpBalance = IERC20(market).balanceOf(address(this));
         uint256 withdrawAmountInLp = _assetToLP(amount).addPercentage(
-            slippageBPS
+            slippagePercentage
         );
         uint256 lpToRedeem = (withdrawAmountInLp > lpBalance)
             ? lpBalance
             : withdrawAmountInLp;
 
         uint256 expectedAssetOut = _LPtoAsset(lpToRedeem);
-        uint256 minAssetOut = expectedAssetOut.subtractPercentage(slippageBPS);
+        uint256 minAssetOut = expectedAssetOut.subtractPercentage(
+            slippagePercentage
+        );
 
         IERC20(market).approve(router, type(uint256).max);
         TokenOutput memory tokenOutput = TokenOutput({
@@ -187,7 +189,8 @@ contract PendleLPArk is Ark {
      * @dev we decrease the total assets by the allowed slippage so the redeemed amount is always higher than the requested amount
      */
     function totalAssets() public view override returns (uint256) {
-        return _LPtoAsset(_balanceOfLP()).subtractPercentage(slippageBPS);
+        return
+            _LPtoAsset(_balanceOfLP()).subtractPercentage(slippagePercentage);
     }
 
     /**
@@ -204,13 +207,14 @@ contract PendleLPArk is Ark {
         if (block.timestamp < marketExpiry) return;
 
         address newMarket = _findNextMarket();
-        require(
-            newMarket != address(0) && newMarket != market,
-            "No valid next market"
-        );
+        if (newMarket == address(0) || newMarket == market) {
+            revert NoValidNextMarket();
+        }
 
         _redeemAllToUnderlying();
-        require((_isOracleReady(newMarket)), "Oracle not ready");
+        if (!_isOracleReady(newMarket)) {
+            revert OracleNotReady();
+        }
 
         _updateMarketAndTokens(newMarket);
         _updateMarketData();
@@ -224,7 +228,9 @@ contract PendleLPArk is Ark {
     function _redeemAllToUnderlying() internal {
         uint256 lpBalance = IERC20(market).balanceOf(address(this));
         uint256 expectedAssetOut = _LPtoAsset(lpBalance);
-        uint256 minAssetOut = expectedAssetOut.subtractPercentage(slippageBPS);
+        uint256 minAssetOut = expectedAssetOut.subtractPercentage(
+            slippagePercentage
+        );
 
         if (lpBalance > 0) {
             TokenOutput memory tokenOutput = TokenOutput({
@@ -306,11 +312,16 @@ contract PendleLPArk is Ark {
      * @notice Sets the slippage tolerance in basis points
      * @param _slippagePercentage New slippage tolerance
      */
-    function setSlippageBPS(
+    function setSlippagePercentage(
         Percentage _slippagePercentage
     ) external onlyGovernor {
-        require(_slippagePercentage <= MAX_BPS, "Invalid slippage");
-        slippageBPS = _slippagePercentage;
+        if (_slippagePercentage > MAX_SLIPPAGE_PERCENTAGE) {
+            revert SlippagePercentageTooHigh(
+                _slippagePercentage,
+                MAX_SLIPPAGE_PERCENTAGE
+            );
+        }
+        slippagePercentage = _slippagePercentage;
         emit SlippageUpdated(_slippagePercentage);
     }
 
@@ -319,25 +330,25 @@ contract PendleLPArk is Ark {
      * @param _oracleDuration New oracle duration
      */
     function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
-        require(_oracleDuration >= MIN_ORACLE_DURATION, "Duration too low");
+        if (_oracleDuration < MIN_ORACLE_DURATION) {
+            revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
+        }
         oracleDuration = _oracleDuration;
         emit OracleDurationUpdated(_oracleDuration);
     }
 
     /**
      * @notice Harvests rewards from the market
-     * @return Total amount of rewards harvested
+     * @return totalRewards amount of rewards harvested
      */
     function _harvest(
         address,
         bytes calldata
-    ) internal override returns (uint256) {
+    ) internal override returns (uint256 totalRewards) {
         address[] memory rewardTokens = IPMarketV3(market).getRewardTokens();
         uint256[] memory rewardAmounts = IPMarketV3(market).redeemRewards(
             address(this)
         );
-        uint256 totalRewards = 0;
-
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             IERC20(rewardTokens[i]).safeTransfer(
                 config.commander,
@@ -345,8 +356,6 @@ contract PendleLPArk is Ark {
             );
             totalRewards += rewardAmounts[i];
         }
-
-        return totalRewards;
     }
 
     /**
@@ -372,6 +381,4 @@ contract PendleLPArk is Ark {
         // Note: We negate the result because the original conditions check for when the oracle is NOT ready
         return !(increaseCardinalityRequired || !oldestObservationSatisfied);
     }
-
-    error OracleNotReady();
 }

@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.26;
+import {Percentage} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
+error OracleNotReady();
+error InvalidAssetForSY();
+error NoValidNextMarket();
+error OracleDurationTooLow(uint32 providedDuration, uint256 minimumDuration);
+error SlippagePercentageTooHigh(
+    Percentage providedSlippage,
+    Percentage maxSlippage
+);

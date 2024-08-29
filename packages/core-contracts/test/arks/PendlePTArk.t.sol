@@ -14,6 +14,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {OracleNotReady, NoValidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../src/errors/arks/PendleArkErrors.sol";
 
 contract PendlePTArkTestFork is Test, IArkEvents {
     PendlePTArk public ark;
@@ -201,24 +202,33 @@ contract PendlePTArkTestFork is Test, IArkEvents {
             "Ark should have assets after rollover"
         );
     }
-    function test_SetSlippageBPS() public {
-        Percentage newSlippageBPS = PercentageUtils.fromFraction(1, 100);
+    function test_SetSlippagePercentage() public {
+        Percentage newSlippagePercentage = PercentageUtils.fromFraction(1, 100);
 
         vm.prank(governor);
-        ark.setSlippageBPS(newSlippageBPS);
+        ark.setSlippagePercentage(newSlippagePercentage);
 
         assertTrue(
-            ark.slippageBPS() == newSlippageBPS,
-            "Slippage BPS not updated correctly"
+            ark.slippagePercentage() == newSlippagePercentage,
+            "Slippage Percentage not updated correctly"
         );
     }
 
-    function test_SetSlippageBPS_RevertOnInvalidValue() public {
-        Percentage invalidSlippageBPS = PercentageUtils.fromFraction(101, 100);
+    function test_SetSlippagePercentage_RevertOnInvalidValue() public {
+        Percentage invalidSlippagePercentage = PercentageUtils.fromFraction(
+            101,
+            100
+        );
 
         vm.prank(governor);
-        vm.expectRevert("Invalid slippage");
-        ark.setSlippageBPS(invalidSlippageBPS);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SlippagePercentageTooHigh.selector,
+                invalidSlippagePercentage,
+                PERCENTAGE_100
+            )
+        );
+        ark.setSlippagePercentage(invalidSlippagePercentage);
     }
 
     function test_SetOracleDuration() public {
@@ -235,10 +245,16 @@ contract PendlePTArkTestFork is Test, IArkEvents {
     }
 
     function test_SetOracleDuration_RevertOnInvalidValue() public {
-        uint32 invalidOracleDuration = 899; // Less than 15 minutes
+        uint32 invalidOracleDuration = 10 minutes; // Less than 15 minutes
 
         vm.prank(governor);
-        vm.expectRevert("Duration too low");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OracleDurationTooLow.selector,
+                10 minutes,
+                15 minutes
+            )
+        );
         ark.setOracleDuration(invalidOracleDuration);
     }
 
@@ -263,7 +279,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
 
         // Attempt to trigger rollover
-        vm.expectRevert("No valid next market");
+        vm.expectRevert(abi.encodeWithSelector(NoValidNextMarket.selector));
         vm.prank(commander);
         ark.board(amount);
     }
@@ -289,7 +305,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
 
         // Attempt to trigger rollover
-        vm.expectRevert("Oracle not ready");
+        vm.expectRevert(abi.encodeWithSelector(OracleNotReady.selector));
         vm.prank(commander);
         ark.board(amount);
     }
