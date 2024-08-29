@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../Ark.sol";
-import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
 import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
-import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
+
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
+import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
+import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
+
 import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
+import "../Ark.sol";
 
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;

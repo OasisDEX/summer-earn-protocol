@@ -3,21 +3,22 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
-import "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
-import "../../src/contracts/arks/MorphoArk.sol";
+import "../../src/contracts/arks/CompoundV3Ark.sol";
+
 import "../../src/contracts/arks/MetaMorphoArk.sol";
+import "../../src/contracts/arks/MorphoArk.sol";
 
 import "../../src/events/IArkEvents.sol";
 
-import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/ERC4626Ark.sol";
+import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
@@ -88,7 +89,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         Id.wrap(
             0xc581c5f70bd1afa283eed57d1418c6432cbff1d862f94eaf58fdd4e46afbb67f
         );
-    uint256 constant FORK_BLOCK = 20376149;
+    uint256 constant FORK_BLOCK = 20_376_149;
 
     // Fleet Commanders
     IFleetCommander public usdcFleetCommander;
@@ -109,6 +110,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         logSetupInfo();
         setupLabels();
     }
+
     function setupLabels() internal {
         vm.label(USDC_ADDRESS, "USDC");
         vm.label(DAI_ADDRESS, "DAI");
@@ -135,6 +137,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.label(address(sDAIArk), "SDAI_ARK");
         vm.label(address(daiBufferArk), "DAI_BUFFER_ARK");
     }
+
     function setupExternalContracts() internal {
         usdcTokenContract = IERC20(USDC_ADDRESS);
         daiTokenContract = IERC20(DAI_ADDRESS);

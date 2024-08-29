@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../Ark.sol";
 import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
+import "../Ark.sol";
 
 contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;

@@ -3,8 +3,8 @@ pragma solidity 0.8.26;
 
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 
-import "../types/ArkTypes.sol";
 import "../events/IArkEvents.sol";
+import "../types/ArkTypes.sol";
 
 /**
  * @title IArk

@@ -3,13 +3,13 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract RedeemWithInterestTest is
     Test,
@@ -35,7 +35,7 @@ contract RedeemWithInterestTest is
         depositShares = fleetCommander.deposit(DEPOSIT_AMOUNT, mockUser);
         vm.stopPrank();
 
-        initialConversionRate = fleetCommander.convertToAssets(100000);
+        initialConversionRate = fleetCommander.convertToAssets(100_000);
 
         // Simulate interest accrual
         mockToken.mint(address(bufferArk), INTEREST_AMOUNT);
@@ -45,7 +45,7 @@ contract RedeemWithInterestTest is
     }
 
     function test_ConversionRateChange() public view {
-        uint256 newConversionRate = fleetCommander.convertToAssets(100000);
+        uint256 newConversionRate = fleetCommander.convertToAssets(100_000);
         assertGt(
             newConversionRate,
             initialConversionRate,

@@ -2,8 +2,9 @@
 pragma solidity 0.8.26;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+
 import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
 /**
  * @title ConfigurationManager

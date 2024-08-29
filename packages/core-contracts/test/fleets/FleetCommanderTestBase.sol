@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ArkMock} from "../mocks/ArkMock.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
-import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import {ArkMock} from "../mocks/ArkMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -27,10 +30,10 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
 
     // Constants
     uint256 constant INITIAL_REBALANCE_COOLDOWN = 1000;
-    uint256 constant INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE = 10000 * 10 ** 6;
-    uint256 constant ARK1_MAX_ALLOCATION = 10000 * 10 ** 6;
-    uint256 constant ARK2_MAX_ALLOCATION = 15000 * 10 ** 6;
-    uint256 constant ARK3_MAX_ALLOCATION = 20000 * 10 ** 6;
+    uint256 constant INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE = 10_000 * 10 ** 6;
+    uint256 constant ARK1_MAX_ALLOCATION = 10_000 * 10 ** 6;
+    uint256 constant ARK2_MAX_ALLOCATION = 15_000 * 10 ** 6;
+    uint256 constant ARK3_MAX_ALLOCATION = 20_000 * 10 ** 6;
 
     // Contracts
     IProtocolAccessManager public accessManager;

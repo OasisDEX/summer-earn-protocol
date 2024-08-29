@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IERC20, ERC20, SafeERC20, ERC4626, IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
-import {IArk} from "../interfaces/IArk.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {Tipper} from "./Tipper.sol";
 
+import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+
+import {Tipper} from "./Tipper.sol";
+import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
+import "../errors/FleetCommanderErrors.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import "../errors/FleetCommanderErrors.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -501,7 +503,8 @@ contract FleetCommander is
      *      2. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
      * @return amount uint256 The actual amount of assets reallocated
-     * @custom:error FleetCommanderCantRebalanceToArk Thrown when the destination Ark is already at or above its maximum allocation
+     * @custom:error FleetCommanderCantRebalanceToArk Thrown when the destination Ark is already at or above its maximum
+     * allocation
      */
     function _reallocateAssets(
         RebalanceData memory data
@@ -614,7 +617,8 @@ contract FleetCommander is
      *      (either all moving to buffer or all moving from buffer) and ensures that
      *      the buffer balance remains above the minimum required balance
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
-     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when operations are inconsistent (all operations need to move funds in one direction)
+     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when operations are inconsistent (all operations need
+     * to move funds in one direction)
      * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
      * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
      */
@@ -721,8 +725,10 @@ contract FleetCommander is
      * @custom:error FleetCommanderRebalanceAmountZero if the amount is zero.
      * @custom:error FleetCommanderArkNotFound if the source or destination ARK is not found.
      * @custom:error FleetCommanderArkNotActive if the source or destination ARK is not active.
-     * @custom:error FleetCommanderExceedsMaxOutflow if the amount exceeds the maximum move from limit of the source ARK.
-     * @custom:error FleetCommanderExceedsMaxInflow if the amount exceeds the maximum move to limit of the destination ARK.
+     * @custom:error FleetCommanderExceedsMaxOutflow if the amount exceeds the maximum move from limit of the source
+     * ARK.
+     * @custom:error FleetCommanderExceedsMaxInflow if the amount exceeds the maximum move to limit of the destination
+     * ARK.
      * @custom:error FleetCommanderArkDepositCapZero if the deposit cap of the destination ARK is zero.
      */
     function _validateReallocateAssets(

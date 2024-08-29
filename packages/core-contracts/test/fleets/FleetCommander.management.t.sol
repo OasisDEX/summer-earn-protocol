@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {IArk, ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+
+import {FleetCommanderArkAlreadyExists, FleetCommanderArkAssetsNotZero, FleetCommanderArkDepositCapGreaterThanZero, FleetCommanderArkDepositCapZero, FleetCommanderArkNotFound, FleetCommanderCantRebalanceToArk, FleetCommanderInsufficientBuffer, FleetCommanderInvalidArkAddress, FleetCommanderInvalidBufferAdjustment, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderRebalanceAmountZero, FleetCommanderTransfersDisabled} from "../../src/errors/FleetCommanderErrors.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderArkAlreadyExists, FleetCommanderRebalanceAmountZero, FleetCommanderInvalidSourceArk, FleetCommanderInvalidArkAddress, FleetCommanderNoExcessFunds, FleetCommanderInvalidBufferAdjustment, FleetCommanderInsufficientBuffer, FleetCommanderCantRebalanceToArk, FleetCommanderArkNotFound, FleetCommanderArkDepositCapZero, FleetCommanderArkDepositCapGreaterThanZero, FleetCommanderArkAssetsNotZero, FleetCommanderTransfersDisabled} from "../../src/errors/FleetCommanderErrors.sol";
+import {ArkTestHelpers, IArk} from "../helpers/ArkHelpers.sol";
+
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {Test} from "forge-std/Test.sol";
 
-import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
+import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
@@ -30,7 +32,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             asset: address(mockToken),
             name: "Fleet Commander",
             symbol: "FC",
-            depositCap: 10000,
+            depositCap: 10_000,
             bufferArk: bufferArkAddress,
             initialTipRate: Percentage.wrap(0)
         });
@@ -43,7 +45,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         ) = newFleetCommander.config();
 
         assertEq(minimumBufferBalance, 1000);
-        assertEq(depositCap, 10000);
+        assertEq(depositCap, 10_000);
         assertEq(address(bufferArk), bufferArkAddress);
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
@@ -85,10 +87,12 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.expectRevert(FleetCommanderTransfersDisabled.selector);
         fleetCommander.transfer(address(0x123), 100);
     }
+
     function test_TransferFromDisabled() public {
         vm.expectRevert(FleetCommanderTransfersDisabled.selector);
         fleetCommander.transferFrom(address(this), address(0x123), 100);
     }
+
     function test_RemoveArkWithNonZeroAllocation() public {
         vm.prank(governor);
         vm.expectRevert(
@@ -174,7 +178,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_SetDepositCap() public {
-        uint256 newDepositCap = 10000;
+        uint256 newDepositCap = 10_000;
         vm.prank(governor);
         vm.expectEmit();
         emit IFleetCommanderEvents.DepositCapUpdated(newDepositCap);
@@ -186,7 +190,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_setArkDepositCap() public {
-        uint256 newDepositCap = 10000;
+        uint256 newDepositCap = 10_000;
         vm.prank(governor);
         vm.expectEmit();
         emit IArkEvents.DepositCapUpdated(newDepositCap);

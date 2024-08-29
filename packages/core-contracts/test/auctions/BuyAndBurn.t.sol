@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "./AuctionTestBase.sol";
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/errors/AccessControlErrors.sol";
 import "../../src/errors/BuyAndBurnErrors.sol";
-import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
+
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
+import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
+import "./AuctionTestBase.sol";
+
+import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
-import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 
 contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     BuyAndBurn public buyAndBurn;
@@ -272,6 +274,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
             "Unsold tokens should be in treasury"
         );
     }
+
     function test_BuyAllTokensAndAutoSettle() public {
         // Start the auction
         vm.prank(governor);
@@ -330,6 +333,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
             "auctionSummerRaised should be reset"
         );
     }
+
     function test_GetAuctionInfo() public {
         vm.prank(governor);
         buyAndBurn.startAuction(address(tokenToAuction1));

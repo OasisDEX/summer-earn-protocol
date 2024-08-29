@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "./AuctionTestBase.sol";
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
-import {Raft} from "../../src/contracts/Raft.sol";
-import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
+
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
+
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
+import "./AuctionTestBase.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 struct TestParams {
     MockERC20 rewardToken;

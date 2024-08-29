@@ -4,12 +4,13 @@ pragma solidity 0.8.26;
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/types/CommonAuctionTypes.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 contract AuctionTestBase is Test {
     using PercentageUtils for uint256;

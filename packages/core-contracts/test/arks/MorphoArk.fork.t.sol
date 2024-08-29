@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import "../../src/events/IArkEvents.sol";
 
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {IMorpho, Id, MarketParams, IMorphoBase} from "morpho-blue/interfaces/IMorpho.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {IMorpho, IMorphoBase, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
 
 contract MorphoArkTestFork is Test, IArkEvents {
     MorphoArk public ark;
@@ -38,7 +38,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
     IMorpho public morpho;
     IERC20 public usdc;
 
-    uint256 forkBlock = 20376149;
+    uint256 forkBlock = 20_376_149;
     uint256 forkId;
 
     function setUp() public {

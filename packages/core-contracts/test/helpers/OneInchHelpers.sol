@@ -90,7 +90,7 @@ contract OneInchHelpers {
         console.log("Amount:", amount);
         console.log("Min Return:", minReturn);
         console.log("DEX:", dex);
-        console.log("Protocol:", uint(protocol));
+        console.log("Protocol:", uint256(protocol));
         console.log("Should Unwrap WETH:", shouldUnwrapWeth);
         console.log("Should Wrap WETH:", shouldWrapWeth);
         console.log("Use Permit2:", usePermit2);

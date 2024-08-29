@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import "../../src/events/IArkEvents.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 contract AaveV3ArkTestFork is Test, IArkEvents {
     AaveV3Ark public ark;
@@ -31,7 +32,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
     IPoolV3 public aaveV3Pool;
     IERC20 public dai;
 
-    uint256 forkBlock = 20276596;
+    uint256 forkBlock = 20_276_596;
     uint256 forkId;
 
     function setUp() public {
@@ -108,7 +109,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
         ark.board(amount);
 
         uint256 assetsAfterDeposit = ark.totalAssets();
-        vm.warp(block.timestamp + 10000);
+        vm.warp(block.timestamp + 10_000);
         uint256 assetsAfterAccrual = ark.totalAssets();
         assertTrue(assetsAfterAccrual > assetsAfterDeposit);
     }

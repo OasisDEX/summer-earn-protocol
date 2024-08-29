@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {ReentrancyGuardTransient} from "../../lib/openzeppelin-next/ReentrancyGuardTransient.sol";
+
+import {AssetMismatch, InsufficientOutputAmount, InvalidFleetCommander, InvalidRouterAddress, InvalidToken, ReentrancyGuard, SwapAmountMismatch, SwapFailed, UnsupportedSwapFunction, ZeroAmount} from "../errors/AdmiralsQuartersErrors.sol";
+import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
-import {ReentrancyGuardTransient} from "../../lib/openzeppelin-next/ReentrancyGuardTransient.sol";
-import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
-import {SwapFailed, AssetMismatch, InsufficientOutputAmount, InvalidFleetCommander, InvalidToken, UnsupportedSwapFunction, SwapAmountMismatch, ReentrancyGuard, ZeroAmount, InvalidRouterAddress} from "../errors/AdmiralsQuartersErrors.sol";
 
 /**
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
  *      with integrated swapping functionality using 1inch Router.
  * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas efficiency.
- * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored ReentrancyGuardTransient )
+ * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored
+ * ReentrancyGuardTransient )
  *
  * @dev How to use this contract:
  * 1. Deposit tokens: Use `depositTokens` to deposit ERC20 tokens into the contract.
@@ -26,7 +28,8 @@ import {SwapFailed, AssetMismatch, InsufficientOutputAmount, InvalidFleetCommand
  * 6. Rescue tokens: Contract owner can use `rescueTokens` to withdraw any tokens stuck in the contract.
  *
  * @dev Multicall functionality:
- * This contract inherits from OpenZeppelin's Multicall, allowing multiple function calls to be batched into a single transaction.
+ * This contract inherits from OpenZeppelin's Multicall, allowing multiple function calls to be batched into a single
+ * transaction.
  * To use Multicall:
  * 1. Encode each function call you want to make as calldata.
  * 2. Pack these encoded function calls into an array of bytes.
@@ -129,8 +132,11 @@ contract AdmiralsQuarters is
         uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) external nonReentrant returns (uint256 swappedAmount) {
-        if (address(fromToken) == address(0) || address(toToken) == address(0))
+        if (
+            address(fromToken) == address(0) || address(toToken) == address(0)
+        ) {
             revert InvalidToken();
+        }
         if (amount == 0) revert ZeroAmount();
         if (address(fromToken) == address(toToken)) {
             revert AssetMismatch();

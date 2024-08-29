@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
+import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import "../../src/contracts/arks/ERC4626Ark.sol";
 import "../../src/events/IArkEvents.sol";
-import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract ERC4626ArkTestFork is Test, IArkEvents {
     ERC4626Ark public ark;
@@ -28,7 +30,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
     IERC20 public usdc;
     ArkParams public params;
 
-    uint256 forkBlock = 20000000; // A recent block number
+    uint256 forkBlock = 20_000_000; // A recent block number
     uint256 forkId;
 
     function setUp() public {

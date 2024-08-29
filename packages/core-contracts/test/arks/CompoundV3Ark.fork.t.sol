@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {ArkParams, CompoundV3Ark} from "../../src/contracts/arks/CompoundV3Ark.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {CompoundV3Ark, ArkParams} from "../../src/contracts/arks/CompoundV3Ark.sol";
 
-import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents {
@@ -26,7 +27,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     IComet public comet;
     IERC20 public usdc;
 
-    uint256 forkBlock = 20276596;
+    uint256 forkBlock = 20_276_596;
     uint256 forkId;
 
     function setUp() public {
@@ -91,7 +92,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         ark.board(amount);
 
         uint256 assetsAfterDeposit = ark.totalAssets();
-        vm.warp(block.timestamp + 10000);
+        vm.warp(block.timestamp + 10_000);
         uint256 assetsAfterAccrual = ark.totalAssets();
         console.log("assetsAfterDeposit: ", assetsAfterDeposit);
         console.log("assetsAfterAccrual: ", assetsAfterAccrual);

@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 import {ITipperEvents} from "../../src/events/ITipperEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract TipperTest is Test, ITipperEvents {
     using PercentageUtils for uint256;
@@ -72,7 +73,7 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_AccrueTip() public {
-        uint256 initialDepositByUser = 1000000 ether;
+        uint256 initialDepositByUser = 1_000_000 ether;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);
@@ -84,15 +85,15 @@ contract TipperTest is Test, ITipperEvents {
         vm.warp(block.timestamp + 365 days);
 
         vm.expectEmit(true, true, false, true);
-        emit TipAccrued(10050167082308619770000); // Approximately 1% of 1,000,000 over 1 year
+        emit TipAccrued(10_050_167_082_308_619_770_000); // Approximately 1% of 1,000,000 over 1 year
         uint256 accruedTip = fleetCommander.tip();
 
-        assertApproxEqRel(accruedTip, 10050 ether, 0.01e18);
+        assertApproxEqRel(accruedTip, 10_050 ether, 0.01e18);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
     }
 
     function test_EstimateAccruedTip() public {
-        uint256 initialDepositByUser = 1000000 ether;
+        uint256 initialDepositByUser = 1_000_000 ether;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);
@@ -105,7 +106,8 @@ contract TipperTest is Test, ITipperEvents {
 
         uint256 estimatedTipAfter2000minutes = fleetCommander
             .estimateAccruedTip();
-        assertApproxEqRel(estimatedTipAfter2000minutes, 4978 ether, 0.01e18); // Approximately 0.4978% of 1,000,000 over 6 months
+        assertApproxEqRel(estimatedTipAfter2000minutes, 4978 ether, 0.01e18); // Approximately 0.4978% of 1,000,000 over
+        // 6 months
     }
 
     function test_TipRateCannotExceedOneHundredPercent() public {
@@ -129,7 +131,7 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_CompoundingEffect() public {
-        uint256 initialDepositByUser = 10000 ether;
+        uint256 initialDepositByUser = 10_000 ether;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);
@@ -151,7 +153,7 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_NoTipAccrualForSmallAmounts() public {
-        uint256 initialDepositByUser = 10000;
+        uint256 initialDepositByUser = 10_000;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);

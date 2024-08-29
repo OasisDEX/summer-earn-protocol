@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "./AuctionTestBase.sol";
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
+import "./AuctionTestBase.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 contract BuyAndBurnDecimalsTest is AuctionTestBase {
     using PercentageUtils for uint256;
+
     BuyAndBurn public buyAndBurn;
     SummerToken public summerToken;
     MockERC20 public tokenToAuction6Dec;
