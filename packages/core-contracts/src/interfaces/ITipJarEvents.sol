@@ -12,7 +12,8 @@ interface ITipJarEvents {
      * @notice Emitted when a new tip stream is added to the TipJar
      * @param recipient The address of the recipient for the new tip stream
      * @param allocation The allocation percentage for the new tip stream
-     * @param lockedUntilEpoch The minimum duration (as a UNIX timestamp) during which this tip stream cannot be modified or removed
+     * @param lockedUntilEpoch The minimum duration (as a UNIX timestamp) during which this tip stream cannot be
+     * modified or removed
      */
     event TipStreamAdded(
         address indexed recipient,
@@ -30,7 +31,8 @@ interface ITipJarEvents {
      * @notice Emitted when an existing tip stream is updated
      * @param recipient The address of the recipient whose tip stream was updated
      * @param newAllocation The new allocation percentage for the tip stream
-     * @param newLockedUntilEpoch The new minimum duration (as a UNIX timestamp) during which this tip stream cannot be modified or removed
+     * @param newLockedUntilEpoch The new minimum duration (as a UNIX timestamp) during which this tip stream cannot be
+     * modified or removed
      */
     event TipStreamUpdated(
         address indexed recipient,

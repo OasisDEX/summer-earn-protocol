@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "./AuctionTestBase.sol";
-import {Raft} from "../../src/contracts/Raft.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
 import "../../src/errors/RaftErrors.sol";
+
+import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IRaftEvents} from "../../src/events/IRaftEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
+import "./AuctionTestBase.sol";
+
+import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
-import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 
 contract RaftTest is AuctionTestBase, IRaftEvents {
     using PercentageUtils for uint256;
@@ -23,7 +25,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     MockERC20 public mockPaymentToken;
     ConfigurationManager public configurationManager;
 
-    uint256 constant REWARD_AMOUNT = 100_000_000;
+    uint256 constant REWARD_AMOUNT = 100000000;
 
     function setUp() public override {
         super.setUp();
@@ -57,7 +59,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         mockArk = new ArkMock(params);
 
         mintTokens(address(mockRewardToken), address(mockArk), REWARD_AMOUNT);
-        mintTokens(address(mockPaymentToken), buyer, 10_000_000_000 ether);
+        mintTokens(address(mockPaymentToken), buyer, 10000000000 ether);
 
         vm.label(address(mockArk), "mockArk");
         vm.label(address(mockRewardToken), "mockRewardToken");
@@ -370,7 +372,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
 
         // Second harvest and auction cycle
-        uint256 secondHarvestAmount = 1_500_000_000; // Different amount for the second harvest
+        uint256 secondHarvestAmount = 1500000000; // Different amount for the second harvest
         deal(address(mockRewardToken), address(mockArk), secondHarvestAmount);
 
         vm.startPrank(governor);
@@ -697,6 +699,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             expectedUnsoldTokens
         );
     }
+
     function test_GetAuctionInfo() public {
         // Setup the auction
         _setupAuction();
@@ -817,6 +820,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             "Auction should be finalized"
         );
     }
+
     function _setupAuction() internal {
         vm.startPrank(governor);
         raft.harvest(

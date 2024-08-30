@@ -3,9 +3,6 @@ pragma solidity 0.8.26;
 
 import "../Ark.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../../errors/ArkErrors.sol";
 
 /**
  * @title ERC4626Ark
@@ -37,15 +34,6 @@ contract ERC4626Ark is Ark {
 
         // Approve the vault to spend the Ark's tokens
         config.token.approve(_vault, MAX_UINT256);
-    }
-
-    /**
-     * @notice Returns the current rate of the vault
-     * @dev This function always returns 1000 * 10 ** 18 (so it doesnt cause overflow with Percentage)
-     * @return rate The rate of the vault
-     */
-    function rate() public pure override returns (uint256) {
-        return 1000 ether;
     }
 
     /**

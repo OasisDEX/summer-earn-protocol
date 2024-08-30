@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "./AuctionTestBase.sol";
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
-import {Raft} from "../../src/contracts/Raft.sol";
-import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
+
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
+
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
+import "./AuctionTestBase.sol";
+import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
 struct TestParams {
     MockERC20 rewardToken;
@@ -80,51 +82,51 @@ contract RaftDecimalsTest is AuctionTestBase {
         mintTokens(
             address(rewardToken6Dec),
             address(mockArk6Dec),
-            1_000_000 * 10 ** 6
+            1000000 * 10 ** 6
         );
         mintTokens(
             address(rewardToken8Dec),
             address(mockArk6Dec),
-            1_000_000 * 10 ** 8
+            1000000 * 10 ** 8
         );
         mintTokens(
             address(rewardToken18Dec),
             address(mockArk6Dec),
-            1_000_000 * 10 ** 18
+            1000000 * 10 ** 18
         );
         mintTokens(
             address(rewardToken6Dec),
             address(mockArk8Dec),
-            1_000_000 * 10 ** 6
+            1000000 * 10 ** 6
         );
         mintTokens(
             address(rewardToken8Dec),
             address(mockArk8Dec),
-            1_000_000 * 10 ** 8
+            1000000 * 10 ** 8
         );
         mintTokens(
             address(rewardToken18Dec),
             address(mockArk8Dec),
-            1_000_000 * 10 ** 18
+            1000000 * 10 ** 18
         );
         mintTokens(
             address(rewardToken6Dec),
             address(mockArk18Dec),
-            1_000_000 * 10 ** 6
+            1000000 * 10 ** 6
         );
         mintTokens(
             address(rewardToken8Dec),
             address(mockArk18Dec),
-            1_000_000 * 10 ** 8
+            1000000 * 10 ** 8
         );
         mintTokens(
             address(rewardToken18Dec),
             address(mockArk18Dec),
-            1_000_000 * 10 ** 18
+            1000000 * 10 ** 18
         );
-        mintTokens(address(underlyingToken6Dec), buyer, 10_000_000 * 10 ** 6);
-        mintTokens(address(underlyingToken8Dec), buyer, 10_000_000 * 10 ** 8);
-        mintTokens(address(underlyingToken18Dec), buyer, 10_000_000 * 10 ** 18);
+        mintTokens(address(underlyingToken6Dec), buyer, 10000000 * 10 ** 6);
+        mintTokens(address(underlyingToken8Dec), buyer, 10000000 * 10 ** 8);
+        mintTokens(address(underlyingToken18Dec), buyer, 10000000 * 10 ** 18);
 
         vm.startPrank(buyer);
         underlyingToken6Dec.approve(address(raft), type(uint256).max);
@@ -205,7 +207,7 @@ contract RaftDecimalsTest is AuctionTestBase {
     }
 
     function _runAuctionTest(TestParams memory params) internal {
-        uint256 rewardAmount = 1_000_000 * 10 ** params.rewardDecimals;
+        uint256 rewardAmount = 1000000 * 10 ** params.rewardDecimals;
         uint256 adjustedStartPrice = 100 * 10 ** params.underlyingDecimals;
         uint256 adjustedEndPrice = 50 * 10 ** params.underlyingDecimals;
 
@@ -260,7 +262,7 @@ contract RaftDecimalsTest is AuctionTestBase {
         );
 
         // Test buying tokens
-        uint256 buyAmount = 100_000 * 10 ** params.rewardDecimals;
+        uint256 buyAmount = 100000 * 10 ** params.rewardDecimals;
         vm.prank(buyer);
         uint256 tokensPaid = raft.buyTokens(
             address(params.mockArk),

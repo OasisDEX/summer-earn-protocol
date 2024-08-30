@@ -8,11 +8,6 @@ error FleetCommanderArkNotActive(address ark);
 error FleetCommanderCantRebalanceToArk(address ark);
 error FleetCommanderInvalidBufferAdjustment();
 error FleetCommanderInsufficientBuffer();
-error FleetCommanderTargetArkRateTooLow(
-    address ark,
-    uint256 targetRate,
-    uint256 currentRate
-);
 error FleetCommanderRebalanceNoOperations();
 error FleetCommanderRebalanceTooManyOperations(uint256 operationsCount);
 error FleetCommanderRebalanceAmountZero(address ark);

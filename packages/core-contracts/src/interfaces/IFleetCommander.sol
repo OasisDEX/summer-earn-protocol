@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {FleetCommanderParams, RebalanceData, FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import {FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "./IArk.sol";
+import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -30,8 +30,7 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
         returns (
             IArk bufferArk,
             uint256 minimumBufferBalance,
-            uint256 depositCap,
-            Percentage minimumRateDifference
+            uint256 depositCap
         );
 
     /**
@@ -132,9 +131,11 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
      *      - toArk: The address of the Ark to move assets to (must be buffer Ark for depositing to buffer)
      *      - amount: The amount of assets to move
      * @dev Unlike rebalance, adjustBuffer operations must involve the buffer Ark
-     * @dev All operations in a single adjustBuffer call must be in the same direction (either all to buffer or all from buffer)
+     * @dev All operations in a single adjustBuffer call must be in the same direction (either all to buffer or all from
+     * buffer)
      * @dev type(uint256).max is not allowed as an amount for buffer adjustments
-     * @dev When withdrawing from the buffer, the total amount moved cannot reduce the buffer balance below minFundsBufferBalance
+     * @dev When withdrawing from the buffer, the total amount moved cannot reduce the buffer balance below
+     * minFundsBufferBalance
      * @dev The number of operations in a single adjustBuffer call is limited to MAX_REBALANCE_OPERATIONS
      * @dev AdjustBuffer is subject to a cooldown period between calls
      * @dev Only callable by accounts with the Keeper role
@@ -217,11 +218,6 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function setMinimumBufferBalance(uint256 newMinimumBalance) external;
 
     /**
-     * @dev Sets the minimum rate difference for the Fleet Commander.
-     * @param newRateDifference The new minimum rate difference to be set.
-     */
-    function setMinimumRateDifference(Percentage newRateDifference) external;
-    /**
      * @notice Updates the rebalance cooldown period
      * @param newCooldown The new cooldown period in seconds
      */
@@ -236,7 +232,8 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
 
     /**
      * @notice Initiates an emergency shutdown of the FleetCommander
-     * @dev This action can only be performed under critical circumstances and typically by governance or a privileged role.
+     * @dev This action can only be performed under critical circumstances and typically by governance or a privileged
+     * role.
      */
     function emergencyShutdown() external;
 }

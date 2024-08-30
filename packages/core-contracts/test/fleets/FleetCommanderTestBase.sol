@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ArkMock} from "../mocks/ArkMock.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
-import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import {ArkMock} from "../mocks/ArkMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -136,8 +139,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             symbol: "TEST-SUM",
             initialTipRate: initialTipRate,
             depositCap: type(uint256).max,
-            bufferArk: bufferArkAddress,
-            minimumRateDifference: Percentage.wrap(0)
+            bufferArk: bufferArkAddress
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(

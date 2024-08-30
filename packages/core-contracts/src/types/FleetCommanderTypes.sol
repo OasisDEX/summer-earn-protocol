@@ -19,7 +19,6 @@ struct FleetCommanderParams {
     uint256 initialRebalanceCooldown;
     uint256 depositCap;
     Percentage initialTipRate;
-    Percentage minimumRateDifference;
 }
 
 /**
@@ -49,15 +48,6 @@ struct FleetConfig {
      *      of the underlying asset.
      */
     uint256 depositCap;
-    /**
-     * @notice The minimum rate difference required to trigger a rebalance between Arks
-     * @dev This percentage represents the threshold of rate difference between two Arks
-     *      that must be exceeded to justify a rebalancing operation. It helps prevent
-     *      excessive rebalancing for minor rate fluctuations.
-     * @dev The Percentage type is assumed to be a custom type representing a percentage,
-     *      likely with high precision (e.g., basis points).
-     */
-    Percentage minimumRateDifference;
 }
 
 /**

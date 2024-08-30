@@ -3,22 +3,22 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
-import "../../src/contracts/arks/CompoundV3Ark.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
-import "../../src/contracts/arks/MorphoArk.sol";
+import "../../src/contracts/arks/CompoundV3Ark.sol";
+
 import "../../src/contracts/arks/MetaMorphoArk.sol";
-import "../../src/contracts/arks/SDAIArk.sol";
+import "../../src/contracts/arks/MorphoArk.sol";
 
 import "../../src/events/IArkEvents.sol";
 
-import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/ERC4626Ark.sol";
+import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
@@ -38,7 +38,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     AaveV3Ark public daiAaveArk;
     MorphoArk public daiMorphoArk;
     MetaMorphoArk public daiMetaMorphoArk;
-    SDAIArk public sDAIArk;
+    ERC4626Ark public sDAIArk;
     BufferArk public daiBufferArk;
 
     // External contracts
@@ -50,7 +50,6 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     IMetaMorpho public usdcMetaMorphoContract;
     IMetaMorpho public daiMetaMorphoContract;
     IERC4626 public sDAIContract;
-    IPot public potContract;
     IERC4626 public gearboxUsdcVault;
     IERC4626 public fluidUsdcVault;
 
@@ -111,6 +110,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         logSetupInfo();
         setupLabels();
     }
+
     function setupLabels() internal {
         vm.label(USDC_ADDRESS, "USDC");
         vm.label(DAI_ADDRESS, "DAI");
@@ -137,6 +137,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.label(address(sDAIArk), "SDAI_ARK");
         vm.label(address(daiBufferArk), "DAI_BUFFER_ARK");
     }
+
     function setupExternalContracts() internal {
         usdcTokenContract = IERC20(USDC_ADDRESS);
         daiTokenContract = IERC20(DAI_ADDRESS);
@@ -146,7 +147,6 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         usdcMetaMorphoContract = IMetaMorpho(USDC_METAMORPHO_ADDRESS);
         daiMetaMorphoContract = IMetaMorpho(DAI_METAMORPHO_ADDRESS);
         sDAIContract = IERC4626(SDAI_ADDRESS);
-        potContract = IPot(POT_ADDRESS);
         gearboxUsdcVault = IERC4626(GEARBOX_USDC_VAULT_ADDRESS);
         fluidUsdcVault = IERC4626(FLUID_USDC_VAULT_ADDRESS);
     }
@@ -215,7 +215,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             DAI_METAMORPHO_ADDRESS,
             daiArkParams
         );
-        sDAIArk = new SDAIArk(SDAI_ADDRESS, POT_ADDRESS, daiArkParams);
+        sDAIArk = new ERC4626Ark(SDAI_ADDRESS, daiArkParams);
     }
 
     function setupFleetCommanders(uint256 initialTipRate) internal {
@@ -295,7 +295,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         console.log("SDAI Ark:", address(sDAIArk));
     }
 
-    function test_DepositRebalanceForceWithdraw_BothFleets_Fork() public {
+    function test_DepositRebalanceWithdrawFromArks_BothFleets_Fork() public {
         // Arrange
         uint256 usdcTotalDeposit = 6000 * 10 ** 6; // 6000 USDC
         uint256 daiTotalDeposit = 4000 * 10 ** 18; // 4000 DAI
@@ -433,7 +433,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 amountPerArk
     ) internal {
         address[] memory arks = fleet.getArks();
-        (IArk bufferArk, , , ) = fleet.config();
+        (IArk bufferArk, , ) = fleet.config();
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](arks.length);
         for (uint256 i = 0; i < arks.length; i++) {
@@ -475,15 +475,6 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
                 ),
                 ark.totalAssets()
             );
-            console.log(
-                string.concat(
-                    fleetName,
-                    " Ark ",
-                    Strings.toString(i),
-                    " rate:"
-                ),
-                ark.rate()
-            );
 
             assertTrue(
                 ark.totalAssets() > 0,
@@ -492,15 +483,6 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
                     " Ark ",
                     Strings.toString(i),
                     " assets should have increased"
-                )
-            );
-            assertTrue(
-                ark.rate() > 0,
-                string.concat(
-                    fleetName,
-                    " Ark ",
-                    Strings.toString(i),
-                    " rate should be greater than zero"
                 )
             );
         }
@@ -591,11 +573,11 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Get rates and total assets for each ark
         for (uint256 i = 0; i < arks.length; i++) {
-            arkRates[i] = IArk(arks[i]).rate();
+            arkRates[i] = i;
             arkTotalAssets[i] = IArk(arks[i]).totalAssets();
         }
 
-        // Sort arks by rate (descending order)
+        // Sort arks by index (descending order)
         for (uint256 i = 0; i < arks.length; i++) {
             for (uint256 j = i + 1; j < arks.length; j++) {
                 if (arkRates[i] < arkRates[j]) {
@@ -609,7 +591,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             }
         }
 
-        // Create rebalance data to move funds from lower rate arks to higher rate arks
+        // Create rebalance data to move funds from lower index arks to higher index arks
         RebalanceData[] memory rebalanceData = new RebalanceData[](
             arks.length - 1
         );
@@ -624,19 +606,19 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         fleet.rebalance(rebalanceData);
 
-        // Verify that all funds are now in the highest rate ark
+        // Verify that all funds are now in the first ark
         for (uint256 i = 1; i < arks.length; i++) {
             assertEq(
                 IArk(arks[i]).totalAssets(),
                 0,
-                "Lower rate ark should have 0 assets"
+                "Remaining arks should have 0 assets"
             );
         }
         assertApproxEqAbs(
             IArk(arks[0]).totalAssets(),
             fleet.totalAssets(),
             1000,
-            "Highest rate ark should have all assets"
+            "First ark should have all assets"
         );
     }
 }

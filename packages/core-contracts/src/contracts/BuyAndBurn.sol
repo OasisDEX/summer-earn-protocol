@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
-import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {AuctionManagerBase, DutchAuctionLibrary, AuctionDefaultParameters} from "./AuctionManagerBase.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../errors/BuyAndBurnErrors.sol";
+import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
+import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /**
  * @title BuyAndBurn
@@ -92,24 +91,28 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
         _settleAuction(auction);
     }
     /* @inheritdoc IBuyAndBurn */
+
     function getAuctionInfo(
         uint256 auctionId
     ) external view override returns (DutchAuctionLibrary.Auction memory) {
         return auctions[auctionId];
     }
     /* @inheritdoc IBuyAndBurn */
+
     function getCurrentPrice(
         uint256 auctionId
     ) external view returns (uint256) {
         return _getCurrentPrice(auctions[auctionId]);
     }
     /* @inheritdoc IBuyAndBurn */
+
     function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newParameters
     ) external override onlyGovernor {
         _updateAuctionDefaultParameters(newParameters);
     }
     /* @inheritdoc IBuyAndBurn */
+
     function setTreasury(address newTreasury) external override onlyGovernor {
         treasury = newTreasury;
     }

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ERC4626Mock, ERC4626, ERC20} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {ERC20, ERC4626, ERC4626Mock} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 
+import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {RebalanceData, FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     using PercentageUtils for uint256;
@@ -48,12 +48,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     ) public override(IERC4626, ERC4626) returns (uint256) {
         return super.withdraw(assets, receiver, owner);
     }
-
-    function forceWithdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external returns (uint256) {}
 
     function setTipRate(Percentage newTipRate) external {
         _setTipRate(newTipRate);
@@ -102,15 +96,11 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function setMinimumBufferBalance(uint256 newMinimumBalance) external {}
 
-    function setMinimumRateDifference(Percentage newRateDifference) external {}
-
     function rebalance(RebalanceData[] calldata data) external {}
 
     function forceRebalance(RebalanceData[] calldata data) external {}
 
     function updateRebalanceCooldown(uint256 newCooldown) external {}
-
-    function maxForceWithdraw(address owner) external view returns (uint256) {}
 
     function redeemFromArks(
         uint256 shares,

@@ -3,13 +3,13 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract WithdrawWithInterestTest is
     Test,
@@ -37,7 +37,7 @@ contract WithdrawWithInterestTest is
         initialConversionRate = fleetCommander.convertToAssets(100000);
 
         // Simulate interest accrual
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         mockToken.mint(address(bufferArk), INTEREST_AMOUNT);
 
         vm.prank(governor);
@@ -77,7 +77,7 @@ contract WithdrawWithInterestTest is
     }
 
     function test_WithdrawBufferPlusOne() public {
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
@@ -161,7 +161,7 @@ contract WithdrawWithInterestTest is
         );
     }
 
-    function test_WithdrawAllWithForceWithdraw() public {
+    function test_WithdrawAllWithWithdrawFromArks() public {
         uint256 totalUserAssets = fleetCommander.maxWithdraw(mockUser);
 
         vm.prank(mockUser);
@@ -251,7 +251,7 @@ contract WithdrawWithInterestTest is
     }
 
     function test_TwoUsersWithdrawAllAssets() public {
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         // Setup second user
         address secondUser = address(0x456);

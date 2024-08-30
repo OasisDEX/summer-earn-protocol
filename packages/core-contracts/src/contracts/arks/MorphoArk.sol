@@ -2,15 +2,14 @@
 pragma solidity 0.8.26;
 
 import "../Ark.sol";
-import {IMorpho, Id, MarketParams, Market, Position} from "morpho-blue/interfaces/IMorpho.sol";
+import {IMorpho, Id, Market, MarketParams, Position} from "morpho-blue/interfaces/IMorpho.sol";
 
-import {IIrm} from "morpho-blue/interfaces/IIrm.sol";
-
-import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
-import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
 import {MarketParamsLib} from "morpho-blue/libraries/MarketParamsLib.sol";
-import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
+import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
+import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
+
 import {MorphoBalancesLib} from "morpho-blue/libraries/periphery/MorphoBalancesLib.sol";
+import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
 
 error InvalidMorphoAddress();
 error InvalidMarketId();
@@ -41,32 +40,6 @@ contract MorphoArk is Ark {
         MORPHO = IMorpho(_morpho);
         marketId = _marketId;
         marketParams = MORPHO.idToMarketParams(_marketId);
-    }
-
-    function rate() public view override returns (uint256) {
-        Market memory market = MORPHO.market(marketId);
-        if (market.lastUpdate == 0) {
-            return 0;
-        }
-
-        IIrm interestRateModel = IIrm(marketParams.irm);
-        // Calculate borrow rate
-        uint256 borrowRate = interestRateModel.borrowRateView(
-            marketParams,
-            market
-        );
-        // Calculate utilization
-        uint256 utilization = market.totalSupplyAssets == 0
-            ? 0
-            : (market.totalBorrowAssets * WAD) / market.totalSupplyAssets;
-        // Calculate fee percentage
-        uint256 feePercentage = WAD - market.fee;
-        // Calculate supply rate
-        uint256 supplyRatePerSecond = (borrowRate *
-            utilization *
-            feePercentage) / (WAD * WAD);
-        // Convert to APY
-        return (supplyRatePerSecond * SECONDS_PER_YEAR * (RAY / WAD));
     }
 
     function totalAssets() public view override returns (uint256) {

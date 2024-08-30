@@ -187,14 +187,6 @@ contract PendlePTArk is BasePendleArk {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Returns the current fixed rate (to be deprecated)
-     * @return The maximum uint256 value as a placeholder
-     */
-    function rate() public pure override returns (uint256) {
-        return type(uint256).max;
-    }
-
-    /**
      * @notice Finds the next valid market
      * @return Address of the next market
      * @dev TODO: Implement logic to find the next valid market
