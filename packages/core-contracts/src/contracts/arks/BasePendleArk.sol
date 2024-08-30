@@ -24,23 +24,47 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
-    // Constants
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Maximum allowed slippage percentage
     Percentage public constant MAX_SLIPPAGE_PERCENTAGE = PERCENTAGE_100;
+    /// @notice Minimum allowed oracle duration
     uint256 public constant MIN_ORACLE_DURATION = 15 minutes;
 
-    // State variables
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Address of the current Pendle market
     address public market;
+    /// @notice Address of the Pendle router
     address public router;
+    /// @notice Address of the Pendle oracle
     address public immutable oracle;
+    /// @notice Duration for the oracle to use when fetching rates
     uint32 public oracleDuration;
+    /// @notice Standardized Yield token associated with the market
     IStandardizedYield public SY;
+    /// @notice Principal Token associated with the market
     IPPrincipalToken public PT;
+    /// @notice Yield Token associated with the market
     IPYieldToken public YT;
+    /// @notice Slippage tolerance for operations
     Percentage public slippagePercentage;
+    /// @notice Expiry timestamp of the current market
     uint256 public marketExpiry;
+    /// @notice Parameters for the Pendle router
     ApproxParams public routerParams;
+    /// @notice Empty limit order data for Pendle operations
     LimitOrderData emptyLimitOrderData;
+    /// @notice Empty swap data for Pendle operations
     SwapData public emptySwap;
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Constructor for BasePendleArk
@@ -64,6 +88,48 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
         _updateMarketData();
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Sets the slippage tolerance
+     * @param _slippagePercentage New slippage tolerance
+     */
+    function setSlippagePercentage(
+        Percentage _slippagePercentage
+    ) external onlyGovernor {
+        if (_slippagePercentage > MAX_SLIPPAGE_PERCENTAGE) {
+            revert SlippagePercentageTooHigh(
+                _slippagePercentage,
+                MAX_SLIPPAGE_PERCENTAGE
+            );
+        }
+        slippagePercentage = _slippagePercentage;
+        emit SlippageUpdated(_slippagePercentage);
+    }
+
+    /**
+     * @notice Sets the oracle duration
+     * @param _oracleDuration New oracle duration
+     */
+    function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
+        if (_oracleDuration < MIN_ORACLE_DURATION) {
+            revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
+        }
+        oracleDuration = _oracleDuration;
+        emit OracleDurationUpdated(_oracleDuration);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Deposits assets into the Ark
+     * @dev Rolls over to a new market if needed, then deposits tokens for Ark-specific tokens
+     * @param amount Amount of assets to deposit
+     */
     function _board(uint256 amount) internal override {
         _rolloverIfNeeded();
         _depositTokenForArkToken(amount);
@@ -96,24 +162,27 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Abstract method to redeem tokens from the Ark ifrom active market
-     * @param amount Amount of underlying tokens to redeem
+     * @notice Harvests rewards from the market
+     * @return totalRewards Amount of rewards harvested
+     * @dev TODO: Modify `RAFT` to support multiple token harvest and harvest without input token address
      */
-    function _redeemTokens(
-        uint256 amount,
-        uint256 minTokenOut
-    ) internal virtual;
+    function _harvest(
+        address,
+        bytes calldata
+    ) internal override returns (uint256 totalRewards) {
+        address[] memory rewardTokens = IPMarketV3(market).getRewardTokens();
+        uint256[] memory rewardAmounts = IPMarketV3(market).redeemRewards(
+            address(this)
+        );
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            IERC20(rewardTokens[i]).safeTransfer(
+                config.commander,
+                rewardAmounts[i]
+            );
+            totalRewards += rewardAmounts[i];
+        }
+    }
 
-    /**
-     * @notice Abstract method to redeem tokens after market expiry
-     * @param amount Amount to redeem
-     * @param minTokenOut Minimum amount of underlying tokens to receive
-     */
-    function _redeemTokensPostExpiry(
-        uint256 amount,
-        uint256 minTokenOut
-    ) internal virtual;
-    function _depositTokenForArkToken(uint256 amount) internal virtual;
     /**
      * @notice Internal function to set up router parameters
      */
@@ -148,11 +217,6 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
     }
 
     /**
-     * @notice Sets up token approvals
-     */
-    function _setupApprovals() internal virtual;
-
-    /**
      * @notice Rolls over to a new market if the current one has expired
      */
     function _rolloverIfNeeded() internal {
@@ -173,6 +237,73 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
     }
 
     /**
+     * @notice Converts asset amount to Ark-specific tokens (PT or LP)
+     * @param amount Amount of asset
+     * @return Equivalent amount of Ark-specific tokens
+     */
+    function _assetToArkTokens(uint256 amount) internal view returns (uint256) {
+        return (amount * WAD) / _fetchArkTokenToAssetRate();
+    }
+
+    /**
+     * @notice Converts Ark-specific tokens (PT or LP) to asset amount
+     * @param amount Amount of Ark-specific tokens
+     * @return Equivalent amount of asset
+     */
+    function _arkTokensToAsset(uint256 amount) internal view returns (uint256) {
+        return (amount * _fetchArkTokenToAssetRate()) / WAD;
+    }
+
+    /**
+     * @notice Checks if the Pendle oracle is ready for the given market
+     * @param _market The address of the Pendle market to check
+     * @return bool Returns true if the oracle is ready, false otherwise
+     */
+    function _isOracleReady(address _market) internal view returns (bool) {
+        (
+            bool increaseCardinalityRequired,
+            ,
+            bool oldestObservationSatisfied
+        ) = PendlePYLpOracle(oracle).getOracleState(_market, oracleDuration);
+        return !increaseCardinalityRequired && oldestObservationSatisfied;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ABSTRACT FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Abstract method to redeem tokens from the Ark from active market
+     * @param amount Amount of Ark-specific tokens to redeem
+     * @param minTokenOut Minimum amount of underlying tokens to receive
+     */
+    function _redeemTokens(
+        uint256 amount,
+        uint256 minTokenOut
+    ) internal virtual;
+
+    /**
+     * @notice Abstract method to redeem tokens after market expiry
+     * @param amount Amount of Ark-specific tokens to redeem
+     * @param minTokenOut Minimum amount of underlying tokens to receive
+     */
+    function _redeemTokensPostExpiry(
+        uint256 amount,
+        uint256 minTokenOut
+    ) internal virtual;
+
+    /**
+     * @notice Abstract method to deposit tokens for Ark-specific tokens
+     * @param amount Amount of underlying tokens to deposit
+     */
+    function _depositTokenForArkToken(uint256 amount) internal virtual;
+
+    /**
+     * @notice Sets up token approvals
+     */
+    function _setupApprovals() internal virtual;
+
+    /**
      * @notice Finds the next valid market
      * @return Address of the next market
      */
@@ -188,6 +319,20 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
      * @return Balance of Ark-specific tokens
      */
     function _balanceOfArkTokens() internal view virtual returns (uint256);
+
+    /**
+     * @notice Fetches the current exchange rate between Ark-specific tokens and assets
+     * @return Current exchange rate
+     */
+    function _fetchArkTokenToAssetRate()
+        internal
+        view
+        virtual
+        returns (uint256);
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Calculates the total assets held by the Ark
@@ -208,102 +353,5 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
                 : _arkTokensToAsset(_balanceOfArkTokens()).subtractPercentage(
                     slippagePercentage
                 );
-    }
-
-    /**
-     * @notice Method to convert asset amount to Ark-specific tokens (PT or LP)
-     * @param amount Amount of asset
-     * @return Equivalent amount of Ark-specific tokens
-     * This is an approximation and may not be exact due to rounding errors.
-     * Since the oracle is TWAP based, the rate lag is expected.
-     */
-    function _assetToArkTokens(uint256 amount) internal view returns (uint256) {
-        return (amount * WAD) / _fetchArkTokenToAssetRate();
-    }
-    /**
-     * @notice Method to convert Ark-specific tokens (PT or LP) to asset amount
-     * @param amount Amount of Ark-specific tokens
-     * @return Equivalent amount of asset
-     * Since the oracle is TWAP based, the rate lag is expected.
-     */
-    function _arkTokensToAsset(uint256 amount) internal view returns (uint256) {
-        return (amount * _fetchArkTokenToAssetRate()) / WAD;
-    }
-    function _fetchArkTokenToAssetRate()
-        internal
-        view
-        virtual
-        returns (uint256);
-
-    /**
-     * @notice Sets the slippage tolerance
-     * @param _slippagePercentage New slippage tolerance
-     */
-    function setSlippagePercentage(
-        Percentage _slippagePercentage
-    ) external onlyGovernor {
-        if (_slippagePercentage > MAX_SLIPPAGE_PERCENTAGE) {
-            revert SlippagePercentageTooHigh(
-                _slippagePercentage,
-                MAX_SLIPPAGE_PERCENTAGE
-            );
-        }
-        slippagePercentage = _slippagePercentage;
-        emit SlippageUpdated(_slippagePercentage);
-    }
-
-    /**
-     * @notice Sets the oracle duration
-     * @param _oracleDuration New oracle duration
-     */
-    function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
-        if (_oracleDuration < MIN_ORACLE_DURATION) {
-            revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
-        }
-        oracleDuration = _oracleDuration;
-        emit OracleDurationUpdated(_oracleDuration);
-    }
-
-    /**
-     * @notice Harvests rewards from the market
-     * @return totalRewards amount of rewards harvested
-     * TODO: Modify `RAFT` to support multiple token harvest and harvest without input token address
-     */
-    function _harvest(
-        address,
-        bytes calldata
-    ) internal override returns (uint256 totalRewards) {
-        address[] memory rewardTokens = IPMarketV3(market).getRewardTokens();
-        uint256[] memory rewardAmounts = IPMarketV3(market).redeemRewards(
-            address(this)
-        );
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
-            IERC20(rewardTokens[i]).safeTransfer(
-                config.commander,
-                rewardAmounts[i]
-            );
-            totalRewards += rewardAmounts[i];
-        }
-    }
-
-    /**
-     * @notice Checks if the Pendle oracle is ready for the given market
-     * @dev This function checks the oracle state as per Pendle's documentation:
-     *      https://docs.pendle.finance/Developers/Oracles/HowToIntegratePtAndLpOracle#third-initialize-the-oracle
-     * @param _market The address of the Pendle market to check
-     * @return bool Returns true if the oracle is ready, false otherwise
-     * @custom:security-note Ensure that the oracle is properly initialized before using it in critical operations
-     */
-    function _isOracleReady(address _market) internal view returns (bool) {
-        (
-            bool increaseCardinalityRequired,
-            ,
-            bool oldestObservationSatisfied
-        ) = PendlePYLpOracle(oracle).getOracleState(_market, oracleDuration);
-        // The oracle is ready if:
-        // 1. No increase in cardinality is required (increaseCardinalityRequired is false)
-        // 2. The oldest observation is satisfied (oldestObservationSatisfied is true)
-
-        return !increaseCardinalityRequired && oldestObservationSatisfied;
     }
 }

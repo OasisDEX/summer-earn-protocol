@@ -12,6 +12,10 @@ contract PendleLPArk is BasePendleArk {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @notice Constructor for PendleLPArk
      * @param _market Address of the Pendle market
@@ -26,6 +30,10 @@ contract PendleLPArk is BasePendleArk {
         ArkParams memory _params
     ) BasePendleArk(_market, _oracle, _router, _params) {}
 
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @notice Set up token approvals for Pendle interactions
      */
@@ -39,8 +47,8 @@ contract PendleLPArk is BasePendleArk {
     /**
      * @notice Deposits tokens for LP
      * @param _amount Amount of tokens to deposit
-     * @dev This function performs the following steps:
-     * 1. Check if the market has expired. If so, revert the transaction.
+     * @dev Checks for market expiry, calculates minimum LP output with slippage, and adds liquidity
+          * 1. Check if the market has expired. If so, revert the transaction.
      * 2. Calculate the minimum LP tokens to receive based on the input amount and slippage:
      *    - We use the Pendle LP oracle to get the current LP to asset rate.
      *    - We convert the input amount to LP tokens using this rate.
@@ -51,6 +59,7 @@ contract PendleLPArk is BasePendleArk {
      * Slippage protection ensures we receive at least the calculated minimum LP tokens.
      * This guards against price movements between our calculation and the actual swap execution.
      * The use of a TWAP oracle helps mitigate the risk of short-term price manipulations.
+  
      */
     function _depositTokenForArkToken(uint256 _amount) internal override {
         if (block.timestamp >= marketExpiry) {
@@ -77,6 +86,11 @@ contract PendleLPArk is BasePendleArk {
         );
     }
 
+    /**
+     * @notice Redeems LP tokens for underlying assets
+     * @param amount Amount of LP tokens to redeem
+     * @param minTokenOut Minimum amount of underlying tokens to receive
+     */
     function _redeemTokens(
         uint256 amount,
         uint256 minTokenOut
@@ -84,46 +98,17 @@ contract PendleLPArk is BasePendleArk {
         _removeLiquidity(amount, minTokenOut);
     }
 
+    /**
+     * @notice Redeems LP tokens for underlying assets after market expiry
+     * @param amount Amount of assets to redeem
+     * @param minTokenOut Minimum amount of underlying tokens to receive
+     */
     function _redeemTokensPostExpiry(
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
         uint256 lpAmount = _assetToArkTokens(amount);
         _removeLiquidity(lpAmount, minTokenOut);
-    }
-    /**
-     * @notice Redeems LP for tokens
-     * @param amount Amount of underlying asset to redeem
-     * @dev This function handles redemptions differently based on whether the market has expired:
-     * 1. If the market has expired:
-     *    - We use the input amount directly as the minimum token output.
-     *    - We convert the input amount to LP tokens without applying slippage.
-     * 2. If the market has not expired:
-     *    - We calculate the LP amount needed to redeem the requested asset amount, adding slippage.
-     *    - We use the lesser of the calculated LP amount and the current LP balance.
-     *    - We use the input amount as the minimum token output.
-     * 3. In both cases, we call the internal _removeLiquidity function to execute the redemption.
-     *
-     * Slippage protection is applied differently before and after expiry:
-     * - Before expiry: We add slippage when calculating LP tokens to ensure we have enough.
-     * - After expiry: We don't apply slippage as the redemption rate is fixed at 1:1.
-     */
-    function _redeemTokenFromLp(uint256 amount) internal {
-        if (block.timestamp >= marketExpiry) {
-            uint256 minTokenOut = amount;
-            uint256 lpAmount = _assetToArkTokens(amount);
-            _removeLiquidity(lpAmount, minTokenOut);
-        } else {
-            uint256 lpBalance = _balanceOfArkTokens();
-
-            uint256 withdrawAmountInLp = _assetToArkTokens(amount)
-                .addPercentage(slippagePercentage);
-            uint256 lpAmount = (withdrawAmountInLp > lpBalance)
-                ? lpBalance
-                : withdrawAmountInLp;
-
-            _removeLiquidity(lpAmount, amount);
-        }
     }
 
     /**
@@ -149,7 +134,7 @@ contract PendleLPArk is BasePendleArk {
     }
 
     /**
-     * @notice Redeems all LP to underlying tokens
+     * @notice Redeems all LP tokens to underlying tokens
      */
     function _redeemAllTokensFromExpiredMarket() internal override {
         uint256 lpBalance = _balanceOfArkTokens();
@@ -160,27 +145,31 @@ contract PendleLPArk is BasePendleArk {
         }
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @notice Returns the current rate (APY) for the LP position
      * @return The current APY
+     * @dev This function will be deprecated in the future
      */
     function rate() public pure override returns (uint256) {
-        // TODO: rate will be deprecated in the future
         return type(uint256).max;
     }
 
     /**
      * @notice Finds the next valid market
      * @return Address of the next market
+     * @dev TODO: Implement logic to find the next valid market
      */
     function nextMarket() public pure override returns (address) {
-        // TODO: Implement logic to find the next valid market
         return 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
     }
 
     /**
-     * @dev Fetches the LP to Asset rate from the PendlePYLpOracle contract.
-     * @return The LP to Asset rate.
+     * @notice Fetches the LP to Asset rate from the PendlePYLpOracle contract
+     * @return The LP to Asset rate
      */
     function _fetchArkTokenToAssetRate()
         internal
@@ -193,8 +182,8 @@ contract PendleLPArk is BasePendleArk {
     }
 
     /**
-     * @notice Returns the balance of LP held by the contract
-     * @return Balance of LP
+     * @notice Returns the balance of LP tokens held by the contract
+     * @return Balance of LP tokens
      */
     function _balanceOfArkTokens() internal view override returns (uint256) {
         return IERC20(market).balanceOf(address(this));

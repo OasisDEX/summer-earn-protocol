@@ -12,6 +12,10 @@ contract PendlePTArk is BasePendleArk {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @notice Constructor for PendlePTArk
      * @param _market Address of the Pendle market
@@ -26,6 +30,10 @@ contract PendlePTArk is BasePendleArk {
         ArkParams memory _params
     ) BasePendleArk(_market, _oracle, _router, _params) {}
 
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @notice Set up token approvals for Pendle interactions
      */
@@ -38,6 +46,7 @@ contract PendlePTArk is BasePendleArk {
     /**
      * @notice Deposits tokens and swaps them for Principal Tokens (PT)
      * @param _amount Amount of tokens to deposit
+     * @dev Checks for market expiry, calculates minimum PT output with slippage, and executes the swap
      * @dev This function performs the following steps:
      * 1. Check if the market has expired, revert if it has
      * 2. Calculate the minimum PT output based on the current exchange rate and slippage
@@ -73,6 +82,11 @@ contract PendlePTArk is BasePendleArk {
         );
     }
 
+    /**
+     * @notice Redeems PT for underlying tokens before market expiry
+     * @param amount Amount of PT to redeem
+     * @param minTokenOut Minimum amount of underlying tokens to receive
+     */
     function _redeemTokens(
         uint256 amount,
         uint256 minTokenOut
@@ -80,6 +94,11 @@ contract PendlePTArk is BasePendleArk {
         _redeemTokenFromPtBeforeExpiry(amount, minTokenOut);
     }
 
+    /**
+     * @notice Redeems PT for underlying tokens after market expiry
+     * @param amount Amount of PT to redeem
+     * @param minTokenOut Minimum amount of underlying tokens to receive
+     */
     function _redeemTokensPostExpiry(
         uint256 amount,
         uint256 minTokenOut
@@ -91,7 +110,7 @@ contract PendlePTArk is BasePendleArk {
      * @notice Redeems PT for underlying tokens after market expiry
      * @param ptAmount Amount of PT to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
-     * @dev This function handles redemption after market expiry:
+     * @dev Redeems PT to SY using Pendle's router, then redeems SY to underlying token
      * 1. Redeem PT to SY using Pendle's router
      * 2. Redeem SY to underlying token
      * No slippage is applied as the exchange rate is fixed post-expiry
@@ -129,7 +148,7 @@ contract PendlePTArk is BasePendleArk {
      * @notice Redeems PT for underlying tokens before market expiry
      * @param ptAmount Amount of PT to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
-     * @dev This function handles redemption before market expiry:
+     * @dev Executes the swap using Pendle's router with slippage protection
      * 1. Prepare the token output data for the swap
      * 2. Execute the swap using Pendle's router
      * Slippage protection is applied to ensure the minimum token output
@@ -157,13 +176,15 @@ contract PendlePTArk is BasePendleArk {
 
     /**
      * @notice Redeems all PT for underlying tokens after market expiry
-     * @dev This function redeems all PT to SY and then redeems SY to the underlying token
-     *    check `_redeemTokenFromPtPostExpiry` for more details
      */
     function _redeemAllTokensFromExpiredMarket() internal override {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
         _redeemTokenFromPtPostExpiry(ptBalance, ptBalance);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Returns the current fixed rate (to be deprecated)
@@ -176,15 +197,15 @@ contract PendlePTArk is BasePendleArk {
     /**
      * @notice Finds the next valid market
      * @return Address of the next market
+     * @dev TODO: Implement logic to find the next valid market
      */
     function nextMarket() public pure override returns (address) {
-        // TODO: Implement logic to find the next valid market
         return 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
     }
 
     /**
-     * @dev Fetches the PT to SY rate from the PendlePYLpOracle contract.
-     * @return The PT to asset rate as a uint256 value.
+     * @notice Fetches the PT to Asset rate from the PendlePYLpOracle contract
+     * @return The PT to Asset rate as a uint256 value
      */
     function _fetchArkTokenToAssetRate()
         internal
