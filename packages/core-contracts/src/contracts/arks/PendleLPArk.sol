@@ -150,15 +150,6 @@ contract PendleLPArk is BasePendleArk {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Returns the current rate (APY) for the LP position
-     * @return The current APY
-     * @dev This function will be deprecated in the future
-     */
-    function rate() public pure override returns (uint256) {
-        return type(uint256).max;
-    }
-
-    /**
      * @notice Finds the next valid market
      * @return Address of the next market
      * @dev TODO: Implement logic to find the next valid market

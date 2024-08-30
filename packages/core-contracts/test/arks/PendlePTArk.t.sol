@@ -168,14 +168,6 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
     }
 
-    function test_Rate_PendlePTArk_fork() public view {
-        uint256 rate = ark.rate();
-        assertTrue(rate > 0, "Rate should be greater than zero");
-
-        // The rate should be fixed, so calling it again should return the same value
-        assertEq(ark.rate(), rate, "Rate should remain constant");
-    }
-
     function test_DepositToExpireMarket_PendlePTArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
