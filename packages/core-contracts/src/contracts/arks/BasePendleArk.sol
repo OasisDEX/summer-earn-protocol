@@ -64,6 +64,56 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
         _updateMarketData();
     }
 
+    function _board(uint256 amount) internal override {
+        _rolloverIfNeeded();
+        _depositTokenForArkToken(amount);
+    }
+
+    /**
+     * @dev This function handles redemption differently based on whether the market has expired:
+     * 1. If the market has expired:
+     *    - Use a 1:1 exchange ratio between PT / LP and asset (no slippage)
+     *    - Call _redeemTokensPostExpiry
+     * 2. If the market has not expired:
+     *    - Calculate PT / LP amount needed, accounting for slippage
+     *    - Call _redeemTokens
+     *
+     * The slippage is applied differently in each case to protect the user from unfavorable price movements.
+     */
+    function _disembark(uint256 amount) internal override {
+        _rolloverIfNeeded();
+        if (block.timestamp >= marketExpiry) {
+            _redeemTokensPostExpiry(amount, amount);
+        } else {
+            uint256 arkTokenBalance = _balanceOfArkTokens();
+            uint256 withdrawAmountInArkTokens = _assetToArkTokens(amount)
+                .addPercentage(slippagePercentage);
+            uint256 finalAmount = (withdrawAmountInArkTokens > arkTokenBalance)
+                ? arkTokenBalance
+                : withdrawAmountInArkTokens;
+            _redeemTokens(finalAmount, amount);
+        }
+    }
+
+    /**
+     * @notice Abstract method to redeem tokens from the Ark ifrom active market
+     * @param amount Amount of underlying tokens to redeem
+     */
+    function _redeemTokens(
+        uint256 amount,
+        uint256 minTokenOut
+    ) internal virtual;
+
+    /**
+     * @notice Abstract method to redeem tokens after market expiry
+     * @param amount Amount to redeem
+     * @param minTokenOut Minimum amount of underlying tokens to receive
+     */
+    function _redeemTokensPostExpiry(
+        uint256 amount,
+        uint256 minTokenOut
+    ) internal virtual;
+    function _depositTokenForArkToken(uint256 amount) internal virtual;
     /**
      * @notice Internal function to set up router parameters
      */
@@ -134,6 +184,58 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
     function _redeemAllTokensFromExpiredMarket() internal virtual;
 
     /**
+     * @notice Abstract method to get the balance of Ark-specific tokens
+     * @return Balance of Ark-specific tokens
+     */
+    function _balanceOfArkTokens() internal view virtual returns (uint256);
+
+    /**
+     * @notice Calculates the total assets held by the Ark
+     * @return The total assets in underlying token
+     * @dev We handle this differently based on whether the market has expired:
+     * 1. If the market has expired: return the exact PT / LP balance (1:1 ratio)
+     * 2. If the market has not expired: subtract slippage from the calculated asset amount
+     *
+     * By subtracting slippage from total assets when the market is active, we ensure that:
+     * a) We provide a conservative estimate of the Ark's value
+     * b) We can always fulfill withdrawal requests, even in volatile market conditions
+     * c) Users might receive slightly more than expected, which is beneficial for them
+     */
+    function totalAssets() public view override returns (uint256) {
+        return
+            (block.timestamp >= marketExpiry)
+                ? _arkTokensToAsset(_balanceOfArkTokens())
+                : _arkTokensToAsset(_balanceOfArkTokens()).subtractPercentage(
+                    slippagePercentage
+                );
+    }
+
+    /**
+     * @notice Method to convert asset amount to Ark-specific tokens (PT or LP)
+     * @param amount Amount of asset
+     * @return Equivalent amount of Ark-specific tokens
+     * This is an approximation and may not be exact due to rounding errors.
+     * Since the oracle is TWAP based, the rate lag is expected.
+     */
+    function _assetToArkTokens(uint256 amount) internal view returns (uint256) {
+        return (amount * WAD) / _fetchArkTokenToAssetRate();
+    }
+    /**
+     * @notice Method to convert Ark-specific tokens (PT or LP) to asset amount
+     * @param amount Amount of Ark-specific tokens
+     * @return Equivalent amount of asset
+     * Since the oracle is TWAP based, the rate lag is expected.
+     */
+    function _arkTokensToAsset(uint256 amount) internal view returns (uint256) {
+        return (amount * _fetchArkTokenToAssetRate()) / WAD;
+    }
+    function _fetchArkTokenToAssetRate()
+        internal
+        view
+        virtual
+        returns (uint256);
+
+    /**
      * @notice Sets the slippage tolerance
      * @param _slippagePercentage New slippage tolerance
      */
@@ -165,6 +267,7 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
     /**
      * @notice Harvests rewards from the market
      * @return totalRewards amount of rewards harvested
+     * TODO: Modify `RAFT` to support multiple token harvest and harvest without input token address
      */
     function _harvest(
         address,

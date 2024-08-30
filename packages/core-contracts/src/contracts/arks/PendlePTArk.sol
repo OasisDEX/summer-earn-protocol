@@ -36,24 +36,6 @@ contract PendlePTArk is BasePendleArk {
     }
 
     /**
-     * @notice Deposits assets into the Ark and converts them to Principal Tokens (PT)
-     * @param amount Amount of assets to deposit
-     */
-    function _board(uint256 amount) internal override {
-        _rolloverIfNeeded();
-        _depositTokenForPt(amount);
-    }
-
-    /**
-     * @notice Withdraws assets from the Ark by redeeming Principal Tokens (PT)
-     * @param amount Amount of assets to withdraw
-     */
-    function _disembark(uint256 amount) internal override {
-        _rolloverIfNeeded();
-        _redeemTokenFromPt(amount);
-    }
-
-    /**
      * @notice Deposits tokens and swaps them for Principal Tokens (PT)
      * @param _amount Amount of tokens to deposit
      * @dev This function performs the following steps:
@@ -65,11 +47,11 @@ contract PendlePTArk is BasePendleArk {
      * We use slippage protection here to ensure we receive at least the calculated minimum PT tokens.
      * This protects against sudden price movements between our calculation and the actual swap execution.
      */
-    function _depositTokenForPt(uint256 _amount) internal {
+    function _depositTokenForArkToken(uint256 _amount) internal override {
         if (block.timestamp >= marketExpiry) {
             revert MarketExpired();
         }
-        uint256 minPTout = _SYtoPT(_amount).subtractPercentage(
+        uint256 minPTout = _assetToArkTokens(_amount).subtractPercentage(
             slippagePercentage
         );
 
@@ -91,39 +73,18 @@ contract PendlePTArk is BasePendleArk {
         );
     }
 
-    /**
-     * @notice Redeems Principal Tokens (PT) for underlying tokens
-     * @param amount Amount of underlying tokens to redeem
-     * @dev This function handles redemption differently based on whether the market has expired:
-     * 1. If the market has expired:
-     *    - Use a 1:1 exchange ratio between PT and asset (no slippage)
-     *    - Call _redeemTokenFromPtPostExpiry
-     * 2. If the market has not expired:
-     *    - Calculate PT amount needed, accounting for slippage
-     *    - Call _redeemTokenFromPtBeforeExpiry
-     *
-     * The slippage is applied differently in each case to protect the user from unfavorable price movements.
-     */
-    function _redeemTokenFromPt(uint256 amount) internal {
-        if (block.timestamp >= marketExpiry) {
-            // If the market is expired, we redeem all PT and SY to underlying tokens
-            // The exchange ratio between PT and asset is 1:1 with no slippage
-            uint256 ptAmount = amount;
-            uint256 minTokenOut = amount;
-            _redeemTokenFromPtPostExpiry(ptAmount, minTokenOut);
-        } else {
-            uint256 ptBalance = IERC20(PT).balanceOf(address(this));
+    function _redeemTokens(
+        uint256 amount,
+        uint256 minTokenOut
+    ) internal override {
+        _redeemTokenFromPtBeforeExpiry(amount, minTokenOut);
+    }
 
-            // Calculate the amount of PT needed to redeem the requested amount of tokens, accounting for slippage
-            uint256 withdrawAmountInPT = _SYtoPT(amount).addPercentage(
-                slippagePercentage
-            );
-            // Use the lesser of the calculated amount or the entire balance /// TODO: check that thoroughly if it can be explited
-            uint256 finalPtAmount = (withdrawAmountInPT > ptBalance)
-                ? ptBalance
-                : withdrawAmountInPT;
-            _redeemTokenFromPtBeforeExpiry(finalPtAmount, amount);
-        }
+    function _redeemTokensPostExpiry(
+        uint256 amount,
+        uint256 minTokenOut
+    ) internal override {
+        _redeemTokenFromPtPostExpiry(amount, minTokenOut);
     }
 
     /**
@@ -213,27 +174,6 @@ contract PendlePTArk is BasePendleArk {
     }
 
     /**
-     * @notice Calculates the total assets held by the Ark
-     * @return The total assets in underlying token
-     * @dev We handle this differently based on whether the market has expired:
-     * 1. If the market has expired: return the exact PT balance (1:1 ratio)
-     * 2. If the market has not expired: subtract slippage from the calculated asset amount
-     *
-     * By subtracting slippage from total assets when the market is active, we ensure that:
-     * a) We provide a conservative estimate of the Ark's value
-     * b) We can always fulfill withdrawal requests, even in volatile market conditions
-     * c) Users might receive slightly more than expected, which is beneficial for them
-     */
-    function totalAssets() public view override returns (uint256) {
-        return
-            (block.timestamp >= marketExpiry)
-                ? _PTtoAsset(_balanceOfPT())
-                : _PTtoAsset(_balanceOfPT()).subtractPercentage(
-                    slippagePercentage
-                );
-    }
-
-    /**
      * @notice Finds the next valid market
      * @return Address of the next market
      */
@@ -243,50 +183,24 @@ contract PendlePTArk is BasePendleArk {
     }
 
     /**
-     * @notice Converts SY amount to PT amount
-     * @param _amount Amount of SY to convert
-     * @return Equivalent amount of PT
-     */
-    function _SYtoPT(uint256 _amount) internal view returns (uint256) {
-        return (_amount * WAD) / fetchPtToSyRate();
-    }
-
-    /**
-     * @notice Converts PT amount to SY amount
-     * @param _amount Amount of PT to convert
-     * @return Equivalent amount of SY
-     */
-    function _PTtoSY(uint256 _amount) internal view returns (uint256) {
-        return (_amount * fetchPtToSyRate()) / WAD;
-    }
-
-    /**
      * @dev Fetches the PT to SY rate from the PendlePYLpOracle contract.
      * @return The PT to asset rate as a uint256 value.
      */
-    function fetchPtToSyRate() internal view returns (uint256) {
-        return PendlePYLpOracle(oracle).getPtToSyRate(market, oracleDuration);
-    }
-    
-    /**
-     * @notice Converts PT amount to asset amount
-     * @param _amount Amount of PT to convert
-     * @return Equivalent amount of asset
-     */
-    function _PTtoAsset(uint256 _amount) internal view returns (uint256) {
-        uint256 syAmount = _PTtoSY(_amount);
+    function _fetchArkTokenToAssetRate()
+        internal
+        view
+        override
+        returns (uint256)
+    {
         return
-            IStandardizedYield(SY).previewRedeem(
-                address(config.token),
-                syAmount
-            );
+            PendlePYLpOracle(oracle).getPtToAssetRate(market, oracleDuration);
     }
 
     /**
      * @notice Returns the balance of PT held by the contract
      * @return Balance of PT
      */
-    function _balanceOfPT() internal view returns (uint256) {
+    function _balanceOfArkTokens() internal view override returns (uint256) {
         return IERC20(PT).balanceOf(address(this));
     }
 }

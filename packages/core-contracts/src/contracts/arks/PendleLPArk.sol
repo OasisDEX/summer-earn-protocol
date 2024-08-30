@@ -37,24 +37,6 @@ contract PendleLPArk is BasePendleArk {
     }
 
     /**
-     * @notice Boards (deposits) assets into the Ark
-     * @param amount Amount of assets to board
-     */
-    function _board(uint256 amount) internal override {
-        _rolloverIfNeeded();
-        _depositTokenForLp(amount);
-    }
-
-    /**
-     * @notice Disembarks (withdraws) assets from the Ark
-     * @param amount Amount of assets to disembark
-     */
-    function _disembark(uint256 amount) internal override {
-        _rolloverIfNeeded();
-        _redeemTokenFromLp(amount);
-    }
-
-    /**
      * @notice Deposits tokens for LP
      * @param _amount Amount of tokens to deposit
      * @dev This function performs the following steps:
@@ -70,11 +52,11 @@ contract PendleLPArk is BasePendleArk {
      * This guards against price movements between our calculation and the actual swap execution.
      * The use of a TWAP oracle helps mitigate the risk of short-term price manipulations.
      */
-    function _depositTokenForLp(uint256 _amount) internal {
+    function _depositTokenForArkToken(uint256 _amount) internal override {
         if (block.timestamp >= marketExpiry) {
             revert MarketExpired();
         }
-        uint256 minLpOut = _assetToLP(_amount).subtractPercentage(
+        uint256 minLpOut = _assetToArkTokens(_amount).subtractPercentage(
             slippagePercentage
         );
 
@@ -95,6 +77,20 @@ contract PendleLPArk is BasePendleArk {
         );
     }
 
+    function _redeemTokens(
+        uint256 amount,
+        uint256 minTokenOut
+    ) internal override {
+        _removeLiquidity(amount, minTokenOut);
+    }
+
+    function _redeemTokensPostExpiry(
+        uint256 amount,
+        uint256 minTokenOut
+    ) internal override {
+        uint256 lpAmount = _assetToArkTokens(amount);
+        _removeLiquidity(lpAmount, minTokenOut);
+    }
     /**
      * @notice Redeems LP for tokens
      * @param amount Amount of underlying asset to redeem
@@ -115,14 +111,13 @@ contract PendleLPArk is BasePendleArk {
     function _redeemTokenFromLp(uint256 amount) internal {
         if (block.timestamp >= marketExpiry) {
             uint256 minTokenOut = amount;
-            uint256 lpAmount = _assetToLP(amount);
+            uint256 lpAmount = _assetToArkTokens(amount);
             _removeLiquidity(lpAmount, minTokenOut);
         } else {
-            uint256 lpBalance = _balanceOfLP();
+            uint256 lpBalance = _balanceOfArkTokens();
 
-            uint256 withdrawAmountInLp = _assetToLP(amount).addPercentage(
-                slippagePercentage
-            );
+            uint256 withdrawAmountInLp = _assetToArkTokens(amount)
+                .addPercentage(slippagePercentage);
             uint256 lpAmount = (withdrawAmountInLp > lpBalance)
                 ? lpBalance
                 : withdrawAmountInLp;
@@ -157,8 +152,8 @@ contract PendleLPArk is BasePendleArk {
      * @notice Redeems all LP to underlying tokens
      */
     function _redeemAllTokensFromExpiredMarket() internal override {
-        uint256 lpBalance = _balanceOfLP();
-        uint256 expectedTokenOut = _LPtoAsset(lpBalance);
+        uint256 lpBalance = _balanceOfArkTokens();
+        uint256 expectedTokenOut = _arkTokensToAsset(lpBalance);
 
         if (lpBalance > 0) {
             _removeLiquidity(lpBalance, expectedTokenOut);
@@ -175,26 +170,6 @@ contract PendleLPArk is BasePendleArk {
     }
 
     /**
-     * @notice Returns the total assets held by the Ark
-     * @return The total assets in underlying token
-     * @dev We handle this differently based on whether the market has expired:
-     * 1. After expiry: We return the full amount of assets held by the LP without applying slippage.
-     * 2. Before expiry: We decrease the total assets by the allowed slippage.
-     *
-     * Subtracting slippage before expiry provides a conservative estimate of total assets.
-     * This ensures we can always fulfill withdrawal requests, even in volatile market conditions.
-     * The actual redeemed amount may be higher, which is beneficial for users.
-     */
-    function totalAssets() public view override returns (uint256) {
-        return
-            (block.timestamp >= marketExpiry)
-                ? _LPtoAsset(_balanceOfLP())
-                : _LPtoAsset(_balanceOfLP()).subtractPercentage(
-                    slippagePercentage
-                );
-    }
-
-    /**
      * @notice Finds the next valid market
      * @return Address of the next market
      */
@@ -204,42 +179,24 @@ contract PendleLPArk is BasePendleArk {
     }
 
     /**
-     * @notice Converts LP amount to asset amount
-     * @param _amount Amount of LP to convert
-     * @return Equivalent amount of asset
-     * @dev We use the Pendle oracle to get the current LP to asset rate.
-     * This rate is used to calculate the equivalent asset amount for a given LP amount.
-     * Since the oracle is TWAP based, the rate lag is expected.
-     */
-    function _LPtoAsset(uint256 _amount) internal view returns (uint256) {
-        return (_amount * _fetchLpToAssetRate()) / WAD;
-    }
-
-    /**
-     * @notice Converts asset amount to LP amount
-     * @param _amount Amount of asset to convert
-     * @return Equivalent amount of LP
-     * @dev There is no reverse operation for `getLpToAssetRate` in the Pendle oracle,
-     * so we invert the LP to asset rate to calculate the asset to LP rate.
-     * This is an approximation and may not be exact due to rounding errors.
-     */
-    function _assetToLP(uint256 _amount) internal view returns (uint256) {
-        return (_amount * WAD) / _fetchLpToAssetRate();
-    }
-
-    /**
      * @dev Fetches the LP to Asset rate from the PendlePYLpOracle contract.
      * @return The LP to Asset rate.
      */
-    function _fetchLpToAssetRate() internal view returns (uint256) {
+    function _fetchArkTokenToAssetRate()
+        internal
+        view
+        override
+        returns (uint256)
+    {
         return
             PendlePYLpOracle(oracle).getLpToAssetRate(market, oracleDuration);
     }
+
     /**
      * @notice Returns the balance of LP held by the contract
      * @return Balance of LP
      */
-    function _balanceOfLP() internal view returns (uint256) {
+    function _balanceOfArkTokens() internal view override returns (uint256) {
         return IERC20(market).balanceOf(address(this));
     }
 }
