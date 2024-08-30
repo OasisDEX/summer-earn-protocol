@@ -209,4 +209,19 @@ contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             "Buffer balance should increase by minted assets"
         );
     }
+
+    function test_RedeemExceedingBalance() public {
+        uint256 excessAmount = 1000000000000 ether;
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxMint(address,uint256,uint256)",
+                mockUser,
+                excessAmount,
+                fleetCommander.maxMint(mockUser)
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.mint(excessAmount, mockUser);
+    }
 }
