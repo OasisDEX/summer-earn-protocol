@@ -32,6 +32,7 @@ contract FleetCommander is
     FleetConfig public config;
     address[] public arks;
     mapping(address => bool) public isArkActive;
+    mapping(address => bool) public isArkWithdrawable;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
@@ -50,6 +51,7 @@ contract FleetCommander is
             depositCap: params.depositCap
         });
         isArkActive[address(config.bufferArk)] = true;
+        isArkWithdrawable[address(config.bufferArk)] = true;
 
         _setupArks(params.initialArks);
     }
@@ -152,7 +154,7 @@ contract FleetCommander is
     {
         totalSharesToRedeem = previewWithdraw(assets);
         _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
-        address[] memory withdrawableArks = _getWithdrawableArks();
+        address[] memory withdrawableArks = _getSortedWithdrawableArks();
         _forceDisembarkFromSortedArks(withdrawableArks, assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
         _setLastActionTimestamp(0);
@@ -171,7 +173,7 @@ contract FleetCommander is
     {
         _validateForceRedeem(shares, owner);
         totalAssetsToWithdraw = previewRedeem(shares);
-        address[] memory withdrawableArks = _getWithdrawableArks();
+        address[] memory withdrawableArks = _getSortedWithdrawableArks();
         _forceDisembarkFromSortedArks(withdrawableArks, totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
         _setLastActionTimestamp(0);
@@ -277,13 +279,23 @@ contract FleetCommander is
     function maxWithdraw(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw) {
-        _maxWithdraw = previewRedeem(balanceOf(owner));
+        address[] memory withdrawableArks = _getSortedWithdrawableArks();
+        uint256 _totalAssets = 0;
+        for (uint256 i = 0; i < withdrawableArks.length; i++) {
+            _totalAssets += IArk(withdrawableArks[i]).totalAssets();
+        }
+        _maxWithdraw = Math.min(_totalAssets, previewRedeem(balanceOf(owner)));
     }
 
     function maxRedeem(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem) {
-        _maxRedeem = balanceOf(owner);
+        address[] memory withdrawableArks = _getSortedWithdrawableArks();
+        uint256 _totalAssets = 0;
+        for (uint256 i = 0; i < withdrawableArks.length; i++) {
+            _totalAssets += IArk(withdrawableArks[i]).totalAssets();
+        }
+        _maxRedeem = Math.min(convertToShares(_totalAssets), balanceOf(owner));
     }
 
     function maxBufferRedeem(
@@ -471,6 +483,7 @@ contract FleetCommander is
         }
 
         isArkActive[ark] = true;
+        isArkWithdrawable[ark] = IArk(ark).unrestrictedWithdrawal();
         arks.push(ark);
         emit ArkAdded(ark);
     }
@@ -533,17 +546,45 @@ contract FleetCommander is
      * @dev This will be deprecated, leaving it here until further changes are applied
      * @return List of arks
      */
-    function _getWithdrawableArks() internal view returns (address[] memory) {
-        address[] memory withdrawableArks = new address[](arks.length + 1);
-        uint256[] memory arksTotalAssets = new uint256[](arks.length);
-        for (uint256 i = 0; i < arks.length; i++) {
-            arksTotalAssets[i] = IArk(arks[i]).totalAssets();
-            withdrawableArks[i] = arks[i];
+    function _getSortedWithdrawableArks()
+        internal
+        view
+        returns (address[] memory)
+    {
+        address[] memory withdrawableArks = _getWithdrawableArks(arks);
+        uint256[] memory arksTotalAssets = new uint256[](
+            withdrawableArks.length
+        );
+        for (uint256 i = 0; i < withdrawableArks.length; i++) {
+            arksTotalAssets[i] = IArk(withdrawableArks[i]).totalAssets();
         }
-        _sortArksByTotalAssets(arks, arksTotalAssets);
-        withdrawableArks[arks.length] = address(config.bufferArk);
-
+        _sortArksByTotalAssets(withdrawableArks, arksTotalAssets);
         return withdrawableArks;
+    }
+    /**
+     * @notice Removes non withdrawable arks, adds buffer ark to the list
+     * @param _arks List of arks
+     * @return List of withdrawable arks
+     */
+    function _getWithdrawableArks(
+        address[] memory _arks
+    ) internal view returns (address[] memory) {
+        uint256 j = 0;
+        // reserve space for buffer ark
+        address[] memory filteredArks = new address[](_arks.length + 1);
+        for (uint256 i = 0; i < _arks.length; i++) {
+            if (isArkWithdrawable[_arks[i]]) {
+                filteredArks[j] = _arks[i];
+                j++;
+            }
+        }
+        // add buffer ark to the list, j is the index of empty slot
+        filteredArks[j] = address(config.bufferArk);
+        // set the length of the array - remove empty slots with indices greater than j
+        assembly {
+            mstore(filteredArks, add(j, 1))
+        }
+        return filteredArks;
     }
 
     /**

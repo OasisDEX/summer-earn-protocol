@@ -159,7 +159,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             token: USDC_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            unrestrictedWithdrawal: true
         });
 
         ArkParams memory daiArkParams = ArkParams({
@@ -169,7 +170,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             token: DAI_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            unrestrictedWithdrawal: true
         });
 
         // USDC Arks

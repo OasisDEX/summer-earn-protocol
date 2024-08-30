@@ -52,10 +52,11 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_GetArks() public view {
         address[] memory arks = fleetCommander.getArks();
-        assertEq(arks.length, 3);
+        assertEq(arks.length, 4);
         assertEq(arks[0], address(mockArk1));
         assertEq(arks[1], address(mockArk2));
         assertEq(arks[2], address(mockArk3));
+        assertEq(arks[3], address(mockArk4));
     }
 
     function test_SetMaxAllocationArkNotFound() public {
@@ -106,6 +107,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_RemoveSuccessful() public {
         // First, set max allocation to 0
+        uint256 initialArksCount = fleetCommander.getArks().length;
         vm.prank(governor);
         fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
@@ -113,7 +115,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.expectEmit(false, false, false, true);
         emit IFleetCommanderEvents.ArkRemoved(address(mockArk1));
         fleetCommander.removeArk(address(mockArk1));
-        assertEq(fleetCommander.getArks().length, 2);
+        assertEq(fleetCommander.getArks().length, initialArksCount - 1);
         assertEq(fleetCommander.isArkActive(address(mockArk1)), false);
     }
 

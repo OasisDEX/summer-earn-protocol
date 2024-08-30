@@ -44,6 +44,7 @@ struct ArkParams {
      * @dev This limit helps to prevent large, sudden inflows
      */
     uint256 maxRebalanceInflow;
+    bool unrestrictedWithdrawal;
 }
 
 /**
@@ -87,4 +88,5 @@ struct ArkConfig {
      * @dev This is typically set at initialization and not changed
      */
     string name;
+    bool unrestrictedWithdrawal;
 }

@@ -49,7 +49,8 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            unrestrictedWithdrawal: true
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
@@ -66,7 +67,8 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            unrestrictedWithdrawal: true
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
         assertEq(address(ark.comet()), address(comet));

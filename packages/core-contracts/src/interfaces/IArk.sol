@@ -44,6 +44,8 @@ interface IArk is IArkAccessManaged, IArkEvents {
      */
     function maxRebalanceOutflow() external view returns (uint256);
 
+    function unrestrictedWithdrawal() external view returns (bool);
+
     /**
      * @notice Returns the ERC20 token managed by this Ark
      * @return The IERC20 interface of the managed token
