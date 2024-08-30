@@ -91,8 +91,7 @@ contract FleetCommander is
         uint256 bufferBalanceInShares = convertToShares(bufferBalance);
 
         if (shares == type(uint256).max) {
-            uint256 totalUserShares = balanceOf(owner);
-            shares = totalUserShares;
+            shares = balanceOf(owner);
         }
 
         if (shares <= bufferBalanceInShares) {
@@ -245,54 +244,55 @@ contract FleetCommander is
 
     function maxDeposit(
         address owner
-    ) public view override(ERC4626, IERC4626) returns (uint256) {
+    ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
         uint256 _totalAssets = totalAssets();
         uint256 maxAssets = _totalAssets > config.depositCap
             ? 0
             : config.depositCap - _totalAssets;
 
-        return Math.min(maxAssets, IERC20(asset()).balanceOf(owner));
+        _maxDeposit = Math.min(maxAssets, IERC20(asset()).balanceOf(owner));
     }
 
     function maxMint(
         address owner
-    ) public view override(ERC4626, IERC4626) returns (uint256) {
+    ) public view override(ERC4626, IERC4626) returns (uint256 _maxMint) {
         uint256 _totalAssets = totalAssets();
         uint256 maxAssets = _totalAssets > config.depositCap
             ? 0
             : config.depositCap - _totalAssets;
-        return
-            previewDeposit(
-                Math.min(maxAssets, IERC20(asset()).balanceOf(owner))
-            );
+        _maxMint = previewDeposit(
+            Math.min(maxAssets, IERC20(asset()).balanceOf(owner))
+        );
     }
 
-    function maxBufferWithdraw(address owner) public view returns (uint256) {
-        return
-            Math.min(
-                config.bufferArk.totalAssets(),
-                previewRedeem(balanceOf(owner))
-            );
+    function maxBufferWithdraw(
+        address owner
+    ) public view returns (uint256 _maxBufferWithdraw) {
+        _maxBufferWithdraw = Math.min(
+            config.bufferArk.totalAssets(),
+            previewRedeem(balanceOf(owner))
+        );
     }
 
     function maxWithdraw(
         address owner
-    ) public view override(ERC4626, IERC4626) returns (uint256) {
-        return previewRedeem(balanceOf(owner));
+    ) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw) {
+        _maxWithdraw = previewRedeem(balanceOf(owner));
     }
 
     function maxRedeem(
         address owner
-    ) public view override(ERC4626, IERC4626) returns (uint256) {
-        return balanceOf(owner);
+    ) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem) {
+        _maxRedeem = balanceOf(owner);
     }
 
-    function maxBufferRedeem(address owner) public view returns (uint256) {
-        return
-            Math.min(
-                previewWithdraw(config.bufferArk.totalAssets()),
-                balanceOf(owner)
-            );
+    function maxBufferRedeem(
+        address owner
+    ) public view returns (uint256 _maxBufferRedeem) {
+        _maxBufferRedeem = Math.min(
+            previewWithdraw(config.bufferArk.totalAssets()),
+            balanceOf(owner)
+        );
     }
 
     /* EXTERNAL - KEEPER */

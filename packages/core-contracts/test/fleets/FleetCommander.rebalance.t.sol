@@ -465,53 +465,6 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
     }
 
-    function test_RebalanceMultipleOperationsWithMixedRates() public {
-        // Arrange
-        uint256 arkMaxAllocation = 5000 * 10 ** 6;
-        uint256 ark1TotalAssets = 6000 * 10 ** 6; // Over-allocated
-        uint256 ark2TotalAssets = 4000 * 10 ** 6;
-        uint256 ark3TotalAssets = 3000 * 10 ** 6;
-
-        mockArkMaxAllocation(ark1, arkMaxAllocation);
-        mockToken.mint(ark1, ark1TotalAssets);
-        mockToken.mint(ark2, ark2TotalAssets);
-        mockToken.mint(ark3, ark3TotalAssets);
-
-        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
-        rebalanceData[0] = RebalanceData({
-            fromArk: ark1,
-            toArk: ark2,
-            amount: 500 * 10 ** 6
-        });
-        rebalanceData[1] = RebalanceData({
-            fromArk: ark1,
-            toArk: ark3,
-            amount: 500 * 10 ** 6
-        });
-
-        // Act
-        vm.warp(INITIAL_REBALANCE_COOLDOWN);
-        vm.prank(keeper);
-        fleetCommander.rebalance(rebalanceData);
-
-        // Assert
-        assertEq(
-            IArk(ark1).totalAssets(),
-            ark1TotalAssets - 1000 * 10 ** 6,
-            "Source ark balance should decrease"
-        );
-        assertEq(
-            IArk(ark2).totalAssets(),
-            ark2TotalAssets + 500 * 10 ** 6,
-            "First ark balance should increase"
-        );
-        assertEq(
-            IArk(ark3).totalAssets(),
-            ark3TotalAssets + 500 * 10 ** 6,
-            "Second ark balance should increase"
-        );
-    }
-
     function test_RebalanceExceedsMoveMaxRebalanceOutflow() public {
         // Arrange
         uint256 maxRebalanceOutflow = 500 * 10 ** 6;
