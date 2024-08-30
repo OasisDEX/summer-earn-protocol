@@ -295,7 +295,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         console.log("SDAI Ark:", address(sDAIArk));
     }
 
-    function test_DepositRebalanceForceWithdraw_BothFleets_Fork() public {
+    function test_DepositRebalanceWithdrawFromArks_BothFleets_Fork() public {
         // Arrange
         uint256 usdcTotalDeposit = 6000 * 10 ** 6; // 6000 USDC
         uint256 daiTotalDeposit = 4000 * 10 ** 18; // 4000 DAI

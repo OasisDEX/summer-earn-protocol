@@ -49,12 +49,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         return super.withdraw(assets, receiver, owner);
     }
 
-    function forceWithdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external returns (uint256) {}
-
     function setTipRate(Percentage newTipRate) external {
         _setTipRate(newTipRate);
     }
@@ -107,8 +101,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function forceRebalance(RebalanceData[] calldata data) external {}
 
     function updateRebalanceCooldown(uint256 newCooldown) external {}
-
-    function maxForceWithdraw(address owner) external view returns (uint256) {}
 
     function redeemFromArks(
         uint256 shares,

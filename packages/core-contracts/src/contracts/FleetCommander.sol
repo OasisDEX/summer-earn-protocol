@@ -152,7 +152,7 @@ contract FleetCommander is
         returns (uint256 totalSharesToRedeem)
     {
         totalSharesToRedeem = previewWithdraw(assets);
-        _validateForceWithdraw(assets, totalSharesToRedeem, owner);
+        _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
         address[] memory withdrawableArks = _getWithdrawableArks();
         _forceDisembarkFromSortedArks(withdrawableArks, assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
@@ -863,7 +863,7 @@ contract FleetCommander is
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
      * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
      */
-    function _validateForceWithdraw(
+    function _validateWithdrawFromArks(
         uint256 assets,
         uint256 shares,
         address owner

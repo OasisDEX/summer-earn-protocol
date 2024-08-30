@@ -161,7 +161,7 @@ contract WithdrawWithInterestTest is
         );
     }
 
-    function test_WithdrawAllWithForceWithdraw() public {
+    function test_WithdrawAllWithWithdrawFromArks() public {
         uint256 totalUserAssets = fleetCommander.maxWithdraw(mockUser);
 
         vm.prank(mockUser);
