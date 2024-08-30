@@ -12,7 +12,7 @@ import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.s
 
 contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 constant MINT_AMOUNT = 1000 * 10 ** 6;
-    uint256 constant MAX_DEPOSIT_CAP = 100_000 * 10 ** 6;
+    uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
 
     function setUp() public {
         uint256 initialTipRate = 0;

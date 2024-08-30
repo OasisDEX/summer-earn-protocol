@@ -29,7 +29,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
     IProtocolAccessManager accessManager;
     IConfigurationManager configurationManager;
 
-    uint256 forkBlock = 20_376_149; // Adjust this to a suitable block number
+    uint256 forkBlock = 20376149; // Adjust this to a suitable block number
     uint256 forkId;
 
     function setUp() public {

@@ -32,8 +32,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_RebalanceSuccess() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -66,15 +66,15 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
         assertEq(
             fleetCommander.totalAssets(),
-            initialBufferBalance + 10_000 * 10 ** 6,
+            initialBufferBalance + 10000 * 10 ** 6,
             "Total assets should remain unchanged"
         );
     }
 
     function test_RebalanceWithMaxUint() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = type(uint256).max;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -109,15 +109,15 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
         assertEq(
             fleetCommander.totalAssets(),
-            initialBufferBalance + 10_000 * 10 ** 6,
+            initialBufferBalance + 10000 * 10 ** 6,
             "Total assets should remain unchanged"
         );
     }
 
     function test_RebalanceMultipleArks() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
 
         uint256 ark1IntitialBalance = 5000 * 10 ** 6;
         uint256 ark2IntitialBalance = 2500 * 10 ** 6;
@@ -426,8 +426,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_ForceRebalance() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -460,7 +460,7 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
         assertEq(
             fleetCommander.totalAssets(),
-            initialBufferBalance + 10_000 * 10 ** 6,
+            initialBufferBalance + 10000 * 10 ** 6,
             "Total assets should remain unchanged"
         );
     }

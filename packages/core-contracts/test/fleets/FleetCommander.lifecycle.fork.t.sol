@@ -89,7 +89,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         Id.wrap(
             0xc581c5f70bd1afa283eed57d1418c6432cbff1d862f94eaf58fdd4e46afbb67f
         );
-    uint256 constant FORK_BLOCK = 20_376_149;
+    uint256 constant FORK_BLOCK = 20376149;
 
     // Fleet Commanders
     IFleetCommander public usdcFleetCommander;

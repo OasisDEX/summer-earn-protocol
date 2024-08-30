@@ -21,7 +21,7 @@ import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.s
  */
 contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
-    uint256 constant MAX_DEPOSIT_CAP = 100_000 * 10 ** 6;
+    uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
 
     function setUp() public {
         uint256 initialTipRate = 0;
@@ -31,7 +31,7 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_Deposit() public {
         uint256 amount = 1000 * 10 ** 6;
-        uint256 maxDepositCap = 100_000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
         mockToken.mint(mockUser, amount);

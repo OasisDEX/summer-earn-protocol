@@ -28,7 +28,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
     FleetCommander public usdcFleet;
     FleetCommander public daiFleet;
 
-    uint256 constant FORK_BLOCK = 20_576_616;
+    uint256 constant FORK_BLOCK = 20576616;
 
     function setUp() public {
         vm.createSelectFork(vm.rpcUrl("mainnet"), FORK_BLOCK);
@@ -223,7 +223,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
                 IERC20(USDC_ADDRESS),
                 IERC20(DAI_ADDRESS),
                 minDaiAmount,
-                100_000 ether,
+                100000 ether,
                 usdcToDaiSwap
             )
         );
@@ -770,7 +770,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchHelpers {
         admiralsQuarters.depositTokens(IERC20(USDC_ADDRESS), usdcAmount);
 
         // Attempt to swap with an unrealistically high minimum return
-        uint256 unrealisticMinReturn = 10_000e18; // Expecting 10000 DAI for 1000 USDC
+        uint256 unrealisticMinReturn = 10000e18; // Expecting 10000 DAI for 1000 USDC
         bytes memory usdcToDaiSwap = encodeUnoswapData(
             USDC_ADDRESS,
             usdcAmount,

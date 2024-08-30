@@ -32,7 +32,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
     IPoolV3 public aaveV3Pool;
     IERC20 public dai;
 
-    uint256 forkBlock = 20_276_596;
+    uint256 forkBlock = 20276596;
     uint256 forkId;
 
     function setUp() public {
@@ -109,7 +109,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
         ark.board(amount);
 
         uint256 assetsAfterDeposit = ark.totalAssets();
-        vm.warp(block.timestamp + 10_000);
+        vm.warp(block.timestamp + 10000);
         uint256 assetsAfterAccrual = ark.totalAssets();
         assertTrue(assetsAfterAccrual > assetsAfterDeposit);
     }

@@ -30,10 +30,10 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
 
     // Constants
     uint256 constant INITIAL_REBALANCE_COOLDOWN = 1000;
-    uint256 constant INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE = 10_000 * 10 ** 6;
-    uint256 constant ARK1_MAX_ALLOCATION = 10_000 * 10 ** 6;
-    uint256 constant ARK2_MAX_ALLOCATION = 15_000 * 10 ** 6;
-    uint256 constant ARK3_MAX_ALLOCATION = 20_000 * 10 ** 6;
+    uint256 constant INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE = 10000 * 10 ** 6;
+    uint256 constant ARK1_MAX_ALLOCATION = 10000 * 10 ** 6;
+    uint256 constant ARK2_MAX_ALLOCATION = 15000 * 10 ** 6;
+    uint256 constant ARK3_MAX_ALLOCATION = 20000 * 10 ** 6;
 
     // Contracts
     IProtocolAccessManager public accessManager;

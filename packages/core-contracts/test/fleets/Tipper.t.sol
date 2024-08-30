@@ -73,7 +73,7 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_AccrueTip() public {
-        uint256 initialDepositByUser = 1_000_000 ether;
+        uint256 initialDepositByUser = 1000000 ether;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);
@@ -85,15 +85,15 @@ contract TipperTest is Test, ITipperEvents {
         vm.warp(block.timestamp + 365 days);
 
         vm.expectEmit(true, true, false, true);
-        emit TipAccrued(10_050_167_082_308_619_770_000); // Approximately 1% of 1,000,000 over 1 year
+        emit TipAccrued(10050167082308619770000); // Approximately 1% of 1,000,000 over 1 year
         uint256 accruedTip = fleetCommander.tip();
 
-        assertApproxEqRel(accruedTip, 10_050 ether, 0.01e18);
+        assertApproxEqRel(accruedTip, 10050 ether, 0.01e18);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
     }
 
     function test_EstimateAccruedTip() public {
-        uint256 initialDepositByUser = 1_000_000 ether;
+        uint256 initialDepositByUser = 1000000 ether;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);
@@ -131,7 +131,7 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_CompoundingEffect() public {
-        uint256 initialDepositByUser = 10_000 ether;
+        uint256 initialDepositByUser = 10000 ether;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);
@@ -153,7 +153,7 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_NoTipAccrualForSmallAmounts() public {
-        uint256 initialDepositByUser = 10_000;
+        uint256 initialDepositByUser = 10000;
         underlyingToken.mint(mockUser, initialDepositByUser);
 
         vm.startPrank(mockUser);

@@ -37,19 +37,19 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
         mintTokens(
             address(tokenToAuction6Dec),
             address(buyAndBurn),
-            1_000_000 * 10 ** 6
+            1000000 * 10 ** 6
         );
         mintTokens(
             address(tokenToAuction8Dec),
             address(buyAndBurn),
-            1_000_000 * 10 ** 8
+            1000000 * 10 ** 8
         );
         mintTokens(
             address(tokenToAuction18Dec),
             address(buyAndBurn),
-            1_000_000 * 10 ** 18
+            1000000 * 10 ** 18
         );
-        mintTokens(address(summerToken), buyer, 10_000_000 * 10 ** 18);
+        mintTokens(address(summerToken), buyer, 10000000 * 10 ** 18);
 
         vm.prank(buyer);
         summerToken.approve(address(buyAndBurn), type(uint256).max);
@@ -78,7 +78,7 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
         uint8 decimals
     ) internal {
         uint256 initialSummerTokenSupply = summerToken.totalSupply();
-        uint256 totalTokens = 1_000_000 * 10 ** decimals;
+        uint256 totalTokens = 1000000 * 10 ** decimals;
 
         vm.prank(governor);
         buyAndBurn.startAuction(address(tokenToAuction));
@@ -98,7 +98,7 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
         );
 
         // Test buying tokens
-        uint256 buyAmount = 100_000 * 10 ** decimals;
+        uint256 buyAmount = 100000 * 10 ** decimals;
         vm.prank(buyer);
         uint256 summerTokensSpent = buyAndBurn.buyTokens(1, buyAmount);
 

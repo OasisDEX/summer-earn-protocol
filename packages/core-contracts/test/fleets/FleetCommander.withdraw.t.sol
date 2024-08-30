@@ -40,15 +40,15 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.deposit(DEPOSIT_AMOUNT, mockUser);
         vm.stopPrank();
 
-        initialConversionRate = fleetCommander.convertToAssets(1_000_000);
+        initialConversionRate = fleetCommander.convertToAssets(1000000);
 
         vm.prank(governor);
         fleetCommander.setMinimumBufferBalance(0);
     }
 
     function test_ConversionRateChange() public {
-        mockToken.mint(ark1, 100_000);
-        uint256 newConversionRate = fleetCommander.convertToAssets(1_000_000);
+        mockToken.mint(ark1, 100000);
+        uint256 newConversionRate = fleetCommander.convertToAssets(1000000);
         assertGt(
             newConversionRate,
             initialConversionRate,

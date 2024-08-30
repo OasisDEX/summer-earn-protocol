@@ -25,7 +25,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     MockERC20 public mockPaymentToken;
     ConfigurationManager public configurationManager;
 
-    uint256 constant REWARD_AMOUNT = 100_000_000;
+    uint256 constant REWARD_AMOUNT = 100000000;
 
     function setUp() public override {
         super.setUp();
@@ -59,7 +59,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         mockArk = new ArkMock(params);
 
         mintTokens(address(mockRewardToken), address(mockArk), REWARD_AMOUNT);
-        mintTokens(address(mockPaymentToken), buyer, 10_000_000_000 ether);
+        mintTokens(address(mockPaymentToken), buyer, 10000000000 ether);
 
         vm.label(address(mockArk), "mockArk");
         vm.label(address(mockRewardToken), "mockRewardToken");
@@ -372,7 +372,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
 
         // Second harvest and auction cycle
-        uint256 secondHarvestAmount = 1_500_000_000; // Different amount for the second harvest
+        uint256 secondHarvestAmount = 1500000000; // Different amount for the second harvest
         deal(address(mockRewardToken), address(mockArk), secondHarvestAmount);
 
         vm.startPrank(governor);

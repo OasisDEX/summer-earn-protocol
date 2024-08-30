@@ -34,7 +34,7 @@ contract WithdrawWithInterestTest is
         depositShares = fleetCommander.deposit(DEPOSIT_AMOUNT, mockUser);
         vm.stopPrank();
 
-        initialConversionRate = fleetCommander.convertToAssets(100_000);
+        initialConversionRate = fleetCommander.convertToAssets(100000);
 
         // Simulate interest accrual
         (IArk bufferArk, , ) = fleetCommander.config();
@@ -45,7 +45,7 @@ contract WithdrawWithInterestTest is
     }
 
     function test_ConversionRateChange() public view {
-        uint256 newConversionRate = fleetCommander.convertToAssets(100_000);
+        uint256 newConversionRate = fleetCommander.convertToAssets(100000);
         assertGt(
             newConversionRate,
             initialConversionRate,

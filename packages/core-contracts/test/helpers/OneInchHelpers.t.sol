@@ -19,7 +19,7 @@ contract OneInchHelpersTest is Test, OneInchHelpers {
     address public user1 = address(0x1);
     address public user2 = address(0x2);
 
-    uint256 constant FORK_BLOCK = 20_576_616;
+    uint256 constant FORK_BLOCK = 20576616;
 
     function setUp() public {
         console.log("Setting up AdmiralsQuartersTest");
@@ -33,7 +33,7 @@ contract OneInchHelpersTest is Test, OneInchHelpers {
 
     function test_SwapUSDCToDAI() public {
         uint256 usdcBalanceBeforeSwap = IERC20(USDC_ADDRESS).balanceOf(user1);
-        uint256 usdcAmount = 1_000_000_000; // 100 USDC
+        uint256 usdcAmount = 1000000000; // 100 USDC
         uint256 minDaiAmount = 99e18; // Expecting at least 99 DAI (adjust based on current rates)
 
         // Encode unoswap data
@@ -94,8 +94,8 @@ contract OneInchHelpersTest is Test, OneInchHelpers {
             0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
             "Incorrect token address"
         );
-        assertEq(amount, 1_000_000_000, "Incorrect amount");
-        assertEq(minReturn, 989_892_129_812_136_699_187, "Incorrect minReturn");
+        assertEq(amount, 1000000000, "Incorrect amount");
+        assertEq(minReturn, 989892129812136699187, "Incorrect minReturn");
         assertEq(
             dex,
             0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168,

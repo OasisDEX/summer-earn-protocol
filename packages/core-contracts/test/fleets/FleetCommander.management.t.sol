@@ -32,7 +32,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             asset: address(mockToken),
             name: "Fleet Commander",
             symbol: "FC",
-            depositCap: 10_000,
+            depositCap: 10000,
             bufferArk: bufferArkAddress,
             initialTipRate: Percentage.wrap(0)
         });
@@ -45,7 +45,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         ) = newFleetCommander.config();
 
         assertEq(minimumBufferBalance, 1000);
-        assertEq(depositCap, 10_000);
+        assertEq(depositCap, 10000);
         assertEq(address(bufferArk), bufferArkAddress);
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
@@ -178,7 +178,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_SetDepositCap() public {
-        uint256 newDepositCap = 10_000;
+        uint256 newDepositCap = 10000;
         vm.prank(governor);
         vm.expectEmit();
         emit IFleetCommanderEvents.DepositCapUpdated(newDepositCap);
@@ -190,7 +190,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_setArkDepositCap() public {
-        uint256 newDepositCap = 10_000;
+        uint256 newDepositCap = 10000;
         vm.prank(governor);
         vm.expectEmit();
         emit IArkEvents.DepositCapUpdated(newDepositCap);

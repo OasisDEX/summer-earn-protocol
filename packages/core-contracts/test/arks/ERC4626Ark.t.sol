@@ -30,7 +30,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
     IERC20 public usdc;
     ArkParams public params;
 
-    uint256 forkBlock = 20_000_000; // A recent block number
+    uint256 forkBlock = 20000000; // A recent block number
     uint256 forkId;
 
     function setUp() public {

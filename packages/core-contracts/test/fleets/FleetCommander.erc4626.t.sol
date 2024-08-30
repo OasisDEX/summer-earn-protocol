@@ -21,7 +21,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_MaxDeposit() public {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
-        uint256 depositCap = 100_000 * 10 ** 6;
+        uint256 depositCap = 100000 * 10 ** 6;
 
         // Set deposit cap and total assets
         fleetCommanderStorageWriter.setDepositCap(depositCap);
@@ -44,7 +44,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_MaxMint() public {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
-        uint256 depositCap = 50_000 * 10 ** 6;
+        uint256 depositCap = 50000 * 10 ** 6;
 
         // Set deposit cap and total assets
         fleetCommanderStorageWriter.setDepositCap(depositCap);
@@ -114,7 +114,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_Mint() public {
         // Arrange
         uint256 mintAmount = 1000 * 10 ** 6;
-        uint256 maxDepositCap = 100_000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
         (IArk bufferArk, , ) = fleetCommander.config();
         uint256 bufferBalance = bufferArk.totalAssets();
 
@@ -146,7 +146,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 depositAmount = 1000 * 10 ** 6;
         uint256 redeemAmount = 100 * 10 ** 6;
-        uint256 maxDepositCap = 100_000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
 
         // Set buffer balance
         fleetCommanderStorageWriter.setDepositCap(maxDepositCap);

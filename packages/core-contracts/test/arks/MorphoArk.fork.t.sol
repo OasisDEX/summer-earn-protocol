@@ -38,7 +38,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
     IMorpho public morpho;
     IERC20 public usdc;
 
-    uint256 forkBlock = 20_376_149;
+    uint256 forkBlock = 20376149;
     uint256 forkId;
 
     function setUp() public {

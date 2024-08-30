@@ -27,7 +27,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     IComet public comet;
     IERC20 public usdc;
 
-    uint256 forkBlock = 20_276_596;
+    uint256 forkBlock = 20276596;
     uint256 forkId;
 
     function setUp() public {
@@ -92,7 +92,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
         ark.board(amount);
 
         uint256 assetsAfterDeposit = ark.totalAssets();
-        vm.warp(block.timestamp + 10_000);
+        vm.warp(block.timestamp + 10000);
         uint256 assetsAfterAccrual = ark.totalAssets();
         console.log("assetsAfterDeposit: ", assetsAfterDeposit);
         console.log("assetsAfterAccrual: ", assetsAfterAccrual);

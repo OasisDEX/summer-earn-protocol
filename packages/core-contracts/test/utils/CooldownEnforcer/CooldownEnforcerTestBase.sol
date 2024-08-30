@@ -14,7 +14,7 @@ abstract contract CooldownEnforcer_TestBase is Test {
     uint256 initialCooldown = 10;
     uint256 updatedCooldown = 20;
 
-    uint256 initialTimestamp = 20_000;
+    uint256 initialTimestamp = 20000;
     uint256 snapshotId;
 
     function setUp() public {

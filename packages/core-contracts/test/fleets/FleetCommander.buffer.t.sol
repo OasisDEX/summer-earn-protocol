@@ -30,8 +30,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferSuccess() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1RebalanceAmount = 3000 * 10 ** 6;
         uint256 ark2RebalanceAmount = 2000 * 10 ** 6;
 
@@ -116,8 +116,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferMovingMoreThanAllowed() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1RebalanceAmount = 3000 * 10 ** 6;
 
         // Set initial buffer balance and min buffer balance
@@ -153,7 +153,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferNoExcessFunds() public {
         // Arrange
-        uint256 bufferBalance = 10_000 * 10 ** 6;
+        uint256 bufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
         fleetCommanderStorageWriter.setminimumBufferBalance(bufferBalance);
@@ -177,8 +177,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferInvalidSourceArk() public {
         // Arrange
-        uint256 bufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 bufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -210,8 +210,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferInvalidTargetArk() public {
         // Arrange
-        uint256 bufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 bufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -242,8 +242,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferPartialMove() public {
         // Arrange
-        uint256 initialBufferBalance = 12_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 12000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1RebalanceAmount = 3000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
@@ -270,8 +270,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferWithMultipleArks() public {
         // Arrange
-        uint256 initialBufferBalance = 20_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 20000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1RebalanceAmount = 3000 * 10 ** 6;
         uint256 ark2RebalanceAmount = 2000 * 10 ** 6;
         uint256 ark3RebalanceAmount = 1000 * 10 ** 6;
@@ -318,8 +318,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferWithMaximumAllowedAmount() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 maxRebalanceAmount = initialBufferBalance - minBufferBalance;
 
         (IArk bufferArk, , ) = fleetCommander.config();
@@ -346,8 +346,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferAtMinimumBalance() public {
         // Arrange
-        uint256 initialBufferBalance = 10_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 10000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -370,8 +370,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferWithZeroAmount() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -397,8 +397,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferAsNonKeeper() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
@@ -424,8 +424,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferWithArkAtMaxAllocation() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1MaxAllocation = 5000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -455,8 +455,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferWithMaxUint_ShouldFail() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1MaxAllocation = 5000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -486,8 +486,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_AdjustBufferWithAmountExceedingMaxAllocation() public {
         uint256 rebalanceAmount = 1000 * 10 ** 6;
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 ark1MaxAllocation = 5000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -518,8 +518,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_AdjustBufferEventEmission() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 2000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
@@ -545,8 +545,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_TotalAssetsConsistencyAfterBufferAdjustment() public {
         // Arrange
-        uint256 initialBufferBalance = 15_000 * 10 ** 6;
-        uint256 minBufferBalance = 10_000 * 10 ** 6;
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 rebalanceAmount = 2000 * 10 ** 6;
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);

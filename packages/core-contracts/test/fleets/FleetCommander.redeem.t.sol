@@ -190,7 +190,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_RedeemToOtherReceiverCalledByNonOwner() public {
-        address receiver = address(9_999_999);
+        address receiver = address(9999999);
         uint256 redeemAmount = fleetCommander.maxRedeem(mockUser) / 2;
 
         vm.expectRevert(
