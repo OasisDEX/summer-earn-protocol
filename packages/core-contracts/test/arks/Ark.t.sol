@@ -204,7 +204,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         mockToken.approve(address(ark), amount);
         vm.expectEmit();
         emit Boarded(commander, address(mockToken), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         assertEq(
@@ -236,7 +236,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         mockToken.approve(address(ark), amount);
         vm.expectEmit();
         emit Boarded(address(otherArk), address(mockToken), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -273,7 +273,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
                 nonArk
             )
         );
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
     }
 
@@ -289,7 +289,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.startPrank(commander);
         vm.expectEmit();
         emit Disembarked(commander, address(mockToken), amount);
-        ark.disembark(amount);
+        ark.disembark(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -315,7 +315,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
                 address(this)
             )
         );
-        ark.disembark(amount);
+        ark.disembark(amount, bytes(""));
     }
 
     function test_Move_ShouldSucceed() public {
@@ -340,7 +340,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.startPrank(commander);
         vm.expectEmit();
         emit Moved(address(ark), address(otherArk), address(mockToken), amount);
-        ark.move(amount, address(otherArk));
+        ark.move(amount, address(otherArk), bytes(""), bytes(""));
         vm.stopPrank();
         // Assert
 
@@ -366,6 +366,6 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
                 address(this)
             )
         );
-        ark.move(amount, address(otherArk));
+        ark.move(amount, address(otherArk), bytes(""), bytes(""));
     }
 }

@@ -111,7 +111,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         emit Boarded(commander, USDE, amount);
 
         // Act
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -144,13 +144,13 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.warp(block.timestamp + 1 days);
         // Act
         uint256 initialBalance = usde.balanceOf(commander);
         uint256 amountToWithdraw = ark.totalAssets();
-        ark.disembark(amountToWithdraw);
+        ark.disembark(amountToWithdraw, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -176,7 +176,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Simulate some time passing
@@ -205,7 +205,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         vm.rollFork(MARKET_EXPIRY_BLOCK);
@@ -216,7 +216,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         deal(USDE, commander, 10 * amount);
         usde.approve(address(ark), amount);
         vm.expectRevert(abi.encodeWithSignature("MarketExpired()"));
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.stopPrank();
     }
@@ -227,14 +227,14 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         vm.rollFork(MARKET_EXPIRY_BLOCK);
 
         // Act
         vm.startPrank(commander);
-        ark.disembark(ark.totalAssets());
+        ark.disembark(ark.totalAssets(), bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -254,7 +254,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         vm.rollFork(block.number + 120000);
@@ -264,7 +264,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         deal(USDE, commander, 10 * amount);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.stopPrank();
 
@@ -297,13 +297,13 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
         // Act & Assert
-        ark.board(amount); // This should succeed with 0.1% slippage
+        ark.board(amount, bytes("")); // This should succeed with 0.1% slippage
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotGovernor(address)", commander)
         );
         ark.setSlippagePercentage(PercentageUtils.fromFraction(1, 10000)); // Set slippage to 0.01%
         IERC20(usde).approve(address(ark), amount);
-        ark.board(amount); // This should fail due to tight slippage
+        ark.board(amount, bytes("")); // This should fail due to tight slippage
 
         vm.stopPrank();
     }
@@ -362,7 +362,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), 2 * amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Fast forward time past market expiry
@@ -378,6 +378,6 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         // Attempt to trigger rollover
         vm.expectRevert(abi.encodeWithSelector(InvalidNextMarket.selector));
         vm.prank(commander);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
     }
 }

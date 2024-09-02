@@ -80,7 +80,7 @@ contract FleetCommander is
         shares = previewWithdrawWithCachedAssets(assets, _totalAssets);
 
         _validateBufferWithdraw(assets, shares, owner, _totalAssets);
-        _disembark(address(config.bufferArk), assets);
+        _disembark(address(config.bufferArk), assets, bytes(""));
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
         emit FundsBufferBalanceUpdated(
@@ -120,7 +120,7 @@ contract FleetCommander is
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
 
         assets = previewRedeemWithCachedAssets(shares, _totalAssets);
-        _disembark(address(config.bufferArk), assets);
+        _disembark(address(config.bufferArk), assets, bytes(""));
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
         emit FundsBufferBalanceUpdated(
@@ -302,7 +302,7 @@ contract FleetCommander is
 
         shares = previewDepositWithCachedAssets(assets, _totalAssets);
         _deposit(_msgSender(), receiver, assets, shares);
-        _board(address(config.bufferArk), assets);
+        _board(address(config.bufferArk), assets, bytes(""));
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -322,7 +322,7 @@ contract FleetCommander is
         assets = previewMintWithCachedAssets(shares, _totalAssets);
 
         _deposit(_msgSender(), receiver, assets, shares);
-        _board(address(config.bufferArk), assets);
+        _board(address(config.bufferArk), assets, bytes(""));
 
         emit FundsBufferBalanceUpdated(
             _msgSender(),
@@ -692,17 +692,31 @@ contract FleetCommander is
     }
 
     /* INTERNAL - ARK */
-    function _board(address ark, uint256 amount) internal {
+    function _board(
+        address ark,
+        uint256 amount,
+        bytes memory boardData
+    ) internal {
         IERC20(asset()).approve(ark, amount);
-        IArk(ark).board(amount);
+        IArk(ark).board(amount, boardData);
     }
 
-    function _disembark(address ark, uint256 amount) internal {
-        IArk(ark).disembark(amount);
+    function _disembark(
+        address ark,
+        uint256 amount,
+        bytes memory disembarkData
+    ) internal {
+        IArk(ark).disembark(amount, disembarkData);
     }
 
-    function _move(address fromArk, address toArk, uint256 amount) internal {
-        IArk(fromArk).move(amount, toArk);
+    function _move(
+        address fromArk,
+        address toArk,
+        uint256 amount,
+        bytes memory boardData,
+        bytes memory disembarkData
+    ) internal {
+        IArk(fromArk).move(amount, toArk, boardData, disembarkData);
     }
 
     function _setupArks(address[] memory _arkAddresses) internal {
@@ -775,7 +789,13 @@ contract FleetCommander is
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
-        _move(address(fromArk), address(toArk), amount);
+        _move(
+            address(fromArk),
+            address(toArk),
+            amount,
+            data.boardData,
+            data.disembarkData
+        );
     }
 
     /**
@@ -889,10 +909,14 @@ contract FleetCommander is
         for (uint256 i = 0; i < withdrawableArks.length; i++) {
             uint256 assetsInArk = withdrawableArks[i].totalAssets;
             if (assetsInArk >= assets) {
-                _disembark(withdrawableArks[i].arkAddress, assets);
+                _disembark(withdrawableArks[i].arkAddress, assets, bytes(""));
                 break;
             } else if (assetsInArk > 0) {
-                _disembark(withdrawableArks[i].arkAddress, assetsInArk);
+                _disembark(
+                    withdrawableArks[i].arkAddress,
+                    assetsInArk,
+                    bytes("")
+                );
                 assets -= assetsInArk;
             }
         }

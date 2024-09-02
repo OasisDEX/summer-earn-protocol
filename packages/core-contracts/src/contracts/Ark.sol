@@ -49,6 +49,17 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
             unrestrictedWithdrawal: _params.unrestrictedWithdrawal
         });
     }
+    modifier validateBoardData(bytes calldata data) {
+        _validateData(data);
+        _validateBoardData(data);
+        _;
+    }
+
+    modifier validateDisembarkData(bytes calldata data) {
+        _validateData(data);
+        _validateDisembarkData(data);
+        _;
+    }
 
     /* EXTERNAL */
     function name() external view returns (string memory) {
@@ -109,30 +120,43 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
     /* EXTERNAL - COMMANDER */
     /* @inheritdoc IArk */
     function board(
-        uint256 amount
-    ) external onlyAuthorizedToBoard(config.commander) {
+        uint256 amount,
+        bytes calldata boardData
+    )
+        external
+        onlyAuthorizedToBoard(config.commander)
+        validateBoardData(boardData)
+    {
         address msgSender = _msgSender();
         config.token.safeTransferFrom(msgSender, address(this), amount);
-        _board(amount);
+        _board(amount, boardData);
 
         emit Boarded(msgSender, address(config.token), amount);
     }
 
     /* @inheritdoc IArk */
-    function disembark(uint256 amount) external onlyCommander {
+    function disembark(
+        uint256 amount,
+        bytes calldata disembarkData
+    ) external onlyCommander validateDisembarkData(disembarkData) {
         address msgSender = _msgSender();
-        _disembark(amount);
+        _disembark(amount, disembarkData);
         config.token.safeTransfer(msgSender, amount);
 
         emit Disembarked(msgSender, address(config.token), amount);
     }
 
     /* @inheritdoc IArk */
-    function move(uint256 amount, address receiverArk) external onlyCommander {
-        _disembark(amount);
+    function move(
+        uint256 amount,
+        address receiverArk,
+        bytes calldata boardData,
+        bytes calldata disembarkData
+    ) external onlyCommander validateDisembarkData(disembarkData) {
+        _disembark(amount, disembarkData);
 
         config.token.approve(receiverArk, amount);
-        IArk(receiverArk).board(amount);
+        IArk(receiverArk).board(amount, boardData);
 
         emit Moved(address(this), receiverArk, address(config.token), amount);
     }
@@ -194,14 +218,25 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
     }
 
     /* INTERNAL */
-    function _board(uint256 amount) internal virtual;
+    function _board(uint256 amount, bytes calldata data) internal virtual;
 
-    function _disembark(uint256 amount) internal virtual;
+    function _disembark(uint256 amount, bytes calldata data) internal virtual;
 
     function _harvest(
         address rewardToken,
         bytes calldata additionalData
     ) internal virtual returns (uint256);
+
+    function _validateBoardData(bytes calldata data) internal virtual;
+    function _validateDisembarkData(bytes calldata data) internal virtual;
+    function _validateData(bytes calldata data) internal view {
+        if (data.length > 0 && config.unrestrictedWithdrawal) {
+            revert CannotUseKeeperDataWithUnrestrictedWithdrawal();
+        }
+        if (data.length == 0 && !config.unrestrictedWithdrawal) {
+            revert CannotUseUnrestrictedWithdrawalWithoutKeeperData();
+        }
+    }
 
     function _balanceOfAsset() internal view virtual returns (uint256) {
         return config.token.balanceOf(address(this));

@@ -29,12 +29,12 @@ contract CompoundV3Ark is Ark {
         suppliedAssets = comet.balanceOf(address(this));
     }
 
-    function _board(uint256 amount) internal override {
+    function _board(uint256 amount, bytes calldata data) internal override {
         config.token.approve(address(comet), amount);
         comet.supply(address(config.token), amount);
     }
 
-    function _disembark(uint256 amount) internal override {
+    function _disembark(uint256 amount, bytes calldata data) internal override {
         comet.withdraw(address(config.token), amount);
     }
 
@@ -49,4 +49,6 @@ contract CompoundV3Ark is Ark {
 
         emit Harvested(claimedRewardsBalance);
     }
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

@@ -138,7 +138,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         emit Boarded(commander, USDC_ADDRESS, amount);
 
         // Act
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -188,7 +188,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         emit Disembarked(commander, USDC_ADDRESS, amountToWithdraw);
 
         vm.prank(commander);
-        ark.disembark(amountToWithdraw);
+        ark.disembark(amountToWithdraw, bytes(""));
 
         uint256 finalBalance = usdc.balanceOf(commander);
         assertEq(

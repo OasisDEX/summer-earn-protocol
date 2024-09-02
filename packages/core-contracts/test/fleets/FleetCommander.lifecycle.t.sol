@@ -82,12 +82,16 @@ contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: user1Deposit
+            amount: user1Deposit,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark2,
-            amount: user2Deposit
+            amount: user2Deposit,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Advance time to move past cooldown window

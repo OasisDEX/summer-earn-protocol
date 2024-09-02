@@ -179,4 +179,6 @@ contract PendleLPArk is BasePendleArk {
     function _balanceOfArkTokens() internal view override returns (uint256) {
         return IERC20(market).balanceOf(address(this));
     }
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

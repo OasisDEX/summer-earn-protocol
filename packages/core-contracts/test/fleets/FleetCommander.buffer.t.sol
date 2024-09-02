@@ -51,12 +51,16 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: ark1,
-            amount: ark1RebalanceAmount
+            amount: ark1RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: ark2,
-            amount: ark2RebalanceAmount
+            amount: ark2RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act
@@ -86,12 +90,16 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceFromData[0] = RebalanceData({
             fromArk: ark1,
             toArk: address(bufferArk),
-            amount: ark1RebalanceAmount
+            amount: ark1RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceFromData[1] = RebalanceData({
             fromArk: ark2,
             toArk: address(bufferArk),
-            amount: ark2RebalanceAmount
+            amount: ark2RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act round 2
@@ -133,12 +141,16 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: ark1RebalanceAmount
+            amount: ark1RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark2,
-            amount: ark1RebalanceAmount
+            amount: ark1RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -162,7 +174,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: address(bufferArkAddress),
             toArk: ark1,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -189,12 +203,16 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark2,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
             fromArk: ark2,
             toArk: ark1,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -222,12 +240,16 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark2,
             toArk: bufferArkAddress,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
             fromArk: ark2,
             toArk: ark1,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
@@ -256,7 +278,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: ark1RebalanceAmount // More than excess funds
+            amount: ark1RebalanceAmount, // More than excess funds,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act
@@ -285,17 +309,23 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: ark1,
-            amount: ark1RebalanceAmount
+            amount: ark1RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: ark2,
-            amount: ark2RebalanceAmount
+            amount: ark2RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceData[2] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: ark3,
-            amount: ark3RebalanceAmount
+            amount: ark3RebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act
@@ -331,7 +361,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: ark1,
-            amount: maxRebalanceAmount
+            amount: maxRebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act
@@ -356,7 +388,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -380,7 +414,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: 0
+            amount: 0,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -407,7 +443,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -438,7 +476,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -469,7 +509,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: type(uint256).max
+            amount: type(uint256).max,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -501,7 +543,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: rebalanceAmount
+            amount: rebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -529,7 +573,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: rebalanceAmount
+            amount: rebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -559,7 +605,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: address(bufferArk),
             toArk: ark1,
-            amount: rebalanceAmount
+            amount: rebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         uint256 initialTotalAssets = fleetCommander.totalAssets();

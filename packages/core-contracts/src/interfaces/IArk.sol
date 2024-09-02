@@ -85,21 +85,30 @@ interface IArk is IArkAccessManaged, IArkEvents {
     /**
      * @notice Deposits (boards) tokens into the Ark
      * @param amount The amount of tokens to deposit
+     * @param boardData Additional data that might be required by a specific protocol to deposit funds
      */
-    function board(uint256 amount) external;
+    function board(uint256 amount, bytes calldata boardData) external;
 
     /**
      * @notice Withdraws (disembarks) tokens from the Ark
      * @param amount The amount of tokens to withdraw
+     * @param disembarkData Additional data that might be required by a specific protocol to withdraw funds
      */
-    function disembark(uint256 amount) external;
+    function disembark(uint256 amount, bytes calldata disembarkData) external;
 
     /**
      * @notice Moves tokens from one ark to another
      * @param amount  The amount of tokens to move
      * @param receiver The address of the Ark the funds will be boarded to
+     * @param boardData Additional data that might be required by a specific protocol to board funds
+     * @param disembarkData Additional data that might be required by a specific protocol to disembark funds
      */
-    function move(uint256 amount, address receiver) external;
+    function move(
+        uint256 amount,
+        address receiver,
+        bytes calldata boardData,
+        bytes calldata disembarkData
+    ) external;
 
     /**
      * @notice Sets a new maximum allocation for the Ark

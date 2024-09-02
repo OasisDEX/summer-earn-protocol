@@ -442,7 +442,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             rebalanceData[i] = RebalanceData({
                 fromArk: address(bufferArk),
                 toArk: arks[i],
-                amount: amountPerArk
+                amount: amountPerArk,
+                boardData: bytes(""),
+                disembarkData: bytes("")
             });
         }
 
@@ -601,7 +603,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             rebalanceData[i - 1] = RebalanceData({
                 fromArk: arks[i],
                 toArk: arks[0],
-                amount: type(uint256).max
+                amount: type(uint256).max,
+                boardData: bytes(""),
+                disembarkData: bytes("")
             });
         }
 

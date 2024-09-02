@@ -60,4 +60,6 @@ struct RebalanceData {
     address fromArk;
     address toArk;
     uint256 amount;
+    bytes boardData;
+    bytes disembarkData;
 }

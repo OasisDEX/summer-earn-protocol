@@ -10,12 +10,18 @@ contract BufferArk is Ark {
         return config.token.balanceOf(address(this));
     }
 
-    function _board(uint256 amount) internal override {}
+    function _board(uint256 amount, bytes calldata data) internal override {}
 
-    function _disembark(uint256 amount) internal override {}
+    function _disembark(
+        uint256 amount,
+        bytes calldata data
+    ) internal override {}
 
     function _harvest(
         address rewardToken,
         bytes calldata
     ) internal override returns (uint256) {}
+
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

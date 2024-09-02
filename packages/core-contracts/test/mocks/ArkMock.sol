@@ -13,9 +13,12 @@ contract ArkMock is Ark {
         return IERC20(config.token).balanceOf(address(this));
     }
 
-    function _board(uint256 amount) internal override {}
+    function _board(uint256 amount, bytes calldata data) internal override {}
 
-    function _disembark(uint256 amount) internal override {}
+    function _disembark(
+        uint256 amount,
+        bytes calldata data
+    ) internal override {}
 
     function _harvest(
         address rewardToken,
@@ -25,4 +28,6 @@ contract ArkMock is Ark {
         IERC20(rewardToken).transfer(msg.sender, amount);
         return amount;
     }
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }
