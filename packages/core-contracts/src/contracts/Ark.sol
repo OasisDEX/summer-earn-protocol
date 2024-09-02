@@ -218,17 +218,53 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
     }
 
     /* INTERNAL */
+    /**
+     * @notice Internal function to handle the boarding (depositing) of assets
+     * @dev This function should be implemented by derived contracts to define specific boarding logic
+     * @param amount The amount of assets to board
+     * @param data Additional data for boarding, interpreted by the specific Ark implementation
+     */
     function _board(uint256 amount, bytes calldata data) internal virtual;
 
+    /**
+     * @notice Internal function to handle the disembarking (withdrawing) of assets
+     * @dev This function should be implemented by derived contracts to define specific disembarking logic
+     * @param amount The amount of assets to disembark
+     * @param data Additional data for disembarking, interpreted by the specific Ark implementation
+     */
     function _disembark(uint256 amount, bytes calldata data) internal virtual;
 
+    /**
+     * @notice Internal function to handle the harvesting of rewards
+     * @dev This function should be implemented by derived contracts to define specific harvesting logic
+     * @param rewardToken The address of the reward token to harvest
+     * @param additionalData Additional data for harvesting, interpreted by the specific Ark implementation
+     * @return The amount of rewards harvested
+     */
     function _harvest(
         address rewardToken,
         bytes calldata additionalData
     ) internal virtual returns (uint256);
 
+    /**
+     * @notice Internal function to validate boarding data
+     * @dev This function should be implemented by derived contracts to define specific boarding data validation
+     * @param data The boarding data to validate
+     */
     function _validateBoardData(bytes calldata data) internal virtual;
+
+    /**
+     * @notice Internal function to validate disembarking data
+     * @dev This function should be implemented by derived contracts to define specific disembarking data validation
+     * @param data The disembarking data to validate
+     */
     function _validateDisembarkData(bytes calldata data) internal virtual;
+
+    /**
+     * @notice Internal function to validate the presence or absence of additional data based on withdrawal restrictions
+     * @dev This function checks if the data length is consistent with the Ark's withdrawal restrictions
+     * @param data The data to validate
+     */
     function _validateData(bytes calldata data) internal view {
         if (data.length > 0 && config.unrestrictedWithdrawal) {
             revert CannotUseKeeperDataWithUnrestrictedWithdrawal();
@@ -238,6 +274,11 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
         }
     }
 
+    /**
+     * @notice Internal function to get the balance of the Ark's asset
+     * @dev This function returns the balance of the Ark's token held by this contract
+     * @return The balance of the Ark's asset
+     */
     function _balanceOfAsset() internal view virtual returns (uint256) {
         return config.token.balanceOf(address(this));
     }
