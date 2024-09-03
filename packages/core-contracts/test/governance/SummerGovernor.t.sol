@@ -6,6 +6,7 @@ import "../../src/contracts/SummerGovernor.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/governance/TimelockController.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 /*
  * @title MockERC20Votes
@@ -373,6 +374,37 @@ contract SummerGovernorTest is Test {
             uint(governor.state(proposalId)),
             uint(IGovernor.ProposalState.Canceled)
         );
+    }
+
+    function test_PauseUnpauseOnlyGovernance() public {
+        vm.prank(address(alice));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IGovernor.GovernorOnlyExecutor.selector,
+                address(alice)
+            )
+        );
+        governor.pause();
+
+        vm.prank(address(alice));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IGovernor.GovernorOnlyExecutor.selector,
+                address(alice)
+            )
+        );
+        governor.unpause();
+    }
+
+    function test_SupportsInterface() public view {
+        assertTrue(governor.supportsInterface(type(IGovernor).interfaceId));
+        assertFalse(governor.supportsInterface(0xffffffff));
+    }
+
+    function test_ProposalThreshold() public view {
+        uint256 threshold = governor.proposalThreshold();
+        assertGe(threshold, governor.MIN_PROPOSAL_THRESHOLD());
+        assertLe(threshold, governor.MAX_PROPOSAL_THRESHOLD());
     }
 
     /*
