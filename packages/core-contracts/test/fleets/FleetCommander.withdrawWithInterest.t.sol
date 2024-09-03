@@ -186,7 +186,6 @@ contract WithdrawWithInterestTest is
             0,
             "User should have no remaining shares"
         );
-        console.log(fleetCommander.totalAssets());
     }
 
     function test_WithdrawToOtherReceiverWithInterest() public {

@@ -34,6 +34,10 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         _mint(account, amount);
     }
 
+    function withdrawableTotalAssets() external pure returns (uint256) {
+        return 0;
+    }
+
     function deposit(
         uint256 assets,
         address receiver
