@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {ArkParams, BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {BufferArk, ArkParams} from "../../src/contracts/arks/BufferArk.sol";
 
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import "../../src/events/IArkEvents.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract BufferArkTest is Test, IArkEvents {
     BufferArk public ark;
@@ -95,10 +96,5 @@ contract BufferArkTest is Test, IArkEvents {
         // Act
         vm.prank(commander); // Execute the next call as the commander
         ark.disembark(amount);
-    }
-
-    function test_RateIsZero() public view {
-        // Assert
-        assertEq(ark.rate(), 0);
     }
 }

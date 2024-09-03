@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 import {ITipperEvents} from "../../src/events/ITipperEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Tipper} from "../../src/contracts/Tipper.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract TipperTest is Test, ITipperEvents {
     using PercentageUtils for uint256;
@@ -105,7 +106,8 @@ contract TipperTest is Test, ITipperEvents {
 
         uint256 estimatedTipAfter2000minutes = fleetCommander
             .estimateAccruedTip();
-        assertApproxEqRel(estimatedTipAfter2000minutes, 4978 ether, 0.01e18); // Approximately 0.4978% of 1,000,000 over 6 months
+        assertApproxEqRel(estimatedTipAfter2000minutes, 4978 ether, 0.01e18); // Approximately 0.4978% of 1,000,000 over
+        // 6 months
     }
 
     function test_TipRateCannotExceedOneHundredPercent() public {

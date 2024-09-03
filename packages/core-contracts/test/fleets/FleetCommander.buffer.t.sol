@@ -3,13 +3,13 @@ pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 
+import {FleetCommanderCantRebalanceToArk, FleetCommanderCantUseMaxUintForBufferAdjustement, FleetCommanderInsufficientBuffer, FleetCommanderInsufficientBuffer, FleetCommanderInvalidBufferAdjustment, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderRebalanceAmountZero} from "../../src/errors/FleetCommanderErrors.sol";
+import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-import {RebalanceData, FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderCantUseMaxUintForBufferAdjustement, FleetCommanderRebalanceAmountZero, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderInvalidBufferAdjustment, FleetCommanderInsufficientBuffer, FleetCommanderInsufficientBuffer, FleetCommanderCantRebalanceToArk} from "../../src/errors/FleetCommanderErrors.sol";
 
-import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-import {IArk} from "../../src/interfaces/IArk.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title Buffer test suite for FleetCommander
@@ -39,14 +39,12 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         // Get the bufferArk from FleetCommander config
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         // Mock token balance
         mockToken.mint(address(bufferArk), initialBufferBalance);
 
         // Mock Ark behavior
-        mockArkRate(ark1, 105);
-        mockArkRate(ark2, 110);
 
         // Prepare rebalance data
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
@@ -129,8 +127,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
         // Mock Ark behavior
-        mockArkRate(ark1, 105);
-        mockArkRate(ark2, 110);
 
         // Prepare rebalance data
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
@@ -256,8 +252,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Mock token balance
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkRate(ark1, 105);
-
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
@@ -282,14 +276,10 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 ark2RebalanceAmount = 2000 * 10 ** 6;
         uint256 ark3RebalanceAmount = 1000 * 10 ** 6;
 
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArk), initialBufferBalance);
-
-        mockArkRate(ark1, 105);
-        mockArkRate(ark2, 110);
-        mockArkRate(ark3, 115);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](3);
         rebalanceData[0] = RebalanceData({
@@ -332,12 +322,10 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 maxRebalanceAmount = initialBufferBalance - minBufferBalance;
 
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArk), initialBufferBalance);
-
-        mockArkRate(ark1, 105);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -364,8 +352,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkRate(ark1, 105);
-
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
@@ -389,8 +375,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
-
-        mockArkRate(ark1, 105);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -418,8 +402,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
-
-        mockArkRate(ark1, 105);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -449,7 +431,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkRate(ark1, 105);
         mockArkMaxAllocation(ark1, ark1MaxAllocation);
         mockToken.mint(address(ark1), ark1MaxAllocation);
 
@@ -481,7 +462,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkRate(ark1, 105);
         mockArkMaxAllocation(ark1, ark1MaxAllocation);
         mockToken.mint(address(ark1), ark1MaxAllocation);
 
@@ -513,7 +493,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkRate(ark1, 105);
         mockArkMaxAllocation(ark1, ark1MaxAllocation);
         // Max allocation is one unit less than the rebalance amount
         mockToken.mint(address(ark1), ark1MaxAllocation - rebalanceAmount + 1);
@@ -546,8 +525,6 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkRate(ark1, 105);
-
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
@@ -574,11 +551,9 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
 
         mockToken.mint(address(bufferArk), initialBufferBalance);
-
-        mockArkRate(ark1, 105);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({

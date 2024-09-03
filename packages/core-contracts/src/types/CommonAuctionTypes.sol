@@ -23,7 +23,8 @@ struct AuctionDefaultParameters {
     uint256 startPrice;
     /**
      * @notice The ending price of the auction in payment token decimals
-     * @dev This is the lowest price the auction can reach. The auction ends when this price is hit or when duration is reached
+     * @dev This is the lowest price the auction can reach. The auction ends when this price is hit or when duration is
+     * reached
      */
     uint256 endPrice;
     /**

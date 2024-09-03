@@ -12,7 +12,7 @@ compile(){
 }
 
 echo "This script will run on the following files:"
-find 'test' -iname '*.sol'
+find 'src' -iname '*.sol'
 echo "Continue? [y/N]"
 
 read -r answer
@@ -26,7 +26,7 @@ compile || exit 3
 
 tmp="$(mktemp)"
 
-find 'test' -type f -iname '*.sol' |\
+find 'src' -type f -iname '*.sol' |\
 while read -r f ; do
   grep -n '^ *import' "$f" | cut -d':' -f1 |\
     while read -r line; do

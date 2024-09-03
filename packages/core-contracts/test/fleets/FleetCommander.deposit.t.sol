@@ -5,8 +5,8 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
-import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 /**
@@ -190,7 +190,7 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 amount = DEPOSIT_AMOUNT;
         mockToken.mint(mockUser, amount);
 
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         uint256 initialBufferBalance = bufferArk.totalAssets();
 
         vm.startPrank(mockUser);

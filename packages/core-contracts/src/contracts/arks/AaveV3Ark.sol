@@ -1,24 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../Ark.sol";
-import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
 import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
-import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
+
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
+import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
+import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
+
 import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
-import {IArk, ArkParams} from "../../interfaces/IArk.sol";
+import "../Ark.sol";
 
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
 
-    uint256 public constant WAD = 1e18;
-    uint256 public constant RAY = 1e27;
-    uint256 public constant SECONDS_PER_YEAR = 365 days;
-
+    address public aToken;
     IPoolV3 public aaveV3Pool;
     IPoolDataProvider public aaveV3DataProvider;
-    address public aToken;
     IRewardsController public rewardsController;
 
     constructor(
@@ -37,12 +34,6 @@ contract AaveV3Ark is Ark {
         );
         aToken = reserveData.aTokenAddress;
         rewardsController = IRewardsController(_rewardsController);
-    }
-
-    function rate() public view override returns (uint256) {
-        (, , , , , uint256 liquidityRate, , , , , , ) = aaveV3DataProvider
-            .getReserveData(address(config.token));
-        return liquidityRate;
     }
 
     function totalAssets() public view override returns (uint256) {

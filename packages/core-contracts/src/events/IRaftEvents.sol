@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../types/CommonAuctionTypes.sol";
-
 /**
  * @title IRaftEvents
  * @notice Interface defining events emitted by the Raft contract

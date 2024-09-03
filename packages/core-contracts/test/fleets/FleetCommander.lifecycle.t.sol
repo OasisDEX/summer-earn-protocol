@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
- * @dev Test suite of full lifecycle tests EG Deposit -> Rebalance -> ForceWithdraw
+ * @dev Test suite of full lifecycle tests EG Deposit -> Rebalance -> WithdrawFromArks
  */
 contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
@@ -16,7 +16,7 @@ contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
         initializeFleetCommanderWithMockArks(initialTipRate);
     }
 
-    function test_DepositRebalanceForceWithdraw() public {
+    function test_DepositRebalanceWithdrawFromArks() public {
         // Arrange
         uint256 user1Deposit = ARK1_MAX_ALLOCATION;
         uint256 user2Deposit = ARK2_MAX_ALLOCATION;

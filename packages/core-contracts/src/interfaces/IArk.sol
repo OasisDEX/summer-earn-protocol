@@ -2,10 +2,9 @@
 pragma solidity 0.8.26;
 
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
-import "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import "../types/ArkTypes.sol";
+
 import "../events/IArkEvents.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../types/ArkTypes.sol";
 
 /**
  * @title IArk
@@ -56,12 +55,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @return The total assets in the Ark, in token precision
      */
     function totalAssets() external view returns (uint256);
-
-    /**
-     * @notice Returns the current rate of the Ark
-     * @return The current rate in RAY precision
-     */
-    function rate() external view returns (uint256);
 
     /**
      * @notice Returns the address of the Fleet commander managing the ark

@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
-import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {ITipJar} from "../../src/interfaces/ITipJar.sol";
 import {ITipJarEvents} from "../../src/interfaces/ITipJarEvents.sol";
+import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {TipJar} from "../../src/contracts/TipJar.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
-import "../../src/errors/TipJarErrors.sol";
+import {TipJar} from "../../src/contracts/TipJar.sol";
+
 import "../../src/errors/AccessControlErrors.sol";
+import "../../src/errors/TipJarErrors.sol";
+import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;

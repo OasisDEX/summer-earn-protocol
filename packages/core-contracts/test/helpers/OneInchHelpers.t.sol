@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
+import {OneInchHelpers} from "./OneInchHelpers.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {OneInchHelpers} from "./OneInchHelpers.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 type Address is uint256;
+
 contract OneInchHelpersTest is Test, OneInchHelpers {
     address public constant ONE_INCH_ROUTER =
         0x111111125421cA6dc452d289314280a0f8842A65;
@@ -100,7 +101,7 @@ contract OneInchHelpersTest is Test, OneInchHelpers {
             0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168,
             "Incorrect dex address"
         );
-        assertEq(uint(protocol), 1, "Incorrect protocol"); // 1 corresponds to UniswapV3
+        assertEq(uint256(protocol), 1, "Incorrect protocol"); // 1 corresponds to UniswapV3
         assertEq(shouldUnwrapWeth, false, "Incorrect shouldUnwrapWeth");
         assertEq(shouldWrapWeth, false, "Incorrect shouldWrapWeth");
         assertEq(usePermit2, false, "Incorrect usePermit2");
@@ -110,7 +111,7 @@ contract OneInchHelpersTest is Test, OneInchHelpers {
         console.log("Amount:", amount);
         console.log("Min Return:", minReturn);
         console.log("DEX:", dex);
-        console.log("Protocol:", uint(protocol));
+        console.log("Protocol:", uint256(protocol));
         console.log("Should Unwrap WETH:", shouldUnwrapWeth);
         console.log("Should Wrap WETH:", shouldWrapWeth);
         console.log("Use Permit2:", usePermit2);

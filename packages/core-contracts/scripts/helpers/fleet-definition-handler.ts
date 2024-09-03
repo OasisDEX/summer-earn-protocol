@@ -10,7 +10,6 @@ interface FleetDefinition {
   initialRebalanceCooldown: string
   depositCap: string
   initialTipRate: string
-  minimumRateDifference: string
 }
 
 export function loadFleetDefinition(filePath: string): FleetDefinition {

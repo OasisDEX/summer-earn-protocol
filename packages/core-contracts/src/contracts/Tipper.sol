@@ -4,11 +4,11 @@ pragma solidity 0.8.26;
 import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
-import {Percentage, PERCENTAGE_100, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import "../errors/TipperErrors.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
+import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title Tipper

@@ -2,7 +2,6 @@
 pragma solidity 0.8.26;
 
 import {RebalanceData} from "../types/FleetCommanderTypes.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 interface IFleetCommanderEvents {
     /* EVENTS */
@@ -119,13 +118,5 @@ interface IFleetCommanderEvents {
         address indexed owner,
         address receiver,
         uint256 totalRedeemed
-    );
-
-    /**
-     * @notice Emitted when the minimum rate difference is updated
-     * @param newMinimumRateDiff The new minimum rate difference
-     */
-    event FleetCommanderMinimumRateDifferenceUpdated(
-        Percentage newMinimumRateDiff
     );
 }

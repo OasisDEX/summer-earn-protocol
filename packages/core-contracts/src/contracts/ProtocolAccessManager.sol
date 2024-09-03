@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import "../errors/AccessControlErrors.sol";
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
-import "../errors/AccessControlErrors.sol";
 
 /**
  * @custom:see IProtocolAccessManager

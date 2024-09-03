@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import "../../src/events/IArkEvents.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents {
     using SafeERC20 for IERC20;
@@ -60,7 +61,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
             maxRebalanceInflow: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
-            configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
+            configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined
+            // and 0 is a placeholder
             liquidityIndex: 1e27, // Example value in ray
             currentLiquidityRate: 1e27, // Example value in ray
             variableBorrowIndex: 1e27, // Example value in ray
@@ -118,7 +120,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
             maxRebalanceInflow: type(uint256).max
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
-            configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined and 0 is a placeholder
+            configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined
+            // and 0 is a placeholder
             liquidityIndex: 1e27, // Example value in ray
             currentLiquidityRate: 1e27, // Example value in ray
             variableBorrowIndex: 1e27, // Example value in ray

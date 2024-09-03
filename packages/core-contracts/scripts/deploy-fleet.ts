@@ -171,7 +171,6 @@ async function deployFleetContracts(
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
-        minimumRateDifference: fleetDefinition.minimumRateDifference,
         bufferArkParams: {
           ...bufferArkParams,
           accessManager: coreContracts.protocolAccessManager,

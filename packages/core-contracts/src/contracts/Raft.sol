@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import "../errors/RaftErrors.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {IRaft} from "../interfaces/IRaft.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import {AuctionManagerBase, DutchAuctionLibrary, AuctionDefaultParameters} from "./AuctionManagerBase.sol";
+import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../errors/RaftErrors.sol";
 
 /**
  * @title Raft
@@ -16,6 +16,7 @@ import "../errors/RaftErrors.sol";
 contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
     /// @notice Mapping of harvested rewards for each Ark and reward token
+
     mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount))
         public harvestedRewards;
     /// @notice Mapping of ongoing auctions for each Ark and reward token
@@ -44,6 +45,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         _startAuction(ark, rewardToken, paymentToken);
     }
     /* @inheritdoc IRaft */
+
     function startAuction(
         address ark,
         address rewardToken,
@@ -52,6 +54,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         _startAuction(ark, rewardToken, paymentToken);
     }
     /* @inheritdoc IRaft */
+
     function harvest(
         address ark,
         address rewardToken,
@@ -60,6 +63,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         _harvest(ark, rewardToken, extraHarvestData);
     }
     /* @inheritdoc IRaft */
+
     function buyTokens(
         address ark,
         address rewardToken,
@@ -77,6 +81,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         }
     }
     /* @inheritdoc IRaft */
+
     function finalizeAuction(address ark, address rewardToken) external {
         DutchAuctionLibrary.Auction storage auction = auctions[ark][
             rewardToken
@@ -85,6 +90,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         _settleAuction(ark, rewardToken, auction);
     }
     /* @inheritdoc IRaft */
+
     function getAuctionInfo(
         address ark,
         address rewardToken
@@ -92,6 +98,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         return auctions[ark][rewardToken];
     }
     /* @inheritdoc IRaft */
+
     function getCurrentPrice(
         address ark,
         address rewardToken
@@ -99,12 +106,14 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         return _getCurrentPrice(auctions[ark][rewardToken]);
     }
     /* @inheritdoc IRaft */
+
     function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newConfig
     ) external onlyGovernor {
         _updateAuctionDefaultParameters(newConfig);
     }
     /* @inheritdoc IRaft */
+
     function getHarvestedRewards(
         address ark,
         address rewardToken

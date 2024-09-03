@@ -15,7 +15,6 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * @param {string} initialRebalanceCooldown - Initial cooldown period for rebalancing
  * @param {string} depositCap - Maximum allowed deposit
  * @param {string} initialTipRate - Initial rate for tips
- * @param {string} minimumRateDifference - Minimum rate difference for rebalancing
  * @param {object} bufferArkParams - Parameters for the BufferArk contract
  *
  * @returns {FleetContracts} An object containing the addresses of the deployed FleetCommander and BufferArk contracts
@@ -34,7 +33,6 @@ export default buildModule('FleetModule', (m) => {
   const initialRebalanceCooldown = m.getParameter<string>('initialRebalanceCooldown')
   const depositCap = m.getParameter<string>('depositCap')
   const initialTipRate = m.getParameter<string>('initialTipRate')
-  const minimumRateDifference = m.getParameter<string>('minimumRateDifference')
 
   // Deploy BufferArk
   const bufferArkParams = m.getParameter<any>('bufferArkParams')
@@ -53,7 +51,6 @@ export default buildModule('FleetModule', (m) => {
       initialRebalanceCooldown: initialRebalanceCooldown,
       depositCap: depositCap,
       initialTipRate: initialTipRate,
-      minimumRateDifference: minimumRateDifference,
     },
   ])
 
