@@ -89,11 +89,14 @@ contract SummerGovernor is
         string memory description
     ) public override(Governor) returns (uint256) {
         address proposer = _msgSender();
-        require(
-            getVotes(proposer, block.number - 1) > proposalThreshold() ||
-                isWhitelisted(proposer),
-            "SummerEarnGovernor: proposer votes below proposal threshold and not whitelisted"
-        );
+        uint256 proposerVotes = getVotes(proposer, block.number - 1);
+
+        if (proposerVotes < proposalThreshold() && !isWhitelisted(proposer)) {
+            revert(
+                "SummerEarnGovernor: proposer votes below proposal threshold and not whitelisted"
+            );
+        }
+
         return super.propose(targets, values, calldatas, description);
     }
 

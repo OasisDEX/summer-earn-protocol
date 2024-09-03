@@ -407,6 +407,299 @@ contract SummerGovernorTest is Test {
         assertLe(threshold, governor.MAX_PROPOSAL_THRESHOLD());
     }
 
+    function test_SetProposalThresholdOutOfBounds() public {
+        uint256 belowMin = governor.MIN_PROPOSAL_THRESHOLD() - 1;
+        uint256 aboveMax = governor.MAX_PROPOSAL_THRESHOLD() + 1;
+
+        vm.expectRevert("SummerEarnGovernor: invalid proposal threshold");
+        new SummerGovernor(
+            IVotes(address(token)),
+            timelock,
+            VOTING_DELAY,
+            VOTING_PERIOD,
+            belowMin,
+            QUORUM_FRACTION
+        );
+
+        vm.expectRevert("SummerEarnGovernor: invalid proposal threshold");
+        new SummerGovernor(
+            IVotes(address(token)),
+            timelock,
+            VOTING_DELAY,
+            VOTING_PERIOD,
+            aboveMax,
+            QUORUM_FRACTION
+        );
+    }
+
+    function test_ProposalCreationWhitelisted() public {
+        address whitelistedUser = address(0x1234);
+        uint256 expiration = block.timestamp + 1 days;
+
+        // Ensure Alice has enough voting power
+        uint256 proposalThreshold = governor.proposalThreshold();
+        deal(address(token), alice, proposalThreshold);
+
+        vm.startPrank(alice);
+        token.delegate(alice);
+        vm.roll(block.number + 1); // Move to next block to activate voting power
+        vm.stopPrank();
+
+        // Create and execute a proposal to set the whitelist account expiration
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSelector(
+            SummerGovernor.setWhitelistAccountExpiration.selector,
+            whitelistedUser,
+            expiration
+        );
+        string memory description = "Set whitelist account expiration";
+
+        vm.prank(alice);
+        uint256 proposalId = governor.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        vm.warp(block.timestamp + governor.votingDelay() + 1);
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(alice);
+        governor.castVote(proposalId, 1);
+
+        vm.warp(block.timestamp + governor.votingPeriod() + 1);
+        vm.roll(block.number + governor.votingPeriod() + 1);
+
+        governor.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+
+        governor.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        // Ensure the whitelisted user has no voting power
+        vm.prank(whitelistedUser);
+        token.delegate(address(0));
+
+        // Verify that the user is whitelisted
+        assertTrue(
+            governor.isWhitelisted(whitelistedUser),
+            "User should be whitelisted"
+        );
+
+        // Now create a proposal as the whitelisted user
+        vm.prank(whitelistedUser);
+        (uint256 newProposalId, ) = createProposal();
+
+        assertGt(newProposalId, 0, "Proposal should be created successfully");
+    }
+
+    function test_CancelProposalByGuardian() public {
+        deal(address(token), alice, governor.proposalThreshold());
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(alice);
+        (uint256 proposalId, bytes32 descriptionHash) = createProposal();
+
+        address guardian = address(0x5678);
+
+        // Create and execute a proposal to set the whitelist guardian
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSelector(
+            SummerGovernor.setWhitelistGuardian.selector,
+            guardian
+        );
+        string memory description = "Set whitelist guardian";
+
+        vm.prank(alice);
+        uint256 guardianProposalId = governor.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        vm.warp(block.timestamp + governor.votingDelay() + 1);
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(alice);
+        governor.castVote(guardianProposalId, 1);
+
+        vm.warp(block.timestamp + governor.votingPeriod() + 1);
+        vm.roll(block.number + governor.votingPeriod() + 1);
+
+        governor.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+
+        governor.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        // Now cancel the original proposal as the guardian
+        (
+            address[] memory cancelTargets,
+            uint256[] memory cancelValues,
+            bytes[] memory cancelCalldatas,
+            string memory cancelDescription
+        ) = createProposalParams();
+
+        vm.prank(guardian);
+        governor.cancel(
+            cancelTargets,
+            cancelValues,
+            cancelCalldatas,
+            descriptionHash
+        );
+
+        assertEq(
+            uint(governor.state(proposalId)),
+            uint(IGovernor.ProposalState.Canceled)
+        );
+    }
+
+    function test_PauseAndUnpause() public {
+        // Ensure Alice has enough voting power
+        uint256 proposalThreshold = governor.proposalThreshold();
+        deal(address(token), alice, proposalThreshold);
+
+        vm.startPrank(alice);
+        token.delegate(alice);
+        vm.roll(block.number + 1); // Move to next block to activate voting power
+        vm.stopPrank();
+
+        // Create and execute a proposal to pause the contract
+        address[] memory targets = new address[](1);
+        targets[0] = address(governor);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSelector(SummerGovernor.pause.selector);
+        string memory description = "Pause the contract";
+
+        vm.prank(alice);
+        uint256 pauseProposalId = governor.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        vm.warp(block.timestamp + governor.votingDelay() + 1);
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(alice);
+        governor.castVote(pauseProposalId, 1);
+
+        vm.warp(block.timestamp + governor.votingPeriod() + 1);
+        vm.roll(block.number + governor.votingPeriod() + 1);
+
+        governor.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+
+        governor.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        assertTrue(governor.paused());
+
+        // Create and execute a proposal to unpause the contract
+        calldatas[0] = abi.encodeWithSelector(SummerGovernor.unpause.selector);
+        description = "Unpause the contract";
+
+        vm.prank(alice);
+        uint256 unpauseProposalId = governor.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        vm.warp(block.timestamp + governor.votingDelay() + 1);
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(alice);
+        governor.castVote(unpauseProposalId, 1);
+
+        vm.warp(block.timestamp + governor.votingPeriod() + 1);
+        vm.roll(block.number + governor.votingPeriod() + 1);
+
+        governor.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+
+        governor.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        assertFalse(governor.paused());
+    }
+
+    function test_CancelProposalByProposer() public {
+        deal(address(token), alice, governor.proposalThreshold());
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.startPrank(alice);
+        (uint256 proposalId, bytes32 descriptionHash) = createProposal();
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description
+        ) = createProposalParams();
+
+        governor.cancel(targets, values, calldatas, descriptionHash);
+        vm.stopPrank();
+
+        assertEq(
+            uint(governor.state(proposalId)),
+            uint(IGovernor.ProposalState.Canceled)
+        );
+    }
+
     /*
      * @dev Creates a proposal for testing purposes.
      * @return proposalId The ID of the created proposal.
