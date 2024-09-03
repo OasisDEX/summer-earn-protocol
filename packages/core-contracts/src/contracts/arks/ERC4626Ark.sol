@@ -70,7 +70,7 @@ contract ERC4626Ark is Ark {
     function _harvest(
         address rewardToken,
         bytes calldata additionalData
-    ) internal override returns (uint256) {
+    ) internal pure override returns (uint256) {
         // Most ERC4626 vaults automatically accrue interest, so no manual harvesting is needed
         // However, this function can be overridden in derived contracts if specific harvesting logic is required
         // todo: how to make it generic enough to allow different reward harvesting strategies?
