@@ -15,7 +15,9 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../errors/FleetCommanderErrors.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
+import {StorageSlot} from "../../lib/openzeppelin-next/StorageSlot.sol";
+import {StorageSlots} from "./libraries/StorageSlots.sol";
+
 /**
  * @custom:see IFleetCommander
  */
@@ -33,6 +35,7 @@ contract FleetCommander is
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
     using Math for uint256;
+    using StorageSlot for *;
 
     FleetConfig public config;
     address[] public arks;
@@ -69,17 +72,39 @@ contract FleetCommander is
         _;
     }
 
+    /**
+     * @dev Modifier to cache ark data for deposit operations.
+     * @notice This modifier retrieves ark data before the function execution,
+     *         allows the modified function to run, and then flushes the cache.
+     */
+    modifier useDepositCache() {
+        _getArksData();
+        _;
+        _flushCache();
+    }
+
+    /**
+     * @dev Modifier to cache withdrawable ark data for withdraw operations.
+     * @notice This modifier retrieves withdrawable ark data before the function execution,
+     *         allows the modified function to run, and then flushes the cache.
+     */
+    modifier useWithdrawCache() {
+        _getWithdrawableArksData();
+        _;
+        _flushCache();
+    }
+
     /* PUBLIC - USER */
     function withdrawFromBuffer(
         uint256 assets,
         address receiver,
         address owner
     ) public returns (uint256 shares) {
-        (, uint256 _totalAssets) = _get_arksData();
-        uint256 prevQueueBalance = config.bufferArk.totalAssets();
-        shares = previewWithdrawWithCachedAssets(assets, _totalAssets);
+        shares = previewWithdraw(assets);
+        _validateBufferWithdraw(assets, shares, owner);
 
-        _validateBufferWithdraw(assets, shares, owner, _totalAssets);
+        uint256 prevQueueBalance = config.bufferArk.totalAssets();
+
         _disembark(address(config.bufferArk), assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
@@ -94,7 +119,13 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public override(ERC4626, IERC4626) collectTip returns (uint256 assets) {
+    )
+        public
+        override(ERC4626, IERC4626)
+        collectTip
+        useWithdrawCache
+        returns (uint256 assets)
+    {
         uint256 bufferBalance = config.bufferArk.totalAssets();
         uint256 bufferBalanceInShares = convertToShares(bufferBalance);
 
@@ -113,13 +144,12 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip returns (uint256 assets) {
-        (, uint256 _totalAssets) = _get_arksData();
-        _validateBufferRedeem(shares, owner, _totalAssets);
+    ) public collectTip useWithdrawCache returns (uint256 assets) {
+        _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
 
-        assets = previewRedeemWithCachedAssets(shares, _totalAssets);
+        assets = previewRedeem(shares);
         _disembark(address(config.bufferArk), assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
@@ -134,7 +164,13 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public override(ERC4626, IERC4626) collectTip returns (uint256 shares) {
+    )
+        public
+        override(ERC4626, IERC4626)
+        collectTip
+        useWithdrawCache
+        returns (uint256 shares)
+    {
         uint256 bufferBalance = config.bufferArk.totalAssets();
 
         if (assets == type(uint256).max) {
@@ -149,77 +185,6 @@ contract FleetCommander is
         }
     }
 
-    /**
-     * @notice Previews the number of shares to be withdrawn for a given amount of assets
-     * @param assets The amount of assets to be withdrawn
-     * @param _totalAssets The total assets in the vault (used for caching)
-     * @return The number of shares that would be withdrawn
-     */
-    function previewWithdrawWithCachedAssets(
-        uint256 assets,
-        uint256 _totalAssets
-    ) internal view returns (uint256) {
-        return
-            assets.mulDiv(
-                totalSupply() + 10 ** _decimalsOffset(),
-                _totalAssets + 1,
-                Math.Rounding.Ceil
-            );
-    }
-
-    /**
-     * @notice Previews the amount of assets to be redeemed for a given number of shares
-     * @param shares The number of shares to be redeemed
-     * @param _totalAssets The total assets in the vault (used for caching)
-     * @return The amount of assets that would be redeemed
-     */
-    function previewRedeemWithCachedAssets(
-        uint256 shares,
-        uint256 _totalAssets
-    ) internal view returns (uint256) {
-        return
-            shares.mulDiv(
-                _totalAssets + 1,
-                totalSupply() + 10 ** _decimalsOffset(),
-                Math.Rounding.Floor
-            );
-    }
-    /**
-     * @notice Previews the number of shares to be minted for a given amount of assets
-     * @param assets The amount of assets to be deposited
-     * @param _totalAssets The total assets in the vault (used for caching)
-     * @return The number of shares that would be minted
-     */
-    function previewDepositWithCachedAssets(
-        uint256 assets,
-        uint256 _totalAssets
-    ) internal view returns (uint256) {
-        return
-            assets.mulDiv(
-                totalSupply() + 10 ** _decimalsOffset(),
-                _totalAssets + 1,
-                Math.Rounding.Floor
-            );
-    }
-
-    /**
-     * @notice Previews the amount of assets required to mint a given number of shares
-     * @param shares The number of shares to be minted
-     * @param _totalSupply The total supply of shares (used for caching)
-     * @return The amount of assets required to mint the shares
-     */
-    function previewMintWithCachedAssets(
-        uint256 shares,
-        uint256 _totalSupply
-    ) internal view returns (uint256) {
-        return
-            shares.mulDiv(
-                totalAssets() + 1,
-                _totalSupply + 10 ** _decimalsOffset(),
-                Math.Rounding.Ceil
-            );
-    }
-
     function withdrawFromArks(
         uint256 assets,
         address receiver,
@@ -228,28 +193,14 @@ contract FleetCommander is
         public
         override(IFleetCommander)
         collectTip
+        useWithdrawCache
         returns (uint256 totalSharesToRedeem)
     {
-        (ArkData[] memory _arksData, uint256 _totalAssets) = _get_arksData();
-        (
-            ArkData[] memory _withdrawableArksData,
-            uint256 _withdrawableTotalAssets
-        ) = _get_withdrawableArksData(_arksData);
+        totalSharesToRedeem = previewWithdraw(assets);
 
-        totalSharesToRedeem = previewWithdrawWithCachedAssets(
-            assets,
-            _totalAssets
-        );
+        _validateWithdrawFromArks(assets, totalSharesToRedeem, owner);
 
-        _validateWithdrawFromArks(
-            assets,
-            totalSharesToRedeem,
-            owner,
-            _totalAssets,
-            _withdrawableTotalAssets
-        );
-
-        _forceDisembarkFromSortedArks(_withdrawableArksData, assets);
+        _forceDisembarkFromSortedArks(assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
         _setLastActionTimestamp(0);
 
@@ -264,27 +215,13 @@ contract FleetCommander is
         public
         override(IFleetCommander)
         collectTip
+        useWithdrawCache
         returns (uint256 totalAssetsToWithdraw)
     {
-        (ArkData[] memory _arksData, uint256 _totalAssets) = _get_arksData();
-        (
-            ArkData[] memory _withdrawableArksData,
-            uint256 _withdrawableTotalAssets
-        ) = _get_withdrawableArksData(_arksData);
-        _validateForceRedeem(
-            shares,
-            owner,
-            _totalAssets,
-            _withdrawableTotalAssets
-        );
-        totalAssetsToWithdraw = previewRedeemWithCachedAssets(
-            shares,
-            _totalAssets
-        );
-        _forceDisembarkFromSortedArks(
-            _withdrawableArksData,
-            totalAssetsToWithdraw
-        );
+        _validateForceRedeem(shares, owner);
+
+        totalAssetsToWithdraw = previewRedeem(shares);
+        _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
         _setLastActionTimestamp(0);
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
@@ -293,14 +230,18 @@ contract FleetCommander is
     function deposit(
         uint256 assets,
         address receiver
-    ) public override(ERC4626, IERC4626) collectTip returns (uint256 shares) {
-        (, uint256 _totalAssets) = _get_arksData();
-
-        _validateDeposit(assets, _msgSender(), _totalAssets);
+    )
+        public
+        override(ERC4626, IERC4626)
+        collectTip
+        useDepositCache
+        returns (uint256 shares)
+    {
+        _validateDeposit(assets, _msgSender());
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
 
-        shares = previewDepositWithCachedAssets(assets, _totalAssets);
+        shares = previewDeposit(assets);
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(config.bufferArk), assets);
 
@@ -314,12 +255,17 @@ contract FleetCommander is
     function mint(
         uint256 shares,
         address receiver
-    ) public override(ERC4626, IERC4626) collectTip returns (uint256 assets) {
-        (, uint256 _totalAssets) = _get_arksData();
-        _validateMint(shares, _msgSender(), _totalAssets);
+    )
+        public
+        override(ERC4626, IERC4626)
+        collectTip
+        useDepositCache
+        returns (uint256 assets)
+    {
+        _validateMint(shares, _msgSender());
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
-        assets = previewMintWithCachedAssets(shares, _totalAssets);
+        assets = previewMint(shares);
 
         _deposit(_msgSender(), receiver, assets, shares);
         _board(address(config.bufferArk), assets);
@@ -341,8 +287,42 @@ contract FleetCommander is
         override(ERC4626, IERC4626)
         returns (uint256 total)
     {
-        (, uint256 _totalAssets) = _get_arksData();
-        total = _totalAssets;
+        bool isTotalAssetsCached = StorageSlots
+            .IS_TOTAL_ASSETS_CACHED_STORAGE
+            .asBoolean()
+            .tload();
+        if (isTotalAssetsCached) {
+            return StorageSlots.TOTAL_ASSETS_STORAGE.asUint256().tload();
+        }
+        return _sumTotalAssets(_getAllArks());
+    }
+
+    function withdrawableTotalAssets()
+        public
+        view
+        returns (uint256 _withdrawableTotalAssets)
+    {
+        bool isWithdrawableTotalAssetsCached = StorageSlots
+            .IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
+            .asBoolean()
+            .tload();
+        if (isWithdrawableTotalAssetsCached) {
+            return
+                StorageSlots
+                    .WITHDRAWABLE_ARKS_TOTAL_ASSETS_STORAGE
+                    .asUint256()
+                    .tload();
+        }
+
+        IArk[] memory allArks = _getAllArks();
+        for (uint256 i = 0; i < allArks.length; i++) {
+            if (
+                i == allArks.length - 1 ||
+                isArkWithdrawable[address(allArks[i])]
+            ) {
+                _withdrawableTotalAssets += allArks[i].totalAssets();
+            }
+        }
     }
 
     function getArks() public view returns (address[] memory) {
@@ -353,22 +333,6 @@ contract FleetCommander is
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
         uint256 _totalAssets = totalAssets();
-        uint256 maxAssets = _totalAssets > config.depositCap
-            ? 0
-            : config.depositCap - _totalAssets;
-
-        _maxDeposit = Math.min(maxAssets, IERC20(asset()).balanceOf(owner));
-    }
-    /**
-     * @notice Calculates the maximum deposit possible for a given account
-     * @param owner The address of the account
-     * @param _totalAssets The total assets in the vault (used for caching)
-     * @return _maxDeposit The maximum amount of assets that can be deposited
-     */
-    function maxDepositWithCachedAssets(
-        address owner,
-        uint256 _totalAssets
-    ) internal view returns (uint256 _maxDeposit) {
         uint256 maxAssets = _totalAssets > config.depositCap
             ? 0
             : config.depositCap - _totalAssets;
@@ -388,24 +352,6 @@ contract FleetCommander is
         );
     }
 
-    /**
-     * @notice Calculates the maximum number of shares that can be minted for a given account
-     * @param owner The address of the account
-     * @param _totalAssets The total assets in the vault (used for caching)
-     * @return _maxMint The maximum number of shares that can be minted
-     */
-    function maxMintWithCachedAssets(
-        address owner,
-        uint256 _totalAssets
-    ) internal view returns (uint256 _maxMint) {
-        uint256 maxAssets = _totalAssets > config.depositCap
-            ? 0
-            : config.depositCap - _totalAssets;
-        _maxMint = previewDepositWithCachedAssets(
-            Math.min(maxAssets, IERC20(asset()).balanceOf(owner)),
-            _totalAssets
-        );
-    }
     function maxBufferWithdraw(
         address owner
     ) public view returns (uint256 _maxBufferWithdraw) {
@@ -415,110 +361,22 @@ contract FleetCommander is
         );
     }
 
-    /**
-     * @notice Calculates the maximum withdrawal possible from the buffer for a given account
-     * @param owner The address of the account
-     * @param _totalAssets The total assets across all Arks (used for caching)
-     * @return _maxBufferWithdraw The maximum amount of assets that can be withdrawn from the buffer
-     */
-    function maxBufferWithdrawWithCachedAssets(
-        address owner,
-        uint256 _totalAssets
-    ) internal view returns (uint256 _maxBufferWithdraw) {
-        _maxBufferWithdraw = Math.min(
-            config.bufferArk.totalAssets(),
-            previewRedeemWithCachedAssets(balanceOf(owner), _totalAssets)
-        );
-    }
-
     function maxWithdraw(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw) {
-        (ArkData[] memory _arksData, uint256 _totalAssets) = _get_arksData();
-        (, uint256 _withdrawableTotalAssets) = _get_withdrawableArksData(
-            _arksData
+        _maxWithdraw = Math.min(
+            withdrawableTotalAssets(),
+            previewRedeem(balanceOf(owner))
         );
-
-        uint256 previewed = previewRedeemWithCachedAssets(
-            balanceOf(owner),
-            _totalAssets
-        );
-
-        _maxWithdraw = Math.min(_withdrawableTotalAssets, previewed);
-    }
-
-    /**
-     * @notice Calculates the maximum withdrawal possible for a given account
-     * @param owner The address of the account
-     * @param _totalAssets The total assets across all Arks (used for caching)
-     * @param _withdrawableTotalAssets The total assets in withdrawable Arks (used for caching)
-     * @return _maxWithdraw The maximum amount of assets that can be withdrawn
-     */
-    function maxWithdrawWithCachedAssets(
-        address owner,
-        uint256 _totalAssets,
-        uint256 _withdrawableTotalAssets
-    ) internal view returns (uint256 _maxWithdraw) {
-        uint256 previewed = previewRedeemWithCachedAssets(
-            balanceOf(owner),
-            _totalAssets
-        );
-        _maxWithdraw = Math.min(_withdrawableTotalAssets, previewed);
     }
 
     function maxRedeem(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem) {
-        (ArkData[] memory _arksData, uint256 _totalAssets) = _get_arksData();
-        (, uint256 _withdrawableTotalAssets) = _get_withdrawableArksData(
-            _arksData
-        );
         _maxRedeem = Math.min(
-            convertToSharesWithCachedAssets(
-                _withdrawableTotalAssets,
-                _totalAssets
-            ),
+            convertToShares(withdrawableTotalAssets()),
             balanceOf(owner)
         );
-    }
-
-    /**
-     * @notice Calculates the maximum number of shares that can be redeemed for a given account
-     * @param owner The address of the account
-     * @param _totalAssets The total assets across all Arks (used for caching)
-     * @param _withdrawableTotalAssets The total assets in withdrawable Arks (used for caching)
-     * @return _maxRedeem The maximum number of shares that can be redeemed
-     */
-    function maxRedeemWithCachedAssets(
-        address owner,
-        uint256 _totalAssets,
-        uint256 _withdrawableTotalAssets
-    ) internal view returns (uint256 _maxRedeem) {
-        _maxRedeem = Math.min(
-            convertToSharesWithCachedAssets(
-                _withdrawableTotalAssets,
-                _totalAssets
-            ),
-            balanceOf(owner)
-        );
-    }
-
-    /**
-     * @notice Converts assets to shares using cached total assets
-     * @param assets The amount of assets to convert
-     * @param _totalAssets The total assets across all Arks (used for caching)
-     * @return The number of shares equivalent to the given assets
-     */
-    function convertToSharesWithCachedAssets(
-        uint256 assets,
-        uint256 _totalAssets
-    ) internal view returns (uint256) {
-        return
-            assets.mulDiv(
-                totalSupply() + 10 ** _decimalsOffset(),
-                _totalAssets + 1,
-                Math.Rounding.Floor
-            );
     }
 
     function maxBufferRedeem(
@@ -526,19 +384,6 @@ contract FleetCommander is
     ) public view returns (uint256 _maxBufferRedeem) {
         _maxBufferRedeem = Math.min(
             previewWithdraw(config.bufferArk.totalAssets()),
-            balanceOf(owner)
-        );
-    }
-
-    function maxBufferRedeemWithCachedAssets(
-        address owner,
-        uint256 _totalAssets
-    ) internal view returns (uint256 _maxBufferRedeem) {
-        _maxBufferRedeem = Math.min(
-            previewWithdrawWithCachedAssets(
-                config.bufferArk.totalAssets(),
-                _totalAssets
-            ),
             balanceOf(owner)
         );
     }
@@ -779,19 +624,29 @@ contract FleetCommander is
     }
 
     /**
-     * @notice Retrieves data for all arks, including total assets
-     * @dev This function sorts arks by total assets and calculates the sum of all assets
-     * @return _arksData An array of ArkData structs for all arks
-     * @return _totalAssets The sum of assets across all arks
+     * @notice Flushes the cache for all arks and related data
+     * @dev This function resets the cached data for all arks and related data
+     *      to ensure that the next call to `totalAssets` or `withdrawableTotalAssets`
+     *      recalculates the values based on the current state of the arks.
      */
-    function _get_arksData()
-        internal
-        view
-        returns (ArkData[] memory _arksData, uint256 _totalAssets)
-    {
+    function _flushCache() internal {
+        StorageSlots.IS_TOTAL_ASSETS_CACHED_STORAGE.asBoolean().tstore(false);
+        StorageSlots
+            .IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
+            .asBoolean()
+            .tstore(false);
+        StorageSlots.WITHDRAWABLE_ARKS_LENGTH_STORAGE.asUint256().tstore(0);
+        StorageSlots.ARKS_LENGTH_STORAGE.asUint256().tstore(0);
+    }
+
+    /**
+     * @notice Retrieves the data (address, totalAssets) for all arks and the buffer ark
+     * @return _arksData An array of ArkData structs containing the ark addresses and their total assets
+     */
+    function _getArksData() internal returns (ArkData[] memory _arksData) {
         // Initialize data for all arks
         _arksData = new ArkData[](arks.length + 1); // +1 for buffer ark
-        _totalAssets = 0;
+        uint256 _totalAssets = 0;
 
         // Populate data for regular arks
         for (uint256 i = 0; i < arks.length; i++) {
@@ -810,28 +665,145 @@ contract FleetCommander is
 
         // Sort array by total assets
         _sortArkDataByTotalAssets(_arksData);
+        _cacheAllArksTotalAssets(_totalAssets);
+        _cacheAllArks(_arksData);
+    }
+
+    /**
+     * @notice Retrieves a storage slot based on the provided prefix and index
+     * @param prefix The prefix for the storage slot
+     * @param index The index for the storage slot
+     * @return bytes32 The storage slot value
+     */
+    function _getStorageSlot(
+        bytes32 prefix,
+        uint256 index
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(prefix, index));
+    }
+
+    /**
+     * @notice Retrieves the data (address, totalAssets) for all arks from cache
+     * @param lengthSlot The storage slot containing the number of arks
+     * @param addressPrefix The prefix for the ark addresses storage slot
+     * @param totalAssetsPrefix The prefix for the ark total assets storage slot
+     * @return arksData An array of ArkData structs containing the ark addresses and their total assets
+     */
+    function _getArksDataFromCache(
+        bytes32 lengthSlot,
+        bytes32 addressPrefix,
+        bytes32 totalAssetsPrefix
+    ) internal view returns (ArkData[] memory arksData) {
+        uint256 arksLength = lengthSlot.asUint256().tload();
+        arksData = new ArkData[](arksLength);
+        for (uint256 i = 0; i < arksLength; i++) {
+            address arkAddress = _getStorageSlot(addressPrefix, i)
+                .asAddress()
+                .tload();
+            uint256 _totalAssets = _getStorageSlot(totalAssetsPrefix, i)
+                .asUint256()
+                .tload();
+            arksData[i] = ArkData(arkAddress, _totalAssets);
+        }
+    }
+
+    /**
+     * @notice Retrieves the data (address, totalAssets) for all arks from cache
+     * @return arksData An array of ArkData structs containing the ark addresses and their total assets
+     */
+    function _getAllArksDataFromCache()
+        internal
+        view
+        returns (ArkData[] memory)
+    {
+        return
+            _getArksDataFromCache(
+                StorageSlots.ARKS_LENGTH_STORAGE,
+                StorageSlots.ARKS_ADDRESS_ARRAY_STORAGE,
+                StorageSlots.ARKS_TOTAL_ASSETS_ARRAY_STORAGE
+            );
+    }
+
+    /**
+     * @notice Retrieves the data (address, totalAssets) for all withdrawable arks from cache
+     * @return arksData An array of ArkData structs containing the ark addresses and their total assets
+     */
+    function _getWithdrawableArksDataFromCache()
+        internal
+        view
+        returns (ArkData[] memory)
+    {
+        return
+            _getArksDataFromCache(
+                StorageSlots.WITHDRAWABLE_ARKS_LENGTH_STORAGE,
+                StorageSlots.WITHDRAWABLE_ARKS_ADDRESS_ARRAY_STORAGE,
+                StorageSlots.WITHDRAWABLE_ARKS_TOTAL_ASSETS_ARRAY_STORAGE
+            );
+    }
+
+    /**
+     * @notice Caches the data for all arks in the specified storage slots
+     * @param arksData The array of ArkData structs containing the ark addresses and their total assets
+     * @param totalAssetsPrefix The prefix for the ark total assets storage slot
+     * @param addressPrefix The prefix for the ark addresses storage slot
+     * @param lengthSlot The storage slot containing the number of arks
+     */
+    function _cacheArks(
+        ArkData[] memory arksData,
+        bytes32 totalAssetsPrefix,
+        bytes32 addressPrefix,
+        bytes32 lengthSlot
+    ) internal {
+        for (uint256 i = 0; i < arksData.length; i++) {
+            _getStorageSlot(totalAssetsPrefix, i).asUint256().tstore(
+                arksData[i].totalAssets
+            );
+            _getStorageSlot(addressPrefix, i).asAddress().tstore(
+                arksData[i].arkAddress
+            );
+        }
+        lengthSlot.asUint256().tstore(arksData.length);
+    }
+
+    /**
+     * @notice Caches the data for all arks in the specified storage slots
+     * @param _arksData The array of ArkData structs containing the ark addresses and their total assets
+     */
+    function _cacheAllArks(ArkData[] memory _arksData) internal {
+        _cacheArks(
+            _arksData,
+            StorageSlots.ARKS_TOTAL_ASSETS_ARRAY_STORAGE,
+            StorageSlots.ARKS_ADDRESS_ARRAY_STORAGE,
+            StorageSlots.ARKS_LENGTH_STORAGE
+        );
+    }
+
+    /**
+     * @notice Caches the data for all withdrawable arks in the specified storage slots
+     * @param _withdrawableArksData The array of ArkData structs containing the ark addresses and their total assets
+     */
+    function _cacheWithdrawableArksTotalAssetsArray(
+        ArkData[] memory _withdrawableArksData
+    ) internal {
+        _cacheArks(
+            _withdrawableArksData,
+            StorageSlots.WITHDRAWABLE_ARKS_TOTAL_ASSETS_ARRAY_STORAGE,
+            StorageSlots.WITHDRAWABLE_ARKS_ADDRESS_ARRAY_STORAGE,
+            StorageSlots.WITHDRAWABLE_ARKS_LENGTH_STORAGE
+        );
     }
 
     /**
      * @notice Retrieves data for withdrawable arks, using pre-fetched data for all arks
      * @dev This function filters and sorts withdrawable arks by total assets
-     * @param _arksData Pre-fetched data for all arks
-     * @return _withdrawableArksData An array of ArkData structs for withdrawable arks
-     * @return _withdrawableTotalAssets The sum of assets across withdrawable arks
      */
-    function _get_withdrawableArksData(
-        ArkData[] memory _arksData
-    )
-        internal
-        view
-        returns (
-            ArkData[] memory _withdrawableArksData,
-            uint256 _withdrawableTotalAssets
-        )
-    {
+    function _getWithdrawableArksData() internal {
+        ArkData[] memory _arksData = _getArksData();
         // Initialize data for withdrawable arks
-        _withdrawableArksData = new ArkData[](_arksData.length);
-        _withdrawableTotalAssets = 0;
+        ArkData[] memory _withdrawableArksData = new ArkData[](
+            _arksData.length
+        );
+        uint256 _withdrawableTotalAssets = 0;
         uint256 withdrawableCount = 0;
 
         // Populate data for withdrawable arks
@@ -841,6 +813,7 @@ contract FleetCommander is
                 isArkWithdrawable[_arksData[i].arkAddress]
             ) {
                 _withdrawableArksData[withdrawableCount] = _arksData[i];
+
                 _withdrawableTotalAssets += _arksData[i].totalAssets;
                 withdrawableCount++;
             }
@@ -850,9 +823,34 @@ contract FleetCommander is
         assembly {
             mstore(_withdrawableArksData, withdrawableCount)
         }
-
-        // Sort array by total assets
+        _cacheWithdrawableArksTotalAssets(_withdrawableTotalAssets);
         _sortArkDataByTotalAssets(_withdrawableArksData);
+        _cacheWithdrawableArksTotalAssetsArray(_withdrawableArksData);
+    }
+
+    /**
+     * @notice Caches the total assets for all arks in the specified storage slot
+     * @param _totalAssets The total assets to cache
+     */
+    function _cacheAllArksTotalAssets(uint256 _totalAssets) internal {
+        StorageSlots.TOTAL_ASSETS_STORAGE.asUint256().tstore(_totalAssets);
+        StorageSlots.IS_TOTAL_ASSETS_CACHED_STORAGE.asBoolean().tstore(true);
+    }
+
+    /**
+     * @notice Caches the total assets for all withdrawable arks in the specified storage slot
+     * @param _withdrawableTotalAssets The total assets to cache
+     */
+    function _cacheWithdrawableArksTotalAssets(
+        uint256 _withdrawableTotalAssets
+    ) internal {
+        StorageSlots.WITHDRAWABLE_ARKS_TOTAL_ASSETS_STORAGE.asUint256().tstore(
+            _withdrawableTotalAssets
+        );
+        StorageSlots
+            .IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
+            .asBoolean()
+            .tstore(true);
     }
 
     /**
@@ -879,13 +877,10 @@ contract FleetCommander is
      * @notice Withdraws assets from multiple arks in a specific order
      * @dev This function attempts to withdraw the requested amount from arks,
      *      that allow such operations, in the order of total assets held
-     * @param withdrawableArks An array of ark addresses that can be force withdrawn from
      * @param assets The total amount of assets to withdraw
      */
-    function _forceDisembarkFromSortedArks(
-        ArkData[] memory withdrawableArks,
-        uint256 assets
-    ) internal {
+    function _forceDisembarkFromSortedArks(uint256 assets) internal {
+        ArkData[] memory withdrawableArks = _getWithdrawableArksDataFromCache();
         for (uint256 i = 0; i < withdrawableArks.length; i++) {
             uint256 assetsInArk = withdrawableArks[i].totalAssets;
             if (assetsInArk >= assets) {
@@ -1095,8 +1090,7 @@ contract FleetCommander is
     function _validateBufferWithdraw(
         uint256 assets,
         uint256 shares,
-        address owner,
-        uint256 _totalAssets
+        address owner
     ) internal view {
         if (
             _msgSender() != owner &&
@@ -1104,10 +1098,7 @@ contract FleetCommander is
         ) {
             revert FleetCommanderUnauthorizedWithdrawal(_msgSender(), owner);
         }
-        uint256 maxAssets = maxBufferWithdrawWithCachedAssets(
-            owner,
-            _totalAssets
-        );
+        uint256 maxAssets = maxBufferWithdraw(owner);
         if (assets > maxAssets) {
             revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
         }
@@ -1125,8 +1116,7 @@ contract FleetCommander is
      */
     function _validateBufferRedeem(
         uint256 shares,
-        address owner,
-        uint256 _totalAssets
+        address owner
     ) internal view {
         if (
             _msgSender() != owner &&
@@ -1135,10 +1125,7 @@ contract FleetCommander is
             revert FleetCommanderUnauthorizedRedemption(_msgSender(), owner);
         }
 
-        uint256 maxShares = maxBufferRedeemWithCachedAssets(
-            owner,
-            _totalAssets
-        );
+        uint256 maxShares = maxBufferRedeem(owner);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
         }
@@ -1151,12 +1138,8 @@ contract FleetCommander is
      * @param owner The address of the account making the deposit
      * @custom:error IERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
      */
-    function _validateDeposit(
-        uint256 assets,
-        address owner,
-        uint256 _totalAssets
-    ) internal view {
-        uint256 maxAssets = maxDepositWithCachedAssets(owner, _totalAssets);
+    function _validateDeposit(uint256 assets, address owner) internal view {
+        uint256 maxAssets = maxDeposit(owner);
         if (assets > maxAssets) {
             revert ERC4626ExceededMaxDeposit(owner, assets, maxAssets);
         }
@@ -1169,12 +1152,8 @@ contract FleetCommander is
      * @param owner The address of the account minting the shares
      * @custom:error IERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
      */
-    function _validateMint(
-        uint256 shares,
-        address owner,
-        uint256 _totalAssets
-    ) internal view {
-        uint256 maxShares = maxMintWithCachedAssets(owner, _totalAssets);
+    function _validateMint(uint256 shares, address owner) internal view {
+        uint256 maxShares = maxMint(owner);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxMint(owner, shares, maxShares);
         }
@@ -1194,9 +1173,7 @@ contract FleetCommander is
     function _validateWithdrawFromArks(
         uint256 assets,
         uint256 shares,
-        address owner,
-        uint256 _totalAssets,
-        uint256 _withdrawableTotalAssets
+        address owner
     ) internal view {
         if (
             _msgSender() != owner &&
@@ -1204,11 +1181,7 @@ contract FleetCommander is
         ) {
             revert FleetCommanderUnauthorizedWithdrawal(_msgSender(), owner);
         }
-        uint256 maxAssets = maxWithdrawWithCachedAssets(
-            owner,
-            _totalAssets,
-            _withdrawableTotalAssets
-        );
+        uint256 maxAssets = maxWithdraw(owner);
 
         if (assets > maxAssets) {
             revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
@@ -1225,25 +1198,44 @@ contract FleetCommander is
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
      * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
      */
-    function _validateForceRedeem(
-        uint256 shares,
-        address owner,
-        uint256 totalAssetsFromAllArks,
-        uint256 totalAssetsFromWithdrawableArks
-    ) internal view {
+    function _validateForceRedeem(uint256 shares, address owner) internal view {
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares
         ) {
             revert FleetCommanderUnauthorizedRedemption(_msgSender(), owner);
         }
-        uint256 maxShares = maxRedeemWithCachedAssets(
-            owner,
-            totalAssetsFromAllArks,
-            totalAssetsFromWithdrawableArks
-        );
+        uint256 maxShares = maxRedeem(owner);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
+        }
+    }
+
+    /**
+     * @notice Retrieves an array of all Arks, including regular Arks and the buffer Ark
+     * @dev This function creates a new array that includes all regular Arks and appends the buffer Ark at the end
+     * @return An array of IArk interfaces representing all Arks in the system
+     */
+    function _getAllArks() private view returns (IArk[] memory) {
+        IArk[] memory allArks = new IArk[](arks.length + 1);
+        for (uint256 i = 0; i < arks.length; i++) {
+            allArks[i] = IArk(arks[i]);
+        }
+        allArks[arks.length] = config.bufferArk;
+        return allArks;
+    }
+
+    /**
+     * @notice Calculates the sum of total assets across all provided Arks
+     * @dev This function iterates through the provided array of Arks and accumulates their total assets
+     * @param _arks An array of IArk interfaces representing the Arks to sum assets from
+     * @return total The sum of total assets across all provided Arks
+     */
+    function _sumTotalAssets(
+        IArk[] memory _arks
+    ) private view returns (uint256 total) {
+        for (uint256 i = 0; i < _arks.length; i++) {
+            total += _arks[i].totalAssets();
         }
     }
 }
