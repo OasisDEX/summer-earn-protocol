@@ -28,10 +28,19 @@ contract FleetCommander is
     Tipper,
     CooldownEnforcer
 {
+    /**
+     * @title ArkData
+     * @dev Struct to store information about an Ark.
+     * This struct holds the address of the Ark and the total assets it holds.
+     * @dev used in the caching mechanism for the FleetCommander
+     */
     struct ArkData {
+        /// @notice The address of the Ark.
         address arkAddress;
+        /// @notice The total assets held by the Ark.
         uint256 totalAssets;
     }
+
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
     using Math for uint256;
