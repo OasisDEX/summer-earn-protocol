@@ -717,23 +717,6 @@ contract FleetCommander is
     }
 
     /**
-     * @notice Retrieves the data (address, totalAssets) for all arks from cache
-     * @return arksData An array of ArkData structs containing the ark addresses and their total assets
-     */
-    function _getAllArksDataFromCache()
-        internal
-        view
-        returns (ArkData[] memory)
-    {
-        return
-            _getArksDataFromCache(
-                StorageSlots.ARKS_LENGTH_STORAGE,
-                StorageSlots.ARKS_ADDRESS_ARRAY_STORAGE,
-                StorageSlots.ARKS_TOTAL_ASSETS_ARRAY_STORAGE
-            );
-    }
-
-    /**
      * @notice Retrieves the data (address, totalAssets) for all withdrawable arks from cache
      * @return arksData An array of ArkData structs containing the ark addresses and their total assets
      */
