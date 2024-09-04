@@ -11,7 +11,7 @@ contract SimpleSwapArk is BaseSwapArk {
         address _arkToken
     ) BaseSwapArk(_params, _arkToken) {}
 
-    function getExchangeRate() public view override returns (uint256) {
+    function getExchangeRate() public pure override returns (uint256) {
         return 1e18;
     }
 
