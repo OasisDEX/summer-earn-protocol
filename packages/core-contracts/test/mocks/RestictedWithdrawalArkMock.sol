@@ -101,4 +101,6 @@ contract RestictedWithdrawalArkMock is Ark {
         }
         // Additional validation can be added here if needed
     }
+
+    function testSkipper() public {}
 }
