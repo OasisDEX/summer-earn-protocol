@@ -279,10 +279,10 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
      * @param data The data to validate
      */
     function _validateCommonData(bytes calldata data) internal view {
-        if (data.length > 0 && config.unrestrictedWithdrawal) {
+        if (data.length > 0 && config.requiresKeeperData) {
             revert CannotUseKeeperDataWithUnrestrictedArk();
         }
-        if (data.length == 0 && !config.unrestrictedWithdrawal) {
+        if (data.length == 0 && !config.requiresKeeperData) {
             revert CannotUseUnrestrictedArkWithoutKeeperData();
         }
     }

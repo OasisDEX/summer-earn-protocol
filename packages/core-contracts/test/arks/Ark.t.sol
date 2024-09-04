@@ -56,7 +56,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         ark = new ArkMock(params);
         otherArk = new ArkMock(params);
 
-        params.unrestrictedWithdrawal = false;
+        params.requiresKeeperData = false;
         unrestrictedArk = new RestictedWithdrawalArkMock(params);
     }
 
