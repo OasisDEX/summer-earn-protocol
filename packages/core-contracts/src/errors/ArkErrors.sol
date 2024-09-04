@@ -10,8 +10,8 @@ interface IArkErrors {
     error CannotDeployArkWithEmptyName();
     error InvalidVaultAddress();
     error ERC4626AssetMismatch();
-    error CannotUseKeeperDataWithUnrestrictedArk();
-    error CannotUseUnrestrictedArkWithoutKeeperData();
+    error CannotUseKeeperDataWhenNorRequired();
+    error KeeperDataRequired();
     error InvalidBoardData();
     error InvalidDisembarkData();
 }

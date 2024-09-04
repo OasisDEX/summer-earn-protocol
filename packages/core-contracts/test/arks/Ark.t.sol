@@ -386,16 +386,12 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
 
         // Act && Assert
         vm.expectRevert(
-            abi.encodeWithSignature("CannotUseKeeperDataWithUnrestrictedArk()")
+            abi.encodeWithSignature("CannotUseKeeperDataWhenNorRequired()")
         );
         vm.prank(commander);
         ark.board(0, bytes("abcd"));
 
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "CannotUseUnrestrictedArkWithoutKeeperData()"
-            )
-        );
+        vm.expectRevert(abi.encodeWithSignature("KeeperDataRequired()"));
         vm.prank(commander);
         unrestrictedArk.board(0, bytes(""));
     }
