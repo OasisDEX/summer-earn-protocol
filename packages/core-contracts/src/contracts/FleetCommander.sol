@@ -28,10 +28,19 @@ contract FleetCommander is
     Tipper,
     CooldownEnforcer
 {
+    /**
+     * @title ArkData
+     * @dev Struct to store information about an Ark.
+     * This struct holds the address of the Ark and the total assets it holds.
+     * @dev used in the caching mechanism for the FleetCommander
+     */
     struct ArkData {
+        /// @notice The address of the Ark.
         address arkAddress;
+        /// @notice The total assets held by the Ark.
         uint256 totalAssets;
     }
+
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
     using Math for uint256;
@@ -572,7 +581,7 @@ contract FleetCommander is
         }
 
         isArkActive[ark] = true;
-        isArkWithdrawable[ark] = IArk(ark).unrestrictedWithdrawal();
+        isArkWithdrawable[ark] = IArk(ark).requiresKeeperData();
         arks.push(ark);
         emit ArkAdded(ark);
     }
@@ -718,23 +727,6 @@ contract FleetCommander is
                 .tload();
             arksData[i] = ArkData(arkAddress, _totalAssets);
         }
-    }
-
-    /**
-     * @notice Retrieves the data (address, totalAssets) for all arks from cache
-     * @return arksData An array of ArkData structs containing the ark addresses and their total assets
-     */
-    function _getAllArksDataFromCache()
-        internal
-        view
-        returns (ArkData[] memory)
-    {
-        return
-            _getArksDataFromCache(
-                StorageSlots.ARKS_LENGTH_STORAGE,
-                StorageSlots.ARKS_ADDRESS_ARRAY_STORAGE,
-                StorageSlots.ARKS_TOTAL_ASSETS_ARRAY_STORAGE
-            );
     }
 
     /**

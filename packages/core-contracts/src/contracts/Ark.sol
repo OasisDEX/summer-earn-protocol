@@ -44,7 +44,7 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
             maxRebalanceInflow: _params.maxRebalanceInflow,
             name: _params.name,
-            unrestrictedWithdrawal: _params.unrestrictedWithdrawal
+            requiresKeeperData: _params.requiresKeeperData
         });
     }
 
@@ -110,8 +110,8 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
     }
 
     /* @inheritdoc IArk */
-    function unrestrictedWithdrawal() external view returns (bool) {
-        return config.unrestrictedWithdrawal;
+    function requiresKeeperData() external view returns (bool) {
+        return config.requiresKeeperData;
     }
 
     /* @inheritdoc IArk */

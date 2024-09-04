@@ -50,7 +50,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            unrestrictedWithdrawal: true
+            requiresKeeperData: true
         });
 
         ark = new ArkMock(params);
@@ -69,7 +69,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            unrestrictedWithdrawal: true
+            requiresKeeperData: true
         });
 
         vm.expectRevert(
