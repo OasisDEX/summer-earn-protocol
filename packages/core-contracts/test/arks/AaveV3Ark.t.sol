@@ -1,29 +1,39 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
-import "../../src/errors/AccessControlErrors.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import "../../src/events/IArkEvents.sol";
+import {Test, console} from "forge-std/Test.sol";
+
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import "../../src/events/IArkEvents.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents {
+    using SafeERC20 for IERC20;
+
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
+    IProtocolAccessManager accessManager;
+    IConfigurationManager configurationManager;
+
     address public governor = address(1);
-    address public commander = address(4);
     address public raft = address(2);
+    address public tipJar = address(3);
+    address public commander = address(4);
+
     address public constant aaveV3PoolAddress =
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address public aaveAddressProvider =
         0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e;
     address public aaveV3DataProvider =
         0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3;
+    address public rewardsController =
+        0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
     IPoolV3 public aaveV3Pool;
     ERC20Mock public mockToken;
 
@@ -31,21 +41,42 @@ contract AaveV3ArkTest is Test, IArkEvents {
         mockToken = new ERC20Mock();
         aaveV3Pool = IPoolV3(aaveV3PoolAddress);
 
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
+        accessManager = new ProtocolAccessManager(governor);
 
-        IConfigurationManager configurationManager = new ConfigurationManager(
+        configurationManager = new ConfigurationManager(
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
+                tipJar: tipJar,
                 raft: raft
             })
         );
 
         ArkParams memory params = ArkParams({
+            name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken)
+            token: address(mockToken),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
+        });
+        DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
+            configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined
+            // and 0 is a placeholder
+            liquidityIndex: 1e27, // Example value in ray
+            currentLiquidityRate: 1e27, // Example value in ray
+            variableBorrowIndex: 1e27, // Example value in ray
+            currentVariableBorrowRate: 1e27, // Example value in ray
+            currentStableBorrowRate: 1e27, // Example value in ray
+            lastUpdateTimestamp: uint40(block.timestamp), // Current timestamp as example
+            id: 1, // Example value
+            aTokenAddress: address(0), // Placeholder address
+            stableDebtTokenAddress: address(0), // Placeholder address
+            variableDebtTokenAddress: address(0), // Placeholder address
+            interestRateStrategyAddress: address(0), // Placeholder address
+            accruedToTreasury: 0, // Example value
+            unbacked: 0, // Example value
+            isolationModeTotalDebt: 0 // Example value
         });
         vm.mockCall(
             address(aaveV3Pool),
@@ -63,8 +94,13 @@ contract AaveV3ArkTest is Test, IArkEvents {
             ),
             abi.encode(aaveV3DataProvider)
         );
-        ark = new AaveV3Ark(address(aaveV3Pool), params);
-        nextArk = new AaveV3Ark(address(aaveV3Pool), params);
+        vm.mockCall(
+            address(aaveV3Pool),
+            abi.encodeWithSelector(IPoolV3(aaveV3Pool).getReserveData.selector),
+            abi.encode(reserveData)
+        );
+        ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
+        nextArk = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -73,10 +109,66 @@ contract AaveV3ArkTest is Test, IArkEvents {
         vm.stopPrank();
     }
 
-    function testBoard() public {
-        vm.prank(governor); // Set msg.sender to governor
-        ark.grantCommanderRole(commander);
+    function test_Constructor() public {
+        ArkParams memory params = ArkParams({
+            name: "TestArk",
+            accessManager: address(accessManager),
+            configurationManager: address(configurationManager),
+            token: address(mockToken),
+            depositCap: type(uint256).max,
+            maxRebalanceOutflow: type(uint256).max,
+            maxRebalanceInflow: type(uint256).max
+        });
+        DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
+            configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined
+            // and 0 is a placeholder
+            liquidityIndex: 1e27, // Example value in ray
+            currentLiquidityRate: 1e27, // Example value in ray
+            variableBorrowIndex: 1e27, // Example value in ray
+            currentVariableBorrowRate: 1e27, // Example value in ray
+            currentStableBorrowRate: 1e27, // Example value in ray
+            lastUpdateTimestamp: uint40(block.timestamp), // Current timestamp as example
+            id: 1, // Example value
+            aTokenAddress: address(0), // Placeholder address
+            stableDebtTokenAddress: address(0), // Placeholder address
+            variableDebtTokenAddress: address(0), // Placeholder address
+            interestRateStrategyAddress: address(0), // Placeholder address
+            accruedToTreasury: 0, // Example value
+            unbacked: 0, // Example value
+            isolationModeTotalDebt: 0 // Example value
+        });
+        vm.mockCall(
+            address(aaveV3Pool),
+            abi.encodeWithSelector(
+                IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector
+            ),
+            abi.encode(aaveAddressProvider)
+        );
+        vm.mockCall(
+            address(aaveAddressProvider),
+            abi.encodeWithSelector(
+                IPoolAddressesProvider(aaveAddressProvider)
+                    .getPoolDataProvider
+                    .selector
+            ),
+            abi.encode(aaveV3DataProvider)
+        );
+        vm.mockCall(
+            address(aaveV3Pool),
+            abi.encodeWithSelector(IPoolV3(aaveV3Pool).getReserveData.selector),
+            abi.encode(reserveData)
+        );
+        ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
+        assertEq(address(ark.aaveV3Pool()), address(aaveV3Pool));
+        assertEq(address(ark.aaveV3DataProvider()), aaveV3DataProvider);
 
+        assertEq(address(ark.token()), address(mockToken));
+        assertEq(ark.depositCap(), type(uint256).max);
+        assertEq(ark.aToken(), address(0));
+        assertEq(ark.name(), "TestArk");
+    }
+
+    function test_Board() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(commander, amount);
@@ -115,10 +207,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
         ark.board(amount);
     }
 
-    function testDisembark() public {
-        vm.prank(governor); // Set msg.sender to governor
-        ark.grantCommanderRole(commander);
-
+    function test_Disembark() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
         mockToken.mint(address(ark), amount);
@@ -129,7 +218,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
                 aaveV3Pool.withdraw.selector,
                 address(mockToken),
                 amount,
-                commander
+                address(ark)
             ),
             abi.encode(amount)
         );
@@ -140,7 +229,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
                 aaveV3Pool.withdraw.selector,
                 address(mockToken),
                 amount,
-                commander
+                address(ark)
             )
         );
 
@@ -151,5 +240,63 @@ contract AaveV3ArkTest is Test, IArkEvents {
         // Act
         vm.prank(commander); // Execute the next call as the commander
         ark.disembark(amount);
+    }
+
+    function test_Harvest() public {
+        address mockRewardToken = address(10);
+        address mockAToken = address(11);
+        uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
+
+        vm.mockCall(
+            address(aaveV3DataProvider),
+            abi.encodeWithSelector(
+                IPoolDataProvider(aaveV3DataProvider)
+                    .getReserveTokensAddresses
+                    .selector,
+                address(mockToken)
+            ),
+            abi.encode(address(0), mockAToken, address(0))
+        );
+
+        // Mock the call to claimRewardsToSelf
+        address[] memory incentivizedAssets = new address[](1);
+        incentivizedAssets[0] = mockAToken;
+        vm.mockCall(
+            address(rewardsController),
+            abi.encodeWithSelector(
+                IRewardsController(rewardsController)
+                    .claimRewardsToSelf
+                    .selector,
+                incentivizedAssets,
+                type(uint256).max,
+                mockRewardToken
+            ),
+            abi.encode(mockClaimedRewardsBalance)
+        );
+
+        vm.mockCall(
+            mockRewardToken,
+            abi.encodeWithSelector(
+                IERC20(mockRewardToken).balanceOf.selector,
+                address(ark)
+            ),
+            abi.encode(mockClaimedRewardsBalance)
+        );
+
+        vm.mockCall(
+            mockRewardToken,
+            abi.encodeWithSignature(
+                "transfer(address,uint256)",
+                raft,
+                mockClaimedRewardsBalance
+            ),
+            abi.encode(true)
+        );
+
+        vm.expectEmit(false, false, false, true);
+        emit Harvested(mockClaimedRewardsBalance);
+
+        // Act
+        ark.harvest(mockRewardToken, bytes(""));
     }
 }

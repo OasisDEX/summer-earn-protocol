@@ -17,14 +17,34 @@
     "test": "forge test",
     "build": "forge build && bash ./abi.sh",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
-    "coverage": "forge coverage",
-    "coverage:lcov": "forge coverage --report lcov",
-    "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info"
+    "coverage": "forge coverage --ir-minimum",
+    "coverage:lcov": "forge coverage --report lcov --ir-minimum",
+    "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",
+    "deploy:core": "hardhat run scripts/deploy-core.ts --network $NETWORK",
+    "deploy:fleet": "hardhat run scripts/deploy-fleet.ts --network $NETWORK",
+    "deploy:aavev3-ark": "hardhat run scripts/deploy-aavev3-ark.ts --network $NETWORK",
+    "deploy:compoundv3-ark": "hardhat run scripts/deploy-compoundv3-ark.ts --network $NETWORK",
+    "deploy:metamorpho-ark": "hardhat run scripts/deploy-metamorpho-ark.ts --network $NETWORK",
+    "deploy:morpho-ark": "hardhat run scripts/deploy-morpho-ark.ts --network $NETWORK"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-foundry": "^1.1.2",
+    "@nomicfoundation/hardhat-ignition": "^0.15.5",
+    "@nomicfoundation/hardhat-ignition-viem": "^0.15.5",
+    "@summerfi/dutch-auction": "workspace:*",
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
+    "@summerfi/percentage-solidity": "workspace:*",
+    "@summerfi/math-utils": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
-    "@summerfi/typescript-config": "workspace:*"
+    "@summerfi/typescript-config": "workspace:*",
+    "@types/prompts": "^2.4.9",
+    "hardhat": "^2.22.8",
+    "kleur": "^4.1.5",
+    "prompts": "^2.4.2",
+    "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "solhint-plugin-prettier": "^0.1.0"
   }
 }

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../errors/AccessControlErrors.sol";
+import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ProtocolAccessManaged
@@ -47,6 +47,21 @@ contract ProtocolAccessManaged {
     modifier onlyKeeper() {
         if (!_accessManager.hasRole(_accessManager.KEEPER_ROLE(), msg.sender)) {
             revert CallerIsNotKeeper(msg.sender);
+        }
+        _;
+    }
+
+    /**
+     * @dev Modifier to check that the caller has the Super Keeper role
+     */
+    modifier onlySuperKeeper() {
+        if (
+            !_accessManager.hasRole(
+                _accessManager.SUPER_KEEPER_ROLE(),
+                msg.sender
+            )
+        ) {
+            revert CallerIsNotSuperKeeper(msg.sender);
         }
         _;
     }

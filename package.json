@@ -1,6 +1,8 @@
 {
   "private": true,
   "scripts": {
+    "typecheck:ark-rebalancer": "cd packages/ark-rebalancer && venv/bin/mypy ark_rebalancer.py",
+    "start:ark-rebalancer": "cd packages/ark-rebalancer && venv/bin/python ark_rebalancer.py",
     "dev": "turbo run dev --concurrency=100",
     "prebuild": "turbo run prebuild --cache-dir=.turbo",
     "build": "turbo run build --cache-dir=.turbo",

@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../errors/AccessControlErrors.sol";
+import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 
 /**
  * @custom:see IProtocolAccessManager
  */
-contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
+contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /**
      * @dev The Governor role is in charge of setting the parameters of the system
      *      and also has the power to manage the different Fleet Commander roles.
@@ -22,6 +20,12 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
      *         Arks through the Fleet Commander
      */
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
+
+    /**
+     * @dev The Super Keeper role is in charge of rebalancing the funds between the different
+     *         Arks through the Fleet Commander
+     */
+    bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 
     /**
      * @dev The Commander role is assigned to a FleetCommander and is used to restrict
@@ -103,19 +107,13 @@ contract ProtocolAccessManager is IProtocolAccessManager, AccessControl {
         _revokeRole(KEEPER_ROLE, account);
     }
 
-    /*
-     * @dev Disabled generally to rely on specific role grant methods
-     * and our own modifiers
-     */
-    function grantRole(bytes32, address) public view override {
-        revert DirectGrantIsDisabled(msg.sender);
+    /* @inheritdoc IProtocolAccessControl */
+    function grantSuperKeeperRole(address account) external onlyGovernor {
+        _grantRole(SUPER_KEEPER_ROLE, account);
     }
 
-    /*
-     * @dev Disabled generally to rely on specific role grant methods
-     * and our own modifiers
-     */
-    function revokeRole(bytes32, address) public view override {
-        revert DirectRevokeIsDisabled(msg.sender);
+    /* @inheritdoc IProtocolAccessControl */
+    function revokeSuperKeeperRole(address account) external onlyGovernor {
+        _revokeRole(SUPER_KEEPER_ROLE, account);
     }
 }

@@ -1,10 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.15;
 
-import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
 import {DataTypes} from "./DataTypes.sol";
+import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
 
 interface IPoolV3 {
+    /**
+     * @dev Emitted on supply()
+     * @param reserve The address of the underlying asset of the reserve
+     * @param user The address initiating the supply
+     * @param onBehalfOf The beneficiary of the supply, receiving the aTokens
+     * @param amount The amount supplied
+     * @param referralCode The referral code used
+     */
+    event Supply(
+        address indexed reserve,
+        address user,
+        address indexed onBehalfOf,
+        uint256 amount,
+        uint16 indexed referralCode
+    );
+
     /**
      * @notice Supplies an `amount` of underlying asset into the reserve, receiving in return overlying aTokens.
      * - E.g. User supplies 100 USDC and gets in return 100 aUSDC
@@ -50,4 +66,13 @@ interface IPoolV3 {
         external
         view
         returns (IPoolAddressesProvider);
+
+    /**
+     * @notice Returns the state and configuration of the reserve
+     * @param asset The address of the underlying asset of the reserve
+     * @return The state and configuration data of the reserve
+     */
+    function getReserveData(
+        address asset
+    ) external view returns (DataTypes.ReserveData memory);
 }

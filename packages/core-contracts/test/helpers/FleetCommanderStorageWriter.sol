@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {Percentage} from "../../src/libraries/PercentageUtils.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {StdStorage, Test, console, stdStorage} from "forge-std/Test.sol";
 
 /**
  * @title FleetCommanderStorageWriter
@@ -14,63 +14,28 @@ contract FleetCommanderStorageWriter is Test {
 
     address public fleetCommander;
 
-    uint256 public FundsBufferBalanceSlot;
-    uint256 public MinFundsBufferBalanceSlot;
-    uint256 public DepositCapSlot;
-    uint256 public MaxBufferWithdrawalPercentageSlot;
+    uint256 public configSlot;
 
     constructor(address fleetCommander_) {
         fleetCommander = fleetCommander_;
 
-        FundsBufferBalanceSlot = stdstore
+        configSlot = stdstore
             .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).fundsBufferBalance.selector)
-            .find();
-
-        MinFundsBufferBalanceSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).minFundsBufferBalance.selector)
-            .find();
-
-        DepositCapSlot = stdstore
-            .target(fleetCommander)
-            .sig(FleetCommander(fleetCommander).depositCap.selector)
-            .find();
-        MaxBufferWithdrawalPercentageSlot = stdstore
-            .target(fleetCommander)
-            .sig(
-                FleetCommander(fleetCommander)
-                    .maxBufferWithdrawalPercentage
-                    .selector
-            )
+            .sig(FleetCommander(fleetCommander).config.selector)
             .find();
     }
 
-    function setFundsBufferBalance(uint256 value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(FundsBufferBalanceSlot),
-            bytes32(value)
-        );
-    }
-
-    function setMinFundsBufferBalance(uint256 value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(MinFundsBufferBalanceSlot),
-            bytes32(value)
-        );
+    function setminimumBufferBalance(uint256 value) public {
+        bytes32 slot = bytes32(configSlot);
+        bytes32 minimumBufferBalanceSlot = bytes32(uint256(slot) + 1); // Offset for minimumBufferBalance in the struct
+        vm.store(fleetCommander, minimumBufferBalanceSlot, bytes32(value));
     }
 
     function setDepositCap(uint256 value) public {
-        vm.store(fleetCommander, bytes32(DepositCapSlot), bytes32(value));
+        bytes32 slot = bytes32(configSlot);
+        bytes32 depositCapSlot = bytes32(uint256(slot) + 2); // Offset for depositCap in the struct
+        vm.store(fleetCommander, depositCapSlot, bytes32(value));
     }
 
-    function setMaxBufferWithdrawalPercentage(Percentage value) public {
-        vm.store(
-            fleetCommander,
-            bytes32(MaxBufferWithdrawalPercentageSlot),
-            bytes32(Percentage.unwrap(value))
-        );
-    }
+    function test() public {}
 }

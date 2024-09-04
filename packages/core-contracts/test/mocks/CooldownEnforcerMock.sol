@@ -3,7 +3,9 @@ pragma solidity 0.8.26;
 
 import {CooldownEnforcer} from "../../src/utils/CooldownEnforcer/CooldownEnforcer.sol";
 
-/** Mock contract to use the abstract contract CooldownEnforcer */
+/**
+ * Mock contract to use the abstract contract CooldownEnforcer
+ */
 contract CooldownEnforcerMock is CooldownEnforcer {
     constructor(
         uint256 cooldown_,

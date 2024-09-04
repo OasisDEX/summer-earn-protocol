@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-import "../../src/errors/FleetCommanderErrors.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+
+import {IArk} from "../../src/interfaces/IArk.sol";
+
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title Withdraw test suite for FleetCommander
@@ -20,75 +23,510 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Error cases and edge scenarios
  */
 contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
-    uint256 depositAmount = 1000 * 10 ** 6;
+    using PercentageUtils for uint256;
+
+    uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
+    uint256 initialConversionRate;
 
     function setUp() public {
-        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
-        // but you can create and initialize your own custom fleet if you wish.
-        fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
-
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(keeper);
-        mockArk1.grantCommanderRole(address(fleetCommander));
-        mockArk2.grantCommanderRole(address(fleetCommander));
-        mockArk3.grantCommanderRole(address(fleetCommander));
-        vm.stopPrank();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
 
         // Arrange (Deposit first)
-        mockToken.mint(mockUser, depositAmount);
+        mockToken.mint(mockUser, DEPOSIT_AMOUNT);
 
-        vm.prank(mockUser);
-        mockToken.approve(address(fleetCommander), depositAmount);
-        // since the funds do not leave the queue in this test we do not need to mock the total assets
-        mockArkTotalAssets(ark1, 0);
-        mockArkTotalAssets(ark2, 0);
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), DEPOSIT_AMOUNT);
+        fleetCommander.deposit(DEPOSIT_AMOUNT, mockUser);
+        vm.stopPrank();
 
-        vm.prank(mockUser);
-        fleetCommander.deposit(depositAmount, mockUser);
+        initialConversionRate = fleetCommander.convertToAssets(1000000);
+
+        vm.prank(governor);
+        fleetCommander.setMinimumBufferBalance(0);
     }
 
-    function test_UserCanWithdrawTokens() public {
-        // Arrange - confirm user has deposited
-        assertEq(depositAmount, fleetCommander.balanceOf(mockUser));
+    function test_ConversionRateChange() public {
+        mockToken.mint(ark1, 100000);
+        uint256 newConversionRate = fleetCommander.convertToAssets(1000000);
+        assertGt(
+            newConversionRate,
+            initialConversionRate,
+            "Conversion rate should increase after interest accrual"
+        );
+    }
 
-        // Act
+    function test_UserCanWithdrawAssets() public {
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 10;
+        uint256 depositShares = fleetCommander.balanceOf(mockUser);
         vm.prank(mockUser);
-        uint256 withdrawalAmount = depositAmount / 10;
-        fleetCommander.withdraw(depositAmount / 10, mockUser, mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdraw(
+            assetsToWithdraw,
+            mockUser,
+            mockUser
+        );
 
-        // Assert
         assertEq(
-            depositAmount - withdrawalAmount,
-            fleetCommander.balanceOf(mockUser)
+            mockToken.balanceOf(mockUser),
+            assetsToWithdraw,
+            "Incorrect assets withdrawn"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositShares - sharesRedeemed,
+            "Incorrect remaining shares"
         );
     }
 
-    function test_RevertIfArkDepositCapNotZero() public {
-        // Act & Assert
-        vm.prank(governor);
-        mockArkDepositCap(ark1, 100);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkDepositCapGreaterThanZero.selector,
-                ark1
-            )
+    function test_WithdrawMultipleTimes() public {
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 3;
+        uint256 depositShares = fleetCommander.balanceOf(mockUser);
+        vm.startPrank(mockUser);
+        uint256 shares1 = fleetCommander.withdraw(
+            assetsToWithdraw,
+            mockUser,
+            mockUser
         );
-        fleetCommander.removeArk(ark1);
+        uint256 shares2 = fleetCommander.withdraw(
+            assetsToWithdraw,
+            mockUser,
+            mockUser
+        );
+        uint256 shares3 = fleetCommander.withdraw(
+            fleetCommander.maxWithdraw(mockUser),
+            mockUser,
+            mockUser
+        );
+        vm.stopPrank();
+
+        assertEq(
+            shares1 + shares2 + shares3,
+            depositShares,
+            "Should redeem all shares"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "User should have no remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            DEPOSIT_AMOUNT,
+            "User should have received all assets back"
+        );
     }
 
-    function test_RevertIfArkTotalAssetsNotZero() public {
-        // Act & Assert
-        vm.prank(governor);
-        mockArkTotalAssets(ark1, 100);
+    function test_WithdrawZero() public {
+        uint256 depositShares = fleetCommander.balanceOf(mockUser);
+        vm.prank(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdraw(0, mockUser, mockUser);
+
+        assertEq(sharesRedeemed, 0, "Should withdraw zero amount");
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositShares,
+            "User shares should remain unchanged"
+        );
+    }
+
+    function test_WithdrawExceedingBalance() public {
+        uint256 excessAmount = DEPOSIT_AMOUNT + 1;
+
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkAssetsNotZero.selector,
-                ark1
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
+                mockUser,
+                excessAmount,
+                DEPOSIT_AMOUNT
             )
         );
-        fleetCommander.removeArk(ark1);
+        vm.prank(mockUser);
+        fleetCommander.withdraw(excessAmount, mockUser, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
+                mockUser,
+                excessAmount,
+                DEPOSIT_AMOUNT
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.withdrawFromBuffer(excessAmount, mockUser, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
+                mockUser,
+                excessAmount,
+                DEPOSIT_AMOUNT
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.withdrawFromArks(excessAmount, mockUser, mockUser);
+    }
+
+    function test_WithdrawByNonOwner() public {
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
+        fleetCommander.withdraw(assetsToWithdraw, nonOwner, mockUser);
+    }
+
+    function test_WithdrawByNonOwnerWithSufficientAllowance() public {
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+        uint256 sharesToAllow = fleetCommander.previewWithdraw(
+            assetsToWithdraw
+        );
+
+        vm.prank(mockUser);
+        fleetCommander.approve(nonOwner, sharesToAllow);
+
+        vm.prank(nonOwner);
+        fleetCommander.withdraw(assetsToWithdraw, nonOwner, mockUser);
+    }
+
+    function test_WithdrawByNonOwnerWithInsufficientAllowance() public {
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+        uint256 sharesToAllow = fleetCommander.previewWithdraw(
+            assetsToWithdraw
+        ) - 1;
+
+        vm.prank(mockUser);
+        fleetCommander.approve(nonOwner, sharesToAllow);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
+        fleetCommander.withdraw(assetsToWithdraw, nonOwner, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
+        fleetCommander.withdrawFromArks(assetsToWithdraw, nonOwner, mockUser);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderUnauthorizedWithdrawal(address,address)",
+                nonOwner,
+                mockUser
+            )
+        );
+
+        vm.prank(nonOwner);
+        fleetCommander.withdrawFromBuffer(assetsToWithdraw, nonOwner, mockUser);
+    }
+
+    function test_WithdrawToOtherReceiver() public {
+        address receiver = nonOwner;
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+
+        vm.prank(mockUser);
+        fleetCommander.withdraw(assetsToWithdraw, receiver, mockUser);
+
+        assertEq(
+            mockToken.balanceOf(receiver),
+            assetsToWithdraw,
+            "Receiver should have received the assets"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            0,
+            "Owner should not have received any assets"
+        );
+    }
+
+    function test_WithdrawEventEmission() public {
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+        uint256 expectedShares = fleetCommander.previewWithdraw(
+            assetsToWithdraw
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit IERC4626.Withdraw(
+            mockUser,
+            mockUser,
+            mockUser,
+            assetsToWithdraw,
+            expectedShares
+        );
+
+        vm.prank(mockUser);
+        fleetCommander.withdraw(assetsToWithdraw, mockUser, mockUser);
+    }
+
+    function test_WithdrawUpdatesBufferBalance() public {
+        (IArk bufferArk, , ) = fleetCommander.config();
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+        uint256 initialBufferBalance = bufferArk.totalAssets();
+
+        vm.prank(mockUser);
+        fleetCommander.withdraw(assetsToWithdraw, mockUser, mockUser);
+
+        uint256 finalBufferBalance = bufferArk.totalAssets();
+        assertEq(
+            finalBufferBalance,
+            initialBufferBalance - assetsToWithdraw,
+            "Buffer balance should decrease by withdrawn assets"
+        );
+    }
+
+    function test_WithdrawWithRebalancedFunds() public {
+        // Move some funds to different arks
+        (IArk bufferArk, , ) = fleetCommander.config();
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        vm.startPrank(keeper);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 3)
+        );
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark2, DEPOSIT_AMOUNT / 3)
+        );
+        vm.stopPrank();
+
+        vm.prank(mockUser);
+        fleetCommander.withdraw(DEPOSIT_AMOUNT, mockUser, mockUser);
+
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "User should have no remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            DEPOSIT_AMOUNT,
+            "User should have received all assets back"
+        );
+    }
+
+    function test_WithdrawExactlyBufferLimit() public {
+        uint256 depositShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
+        uint256 maxBufferWithdraw = fleetCommander.maxBufferWithdraw(mockUser);
+
+        vm.prank(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdraw(
+            maxBufferWithdraw,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            maxBufferWithdraw,
+            "User should receive exact buffer limit"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositShares - sharesRedeemed,
+            "User should have remaining shares"
+        );
+    }
+
+    function test_WithdrawBufferPlusOne() public {
+        // Move some funds to arks
+        (IArk bufferArk, , ) = fleetCommander.config();
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+        );
+        vm.stopPrank();
+
+        uint256 maxBufferWithdraw = fleetCommander.maxBufferWithdraw(mockUser);
+        uint256 withdrawAmount = maxBufferWithdraw + 1;
+
+        vm.expectEmit(true, true, true, true);
+        emit IFleetCommanderEvents.FleetCommanderWithdrawnFromArks(
+            mockUser,
+            mockUser,
+            withdrawAmount
+        );
+        vm.prank(mockUser);
+        fleetCommander.withdraw(withdrawAmount, mockUser, mockUser);
+    }
+
+    function test_WithdrawAll() public {
+        uint256 depositShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
+        vm.prank(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdraw(
+            type(uint256).max,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(sharesRedeemed, depositShares, "Should redeem all shares");
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "User should have no remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            DEPOSIT_AMOUNT,
+            "User should receive all assets"
+        );
+    }
+
+    function test_WithdrawFromBuffer() public {
+        uint256 depositShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+
+        vm.prank(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdraw(
+            assetsToWithdraw,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            assetsToWithdraw,
+            "User should receive withdrawn assets"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositShares - sharesRedeemed,
+            "User should have remaining shares"
+        );
+    }
+
+    function test_WithdrawFromBufferDirectly() public {
+        uint256 depositShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
+        uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
+
+        vm.prank(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdrawFromBuffer(
+            assetsToWithdraw,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            assetsToWithdraw,
+            "User should receive withdrawn assets"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositShares - sharesRedeemed,
+            "User should have remaining shares"
+        );
+    }
+
+    function test_WithdrawFromArks() public {
+        // Move some funds to arks
+        (IArk bufferArk, , ) = fleetCommander.config();
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+        );
+        vm.stopPrank();
+
+        uint256 depositShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
+        uint256 assetsToWithdraw = (DEPOSIT_AMOUNT * 3) / 4;
+
+        vm.prank(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdraw(
+            assetsToWithdraw,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            assetsToWithdraw,
+            "User should receive withdrawn assets"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            depositShares - sharesRedeemed,
+            "User should have remaining shares"
+        );
+    }
+
+    function test_MaxBufferWithdraw() public {
+        (IArk bufferArk, , ) = fleetCommander.config();
+        uint256 maxBufferWithdraw = fleetCommander.maxBufferWithdraw(mockUser);
+        assertEq(
+            maxBufferWithdraw,
+            DEPOSIT_AMOUNT,
+            "Max buffer withdraw should equal deposit amount"
+        );
+
+        // Move some funds to arks
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+        );
+        vm.stopPrank();
+
+        maxBufferWithdraw = fleetCommander.maxBufferWithdraw(mockUser);
+        assertEq(
+            maxBufferWithdraw,
+            DEPOSIT_AMOUNT / 2,
+            "Max buffer withdraw should equal remaining buffer amount"
+        );
+    }
+
+    function test_WithdrawForce() public {
+        (IArk bufferArk, , ) = fleetCommander.config();
+        uint256 depositShares = fleetCommander.balanceOf(mockUser);
+        // Move some funds to arks
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+        );
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark2, DEPOSIT_AMOUNT / 4)
+        );
+        vm.stopPrank();
+
+        vm.prank(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdrawFromArks(
+            DEPOSIT_AMOUNT,
+            mockUser,
+            mockUser
+        );
+
+        assertEq(
+            sharesRedeemed,
+            depositShares,
+            "Should force withdraw full amount of shares"
+        );
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "User should have no remaining shares"
+        );
+        assertEq(
+            mockToken.balanceOf(mockUser),
+            DEPOSIT_AMOUNT,
+            "User should receive all assets"
+        );
     }
 }

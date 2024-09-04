@@ -1,46 +1,30 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
-import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
- * @dev Test suite of full lifecycle tests EG Deposit -> Rebalance -> ForceWithdraw
+ * @dev Test suite of full lifecycle tests EG Deposit -> Rebalance -> WithdrawFromArks
  */
-contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
-    address public mockUser2 = address(5);
-
+contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
-        // Each fleet uses a default setup from the FleetCommanderTestBase contract,
-        // but you can create and initialize your own custom fleet if you wish.
-        fleetCommander = new FleetCommander(fleetCommanderParams);
-        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
-            address(fleetCommander)
-        );
-
-        vm.startPrank(governor);
-        accessManager.grantKeeperRole(keeper);
-        mockArk1.grantCommanderRole(address(fleetCommander));
-        mockArk2.grantCommanderRole(address(fleetCommander));
-        mockArk3.grantCommanderRole(address(fleetCommander));
-        vm.stopPrank();
+        uint256 initialTipRate = 0;
+        initializeFleetCommanderWithMockArks(initialTipRate);
     }
 
-    function test_DepositRebalanceForceWithdraw() public {
+    function test_DepositRebalanceWithdrawFromArks() public {
         // Arrange
-        uint256 user1Deposit = ark1_MAX_ALLOCATION;
-        uint256 user2Deposit = ark2_MAX_ALLOCATION;
-        uint256 depositCap = ark1_MAX_ALLOCATION + ark2_MAX_ALLOCATION;
-        uint256 minBufferBalance = 1000 * 10 ** 6;
+        uint256 user1Deposit = ARK1_MAX_ALLOCATION;
+        uint256 user2Deposit = ARK2_MAX_ALLOCATION;
+        uint256 depositCap = ARK1_MAX_ALLOCATION + ARK2_MAX_ALLOCATION;
+        uint256 minBufferBalance = 0;
 
         // Set initial buffer balance and min buffer balance
-        fleetCommanderStorageWriter.setMinFundsBufferBalance(minBufferBalance);
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         // Set deposit cap
         fleetCommanderStorageWriter.setDepositCap(depositCap);
@@ -96,16 +80,18 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Rebalance funds to Ark1 and Ark2
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(fleetCommander),
+            fromArk: bufferArkAddress,
             toArk: ark1,
             amount: user1Deposit
         });
         rebalanceData[1] = RebalanceData({
-            fromArk: address(fleetCommander),
+            fromArk: bufferArkAddress,
             toArk: ark2,
             amount: user2Deposit
         });
 
+        // Advance time to move past cooldown window
+        vm.warp(block.timestamp + 1 days);
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
 
@@ -119,7 +105,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(mockUser);
         uint256 user1Shares = fleetCommander.balanceOf(mockUser);
         uint256 user1Assets = fleetCommander.previewRedeem(user1Shares);
-        fleetCommander.forceWithdraw(user1Assets, mockUser, mockUser);
+        fleetCommander.withdrawFromArks(user1Assets, mockUser, mockUser);
 
         assertEq(
             fleetCommander.balanceOf(mockUser),
@@ -137,7 +123,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(mockUser2);
         uint256 user2Shares = fleetCommander.balanceOf(mockUser2);
         uint256 user2Assets = fleetCommander.previewRedeem(user2Shares);
-        fleetCommander.forceWithdraw(user2Assets, mockUser2, mockUser2);
+        fleetCommander.withdrawFromArks(user2Assets, mockUser2, mockUser2);
 
         assertEq(
             fleetCommander.balanceOf(mockUser2),

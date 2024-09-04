@@ -11,15 +11,23 @@ import "./ICooldownEnforcerEvents.sol";
  * @custom:see ICooldownEnforcer
  */
 abstract contract CooldownEnforcer is ICooldownEnforcer {
-    /** STATE VARIABLES */
+    /**
+     * STATE VARIABLES
+     */
 
-    /** Cooldown between actions in seconds */
+    /**
+     * Cooldown between actions in seconds
+     */
     uint256 private _cooldown;
 
-    /** Timestamp of the last action in Epoch time (block timestamp) */
+    /**
+     * Timestamp of the last action in Epoch time (block timestamp)
+     */
     uint256 private _lastActionTimestamp;
 
-    /** CONSTRUCTOR */
+    /**
+     * CONSTRUCTOR
+     */
 
     /**
      * @notice Initializes the cooldown period and sets the last action timestamp to the current block timestamp
@@ -39,7 +47,9 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
         }
     }
 
-    /** MODIFIERS */
+    /**
+     * MODIFIERS
+     */
 
     /**
      * @notice Modifier to enforce the cooldown period between actions.
@@ -63,7 +73,9 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
         _;
     }
 
-    /** VIEW FUNCTIONS */
+    /**
+     * VIEW FUNCTIONS
+     */
 
     /// @inheritdoc ICooldownEnforcer
     function getCooldown() public view returns (uint256) {
@@ -75,7 +87,9 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
         return _lastActionTimestamp;
     }
 
-    /** INTERNAL STATE CHANGE FUNCTIONS */
+    /**
+     * INTERNAL STATE CHANGE FUNCTIONS
+     */
 
     /**
      * @notice Updates the cooldown period.
@@ -88,5 +102,16 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
         emit CooldownUpdated(_cooldown, newCooldown);
 
         _cooldown = newCooldown;
+    }
+
+    /**
+     * @notice Updates the last action timestamp
+     *
+     * @param lastActionTimestamp The new last action timestamp
+     *
+     * @dev Allows for cooldown period to be skipped (IE after force withdrawal)
+     */
+    function _setLastActionTimestamp(uint256 lastActionTimestamp) internal {
+        _lastActionTimestamp = lastActionTimestamp;
     }
 }

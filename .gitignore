@@ -51,6 +51,7 @@ artifacts
 
 # other generated files
 /packages/**/src/generated/
+/packages/**/typechain-types/
 
 # nx files
 .nx
@@ -79,3 +80,17 @@ cdk.context.json
 
 #subgraph
 generated
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+*.egg-info/
+dist/
+build/
+
+cache
+.cache
+broadcast
+
+**/cache_forge

@@ -61,25 +61,14 @@ interface IFleetCommanderEvents {
     /**
      * @notice Emitted when a new Ark is added
      * @param ark The address of the newly added Ark
-     * @param maxAllocation The maximum token allocation for the new Ark (token units)
      */
-    event ArkAdded(address indexed ark, uint256 maxAllocation);
+    event ArkAdded(address indexed ark);
 
     /**
      * @notice Emitted when an Ark is removed
      * @param ark The address of the removed Ark
      */
     event ArkRemoved(address indexed ark);
-
-    /**
-     * @notice Emitted when an Ark's maximum allocation is updated
-     * @param ark The address of the Ark
-     * @param newMaxAllocation The new maximum allocation for the Ark (token units)
-     */
-    event ArkMaxAllocationUpdated(
-        address indexed ark,
-        uint256 newMaxAllocation
-    );
 
     /**
      * @notice Emitted when the funds buffer balance is updated
@@ -105,5 +94,29 @@ interface IFleetCommanderEvents {
      *
      * @param newBalance New minimum funds buffer balance
      */
-    event FleetCommanderMinFundsBufferBalanceUpdated(uint256 newBalance);
+    event FleetCommanderminimumBufferBalanceUpdated(uint256 newBalance);
+
+    /**
+     * @notice Emitted when funds are withdrawn from Arks
+     * @param owner The address of the owner who initiated the withdrawal
+     * @param receiver The address of the receiver of the withdrawn funds
+     * @param totalWithdrawn The total amount of funds withdrawn
+     */
+    event FleetCommanderWithdrawnFromArks(
+        address indexed owner,
+        address receiver,
+        uint256 totalWithdrawn
+    );
+
+    /**
+     * @notice Emitted when funds are redeemed from Arks
+     * @param owner The address of the owner who initiated the redemption
+     * @param receiver The address of the receiver of the redeemed funds
+     * @param totalRedeemed The total amount of funds redeemed
+     */
+    event FleetCommanderRedeemedFromArks(
+        address indexed owner,
+        address receiver,
+        uint256 totalRedeemed
+    );
 }

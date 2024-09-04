@@ -2,117 +2,191 @@
 pragma solidity 0.8.26;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {PercentageUtils} from "../../src/libraries/PercentageUtils.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {Test, console} from "forge-std/Test.sol";
+
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {ArkConfiguration, FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+
+import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ArkMock} from "../mocks/ArkMock.sol";
+import {ArkParams} from "../../src/types/ArkTypes.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
+import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
+import {ArkMock} from "../mocks/ArkMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
-abstract contract FleetCommanderTestBase {
+import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
+abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
-
-    IProtocolAccessManager public accessManager;
-    FleetCommanderStorageWriter public fleetCommanderStorageWriter;
-    FleetCommander public fleetCommander;
-    FleetCommanderParams public fleetCommanderParams;
-    address public governor = address(1);
-    address public raft = address(2);
-    address public mockUser = address(3);
-    address public keeper = address(4);
-
-    address ark1 = address(10);
-    address ark2 = address(11);
-    address ark3 = address(12);
-
-    address invalidArk = address(999);
-
-    ERC20Mock public mockToken;
-    ArkMock public mockArk1;
-    ArkMock public mockArk2;
-    ArkMock public mockArk3;
-
-    string public fleetName = "OK_Fleet";
 
     uint256 public BUFFER_BALANCE_SLOT;
     uint256 public MIN_BUFFER_BALANCE_SLOT;
 
-    uint256 ark1_MAX_ALLOCATION = 10000 * 10 ** 6;
-    uint256 ark2_MAX_ALLOCATION = 15000 * 10 ** 6;
+    // Constants
+    uint256 constant INITIAL_REBALANCE_COOLDOWN = 1000;
+    uint256 constant INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE = 10000 * 10 ** 6;
+    uint256 constant ARK1_MAX_ALLOCATION = 10000 * 10 ** 6;
+    uint256 constant ARK2_MAX_ALLOCATION = 15000 * 10 ** 6;
+    uint256 constant ARK3_MAX_ALLOCATION = 20000 * 10 ** 6;
 
-    constructor() {
+    // Contracts
+    IProtocolAccessManager public accessManager;
+    IConfigurationManager public configurationManager;
+    FleetCommanderStorageWriter public fleetCommanderStorageWriter;
+    FleetCommander public fleetCommander;
+    ERC20Mock public mockToken;
+    ArkMock public mockArk1;
+    ArkMock public mockArk2;
+    ArkMock public mockArk3;
+    BufferArk public bufferArk;
+
+    // Addresses
+    address public governor = address(1);
+    address public raft = address(2);
+    address public mockUser = address(3);
+    address public mockUser2 = address(5);
+    address public keeper = address(4);
+    address public tipJar = address(6);
+    address public ark1 = address(10);
+    address public ark2 = address(11);
+    address public ark3 = address(12);
+    address public bufferArkAddress = address(13);
+    address public invalidArk = address(999);
+    address public nonOwner = address(0xdeadbeef);
+
+    // Other variables
+    string public fleetName = "OK_Fleet";
+    FleetCommanderParams public fleetCommanderParams;
+
+    constructor() {}
+
+    function initializeFleetCommanderWithMockArks(
+        uint256 initialTipRate
+    ) internal {
         mockToken = new ERC20Mock();
-
-        accessManager = new ProtocolAccessManager(governor);
-
-        IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                raft: raft
-            })
+        setupBaseContracts(address(mockToken));
+        setupMockArks(address(mockToken));
+        address[] memory initialArks = new address[](3);
+        initialArks[0] = ark1;
+        initialArks[1] = ark2;
+        initialArks[2] = ark3;
+        setupFleetCommander(
+            address(mockToken),
+            initialArks,
+            PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
+        grantRoles(initialArks, address(bufferArk), keeper);
+    }
 
-        // Instantiate ArkMock contracts for ark1 and ark2
-        mockArk1 = new ArkMock(
+    function initializeFleetCommanderWithoutArks(
+        address underlyingToken,
+        uint256 initialTipRate
+    ) internal {
+        setupBaseContracts(underlyingToken);
+        setupFleetCommander(
+            underlyingToken,
+            new address[](0),
+            PercentageUtils.fromIntegerPercentage(initialTipRate)
+        );
+    }
+
+    function setupBaseContracts(address underlyingToken) internal {
+        if (address(accessManager) == address(0)) {
+            accessManager = new ProtocolAccessManager(governor);
+        }
+        if (address(configurationManager) == address(0)) {
+            configurationManager = new ConfigurationManager(
+                ConfigurationManagerParams({
+                    accessManager: address(accessManager),
+                    tipJar: tipJar,
+                    raft: raft
+                })
+            );
+        }
+        bufferArk = new BufferArk(
             ArkParams({
+                name: "TestArk",
                 accessManager: address(accessManager),
-                token: address(mockToken),
-                configurationManager: address(configurationManager)
+                token: underlyingToken,
+                configurationManager: address(configurationManager),
+                depositCap: type(uint256).max,
+                maxRebalanceOutflow: type(uint256).max,
+                maxRebalanceInflow: type(uint256).max
             })
         );
+        bufferArkAddress = address(bufferArk);
+    }
 
-        mockArk2 = new ArkMock(
-            ArkParams({
-                accessManager: address(accessManager),
-                token: address(mockToken),
-                configurationManager: address(configurationManager)
-            })
-        );
-
-        mockArk3 = new ArkMock(
-            ArkParams({
-                accessManager: address(accessManager),
-                token: address(mockToken),
-                configurationManager: address(configurationManager)
-            })
-        );
-
-        ark1 = address(mockArk1);
-        ark2 = address(mockArk2);
-        ark3 = address(mockArk3);
-
-        ArkConfiguration[] memory initialArks = new ArkConfiguration[](3);
-        initialArks[0] = ArkConfiguration({
-            ark: ark1,
-            maxAllocation: ark1_MAX_ALLOCATION
-        });
-        initialArks[1] = ArkConfiguration({
-            ark: ark2,
-            maxAllocation: ark2_MAX_ALLOCATION
-        });
-        initialArks[2] = ArkConfiguration({
-            ark: ark3,
-            maxAllocation: 10000 * 10 ** 6
-        });
+    function setupFleetCommander(
+        address underlyingToken,
+        address[] memory initialArks,
+        Percentage initialTipRate
+    ) internal {
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             initialArks: initialArks,
-            initialMinimumFundsBufferBalance: 10000 * 10 ** 6,
-            initialRebalanceCooldown: 0,
-            asset: address(mockToken),
+            initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
+            initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
+            asset: underlyingToken,
             name: fleetName,
-            symbol: string(abi.encodePacked(mockToken.symbol(), "-SUM")),
-            initialMinimumPositionWithdrawal: PercentageUtils
-                .fromDecimalPercentage(2),
-            initialMaximumBufferWithdrawal: PercentageUtils
-                .fromDecimalPercentage(20),
-            depositCap: 100000000 * 10 ** 6
+            symbol: "TEST-SUM",
+            initialTipRate: initialTipRate,
+            depositCap: type(uint256).max,
+            bufferArk: bufferArkAddress
         });
+        fleetCommander = new FleetCommander(fleetCommanderParams);
+        fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
+            address(fleetCommander)
+        );
+    }
+
+    function setupMockArks(address underlyingToken) internal {
+        mockArk1 = createMockArk(underlyingToken, ARK1_MAX_ALLOCATION);
+        mockArk2 = createMockArk(underlyingToken, ARK2_MAX_ALLOCATION);
+        mockArk3 = createMockArk(underlyingToken, ARK3_MAX_ALLOCATION);
+        ark1 = address(mockArk1);
+        ark2 = address(mockArk2);
+        ark3 = address(mockArk3);
+    }
+
+    function grantRoles(
+        address[] memory arks,
+        address _bufferArkAddress,
+        address _keeper
+    ) internal {
+        vm.startPrank(governor);
+        accessManager.grantKeeperRole(_keeper);
+        BufferArk(_bufferArkAddress).grantCommanderRole(
+            address(fleetCommander)
+        );
+        for (uint256 i = 0; i < arks.length; i++) {
+            ArkMock(arks[i]).grantCommanderRole(address(fleetCommander));
+        }
+        vm.stopPrank();
+    }
+
+    function createMockArk(
+        address tokenAddress,
+        uint256 depositCap
+    ) internal returns (ArkMock) {
+        return
+            new ArkMock(
+                ArkParams({
+                    name: "TestArk",
+                    accessManager: address(accessManager),
+                    token: tokenAddress,
+                    configurationManager: address(configurationManager),
+                    depositCap: depositCap,
+                    maxRebalanceOutflow: type(uint256).max,
+                    maxRebalanceInflow: type(uint256).max
+                })
+            );
     }
 }

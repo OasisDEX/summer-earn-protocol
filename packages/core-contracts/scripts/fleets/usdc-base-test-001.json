@@ -1,0 +1,10 @@
+{
+  "fleetName": "FleetCommander_BaseUSDC_Test",
+  "symbol": "FUSDC",
+  "assetSymbol": "USDC",
+  "arks": [],
+  "initialMinimumFundsBufferBalance": "0",
+  "initialRebalanceCooldown": "0",
+  "depositCap": "0",
+  "initialTipRate": "0"
+}
