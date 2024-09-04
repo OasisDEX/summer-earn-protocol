@@ -97,7 +97,7 @@ contract SummerGovernor is
             );
         }
 
-        return super.propose(targets, values, calldatas, description);
+        return _propose(targets, values, calldatas, description, proposer);
     }
 
     /*
