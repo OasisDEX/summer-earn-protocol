@@ -6,18 +6,24 @@ import {
   Rebalanced,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { getOrCreateAccount, getOrCreateArk, getOrCreateArksPostActionSnapshots, getOrCreateVault, getOrCreateVaultsPostActionSnapshots } from '../common/initializers'
+import {
+  getOrCreateAccount,
+  getOrCreateArk,
+  getOrCreateArksPostActionSnapshots,
+  getOrCreateVault,
+  getOrCreateVaultsPostActionSnapshots,
+} from '../common/initializers'
 import { formatAmount } from '../common/utils'
 import { VaultAndPositionDetails } from '../types'
+import { getArkDetails } from '../utils/ark'
 import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
+import { updateArk } from './entities/ark'
 import { createDepositEventEntity } from './entities/deposit'
 import { updatePosition } from './entities/position'
 import { createRebalanceEventEntity } from './entities/rebalance'
 import { updateVault } from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
-import { getArkDetails } from '../utils/ark'
-import { updateArk } from './entities/ark'
 
 export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
@@ -29,9 +35,17 @@ export function handleRebalance(event: Rebalanced): void {
   const arks = vault.arksArray
 
   for (let i = 0; i < arks.length; i++) {
-    const arkDetails = getArkDetails(Address.fromString(vault.id), Address.fromString(arks[i]), event.block)
+    const arkDetails = getArkDetails(
+      Address.fromString(vault.id),
+      Address.fromString(arks[i]),
+      event.block,
+    )
     updateArk(arkDetails, event.block)
-    getOrCreateArksPostActionSnapshots(Address.fromString(vault.id), Address.fromString(arks[i]), event.block)
+    getOrCreateArksPostActionSnapshots(
+      Address.fromString(vault.id),
+      Address.fromString(arks[i]),
+      event.block,
+    )
   }
 
   createRebalanceEventEntity(event, vault, event.block)

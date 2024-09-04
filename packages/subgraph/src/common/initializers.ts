@@ -227,10 +227,10 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.apr = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
-        previousSnapshot.pricePerShare!,
-        vault.pricePerShare!,
-        constants.BigDecimalConstants.DAY_IN_SECONDS,
-      )
+          previousSnapshot.pricePerShare!,
+          vault.pricePerShare!,
+          constants.BigDecimalConstants.DAY_IN_SECONDS,
+        )
     vaultSnapshots.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -245,7 +245,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
   }
-  ; ``
+  ;``
 
   return vaultSnapshots
 }
@@ -288,24 +288,24 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.aprLast1h = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
-        previousSnapshot.pricePerShare!,
-        vault.pricePerShare!,
-        constants.BigDecimalConstants.HOUR_IN_SECONDS,
-      )
-    const totalAssets = vault.inputTokenBalance;
-    const arks = vault.arksArray;
+          previousSnapshot.pricePerShare!,
+          vault.pricePerShare!,
+          constants.BigDecimalConstants.HOUR_IN_SECONDS,
+        )
+    const totalAssets = vault.inputTokenBalance
+    const arks = vault.arksArray
 
     // get weighted apr for all arks
-    let weightedApr = constants.BigDecimalConstants.ZERO;
+    let weightedApr = constants.BigDecimalConstants.ZERO
     for (let j = 0; j < arks.length; j++) {
-      const arkAddress = Address.fromString(arks[j]);
-      const arkContract = ArkContract.bind(arkAddress);
-      const arkApr = arkContract.rate().toBigDecimal().div(constants.BigDecimalConstants.RAY);
-      const arkTotalAssets = arkContract.totalAssets().toBigDecimal();
-      const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal());
-      weightedApr = weightedApr.plus(arkApr.times(arkWeight));
+      const arkAddress = Address.fromString(arks[j])
+      const arkContract = ArkContract.bind(arkAddress)
+      const arkApr = arkContract.rate().toBigDecimal().div(constants.BigDecimalConstants.RAY)
+      const arkTotalAssets = arkContract.totalAssets().toBigDecimal()
+      const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal())
+      weightedApr = weightedApr.plus(arkApr.times(arkWeight))
     }
-    vaultSnapshots.apr = weightedApr.times(constants.BigDecimalConstants.HUNDRED);
+    vaultSnapshots.apr = weightedApr.times(constants.BigDecimalConstants.HUNDRED)
 
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
@@ -472,7 +472,12 @@ export function getOrCreateArksHourlySnapshots(
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
   const previousId = ark.id
     .concat('-')
-    .concat(((block.timestamp.toI64() - (constants.SECONDS_PER_HOUR)) / constants.SECONDS_PER_HOUR).toString())
+    .concat(
+      (
+        (block.timestamp.toI64() - constants.SECONDS_PER_HOUR) /
+        constants.SECONDS_PER_HOUR
+      ).toString(),
+    )
   let arkSnapshots = ArkHourlySnapshot.load(id)
   let previousSnapshot = ArkHourlySnapshot.load(previousId)
   if (!arkSnapshots) {
@@ -545,9 +550,7 @@ export function getOrCreateArksPostActionSnapshots(
   block: ethereum.Block,
 ): PostActionArkSnapshot {
   const ark = getOrCreateArk(vaultAddress, arkAddress, block)
-  const id: string = ark.id
-    .concat('-')
-    .concat((block.timestamp.toI64()).toString())
+  const id: string = ark.id.concat('-').concat(block.timestamp.toI64().toString())
 
   let arkSnapshots = PostActionArkSnapshot.load(id)
 
@@ -567,7 +570,6 @@ export function getOrCreateArksPostActionSnapshots(
       .div(constants.BigDecimalConstants.RAY)
       .times(constants.BigDecimalConstants.HUNDRED)
 
-
     arkSnapshots.blockNumber = block.number
     arkSnapshots.timestamp = block.timestamp
     arkSnapshots.save()
@@ -581,9 +583,7 @@ export function getOrCreateVaultsPostActionSnapshots(
   block: ethereum.Block,
 ): PostActionVaultSnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-  const id: string = vault.id
-    .concat('-')
-    .concat((block.timestamp.toI64()).toString())
+  const id: string = vault.id.concat('-').concat(block.timestamp.toI64().toString())
   let vaultSnapshots = PostActionVaultSnapshot.load(id)
 
   if (!vaultSnapshots) {
@@ -603,21 +603,20 @@ export function getOrCreateVaultsPostActionSnapshots(
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
 
-
-    const totalAssets = vault.inputTokenBalance;
-    const arks = vault.arksArray;
+    const totalAssets = vault.inputTokenBalance
+    const arks = vault.arksArray
 
     // get weighted apr for all arks
-    let weightedApr = constants.BigDecimalConstants.ZERO;
+    let weightedApr = constants.BigDecimalConstants.ZERO
     for (let j = 0; j < arks.length; j++) {
-      const arkAddress = Address.fromString(arks[j]);
-      const arkContract = ArkContract.bind(arkAddress);
-      const arkApr = arkContract.rate().toBigDecimal().div(constants.BigDecimalConstants.RAY);
-      const arkTotalAssets = arkContract.totalAssets().toBigDecimal();
-      const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal());
-      weightedApr = weightedApr.plus(arkApr.times(arkWeight));
+      const arkAddress = Address.fromString(arks[j])
+      const arkContract = ArkContract.bind(arkAddress)
+      const arkApr = arkContract.rate().toBigDecimal().div(constants.BigDecimalConstants.RAY)
+      const arkTotalAssets = arkContract.totalAssets().toBigDecimal()
+      const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal())
+      weightedApr = weightedApr.plus(arkApr.times(arkWeight))
     }
-    vaultSnapshots.apr = weightedApr.times(constants.BigDecimalConstants.HUNDRED);
+    vaultSnapshots.apr = weightedApr.times(constants.BigDecimalConstants.HUNDRED)
 
     vaultSnapshots.blockNumber = block.number
     vaultSnapshots.timestamp = block.timestamp

@@ -1,11 +1,9 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Rebalance, Vault } from '../../../generated/schema'
 import { Rebalanced as RebalancedEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { getOrCreateArk, getOrCreateArksPostActionSnapshots, getOrCreateToken } from '../../common/initializers'
+import { getOrCreateArk, getOrCreateToken } from '../../common/initializers'
 import { getTokenPriceInUSD } from '../../common/priceHelpers'
 import { formatAmount } from '../../common/utils'
-import { getArkDetails } from '../../utils/ark'
-import { updateArk } from './ark'
 
 export function createRebalanceEventEntity(
   event: RebalancedEvent,

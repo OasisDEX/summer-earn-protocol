@@ -1,10 +1,8 @@
 import { Address, ethereum } from '@graphprotocol/graph-ts'
 import { BigDecimalConstants } from '../../common/constants'
-import { getOrCreateArksPostActionSnapshots, getOrCreateVault } from '../../common/initializers'
+import { getOrCreateVault } from '../../common/initializers'
 import { getAprForTimePeriod } from '../../common/utils'
 import { VaultDetails } from '../../types'
-import { getArkDetails } from '../../utils/ark'
-import { updateArk } from './ark'
 
 export function updateVault(vaultDetails: VaultDetails, block: ethereum.Block): void {
   const vault = getOrCreateVault(Address.fromString(vaultDetails.vaultId), block)
