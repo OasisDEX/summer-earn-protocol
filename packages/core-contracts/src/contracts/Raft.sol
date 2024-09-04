@@ -188,6 +188,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         uint256 balance = paymentTokensToBoard[ark][rewardToken];
         if (balance > 0) {
             paymentToken.approve(ark, balance);
+            // TODO - pass boardData if required
             IArk(ark).board(balance, bytes(""));
 
             emit RewardBoarded(

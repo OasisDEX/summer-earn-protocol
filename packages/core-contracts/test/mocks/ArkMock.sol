@@ -13,7 +13,7 @@ contract ArkMock is Ark {
         return IERC20(config.token).balanceOf(address(this));
     }
 
-    function _board(uint256 amount, bytes calldata data) internal override {}
+    function _board(uint256 amount, bytes calldata) internal override {}
 
     function _disembark(
         uint256 amount,

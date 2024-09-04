@@ -9,5 +9,5 @@ error CannotDeployArkWithoutToken();
 error CannotDeployArkWithEmptyName();
 error InvalidVaultAddress();
 error ERC4626AssetMismatch();
-error CannotUseKeeperDataWithUnrestrictedWithdrawal();
-error CannotUseUnrestrictedWithdrawalWithoutKeeperData();
+error CannotUseKeeperDataWithUnrestrictedArk();
+error CannotUseUnrestrictedArkWithoutKeeperData();

@@ -49,14 +49,29 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
             unrestrictedWithdrawal: _params.unrestrictedWithdrawal
         });
     }
+
+    /**
+     * @notice Modifier to validate board data.
+     * @dev This modifier calls `_validateCommonData` and `_validateBoardData` to ensure the data is valid.
+     * In the base Ark contract, we use generic bytes for the data. It is the responsibility of the Ark
+     * implementing contract to override the `_validateBoardData` function to provide specific validation logic.
+     * @param data The data to be validated.
+     */
     modifier validateBoardData(bytes calldata data) {
-        _validateData(data);
+        _validateCommonData(data);
         _validateBoardData(data);
         _;
     }
 
+    /**
+     * @notice Modifier to validate disembark data.
+     * @dev This modifier calls `_validateCommonData` and `_validateDisembarkData` to ensure the data is valid.
+     * In the base Ark contract, we use generic bytes for the data. It is the responsibility of the Ark
+     * implementing contract to override the `_validateDisembarkData` function to provide specific validation logic.
+     * @param data The data to be validated.
+     */
     modifier validateDisembarkData(bytes calldata data) {
-        _validateData(data);
+        _validateCommonData(data);
         _validateDisembarkData(data);
         _;
     }
@@ -265,12 +280,12 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
      * @dev This function checks if the data length is consistent with the Ark's withdrawal restrictions
      * @param data The data to validate
      */
-    function _validateData(bytes calldata data) internal view {
+    function _validateCommonData(bytes calldata data) internal view {
         if (data.length > 0 && config.unrestrictedWithdrawal) {
-            revert CannotUseKeeperDataWithUnrestrictedWithdrawal();
+            revert CannotUseKeeperDataWithUnrestrictedArk();
         }
         if (data.length == 0 && !config.unrestrictedWithdrawal) {
-            revert CannotUseUnrestrictedWithdrawalWithoutKeeperData();
+            revert CannotUseUnrestrictedArkWithoutKeeperData();
         }
     }
 
