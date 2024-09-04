@@ -84,7 +84,7 @@ contract RestictedWithdrawalArkMock is Ark {
      * @notice Validates the board data
      * @param data The board data to validate (must be a uint256 for this mock)
      */
-    function _validateBoardData(bytes calldata data) internal override {
+    function _validateBoardData(bytes calldata data) internal pure override {
         if (data.length != 32) {
             revert InvalidBoardData();
         }
@@ -95,7 +95,9 @@ contract RestictedWithdrawalArkMock is Ark {
      * @notice Validates the disembark data
      * @param data The disembark data to validate (must be a uint256 for this mock)
      */
-    function _validateDisembarkData(bytes calldata data) internal override {
+    function _validateDisembarkData(
+        bytes calldata data
+    ) internal pure override {
         if (data.length != 32) {
             revert InvalidDisembarkData();
         }
