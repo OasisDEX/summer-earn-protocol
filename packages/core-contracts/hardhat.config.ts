@@ -3,9 +3,9 @@ import { resolve } from 'path'
 
 dotenv.config({ path: resolve(__dirname, './.env') })
 
-import type { HardhatUserConfig } from 'hardhat/config'
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-ignition-viem'
+import type { HardhatUserConfig } from 'hardhat/config'
 
 const config: HardhatUserConfig = {
   solidity: {
