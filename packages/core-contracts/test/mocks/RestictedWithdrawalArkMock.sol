@@ -10,10 +10,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev This contract simulates an Ark with configurable withdrawal restrictions and data validation
  */
 contract RestictedWithdrawalArkMock is Ark {
-    // Custom errors
-    error InvalidBoardData();
-    error InvalidDisembarkData();
-
     // State variables
     uint256 public mockRate;
     mapping(address => uint256) public userBalances;

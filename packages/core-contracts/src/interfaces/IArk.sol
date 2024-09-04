@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
+import {IArkErrors} from "../errors/ArkErrors.sol";
 
 import "../events/IArkEvents.sol";
 import "../types/ArkTypes.sol";
@@ -11,7 +12,7 @@ import "../types/ArkTypes.sol";
  * @notice Interface for the Ark contract, which manages funds and interacts with Rafts
  * @dev Inherits from IArkAccessManaged for access control and IArkEvents for event definitions
  */
-interface IArk is IArkAccessManaged, IArkEvents {
+interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
     /* FUNCTIONS - PUBLIC */
 
     /**
