@@ -54,7 +54,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            unrestrictedWithdrawal: true
+            requiresKeeperData: true
         });
 
         mockArk = new ArkMock(params);

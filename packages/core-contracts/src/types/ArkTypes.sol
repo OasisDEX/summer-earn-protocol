@@ -44,7 +44,11 @@ struct ArkParams {
      * @dev This limit helps to prevent large, sudden inflows
      */
     uint256 maxRebalanceInflow;
-    bool unrestrictedWithdrawal;
+    /**
+     * @notice Whether the Ark requires Keepr data to be passed in with rebalance transactions
+     * @dev This flag is used to determine whether Keepr data is required for rebalance transactions
+     */
+    bool requiresKeeperData;
 }
 
 /**
@@ -88,5 +92,5 @@ struct ArkConfig {
      * @dev This is typically set at initialization and not changed
      */
     string name;
-    bool unrestrictedWithdrawal;
+    bool requiresKeeperData;
 }

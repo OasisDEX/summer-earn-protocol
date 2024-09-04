@@ -126,7 +126,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 depositCap: type(uint256).max,
                 maxRebalanceOutflow: type(uint256).max,
                 maxRebalanceInflow: type(uint256).max,
-                unrestrictedWithdrawal: true
+                requiresKeeperData: true
             })
         );
         bufferArkAddress = address(bufferArk);
@@ -186,7 +186,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     function createMockArk(
         address tokenAddress,
         uint256 depositCap,
-        bool unrestrictedWithdrawal
+        bool requiresKeeperData
     ) internal returns (ArkMock) {
         return
             new ArkMock(
@@ -198,7 +198,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     depositCap: depositCap,
                     maxRebalanceOutflow: type(uint256).max,
                     maxRebalanceInflow: type(uint256).max,
-                    unrestrictedWithdrawal: unrestrictedWithdrawal
+                    requiresKeeperData: requiresKeeperData
                 })
             );
     }
