@@ -5,7 +5,10 @@
   "singleQuote": true,
   "trailingComma": "all",
   "proseWrap": "always",
-  "plugins": ["prettier-plugin-solidity"],
+  "plugins": [
+    "prettier-plugin-solidity",
+    "prettier-plugin-organize-imports"
+  ],
   "overrides": [
     {
       "files": "*.sol",

@@ -78,6 +78,8 @@ cdk.context.json
 # rays-dashboard specific
 /apps/rays-dashboard/types/generated
 
+#subgraph
+generated
 # Python
 __pycache__/
 *.py[cod]
