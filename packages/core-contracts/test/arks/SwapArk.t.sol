@@ -63,7 +63,7 @@ contract SwapArkTest is Test, OneInchHelpers {
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
             name: "SimpleSwapArk",
-            unrestrictedWithdrawal: false
+            requiresKeeperData: false
         });
 
         swapArk = new SimpleSwapArk(params, address(DAI));
