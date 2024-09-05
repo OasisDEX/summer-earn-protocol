@@ -59,7 +59,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            unrestrictedWithdrawal: true
+            requiresKeeperData: true
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined
@@ -119,7 +119,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            unrestrictedWithdrawal: true
+            requiresKeeperData: true
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined

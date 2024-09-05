@@ -16,9 +16,11 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
+import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 
 contract ArkTest is Test, IArkEvents, ArkTestHelpers {
     ArkMock public ark;
+    RestictedWithdrawalArkMock public unrestrictedArk;
     ArkMock public otherArk;
     address public governor = address(1);
     address public commander = address(4);
@@ -48,11 +50,14 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            unrestrictedWithdrawal: true
+            requiresKeeperData: true
         });
 
         ark = new ArkMock(params);
         otherArk = new ArkMock(params);
+
+        params.requiresKeeperData = false;
+        unrestrictedArk = new RestictedWithdrawalArkMock(params);
     }
 
     function test_Constructor() public {
@@ -64,7 +69,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            unrestrictedWithdrawal: true
+            requiresKeeperData: true
         });
 
         vm.expectRevert(
@@ -367,5 +372,27 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             )
         );
         ark.move(amount, address(otherArk), bytes(""), bytes(""));
+    }
+
+    function test_validateCommonData() public {
+        // Arrange
+        vm.startPrank(governor);
+        ark.grantCommanderRole(commander);
+        unrestrictedArk.grantCommanderRole(commander);
+        vm.stopPrank();
+
+        uint256 amount = 1000;
+        mockToken.mint(address(ark), amount);
+
+        // Act && Assert
+        vm.expectRevert(
+            abi.encodeWithSignature("CannotUseKeeperDataWhenNorRequired()")
+        );
+        vm.prank(commander);
+        ark.board(0, bytes("abcd"));
+
+        vm.expectRevert(abi.encodeWithSignature("KeeperDataRequired()"));
+        vm.prank(commander);
+        unrestrictedArk.board(0, bytes(""));
     }
 }

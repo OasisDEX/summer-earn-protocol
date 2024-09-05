@@ -22,13 +22,13 @@ contract MetaMorphoArk is Ark {
         return metaMorpho.convertToAssets(metaMorpho.balanceOf(address(this)));
     }
 
-    function _board(uint256 amount, bytes calldata data) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         config.token.approve(address(metaMorpho), amount);
         metaMorpho.deposit(amount, address(this));
         this.poke();
     }
 
-    function _disembark(uint256 amount, bytes calldata data) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         metaMorpho.withdraw(amount, address(this), address(this));
         this.poke();
     }

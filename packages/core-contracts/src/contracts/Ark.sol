@@ -10,8 +10,6 @@ import {Constants} from "../utils/Constants.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../errors/ArkErrors.sol";
-
 /**
  * @custom:see IArk
  */
@@ -46,17 +44,32 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
             maxRebalanceInflow: _params.maxRebalanceInflow,
             name: _params.name,
-            unrestrictedWithdrawal: _params.unrestrictedWithdrawal
+            requiresKeeperData: _params.requiresKeeperData
         });
     }
+
+    /**
+     * @notice Modifier to validate board data.
+     * @dev This modifier calls `_validateCommonData` and `_validateBoardData` to ensure the data is valid.
+     * In the base Ark contract, we use generic bytes for the data. It is the responsibility of the Ark
+     * implementing contract to override the `_validateBoardData` function to provide specific validation logic.
+     * @param data The data to be validated.
+     */
     modifier validateBoardData(bytes calldata data) {
-        _validateData(data);
+        _validateCommonData(data);
         _validateBoardData(data);
         _;
     }
 
+    /**
+     * @notice Modifier to validate disembark data.
+     * @dev This modifier calls `_validateCommonData` and `_validateDisembarkData` to ensure the data is valid.
+     * In the base Ark contract, we use generic bytes for the data. It is the responsibility of the Ark
+     * implementing contract to override the `_validateDisembarkData` function to provide specific validation logic.
+     * @param data The data to be validated.
+     */
     modifier validateDisembarkData(bytes calldata data) {
-        _validateData(data);
+        _validateCommonData(data);
         _validateDisembarkData(data);
         _;
     }
@@ -97,8 +110,8 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
     }
 
     /* @inheritdoc IArk */
-    function unrestrictedWithdrawal() external view returns (bool) {
-        return config.unrestrictedWithdrawal;
+    function requiresKeeperData() external view returns (bool) {
+        return config.requiresKeeperData;
     }
 
     /* @inheritdoc IArk */
@@ -265,12 +278,12 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
      * @dev This function checks if the data length is consistent with the Ark's withdrawal restrictions
      * @param data The data to validate
      */
-    function _validateData(bytes calldata data) internal view {
-        if (data.length > 0 && config.unrestrictedWithdrawal) {
-            revert CannotUseKeeperDataWithUnrestrictedWithdrawal();
+    function _validateCommonData(bytes calldata data) internal view {
+        if (data.length > 0 && config.requiresKeeperData) {
+            revert CannotUseKeeperDataWhenNorRequired();
         }
-        if (data.length == 0 && !config.unrestrictedWithdrawal) {
-            revert CannotUseUnrestrictedWithdrawalWithoutKeeperData();
+        if (data.length == 0 && !config.requiresKeeperData) {
+            revert KeeperDataRequired();
         }
     }
 

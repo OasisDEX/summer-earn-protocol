@@ -48,7 +48,7 @@ contract ERC4626Ark is Ark {
      * @notice Internal function to deposit assets into the vault
      * @param amount The amount of assets to deposit
      */
-    function _board(uint256 amount, bytes calldata data) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         vault.deposit(amount, address(this));
     }
 
@@ -56,7 +56,7 @@ contract ERC4626Ark is Ark {
      * @notice Internal function to withdraw assets from the vault
      * @param amount The amount of assets to withdraw
      */
-    function _disembark(uint256 amount, bytes calldata data) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         vault.withdraw(amount, address(this), address(this));
     }
 

@@ -70,7 +70,7 @@ contract RaftDecimalsTest is AuctionTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            unrestrictedWithdrawal: true
+            requiresKeeperData: true
         });
         mockArk18Dec = new ArkMock(params);
 

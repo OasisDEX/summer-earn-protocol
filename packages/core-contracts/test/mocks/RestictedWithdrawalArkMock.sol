@@ -10,10 +10,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev This contract simulates an Ark with configurable withdrawal restrictions and data validation
  */
 contract RestictedWithdrawalArkMock is Ark {
-    // Custom errors
-    error InvalidBoardData();
-    error InvalidDisembarkData();
-
     // State variables
     uint256 public mockRate;
     mapping(address => uint256) public userBalances;
@@ -84,7 +80,7 @@ contract RestictedWithdrawalArkMock is Ark {
      * @notice Validates the board data
      * @param data The board data to validate (must be a uint256 for this mock)
      */
-    function _validateBoardData(bytes calldata data) internal override {
+    function _validateBoardData(bytes calldata data) internal pure override {
         if (data.length != 32) {
             revert InvalidBoardData();
         }
@@ -95,10 +91,14 @@ contract RestictedWithdrawalArkMock is Ark {
      * @notice Validates the disembark data
      * @param data The disembark data to validate (must be a uint256 for this mock)
      */
-    function _validateDisembarkData(bytes calldata data) internal override {
+    function _validateDisembarkData(
+        bytes calldata data
+    ) internal pure override {
         if (data.length != 32) {
             revert InvalidDisembarkData();
         }
         // Additional validation can be added here if needed
     }
+
+    function testSkipper() public {}
 }
