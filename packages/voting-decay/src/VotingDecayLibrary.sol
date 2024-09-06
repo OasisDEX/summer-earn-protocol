@@ -35,6 +35,11 @@ library VotingDecayLibrary {
         address delegateTo;
     }
 
+    /**
+     * @notice Thrown when the decay type is invalid
+     */
+    error InvalidDecayType();
+
     /*
      * @notice Calculates the new retention factor based on elapsed time and decay parameters
      * @param currentRetentionFactor The current retention factor
@@ -61,12 +66,14 @@ library VotingDecayLibrary {
                     decayRatePerSecond,
                     decayTime
                 );
-        } else {
+        } else if (decayType == DecayType.Exponential) {
             return
                 currentRetentionFactor.exponentialDecay(
                     decayRatePerSecond,
                     decayTime
                 );
+        } else {
+            revert InvalidDecayType();
         }
     }
 

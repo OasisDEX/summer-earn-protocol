@@ -20,6 +20,11 @@ library DecayFunctions {
     }
 
     /**
+     * @notice Thrown when the decay type is invalid
+     */
+    error InvalidDecayType();
+
+    /**
      * @notice Calculates the current price based on the specified decay type
      * @dev This function acts as a wrapper for the specific decay calculations in DutchAuctionMath
      * @param decayType The type of decay function to use (Linear or Exponential)
@@ -71,7 +76,7 @@ library DecayFunctions {
                     decimals,
                     resultDecimals
                 );
-        } else {
+        } else if (decayType == DecayType.Exponential) {
             return
                 DutchAuctionMath.exponentialDecay(
                     startPrice,
@@ -81,6 +86,8 @@ library DecayFunctions {
                     decimals,
                     resultDecimals
                 );
+        } else {
+            revert InvalidDecayType();
         }
     }
 }
