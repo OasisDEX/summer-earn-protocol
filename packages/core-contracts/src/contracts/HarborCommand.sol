@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {FleetCommanderAlreadyEnlisted, FleetCommanderNotEnlisted} from "../errors/HarborCommandErrors.sol";
 import {IHarborCommandEvents} from "../events/IHarborCommandEvents.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";

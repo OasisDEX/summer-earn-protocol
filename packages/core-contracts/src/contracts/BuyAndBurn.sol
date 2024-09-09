@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "../errors/BuyAndBurnErrors.sol";
 import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
 import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";

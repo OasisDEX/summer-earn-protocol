@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ITipJarEvents} from "./ITipJarEvents.sol";
+import {ITipJarEvents} from "../events/ITipJarEvents.sol";
+import {ITipJarErrors} from "../errors/ITipJarErrors.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -10,7 +11,7 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @dev This contract allows for the creation, modification, and removal of tip streams,
  *      as well as the distribution of accumulated tips to recipients
  */
-interface ITipJar is ITipJarEvents {
+interface ITipJar is ITipJarEvents, ITipJarErrors {
     /**
      * @notice Struct representing a tip stream
      * @param recipient The address of the tip stream recipient

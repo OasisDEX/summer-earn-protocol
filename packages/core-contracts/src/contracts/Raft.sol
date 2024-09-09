@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../errors/RaftErrors.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {IRaft} from "../interfaces/IRaft.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";

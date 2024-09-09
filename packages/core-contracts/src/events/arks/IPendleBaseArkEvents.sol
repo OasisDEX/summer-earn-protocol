@@ -4,11 +4,11 @@ pragma solidity 0.8.26;
 import {Percentage} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
- * @title IPendleArkEvents
+ * @title IPendleBaseArkEvents
  * @notice Interface for events emitted by Pendle Ark contracts
  * @dev This interface defines events related to market rollovers, slippage updates, and oracle duration changes
  */
-interface IPendleArkEvents {
+interface IPendleBaseArkEvents {
     /**
      * @notice Emitted when the Pendle market is rolled over to a new market
      * @dev This event is triggered during the rollover process when the current market expires

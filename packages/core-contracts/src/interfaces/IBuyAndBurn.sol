@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
+import {IBuyAndBurnErrors} from "../errors/IBuyAndBurnErrors.sol";
 import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 
@@ -9,7 +10,7 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibra
  * @title IBuyAndBurn
  * @notice Interface for the BuyAndBurn contract, which manages token auctions and burns SUMMER tokens
  */
-interface IBuyAndBurn is IBuyAndBurnEvents {
+interface IBuyAndBurn is IBuyAndBurnEvents, IBuyAndBurnErrors {
     /**
      * @notice Starts a new auction for a specified token
      * @param tokenToAuction The address of the token to be auctioned

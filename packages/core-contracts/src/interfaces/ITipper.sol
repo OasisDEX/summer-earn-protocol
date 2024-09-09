@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ITipperEvents} from "../events/ITipperEvents.sol";
+import {ITipperErrors} from "../errors/ITipperErrors.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -9,7 +10,7 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @notice Interface for the tip accrual functionality in the FleetCommander contract
  * @dev This interface defines the events and functions related to tip accrual and management
  */
-interface ITipper is ITipperEvents {
+interface ITipper is ITipperEvents, ITipperErrors {
     /**
      * @notice Get the current tip rate
      * @return The current tip rate

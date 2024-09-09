@@ -2,13 +2,17 @@
 pragma solidity 0.8.26;
 
 import {IAdmiralsQuartersEvents} from "../events/IAdmiralsQuartersEvents.sol";
+import {IAdmiralsQuartersErrors} from "../errors/IAdmiralsQuartersErrors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IAdmiralsQuarters
  * @notice Interface for the AdmiralsQuarters contract, which manages interactions with FleetCommanders and token swaps
  */
-interface IAdmiralsQuarters is IAdmiralsQuartersEvents {
+interface IAdmiralsQuarters is
+    IAdmiralsQuartersEvents,
+    IAdmiralsQuartersErrors
+{
     /**
      * @notice Returns the address of the 1inch router used for token swaps
      * @return The address of the 1inch router
