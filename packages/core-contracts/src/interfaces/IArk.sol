@@ -72,14 +72,15 @@ interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
 
     /**
      * @notice Triggers a harvest operation to collect rewards
-     * @param rewardToken The reward token address
      * @param additionalData Optional bytes that might be required by a specific protocol to harvest
-     * @return The number of reward tokens harvested
+     * @return rewardTokens The reward token addresses
+     * @return rewardAmounts The reward amounts
      */
     function harvest(
-        address rewardToken,
         bytes calldata additionalData
-    ) external returns (uint256);
+    )
+        external
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts);
 
     /* FUNCTIONS - EXTERNAL - COMMANDER */
 

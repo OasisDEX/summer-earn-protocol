@@ -39,15 +39,23 @@ contract CompoundV3Ark is Ark {
     }
 
     function _harvest(
-        address rewardToken,
-        bytes calldata
-    ) internal override returns (uint256 claimedRewardsBalance) {
+        bytes calldata data
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        rewardTokens = new address[](1);
+        rewardAmounts = new uint256[](1);
+
+        address rewardToken = abi.decode(data, (address));
+        rewardTokens[0] = rewardToken;
         cometRewards.claim(address(comet), address(this), true);
 
-        claimedRewardsBalance = IERC20(rewardToken).balanceOf(address(this));
-        IERC20(rewardToken).safeTransfer(config.raft, claimedRewardsBalance);
+        rewardAmounts[0] = IERC20(rewardToken).balanceOf(address(this));
+        IERC20(rewardToken).safeTransfer(config.raft, rewardAmounts[0]);
 
-        emit Harvested(claimedRewardsBalance);
+        emit ArkHarvested(rewardTokens, rewardAmounts);
     }
 
     function _validateBoardData(bytes calldata data) internal override {}

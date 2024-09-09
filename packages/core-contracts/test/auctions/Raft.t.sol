@@ -89,13 +89,17 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
     function test_Harvest() public {
         vm.expectEmit(true, true, true, true);
-        emit ArkHarvested(address(mockArk), address(mockRewardToken));
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(mockRewardToken);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = REWARD_AMOUNT;
+
+        emit ArkHarvested(address(mockArk), rewardTokens, rewardAmounts);
 
         vm.prank(governor);
         raft.harvest(
             address(mockArk),
-            address(mockRewardToken),
-            abi.encode(REWARD_AMOUNT)
+            abi.encode(address(mockRewardToken), REWARD_AMOUNT)
         );
 
         assertEq(
@@ -110,7 +114,12 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     function test_HarvestAndStartAuction() public {
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit ArkHarvested(address(mockArk), address(mockRewardToken));
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(mockRewardToken);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = REWARD_AMOUNT;
+
+        emit ArkHarvested(address(mockArk), rewardTokens, rewardAmounts);
 
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
@@ -127,9 +136,8 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         raft.harvestAndStartAuction(
             address(mockArk),
-            address(mockRewardToken),
             address(mockPaymentToken),
-            abi.encode(REWARD_AMOUNT)
+            abi.encode(address(mockRewardToken), REWARD_AMOUNT)
         );
 
         (, DutchAuctionLibrary.AuctionState memory state) = raft.auctions(
@@ -194,12 +202,16 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         vm.startPrank(governor);
         vm.expectEmit(true, true, true, true);
-        emit ArkHarvested(address(mockArk), address(mockRewardToken));
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(mockRewardToken);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = secondHarvestAmount;
+
+        emit ArkHarvested(address(mockArk), rewardTokens, rewardAmounts);
 
         raft.harvest(
             address(mockArk),
-            address(mockRewardToken),
-            abi.encode(secondHarvestAmount)
+            abi.encode(address(mockRewardToken), secondHarvestAmount)
         );
 
         // Start second auction
@@ -378,12 +390,16 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         vm.startPrank(governor);
         vm.expectEmit(true, true, true, true);
-        emit ArkHarvested(address(mockArk), address(mockRewardToken));
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(mockRewardToken);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = secondHarvestAmount;
+
+        emit ArkHarvested(address(mockArk), rewardTokens, rewardAmounts);
 
         raft.harvest(
             address(mockArk),
-            address(mockRewardToken),
-            abi.encode(secondHarvestAmount)
+            abi.encode(address(mockRewardToken), secondHarvestAmount)
         );
 
         // Calculate total tokens for second auction (new harvest + unsold tokens from first auction)
@@ -487,8 +503,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.prank(governor);
         raft.harvest(
             address(mockArk),
-            address(mockRewardToken),
-            abi.encode(REWARD_AMOUNT)
+            abi.encode(address(mockRewardToken), REWARD_AMOUNT)
         );
 
         vm.expectEmit(true, true, true, true);
@@ -826,8 +841,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.startPrank(governor);
         raft.harvest(
             address(mockArk),
-            address(mockRewardToken),
-            abi.encode(REWARD_AMOUNT)
+            abi.encode(address(mockRewardToken), REWARD_AMOUNT)
         );
         raft.startAuction(
             address(mockArk),

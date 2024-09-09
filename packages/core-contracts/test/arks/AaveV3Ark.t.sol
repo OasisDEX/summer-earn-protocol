@@ -296,9 +296,14 @@ contract AaveV3ArkTest is Test, IArkEvents {
         );
 
         vm.expectEmit(false, false, false, true);
-        emit Harvested(mockClaimedRewardsBalance);
+        address[] memory rewardTokens = new address[](1);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardTokens[0] = mockRewardToken;
+        rewardAmounts[0] = mockClaimedRewardsBalance;
+
+        emit ArkHarvested(rewardTokens, rewardAmounts);
 
         // Act
-        ark.harvest(mockRewardToken, bytes(""));
+        ark.harvest(abi.encode(address(mockRewardToken)));
     }
 }

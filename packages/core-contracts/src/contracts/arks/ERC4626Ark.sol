@@ -63,18 +63,23 @@ contract ERC4626Ark is Ark {
     /**
      * @notice Internal function for harvesting rewards
      * @dev This function is a no-op for most ERC4626 vaults as they automatically accrue interest
-     * @param rewardToken The address of the reward token (unused in this implementation)
-     * @param additionalData Additional data for harvesting (unused in this implementation)
-     * @return Always returns 0 as there's typically no manual harvesting for ERC4626 vaults
+     * @return rewardTokens The addresses of the reward tokens
+     * @return rewardAmounts The amounts of the reward tokens
      */
     function _harvest(
-        address rewardToken,
-        bytes calldata additionalData
-    ) internal override returns (uint256) {
+        bytes calldata
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
         // Most ERC4626 vaults automatically accrue interest, so no manual harvesting is needed
         // However, this function can be overridden in derived contracts if specific harvesting logic is required
         // todo: how to make it generic enough to allow different reward harvesting strategies?
-        return 0;
+        rewardTokens = new address[](1);
+        rewardAmounts = new uint256[](1);
+        rewardTokens[0] = address(0);
+        rewardAmounts[0] = 0;
     }
 
     function _validateBoardData(bytes calldata data) internal override {}

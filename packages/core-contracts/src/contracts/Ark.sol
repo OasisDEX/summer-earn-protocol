@@ -123,11 +123,14 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
     /* EXTERNAL - RAFT */
     /* @inheritdoc IArk */
     function harvest(
-        address rewardToken,
         bytes calldata additionalData
-    ) external returns (uint256) {
+    )
+        external
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
         _updateRaft(manager.raft());
-        return _harvest(rewardToken, additionalData);
+        (rewardTokens, rewardAmounts) = _harvest(additionalData);
+        emit ArkHarvested(rewardTokens, rewardAmounts);
     }
 
     /* EXTERNAL - COMMANDER */
@@ -250,14 +253,16 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
     /**
      * @notice Internal function to handle the harvesting of rewards
      * @dev This function should be implemented by derived contracts to define specific harvesting logic
-     * @param rewardToken The address of the reward token to harvest
      * @param additionalData Additional data for harvesting, interpreted by the specific Ark implementation
-     * @return The amount of rewards harvested
+     * @return rewardTokens The addresses of the reward tokens harvested
+     * @return rewardAmounts The amounts of the reward tokens harvested
      */
     function _harvest(
-        address rewardToken,
         bytes calldata additionalData
-    ) internal virtual returns (uint256);
+    )
+        internal
+        virtual
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts);
 
     /**
      * @notice Internal function to validate boarding data

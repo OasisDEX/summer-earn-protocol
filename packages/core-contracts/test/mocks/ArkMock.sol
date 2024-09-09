@@ -21,12 +21,20 @@ contract ArkMock is Ark {
     ) internal override {}
 
     function _harvest(
-        address rewardToken,
         bytes calldata data
-    ) internal override returns (uint256) {
-        uint256 amount = abi.decode(data, (uint256));
-        IERC20(rewardToken).transfer(msg.sender, amount);
-        return amount;
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        rewardTokens = new address[](1);
+        rewardAmounts = new uint256[](1);
+
+        (rewardTokens[0], rewardAmounts[0]) = abi.decode(
+            data,
+            (address, uint256)
+        );
+        IERC20(rewardTokens[0]).transfer(msg.sender, rewardAmounts[0]);
     }
 
     function _validateBoardData(bytes calldata data) internal override {}

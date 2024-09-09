@@ -163,23 +163,20 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
 
     /**
      * @notice Harvests rewards from the market
-     * @return totalRewards Amount of rewards harvested
-     * @dev TODO: Modify `RAFT` to support multiple token harvest and harvest without input token address
+     * @return rewardTokens The addresses of the reward tokens
+     * @return rewardAmounts The amounts of the reward tokens
      */
     function _harvest(
-        address,
         bytes calldata
-    ) internal override returns (uint256 totalRewards) {
-        address[] memory rewardTokens = IPMarketV3(market).getRewardTokens();
-        uint256[] memory rewardAmounts = IPMarketV3(market).redeemRewards(
-            address(this)
-        );
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        rewardTokens = IPMarketV3(market).getRewardTokens();
+        rewardAmounts = IPMarketV3(market).redeemRewards(address(this));
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            IERC20(rewardTokens[i]).safeTransfer(
-                config.commander,
-                rewardAmounts[i]
-            );
-            totalRewards += rewardAmounts[i];
+            IERC20(rewardTokens[i]).safeTransfer(config.raft, rewardAmounts[i]);
         }
     }
 

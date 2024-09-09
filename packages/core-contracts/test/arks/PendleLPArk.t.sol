@@ -187,12 +187,13 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         uint256 totalAssetsBefore = ark.totalAssets();
 
         vm.prank(raft);
-        uint256 harvestedAmount = ark.harvest(PENDLE, "");
+        (address[] memory rewardTokens, uint256[] memory rewardAmounts) = ark
+            .harvest("");
 
         uint256 totalAssetsAfter = ark.totalAssets();
 
         // Assert
-        assertTrue(harvestedAmount > 0, "Should have harvested some rewards");
+        assertTrue(rewardAmounts[0] > 0, "Should have harvested some rewards");
         assertEq(
             totalAssetsAfter,
             totalAssetsBefore,

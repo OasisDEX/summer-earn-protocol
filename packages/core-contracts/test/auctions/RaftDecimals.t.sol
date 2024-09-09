@@ -230,8 +230,7 @@ contract RaftDecimalsTest is AuctionTestBase {
         vm.prank(governor);
         raft.harvest(
             address(params.mockArk),
-            address(params.rewardToken),
-            abi.encode(rewardAmount)
+            abi.encode(address(params.rewardToken), rewardAmount)
         );
 
         // Start auction
