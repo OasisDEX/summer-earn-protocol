@@ -55,7 +55,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             token: address(asset),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new MetaMorphoArk(METAMORPHO_ADDRESS, params);
@@ -241,7 +242,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             token: address(asset),
             depositCap: 1000,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         // Act

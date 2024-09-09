@@ -491,6 +491,37 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
     }
 
+    function test_WithdrawForce_withNonWithdrawableArk() public {
+        (IArk bufferArk, , ) = fleetCommander.config();
+        uint256 depositShares = fleetCommander.balanceOf(mockUser);
+        // Move some funds to arks
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 4)
+        );
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark2, DEPOSIT_AMOUNT / 4)
+        );
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(address(bufferArk), ark4, DEPOSIT_AMOUNT / 4)
+        );
+        vm.stopPrank();
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxWithdraw(address,uint256,uint256)",
+                mockUser,
+                DEPOSIT_AMOUNT,
+                fleetCommander.maxWithdraw(mockUser)
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.withdrawFromArks(DEPOSIT_AMOUNT, mockUser, mockUser);
+    }
+
     function test_WithdrawForce() public {
         (IArk bufferArk, , ) = fleetCommander.config();
         uint256 depositShares = fleetCommander.balanceOf(mockUser);

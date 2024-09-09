@@ -60,7 +60,8 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
             token: address(dai),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);

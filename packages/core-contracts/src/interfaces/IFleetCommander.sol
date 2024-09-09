@@ -41,6 +41,12 @@ interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
     function isArkActive(address ark) external view returns (bool);
 
     /**
+     * @notice Returns the total assets that are currently withdrawable from the FleetCommander.
+     * @return uint256 The total amount of assets that can be withdrawn.
+     */
+    function withdrawableTotalAssets() external view returns (uint256);
+
+    /**
      * @notice Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
      * Vault, directly from Buffer.
      * @param owner The address of the owner of the assets

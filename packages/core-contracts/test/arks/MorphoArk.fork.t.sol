@@ -64,7 +64,8 @@ contract MorphoArkTestFork is Test, IArkEvents {
             token: USDC_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
@@ -84,7 +85,8 @@ contract MorphoArkTestFork is Test, IArkEvents {
             token: address(usdc),
             depositCap: 1000,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         // Act & Assert

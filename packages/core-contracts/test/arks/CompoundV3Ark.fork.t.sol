@@ -55,7 +55,8 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(usdc),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 

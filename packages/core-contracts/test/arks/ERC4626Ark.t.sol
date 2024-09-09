@@ -58,7 +58,8 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
             token: USDC_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new ERC4626Ark(VAULT_ADDRESS, params);

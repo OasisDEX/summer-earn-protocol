@@ -67,7 +67,8 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             token: USDE,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new PendleLPArk(MARKET, ORACLE, ROUTER, params);
@@ -347,7 +348,8 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             token: invalidAsset,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         vm.expectRevert(InvalidAssetForSY.selector);
