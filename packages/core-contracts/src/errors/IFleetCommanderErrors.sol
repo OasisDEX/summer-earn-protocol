@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 interface IFleetCommanderErrors {
     /// @notice Transfers disabled for legal reasons
     error FleetCommanderTransfersDisabled();
-    error FleetCommanderArkNotFound(address ark);
     error FleetCommanderArkNotActive(address ark);
     error FleetCommanderCantRebalanceToArk(address ark);
     error FleetCommanderInvalidBufferAdjustment();
@@ -13,15 +12,11 @@ interface IFleetCommanderErrors {
     error FleetCommanderRebalanceAmountZero(address ark);
     error WithdrawalAmountIsBelowMinThreshold();
     error WithdrawalAmountExceedsMaxBufferLimit();
-    error FleetCommanderArkAlreadyExists(address ark);
     error FleetCommanderArkDepositCapZero(address ark);
-    error FleetCommanderInvalidArkAddress();
     error FleetCommanderNoFundsMoved();
     error FleetCommanderNoExcessFunds();
     error FleetCommanderInvalidSourceArk(address ark);
     error FleetCommanderMovedMoreThanAvailable();
-    error FleetCommanderArkDepositCapGreaterThanZero(address ark);
-    error FleetCommanderArkAssetsNotZero(address ark);
     error FleetCommanderUnauthorizedWithdrawal(address caller, address owner);
     error FleetCommanderUnauthorizedRedemption(address caller, address owner);
     error FleetCommanderCantUseRebalanceOnBufferArk();

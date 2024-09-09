@@ -8,6 +8,7 @@ import {AaveV3Ark, ArkParams} from "../../src/contracts/arks/AaveV3Ark.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
+import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
@@ -230,7 +231,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.mockCall(
             commander,
             abi.encodeWithSelector(
-                IFleetCommander.isArkActive.selector,
+                IFleetCommanderConfigProvider.isArkActive.selector,
                 address(otherArk)
             ),
             abi.encode(true)
@@ -264,7 +265,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.mockCall(
             commander,
             abi.encodeWithSelector(
-                IFleetCommander.isArkActive.selector,
+                IFleetCommanderConfigProvider.isArkActive.selector,
                 nonArk
             ),
             abi.encode(false)
@@ -336,7 +337,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.mockCall(
             commander,
             abi.encodeWithSelector(
-                IFleetCommander.isArkActive.selector,
+                IFleetCommanderConfigProvider.isArkActive.selector,
                 address(ark)
             ),
             abi.encode(true)

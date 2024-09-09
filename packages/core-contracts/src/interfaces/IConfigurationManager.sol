@@ -9,7 +9,10 @@ import {IConfigurationManagerErrors} from "../errors/IConfigurationManagerErrors
  * @notice Interface for the ConfigurationManager contract, which manages system-wide parameters
  * @dev This interface defines the getters and setters for system-wide parameters
  */
-interface IConfigurationManager is IConfigurationManagerEvents, IConfigurationManagerErrors {
+interface IConfigurationManager is
+    IConfigurationManagerEvents,
+    IConfigurationManagerErrors
+{
     /**
      * @notice Get the address of the Raft contract
      * @return The address of the Raft contract
