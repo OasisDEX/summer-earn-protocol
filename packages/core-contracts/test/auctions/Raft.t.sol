@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import "../../src/errors/RaftErrors.sol";
+import "../../src/errors/IRaftErrors.sol";
 
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IRaftEvents} from "../../src/events/IRaftEvents.sol";
@@ -637,8 +637,8 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                RaftAuctionAlreadyRunning.selector,
+            abi.encodeWithSignature(
+                "RaftAuctionAlreadyRunning(address,address)",
                 address(mockArk),
                 address(mockRewardToken)
             )

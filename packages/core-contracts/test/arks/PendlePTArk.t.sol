@@ -14,7 +14,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {OracleNotReady, InvalidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../src/errors/arks/PendleArkErrors.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 
 contract PendlePTArkTestFork is Test, IArkEvents {
@@ -275,8 +274,8 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                SlippagePercentageTooHigh.selector,
+            abi.encodeWithSignature(
+                "SlippagePercentageTooHigh(uint256,uint256)",
                 invalidSlippagePercentage,
                 PERCENTAGE_100
             )
@@ -302,8 +301,8 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                OracleDurationTooLow.selector,
+            abi.encodeWithSignature(
+                "OracleDurationTooLow(uint32,uint256)",
                 10 minutes,
                 15 minutes
             )
@@ -332,7 +331,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         );
 
         // Attempt to trigger rollover
-        vm.expectRevert(abi.encodeWithSelector(InvalidNextMarket.selector));
+        vm.expectRevert(abi.encodeWithSignature("InvalidNextMarket()"));
         vm.prank(commander);
         ark.board(amount, bytes(""));
     }
@@ -381,7 +380,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
             requiresKeeperData: true
         });
 
-        vm.expectRevert(InvalidAssetForSY.selector);
+        vm.expectRevert(abi.encodeWithSignature("InvalidAssetForSY()"));
         new PendlePTArk(MARKET, ORACLE, ROUTER, params);
     }
     function test_SetupRouterParams() public view {

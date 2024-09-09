@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {IHarborCommandErrors} from "../errors/IHarborCommandErrors.sol";
+
 /**
  * @title IHarborCommand
  * @notice Interface for the HarborCommand contract which manages FleetCommanders and TipJar
  * @dev This interface defines the external functions and events for HarborCommand
  */
-interface IHarborCommand {
+interface IHarborCommand is IHarborCommandErrors {
     /**
      * @notice Enlists a new FleetCommander
      * @dev Only callable by the governor

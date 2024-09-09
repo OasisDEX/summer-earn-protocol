@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 
-import {FleetCommanderCantRebalanceToArk, FleetCommanderCantUseMaxUintForBufferAdjustement, FleetCommanderInsufficientBuffer, FleetCommanderInsufficientBuffer, FleetCommanderInvalidBufferAdjustment, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderRebalanceAmountZero} from "../../src/errors/FleetCommanderErrors.sol";
 import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
@@ -157,7 +156,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(FleetCommanderInsufficientBuffer.selector)
+            abi.encodeWithSignature("FleetCommanderInsufficientBuffer()")
         );
         fleetCommander.adjustBuffer(rebalanceData);
         vm.stopPrank();
@@ -183,7 +182,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(FleetCommanderNoExcessFunds.selector)
+            abi.encodeWithSignature("FleetCommanderNoExcessFunds()")
         );
         fleetCommander.adjustBuffer(rebalanceData);
         vm.stopPrank();
@@ -219,9 +218,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderInvalidBufferAdjustment.selector
-            )
+            abi.encodeWithSignature("FleetCommanderInvalidBufferAdjustment()")
         );
         fleetCommander.adjustBuffer(rebalanceData);
     }
@@ -255,9 +252,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderInvalidBufferAdjustment.selector
-            )
+            abi.encodeWithSignature("FleetCommanderInvalidBufferAdjustment()")
         );
         fleetCommander.adjustBuffer(rebalanceData);
     }
@@ -287,7 +282,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(FleetCommanderInsufficientBuffer.selector)
+            abi.encodeWithSignature("FleetCommanderInsufficientBuffer()")
         );
         fleetCommander.adjustBuffer(rebalanceData);
     }
@@ -397,7 +392,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(FleetCommanderNoExcessFunds.selector)
+            abi.encodeWithSignature("FleetCommanderNoExcessFunds()")
         );
         fleetCommander.adjustBuffer(rebalanceData);
     }
@@ -423,8 +418,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderRebalanceAmountZero.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderRebalanceAmountZero(address)",
                 ark1
             )
         );
@@ -485,8 +480,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderCantRebalanceToArk.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderCantRebalanceToArk(address)",
                 ark1
             )
         );
@@ -518,8 +513,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderCantUseMaxUintForBufferAdjustement.selector
+            abi.encodeWithSignature(
+                "FleetCommanderCantUseMaxUintForBufferAdjustement()"
             )
         );
         fleetCommander.adjustBuffer(rebalanceData);
@@ -552,8 +547,8 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderCantRebalanceToArk.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderCantRebalanceToArk(address)",
                 ark1
             )
         );

@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 
-import {FleetCommanderArkAlreadyExists, FleetCommanderArkAssetsNotZero, FleetCommanderArkDepositCapGreaterThanZero, FleetCommanderArkDepositCapZero, FleetCommanderArkNotFound, FleetCommanderCantRebalanceToArk, FleetCommanderInsufficientBuffer, FleetCommanderInvalidArkAddress, FleetCommanderInvalidBufferAdjustment, FleetCommanderInvalidSourceArk, FleetCommanderNoExcessFunds, FleetCommanderRebalanceAmountZero, FleetCommanderTransfersDisabled} from "../../src/errors/FleetCommanderErrors.sol";
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {ArkTestHelpers, IArk} from "../helpers/ArkHelpers.sol";
 
@@ -62,8 +61,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_SetMaxAllocationArkNotFound() public {
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkNotFound.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
                 address(0x123)
             )
         );
@@ -85,20 +84,20 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_TransferDisabled() public {
-        vm.expectRevert(FleetCommanderTransfersDisabled.selector);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderTransfersDisabled()"));
         fleetCommander.transfer(address(0x123), 100);
     }
 
     function test_TransferFromDisabled() public {
-        vm.expectRevert(FleetCommanderTransfersDisabled.selector);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderTransfersDisabled()"));
         fleetCommander.transferFrom(address(this), address(0x123), 100);
     }
 
     function test_RemoveArkWithNonZeroAllocation() public {
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkDepositCapGreaterThanZero.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkDepositCapGreaterThanZero(address)",
                 address(mockArk1)
             )
         );
@@ -129,8 +128,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkAssetsNotZero.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkAssetsNotZero(address)",
                 address(mockArk1)
             )
         );
@@ -150,8 +149,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkNotFound.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
                 address(0)
             )
         );
@@ -175,8 +174,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkDepositCapZero.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkDepositCapZero(address)",
                 address(mockArk1)
             )
         );
@@ -214,8 +213,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_SetArkDepositCapInvalidArk_ShouldFail() public {
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkNotFound.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
                 address(0x123)
             )
         );
@@ -235,8 +234,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_SetArkMoveToMaxInvalidArk_ShouldFail() public {
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkNotFound.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
                 address(0x123)
             )
         );
@@ -262,8 +261,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_SetArkMoveMaxRebalanceOutflowInvalidArk_ShouldFail() public {
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkNotFound.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
                 address(0x123)
             )
         );
@@ -275,15 +274,15 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_AddArkWithAddressZero() public {
-        vm.expectRevert(FleetCommanderInvalidArkAddress.selector);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderInvalidArkAddress()"));
         vm.prank(governor);
         fleetCommander.addArk(address(0));
     }
 
     function test_AddAlreadyExistingArk() public {
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkAlreadyExists.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkAlreadyExists(address)",
                 address(mockArk1)
             )
         );
@@ -293,8 +292,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_RemoveNotExistingArk() public {
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderArkNotFound.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
                 address(0x123)
             )
         );

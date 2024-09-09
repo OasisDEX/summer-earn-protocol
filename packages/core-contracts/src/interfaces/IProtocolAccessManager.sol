@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+
 /**
  * @title IProtocolAccessManager
  * @notice Defines system roles and provides role based remote-access control for

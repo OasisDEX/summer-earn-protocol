@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
+import {IFleetCommanderErrors} from "../errors/IFleetCommanderErrors.sol";
 import {FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 import {IArk} from "./IArk.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -11,7 +12,7 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @title IFleetCommander Interface
  * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
  */
-interface IFleetCommander is IFleetCommanderEvents, IERC4626 {
+interface IFleetCommander is IFleetCommanderEvents, IERC4626,IFleetCommanderErrors {
     /**
      * @notice Retrieves the ark address at the specified index
      * @param index The index of the ark in the arks array

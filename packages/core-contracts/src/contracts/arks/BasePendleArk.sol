@@ -12,15 +12,14 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {MarketExpired, InvalidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../errors/arks/PendleArkErrors.sol";
-import {IPendleArkEvents} from "../../events/arks/IPendleArkEvents.sol";
+import {IPendleBaseArk} from "../../interfaces/arks/IPendleBaseArk.sol";
 
 /**
  * @title BasePendleArk
  * @notice Base contract for Pendle-based Ark strategies
  * @dev This contract contains common functionality for Pendle LP and PT Arks
  */
-abstract contract BasePendleArk is Ark, IPendleArkEvents {
+abstract contract BasePendleArk is Ark, IPendleBaseArk {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 

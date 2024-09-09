@@ -3,8 +3,8 @@ pragma solidity 0.8.26;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import "../../src/errors/AccessControlErrors.sol";
-import "../../src/errors/BuyAndBurnErrors.sol";
+import "../../src/errors/IAccessControlErrors.sol";
+import "../../src/errors/IBuyAndBurnErrors.sol";
 
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
@@ -104,8 +104,8 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         buyAndBurn.startAuction(address(tokenToAuction1));
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                BuyAndBurnAuctionAlreadyRunning.selector,
+            abi.encodeWithSignature(
+                "BuyAndBurnAuctionAlreadyRunning(address)",
                 address(tokenToAuction1)
             )
         );
@@ -385,7 +385,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
 
     function test_OnlyGovernorCanStartAuction() public {
         vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotGovernor.selector, buyer)
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", buyer)
         );
         vm.prank(buyer);
         buyAndBurn.startAuction(address(tokenToAuction1));
@@ -398,7 +398,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         vm.warp(block.timestamp + 8 days);
 
         vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotGovernor.selector, buyer)
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", buyer)
         );
         vm.prank(buyer);
         buyAndBurn.finalizeAuction(1);

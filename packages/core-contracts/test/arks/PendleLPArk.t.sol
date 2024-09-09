@@ -14,7 +14,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {OracleNotReady, InvalidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../src/errors/arks/PendleArkErrors.sol";
 
 contract PendleLPArkTestFork is Test, IArkEvents {
     PendleLPArk public ark;
@@ -285,8 +284,8 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         ark.setSlippagePercentage(PercentageUtils.fromFraction(1, 1000)); // Set slippage to 0.1%
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                SlippagePercentageTooHigh.selector,
+            abi.encodeWithSignature(
+                "SlippagePercentageTooHigh(uint256,uint256)",
                 PercentageUtils.fromFraction(101, 100),
                 PERCENTAGE_100
             )
@@ -314,10 +313,9 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         // Act & Assert
         ark.setOracleDuration(1800); // This should succeed (30 minutes)
-
         vm.expectRevert(
-            abi.encodeWithSelector(
-                OracleDurationTooLow.selector,
+            abi.encodeWithSignature(
+                "OracleDurationTooLow(uint32,uint256)",
                 10 minutes,
                 15 minutes
             )
@@ -352,7 +350,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             requiresKeeperData: true
         });
 
-        vm.expectRevert(InvalidAssetForSY.selector);
+        vm.expectRevert(abi.encodeWithSignature("InvalidAssetForSY()"));
         new PendleLPArk(MARKET, ORACLE, ROUTER, params);
     }
     function test_RevertWhenNoValidNextMarket() public {
@@ -376,7 +374,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         );
 
         // Attempt to trigger rollover
-        vm.expectRevert(abi.encodeWithSelector(InvalidNextMarket.selector));
+        vm.expectRevert(abi.encodeWithSignature("InvalidNextMarket()"));
         vm.prank(commander);
         ark.board(amount, bytes(""));
     }
