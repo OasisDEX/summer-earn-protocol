@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
-interface IHarborCommandErrors {
-    /**
-     * @title HarborCommand Errors
-     * @notice Custom errors for the HarborCommand contract
-     */
 
+/**
+ * @title IHarborCommandErrors
+ * @dev This file contains custom error definitions for the HarborCommand contract.
+ * @notice These custom errors provide more gas-efficient and informative error handling
+ * compared to traditional require statements with string messages.
+ */
+interface IHarborCommandErrors {
     /**
      * @notice Thrown when attempting to enlist a FleetCommander that is already enlisted
      * @param fleetCommander The address of the FleetCommander that was attempted to be enlisted

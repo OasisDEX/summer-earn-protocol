@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+/**
+ * @title IFleetCommanderConfigProviderErrors
+ * @dev This file contains custom error definitions for the FleetCommanderConfigProvider contract.
+ * @notice These custom errors provide more gas-efficient and informative error handling
+ * compared to traditional require statements with string messages.
+ */
 interface IFleetCommanderConfigProviderErrors {
     /**
      * @notice Thrown when an operation is attempted on a non-existent Ark
