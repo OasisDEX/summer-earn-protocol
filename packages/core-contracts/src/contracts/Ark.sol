@@ -209,12 +209,12 @@ abstract contract Ark is IArk, ArkAccessManaged, Constants {
      * @dev Overrides the base implementation to prevent removal when assets are present
      */
     function _beforeGrantRoleHook(
-        address newComander
+        address newCommander
     ) internal virtual override(ArkAccessManaged) onlyGovernor {
         if (config.commander != address(0)) {
             revert CannotAddCommanderToArkWithCommander();
         }
-        config.commander = newComander;
+        config.commander = newCommander;
     }
 
     /**

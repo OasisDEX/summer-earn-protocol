@@ -6,7 +6,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {FleetCommanderConfigProvider} from "./FleetCommanderConfigProvider.sol";
 
 import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -23,8 +23,8 @@ import {StorageSlots} from "./libraries/StorageSlots.sol";
 contract FleetCommander is
     IFleetCommander,
     ERC4626,
-    ProtocolAccessManaged,
     Tipper,
+    FleetCommanderConfigProvider,
     CooldownEnforcer
 {
     /**
@@ -45,27 +45,22 @@ contract FleetCommander is
     using Math for uint256;
     using StorageSlot for *;
 
-    FleetConfig public config;
-    address[] public arks;
-    mapping(address => bool) public isArkActive;
-    mapping(address => bool) public isArkWithdrawable;
-
-    uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
-
     constructor(
         FleetCommanderParams memory params
     )
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
-        ProtocolAccessManaged(params.accessManager)
+        FleetCommanderConfigProvider(params.accessManager)
         Tipper(params.configurationManager, params.initialTipRate)
         CooldownEnforcer(params.initialRebalanceCooldown, false)
     {
-        config = FleetConfig({
-            bufferArk: IArk(params.bufferArk),
-            minimumBufferBalance: params.initialMinimumBufferBalance,
-            depositCap: params.depositCap
-        });
+        setFleetConfig(
+            FleetConfig({
+                bufferArk: IArk(params.bufferArk),
+                minimumBufferBalance: params.initialMinimumBufferBalance,
+                depositCap: params.depositCap
+            })
+        );
         isArkActive[address(config.bufferArk)] = true;
         isArkWithdrawable[address(config.bufferArk)] = true;
 
@@ -333,10 +328,6 @@ contract FleetCommander is
         }
     }
 
-    function getArks() public view returns (address[] memory) {
-        return arks;
-    }
-
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
@@ -418,10 +409,6 @@ contract FleetCommander is
     }
 
     /* EXTERNAL - GOVERNANCE */
-    function setFleetDepositCap(uint256 newCap) external onlyGovernor {
-        config.depositCap = newCap;
-        emit DepositCapUpdated(newCap);
-    }
 
     function setTipJar() external onlyGovernor {
         _setTipJar();
@@ -436,60 +423,6 @@ contract FleetCommander is
      */
     function setTipRate(Percentage newTipRate) external onlyGovernor {
         _setTipRate(newTipRate);
-    }
-
-    function addArk(address ark) external onlyGovernor {
-        _addArk(ark);
-    }
-
-    function addArks(address[] calldata _arkAddresses) external onlyGovernor {
-        for (uint256 i = 0; i < _arkAddresses.length; i++) {
-            _addArk(_arkAddresses[i]);
-        }
-    }
-
-    function removeArk(address ark) external onlyGovernor {
-        _removeArk(ark);
-    }
-
-    function setArkDepositCap(
-        address ark,
-        uint256 newDepositCap
-    ) external onlyGovernor {
-        if (!isArkActive[ark]) {
-            revert FleetCommanderArkNotFound(ark);
-        }
-
-        IArk(ark).setDepositCap(newDepositCap);
-    }
-
-    function setArkMaxRebalanceOutflow(
-        address ark,
-        uint256 newMaxRebalanceOutflow
-    ) external onlyGovernor {
-        if (!isArkActive[ark]) {
-            revert FleetCommanderArkNotFound(ark);
-        }
-
-        IArk(ark).setMaxRebalanceOutflow(newMaxRebalanceOutflow);
-    }
-
-    function setArkMaxRebalanceInflow(
-        address ark,
-        uint256 newMaxRebalanceInflow
-    ) external onlyGovernor {
-        if (!isArkActive[ark]) {
-            revert FleetCommanderArkNotFound(ark);
-        }
-
-        IArk(ark).setMaxRebalanceInflow(newMaxRebalanceInflow);
-    }
-
-    function setMinimumBufferBalance(
-        uint256 newMinimumBalance
-    ) external onlyGovernor {
-        config.minimumBufferBalance = newMinimumBalance;
-        emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
 
     function updateRebalanceCooldown(
@@ -569,39 +502,6 @@ contract FleetCommander is
         for (uint256 i = 0; i < _arkAddresses.length; i++) {
             _addArk(_arkAddresses[i]);
         }
-    }
-
-    function _addArk(address ark) internal {
-        if (ark == address(0)) {
-            revert FleetCommanderInvalidArkAddress();
-        }
-        if (isArkActive[ark]) {
-            revert FleetCommanderArkAlreadyExists(ark);
-        }
-
-        isArkActive[ark] = true;
-        isArkWithdrawable[ark] = IArk(ark).requiresKeeperData();
-        arks.push(ark);
-        emit ArkAdded(ark);
-    }
-
-    function _removeArk(address ark) internal {
-        if (!isArkActive[ark]) {
-            revert FleetCommanderArkNotFound(ark);
-        }
-
-        // Remove from arks if present
-        for (uint256 i = 0; i < arks.length; i++) {
-            if (arks[i] == ark) {
-                _validateArkRemoval(ark);
-                arks[i] = arks[arks.length - 1];
-                arks.pop();
-                break;
-            }
-        }
-
-        isArkActive[ark] = false;
-        emit ArkRemoved(ark);
     }
 
     /* INTERNAL */
@@ -898,26 +798,6 @@ contract FleetCommander is
     }
 
     /* INTERNAL - VALIDATIONS */
-
-    /**
-     * @notice Validates if an Ark can be safely removed from the Fleet Commander
-     * @dev This function checks two conditions:
-     *      1. The Ark's max allocation must be zero
-     *      2. The Ark must not hold any assets
-     * These conditions ensure that the Ark is effectively decommissioned before removal
-     * @param ark The address of the Ark to be removed
-     * @custom:error FleetCommanderArkDepositCapGreaterThanZero Thrown when the Ark's max allocation is not zero
-     * @custom:error FleetCommanderArkAssetsNotZero Thrown when the Ark still holds assets
-     */
-    function _validateArkRemoval(address ark) internal view {
-        IArk _ark = IArk(ark);
-        if (_ark.depositCap() > 0) {
-            revert FleetCommanderArkDepositCapGreaterThanZero(ark);
-        }
-        if (_ark.totalAssets() != 0) {
-            revert FleetCommanderArkAssetsNotZero(ark);
-        }
-    }
 
     /**
      * @notice Validates the data for adjusting the buffer

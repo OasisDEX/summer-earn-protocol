@@ -12,6 +12,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
@@ -74,9 +75,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
-        emit IFleetCommanderEvents.FleetCommanderminimumBufferBalanceUpdated(
-            newBalance
-        );
+        emit IFleetCommanderConfigProviderEvents
+            .FleetCommanderminimumBufferBalanceUpdated(newBalance);
         fleetCommander.setMinimumBufferBalance(newBalance);
 
         (, uint256 minimumBufferBalance, ) = fleetCommander.config();
@@ -116,7 +116,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         vm.prank(governor);
         vm.expectEmit(false, false, false, true);
-        emit IFleetCommanderEvents.ArkRemoved(address(mockArk1));
+        emit IFleetCommanderConfigProviderEvents.ArkRemoved(address(mockArk1));
         fleetCommander.removeArk(address(mockArk1));
         assertEq(fleetCommander.getArks().length, initialArksCount - 1);
         assertEq(fleetCommander.isArkActive(address(mockArk1)), false);
@@ -190,7 +190,9 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 newDepositCap = 10000;
         vm.prank(governor);
         vm.expectEmit();
-        emit IFleetCommanderEvents.DepositCapUpdated(newDepositCap);
+        emit IFleetCommanderConfigProviderEvents.DepositCapUpdated(
+            newDepositCap
+        );
 
         fleetCommander.setFleetDepositCap(newDepositCap);
 
