@@ -506,7 +506,13 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         );
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark4, DEPOSIT_AMOUNT / 4)
+            generateRebalanceData(
+                address(bufferArk),
+                ark4,
+                DEPOSIT_AMOUNT / 4,
+                bytes("dummy data 12345 dummy data 1234"), // mock ark validates lenngth of call data to be 32 bytes
+                bytes("")
+            )
         );
         vm.stopPrank();
 

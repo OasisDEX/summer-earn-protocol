@@ -59,12 +59,15 @@ contract AaveV3Ark is Ark {
         emit Harvested(claimedRewardsBalance);
     }
 
-    function _board(uint256 amount) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         config.token.approve(address(aaveV3Pool), amount);
         aaveV3Pool.supply(address(config.token), amount, address(this), 0);
     }
 
-    function _disembark(uint256 amount) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         aaveV3Pool.withdraw(address(config.token), amount, address(this));
     }
+
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

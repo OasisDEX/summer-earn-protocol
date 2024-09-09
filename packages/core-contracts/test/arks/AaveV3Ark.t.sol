@@ -206,7 +206,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.board(amount);
+        ark.board(amount, bytes(""));
     }
 
     function test_Disembark() public {
@@ -241,7 +241,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.disembark(amount);
+        ark.disembark(amount, bytes(""));
     }
 
     function test_Harvest() public {

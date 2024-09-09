@@ -546,17 +546,24 @@ contract FleetCommander is
     }
 
     /* INTERNAL - ARK */
+
     function _board(address ark, uint256 amount) internal {
         IERC20(asset()).approve(ark, amount);
-        IArk(ark).board(amount);
+        IArk(ark).board(amount, bytes(""));
     }
 
     function _disembark(address ark, uint256 amount) internal {
-        IArk(ark).disembark(amount);
+        IArk(ark).disembark(amount, bytes(""));
     }
 
-    function _move(address fromArk, address toArk, uint256 amount) internal {
-        IArk(fromArk).move(amount, toArk);
+    function _move(
+        address fromArk,
+        address toArk,
+        uint256 amount,
+        bytes memory boardData,
+        bytes memory disembarkData
+    ) internal {
+        IArk(fromArk).move(amount, toArk, boardData, disembarkData);
     }
 
     function _setupArks(address[] memory _arkAddresses) internal {
@@ -629,7 +636,13 @@ contract FleetCommander is
             revert FleetCommanderCantRebalanceToArk(address(toArk));
         }
 
-        _move(address(fromArk), address(toArk), amount);
+        _move(
+            address(fromArk),
+            address(toArk),
+            amount,
+            data.boardData,
+            data.disembarkData
+        );
     }
 
     /**

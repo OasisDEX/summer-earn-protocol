@@ -46,6 +46,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
+            boardData: bytes(""),
+            disembarkData: bytes(""),
             amount: rebalanceAmount
         });
 
@@ -87,6 +89,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
+            boardData: bytes(""),
+            disembarkData: bytes(""),
             amount: rebalanceAmount
         });
 
@@ -134,12 +138,16 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
             fromArk: ark1,
             toArk: ark3,
-            amount: 500 * 10 ** 6
+            amount: 500 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act
@@ -169,7 +177,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: invalidArk, // Invalid source
             toArk: ark2,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -189,7 +199,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: address(this), // Invalid target
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -209,7 +221,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
-            amount: 0 // Zero amount
+            amount: 0,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -233,7 +247,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -260,6 +276,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
+            boardData: bytes(""),
+            disembarkData: bytes(""),
             amount: rebalanceAmount
         });
 
@@ -281,7 +299,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
         mockToken.mint(ark1, 5000 * 10 ** 6);
 
@@ -348,7 +368,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: address(0), // Invalid target
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -369,7 +391,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: address(0), // Invalid target
             toArk: ark1,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert
@@ -390,7 +414,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: bufferArkAddress,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act
@@ -410,7 +436,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: 1000 * 10 ** 6
+            amount: 1000 * 10 ** 6,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act
@@ -440,6 +468,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
+            boardData: bytes(""),
+            disembarkData: bytes(""),
             amount: rebalanceAmount
         });
 
@@ -469,7 +499,6 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 maxRebalanceOutflow = 500 * 10 ** 6;
         uint256 rebalanceAmount = 1000 * 10 ** 6;
-
         mockToken.mint(ark1, 5000 * 10 ** 6);
         mockToken.mint(ark2, 5000 * 10 ** 6);
 
@@ -479,6 +508,8 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
+            boardData: bytes(""),
+            disembarkData: bytes(""),
             amount: rebalanceAmount
         });
 
@@ -510,7 +541,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: ark1,
             toArk: ark2,
-            amount: rebalanceAmount
+            amount: rebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         // Act & Assert

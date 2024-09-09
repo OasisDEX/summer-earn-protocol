@@ -18,6 +18,7 @@ import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
+import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -45,7 +46,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     ArkMock public mockArk1;
     ArkMock public mockArk2;
     ArkMock public mockArk3;
-    ArkMock public mockArk4;
+    RestictedWithdrawalArkMock public mockArk4;
     BufferArk public bufferArk;
 
     // Addresses
@@ -160,7 +161,11 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         mockArk1 = createMockArk(underlyingToken, ARK1_MAX_ALLOCATION, true);
         mockArk2 = createMockArk(underlyingToken, ARK2_MAX_ALLOCATION, true);
         mockArk3 = createMockArk(underlyingToken, ARK3_MAX_ALLOCATION, true);
-        mockArk4 = createMockArk(underlyingToken, ARK4_MAX_ALLOCATION, false);
+        mockArk4 = createRestictedWithdrawalArkMock(
+            underlyingToken,
+            ARK4_MAX_ALLOCATION,
+            false
+        );
         ark1 = address(mockArk1);
         ark2 = address(mockArk2);
         ark3 = address(mockArk3);
@@ -190,6 +195,26 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     ) internal returns (ArkMock) {
         return
             new ArkMock(
+                ArkParams({
+                    name: "TestArk",
+                    accessManager: address(accessManager),
+                    token: tokenAddress,
+                    configurationManager: address(configurationManager),
+                    depositCap: depositCap,
+                    maxRebalanceOutflow: type(uint256).max,
+                    maxRebalanceInflow: type(uint256).max,
+                    requiresKeeperData: requiresKeeperData
+                })
+            );
+    }
+
+    function createRestictedWithdrawalArkMock(
+        address tokenAddress,
+        uint256 depositCap,
+        bool requiresKeeperData
+    ) internal returns (RestictedWithdrawalArkMock) {
+        return
+            new RestictedWithdrawalArkMock(
                 ArkParams({
                     name: "TestArk",
                     accessManager: address(accessManager),

@@ -90,7 +90,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         uint256 assetsAfterDeposit = ark.totalAssets();
         vm.warp(block.timestamp + 10000);

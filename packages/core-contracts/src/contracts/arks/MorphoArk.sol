@@ -53,13 +53,13 @@ contract MorphoArk is Ark {
             );
     }
 
-    function _board(uint256 amount) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         MORPHO.accrueInterest(marketParams);
         config.token.approve(address(MORPHO), amount);
         MORPHO.supply(marketParams, amount, 0, address(this), hex"");
     }
 
-    function _disembark(uint256 amount) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         MORPHO.accrueInterest(marketParams);
         MORPHO.withdraw(marketParams, amount, 0, address(this), address(this));
     }
@@ -68,4 +68,6 @@ contract MorphoArk is Ark {
         address rewardToken,
         bytes calldata
     ) internal override returns (uint256) {}
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

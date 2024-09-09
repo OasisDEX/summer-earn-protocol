@@ -111,7 +111,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         emit Boarded(commander, USDE, amount);
 
         // Act
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -144,13 +144,13 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.warp(block.timestamp + 1 days);
         // Act
         uint256 initialBalance = usde.balanceOf(commander);
         uint256 amountToWithdraw = ark.totalAssets();
-        ark.disembark(amountToWithdraw + 1);
+        ark.disembark(amountToWithdraw + 1, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -176,7 +176,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
         console.log(ark.marketExpiry());
         // exactly 1 block after expiry
@@ -188,7 +188,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         deal(USDE, commander, 10 * amount);
         usde.approve(address(ark), amount);
         vm.expectRevert(abi.encodeWithSignature("MarketExpired()"));
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.stopPrank();
     }
@@ -199,7 +199,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
         console.log(ark.marketExpiry());
         // exactly 1 block after expiry
@@ -209,7 +209,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         vm.startPrank(commander);
         console.log(IERC20(PT).balanceOf(address(ark)));
         console.log(ark.totalAssets());
-        ark.disembark(ark.totalAssets());
+        ark.disembark(ark.totalAssets(), bytes(""));
 
         vm.stopPrank();
 
@@ -234,7 +234,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         vm.rollFork(block.number + 120000);
@@ -244,7 +244,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         deal(USDE, commander, 10 * amount);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.stopPrank();
 
@@ -318,7 +318,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), 2 * amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Fast forward time past market expiry
@@ -334,7 +334,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
         // Attempt to trigger rollover
         vm.expectRevert(abi.encodeWithSelector(InvalidNextMarket.selector));
         vm.prank(commander);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
     }
 
     function test_TotalAssets() public {
@@ -344,7 +344,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         uint256 totalAssets = ark.totalAssets();

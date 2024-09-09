@@ -142,7 +142,9 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: address(0),
             toArk: address(mockArk1),
-            amount: 100
+            amount: 100,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
@@ -165,7 +167,9 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         rebalanceData[0] = RebalanceData({
             fromArk: address(mockArk2),
             toArk: address(mockArk1),
-            amount: 100
+            amount: 100,
+            boardData: bytes(""),
+            disembarkData: bytes("")
         });
 
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
