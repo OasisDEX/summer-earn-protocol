@@ -1,8 +1,8 @@
 import { SSTConfig } from 'sst'
-import { API } from './stacks/summer-stack'
+import { $, chalk, echo } from 'zx'
 import { ExternalAPI } from './stacks/partners-stack'
 import { SdkAPI } from './stacks/sdk-stack'
-import { $, chalk, echo } from 'zx'
+import { API } from './stacks/summer-stack'
 
 const availableStage = ['dev', 'feature', 'staging', 'production']
 
