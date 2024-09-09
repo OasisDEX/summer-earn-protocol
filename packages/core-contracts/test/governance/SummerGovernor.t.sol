@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "../../src/contracts/SummerGovernor.sol";
+import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/governance/TimelockController.sol";
@@ -54,7 +55,7 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
  * @title SummerGovernorTest
  * @dev Test contract for SummerGovernor functionality.
  */
-contract SummerGovernorTest is Test {
+contract SummerGovernorTest is Test, ISummerGovernorErrors {
     SummerGovernor public governor;
     MockERC20Votes public token;
     TimelockController public timelock;
@@ -93,14 +94,17 @@ contract SummerGovernorTest is Test {
         );
         vm.label(address(timelock), "TimelockController");
 
-        governor = new SummerGovernor(
-            IVotes(address(token)),
-            timelock,
-            VOTING_DELAY,
-            VOTING_PERIOD,
-            PROPOSAL_THRESHOLD,
-            QUORUM_FRACTION
-        );
+        SummerGovernor.GovernorParams memory params = SummerGovernor
+            .GovernorParams({
+                token: IVotes(address(token)),
+                timelock: timelock,
+                votingDelay: VOTING_DELAY,
+                votingPeriod: VOTING_PERIOD,
+                proposalThreshold: PROPOSAL_THRESHOLD,
+                quorumFraction: QUORUM_FRACTION
+            });
+
+        governor = new SummerGovernor(params);
         vm.label(address(governor), "SummerGovernor");
 
         timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
@@ -277,7 +281,7 @@ contract SummerGovernorTest is Test {
         );
 
         bool isWhitelisted = governor.isWhitelisted(account);
-        uint256 actualExpiration = governor.whitelistAccountExpirations(
+        uint256 actualExpiration = governor.getWhitelistAccountExpiration(
             account
         );
 
@@ -351,7 +355,7 @@ contract SummerGovernorTest is Test {
 
         // Assert that Bob is indeed the whitelist guardian
         assertEq(
-            governor.whitelistGuardian(),
+            governor.getWhitelistGuardian(),
             bob,
             "Bob should be the whitelist guardian"
         );
@@ -411,25 +415,36 @@ contract SummerGovernorTest is Test {
         uint256 belowMin = governor.MIN_PROPOSAL_THRESHOLD() - 1;
         uint256 aboveMax = governor.MAX_PROPOSAL_THRESHOLD() + 1;
 
-        vm.expectRevert("SummerEarnGovernor: invalid proposal threshold");
-        new SummerGovernor(
-            IVotes(address(token)),
-            timelock,
-            VOTING_DELAY,
-            VOTING_PERIOD,
-            belowMin,
-            QUORUM_FRACTION
-        );
+        SummerGovernor.GovernorParams memory params = SummerGovernor
+            .GovernorParams({
+                token: IVotes(address(token)),
+                timelock: timelock,
+                votingDelay: VOTING_DELAY,
+                votingPeriod: VOTING_PERIOD,
+                proposalThreshold: belowMin,
+                quorumFraction: QUORUM_FRACTION
+            });
 
-        vm.expectRevert("SummerEarnGovernor: invalid proposal threshold");
-        new SummerGovernor(
-            IVotes(address(token)),
-            timelock,
-            VOTING_DELAY,
-            VOTING_PERIOD,
-            aboveMax,
-            QUORUM_FRACTION
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SummerGovernorInvalidProposalThreshold.selector,
+                belowMin,
+                governor.MIN_PROPOSAL_THRESHOLD(),
+                governor.MAX_PROPOSAL_THRESHOLD()
+            )
         );
+        new SummerGovernor(params);
+
+        params.proposalThreshold = aboveMax;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SummerGovernorInvalidProposalThreshold.selector,
+                aboveMax,
+                governor.MIN_PROPOSAL_THRESHOLD(),
+                governor.MAX_PROPOSAL_THRESHOLD()
+            )
+        );
+        new SummerGovernor(params);
     }
 
     function test_ProposalCreationWhitelisted() public {
@@ -504,10 +519,20 @@ contract SummerGovernorTest is Test {
         );
 
         // Now create a proposal as the whitelisted user
-        vm.prank(whitelistedUser);
-        (uint256 newProposalId, ) = createProposal();
+        vm.startPrank(whitelistedUser);
+        (uint256 anotherProposalId, ) = createProposal();
+        vm.stopPrank();
 
-        // assertGt(newProposalId, 0, "Proposal should be created successfully");
+        // Verify that the proposal was created successfully
+        assertTrue(
+            anotherProposalId > 0,
+            "Proposal should be created successfully"
+        );
+        assertEq(
+            uint(governor.state(anotherProposalId)),
+            uint(IGovernor.ProposalState.Pending),
+            "Proposal should be in Pending state"
+        );
     }
 
     function test_CancelProposalByGuardian() public {
@@ -569,7 +594,7 @@ contract SummerGovernorTest is Test {
             address[] memory cancelTargets,
             uint256[] memory cancelValues,
             bytes[] memory cancelCalldatas,
-            string memory cancelDescription
+
         ) = createProposalParams();
 
         vm.prank(guardian);
