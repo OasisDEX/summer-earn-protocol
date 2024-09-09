@@ -2,9 +2,10 @@
 pragma solidity 0.8.26;
 
 import {IArk} from "../interfaces/IArk.sol";
+
+import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 
 /**
  * @title FleetCommanderConfigProvider

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IConfigurationManagerEvents} from "../events/IConfigurationManagerEvents.sol";
 import {IConfigurationManagerErrors} from "../errors/IConfigurationManagerErrors.sol";
+import {IConfigurationManagerEvents} from "../events/IConfigurationManagerEvents.sol";
 
 /**
  * @title IConfigurationManager

@@ -7,7 +7,6 @@ pragma solidity 0.8.26;
  * @notice These custom errors provide more gas-efficient and informative error handling
  * compared to traditional require statements with string messages.
  */
-
 interface IAdmiralsQuartersErrors {
     /**
      * @notice Thrown when a swap operation fails.

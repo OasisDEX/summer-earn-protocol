@@ -49,6 +49,7 @@ contract CompoundV3Ark is Ark {
 
         emit Harvested(claimedRewardsBalance);
     }
+
     function _validateBoardData(bytes calldata data) internal override {}
     function _validateDisembarkData(bytes calldata data) internal override {}
 }

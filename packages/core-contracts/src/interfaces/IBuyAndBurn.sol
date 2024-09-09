@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
 import {IBuyAndBurnErrors} from "../errors/IBuyAndBurnErrors.sol";
+import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
 import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 import {IArkErrors} from "../errors/IArkErrors.sol";
+import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 
 import {IArkEvents} from "../events/IArkEvents.sol";
 import "../types/ArkTypes.sol";

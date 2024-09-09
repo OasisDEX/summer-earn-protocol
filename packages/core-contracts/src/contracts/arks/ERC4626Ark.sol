@@ -76,6 +76,7 @@ contract ERC4626Ark is Ark {
         // todo: how to make it generic enough to allow different reward harvesting strategies?
         return 0;
     }
+
     function _validateBoardData(bytes calldata data) internal override {}
     function _validateDisembarkData(bytes calldata data) internal override {}
 }

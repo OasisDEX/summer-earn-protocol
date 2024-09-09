@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ITipJar} from "../../src/interfaces/ITipJar.sol";
 import {ITipJarEvents} from "../../src/events/ITipJarEvents.sol";
+import {ITipJar} from "../../src/interfaces/ITipJar.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {Test, console} from "forge-std/Test.sol";
 

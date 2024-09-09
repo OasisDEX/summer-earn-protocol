@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ITipperEvents} from "../events/ITipperEvents.sol";
 import {ITipperErrors} from "../errors/ITipperErrors.sol";
+import {ITipperEvents} from "../events/ITipperEvents.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
