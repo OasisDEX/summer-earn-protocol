@@ -409,7 +409,9 @@ contract TipJarTest is Test, ITipJarEvents {
     }
 
     function test_FailShakeInvalidFleetCommanderAddress() public {
-        vm.expectRevert(abi.encodeWithSignature("InvalidFleetCommanderAddress()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("InvalidFleetCommanderAddress()")
+        );
         tipJar.shake(address(0));
     }
 
@@ -529,9 +531,7 @@ contract TipJarTest is Test, ITipJarEvents {
             block.timestamp
         );
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "TotalAllocationExceedsOneHundredPercent()"
-            )
+            abi.encodeWithSignature("TotalAllocationExceedsOneHundredPercent()")
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,

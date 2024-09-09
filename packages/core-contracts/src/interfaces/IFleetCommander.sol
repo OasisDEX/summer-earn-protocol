@@ -12,7 +12,11 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @title IFleetCommander Interface
  * @notice Interface for the FleetCommander contract, which manages asset allocation across multiple Arks
  */
-interface IFleetCommander is IFleetCommanderEvents, IERC4626,IFleetCommanderErrors {
+interface IFleetCommander is
+    IFleetCommanderEvents,
+    IERC4626,
+    IFleetCommanderErrors
+{
     /**
      * @notice Retrieves the ark address at the specified index
      * @param index The index of the ark in the arks array

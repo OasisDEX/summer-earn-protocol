@@ -84,12 +84,16 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_TransferDisabled() public {
-        vm.expectRevert(abi.encodeWithSignature("FleetCommanderTransfersDisabled()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("FleetCommanderTransfersDisabled()")
+        );
         fleetCommander.transfer(address(0x123), 100);
     }
 
     function test_TransferFromDisabled() public {
-        vm.expectRevert(abi.encodeWithSignature("FleetCommanderTransfersDisabled()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("FleetCommanderTransfersDisabled()")
+        );
         fleetCommander.transferFrom(address(this), address(0x123), 100);
     }
 
@@ -274,7 +278,9 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_AddArkWithAddressZero() public {
-        vm.expectRevert(abi.encodeWithSignature("FleetCommanderInvalidArkAddress()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("FleetCommanderInvalidArkAddress()")
+        );
         vm.prank(governor);
         fleetCommander.addArk(address(0));
     }
