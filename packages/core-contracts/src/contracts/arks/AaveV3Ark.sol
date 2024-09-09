@@ -18,6 +18,10 @@ contract AaveV3Ark is Ark {
     IPoolDataProvider public aaveV3DataProvider;
     IRewardsController public rewardsController;
 
+    struct RewardsData {
+        address rewardToken;
+    }
+
     constructor(
         address _aaveV3Pool,
         address _rewardsController,
@@ -50,8 +54,8 @@ contract AaveV3Ark is Ark {
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
 
-        address rewardToken = abi.decode(data, (address));
-        rewardTokens[0] = rewardToken;
+        RewardsData memory rewardsData = abi.decode(data, (RewardsData));
+        rewardTokens[0] = rewardsData.rewardToken;
 
         (, address aTokenAddress, ) = aaveV3DataProvider
             .getReserveTokensAddresses(address(config.token));
@@ -61,9 +65,12 @@ contract AaveV3Ark is Ark {
         rewardAmounts[0] = rewardsController.claimRewardsToSelf(
             incentivizedAssets,
             type(uint256).max,
-            rewardToken
+            rewardsData.rewardToken
         );
-        IERC20(rewardToken).safeTransfer(config.raft, rewardAmounts[0]);
+        IERC20(rewardsData.rewardToken).safeTransfer(
+            config.raft,
+            rewardAmounts[0]
+        );
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }

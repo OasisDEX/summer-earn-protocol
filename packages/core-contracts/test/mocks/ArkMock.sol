@@ -8,6 +8,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract ArkMock is Ark {
     constructor(ArkParams memory _params) Ark(_params) {}
 
+    struct RewardData {
+        address rewardToken;
+        uint256 rewardAmount;
+    }
+
     function totalAssets() public view override returns (uint256) {
         // Mock implementation, returns the total token balance of this contract
         return IERC20(config.token).balanceOf(address(this));
@@ -30,10 +35,10 @@ contract ArkMock is Ark {
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
 
-        (rewardTokens[0], rewardAmounts[0]) = abi.decode(
-            data,
-            (address, uint256)
-        );
+        RewardData memory rewardsData = abi.decode(data, (RewardData));
+        rewardTokens[0] = rewardsData.rewardToken;
+        rewardAmounts[0] = rewardsData.rewardAmount;
+
         IERC20(rewardTokens[0]).transfer(msg.sender, rewardAmounts[0]);
     }
 
