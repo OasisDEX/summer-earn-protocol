@@ -715,7 +715,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             address[] memory targets,
             uint256[] memory values,
             bytes[] memory calldatas,
-            string memory description
+
         ) = createProposalParams();
 
         governor.cancel(targets, values, calldatas, descriptionHash);

@@ -39,4 +39,9 @@ interface ISummerGovernorErrors {
         uint256 votes,
         uint256 threshold
     );
+
+    /* @notice Error thrown when the whitelist guardian is not set
+     * @param whitelistGuardian The address of the whitelist guardian
+     */
+    error SummerGovernorInvalidWhitelistGuardian(address whitelistGuardian);
 }
