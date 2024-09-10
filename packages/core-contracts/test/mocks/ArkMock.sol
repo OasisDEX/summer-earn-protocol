@@ -9,8 +9,8 @@ contract ArkMock is Ark {
     constructor(ArkParams memory _params) Ark(_params) {}
 
     struct RewardData {
-        address rewardToken;
-        uint256 rewardAmount;
+        address[] rewardTokens;
+        uint256[] rewardAmounts;
     }
 
     function totalAssets() public view override returns (uint256) {
@@ -32,14 +32,12 @@ contract ArkMock is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        rewardTokens = new address[](1);
-        rewardAmounts = new uint256[](1);
-
         RewardData memory rewardsData = abi.decode(data, (RewardData));
-        rewardTokens[0] = rewardsData.rewardToken;
-        rewardAmounts[0] = rewardsData.rewardAmount;
-
-        IERC20(rewardTokens[0]).transfer(msg.sender, rewardAmounts[0]);
+        rewardTokens = rewardsData.rewardTokens;
+        rewardAmounts = rewardsData.rewardAmounts;
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            IERC20(rewardTokens[i]).transfer(msg.sender, rewardAmounts[i]);
+        }
     }
 
     function _validateBoardData(bytes calldata data) internal override {}
