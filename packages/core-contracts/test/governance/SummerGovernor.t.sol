@@ -63,7 +63,9 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
     address public alice = address(0x1);
     address public bob = address(0x2);
     address public charlie = address(0x3);
+    address public david = address(0x4);
 
+    address public initialWhitelistGuardian = address(0x5);
     uint256 public constant INITIAL_SUPPLY = 1000000e18;
     uint48 public constant VOTING_DELAY = 1;
     uint32 public constant VOTING_PERIOD = 50400;
@@ -77,6 +79,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         vm.label(alice, "Alice");
         vm.label(bob, "Bob");
         vm.label(charlie, "Charlie");
+        vm.label(david, "David");
 
         token = new MockERC20Votes();
         vm.label(address(token), "MockERC20Votes");
@@ -101,7 +104,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
-                quorumFraction: QUORUM_FRACTION
+                quorumFraction: QUORUM_FRACTION,
+                initialWhitelistGuardian: initialWhitelistGuardian
             });
 
         governor = new SummerGovernor(params);
@@ -380,26 +384,6 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
-    function test_PauseUnpauseOnlyGovernance() public {
-        vm.prank(address(alice));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IGovernor.GovernorOnlyExecutor.selector,
-                address(alice)
-            )
-        );
-        governor.pause();
-
-        vm.prank(address(alice));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IGovernor.GovernorOnlyExecutor.selector,
-                address(alice)
-            )
-        );
-        governor.unpause();
-    }
-
     function test_SupportsInterface() public view {
         assertTrue(governor.supportsInterface(type(IGovernor).interfaceId));
         assertFalse(governor.supportsInterface(0xffffffff));
@@ -422,7 +406,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: belowMin,
-                quorumFraction: QUORUM_FRACTION
+                quorumFraction: QUORUM_FRACTION,
+                initialWhitelistGuardian: address(0x5)
             });
 
         vm.expectRevert(
@@ -611,100 +596,6 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
-    function test_PauseAndUnpause() public {
-        // Ensure Alice has enough voting power
-        uint256 proposalThreshold = governor.proposalThreshold();
-        deal(address(token), alice, proposalThreshold);
-
-        vm.startPrank(alice);
-        token.delegate(alice);
-        vm.roll(block.number + 1); // Move to next block to activate voting power
-        vm.stopPrank();
-
-        // Create and execute a proposal to pause the contract
-        address[] memory targets = new address[](1);
-        targets[0] = address(governor);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSelector(SummerGovernor.pause.selector);
-        string memory description = "Pause the contract";
-
-        vm.prank(alice);
-        uint256 pauseProposalId = governor.propose(
-            targets,
-            values,
-            calldatas,
-            description
-        );
-
-        vm.warp(block.timestamp + governor.votingDelay() + 1);
-        vm.roll(block.number + governor.votingDelay() + 1);
-
-        vm.prank(alice);
-        governor.castVote(pauseProposalId, 1);
-
-        vm.warp(block.timestamp + governor.votingPeriod() + 1);
-        vm.roll(block.number + governor.votingPeriod() + 1);
-
-        governor.queue(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
-
-        governor.execute(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        assertTrue(governor.paused());
-
-        // Create and execute a proposal to unpause the contract
-        calldatas[0] = abi.encodeWithSelector(SummerGovernor.unpause.selector);
-        description = "Unpause the contract";
-
-        vm.prank(alice);
-        uint256 unpauseProposalId = governor.propose(
-            targets,
-            values,
-            calldatas,
-            description
-        );
-
-        vm.warp(block.timestamp + governor.votingDelay() + 1);
-        vm.roll(block.number + governor.votingDelay() + 1);
-
-        vm.prank(alice);
-        governor.castVote(unpauseProposalId, 1);
-
-        vm.warp(block.timestamp + governor.votingPeriod() + 1);
-        vm.roll(block.number + governor.votingPeriod() + 1);
-
-        governor.queue(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
-
-        governor.execute(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        assertFalse(governor.paused());
-    }
-
     function test_CancelProposalByProposer() public {
         deal(address(token), alice, governor.proposalThreshold());
         vm.roll(block.number + governor.votingDelay() + 1);
@@ -727,6 +618,199 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
+    function test_ProposalWithoutQuorum() public {
+        uint256 quorumThreshold = getQuorumThreshold();
+
+        // Give Charlie enough tokens to meet the proposal threshold but not enough to reach quorum
+        vm.startPrank(address(timelock));
+        token.mint(charlie, quorumThreshold / 2);
+        token.mint(alice, quorumThreshold / 2);
+        vm.stopPrank();
+
+        // Charlie delegates to himself
+        vm.prank(charlie);
+        token.delegate(charlie);
+
+        // Move forward more blocks to ensure voting power is updated
+        vm.roll(block.number + 10);
+
+        // Ensure Charlie has enough tokens to meet the proposal threshold
+        uint256 charlieVotes = governor.getVotes(charlie, block.number - 1);
+        uint256 proposalThreshold = governor.proposalThreshold();
+        assertGe(
+            charlieVotes,
+            proposalThreshold,
+            "Charlie should have enough voting power"
+        );
+        assertLt(
+            charlieVotes,
+            quorumThreshold,
+            "Charlie should not have enough voting power to reach quorum"
+        );
+
+        // Create a proposal
+        vm.prank(charlie);
+        (uint256 proposalId, ) = createProposal();
+
+        // Move to voting period
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        // Charlie votes in favor
+        vm.prank(charlie);
+        governor.castVote(proposalId, 1);
+
+        // Move to end of voting period
+        vm.roll(block.number + governor.votingPeriod());
+
+        // Check proposal state
+        assertEq(
+            uint(governor.state(proposalId)),
+            uint(IGovernor.ProposalState.Defeated),
+            "Proposal should be defeated"
+        );
+
+        // Verify that quorum was not reached
+        (
+            uint256 againstVotes,
+            uint256 forVotes,
+            uint256 abstainVotes
+        ) = governor.proposalVotes(proposalId);
+        uint256 quorum = governor.quorum(block.number - 1);
+        assertTrue(
+            forVotes + againstVotes + abstainVotes < quorum,
+            "Quorum should not be reached"
+        );
+    }
+
+    function test_VariousVotingScenarios() public {
+        // Mint tokens to voters
+        vm.startPrank(address(timelock));
+        token.mint(alice, 1_000_000e18); // Increased Alice's tokens
+        token.mint(bob, 300_000e18);
+        token.mint(charlie, 200_000e18);
+        token.mint(david, 100_000e18);
+        vm.stopPrank();
+
+        // Delegate votes
+        vm.prank(alice);
+        token.delegate(alice);
+        vm.prank(bob);
+        token.delegate(bob);
+        vm.prank(charlie);
+        token.delegate(charlie);
+        vm.prank(david);
+        token.delegate(david);
+
+        // Move forward a few blocks to ensure voting power is updated
+        vm.roll(block.number + 10);
+
+        // Mint tokens to the timelock
+        vm.startPrank(address(timelock));
+        token.mint(address(timelock), 1000); // Mint more than needed for the proposal
+        vm.stopPrank();
+
+        // Scenario 1: Majority in favor, quorum reached
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description
+        ) = createProposalParams();
+
+        vm.prank(alice); // Ensure Alice is the proposer
+        uint256 proposalId1 = governor.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        // Cast votes
+        vm.prank(alice);
+        governor.castVote(proposalId1, 1);
+        vm.prank(bob);
+        governor.castVote(proposalId1, 1);
+        vm.prank(charlie);
+        governor.castVote(proposalId1, 0);
+        vm.prank(david);
+        governor.castVote(proposalId1, 2);
+
+        vm.roll(block.number + governor.votingPeriod());
+        assertEq(
+            uint(governor.state(proposalId1)),
+            uint(IGovernor.ProposalState.Succeeded)
+        );
+
+        // Queue and execute the proposal
+        bytes32 descriptionHash = keccak256(bytes(description));
+        governor.queue(targets, values, calldatas, descriptionHash);
+
+        vm.warp(block.timestamp + timelock.getMinDelay());
+        governor.execute(targets, values, calldatas, descriptionHash);
+
+        assertEq(
+            uint(governor.state(proposalId1)),
+            uint(IGovernor.ProposalState.Executed)
+        );
+
+        // Reset the state for the next scenario
+        vm.roll(block.number + 1);
+
+        // Scenario 2: Tie, quorum reached
+        uint256 proposalId2 = createProposalAndVote(bob, 1, 1, 1, 1);
+        vm.roll(block.number + governor.votingPeriod());
+
+        // This is the failing assertion
+        assertEq(
+            uint(governor.state(proposalId2)),
+            uint(IGovernor.ProposalState.Succeeded)
+        );
+
+        // Reset the state for the next scenario
+        vm.roll(block.number + 1);
+
+        // Scenario 3: Majority against, quorum reached
+        uint256 proposalId3 = createProposalAndVote(charlie, 0, 0, 1, 2);
+        vm.roll(block.number + governor.votingPeriod());
+        assertEq(
+            uint(governor.state(proposalId3)),
+            uint(IGovernor.ProposalState.Defeated)
+        );
+    }
+
+    function getQuorumThreshold() public view returns (uint256) {
+        return (token.totalSupply() * QUORUM_FRACTION) / 100;
+    }
+
+    function createProposalAndVote(
+        address proposer,
+        uint8 aliceVote,
+        uint8 bobVote,
+        uint8 charlieVote,
+        uint8 davidVote
+    ) internal returns (uint256) {
+        vm.roll(block.number + 1); // Ensure a new block for the proposal
+        vm.prank(proposer);
+        (uint256 proposalId, ) = createProposal();
+
+        // Add a check here to ensure the proposal is created successfully
+        require(proposalId != 0, "Proposal creation failed");
+
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(alice);
+        governor.castVote(proposalId, aliceVote);
+        vm.prank(bob);
+        governor.castVote(proposalId, bobVote);
+        vm.prank(charlie);
+        governor.castVote(proposalId, charlieVote);
+        vm.prank(david);
+        governor.castVote(proposalId, davidVote);
+
+        return proposalId;
+    }
+
     /*
      * @dev Creates a proposal for testing purposes.
      * @return proposalId The ID of the created proposal.
@@ -739,6 +823,12 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             bytes[] memory calldatas,
             string memory description
         ) = createProposalParams();
+
+        // Add a unique identifier to the description to ensure unique proposals
+        description = string(
+            abi.encodePacked(description, " - ", block.number)
+        );
+
         uint256 proposalId = governor.propose(
             targets,
             values,

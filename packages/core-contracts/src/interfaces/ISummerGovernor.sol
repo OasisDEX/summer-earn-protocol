@@ -10,8 +10,6 @@ interface ISummerGovernor is IGovernor {
     );
     event WhitelistGuardianSet(address indexed newGuardian);
 
-    function pause() external;
-    function unpause() external;
     function isWhitelisted(address account) external view returns (bool);
     function setWhitelistAccountExpiration(
         address account,

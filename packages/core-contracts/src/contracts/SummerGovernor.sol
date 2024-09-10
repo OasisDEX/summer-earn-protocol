@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 
@@ -17,8 +16,7 @@ contract SummerGovernor is
     GovernorTimelockControl,
     GovernorSettings,
     GovernorCountingSimple,
-    GovernorVotesQuorumFraction,
-    Pausable
+    GovernorVotesQuorumFraction
 {
     // ===============================================
     // Constants
@@ -46,6 +44,7 @@ contract SummerGovernor is
         uint32 votingPeriod;
         uint256 proposalThreshold;
         uint256 quorumFraction;
+        address initialWhitelistGuardian;
     }
 
     /**
@@ -64,7 +63,6 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
-        Pausable()
     {
         if (
             params.proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
@@ -76,23 +74,15 @@ contract SummerGovernor is
                 MAX_PROPOSAL_THRESHOLD
             );
         }
-    }
 
-    // ===============================================
-    // Core Governance Functions
-    // ===============================================
-    /**
-     * @dev Pauses the governor contract. Can only be called by governance.
-     */
-    function pause() public override onlyGovernance {
-        _pause();
-    }
-
-    /**
-     * @dev Unpauses the governor contract. Can only be called by governance.
-     */
-    function unpause() public override onlyGovernance {
-        _unpause();
+        // Initialize the whitelistGuardian with the provided address
+        if (params.initialWhitelistGuardian == address(0)) {
+            revert ISummerGovernorErrors.SummerGovernorInvalidWhitelistGuardian(
+                params.initialWhitelistGuardian
+            );
+        }
+        config.whitelistGuardian = params.initialWhitelistGuardian;
+        emit WhitelistGuardianSet(params.initialWhitelistGuardian);
     }
 
     /**
