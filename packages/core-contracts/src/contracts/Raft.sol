@@ -37,9 +37,9 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     function harvestAndStartAuction(
         address ark,
         address paymentToken,
-        bytes calldata extraHarvestData
+        bytes calldata rewardData
     ) external onlyGovernor {
-        (address[] memory harvestedTokens, ) = _harvest(ark, extraHarvestData);
+        (address[] memory harvestedTokens, ) = _harvest(ark, rewardData);
         for (uint256 i = 0; i < harvestedTokens.length; i++) {
             _startAuction(ark, harvestedTokens[i], paymentToken);
         }
@@ -55,8 +55,8 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
     /* @inheritdoc IRaft */
 
-    function harvest(address ark, bytes calldata extraHarvestData) public {
-        _harvest(ark, extraHarvestData);
+    function harvest(address ark, bytes calldata rewardData) public {
+        _harvest(ark, rewardData);
     }
     /* @inheritdoc IRaft */
 
@@ -85,16 +85,16 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         auction.finalizeAuction();
         _settleAuction(ark, rewardToken, auction);
     }
-    /* @inheritdoc IRaft */
 
+    /* @inheritdoc IRaft */
     function getAuctionInfo(
         address ark,
         address rewardToken
     ) external view returns (DutchAuctionLibrary.Auction memory) {
         return auctions[ark][rewardToken];
     }
-    /* @inheritdoc IRaft */
 
+    /* @inheritdoc IRaft */
     function getCurrentPrice(
         address ark,
         address rewardToken
@@ -119,7 +119,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
 
     function _harvest(
         address ark,
-        bytes calldata extraHarvestData
+        bytes calldata rewardData
     )
         internal
         returns (
@@ -127,9 +127,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
             uint256[] memory harvestedAmounts
         )
     {
-        (harvestedTokens, harvestedAmounts) = IArk(ark).harvest(
-            extraHarvestData
-        );
+        (harvestedTokens, harvestedAmounts) = IArk(ark).harvest(rewardData);
         for (uint256 i = 0; i < harvestedTokens.length; i++) {
             harvestedRewards[ark][harvestedTokens[i]] += harvestedAmounts[i];
         }
@@ -174,8 +172,19 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         );
     }
 
+    function board(
+        address ark,
+        address rewardToken,
+        bytes calldata data
+    ) external onlyGovernor {
+        if (!IArk(ark).requiresKeeperData()) {
+            revert RaftArkDoesntRequireKeeperData(ark);
+        }
+        _board(rewardToken, ark, data);
+    }
+
     /**
-     * @dev Settles the auction by handling unsold tokens and boarding payment tokens
+     * @dev Settles the auction by handling unsold tokens
      * @param ark The address of the Ark
      * @param rewardToken The address of the reward token
      * @param auction The auction to be settled
@@ -186,13 +195,30 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         DutchAuctionLibrary.Auction memory auction
     ) internal {
         unsoldTokens[ark][rewardToken] += auction.state.remainingTokens;
+        if (!IArk(ark).requiresKeeperData()) {
+            _board(rewardToken, ark, bytes(""));
+        }
+    }
 
+    /**
+     * @dev Boards the payment tokens to the Ark
+     * @param rewardToken The address of the reward token
+     * @param ark The address of the Ark
+     * @param data The data to be passed to the Ark
+     */
+    function _board(
+        address rewardToken,
+        address ark,
+        bytes memory data
+    ) internal {
+        DutchAuctionLibrary.Auction memory auction = auctions[ark][rewardToken];
         IERC20 paymentToken = IERC20(auction.config.paymentToken);
+
         uint256 balance = paymentTokensToBoard[ark][rewardToken];
         if (balance > 0) {
+            IArk(ark).requiresKeeperData();
             paymentToken.approve(ark, balance);
-            // TODO - pass boardData if required
-            IArk(ark).board(balance, bytes(""));
+            IArk(ark).board(balance, data);
 
             emit RewardBoarded(
                 ark,

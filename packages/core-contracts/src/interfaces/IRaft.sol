@@ -75,4 +75,18 @@ interface IRaft is IRaftEvents, IRaftErrors {
         address ark,
         address rewardToken
     ) external view returns (uint256);
+
+    /**
+     * @notice Boards the auctioned token to an Ark
+     * @dev This function board tokens to ark that requires additioan data for boarding process.
+     * @dev can only be called by governance
+     * @param ark The address of the Ark contract.
+     * @param rewardToken The address of the reward token to board the rewards to.
+     * @param data Additional data required by the Ark to board rewards.
+     */
+    function board(
+        address ark,
+        address rewardToken,
+        bytes calldata data
+    ) external;
 }

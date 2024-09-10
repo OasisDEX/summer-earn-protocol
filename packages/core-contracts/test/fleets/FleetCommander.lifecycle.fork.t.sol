@@ -160,7 +160,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
 
         ArkParams memory daiArkParams = ArkParams({
@@ -171,7 +171,7 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
 
         // USDC Arks

@@ -59,7 +59,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
 
         ark = new ERC4626Ark(VAULT_ADDRESS, params);

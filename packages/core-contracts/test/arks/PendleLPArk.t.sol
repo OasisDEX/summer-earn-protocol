@@ -69,7 +69,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
 
         ark = new PendleLPArk(MARKET, ORACLE, ROUTER, params);
@@ -352,7 +352,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
 
         vm.expectRevert(abi.encodeWithSignature("InvalidAssetForSY()"));

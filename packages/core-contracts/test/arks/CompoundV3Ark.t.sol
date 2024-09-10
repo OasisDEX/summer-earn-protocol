@@ -50,7 +50,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
@@ -68,7 +68,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
         assertEq(address(ark.comet()), address(comet));

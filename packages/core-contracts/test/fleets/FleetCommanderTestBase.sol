@@ -127,7 +127,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 depositCap: type(uint256).max,
                 maxRebalanceOutflow: type(uint256).max,
                 maxRebalanceInflow: type(uint256).max,
-                requiresKeeperData: true
+                requiresKeeperData: false
             })
         );
         bufferArkAddress = address(bufferArk);
@@ -158,13 +158,13 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     }
 
     function setupMockArks(address underlyingToken) internal {
-        mockArk1 = createMockArk(underlyingToken, ARK1_MAX_ALLOCATION, true);
-        mockArk2 = createMockArk(underlyingToken, ARK2_MAX_ALLOCATION, true);
-        mockArk3 = createMockArk(underlyingToken, ARK3_MAX_ALLOCATION, true);
+        mockArk1 = createMockArk(underlyingToken, ARK1_MAX_ALLOCATION, false);
+        mockArk2 = createMockArk(underlyingToken, ARK2_MAX_ALLOCATION, false);
+        mockArk3 = createMockArk(underlyingToken, ARK3_MAX_ALLOCATION, false);
         mockArk4 = createRestictedWithdrawalArkMock(
             underlyingToken,
             ARK4_MAX_ALLOCATION,
-            false
+            true
         );
         ark1 = address(mockArk1);
         ark2 = address(mockArk2);

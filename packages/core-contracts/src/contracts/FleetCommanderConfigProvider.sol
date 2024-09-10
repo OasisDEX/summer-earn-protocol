@@ -93,7 +93,7 @@ contract FleetCommanderConfigProvider is
         }
 
         isArkActive[ark] = true;
-        isArkWithdrawable[ark] = IArk(ark).requiresKeeperData();
+        isArkWithdrawable[ark] = !IArk(ark).requiresKeeperData();
         arks.push(ark);
         emit ArkAdded(ark);
     }
