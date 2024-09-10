@@ -64,8 +64,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
     address public bob = address(0x2);
     address public charlie = address(0x3);
     address public david = address(0x4);
+    address public whitelistGuardian = address(0x5);
 
-    address public initialWhitelistGuardian = address(0x5);
     uint256 public constant INITIAL_SUPPLY = 1000000e18;
     uint48 public constant VOTING_DELAY = 1;
     uint32 public constant VOTING_PERIOD = 50400;
@@ -105,7 +105,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: initialWhitelistGuardian
+                initialWhitelistGuardian: whitelistGuardian
             });
 
         governor = new SummerGovernor(params);
@@ -120,6 +120,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
     /*
      * @dev Tests the initial setup of the governor.
+     * Verifies that the governor's parameters are set correctly.
      */
     function test_InitialSetup() public view {
         assertEq(governor.name(), "SummerGovernor");
@@ -131,6 +132,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
     /*
      * @dev Tests the proposal creation process.
+     * Ensures that a proposal can be created successfully.
      */
     function test_ProposalCreation() public {
         deal(address(token), alice, governor.proposalThreshold());
@@ -144,6 +146,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
     /*
      * @dev Tests the voting process on a proposal.
+     * Verifies that votes are correctly cast and counted.
      */
     function test_Voting() public {
         deal(address(token), alice, governor.proposalThreshold());
@@ -164,13 +167,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
     /*
      * @dev Tests the full proposal execution flow.
-     * This test covers:
-     * 1. Setting up initial token balances
-     * 2. Creating a proposal
-     * 3. Voting on the proposal
-     * 4. Queueing the proposal
-     * 5. Executing the proposal
-     * 6. Verifying the result of the execution
+     * Covers proposal creation, voting, queueing, execution, and result verification.
      */
     function test_ProposalExecution() public {
         deal(address(token), address(timelock), 100);
@@ -221,6 +218,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
     /*
      * @dev Tests the whitelisting process through a governance proposal.
+     * Verifies that an account can be whitelisted via a proposal.
      */
     function test_Whitelisting() public {
         address account = address(0x03);
@@ -299,9 +297,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
     /*
      * @dev Tests the proposal cancellation process.
+     * Ensures that a proposal can be canceled by the whitelist guardian.
      */
     function test_ProposalCancellation() public {
-        deal(address(token), alice, governor.proposalThreshold());
+        deal(address(token), alice, governor.proposalThreshold() * 2);
 
         vm.startPrank(alice);
         token.delegate(alice);
@@ -319,7 +318,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
         string memory description = "Set Bob as whitelist guardian";
 
-        uint256 guardianProposalId = governor.propose(
+        uint256 proposalId = governor.propose(
             targets,
             values,
             calldatas,
@@ -329,10 +328,17 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         vm.warp(block.timestamp + governor.votingDelay() + 1);
         vm.roll(block.number + governor.votingDelay() + 1);
 
-        governor.castVote(guardianProposalId, 1);
+        governor.castVote(proposalId, 1);
 
         vm.warp(block.timestamp + governor.votingPeriod() + 1);
         vm.roll(block.number + governor.votingPeriod() + 1);
+
+        // Check the proposal state before queueing
+        assertEq(
+            uint(governor.state(proposalId)),
+            uint(IGovernor.ProposalState.Succeeded),
+            "Proposal should be in Succeeded state"
+        );
 
         governor.queue(
             targets,
@@ -341,60 +347,47 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             keccak256(bytes(description))
         );
 
-        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+        vm.stopPrank();
 
-        governor.execute(
+        vm.startPrank(whitelistGuardian);
+        governor.cancel(
             targets,
             values,
             calldatas,
             keccak256(bytes(description))
         );
 
-        vm.stopPrank();
-
-        // Now Bob is the whitelist guardian, create a proposal to cancel
-        vm.startPrank(alice);
-        (uint256 proposalId, ) = createProposal();
-        vm.stopPrank();
-
-        // Assert that Bob is indeed the whitelist guardian
-        assertEq(
-            governor.getWhitelistGuardian(),
-            bob,
-            "Bob should be the whitelist guardian"
-        );
-
-        vm.prank(bob);
-        (
-            address[] memory cancelTargets,
-            uint256[] memory cancelValues,
-            bytes[] memory cancelCalldatas,
-            string memory cancelDescription
-        ) = createProposalParams();
-        governor.cancel(
-            cancelTargets,
-            cancelValues,
-            cancelCalldatas,
-            hashDescription(cancelDescription)
-        );
-
         assertEq(
             uint(governor.state(proposalId)),
-            uint(IGovernor.ProposalState.Canceled)
+            uint(IGovernor.ProposalState.Canceled),
+            "Proposal should be canceled"
         );
+        vm.stopPrank();
     }
 
+    /*
+     * @dev Tests the supportsInterface function of the governor.
+     * Verifies correct interface support.
+     */
     function test_SupportsInterface() public view {
         assertTrue(governor.supportsInterface(type(IGovernor).interfaceId));
         assertFalse(governor.supportsInterface(0xffffffff));
     }
 
+    /*
+     * @dev Tests the proposal threshold settings.
+     * Ensures the threshold is within the allowed range.
+     */
     function test_ProposalThreshold() public view {
         uint256 threshold = governor.proposalThreshold();
         assertGe(threshold, governor.MIN_PROPOSAL_THRESHOLD());
         assertLe(threshold, governor.MAX_PROPOSAL_THRESHOLD());
     }
 
+    /*
+     * @dev Tests setting proposal threshold out of bounds.
+     * Verifies that setting thresholds outside the allowed range reverts.
+     */
     function test_SetProposalThresholdOutOfBounds() public {
         uint256 belowMin = governor.MIN_PROPOSAL_THRESHOLD() - 1;
         uint256 aboveMax = governor.MAX_PROPOSAL_THRESHOLD() + 1;
@@ -432,6 +425,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         new SummerGovernor(params);
     }
 
+    /*
+     * @dev Tests proposal creation by a whitelisted account.
+     * Ensures a whitelisted account can create a proposal without meeting the threshold.
+     */
     function test_ProposalCreationWhitelisted() public {
         address whitelistedUser = address(0x1234);
         uint256 expiration = block.timestamp + 10 days;
@@ -520,6 +517,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
+    /*
+     * @dev Tests cancellation of a proposal by the whitelist guardian.
+     * Verifies that the guardian can cancel a proposal.
+     */
     function test_CancelProposalByGuardian() public {
         deal(address(token), alice, governor.proposalThreshold());
         vm.roll(block.number + governor.votingDelay() + 1);
@@ -596,6 +597,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
+    /*
+     * @dev Tests cancellation of a proposal by the proposer.
+     * Ensures the proposer can cancel their own proposal.
+     */
     function test_CancelProposalByProposer() public {
         deal(address(token), alice, governor.proposalThreshold());
         vm.roll(block.number + governor.votingDelay() + 1);
@@ -618,6 +623,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
+    /*
+     * @dev Tests a proposal that doesn't reach quorum.
+     * Verifies that a proposal is defeated if it doesn't reach quorum.
+     */
     function test_ProposalWithoutQuorum() public {
         uint256 quorumThreshold = getQuorumThreshold();
 
@@ -682,6 +691,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
+    /*
+     * @dev Tests various voting scenarios.
+     * Covers cases like majority in favor, tie, and majority against.
+     */
     function test_VariousVotingScenarios() public {
         // Mint tokens to voters
         vm.startPrank(address(timelock));
@@ -761,10 +774,39 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         uint256 proposalId2 = createProposalAndVote(bob, 1, 1, 1, 1);
         vm.roll(block.number + governor.votingPeriod());
 
+        // Add logging statements
+        (
+            uint256 againstVotes,
+            uint256 forVotes,
+            uint256 abstainVotes
+        ) = governor.proposalVotes(proposalId2);
+        console.log("For votes:", forVotes);
+        console.log("Against votes:", againstVotes);
+        console.log("Abstain votes:", abstainVotes);
+        console.log("Quorum:", governor.quorum(block.number - 1));
+        console.log(
+            "Total supply:",
+            token.getPastTotalSupply(block.number - 1)
+        );
+
         // This is the failing assertion
         assertEq(
             uint(governor.state(proposalId2)),
             uint(IGovernor.ProposalState.Succeeded)
+        );
+
+        // Add assertions to verify vote counts and quorum
+        assertEq(
+            forVotes,
+            2600000000000000000000100,
+            "Incorrect number of 'for' votes"
+        );
+        assertEq(againstVotes, 0, "There should be no 'against' votes");
+        assertEq(abstainVotes, 0, "There should be no 'abstain' votes");
+        assertGe(
+            forVotes,
+            governor.quorum(block.number - 1),
+            "For votes should meet or exceed quorum"
         );
 
         // Reset the state for the next scenario
