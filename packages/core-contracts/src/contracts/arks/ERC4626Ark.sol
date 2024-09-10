@@ -73,9 +73,6 @@ contract ERC4626Ark is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        // Most ERC4626 vaults automatically accrue interest, so no manual harvesting is needed
-        // However, this function can be overridden in derived contracts if specific harvesting logic is required
-        // todo: how to make it generic enough to allow different reward harvesting strategies?
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
         rewardTokens[0] = address(0);
