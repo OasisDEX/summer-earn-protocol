@@ -228,10 +228,14 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         // Harvest rewards
         vm.prank(governor);
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = address(params.rewardToken);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = rewardAmount;
+
         raft.harvest(
             address(params.mockArk),
-            address(params.rewardToken),
-            abi.encode(rewardAmount)
+            _getEncodedRewardData(rewardTokens, rewardAmounts)
         );
 
         // Start auction

@@ -438,7 +438,7 @@ contract PendlePTArkTestFork is Test, IArkEvents {
                 mockRewardTokens[i],
                 abi.encodeWithSelector(
                     IERC20.transfer.selector,
-                    commander,
+                    raft,
                     mockRewardAmounts[i]
                 ),
                 abi.encode(true)
@@ -453,20 +453,22 @@ contract PendlePTArkTestFork is Test, IArkEvents {
                 mockRewardTokens[i],
                 abi.encodeWithSelector(
                     IERC20.transfer.selector,
-                    commander,
+                    raft,
                     mockRewardAmounts[i]
                 )
             );
         }
-        uint256 harvestedAmount = ark.harvest(address(0), "");
+        (, uint256[] memory rewardAmounts) = ark.harvest("");
 
-        // Assert: Check if the harvested amount matches the sum of mock reward amounts
-        uint256 expectedTotalRewards = mockRewardAmounts[0] +
-            mockRewardAmounts[1];
         assertEq(
-            harvestedAmount,
-            expectedTotalRewards,
-            "Harvested amount should match total rewards"
+            rewardAmounts[0],
+            mockRewardAmounts[0],
+            "Expected reward amount should match mock reward amount"
+        );
+        assertEq(
+            rewardAmounts[1],
+            mockRewardAmounts[1],
+            "Expected reward amount should match mock reward amount"
         );
     }
 }

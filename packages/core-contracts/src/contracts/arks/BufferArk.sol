@@ -18,9 +18,12 @@ contract BufferArk is Ark {
     ) internal override {}
 
     function _harvest(
-        address rewardToken,
         bytes calldata
-    ) internal override returns (uint256) {}
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {}
 
     function _validateBoardData(bytes calldata data) internal override {}
     function _validateDisembarkData(bytes calldata data) internal override {}

@@ -14,14 +14,9 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * @notice Harvests rewards from the specified Ark without auctioning or reinvesting.
      * @dev This function only collects rewards, storing them in the Raft contract for later use.
      * @param ark The address of the Ark contract to harvest rewards from.
-     * @param rewardToken The address of the reward token to be harvested.
      * @param extraHarvestData Additional data required by a protocol to harvest
      */
-    function harvest(
-        address ark,
-        address rewardToken,
-        bytes calldata extraHarvestData
-    ) external;
+    function harvest(address ark, bytes calldata extraHarvestData) external;
 
     /**
      * @notice Retrieves the amount of harvested rewards for a specific Ark and reward token.

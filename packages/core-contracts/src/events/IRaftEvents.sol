@@ -23,9 +23,14 @@ interface IRaftEvents {
     /**
      * @notice Emitted when rewards are harvested from an Ark
      * @param ark The address of the Ark contract
-     * @param rewardToken The address of the harvested reward token
+     * @param rewardTokens The addresses of the harvested reward tokens
+     * @param rewardAmounts The amounts of the harvested reward tokens
      */
-    event ArkHarvested(address indexed ark, address indexed rewardToken);
+    event ArkHarvested(
+        address indexed ark,
+        address[] indexed rewardTokens,
+        uint256[] indexed rewardAmounts
+    );
 
     /**
      * @notice Emitted when auctioned rewards are boarded back into an Ark

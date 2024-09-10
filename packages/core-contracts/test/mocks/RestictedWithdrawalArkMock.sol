@@ -63,17 +63,22 @@ contract RestictedWithdrawalArkMock is Ark {
 
     /**
      * @notice Simulates harvesting rewards
-     * @param rewardToken The address of the reward token
      * @param data Additional data for harvesting (must be a uint256 for this mock)
-     * @return The amount of rewards harvested
+     * @return rewardTokens The address of the reward token
+     * @return rewardAmounts The amount of rewards harvested
      */
     function _harvest(
-        address rewardToken,
         bytes calldata data
-    ) internal override returns (uint256) {
-        uint256 amount = abi.decode(data, (uint256));
-        IERC20(rewardToken).transfer(msg.sender, amount);
-        return amount;
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        (rewardTokens[0], rewardAmounts[0]) = abi.decode(
+            data,
+            (address, uint256)
+        );
+        IERC20(rewardTokens[0]).transfer(msg.sender, rewardAmounts[0]);
     }
 
     /**

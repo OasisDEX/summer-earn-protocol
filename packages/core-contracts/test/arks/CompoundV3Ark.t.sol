@@ -183,14 +183,19 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Expect the Harvested event to be emitted
         vm.expectEmit(false, false, false, true);
-        emit Harvested(mockClaimedRewardsBalance);
+        address[] memory rewardTokens = new address[](1);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardTokens[0] = mockRewardToken;
+        rewardAmounts[0] = mockClaimedRewardsBalance;
+
+        emit ArkHarvested(rewardTokens, rewardAmounts);
 
         // Act
-        uint256 harvestedAmount = ark.harvest(mockRewardToken, bytes(""));
+        ark.harvest(abi.encode(address(mockRewardToken)));
 
         // Assert
         assertEq(
-            harvestedAmount,
+            rewardAmounts[0],
             mockClaimedRewardsBalance,
             "Harvested amount should match mocked balance"
         );
