@@ -66,7 +66,7 @@ library VotingDecayLibrary {
                     decayRatePerSecond,
                     decayTime
                 );
-        } else if (decayType == DecayType.Exponential) {
+        } else if (decayFunction == DecayFunction.Exponential) {
             return
                 currentRetentionFactor.exponentialDecay(
                     decayRatePerSecond,
