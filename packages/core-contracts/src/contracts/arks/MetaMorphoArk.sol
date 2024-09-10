@@ -7,8 +7,6 @@ import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 contract MetaMorphoArk is Ark {
     using SafeERC20 for IERC20;
 
-    uint256 public constant WAD = 1e18;
-    uint256 public constant RAY = 1e27;
     IMetaMorpho public immutable metaMorpho;
     uint256 lastUpdate;
     uint256 lastPrice;
@@ -20,28 +18,17 @@ contract MetaMorphoArk is Ark {
         metaMorpho = IMetaMorpho(_metaMorpho);
     }
 
-    function rate() public view override returns (uint256 supplyRate) {
-        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
-        uint256 timeDelta = block.timestamp - lastUpdate;
-
-        if (timeDelta > 0 && lastPrice > 0) {
-            supplyRate =
-                ((currentPrice - lastPrice) * 365 days * RAY) /
-                (lastPrice * timeDelta);
-        }
-    }
-
     function totalAssets() public view override returns (uint256 assets) {
         return metaMorpho.convertToAssets(metaMorpho.balanceOf(address(this)));
     }
 
-    function _board(uint256 amount) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         config.token.approve(address(metaMorpho), amount);
         metaMorpho.deposit(amount, address(this));
         this.poke();
     }
 
-    function _disembark(uint256 amount) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         metaMorpho.withdraw(amount, address(this), address(this));
         this.poke();
     }
@@ -65,4 +52,6 @@ contract MetaMorphoArk is Ark {
         address rewardToken,
         bytes calldata
     ) internal override returns (uint256) {}
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

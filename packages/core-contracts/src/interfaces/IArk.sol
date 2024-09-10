@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {IArkErrors} from "../errors/IArkErrors.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
-import "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
+import {IArkEvents} from "../events/IArkEvents.sol";
 import "../types/ArkTypes.sol";
-import "../events/IArkEvents.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IArk
  * @notice Interface for the Ark contract, which manages funds and interacts with Rafts
  * @dev Inherits from IArkAccessManaged for access control and IArkEvents for event definitions
  */
-interface IArk is IArkAccessManaged, IArkEvents {
+interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
     /* FUNCTIONS - PUBLIC */
 
     /**
@@ -45,6 +45,8 @@ interface IArk is IArkAccessManaged, IArkEvents {
      */
     function maxRebalanceOutflow() external view returns (uint256);
 
+    function requiresKeeperData() external view returns (bool);
+
     /**
      * @notice Returns the ERC20 token managed by this Ark
      * @return The IERC20 interface of the managed token
@@ -56,12 +58,6 @@ interface IArk is IArkAccessManaged, IArkEvents {
      * @return The total assets in the Ark, in token precision
      */
     function totalAssets() external view returns (uint256);
-
-    /**
-     * @notice Returns the current rate of the Ark
-     * @return The current rate in RAY precision
-     */
-    function rate() external view returns (uint256);
 
     /**
      * @notice Returns the address of the Fleet commander managing the ark
@@ -90,21 +86,30 @@ interface IArk is IArkAccessManaged, IArkEvents {
     /**
      * @notice Deposits (boards) tokens into the Ark
      * @param amount The amount of tokens to deposit
+     * @param boardData Additional data that might be required by a specific protocol to deposit funds
      */
-    function board(uint256 amount) external;
+    function board(uint256 amount, bytes calldata boardData) external;
 
     /**
      * @notice Withdraws (disembarks) tokens from the Ark
      * @param amount The amount of tokens to withdraw
+     * @param disembarkData Additional data that might be required by a specific protocol to withdraw funds
      */
-    function disembark(uint256 amount) external;
+    function disembark(uint256 amount, bytes calldata disembarkData) external;
 
     /**
      * @notice Moves tokens from one ark to another
      * @param amount  The amount of tokens to move
      * @param receiver The address of the Ark the funds will be boarded to
+     * @param boardData Additional data that might be required by a specific protocol to board funds
+     * @param disembarkData Additional data that might be required by a specific protocol to disembark funds
      */
-    function move(uint256 amount, address receiver) external;
+    function move(
+        uint256 amount,
+        address receiver,
+        bytes calldata boardData,
+        bytes calldata disembarkData
+    ) external;
 
     /**
      * @notice Sets a new maximum allocation for the Ark

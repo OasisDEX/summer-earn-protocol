@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {IRaftErrors} from "../errors/IRaftErrors.sol";
 import {IRaftEvents} from "../events/IRaftEvents.sol";
 
 /**
@@ -8,7 +9,7 @@ import {IRaftEvents} from "../events/IRaftEvents.sol";
  * @notice Interface for the Raft contract which manages harvesting, auctioning, and reinvesting of rewards.
  * @dev This interface defines the core functionality for managing rewards from various Arks.
  */
-interface IRaft is IRaftEvents {
+interface IRaft is IRaftEvents, IRaftErrors {
     /**
      * @notice Harvests rewards from the specified Ark without auctioning or reinvesting.
      * @dev This function only collects rewards, storing them in the Raft contract for later use.

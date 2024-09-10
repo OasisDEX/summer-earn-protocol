@@ -3,11 +3,11 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
+import {IArk} from "../../src/interfaces/IArk.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-import {IArk} from "../../src/interfaces/IArk.sol";
 
-import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
@@ -194,7 +194,7 @@ contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 assets = fleetCommander.previewMint(shares);
         mockToken.mint(mockUser, assets);
 
-        (IArk bufferArk, , , ) = fleetCommander.config();
+        (IArk bufferArk, , ) = fleetCommander.config();
         uint256 initialBufferBalance = bufferArk.totalAssets();
 
         vm.startPrank(mockUser);
@@ -208,5 +208,20 @@ contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             initialBufferBalance + assets,
             "Buffer balance should increase by minted assets"
         );
+    }
+
+    function test_RedeemExceedingBalance() public {
+        uint256 excessAmount = 1000000000000 ether;
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC4626ExceededMaxMint(address,uint256,uint256)",
+                mockUser,
+                excessAmount,
+                fleetCommander.maxMint(mockUser)
+            )
+        );
+        vm.prank(mockUser);
+        fleetCommander.mint(excessAmount, mockUser);
     }
 }

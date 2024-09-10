@@ -2,7 +2,6 @@
 pragma solidity 0.8.26;
 
 import {RebalanceData} from "../types/FleetCommanderTypes.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 interface IFleetCommanderEvents {
     /* EVENTS */
@@ -48,28 +47,10 @@ interface IFleetCommanderEvents {
     );
 
     /**
-     * @notice Emitted when the deposit cap is updated
-     * @param newCap The new deposit cap value
-     */
-    event DepositCapUpdated(uint256 newCap);
-
-    /**
      * @notice Emitted when the fee address is updated
      * @param newAddress The new fee address
      */
     event FeeAddressUpdated(address newAddress);
-
-    /**
-     * @notice Emitted when a new Ark is added
-     * @param ark The address of the newly added Ark
-     */
-    event ArkAdded(address indexed ark);
-
-    /**
-     * @notice Emitted when an Ark is removed
-     * @param ark The address of the removed Ark
-     */
-    event ArkRemoved(address indexed ark);
 
     /**
      * @notice Emitted when the funds buffer balance is updated
@@ -91,11 +72,6 @@ interface IFleetCommanderEvents {
         address indexed keeper,
         uint256 totalMoved
     );
-    /**
-     *
-     * @param newBalance New minimum funds buffer balance
-     */
-    event FleetCommanderminimumBufferBalanceUpdated(uint256 newBalance);
 
     /**
      * @notice Emitted when funds are withdrawn from Arks
@@ -119,13 +95,5 @@ interface IFleetCommanderEvents {
         address indexed owner,
         address receiver,
         uint256 totalRedeemed
-    );
-
-    /**
-     * @notice Emitted when the minimum rate difference is updated
-     * @param newMinimumRateDiff The new minimum rate difference
-     */
-    event FleetCommanderMinimumRateDifferenceUpdated(
-        Percentage newMinimumRateDiff
     );
 }

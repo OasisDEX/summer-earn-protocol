@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
-import "../errors/AccessControlErrors.sol";
 
 /**
  * @custom:see IProtocolAccessManager

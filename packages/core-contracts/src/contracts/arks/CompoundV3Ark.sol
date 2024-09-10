@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../Ark.sol";
 import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
+import "../Ark.sol";
 
 contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;
 
-    uint256 public constant SECONDS_PER_YEAR = 31536000;
-    uint256 public constant WAD_TO_RAY = 1e9;
     IComet public comet;
     ICometRewards public cometRewards;
 
@@ -22,12 +20,6 @@ contract CompoundV3Ark is Ark {
         cometRewards = ICometRewards(_cometRewards);
     }
 
-    function rate() public view override returns (uint256 supplyRate) {
-        uint256 utilization = comet.getUtilization();
-        uint256 supplyRatePerSecond = comet.getSupplyRate(utilization);
-        supplyRate = supplyRatePerSecond * SECONDS_PER_YEAR * WAD_TO_RAY;
-    }
-
     function totalAssets()
         public
         view
@@ -37,12 +29,12 @@ contract CompoundV3Ark is Ark {
         suppliedAssets = comet.balanceOf(address(this));
     }
 
-    function _board(uint256 amount) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         config.token.approve(address(comet), amount);
         comet.supply(address(config.token), amount);
     }
 
-    function _disembark(uint256 amount) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         comet.withdraw(address(config.token), amount);
     }
 
@@ -57,4 +49,7 @@ contract CompoundV3Ark is Ark {
 
         emit Harvested(claimedRewardsBalance);
     }
+
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

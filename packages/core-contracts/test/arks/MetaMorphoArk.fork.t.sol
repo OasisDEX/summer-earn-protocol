@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import "../../src/contracts/arks/MetaMorphoArk.sol";
+import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import "../../src/events/IArkEvents.sol";
 
@@ -55,7 +55,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             token: address(asset),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new MetaMorphoArk(METAMORPHO_ADDRESS, params);
@@ -96,7 +97,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         vm.expectCall(address(ark), abi.encodeWithSelector(IArk.poke.selector));
 
         // Act
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -115,10 +116,6 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             assetsAfterAccrual >= assetsAfterDeposit,
             "Assets should not decrease after accrual"
         );
-
-        // Check rate
-        uint256 currentRate = ark.rate();
-        assertTrue(currentRate > 0, "Rate should be greater than zero");
     }
 
     function test_Disembark_MetaMorphoArk_fork() public {
@@ -148,7 +145,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
         // Expect the poke call to Ark
         vm.expectCall(address(ark), abi.encodeWithSelector(IArk.poke.selector));
 
-        ark.disembark(amountToWithdraw);
+        ark.disembark(amountToWithdraw, bytes(""));
 
         uint256 finalBalance = asset.balanceOf(commander);
         assertEq(
@@ -245,7 +242,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
             token: address(asset),
             depositCap: 1000,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         // Act

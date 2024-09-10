@@ -1,9 +1,9 @@
 import axios from 'axios'
+import { exec } from 'child_process'
 import { ethers, JsonRpcProvider } from 'ethers'
 import { IAccountGuardAbi, IAccountImplementationAbi } from './abis'
-import { NetworkName, tokenAddresses } from './utils'
 import { getTokenDecimals } from './getTokenDecimals'
-import { exec } from 'child_process'
+import { NetworkName, tokenAddresses } from './utils'
 // TODO: use 'viem' instead of Ethers.js
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

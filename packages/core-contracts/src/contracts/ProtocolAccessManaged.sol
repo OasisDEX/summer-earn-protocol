@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
+import {IAccessControlErrors} from "../errors/IAccessControlErrors.sol";
 import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "../errors/AccessControlErrors.sol";
 
 /**
  * @title ProtocolAccessManaged
  * @notice Defines shared modifiers for all managed contracts
  */
-contract ProtocolAccessManaged {
+contract ProtocolAccessManaged is IAccessControlErrors {
     ProtocolAccessManager internal _accessManager;
 
     constructor(address accessManager) {

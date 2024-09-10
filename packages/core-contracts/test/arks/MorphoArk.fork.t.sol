@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import "../../src/events/IArkEvents.sol";
 
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {IMorpho, Id, MarketParams, IMorphoBase} from "morpho-blue/interfaces/IMorpho.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {IMorpho, IMorphoBase, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
 
 contract MorphoArkTestFork is Test, IArkEvents {
     MorphoArk public ark;
@@ -64,7 +64,8 @@ contract MorphoArkTestFork is Test, IArkEvents {
             token: USDC_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
@@ -84,7 +85,8 @@ contract MorphoArkTestFork is Test, IArkEvents {
             token: address(usdc),
             depositCap: 1000,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         // Act & Assert
@@ -136,7 +138,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         emit Boarded(commander, USDC_ADDRESS, amount);
 
         // Act
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -156,13 +158,6 @@ contract MorphoArkTestFork is Test, IArkEvents {
         assertTrue(
             assetsAfterAccrual > assetsAfterDeposit,
             "Assets should increase after accrual"
-        );
-
-        // Check rate
-        uint256 currentRate = ark.rate();
-        assertTrue(
-            currentRate == 46471864329936000000000000,
-            "Rate should be equal to 4.647% at that exact block"
         );
     }
 
@@ -193,7 +188,7 @@ contract MorphoArkTestFork is Test, IArkEvents {
         emit Disembarked(commander, USDC_ADDRESS, amountToWithdraw);
 
         vm.prank(commander);
-        ark.disembark(amountToWithdraw);
+        ark.disembark(amountToWithdraw, bytes(""));
 
         uint256 finalBalance = usdc.balanceOf(commander);
         assertEq(
@@ -208,28 +203,5 @@ contract MorphoArkTestFork is Test, IArkEvents {
             remainingAssets > 1000 * 10 ** 6 - amountToWithdraw,
             "Remaining assets should more than initial balance minus withdrawn amount (accounting the accrued interest)"
         );
-    }
-
-    function test_Rate_Zero_fork() public {
-        // Arrange
-        Market memory market = Market({
-            totalSupplyShares: 0,
-            totalSupplyAssets: 0,
-            totalBorrowShares: 0,
-            totalBorrowAssets: 0,
-            fee: 0,
-            lastUpdate: 0
-        });
-        vm.mockCall(
-            MORPHO_ADDRESS,
-            abi.encodeWithSelector(IMorpho.market.selector, MARKET_ID),
-            abi.encode(market)
-        );
-
-        // Act
-        uint256 rate = ark.rate();
-
-        // Assert
-        assertTrue(rate == 0, "Rate should be zero");
     }
 }

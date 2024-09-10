@@ -8,19 +8,17 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract ArkMock is Ark {
     constructor(ArkParams memory _params) Ark(_params) {}
 
-    function rate() public pure override returns (uint256) {
-        // Mock implementation, returns a fixed rate
-        return 1e24;
-    }
-
     function totalAssets() public view override returns (uint256) {
         // Mock implementation, returns the total token balance of this contract
         return IERC20(config.token).balanceOf(address(this));
     }
 
-    function _board(uint256 amount) internal override {}
+    function _board(uint256 amount, bytes calldata) internal override {}
 
-    function _disembark(uint256 amount) internal override {}
+    function _disembark(
+        uint256 amount,
+        bytes calldata data
+    ) internal override {}
 
     function _harvest(
         address rewardToken,
@@ -30,4 +28,7 @@ contract ArkMock is Ark {
         IERC20(rewardToken).transfer(msg.sender, amount);
         return amount;
     }
+
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

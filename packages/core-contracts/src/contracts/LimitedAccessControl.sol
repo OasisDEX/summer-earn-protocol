@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {IAccessControlErrors} from "../errors/IAccessControlErrors.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import "../errors/AccessControlErrors.sol";
-
 /**
  * @title LimitedAccessControl
  * @dev This contract extends OpenZeppelin's AccessControl, disabling direct role granting and revoking.
  * It's designed to be used as a base contract for more specific access control implementations.
  */
-contract LimitedAccessControl is AccessControl {
+
+contract LimitedAccessControl is AccessControl, IAccessControlErrors {
     /**
      * @dev Overrides the grantRole function from AccessControl to disable direct role granting.
      * @notice This function always reverts with a DirectGrantIsDisabled error.

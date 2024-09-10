@@ -3,12 +3,12 @@ pragma solidity 0.8.26;
 
 import {ITipJar} from "../interfaces/ITipJar.sol";
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Percentage, fromPercentage, toPercentage, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import "../errors/TipJarErrors.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title TipJar

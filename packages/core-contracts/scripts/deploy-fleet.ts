@@ -1,15 +1,15 @@
 import fs from 'fs'
 import hre from 'hardhat'
+import kleur from 'kleur'
 import path from 'path'
+import prompts from 'prompts'
+import { BaseConfig } from '../ignition/config/config-types'
 import FleetModule, { FleetContracts } from '../ignition/modules/fleet'
 import { getConfigByNetwork } from './helpers/config-handler'
-import { BaseConfig } from '../ignition/config/config-types'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
+import { loadFleetDefinition } from './helpers/fleet-definition-handler'
 import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
-import { loadFleetDefinition } from './helpers/fleet-definition-handler'
-import kleur from 'kleur'
-import prompts from 'prompts'
 import { continueDeploymentCheck } from './helpers/prompt-helpers'
 
 /**
@@ -171,7 +171,6 @@ async function deployFleetContracts(
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
-        minimumRateDifference: fleetDefinition.minimumRateDifference,
         bufferArkParams: {
           ...bufferArkParams,
           accessManager: coreContracts.protocolAccessManager,

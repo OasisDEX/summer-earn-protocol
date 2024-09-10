@@ -3,17 +3,17 @@ pragma solidity 0.8.26;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
-import {ArkAccessManaged} from "./ArkAccessManaged.sol";
+import {ArkConfig, ArkParams, IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {IArk, ArkParams, ArkConfig} from "../interfaces/IArk.sol";
-import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../errors/ArkErrors.sol";
+import {Constants} from "../utils/Constants.sol";
+import {ArkAccessManaged} from "./ArkAccessManaged.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @custom:see IArk
  */
-abstract contract Ark is IArk, ArkAccessManaged {
+abstract contract Ark is IArk, ArkAccessManaged, Constants {
     using SafeERC20 for IERC20;
 
     ArkConfig public config;
@@ -43,8 +43,35 @@ abstract contract Ark is IArk, ArkAccessManaged {
             depositCap: _params.depositCap,
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
             maxRebalanceInflow: _params.maxRebalanceInflow,
-            name: _params.name
+            name: _params.name,
+            requiresKeeperData: _params.requiresKeeperData
         });
+    }
+
+    /**
+     * @notice Modifier to validate board data.
+     * @dev This modifier calls `_validateCommonData` and `_validateBoardData` to ensure the data is valid.
+     * In the base Ark contract, we use generic bytes for the data. It is the responsibility of the Ark
+     * implementing contract to override the `_validateBoardData` function to provide specific validation logic.
+     * @param data The data to be validated.
+     */
+    modifier validateBoardData(bytes calldata data) {
+        _validateCommonData(data);
+        _validateBoardData(data);
+        _;
+    }
+
+    /**
+     * @notice Modifier to validate disembark data.
+     * @dev This modifier calls `_validateCommonData` and `_validateDisembarkData` to ensure the data is valid.
+     * In the base Ark contract, we use generic bytes for the data. It is the responsibility of the Ark
+     * implementing contract to override the `_validateDisembarkData` function to provide specific validation logic.
+     * @param data The data to be validated.
+     */
+    modifier validateDisembarkData(bytes calldata data) {
+        _validateCommonData(data);
+        _validateDisembarkData(data);
+        _;
     }
 
     /* EXTERNAL */
@@ -83,6 +110,11 @@ abstract contract Ark is IArk, ArkAccessManaged {
     }
 
     /* @inheritdoc IArk */
+    function requiresKeeperData() external view returns (bool) {
+        return config.requiresKeeperData;
+    }
+
+    /* @inheritdoc IArk */
     function totalAssets() external view virtual returns (uint256) {}
 
     /* @inheritdoc IArk */
@@ -101,30 +133,43 @@ abstract contract Ark is IArk, ArkAccessManaged {
     /* EXTERNAL - COMMANDER */
     /* @inheritdoc IArk */
     function board(
-        uint256 amount
-    ) external onlyAuthorizedToBoard(config.commander) {
+        uint256 amount,
+        bytes calldata boardData
+    )
+        external
+        onlyAuthorizedToBoard(config.commander)
+        validateBoardData(boardData)
+    {
         address msgSender = _msgSender();
         config.token.safeTransferFrom(msgSender, address(this), amount);
-        _board(amount);
+        _board(amount, boardData);
 
         emit Boarded(msgSender, address(config.token), amount);
     }
 
     /* @inheritdoc IArk */
-    function disembark(uint256 amount) external onlyCommander {
+    function disembark(
+        uint256 amount,
+        bytes calldata disembarkData
+    ) external onlyCommander validateDisembarkData(disembarkData) {
         address msgSender = _msgSender();
-        _disembark(amount);
+        _disembark(amount, disembarkData);
         config.token.safeTransfer(msgSender, amount);
 
         emit Disembarked(msgSender, address(config.token), amount);
     }
 
     /* @inheritdoc IArk */
-    function move(uint256 amount, address receiverArk) external onlyCommander {
-        _disembark(amount);
+    function move(
+        uint256 amount,
+        address receiverArk,
+        bytes calldata boardData,
+        bytes calldata disembarkData
+    ) external onlyCommander validateDisembarkData(disembarkData) {
+        _disembark(amount, disembarkData);
 
         config.token.approve(receiverArk, amount);
-        IArk(receiverArk).board(amount);
+        IArk(receiverArk).board(amount, boardData);
 
         emit Moved(address(this), receiverArk, address(config.token), amount);
     }
@@ -164,12 +209,12 @@ abstract contract Ark is IArk, ArkAccessManaged {
      * @dev Overrides the base implementation to prevent removal when assets are present
      */
     function _beforeGrantRoleHook(
-        address newComander
+        address newCommander
     ) internal virtual override(ArkAccessManaged) onlyGovernor {
         if (config.commander != address(0)) {
             revert CannotAddCommanderToArkWithCommander();
         }
-        config.commander = newComander;
+        config.commander = newCommander;
     }
 
     /**
@@ -186,12 +231,68 @@ abstract contract Ark is IArk, ArkAccessManaged {
     }
 
     /* INTERNAL */
-    function _board(uint256 amount) internal virtual;
+    /**
+     * @notice Internal function to handle the boarding (depositing) of assets
+     * @dev This function should be implemented by derived contracts to define specific boarding logic
+     * @param amount The amount of assets to board
+     * @param data Additional data for boarding, interpreted by the specific Ark implementation
+     */
+    function _board(uint256 amount, bytes calldata data) internal virtual;
 
-    function _disembark(uint256 amount) internal virtual;
+    /**
+     * @notice Internal function to handle the disembarking (withdrawing) of assets
+     * @dev This function should be implemented by derived contracts to define specific disembarking logic
+     * @param amount The amount of assets to disembark
+     * @param data Additional data for disembarking, interpreted by the specific Ark implementation
+     */
+    function _disembark(uint256 amount, bytes calldata data) internal virtual;
 
+    /**
+     * @notice Internal function to handle the harvesting of rewards
+     * @dev This function should be implemented by derived contracts to define specific harvesting logic
+     * @param rewardToken The address of the reward token to harvest
+     * @param additionalData Additional data for harvesting, interpreted by the specific Ark implementation
+     * @return The amount of rewards harvested
+     */
     function _harvest(
         address rewardToken,
         bytes calldata additionalData
     ) internal virtual returns (uint256);
+
+    /**
+     * @notice Internal function to validate boarding data
+     * @dev This function should be implemented by derived contracts to define specific boarding data validation
+     * @param data The boarding data to validate
+     */
+    function _validateBoardData(bytes calldata data) internal virtual;
+
+    /**
+     * @notice Internal function to validate disembarking data
+     * @dev This function should be implemented by derived contracts to define specific disembarking data validation
+     * @param data The disembarking data to validate
+     */
+    function _validateDisembarkData(bytes calldata data) internal virtual;
+
+    /**
+     * @notice Internal function to validate the presence or absence of additional data based on withdrawal restrictions
+     * @dev This function checks if the data length is consistent with the Ark's withdrawal restrictions
+     * @param data The data to validate
+     */
+    function _validateCommonData(bytes calldata data) internal view {
+        if (data.length > 0 && config.requiresKeeperData) {
+            revert CannotUseKeeperDataWhenNorRequired();
+        }
+        if (data.length == 0 && !config.requiresKeeperData) {
+            revert KeeperDataRequired();
+        }
+    }
+
+    /**
+     * @notice Internal function to get the balance of the Ark's asset
+     * @dev This function returns the balance of the Ark's token held by this contract
+     * @return The balance of the Ark's asset
+     */
+    function _balanceOfAsset() internal view virtual returns (uint256) {
+        return config.token.balanceOf(address(this));
+    }
 }

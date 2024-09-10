@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {IConfigurationManagerEvents} from "./IConfigurationManagerEvents.sol";
+import {IConfigurationManagerErrors} from "../errors/IConfigurationManagerErrors.sol";
+import {IConfigurationManagerEvents} from "../events/IConfigurationManagerEvents.sol";
 
 /**
  * @title IConfigurationManager
  * @notice Interface for the ConfigurationManager contract, which manages system-wide parameters
  * @dev This interface defines the getters and setters for system-wide parameters
  */
-interface IConfigurationManager is IConfigurationManagerEvents {
+interface IConfigurationManager is
+    IConfigurationManagerEvents,
+    IConfigurationManagerErrors
+{
     /**
      * @notice Get the address of the Raft contract
      * @return The address of the Raft contract

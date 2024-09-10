@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "forge-std/Test.sol";
 import "../src/contracts/SummerToken.sol";
+import "forge-std/Test.sol";
 
 contract SummerTokenTest is Test {
     SummerToken public summerToken;
@@ -18,11 +18,11 @@ contract SummerTokenTest is Test {
     }
 
     function testInitialSupply() public view {
-        assertEq(summerToken.totalSupply(), 1_000_000_000 * 10 ** 18);
+        assertEq(summerToken.totalSupply(), 1000000000 * 10 ** 18);
     }
 
     function testOwnerBalance() public view {
-        assertEq(summerToken.balanceOf(owner), 1_000_000_000 * 10 ** 18);
+        assertEq(summerToken.balanceOf(owner), 1000000000 * 10 ** 18);
     }
 
     function testTokenNameAndSymbol() public view {
@@ -36,12 +36,12 @@ contract SummerTokenTest is Test {
         assertEq(summerToken.balanceOf(user1), amount);
         assertEq(
             summerToken.balanceOf(owner),
-            (1_000_000_000 * 10 ** 18) - amount
+            (1000000000 * 10 ** 18) - amount
         );
     }
 
     function testFailTransferInsufficientBalance() public {
-        uint256 amount = 1_000_000_001 * 10 ** 18;
+        uint256 amount = 1000000001 * 10 ** 18;
         summerToken.transfer(user1, amount);
     }
 
@@ -74,7 +74,7 @@ contract SummerTokenTest is Test {
     }
 
     function testFailBurnInsufficientBalance() public {
-        uint256 amount = 1_000_000_001 * 10 ** 18;
+        uint256 amount = 1000000001 * 10 ** 18;
         summerToken.burn(amount);
     }
 
@@ -87,12 +87,9 @@ contract SummerTokenTest is Test {
 
         assertEq(
             summerToken.balanceOf(owner),
-            (1_000_000_000 * 10 ** 18) - amount
+            (1000000000 * 10 ** 18) - amount
         );
-        assertEq(
-            summerToken.totalSupply(),
-            (1_000_000_000 * 10 ** 18) - amount
-        );
+        assertEq(summerToken.totalSupply(), (1000000000 * 10 ** 18) - amount);
         assertEq(summerToken.allowance(owner, user1), 0);
     }
 

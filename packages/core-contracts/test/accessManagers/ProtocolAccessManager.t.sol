@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {CallerIsNotAdmin, CallerIsNotGovernor, CallerIsNotKeeper} from "../../src/errors/AccessControlErrors.sol";
+
+import {Test} from "forge-std/Test.sol";
 
 contract ProtocolAccessManagerTest is Test {
     TestProtocolAccessManager public accessManager;
@@ -106,7 +106,7 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_OnlyAdminModifier() public {
         vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotAdmin.selector, user)
+            abi.encodeWithSignature("CallerIsNotAdmin(address)", user)
         );
         vm.prank(user);
         accessManager.grantAdminRole(user);
@@ -114,7 +114,7 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_OnlyGovernorModifier() public {
         vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotGovernor.selector, user)
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
         );
         vm.prank(user);
         accessManager.grantKeeperRole(user);
@@ -122,7 +122,7 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_OnlyGovernorModifier_Fail() public {
         vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotGovernor.selector, user)
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
         );
         vm.prank(user);
         accessManager.grantKeeperRole(user);
@@ -130,7 +130,7 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_OnlyKeeperModifier_Fail() public {
         vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotKeeper.selector, user)
+            abi.encodeWithSignature("CallerIsNotKeeper(address)", user)
         );
         vm.prank(user);
         accessManager.dummyKeeperFunction();

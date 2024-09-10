@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "forge-std/Test.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {FleetCommanderAlreadyEnlisted, FleetCommanderNotEnlisted} from "../../src/errors/HarborCommandErrors.sol";
-import {CallerIsNotGovernor} from "../../src/errors/AccessControlErrors.sol";
 
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IHarborCommandEvents} from "../../src/events/IHarborCommandEvents.sol";
+import "forge-std/Test.sol";
 
 contract HarborCommandTest is Test {
     HarborCommand public harborCommand;
@@ -74,7 +72,7 @@ contract HarborCommandTest is Test {
     function test_OnlyGovernorCanEnlist() public {
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotGovernor.selector, user)
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
         );
         harborCommand.enlistFleetCommander(fleetCommander1);
     }
@@ -83,8 +81,8 @@ contract HarborCommandTest is Test {
         vm.startPrank(governor);
         harborCommand.enlistFleetCommander(fleetCommander1);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderAlreadyEnlisted.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderAlreadyEnlisted(address)",
                 fleetCommander1
             )
         );
@@ -95,8 +93,8 @@ contract HarborCommandTest is Test {
     function test_CannotDecommissionNonExistentFleetCommander() public {
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                FleetCommanderNotEnlisted.selector,
+            abi.encodeWithSignature(
+                "FleetCommanderNotEnlisted(address)",
                 fleetCommander1
             )
         );
