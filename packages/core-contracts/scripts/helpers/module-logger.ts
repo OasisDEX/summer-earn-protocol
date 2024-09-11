@@ -1,12 +1,12 @@
 import { AaveV3ArkContracts } from '../../ignition/modules/arks/aavev3-ark'
 import { CompoundV3ArkContracts } from '../../ignition/modules/arks/compoundv3-ark'
-import { CoreContracts } from '../../ignition/modules/core'
-import { FleetContracts } from '../../ignition/modules/fleet'
+import { ERC4626ArkContracts } from '../../ignition/modules/arks/erc4626-ark'
 import { MetaMorphoArkContracts } from '../../ignition/modules/arks/metamorpho-ark'
 import { MorphoArkContracts } from '../../ignition/modules/arks/morpho-ark'
-import { ERC4626ArkContracts } from '../../ignition/modules/arks/erc4626-ark'
 import { PendleLPArkContracts } from '../../ignition/modules/arks/pendle-lp-ark'
 import { PendlePTArkContracts } from '../../ignition/modules/arks/pendle-pt-ark'
+import { CoreContracts } from '../../ignition/modules/core'
+import { FleetContracts } from '../../ignition/modules/fleet'
 
 export class ModuleLogger {
   private moduleName: string

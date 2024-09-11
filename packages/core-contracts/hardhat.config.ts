@@ -52,7 +52,7 @@ const config: HardhatUserConfig = {
     base: {
       url: `${process.env.BASE_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
-      chainId: 8453
+      chainId: 8453,
     },
 
     // testnets

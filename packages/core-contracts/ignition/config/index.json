@@ -31,9 +31,9 @@
   },
   "arbitrum": {
     "tokens": {
-    "usdc": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
-    "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-    "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+      "usdc": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+      "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
     },
     "core": {
       "treasury": "0x13371f8Cf79706907a5A18939b77b426636C3BA0",

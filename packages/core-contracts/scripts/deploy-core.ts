@@ -2,16 +2,16 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../ignition/config/config-types'
 import {
-  LibrariesModule,
-  TokenModule,
   AccessModule,
-  TreasuryModule,
-  RaftModule,
-  ConfigModule,
-  CommandModule,
   AdmiralsModule,
+  BuyAndBurnModule,
+  CommandModule,
+  ConfigModule,
   GovernanceModule,
-  BuyAndBurnModule
+  LibrariesModule,
+  RaftModule,
+  TokenModule,
+  TreasuryModule,
 } from '../ignition/modules/core'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -25,6 +25,11 @@ export async function deployCore() {
   return deployedCore
 }
 
+/**
+ * Deploys the core contracts using Hardhat Ignition.
+ * @param {BaseConfig} config - The configuration object for the current network.
+ * @returns {Promise<CoreContracts>} The deployed core contracts.
+ */
 async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
@@ -41,17 +46,22 @@ async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
     return result
   }
 
-
   const token = await deployModule('Token', TokenModule)
   const libraries = await deployModule('Libraries', LibrariesModule)
   const access = await deployModule('Access', AccessModule)
-  const treasury = await deployModule('Treasury', TreasuryModule, { treasury: config.core.treasury })
+  const treasury = await deployModule('Treasury', TreasuryModule, {
+    treasury: config.core.treasury,
+  })
   const raft = await deployModule('Raft', RaftModule)
   const configManager = await deployModule('Config', ConfigModule)
   const command = await deployModule('Command', CommandModule)
-  const admirals = await deployModule('Admirals', AdmiralsModule, { swapProvider: config.core.swapProvider })
+  const admirals = await deployModule('Admirals', AdmiralsModule, {
+    swapProvider: config.core.swapProvider,
+  })
   const governance = await deployModule('Governance', GovernanceModule)
-  const buyAndBurn = await deployModule('BuyAndBurn', BuyAndBurnModule, { treasury: config.core.treasury })
+  const buyAndBurn = await deployModule('BuyAndBurn', BuyAndBurnModule, {
+    treasury: config.core.treasury,
+  })
 
   console.log(kleur.green().bold('All Core Contracts Deployed Successfully!'))
 

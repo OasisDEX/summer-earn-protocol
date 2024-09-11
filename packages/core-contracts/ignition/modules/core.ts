@@ -31,10 +31,10 @@ export const RaftModule = buildModule('RaftModule', (m) => {
     startPrice: 100e18,
     endPrice: 10e18,
     kickerRewardPercentage: 0,
-    decayType: "Exponential"
+    decayType: 'Exponential',
   }
   const raft = m.contract('Raft', [protocolAccessManager, raftAuctionDefaultParams], {
-    libraries: { 'DutchAuctionLibrary': dutchAuctionLibrary }
+    libraries: { DutchAuctionLibrary: dutchAuctionLibrary },
   })
   return { raft }
 })
@@ -72,7 +72,7 @@ export const GovernanceModule = buildModule('GovernanceModule', (m) => {
     votingPeriod: 50400,
     proposalThreshold: 10000e18,
     quorumFraction: 4,
-    initialWhitelistGuardian: deployer
+    initialWhitelistGuardian: deployer,
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
   return { summerGovernor }
@@ -88,10 +88,14 @@ export const BuyAndBurnModule = buildModule('BuyAndBurnModule', (m) => {
     startPrice: 100e18,
     endPrice: 10e18,
     kickerRewardPercentage: 0,
-    decayType: "Linear"
+    decayType: 'Linear',
   }
-  const buyAndBurn = m.contract('BuyAndBurn', [summerToken, treasury, protocolAccessManager, auctionDefaultParams], {
-    libraries: { 'DutchAuctionLibrary': dutchAuctionLibrary }
-  })
+  const buyAndBurn = m.contract(
+    'BuyAndBurn',
+    [summerToken, treasury, protocolAccessManager, auctionDefaultParams],
+    {
+      libraries: { DutchAuctionLibrary: dutchAuctionLibrary },
+    },
+  )
   return { buyAndBurn }
 })
