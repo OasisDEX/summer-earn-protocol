@@ -122,12 +122,31 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * @dev Tests the initial setup of the governor.
      * Verifies that the governor's parameters are set correctly.
      */
-    function test_InitialSetup() public view {
+    function test_InitialSetup() public {
+        SummerGovernor.GovernorParams memory params = SummerGovernor
+            .GovernorParams({
+                token: IVotes(address(token)),
+                timelock: timelock,
+                votingDelay: VOTING_DELAY,
+                votingPeriod: VOTING_PERIOD,
+                proposalThreshold: PROPOSAL_THRESHOLD,
+                quorumFraction: QUORUM_FRACTION,
+                initialWhitelistGuardian: address(0)
+            });
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "SummerGovernorInvalidWhitelistGuardian(address)",
+                address(0)
+            )
+        );
+        new SummerGovernor(params);
+        params.initialWhitelistGuardian = whitelistGuardian;
         assertEq(governor.name(), "SummerGovernor");
         assertEq(governor.votingDelay(), VOTING_DELAY);
         assertEq(governor.votingPeriod(), VOTING_PERIOD);
         assertEq(governor.proposalThreshold(), PROPOSAL_THRESHOLD);
         assertEq(governor.quorumNumerator(), QUORUM_FRACTION);
+        assertEq(governor.getWhitelistGuardian(), whitelistGuardian);
     }
 
     /*
@@ -349,6 +368,23 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         vm.stopPrank();
 
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "SummerGovernorUnauthorizedCancellation(address,address,uint256,uint256)",
+                bob,
+                alice,
+                1000000000000000000000000,
+                governor.proposalThreshold()
+            )
+        );
+        vm.prank(bob);
+        governor.cancel(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
         vm.startPrank(whitelistGuardian);
         governor.cancel(
             targets,
@@ -365,6 +401,92 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         vm.stopPrank();
     }
 
+    /*
+     * @dev Tests that a proposal creation fails when the proposer is below threshold and not whitelisted.
+     */
+    function test_ProposalCreationBelowThresholdAndNotWhitelisted() public {
+        // Ensure Charlie has some tokens, but below the proposal threshold
+        uint256 belowThreshold = governor.proposalThreshold() - 1;
+        deal(address(token), charlie, belowThreshold);
+
+        vm.startPrank(charlie);
+        token.delegate(charlie);
+        vm.roll(block.number + 1); // Move to next block to activate voting power
+
+        // Attempt to create a proposal
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description
+        ) = createProposalParams();
+
+        // Expect the transaction to revert with SummerGovernorProposerBelowThresholdAndNotWhitelisted error
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SummerGovernorProposerBelowThresholdAndNotWhitelisted.selector,
+                charlie,
+                belowThreshold,
+                governor.proposalThreshold()
+            )
+        );
+        governor.propose(targets, values, calldatas, description);
+
+        vm.stopPrank();
+    }
+    /*
+     * @dev Tests the proposalNeedsQueuing function.
+     */
+    function test_ProposalNeedsQueuing() public {
+        deal(address(token), alice, governor.proposalThreshold());
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+
+        // Move to voting period
+        vm.warp(block.timestamp + governor.votingDelay() + 1);
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        // Cast votes
+        vm.prank(alice);
+        governor.castVote(proposalId, 1);
+
+        // Move to end of voting period
+        vm.warp(block.timestamp + governor.votingPeriod() + 1);
+        vm.roll(block.number + governor.votingPeriod() + 1);
+
+        // Check if the proposal needs queuing
+        bool needsQueuing = governor.proposalNeedsQueuing(proposalId);
+
+        // Since we're using a TimelockController, the proposal should need queuing
+        assertTrue(needsQueuing, "Proposal should need queuing");
+    }
+
+    /*
+     * @dev Tests the CLOCK_MODE function.
+     */
+    function test_ClockMode() public view {
+        string memory clockMode = governor.CLOCK_MODE();
+        assertEq(
+            clockMode,
+            "mode=blocknumber&from=default",
+            "Incorrect CLOCK_MODE"
+        );
+    }
+
+    /*
+     * @dev Tests the clock function.
+     */
+    function test_Clock() public view {
+        uint256 currentBlock = block.number;
+        uint48 clockValue = governor.clock();
+        assertEq(
+            uint256(clockValue),
+            currentBlock,
+            "Clock value should match current block number"
+        );
+    }
     /*
      * @dev Tests the supportsInterface function of the governor.
      * Verifies correct interface support.

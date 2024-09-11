@@ -76,13 +76,7 @@ contract SummerGovernor is
         }
 
         // Initialize the whitelistGuardian with the provided address
-        if (params.initialWhitelistGuardian == address(0)) {
-            revert ISummerGovernorErrors.SummerGovernorInvalidWhitelistGuardian(
-                params.initialWhitelistGuardian
-            );
-        }
-        config.whitelistGuardian = params.initialWhitelistGuardian;
-        emit WhitelistGuardianSet(params.initialWhitelistGuardian);
+        _setWhitelistGuardian(params.initialWhitelistGuardian);
     }
 
     /**
@@ -186,13 +180,7 @@ contract SummerGovernor is
     function setWhitelistGuardian(
         address _whitelistGuardian
     ) external override onlyGovernance {
-        if (_whitelistGuardian == address(0)) {
-            revert ISummerGovernorErrors.SummerGovernorInvalidWhitelistGuardian(
-                _whitelistGuardian
-            );
-        }
-        config.whitelistGuardian = _whitelistGuardian;
-        emit WhitelistGuardianSet(_whitelistGuardian);
+        _setWhitelistGuardian(_whitelistGuardian);
     }
 
     // ===============================================
@@ -436,5 +424,15 @@ contract SummerGovernor is
         returns (uint256)
     {
         return super.votingPeriod();
+    }
+
+    function _setWhitelistGuardian(address _whitelistGuardian) internal {
+        if (_whitelistGuardian == address(0)) {
+            revert ISummerGovernorErrors.SummerGovernorInvalidWhitelistGuardian(
+                _whitelistGuardian
+            );
+        }
+        config.whitelistGuardian = _whitelistGuardian;
+        emit WhitelistGuardianSet(_whitelistGuardian);
     }
 }
