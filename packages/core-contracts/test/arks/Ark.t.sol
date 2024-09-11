@@ -8,6 +8,7 @@ import {AaveV3Ark, ArkParams} from "../../src/contracts/arks/AaveV3Ark.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
+import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
@@ -16,9 +17,11 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
+import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 
 contract ArkTest is Test, IArkEvents, ArkTestHelpers {
     ArkMock public ark;
+    RestictedWithdrawalArkMock public unrestrictedArk;
     ArkMock public otherArk;
     address public governor = address(1);
     address public commander = address(4);
@@ -47,11 +50,15 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new ArkMock(params);
         otherArk = new ArkMock(params);
+
+        params.requiresKeeperData = false;
+        unrestrictedArk = new RestictedWithdrawalArkMock(params);
     }
 
     function test_Constructor() public {
@@ -62,7 +69,8 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             token: address(0),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         vm.expectRevert(
@@ -202,7 +210,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         mockToken.approve(address(ark), amount);
         vm.expectEmit();
         emit Boarded(commander, address(mockToken), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         assertEq(
@@ -223,7 +231,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.mockCall(
             commander,
             abi.encodeWithSelector(
-                IFleetCommander.isArkActive.selector,
+                IFleetCommanderConfigProvider.isArkActive.selector,
                 address(otherArk)
             ),
             abi.encode(true)
@@ -234,7 +242,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         mockToken.approve(address(ark), amount);
         vm.expectEmit();
         emit Boarded(address(otherArk), address(mockToken), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -257,7 +265,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.mockCall(
             commander,
             abi.encodeWithSelector(
-                IFleetCommander.isArkActive.selector,
+                IFleetCommanderConfigProvider.isArkActive.selector,
                 nonArk
             ),
             abi.encode(false)
@@ -271,7 +279,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
                 nonArk
             )
         );
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
     }
 
@@ -287,7 +295,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.startPrank(commander);
         vm.expectEmit();
         emit Disembarked(commander, address(mockToken), amount);
-        ark.disembark(amount);
+        ark.disembark(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -313,7 +321,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
                 address(this)
             )
         );
-        ark.disembark(amount);
+        ark.disembark(amount, bytes(""));
     }
 
     function test_Move_ShouldSucceed() public {
@@ -329,7 +337,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.mockCall(
             commander,
             abi.encodeWithSelector(
-                IFleetCommander.isArkActive.selector,
+                IFleetCommanderConfigProvider.isArkActive.selector,
                 address(ark)
             ),
             abi.encode(true)
@@ -338,7 +346,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
         vm.startPrank(commander);
         vm.expectEmit();
         emit Moved(address(ark), address(otherArk), address(mockToken), amount);
-        ark.move(amount, address(otherArk));
+        ark.move(amount, address(otherArk), bytes(""), bytes(""));
         vm.stopPrank();
         // Assert
 
@@ -364,6 +372,28 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
                 address(this)
             )
         );
-        ark.move(amount, address(otherArk));
+        ark.move(amount, address(otherArk), bytes(""), bytes(""));
+    }
+
+    function test_validateCommonData() public {
+        // Arrange
+        vm.startPrank(governor);
+        ark.grantCommanderRole(commander);
+        unrestrictedArk.grantCommanderRole(commander);
+        vm.stopPrank();
+
+        uint256 amount = 1000;
+        mockToken.mint(address(ark), amount);
+
+        // Act && Assert
+        vm.expectRevert(
+            abi.encodeWithSignature("CannotUseKeeperDataWhenNorRequired()")
+        );
+        vm.prank(commander);
+        ark.board(0, bytes("abcd"));
+
+        vm.expectRevert(abi.encodeWithSignature("KeeperDataRequired()"));
+        vm.prank(commander);
+        unrestrictedArk.board(0, bytes(""));
     }
 }

@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {IPendleBaseArk} from "../../interfaces/arks/IPendleBaseArk.sol";
 import "../Ark.sol";
-import {IStandardizedYield} from "@pendle/core-v2/contracts/interfaces/IStandardizedYield.sol";
-import {IPPrincipalToken} from "@pendle/core-v2/contracts/interfaces/IPPrincipalToken.sol";
-import {IPYieldToken} from "@pendle/core-v2/contracts/interfaces/IPYieldToken.sol";
+import {LimitOrderData, TokenInput, TokenOutput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
+import {IPPrincipalToken} from "@pendle/core-v2/contracts/interfaces/IPPrincipalToken.sol";
+import {IPYieldToken} from "@pendle/core-v2/contracts/interfaces/IPYieldToken.sol";
+import {IStandardizedYield} from "@pendle/core-v2/contracts/interfaces/IStandardizedYield.sol";
+
 import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOracle.sol";
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
-import {LimitOrderData, TokenOutput, TokenInput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
-import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {MarketExpired, InvalidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../errors/arks/PendleArkErrors.sol";
-import {IPendleArkEvents} from "../../events/arks/IPendleArkEvents.sol";
+import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title BasePendleArk
  * @notice Base contract for Pendle-based Ark strategies
  * @dev This contract contains common functionality for Pendle LP and PT Arks
  */
-abstract contract BasePendleArk is Ark, IPendleArkEvents {
+abstract contract BasePendleArk is Ark, IPendleBaseArk {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
@@ -130,7 +130,7 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
      * @dev Rolls over to a new market if needed, then deposits tokens for Ark-specific tokens
      * @param amount Amount of assets to deposit
      */
-    function _board(uint256 amount) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         _rolloverIfNeeded();
         _depositTokenForArkToken(amount);
     }
@@ -146,7 +146,7 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
      *
      * The slippage is applied differently in each case to protect the user from unfavorable price movements.
      */
-    function _disembark(uint256 amount) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         _rolloverIfNeeded();
         if (block.timestamp >= marketExpiry) {
             _redeemTokensPostExpiry(amount, amount);
@@ -163,23 +163,20 @@ abstract contract BasePendleArk is Ark, IPendleArkEvents {
 
     /**
      * @notice Harvests rewards from the market
-     * @return totalRewards Amount of rewards harvested
-     * @dev TODO: Modify `RAFT` to support multiple token harvest and harvest without input token address
+     * @return rewardTokens The addresses of the reward tokens
+     * @return rewardAmounts The amounts of the reward tokens
      */
     function _harvest(
-        address,
         bytes calldata
-    ) internal override returns (uint256 totalRewards) {
-        address[] memory rewardTokens = IPMarketV3(market).getRewardTokens();
-        uint256[] memory rewardAmounts = IPMarketV3(market).redeemRewards(
-            address(this)
-        );
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        rewardTokens = IPMarketV3(market).getRewardTokens();
+        rewardAmounts = IPMarketV3(market).redeemRewards(address(this));
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            IERC20(rewardTokens[i]).safeTransfer(
-                config.commander,
-                rewardAmounts[i]
-            );
-            totalRewards += rewardAmounts[i];
+            IERC20(rewardTokens[i]).safeTransfer(config.raft, rewardAmounts[i]);
         }
     }
 

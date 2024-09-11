@@ -27,6 +27,7 @@ fs_permissions = [
   tab_width = 4
   wrap_comments = true
   sort_imports = true
+  contract_new_lines = true
 
 [rpc_endpoints]
 # Testnets

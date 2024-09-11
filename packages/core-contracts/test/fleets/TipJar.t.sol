@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {ITipJarEvents} from "../../src/events/ITipJarEvents.sol";
 import {ITipJar} from "../../src/interfaces/ITipJar.sol";
-import {ITipJarEvents} from "../../src/interfaces/ITipJarEvents.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {TipJar} from "../../src/contracts/TipJar.sol";
 
-import "../../src/errors/AccessControlErrors.sol";
-import "../../src/errors/TipJarErrors.sol";
+import "../../src/errors/IAccessControlErrors.sol";
+import "../../src/errors/ITipJarErrors.sol";
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -378,14 +378,14 @@ contract TipJarTest is Test, ITipJarEvents {
             0
         );
 
-        vm.expectRevert(NoSharesToRedeem.selector);
+        vm.expectRevert(abi.encodeWithSignature("NoSharesToRedeem()"));
         tipJar.shake(address(fleetCommander));
     }
 
     function test_FailShakeWithNoAssets() public {
         fleetCommander.testMint(address(tipJar), 1 ether);
 
-        vm.expectRevert(NoAssetsToDistribute.selector);
+        vm.expectRevert(abi.encodeWithSignature("NoAssetsToDistribute()"));
         tipJar.shake(address(fleetCommander));
     }
 
@@ -394,8 +394,8 @@ contract TipJarTest is Test, ITipJarEvents {
 
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                TipStreamDoesNotExist.selector,
+            abi.encodeWithSignature(
+                "TipStreamDoesNotExist(address)",
                 nonexistentRecipient
             )
         );
@@ -404,12 +404,14 @@ contract TipJarTest is Test, ITipJarEvents {
 
     function test_FailSetInvalidTreasuryAddress() public {
         vm.prank(governor);
-        vm.expectRevert(InvalidTreasuryAddress.selector);
+        vm.expectRevert(abi.encodeWithSignature("InvalidTreasuryAddress()"));
         tipJar.setTreasuryAddress(address(0));
     }
 
     function test_FailShakeInvalidFleetCommanderAddress() public {
-        vm.expectRevert(InvalidFleetCommanderAddress.selector);
+        vm.expectRevert(
+            abi.encodeWithSignature("InvalidFleetCommanderAddress()")
+        );
         tipJar.shake(address(0));
     }
 
@@ -418,8 +420,8 @@ contract TipJarTest is Test, ITipJarEvents {
 
         // Test with zero allocation
         vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidTipStreamAllocation.selector,
+            abi.encodeWithSignature(
+                "InvalidTipStreamAllocation(uint256)",
                 PercentageUtils.fromIntegerPercentage(0)
             )
         );
@@ -431,8 +433,8 @@ contract TipJarTest is Test, ITipJarEvents {
 
         // Test with allocation greater than 100%
         vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidTipStreamAllocation.selector,
+            abi.encodeWithSignature(
+                "InvalidTipStreamAllocation(uint256)",
                 PercentageUtils.fromIntegerPercentage(101)
             )
         );
@@ -488,7 +490,7 @@ contract TipJarTest is Test, ITipJarEvents {
         address notGovernor = address(6);
         vm.prank(notGovernor);
         vm.expectRevert(
-            abi.encodeWithSelector(CallerIsNotGovernor.selector, notGovernor)
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", notGovernor)
         );
         tipJar.addTipStream(
             mockTipStreamRecipient,
@@ -507,8 +509,8 @@ contract TipJarTest is Test, ITipJarEvents {
 
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                TipStreamLocked.selector,
+            abi.encodeWithSignature(
+                "TipStreamLocked(address)",
                 mockTipStreamRecipient
             )
         );
@@ -529,9 +531,7 @@ contract TipJarTest is Test, ITipJarEvents {
             block.timestamp
         );
         vm.expectRevert(
-            abi.encodeWithSelector(
-                TotalAllocationExceedsOneHundredPercent.selector
-            )
+            abi.encodeWithSignature("TotalAllocationExceedsOneHundredPercent()")
         );
         tipJar.addTipStream(
             anotherMockTipStreamParticipant,

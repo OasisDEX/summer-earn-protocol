@@ -48,7 +48,7 @@ contract PendleLPArk is BasePendleArk {
      * @notice Deposits tokens for LP
      * @param _amount Amount of tokens to deposit
      * @dev Checks for market expiry, calculates minimum LP output with slippage, and adds liquidity
-          * 1. Check if the market has expired. If so, revert the transaction.
+     * 1. Check if the market has expired. If so, revert the transaction.
      * 2. Calculate the minimum LP tokens to receive based on the input amount and slippage:
      *    - We use the Pendle LP oracle to get the current LP to asset rate.
      *    - We convert the input amount to LP tokens using this rate.
@@ -59,7 +59,6 @@ contract PendleLPArk is BasePendleArk {
      * Slippage protection ensures we receive at least the calculated minimum LP tokens.
      * This guards against price movements between our calculation and the actual swap execution.
      * The use of a TWAP oracle helps mitigate the risk of short-term price manipulations.
-  
      */
     function _depositTokenForArkToken(uint256 _amount) internal override {
         if (block.timestamp >= marketExpiry) {
@@ -179,4 +178,7 @@ contract PendleLPArk is BasePendleArk {
     function _balanceOfArkTokens() internal view override returns (uint256) {
         return IERC20(market).balanceOf(address(this));
     }
+
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

@@ -27,7 +27,36 @@ contract FleetCommanderTestHelpers is Test {
         data[0] = RebalanceData({
             fromArk: fromArk,
             toArk: toArk,
-            amount: amount
+            amount: amount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
+        });
+        return data;
+    }
+
+    /**
+     * @dev Generates an array of `RebalanceData` structs for rebalancing.
+     * @param fromArk The address of the source Ark.
+     * @param toArk The address of the destination Ark.
+     * @param amount The amount to be rebalanced.
+     * @param boardData Additional data for boarding the Ark.
+     * @param disembarkData Additional data for disembarking the Ark.
+     * @return An array of `RebalanceData` structs containing the rebalance information.
+     */
+    function generateRebalanceData(
+        address fromArk,
+        address toArk,
+        uint256 amount,
+        bytes memory boardData,
+        bytes memory disembarkData
+    ) internal pure returns (RebalanceData[] memory) {
+        RebalanceData[] memory data = new RebalanceData[](1);
+        data[0] = RebalanceData({
+            fromArk: fromArk,
+            toArk: toArk,
+            amount: amount,
+            boardData: boardData,
+            disembarkData: disembarkData
         });
         return data;
     }

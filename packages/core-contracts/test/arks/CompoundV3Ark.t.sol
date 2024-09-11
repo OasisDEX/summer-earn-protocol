@@ -49,7 +49,8 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
@@ -66,7 +67,8 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
         assertEq(address(ark.comet()), address(comet));
@@ -106,7 +108,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.board(amount);
+        ark.board(amount, bytes(""));
     }
 
     function test_Disembark() public {
@@ -139,7 +141,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.disembark(amount);
+        ark.disembark(amount, bytes(""));
     }
 
     function test_Harvest() public {
@@ -181,14 +183,19 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Expect the Harvested event to be emitted
         vm.expectEmit(false, false, false, true);
-        emit Harvested(mockClaimedRewardsBalance);
+        address[] memory rewardTokens = new address[](1);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardTokens[0] = mockRewardToken;
+        rewardAmounts[0] = mockClaimedRewardsBalance;
+
+        emit ArkHarvested(rewardTokens, rewardAmounts);
 
         // Act
-        uint256 harvestedAmount = ark.harvest(mockRewardToken, bytes(""));
+        ark.harvest(abi.encode(address(mockRewardToken)));
 
         // Assert
         assertEq(
-            harvestedAmount,
+            rewardAmounts[0],
             mockClaimedRewardsBalance,
             "Harvested amount should match mocked balance"
         );

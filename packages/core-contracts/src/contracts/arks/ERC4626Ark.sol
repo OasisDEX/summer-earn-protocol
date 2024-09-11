@@ -48,7 +48,7 @@ contract ERC4626Ark is Ark {
      * @notice Internal function to deposit assets into the vault
      * @param amount The amount of assets to deposit
      */
-    function _board(uint256 amount) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         vault.deposit(amount, address(this));
     }
 
@@ -56,24 +56,29 @@ contract ERC4626Ark is Ark {
      * @notice Internal function to withdraw assets from the vault
      * @param amount The amount of assets to withdraw
      */
-    function _disembark(uint256 amount) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         vault.withdraw(amount, address(this), address(this));
     }
 
     /**
      * @notice Internal function for harvesting rewards
      * @dev This function is a no-op for most ERC4626 vaults as they automatically accrue interest
-     * @param rewardToken The address of the reward token (unused in this implementation)
-     * @param additionalData Additional data for harvesting (unused in this implementation)
-     * @return Always returns 0 as there's typically no manual harvesting for ERC4626 vaults
+     * @return rewardTokens The addresses of the reward tokens
+     * @return rewardAmounts The amounts of the reward tokens
      */
     function _harvest(
-        address rewardToken,
-        bytes calldata additionalData
-    ) internal pure override returns (uint256) {
-        // Most ERC4626 vaults automatically accrue interest, so no manual harvesting is needed
-        // However, this function can be overridden in derived contracts if specific harvesting logic is required
-        // todo: how to make it generic enough to allow different reward harvesting strategies?
-        return 0;
+        bytes calldata
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        rewardTokens = new address[](1);
+        rewardAmounts = new uint256[](1);
+        rewardTokens[0] = address(0);
+        rewardAmounts[0] = 0;
     }
+
+    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata data) internal override {}
 }

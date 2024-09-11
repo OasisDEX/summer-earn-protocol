@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../errors/RaftErrors.sol";
 import {IArk} from "../interfaces/IArk.sol";
 import {IRaft} from "../interfaces/IRaft.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
@@ -37,12 +36,13 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     /* @inheritdoc IRaft */
     function harvestAndStartAuction(
         address ark,
-        address rewardToken,
         address paymentToken,
         bytes calldata extraHarvestData
     ) external onlyGovernor {
-        _harvest(ark, rewardToken, extraHarvestData);
-        _startAuction(ark, rewardToken, paymentToken);
+        (address[] memory harvestedTokens, ) = _harvest(ark, extraHarvestData);
+        for (uint256 i = 0; i < harvestedTokens.length; i++) {
+            _startAuction(ark, harvestedTokens[i], paymentToken);
+        }
     }
     /* @inheritdoc IRaft */
 
@@ -55,12 +55,8 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
     /* @inheritdoc IRaft */
 
-    function harvest(
-        address ark,
-        address rewardToken,
-        bytes calldata extraHarvestData
-    ) public {
-        _harvest(ark, rewardToken, extraHarvestData);
+    function harvest(address ark, bytes calldata extraHarvestData) public {
+        _harvest(ark, extraHarvestData);
     }
     /* @inheritdoc IRaft */
 
@@ -123,15 +119,22 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
 
     function _harvest(
         address ark,
-        address rewardToken,
         bytes calldata extraHarvestData
-    ) internal {
-        uint256 harvestedAmount = IArk(ark).harvest(
-            rewardToken,
+    )
+        internal
+        returns (
+            address[] memory harvestedTokens,
+            uint256[] memory harvestedAmounts
+        )
+    {
+        (harvestedTokens, harvestedAmounts) = IArk(ark).harvest(
             extraHarvestData
         );
-        harvestedRewards[ark][rewardToken] += harvestedAmount;
-        emit ArkHarvested(ark, rewardToken);
+        for (uint256 i = 0; i < harvestedTokens.length; i++) {
+            harvestedRewards[ark][harvestedTokens[i]] += harvestedAmounts[i];
+        }
+
+        emit ArkHarvested(ark, harvestedTokens, harvestedAmounts);
     }
 
     function _startAuction(
@@ -188,7 +191,8 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         uint256 balance = paymentTokensToBoard[ark][rewardToken];
         if (balance > 0) {
             paymentToken.approve(ark, balance);
-            IArk(ark).board(balance);
+            // TODO - pass boardData if required
+            IArk(ark).board(balance, bytes(""));
 
             emit RewardBoarded(
                 ark,

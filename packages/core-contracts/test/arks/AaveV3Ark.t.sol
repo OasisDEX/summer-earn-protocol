@@ -58,7 +58,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined
@@ -117,7 +118,8 @@ contract AaveV3ArkTest is Test, IArkEvents {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined
@@ -204,7 +206,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.board(amount);
+        ark.board(amount, bytes(""));
     }
 
     function test_Disembark() public {
@@ -239,7 +241,7 @@ contract AaveV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.disembark(amount);
+        ark.disembark(amount, bytes(""));
     }
 
     function test_Harvest() public {
@@ -294,9 +296,14 @@ contract AaveV3ArkTest is Test, IArkEvents {
         );
 
         vm.expectEmit(false, false, false, true);
-        emit Harvested(mockClaimedRewardsBalance);
+        address[] memory rewardTokens = new address[](1);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardTokens[0] = mockRewardToken;
+        rewardAmounts[0] = mockClaimedRewardsBalance;
+
+        emit ArkHarvested(rewardTokens, rewardAmounts);
 
         // Act
-        ark.harvest(mockRewardToken, bytes(""));
+        ark.harvest(abi.encode(address(mockRewardToken)));
     }
 }

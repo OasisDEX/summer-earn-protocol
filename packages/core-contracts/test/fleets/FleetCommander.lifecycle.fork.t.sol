@@ -159,7 +159,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             token: USDC_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ArkParams memory daiArkParams = ArkParams({
@@ -169,7 +170,8 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             token: DAI_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         // USDC Arks
@@ -417,8 +419,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 userAssets = fleet.previewRedeem(userShares);
         console.log("User shares:", userShares);
         console.log("User assets:", userAssets);
+        uint256 gas = gasleft();
         fleet.withdrawFromArks(userAssets, user, user);
-
+        console.log("Gas used for withdraw:", gas - gasleft());
         assertEq(fleet.balanceOf(user), 0, "User balance should be 0");
         assertGe(
             token.balanceOf(user),
@@ -440,7 +443,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             rebalanceData[i] = RebalanceData({
                 fromArk: address(bufferArk),
                 toArk: arks[i],
-                amount: amountPerArk
+                amount: amountPerArk,
+                boardData: bytes(""),
+                disembarkData: bytes("")
             });
         }
 
@@ -599,7 +604,9 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             rebalanceData[i - 1] = RebalanceData({
                 fromArk: arks[i],
                 toArk: arks[0],
-                amount: type(uint256).max
+                amount: type(uint256).max,
+                boardData: bytes(""),
+                disembarkData: bytes("")
             });
         }
 

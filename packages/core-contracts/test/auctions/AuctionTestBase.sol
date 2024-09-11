@@ -5,6 +5,7 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/types/CommonAuctionTypes.sol";
 
+import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -64,5 +65,28 @@ contract AuctionTestBase is Test {
 
     function mintTokens(address token, address to, uint256 amount) internal {
         deal(token, to, amount);
+    }
+
+    function _getEncodedRewardData(
+        address[] memory rewardTokens,
+        uint256[] memory rewardAmounts
+    ) internal pure returns (bytes memory) {
+        ArkMock.RewardData memory rewardsData = ArkMock.RewardData({
+            rewardTokens: rewardTokens,
+            rewardAmounts: rewardAmounts
+        });
+        return abi.encode(rewardsData);
+    }
+
+    function _getEncodedRewardDataSingleToken(
+        address rewardToken,
+        uint256 rewardAmount
+    ) internal pure returns (bytes memory) {
+        address[] memory rewardTokens = new address[](1);
+        rewardTokens[0] = rewardToken;
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardAmounts[0] = rewardAmount;
+
+        return _getEncodedRewardData(rewardTokens, rewardAmounts);
     }
 }

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {IArkErrors} from "../errors/IArkErrors.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 
-import "../events/IArkEvents.sol";
+import {IArkEvents} from "../events/IArkEvents.sol";
 import "../types/ArkTypes.sol";
 
 /**
@@ -11,7 +12,7 @@ import "../types/ArkTypes.sol";
  * @notice Interface for the Ark contract, which manages funds and interacts with Rafts
  * @dev Inherits from IArkAccessManaged for access control and IArkEvents for event definitions
  */
-interface IArk is IArkAccessManaged, IArkEvents {
+interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
     /* FUNCTIONS - PUBLIC */
 
     /**
@@ -44,6 +45,8 @@ interface IArk is IArkAccessManaged, IArkEvents {
      */
     function maxRebalanceOutflow() external view returns (uint256);
 
+    function requiresKeeperData() external view returns (bool);
+
     /**
      * @notice Returns the ERC20 token managed by this Ark
      * @return The IERC20 interface of the managed token
@@ -69,35 +72,45 @@ interface IArk is IArkAccessManaged, IArkEvents {
 
     /**
      * @notice Triggers a harvest operation to collect rewards
-     * @param rewardToken The reward token address
      * @param additionalData Optional bytes that might be required by a specific protocol to harvest
-     * @return The number of reward tokens harvested
+     * @return rewardTokens The reward token addresses
+     * @return rewardAmounts The reward amounts
      */
     function harvest(
-        address rewardToken,
         bytes calldata additionalData
-    ) external returns (uint256);
+    )
+        external
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts);
 
     /* FUNCTIONS - EXTERNAL - COMMANDER */
 
     /**
      * @notice Deposits (boards) tokens into the Ark
      * @param amount The amount of tokens to deposit
+     * @param boardData Additional data that might be required by a specific protocol to deposit funds
      */
-    function board(uint256 amount) external;
+    function board(uint256 amount, bytes calldata boardData) external;
 
     /**
      * @notice Withdraws (disembarks) tokens from the Ark
      * @param amount The amount of tokens to withdraw
+     * @param disembarkData Additional data that might be required by a specific protocol to withdraw funds
      */
-    function disembark(uint256 amount) external;
+    function disembark(uint256 amount, bytes calldata disembarkData) external;
 
     /**
      * @notice Moves tokens from one ark to another
      * @param amount  The amount of tokens to move
      * @param receiver The address of the Ark the funds will be boarded to
+     * @param boardData Additional data that might be required by a specific protocol to board funds
+     * @param disembarkData Additional data that might be required by a specific protocol to disembark funds
      */
-    function move(uint256 amount, address receiver) external;
+    function move(
+        uint256 amount,
+        address receiver,
+        bytes calldata boardData,
+        bytes calldata disembarkData
+    ) external;
 
     /**
      * @notice Sets a new maximum allocation for the Ark

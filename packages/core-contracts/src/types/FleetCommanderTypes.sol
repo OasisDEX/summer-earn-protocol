@@ -55,9 +55,14 @@ struct FleetConfig {
  * @param fromArk The address of the Ark from which assets are moved
  * @param toArk The address of the Ark to which assets are moved
  * @param amount The amount of assets being moved
+ * @param boardData The data to be passed to the `board` function of the `toArk`
+ * @param disembarkData The data to be passed to the `disembark` function of the `fromArk`
+ * @dev if the `boardData` or `disembarkData` is not needed, it should be an empty byte array
  */
 struct RebalanceData {
     address fromArk;
     address toArk;
     uint256 amount;
+    bytes boardData;
+    bytes disembarkData;
 }

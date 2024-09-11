@@ -55,7 +55,8 @@ contract CompoundV3ArkTest is Test, IArkEvents {
             token: address(usdc),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
@@ -89,7 +90,7 @@ contract CompoundV3ArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         uint256 assetsAfterDeposit = ark.totalAssets();
         vm.warp(block.timestamp + 10000);

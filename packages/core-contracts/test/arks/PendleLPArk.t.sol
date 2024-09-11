@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {Test, console} from "forge-std/Test.sol";
 import "../../src/contracts/arks/PendleLPArk.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-import "../../src/events/IArkEvents.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import "../../src/events/IArkEvents.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
+
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
-import {Percentage, PercentageUtils, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {OracleNotReady, InvalidNextMarket, OracleDurationTooLow, SlippagePercentageTooHigh, InvalidAssetForSY} from "../../src/errors/arks/PendleArkErrors.sol";
+import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
+import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract PendleLPArkTestFork is Test, IArkEvents {
     PendleLPArk public ark;
@@ -67,7 +68,8 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             token: USDE,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new PendleLPArk(MARKET, ORACLE, ROUTER, params);
@@ -110,7 +112,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         emit Boarded(commander, USDE, amount);
 
         // Act
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -143,13 +145,13 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.warp(block.timestamp + 1 days);
         // Act
         uint256 initialBalance = usde.balanceOf(commander);
         uint256 amountToWithdraw = ark.totalAssets();
-        ark.disembark(amountToWithdraw);
+        ark.disembark(amountToWithdraw, bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -175,7 +177,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Simulate some time passing
@@ -185,18 +187,20 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         uint256 totalAssetsBefore = ark.totalAssets();
 
         vm.prank(raft);
-        uint256 harvestedAmount = ark.harvest(PENDLE, "");
+        (address[] memory rewardTokens, uint256[] memory rewardAmounts) = ark
+            .harvest("");
 
         uint256 totalAssetsAfter = ark.totalAssets();
 
         // Assert
-        assertTrue(harvestedAmount > 0, "Should have harvested some rewards");
+        assertTrue(rewardAmounts[0] > 0, "Should have harvested some rewards");
         assertEq(
             totalAssetsAfter,
             totalAssetsBefore,
             "Total assets should not change significantly"
         );
     }
+
     function test_DepositToExpiredMarket_PendleLPArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
@@ -204,7 +208,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         vm.rollFork(MARKET_EXPIRY_BLOCK);
@@ -215,10 +219,11 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         deal(USDE, commander, 10 * amount);
         usde.approve(address(ark), amount);
         vm.expectRevert(abi.encodeWithSignature("MarketExpired()"));
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.stopPrank();
     }
+
     function test_WithdrawFromExpiredMarket_PendleLPArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
@@ -226,14 +231,14 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         vm.rollFork(MARKET_EXPIRY_BLOCK);
 
         // Act
         vm.startPrank(commander);
-        ark.disembark(ark.totalAssets());
+        ark.disembark(ark.totalAssets(), bytes(""));
         vm.stopPrank();
 
         // Assert
@@ -253,7 +258,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         vm.rollFork(block.number + 120000);
@@ -263,7 +268,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         deal(USDE, commander, 10 * amount);
         usde.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         vm.stopPrank();
 
@@ -284,8 +289,8 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         ark.setSlippagePercentage(PercentageUtils.fromFraction(1, 1000)); // Set slippage to 0.1%
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                SlippagePercentageTooHigh.selector,
+            abi.encodeWithSignature(
+                "SlippagePercentageTooHigh(uint256,uint256)",
                 PercentageUtils.fromFraction(101, 100),
                 PERCENTAGE_100
             )
@@ -296,13 +301,13 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         vm.startPrank(commander);
         usde.approve(address(ark), amount);
         // Act & Assert
-        ark.board(amount); // This should succeed with 0.1% slippage
+        ark.board(amount, bytes("")); // This should succeed with 0.1% slippage
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotGovernor(address)", commander)
         );
         ark.setSlippagePercentage(PercentageUtils.fromFraction(1, 10000)); // Set slippage to 0.01%
         IERC20(usde).approve(address(ark), amount);
-        ark.board(amount); // This should fail due to tight slippage
+        ark.board(amount, bytes("")); // This should fail due to tight slippage
 
         vm.stopPrank();
     }
@@ -313,10 +318,9 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         // Act & Assert
         ark.setOracleDuration(1800); // This should succeed (30 minutes)
-
         vm.expectRevert(
-            abi.encodeWithSelector(
-                OracleDurationTooLow.selector,
+            abi.encodeWithSignature(
+                "OracleDurationTooLow(uint32,uint256)",
                 10 minutes,
                 15 minutes
             )
@@ -347,12 +351,14 @@ contract PendleLPArkTestFork is Test, IArkEvents {
             token: invalidAsset,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
-        vm.expectRevert(InvalidAssetForSY.selector);
+        vm.expectRevert(abi.encodeWithSignature("InvalidAssetForSY()"));
         new PendleLPArk(MARKET, ORACLE, ROUTER, params);
     }
+
     function test_RevertWhenNoValidNextMarket() public {
         // Setup: Board some assets first
         uint256 amount = 1000 * 10 ** 18;
@@ -360,7 +366,7 @@ contract PendleLPArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usde.approve(address(ark), 2 * amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         // Fast forward time past market expiry
@@ -374,8 +380,8 @@ contract PendleLPArkTestFork is Test, IArkEvents {
         );
 
         // Attempt to trigger rollover
-        vm.expectRevert(abi.encodeWithSelector(InvalidNextMarket.selector));
+        vm.expectRevert(abi.encodeWithSignature("InvalidNextMarket()"));
         vm.prank(commander);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
     }
 }

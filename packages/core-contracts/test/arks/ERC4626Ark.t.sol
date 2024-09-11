@@ -58,7 +58,8 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
             token: USDC_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new ERC4626Ark(VAULT_ADDRESS, params);
@@ -112,7 +113,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
         vm.expectEmit(true, true, true, true);
         emit Boarded(commander, USDC_ADDRESS, amount);
 
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         uint256 finalVaultBalance = vault.balanceOf(address(ark));
@@ -129,7 +130,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usdc.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         uint256 initialUSDCBalance = usdc.balanceOf(commander);
         uint256 amountToDisembark = IERC4626(VAULT_ADDRESS).maxWithdraw(
@@ -139,7 +140,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
         vm.expectEmit();
         emit Disembarked(commander, USDC_ADDRESS, amountToDisembark);
 
-        ark.disembark(amountToDisembark);
+        ark.disembark(amountToDisembark, bytes(""));
         vm.stopPrank();
 
         uint256 finalUSDCBalance = usdc.balanceOf(commander);
@@ -156,7 +157,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usdc.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         uint256 totalAssets = ark.totalAssets();
@@ -174,14 +175,15 @@ contract ERC4626ArkTestFork is Test, IArkEvents {
 
         vm.startPrank(commander);
         usdc.approve(address(ark), amount);
-        ark.board(amount);
+        ark.board(amount, bytes(""));
         vm.stopPrank();
 
         vm.warp(block.timestamp + 365 days); // Fast forward 1 year
 
-        uint256 harvestedAmount = ark.harvest(address(0), "");
+        (address[] memory rewardTokens, uint256[] memory rewardAmounts) = ark
+            .harvest("");
         assertEq(
-            harvestedAmount,
+            rewardAmounts[0],
             0,
             "Harvested amount should be 0 for auto-compounding vaults"
         );

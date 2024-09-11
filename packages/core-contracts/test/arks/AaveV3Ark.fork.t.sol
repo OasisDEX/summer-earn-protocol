@@ -60,7 +60,8 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
             token: address(dai),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
 
         ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
@@ -106,7 +107,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.board(amount);
+        ark.board(amount, bytes(""));
 
         uint256 assetsAfterDeposit = ark.totalAssets();
         vm.warp(block.timestamp + 10000);

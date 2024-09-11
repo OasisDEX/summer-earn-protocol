@@ -44,7 +44,8 @@ contract BufferArkTest is Test, IArkEvents {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
         ark = new BufferArk(params);
 
@@ -61,7 +62,8 @@ contract BufferArkTest is Test, IArkEvents {
             token: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max
+            maxRebalanceInflow: type(uint256).max,
+            requiresKeeperData: true
         });
         ark = new BufferArk(params);
         assertEq(address(ark.token()), address(mockToken));
@@ -81,7 +83,7 @@ contract BufferArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.board(amount);
+        ark.board(amount, bytes(""));
     }
 
     function test_Disembark() public {
@@ -95,6 +97,6 @@ contract BufferArkTest is Test, IArkEvents {
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
-        ark.disembark(amount);
+        ark.disembark(amount, bytes(""));
     }
 }

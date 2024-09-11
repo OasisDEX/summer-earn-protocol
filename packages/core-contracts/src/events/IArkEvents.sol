@@ -7,10 +7,14 @@ pragma solidity 0.8.26;
  */
 interface IArkEvents {
     /**
-     * @notice Emitted when a harvest operation is completed
-     * @param amount The amount of tokens harvested
+     * @notice Emitted when rewards are harvested from an Ark
+     * @param rewardTokens The addresses of the harvested reward tokens
+     * @param rewardAmounts The amounts of the harvested reward tokens
      */
-    event Harvested(uint256 amount);
+    event ArkHarvested(
+        address[] indexed rewardTokens,
+        uint256[] indexed rewardAmounts
+    );
 
     /**
      * @notice Emitted when tokens are boarded (deposited) into the Ark
