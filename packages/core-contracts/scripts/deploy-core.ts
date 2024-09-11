@@ -39,7 +39,9 @@ async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
   const deployModule = async (name: string, module: any, params: any = {}) => {
     console.log(kleur.yellow().bold(`Deploying ${name}...`))
     const result = await hre.ignition.deploy(module, {
-      parameters: params,
+      parameters: {
+        [module.id]: params,
+      },
       deploymentId,
     })
     console.log(kleur.green().bold(`${name} deployed successfully!`))
