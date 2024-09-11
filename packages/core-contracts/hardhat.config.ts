@@ -1,7 +1,7 @@
 import { default as dotenv } from 'dotenv'
 import { resolve } from 'path'
 
-dotenv.config({ path: resolve(__dirname, './.env') })
+dotenv.config({ path: resolve(__dirname, '../../.env') })
 
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-ignition-viem'
@@ -15,6 +15,7 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 200,
       },
+      evmVersion: 'cancun',
       viaIR: true,
     },
   },
@@ -46,10 +47,12 @@ const config: HardhatUserConfig = {
     arbitrum: {
       url: `${process.env.ARBITRUM_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 42161,
     },
     base: {
       url: `${process.env.BASE_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 8453
     },
 
     // testnets
