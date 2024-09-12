@@ -122,6 +122,17 @@ async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: stri
       validate: (value) =>
         parseInt(value) > 0 ? true : 'Max rebalance inflow must be greater than 0',
     },
+    {
+      type: 'text',
+      name: 'requiresKeeperData',
+      message: 'Does the ark require additional keeper data to board:',
+      validate: (value) => {
+        if (value.toLowerCase() === 'true' || value.toLowerCase() === 'false') {
+          return true;
+        }
+        return 'Please enter either "true" or "false"';
+      },
+    },
   ])
 }
 
