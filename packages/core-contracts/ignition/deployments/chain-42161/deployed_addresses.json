@@ -11,5 +11,6 @@
   "CoreModule#TipJar": "0x0aB9d0d28628f29c03e97bce756a1815Ca2eCbC3",
   "CoreModule#ConfigurationManager": "0x1c74887678Def106af978c7b52d7B43bA45D6c31",
   "FleetModule#BufferArk": "0x75644CaC8b9C9E4Cee2d5c62920FF2899A6018F8",
-  "FleetModule#FleetCommander": "0x635A923C090dd8bD2F962C2A8365035D7455F483"
+  "FleetModule#FleetCommander": "0x635A923C090dd8bD2F962C2A8365035D7455F483",
+  "AaveV3ArkModule#AaveV3Ark": "0x2927dbfe445E2c2f35e4dD69181f3b91b355Fc15"
 }

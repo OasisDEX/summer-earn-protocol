@@ -51,18 +51,21 @@ async function getUserInput() {
       message: 'Enter the token address:',
     },
     {
-      type: 'number',
+      type: 'text',
       name: 'depositCap',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
       message: 'Enter the deposit cap:',
     },
     {
-      type: 'number',
+      type: 'text',
       name: 'maxRebalanceOutflow',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
       message: 'Enter the max rebalance outflow:',
     },
     {
-      type: 'number',
+      type: 'text',
       name: 'maxRebalanceInflow',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
       message: 'Enter the max rebalance inflow:',
     },
   ])
@@ -95,7 +98,18 @@ async function deployAaveV3ArkContract(
 ): Promise<AaveV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+console.table({
 
+      name: 'AaveV3Ark',
+      accessManager: config.core.protocolAccessManager,
+      configurationManager: config.core.configurationManager,
+      token: userInput.token,
+      depositCap: userInput.depositCap,
+      maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+      maxRebalanceInflow: userInput.maxRebalanceInflow,
+      requiresKeeperData: false,
+ 
+})
   return (await hre.ignition.deploy(AaveV3ArkModule, {
     parameters: {
       AaveV3ArkModule: {
@@ -109,6 +123,7 @@ async function deployAaveV3ArkContract(
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
+          requiresKeeperData: false,
         },
       },
     },
