@@ -98,18 +98,7 @@ async function deployAaveV3ArkContract(
 ): Promise<AaveV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-console.table({
 
-      name: 'AaveV3Ark',
-      accessManager: config.core.protocolAccessManager,
-      configurationManager: config.core.configurationManager,
-      token: userInput.token,
-      depositCap: userInput.depositCap,
-      maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-      maxRebalanceInflow: userInput.maxRebalanceInflow,
-      requiresKeeperData: false,
- 
-})
   return (await hre.ignition.deploy(AaveV3ArkModule, {
     parameters: {
       AaveV3ArkModule: {

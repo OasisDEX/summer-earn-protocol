@@ -56,9 +56,22 @@ async function getUserInput() {
       message: 'Enter the Morpho market ID:',
     },
     {
-      type: 'number',
-      name: 'maxAllocation',
-      message: 'Enter the max allocation:',
+      type: 'text',
+      name: 'depositCap',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      message: 'Enter the deposit cap:',
+    },
+    {
+      type: 'text',
+      name: 'maxRebalanceOutflow',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      message: 'Enter the max rebalance outflow:',
+    },
+    {
+      type: 'text',
+      name: 'maxRebalanceInflow',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      message: 'Enter the max rebalance inflow:',
     },
   ])
 }
@@ -100,7 +113,10 @@ async function deployMorphoArkContract(
           accessManager: config.core.protocolAccessManager,
           configurationManager: config.core.configurationManager,
           token: userInput.token,
-          maxAllocation: userInput.maxAllocation,
+          depositCap: userInput.depositCap,
+          maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+          maxRebalanceInflow: userInput.maxRebalanceInflow,
+          requiresKeeperData: false,
         },
       },
     },
