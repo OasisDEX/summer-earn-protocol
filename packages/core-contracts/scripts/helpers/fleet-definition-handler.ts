@@ -6,7 +6,7 @@ interface FleetDefinition {
   symbol: string
   assetSymbol: string
   arks: string[]
-  initialMinimumFundsBufferBalance: string
+  initialMinimumBufferBalance: string
   initialRebalanceCooldown: string
   depositCap: string
   initialTipRate: string

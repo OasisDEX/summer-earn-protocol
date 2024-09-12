@@ -3,7 +3,7 @@
   "symbol": "FUSDC",
   "assetSymbol": "USDC",
   "arks": [],
-  "initialMinimumFundsBufferBalance": "0",
+  "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "0",
   "depositCap": "0",
   "initialTipRate": "0"

@@ -128,9 +128,9 @@ async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: stri
       message: 'Does the ark require additional keeper data to board:',
       validate: (value) => {
         if (value.toLowerCase() === 'true' || value.toLowerCase() === 'false') {
-          return true;
+          return true
         }
-        return 'Please enter either "true" or "false"';
+        return 'Please enter either "true" or "false"'
       },
     },
   ])
@@ -178,7 +178,7 @@ async function deployFleetContracts(
         fleetSymbol: fleetDefinition.symbol,
         asset,
         initialArks: fleetDefinition.arks,
-        initialMinimumFundsBufferBalance: fleetDefinition.initialMinimumFundsBufferBalance,
+        initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
@@ -188,6 +188,10 @@ async function deployFleetContracts(
           configurationManager: coreContracts.configurationManager,
           token: asset,
         },
+      },
+      CoreModule: {
+        treasury: coreContracts.treasury,
+        swapProvider: coreContracts.swapProvider,
       },
     },
     deploymentId,
