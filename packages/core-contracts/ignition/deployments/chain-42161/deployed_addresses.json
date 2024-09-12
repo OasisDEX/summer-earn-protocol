@@ -1,0 +1,13 @@
+{
+  "CoreModule#AdmiralsQuarters": "0xEd7ac8827A0DCAAc039F122c67664ad9EC0B55Fd",
+  "CoreModule#DutchAuctionLibrary": "0xB3105b9b5B80107Fa6Dae970fd59d5a67A8ef984",
+  "CoreModule#ProtocolAccessManager": "0x86709b404e79CF6fD4b752F4d3aa22C4b3d45a3d",
+  "CoreModule#SummerToken": "0xea0c568De7419FB0A530D3ddA2432D03D8fb39b5",
+  "CoreModule#TimelockController": "0x570C964c7586570AcE62edC4aB05c5c8eE05f325",
+  "CoreModule#BuyAndBurn": "0x937960Efd5a5011F1901D83Bb3C4268c069F7E11",
+  "CoreModule#HarborCommand": "0xC5630Ffd045a83C893A3726c2f58b2B288B7E6F3",
+  "CoreModule#Raft": "0x48221C4D87e4e45A6B346577575Fe4B1206Ef877",
+  "CoreModule#SummerGovernor": "0x83D49b4Bed539C942BEDDCBab58b52CD201b2D04",
+  "CoreModule#TipJar": "0x0aB9d0d28628f29c03e97bce756a1815Ca2eCbC3",
+  "CoreModule#ConfigurationManager": "0x1c74887678Def106af978c7b52d7B43bA45D6c31"
+}
