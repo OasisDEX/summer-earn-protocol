@@ -59,15 +59,21 @@ async function deployFleet() {
  * @returns {Promise<any>} The loaded fleet definition object.
  */
 async function getFleetDefinition() {
+  const fleetsDir = path.resolve(__dirname, 'fleets')
+  const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
+
+  if (fleetFiles.length === 0) {
+    throw new Error('No fleet definition files found in the fleets directory.')
+  }
+
   const response = await prompts({
-    type: 'text',
-    name: 'fleetDefinitionPath',
-    message: 'Enter the definition file name (in /scripts/fleets):',
-    validate: (value) =>
-      fs.existsSync(path.resolve(__dirname, `fleets/${value}`)) ? true : 'File does not exist',
+    type: 'select',
+    name: 'fleetDefinitionFile',
+    message: 'Select the fleet definition file:',
+    choices: fleetFiles.map((file) => ({ title: file, value: file })),
   })
 
-  const fleetDefinitionPath = path.resolve(__dirname, `fleets/${response.fleetDefinitionPath}`)
+  const fleetDefinitionPath = path.resolve(fleetsDir, response.fleetDefinitionFile)
   console.log(kleur.green(`Loading fleet definition from: ${fleetDefinitionPath}`))
 
   return loadFleetDefinition(fleetDefinitionPath)
@@ -106,12 +112,14 @@ async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: stri
       type: 'text',
       name: 'depositCap',
       message: 'Enter the deposit cap for the BufferArk:',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
       validate: (value) => (parseInt(value) > 0 ? true : 'Deposit cap must be greater than 0'),
     },
     {
       type: 'text',
       name: 'maxRebalanceOutflow',
       message: 'Enter the max rebalance outflow for the BufferArk:',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
       validate: (value) =>
         parseInt(value) > 0 ? true : 'Max rebalance outflow must be greater than 0',
     },
@@ -119,6 +127,7 @@ async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: stri
       type: 'text',
       name: 'maxRebalanceInflow',
       message: 'Enter the max rebalance inflow for the BufferArk:',
+      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
       validate: (value) =>
         parseInt(value) > 0 ? true : 'Max rebalance inflow must be greater than 0',
     },
@@ -126,6 +135,7 @@ async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: stri
       type: 'text',
       name: 'requiresKeeperData',
       message: 'Does the ark require additional keeper data to board:',
+      initial: 'false',
       validate: (value) => {
         if (value.toLowerCase() === 'true' || value.toLowerCase() === 'false') {
           return true
