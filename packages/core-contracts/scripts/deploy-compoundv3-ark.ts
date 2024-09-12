@@ -25,7 +25,7 @@ export async function deployCompoundV3Ark() {
 
   console.log(kleur.green().bold('Starting CompoundV3Ark deployment process...'))
 
-  const userInput = await getUserInput()
+  const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -43,24 +43,25 @@ export async function deployCompoundV3Ark() {
 
 /**
  * Prompts the user for CompoundV3Ark deployment parameters.
+ * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput() {
-  return await prompts([
+async function getUserInput(config: BaseConfig) {
+  // Extract Compound V3 pools from the configuration
+  const compoundV3Pools = []
+  for (const pool in config.compoundV3.pools) {
+    compoundV3Pools.push({
+      title: pool.toUpperCase(),
+      value: pool,
+    })
+  }
+
+  const responses = await prompts([
     {
-      type: 'text',
+      type: 'select',
       name: 'compoundV3Pool',
-      message: 'Enter the Compound V3 Pool address:',
-    },
-    {
-      type: 'text',
-      name: 'compoundV3Rewards',
-      message: 'Enter the Compound V3 Rewards address:',
-    },
-    {
-      type: 'text',
-      name: 'token',
-      message: 'Enter the token address:',
+      message: 'Select Compound V3 pools:',
+      choices: compoundV3Pools,
     },
     {
       type: 'text',
@@ -81,6 +82,23 @@ async function getUserInput() {
       message: 'Enter the max rebalance inflow:',
     },
   ])
+
+  // Set the token address based on the selected pool
+  const selectedPool = responses.compoundV3Pool
+  const tokenAddress = config.tokens[selectedPool.toLowerCase()]
+  console.table({
+    ...responses,
+    token: tokenAddress,
+    compoundV3Pool: config.compoundV3.pools[selectedPool].cToken,
+    compoundV3Rewards: config.compoundV3.rewards,
+  })
+  throw new Error('Function not implemented.')
+  return {
+    ...responses,
+    token: tokenAddress,
+    compoundV3Pool: config.compoundV3.pools[selectedPool].cToken,
+    compoundV3Rewards: config.compoundV3.rewards,
+  }
 }
 
 /**
@@ -90,7 +108,7 @@ async function getUserInput() {
  */
 async function confirmDeployment(userInput: any) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Compound V3 Pool: ${userInput.compoundV3Pool}`))
+  console.log(kleur.yellow(`Compound V3 Pools: ${userInput.compoundV3Pools.join(', ')}`))
   console.log(kleur.yellow(`Compound V3 Rewards: ${userInput.compoundV3Rewards}`))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
@@ -116,7 +134,7 @@ async function deployCompoundV3ArkContract(
   return (await hre.ignition.deploy(CompoundV3ArkModule, {
     parameters: {
       CompoundV3ArkModule: {
-        compoundV3Pool: userInput.compoundV3Pool,
+        compoundV3Pools: userInput.compoundV3Pools,
         compoundV3Rewards: userInput.compoundV3Rewards,
         arkParams: {
           name: 'CompoundV3Ark',

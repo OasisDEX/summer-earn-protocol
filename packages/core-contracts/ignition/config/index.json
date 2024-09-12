@@ -2,7 +2,9 @@
   "base": {
     "tokens": {
       "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
+      "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+      "usde": "0x0000000000000000000000000000000000000000",
+      "usdt": "0x0000000000000000000000000000000000000000"
     },
     "core": {
       "treasury": "0xAb1a4Ae0F851700CC42442c588f458B553cB2620",
@@ -27,13 +29,25 @@
       "dai": {
         "marketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
       }
+    },
+    "compoundV3": {
+      "pools": {
+        "usdc": {
+          "cToken": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
+        },
+        "usdt": {
+          "cToken": "0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840"
+        }
+      },
+      "rewards": "0x1B0e765F6224C21223AeA2af16c1C46E38885a40"
     }
   },
   "arbitrum": {
     "tokens": {
       "usdc": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
       "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-      "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+      "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+      "usdt": "0x0000000000000000000000000000000000000000"
     },
     "core": {
       "treasury": "0x13371f8Cf79706907a5A18939b77b426636C3BA0",
@@ -58,6 +72,17 @@
       "dai": {
         "marketId": "0x0000000000000000000000000000000000000000"
       }
+    },
+    "compoundV3": {
+      "pools": {
+        "usdc": {
+          "cToken": "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"
+        },
+        "usdt": {
+          "cToken": "0xd98Be00b5D27fc98112BdE293e487f8D4cA57d07"
+        }
+      },
+      "rewards": "0x88730d254A2f7e6AC8388c3198aFd694bA9f7fae"
     }
   }
 }

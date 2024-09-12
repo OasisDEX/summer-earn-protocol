@@ -2,6 +2,7 @@ export interface BaseConfig {
   tokens: {
     usdc: string
     dai: string
+    usdt: string
   }
   core: {
     treasury: string
@@ -26,6 +27,13 @@ export interface BaseConfig {
     dai: {
       marketId: string
     }
+  }
+  compoundV3: {
+    pools: {
+      usdc: { cToken: string }
+      usdt: { cToken: string }
+    }
+    rewards: string
   }
 }
 
