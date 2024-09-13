@@ -5,6 +5,7 @@ import path from 'path'
 import prompts from 'prompts'
 import { BaseConfig } from '../ignition/config/config-types'
 import FleetModule, { FleetContracts } from '../ignition/modules/fleet'
+import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { loadFleetDefinition } from './helpers/fleet-definition-handler'
@@ -34,7 +35,7 @@ async function deployFleet() {
   const coreContracts: BaseConfig['core'] = config['core']
   const asset = getAssetAddress(fleetDefinition.assetSymbol, config)
 
-  const bufferArkParams = await getBufferArkParams(coreContracts, asset)
+  const bufferArkParams = await getBufferArkParams(coreContracts, asset, fleetDefinition.fleetName)
 
   if (await confirmDeployment(fleetDefinition, bufferArkParams)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -59,15 +60,21 @@ async function deployFleet() {
  * @returns {Promise<any>} The loaded fleet definition object.
  */
 async function getFleetDefinition() {
+  const fleetsDir = path.resolve(__dirname, 'fleets')
+  const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
+
+  if (fleetFiles.length === 0) {
+    throw new Error('No fleet definition files found in the fleets directory.')
+  }
+
   const response = await prompts({
-    type: 'text',
-    name: 'fleetDefinitionPath',
-    message: 'Enter the definition file name (in /scripts/fleets):',
-    validate: (value) =>
-      fs.existsSync(path.resolve(__dirname, `fleets/${value}`)) ? true : 'File does not exist',
+    type: 'select',
+    name: 'fleetDefinitionFile',
+    message: 'Select the fleet definition file:',
+    choices: fleetFiles.map((file) => ({ title: file, value: file })),
   })
 
-  const fleetDefinitionPath = path.resolve(__dirname, `fleets/${response.fleetDefinitionPath}`)
+  const fleetDefinitionPath = path.resolve(fleetsDir, response.fleetDefinitionFile)
   console.log(kleur.green(`Loading fleet definition from: ${fleetDefinitionPath}`))
 
   return loadFleetDefinition(fleetDefinitionPath)
@@ -94,24 +101,30 @@ function getAssetAddress(assetSymbol: string, config: BaseConfig): string {
  * @param {string} asset - The address of the asset.
  * @returns {Promise<any>} An object containing the BufferArk parameters.
  */
-async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: string) {
-  return await prompts([
+async function getBufferArkParams(
+  coreContracts: BaseConfig['core'],
+  asset: string,
+  fleetName: string,
+) {
+  const results = await prompts([
     {
       type: 'text',
       name: 'name',
       message: 'Enter the name for the BufferArk:',
-      initial: 'BufferArk',
+      initial: `BufferArk - ${fleetName}`,
     },
     {
       type: 'text',
       name: 'depositCap',
       message: 'Enter the deposit cap for the BufferArk:',
+      initial: MAX_UINT256_STRING,
       validate: (value) => (parseInt(value) > 0 ? true : 'Deposit cap must be greater than 0'),
     },
     {
       type: 'text',
       name: 'maxRebalanceOutflow',
       message: 'Enter the max rebalance outflow for the BufferArk:',
+      initial: MAX_UINT256_STRING,
       validate: (value) =>
         parseInt(value) > 0 ? true : 'Max rebalance outflow must be greater than 0',
     },
@@ -119,10 +132,12 @@ async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: stri
       type: 'text',
       name: 'maxRebalanceInflow',
       message: 'Enter the max rebalance inflow for the BufferArk:',
+      initial: MAX_UINT256_STRING,
       validate: (value) =>
         parseInt(value) > 0 ? true : 'Max rebalance inflow must be greater than 0',
     },
   ])
+  return { ...results, requiresKeeperData: 'false' }
 }
 
 /**
@@ -167,7 +182,7 @@ async function deployFleetContracts(
         fleetSymbol: fleetDefinition.symbol,
         asset,
         initialArks: fleetDefinition.arks,
-        initialMinimumFundsBufferBalance: fleetDefinition.initialMinimumFundsBufferBalance,
+        initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
@@ -177,6 +192,10 @@ async function deployFleetContracts(
           configurationManager: coreContracts.configurationManager,
           token: asset,
         },
+      },
+      CoreModule: {
+        treasury: coreContracts.treasury,
+        swapProvider: coreContracts.swapProvider,
       },
     },
     deploymentId,

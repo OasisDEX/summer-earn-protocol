@@ -1,5 +1,5 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-
+import { CoreModule } from './core'
 /**
  * FleetModule for deploying a FleetCommander and its associated BufferArk
  *
@@ -11,7 +11,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * @param {string} fleetSymbol - Symbol for the fleet's token
  * @param {string} asset - Address of the asset token managed by the fleet
  * @param {string[]} initialArks - Array of initial Ark addresses
- * @param {string} initialMinimumFundsBufferBalance - Initial minimum balance for the funds buffer
+ * @param {string} initialMinimumBufferBalance - Initial minimum balance for the funds buffer
  * @param {string} initialRebalanceCooldown - Initial cooldown period for rebalancing
  * @param {string} depositCap - Maximum allowed deposit
  * @param {string} initialTipRate - Initial rate for tips
@@ -20,6 +20,11 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * @returns {FleetContracts} An object containing the addresses of the deployed FleetCommander and BufferArk contracts
  */
 export default buildModule('FleetModule', (m) => {
+  // Core module params
+  const treasury = m.getParameter<string>('treasury')
+  const swapProvider = m.getParameter<string>('swapProvider')
+  const core = m.useModule(CoreModule)
+
   // Fleet module params exc. BufferArk
   const configurationManager = m.getParameter<string>('configurationManager')
   const protocolAccessManager = m.getParameter<string>('protocolAccessManager')
@@ -27,9 +32,7 @@ export default buildModule('FleetModule', (m) => {
   const fleetSymbol = m.getParameter<string>('fleetSymbol')
   const asset = m.getParameter<string>('asset')
   const initialArks = m.getParameter<string[]>('initialArks')
-  const initialMinimumFundsBufferBalance = m.getParameter<string>(
-    'initialMinimumFundsBufferBalance',
-  )
+  const initialMinimumBufferBalance = m.getParameter<string>('initialMinimumBufferBalance')
   const initialRebalanceCooldown = m.getParameter<string>('initialRebalanceCooldown')
   const depositCap = m.getParameter<string>('depositCap')
   const initialTipRate = m.getParameter<string>('initialTipRate')
@@ -47,7 +50,7 @@ export default buildModule('FleetModule', (m) => {
       accessManager: protocolAccessManager,
       asset: asset,
       bufferArk: bufferArk,
-      initialMinimumFundsBufferBalance: initialMinimumFundsBufferBalance,
+      initialMinimumBufferBalance: initialMinimumBufferBalance,
       initialRebalanceCooldown: initialRebalanceCooldown,
       depositCap: depositCap,
       initialTipRate: initialTipRate,

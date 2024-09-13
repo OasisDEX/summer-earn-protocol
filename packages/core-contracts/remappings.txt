@@ -1,5 +1,3 @@
-@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
-erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
 forge-std/=lib/forge-std/src/
 morpho-blue/=lib/metamorpho/lib/morpho-blue/src/
 metamorpho/=lib/metamorpho/src/
@@ -8,4 +6,5 @@ metamorpho/=lib/metamorpho/src/
 @summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/
 @summerfi/math-utils/contracts/=node_modules/@summerfi/math-utils/contracts/
 @pendle/core-v2/contracts/=lib/pendle-core-v2-public/contracts/
+@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/

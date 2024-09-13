@@ -1,8 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig } from '../ignition/config/config-types'
-import AaveV3ArkModule, { AaveV3ArkContracts } from '../ignition/modules/aavev3-ark'
+import { BaseConfig, TokenType } from '../ignition/config/config-types'
+import AaveV3ArkModule, { AaveV3ArkContracts } from '../ignition/modules/arks/aavev3-ark'
+import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { getChainId } from './helpers/get-chainid'
@@ -23,7 +24,7 @@ export async function deployAaveV3Ark() {
 
   console.log(kleur.green().bold('Starting AaveV3Ark deployment process...'))
 
-  const userInput = await getUserInput()
+  const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -40,29 +41,43 @@ export async function deployAaveV3Ark() {
 }
 
 /**
- * Prompts the user for AaveV3Ark deployment parameters.
+ * Prompts the user for CompoundV3Ark deployment parameters.
+ * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput() {
+async function getUserInput(config: BaseConfig) {
+  const tokens = []
+  for (const tokenSymbol in config.tokens) {
+    const tokenAddress = config.tokens[tokenSymbol as TokenType]
+    tokens.push({
+      title: tokenSymbol.toUpperCase(),
+      value: tokenAddress,
+    })
+  }
+
   return await prompts([
     {
-      type: 'text',
+      type: 'select',
       name: 'token',
-      message: 'Enter the token address:',
+      message: 'Select token :',
+      choices: tokens,
     },
     {
-      type: 'number',
+      type: 'text',
       name: 'depositCap',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the deposit cap:',
     },
     {
-      type: 'number',
+      type: 'text',
       name: 'maxRebalanceOutflow',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance outflow:',
     },
     {
-      type: 'number',
+      type: 'text',
       name: 'maxRebalanceInflow',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
   ])
@@ -109,6 +124,7 @@ async function deployAaveV3ArkContract(
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
+          requiresKeeperData: false,
         },
       },
     },

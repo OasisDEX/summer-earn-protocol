@@ -6,6 +6,7 @@ import hre from 'hardhat'
  */
 export function getChainId(): number {
   const chainId = hre.network.config.chainId || hre.network.provider.send('eth_chainId')
+
   if (typeof chainId === 'string') {
     return parseInt(chainId, 16)
   }

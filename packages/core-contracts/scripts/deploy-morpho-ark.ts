@@ -1,8 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig } from '../ignition/config/config-types'
-import MorphoArkModule, { MorphoArkContracts } from '../ignition/modules/morpho-ark'
+import { BaseConfig, TokenType } from '../ignition/config/config-types'
+import MorphoArkModule, { MorphoArkContracts } from '../ignition/modules/arks/morpho-ark'
+import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { getChainId } from './helpers/get-chainid'
@@ -23,7 +24,7 @@ export async function deployMorphoArk() {
 
   console.log(kleur.green().bold('Starting MorphoArk deployment process...'))
 
-  const userInput = await getUserInput()
+  const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -41,26 +42,58 @@ export async function deployMorphoArk() {
 
 /**
  * Prompts the user for MorphoArk deployment parameters.
+ * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput() {
-  return await prompts([
+async function getUserInput(config: BaseConfig) {
+  // Extract Morpho markets from the configuration
+  const morphoMarkets = []
+  for (const token in config.morpho.markets) {
+    for (const marketName in config.morpho.markets[token as TokenType]) {
+      const marketId = config.morpho.markets[token as TokenType][marketName]
+      morphoMarkets.push({
+        title: `${token.toUpperCase()} - ${marketName}`,
+        value: { token, marketId },
+      })
+    }
+  }
+
+  const responses = await prompts([
     {
-      type: 'text',
-      name: 'token',
-      message: 'Enter the token address:',
+      type: 'select',
+      name: 'marketSelection',
+      message: 'Select a Morpho market:',
+      choices: morphoMarkets,
     },
     {
       type: 'text',
-      name: 'marketId',
-      message: 'Enter the Morpho market ID:',
+      name: 'depositCap',
+      initial: MAX_UINT256_STRING,
+      message: 'Enter the deposit cap:',
     },
     {
-      type: 'number',
-      name: 'maxAllocation',
-      message: 'Enter the max allocation:',
+      type: 'text',
+      name: 'maxRebalanceOutflow',
+      initial: MAX_UINT256_STRING,
+      message: 'Enter the max rebalance outflow:',
+    },
+    {
+      type: 'text',
+      name: 'maxRebalanceInflow',
+      initial: MAX_UINT256_STRING,
+      message: 'Enter the max rebalance inflow:',
     },
   ])
+
+  // Set the token address based on the selected market
+  const selectedMarket = responses.marketSelection
+  const tokenAddress = config.tokens[selectedMarket.token as TokenType]
+
+  return {
+    ...responses,
+    token: tokenAddress,
+    marketId: selectedMarket.marketId,
+  }
 }
 
 /**
@@ -70,9 +103,11 @@ async function getUserInput() {
  */
 async function confirmDeployment(userInput: any) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Token: ${userInput.token}`))
-  console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
-  console.log(kleur.yellow(`Max Allocation: ${userInput.maxAllocation}`))
+  console.log(kleur.yellow(`Token                  : ${userInput.token}`))
+  console.log(kleur.yellow(`Market ID              : ${userInput.marketId}`))
+  console.log(kleur.yellow(`Deposit Cap            : ${userInput.depositCap}`))
+  console.log(kleur.yellow(`Max Rebalance Outflow  : ${userInput.maxRebalanceOutflow}`))
+  console.log(kleur.yellow(`Max Rebalance Inflow   : ${userInput.maxRebalanceInflow}`))
 
   return await continueDeploymentCheck()
 }
@@ -100,7 +135,10 @@ async function deployMorphoArkContract(
           accessManager: config.core.protocolAccessManager,
           configurationManager: config.core.configurationManager,
           token: userInput.token,
-          maxAllocation: userInput.maxAllocation,
+          depositCap: userInput.depositCap,
+          maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+          maxRebalanceInflow: userInput.maxRebalanceInflow,
+          requiresKeeperData: false,
         },
       },
     },
