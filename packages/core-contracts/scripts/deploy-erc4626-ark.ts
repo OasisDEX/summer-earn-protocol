@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig } from '../ignition/config/config-types'
+import { BaseConfig, Tokens, TokenType } from '../ignition/config/config-types'
 import ERC4626ArkModule, { ERC4626ArkContracts } from '../ignition/modules/arks/erc4626-ark'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -15,7 +15,7 @@ export async function deployERC4626Ark() {
 
   console.log(kleur.green().bold('Starting ERC4626Ark deployment process...'))
 
-  const userInput = await getUserInput()
+  const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -31,17 +31,28 @@ export async function deployERC4626Ark() {
   }
 }
 
-async function getUserInput() {
-  return await prompts([
+async function getUserInput(config: BaseConfig) {
+  // Extract ERC4626 vaults from the configuration
+  const erc4626Vaults = []
+  if (!config.erc4626) {
+    throw new Error('No ERC4626 vaults found in the configuration.')
+  }
+  for (const token in config.erc4626) {
+    for (const vaultName in config.erc4626[token as Tokens]) {
+      const vaultId = config.erc4626[token as TokenType][vaultName]
+      erc4626Vaults.push({
+        title: `${token.toUpperCase()} - ${vaultName}`,
+        value: { token, vaultId },
+      })
+    }
+  }
+
+  const responses = await prompts([
     {
-      type: 'text',
-      name: 'vault',
-      message: 'Enter the ERC4626 vault address:',
-    },
-    {
-      type: 'text',
-      name: 'token',
-      message: 'Enter the underlying token address:',
+      type: 'select',
+      name: 'vaultSelection',
+      message: 'Select an ERC4626 vault:',
+      choices: erc4626Vaults,
     },
     {
       type: 'text',
@@ -62,15 +73,27 @@ async function getUserInput() {
       message: 'Enter the max rebalance inflow:',
     },
   ])
+
+  // Set the token address based on the selected vault
+  const selectedVault = responses.vaultSelection
+  const tokenAddress = config.tokens[selectedVault.token as TokenType]
+
+  const aggregatedData = {
+    ...responses,
+    token: tokenAddress,
+    vaultId: selectedVault.vaultId,
+  }
+
+  return aggregatedData
 }
 
 async function confirmDeployment(userInput: any) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Vault: ${userInput.vault}`))
-  console.log(kleur.yellow(`Token: ${userInput.token}`))
-  console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
-  console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
-  console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
+  console.log(kleur.yellow(`Vault ID               : ${userInput.vaultId}`))
+  console.log(kleur.yellow(`Token                  : ${userInput.token}`))
+  console.log(kleur.yellow(`Deposit Cap            : ${userInput.depositCap}`))
+  console.log(kleur.yellow(`Max Rebalance Outflow  : ${userInput.maxRebalanceOutflow}`))
+  console.log(kleur.yellow(`Max Rebalance Inflow   : ${userInput.maxRebalanceInflow}`))
 
   return await continueDeploymentCheck()
 }
@@ -85,7 +108,7 @@ async function deployERC4626ArkContract(
   return (await hre.ignition.deploy(ERC4626ArkModule, {
     parameters: {
       ERC4626ArkModule: {
-        vault: userInput.vault,
+        vault: userInput.vaultId,
         arkParams: {
           name: 'ERC4626Ark',
           accessManager: config.core.protocolAccessManager,

@@ -21,6 +21,20 @@ export interface BaseConfig {
     harborCommand: string
     tipRate: string
   }
+  erc4626: {
+    [key in Tokens]: {
+      [key: string]: string
+    }
+  }
+  pendle: {
+    router: string
+    'lp-oracle': string
+    markets: {
+      [key in Tokens]: {
+        [key: string]: string
+      }
+    }
+  }
   aaveV3: {
     pool: string
     rewards: string

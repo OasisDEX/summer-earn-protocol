@@ -71,6 +71,14 @@
       "harborCommand": "0xC5630Ffd045a83C893A3726c2f58b2B288B7E6F3",
       "tipRate": "100"
     },
+    "erc4626": {
+      "usdc": { "gearbox": "0x890a69ef363c9c7bdd5e36eb95ceb569f63acbf6" }
+    },
+    "pendle": {
+      "router": "0x888888888889758F76e7103c6CbF23ABbF58F946",
+      "lp-oracle": "0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2",
+      "markets": { "usde": { "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d" } }
+    },
     "aaveV3": {
       "pool": "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
       "rewards": "0x929EC64c34a17401F460460D4B9390518E5B473e"

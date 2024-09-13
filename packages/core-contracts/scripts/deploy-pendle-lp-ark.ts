@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig } from '../ignition/config/config-types'
+import { BaseConfig, Tokens, TokenType } from '../ignition/config/config-types'
 import PendleLPArkModule, { PendleLPArkContracts } from '../ignition/modules/arks/pendle-lp-ark'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -15,7 +15,7 @@ export async function deployPendleLPArk() {
 
   console.log(kleur.green().bold('Starting PendleLPArk deployment process...'))
 
-  const userInput = await getUserInput()
+  const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -31,27 +31,28 @@ export async function deployPendleLPArk() {
   }
 }
 
-async function getUserInput() {
-  return await prompts([
+async function getUserInput(config: BaseConfig) {
+  // Extract Pendle markets from the configuration
+  const pendleMarkets = []
+  if (!config.pendle || !config.pendle.markets) {
+    throw new Error('No Pendle markets found in the configuration.')
+  }
+  for (const token in config.pendle.markets) {
+    for (const marketName in config.pendle.markets[token as Tokens]) {
+      const marketId = config.pendle.markets[token as TokenType][marketName]
+      pendleMarkets.push({
+        title: `${token.toUpperCase()} - ${marketName}`,
+        value: { token, marketId },
+      })
+    }
+  }
+
+  const responses = await prompts([
     {
-      type: 'text',
-      name: 'market',
-      message: 'Enter the Pendle market address:',
-    },
-    {
-      type: 'text',
-      name: 'oracle',
-      message: 'Enter the Pendle oracle address:',
-    },
-    {
-      type: 'text',
-      name: 'router',
-      message: 'Enter the Pendle router address:',
-    },
-    {
-      type: 'text',
-      name: 'token',
-      message: 'Enter the underlying token address:',
+      type: 'select',
+      name: 'marketSelection',
+      message: 'Select a Pendle market:',
+      choices: pendleMarkets,
     },
     {
       type: 'text',
@@ -72,11 +73,27 @@ async function getUserInput() {
       message: 'Enter the max rebalance inflow:',
     },
   ])
+
+  // Set the token address based on the selected market
+  const selectedMarket = responses.marketSelection
+  const tokenAddress = config.tokens[selectedMarket.token as TokenType]
+  const routerAddress = config.pendle.router
+  const oracleAddress = config.pendle['lp-oracle']
+
+  const aggregatedData = {
+    ...responses,
+    token: tokenAddress,
+    marketId: selectedMarket.marketId,
+    router: routerAddress,
+    oracle: oracleAddress,
+  }
+
+  return aggregatedData
 }
 
 async function confirmDeployment(userInput: any) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Market: ${userInput.market}`))
+  console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
   console.log(kleur.yellow(`Oracle: ${userInput.oracle}`))
   console.log(kleur.yellow(`Router: ${userInput.router}`))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
@@ -97,7 +114,7 @@ async function deployPendleLPArkContract(
   return (await hre.ignition.deploy(PendleLPArkModule, {
     parameters: {
       PendleLPArkModule: {
-        market: userInput.market,
+        market: userInput.marketId,
         oracle: userInput.oracle,
         router: userInput.router,
         arkParams: {
