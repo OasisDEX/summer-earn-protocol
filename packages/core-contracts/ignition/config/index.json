@@ -23,20 +23,31 @@
     },
     "morpho": {
       "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-      "usdc": {
-        "marketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
+      "vaults": {
+        "usdc": {
+          "Moonwell Flagship USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
+          "Gauntlet USDC Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12"
+        }
       },
-      "dai": {
-        "marketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
+      "markets": {
+        "usdc": {
+          "wstETH-USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
+        },
+        "dai": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "usde": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "usdt": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        }
       }
     },
     "compoundV3": {
       "pools": {
         "usdc": {
-          "cToken": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
-        },
-        "usdt": {
-          "cToken": "0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840"
+          "cToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
         }
       },
       "rewards": "0x1B0e765F6224C21223AeA2af16c1C46E38885a40"
@@ -66,11 +77,19 @@
     },
     "morpho": {
       "blue": "0x0000000000000000000000000000000000000000",
-      "usdc": {
-        "marketId": "0x0000000000000000000000000000000000000000"
-      },
-      "dai": {
-        "marketId": "0x0000000000000000000000000000000000000000"
+      "markets": {
+        "usdc": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "dai": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "usde": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "usdt": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        }
       }
     },
     "compoundV3": {

@@ -1,10 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig } from '../ignition/config/config-types'
+import { BaseConfig, Tokens, TokenType } from '../ignition/config/config-types'
 import MetaMorphoArkModule, {
   MetaMorphoArkContracts,
 } from '../ignition/modules/arks/metamorpho-ark'
+import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { getChainId } from './helpers/get-chainid'
@@ -25,7 +26,7 @@ export async function deployMetaMorphoArk() {
 
   console.log(kleur.green().bold('Starting MetaMorphoArk deployment process...'))
 
-  const userInput = await getUserInput()
+  const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -43,39 +44,60 @@ export async function deployMetaMorphoArk() {
 
 /**
  * Prompts the user for MetaMorphoArk deployment parameters.
+ * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput() {
-  return await prompts([
+async function getUserInput(config: BaseConfig) {
+  // Extract Morpho vaults from the configuration
+  const morphoVaults = []
+  for (const token in config.morpho.vaults) {
+    for (const vaultName in config.morpho.vaults[token as Tokens]) {
+      const vaultId = config.morpho.vaults[token as TokenType][vaultName]
+      morphoVaults.push({
+        title: `${token.toUpperCase()} - ${vaultName}`,
+        value: { token, vaultId },
+      })
+    }
+  }
+
+  const responses = await prompts([
     {
-      type: 'text',
-      name: 'token',
-      message: 'Enter the token address:',
-    },
-    {
-      type: 'text',
-      name: 'strategyVault',
-      message: 'Enter the strategy vault address:',
+      type: 'select',
+      name: 'vaultSelection',
+      message: 'Select a Morpho vault:',
+      choices: morphoVaults,
     },
     {
       type: 'text',
       name: 'depositCap',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the deposit cap:',
     },
     {
       type: 'text',
       name: 'maxRebalanceOutflow',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance outflow:',
     },
     {
       type: 'text',
       name: 'maxRebalanceInflow',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
   ])
+
+  // Set the token address based on the selected vault
+  const selectedVault = responses.vaultSelection
+  const tokenAddress = config.tokens[selectedVault.token as TokenType]
+
+  const aggregatedData = {
+    ...responses,
+    token: tokenAddress,
+    vaultId: selectedVault.vaultId,
+  }
+
+  return aggregatedData
 }
 
 /**
@@ -86,7 +108,10 @@ async function getUserInput() {
 async function confirmDeployment(userInput: any) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
-  console.log(kleur.yellow(`Max Allocation: ${userInput.maxAllocation}`))
+  console.log(kleur.yellow(`Vault ID: ${userInput.vaultId}`))
+  console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
+  console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
+  console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
   return await continueDeploymentCheck()
 }
@@ -107,7 +132,7 @@ async function deployMetaMorphoArkContract(
   return (await hre.ignition.deploy(MetaMorphoArkModule, {
     parameters: {
       MetaMorphoArkModule: {
-        strategyVault: userInput.strategyVault,
+        strategyVault: userInput.vaultId,
         arkParams: {
           name: 'MetaMorphoArk',
           accessManager: config.core.protocolAccessManager,

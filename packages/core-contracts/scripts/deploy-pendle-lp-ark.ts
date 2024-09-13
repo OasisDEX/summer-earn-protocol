@@ -3,6 +3,7 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { BaseConfig } from '../ignition/config/config-types'
 import PendleLPArkModule, { PendleLPArkContracts } from '../ignition/modules/arks/pendle-lp-ark'
+import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { getChainId } from './helpers/get-chainid'
@@ -55,19 +56,19 @@ async function getUserInput() {
     {
       type: 'text',
       name: 'depositCap',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the deposit cap:',
     },
     {
       type: 'text',
       name: 'maxRebalanceOutflow',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance outflow:',
     },
     {
       type: 'text',
       name: 'maxRebalanceInflow',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
   ])

@@ -1,10 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig } from '../ignition/config/config-types'
+import { BaseConfig, TokenType } from '../ignition/config/config-types'
 import CompoundV3ArkModule, {
   CompoundV3ArkContracts,
 } from '../ignition/modules/arks/compoundv3-ark'
+import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { getChainId } from './helpers/get-chainid'
@@ -66,33 +67,27 @@ async function getUserInput(config: BaseConfig) {
     {
       type: 'text',
       name: 'depositCap',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the deposit cap:',
     },
     {
       type: 'text',
       name: 'maxRebalanceOutflow',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance outflow:',
     },
     {
       type: 'text',
       name: 'maxRebalanceInflow',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       message: 'Enter the max rebalance inflow:',
     },
   ])
 
   // Set the token address based on the selected pool
-  const selectedPool = responses.compoundV3Pool
-  const tokenAddress = config.tokens[selectedPool.toLowerCase()]
-  console.table({
-    ...responses,
-    token: tokenAddress,
-    compoundV3Pool: config.compoundV3.pools[selectedPool].cToken,
-    compoundV3Rewards: config.compoundV3.rewards,
-  })
-  throw new Error('Function not implemented.')
+  const selectedPool = responses.compoundV3Pool as TokenType
+  const tokenAddress = config.tokens[selectedPool]
+
   return {
     ...responses,
     token: tokenAddress,

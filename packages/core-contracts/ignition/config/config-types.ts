@@ -1,8 +1,14 @@
+export enum Tokens {
+  USDC = 'usdc',
+  DAI = 'dai',
+  USDT = 'usdt',
+  USDE = 'usde',
+}
+export type TokenType = Tokens.DAI | Tokens.USDC | Tokens.USDT | Tokens.USDE
+
 export interface BaseConfig {
   tokens: {
-    usdc: string
-    dai: string
-    usdt: string
+    [key in Tokens]: string
   }
   core: {
     treasury: string
@@ -21,17 +27,22 @@ export interface BaseConfig {
   }
   morpho: {
     blue: string
-    usdc: {
-      marketId: string
+    vaults: {
+      [key in Tokens]: {
+        [key: string]: string
+      }
     }
-    dai: {
-      marketId: string
+    markets: {
+      [key in Tokens]: {
+        [key: string]: string
+      }
     }
   }
   compoundV3: {
     pools: {
-      usdc: { cToken: string }
-      usdt: { cToken: string }
+      [key in Tokens]: {
+        cToken: string
+      }
     }
     rewards: string
   }
@@ -40,4 +51,5 @@ export interface BaseConfig {
 export interface Config {
   mainnet: any
   base: BaseConfig
+  arbitrum: BaseConfig
 }

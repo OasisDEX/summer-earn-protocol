@@ -7,7 +7,16 @@ import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-ignition-viem'
 import type { HardhatUserConfig } from 'hardhat/config'
 
+if (!process.env.API_KEY_ARBISCAN) {
+  throw new Error('Please set your process.env.API_KEY_ARBISCAN in a .env file')
+}
+
 const config: HardhatUserConfig = {
+  etherscan: {
+    apiKey: {
+      arbitrumOne: process.env.API_KEY_ARBISCAN,
+    },
+  },
   ignition: {
     blockPollingInterval: 1_000,
     requiredConfirmations: 1,
