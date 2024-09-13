@@ -4,7 +4,7 @@ import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { BaseConfig } from '../ignition/config/config-types'
-import FleetModule, { FleetContracts } from '../ignition/modules/fleet'
+import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -173,9 +173,11 @@ async function deployFleetContracts(
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
 
-  return (await hre.ignition.deploy(FleetModule, {
+  const name = fleetDefinition.fleetName.replace(/\W/g, '')
+  const fleetModule = createFleetModule(`FleetModule_${name}`)
+  return (await hre.ignition.deploy(fleetModule, {
     parameters: {
-      FleetModule: {
+      [`FleetModule_${name}`]: {
         configurationManager: coreContracts.configurationManager,
         protocolAccessManager: coreContracts.protocolAccessManager,
         fleetName: fleetDefinition.fleetName,
@@ -192,10 +194,6 @@ async function deployFleetContracts(
           configurationManager: coreContracts.configurationManager,
           token: asset,
         },
-      },
-      CoreModule: {
-        treasury: coreContracts.treasury,
-        swapProvider: coreContracts.swapProvider,
       },
     },
     deploymentId,

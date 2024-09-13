@@ -13,5 +13,7 @@
   "FleetModule#BufferArk": "0x75644CaC8b9C9E4Cee2d5c62920FF2899A6018F8",
   "FleetModule#FleetCommander": "0x635A923C090dd8bD2F962C2A8365035D7455F483",
   "AaveV3ArkModule#AaveV3Ark": "0x2927dbfe445E2c2f35e4dD69181f3b91b355Fc15",
-  "CompoundV3ArkModule#CompoundV3Ark": "0xD8719F00d0e92D4cC584c017C1B514ce560a05ca"
+  "CompoundV3ArkModule#CompoundV3Ark": "0xD8719F00d0e92D4cC584c017C1B514ce560a05ca",
+  "FleetModule_LazyVault_USDE_Arbitrum_Test#BufferArk": "0xaC04f041e060a007a5bf4B23f042D4aF01579D1f",
+  "FleetModule_LazyVault_USDE_Arbitrum_Test#FleetCommander": "0x085EFE02a4064e810bfae2d41B7AD50735aa1699"
 }
