@@ -1,0 +1,10 @@
+{
+  "fleetName": "LazyVault_USDE_Arbitrum_Test",
+  "symbol": "FUSDE",
+  "assetSymbol": "USDE",
+  "arks": [],
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "0",
+  "depositCap": "0",
+  "initialTipRate": "0"
+}

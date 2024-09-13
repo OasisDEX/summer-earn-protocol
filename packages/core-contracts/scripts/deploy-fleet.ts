@@ -5,6 +5,7 @@ import path from 'path'
 import prompts from 'prompts'
 import { BaseConfig } from '../ignition/config/config-types'
 import FleetModule, { FleetContracts } from '../ignition/modules/fleet'
+import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { loadFleetDefinition } from './helpers/fleet-definition-handler'
@@ -34,7 +35,7 @@ async function deployFleet() {
   const coreContracts: BaseConfig['core'] = config['core']
   const asset = getAssetAddress(fleetDefinition.assetSymbol, config)
 
-  const bufferArkParams = await getBufferArkParams(coreContracts, asset)
+  const bufferArkParams = await getBufferArkParams(coreContracts, asset, fleetDefinition.fleetName)
 
   if (await confirmDeployment(fleetDefinition, bufferArkParams)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -100,26 +101,30 @@ function getAssetAddress(assetSymbol: string, config: BaseConfig): string {
  * @param {string} asset - The address of the asset.
  * @returns {Promise<any>} An object containing the BufferArk parameters.
  */
-async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: string) {
-  return await prompts([
+async function getBufferArkParams(
+  coreContracts: BaseConfig['core'],
+  asset: string,
+  fleetName: string,
+) {
+  const results = await prompts([
     {
       type: 'text',
       name: 'name',
       message: 'Enter the name for the BufferArk:',
-      initial: 'BufferArk',
+      initial: `BufferArk - ${fleetName}`,
     },
     {
       type: 'text',
       name: 'depositCap',
       message: 'Enter the deposit cap for the BufferArk:',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       validate: (value) => (parseInt(value) > 0 ? true : 'Deposit cap must be greater than 0'),
     },
     {
       type: 'text',
       name: 'maxRebalanceOutflow',
       message: 'Enter the max rebalance outflow for the BufferArk:',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       validate: (value) =>
         parseInt(value) > 0 ? true : 'Max rebalance outflow must be greater than 0',
     },
@@ -127,23 +132,12 @@ async function getBufferArkParams(coreContracts: BaseConfig['core'], asset: stri
       type: 'text',
       name: 'maxRebalanceInflow',
       message: 'Enter the max rebalance inflow for the BufferArk:',
-      initial: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+      initial: MAX_UINT256_STRING,
       validate: (value) =>
         parseInt(value) > 0 ? true : 'Max rebalance inflow must be greater than 0',
     },
-    {
-      type: 'text',
-      name: 'requiresKeeperData',
-      message: 'Does the ark require additional keeper data to board:',
-      initial: 'false',
-      validate: (value) => {
-        if (value.toLowerCase() === 'true' || value.toLowerCase() === 'false') {
-          return true
-        }
-        return 'Please enter either "true" or "false"'
-      },
-    },
   ])
+  return { ...results, requiresKeeperData: 'false' }
 }
 
 /**
