@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/Test.sol";
 import "../../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/governance/TimelockController.sol";
+
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "forge-std/Test.sol";
 
 /*
  * @title MockERC20Votes
@@ -354,8 +355,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         // Check the proposal state before queueing
         assertEq(
-            uint(governor.state(proposalId)),
-            uint(IGovernor.ProposalState.Succeeded),
+            uint256(governor.state(proposalId)),
+            uint256(IGovernor.ProposalState.Succeeded),
             "Proposal should be in Succeeded state"
         );
 
@@ -394,8 +395,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
 
         assertEq(
-            uint(governor.state(proposalId)),
-            uint(IGovernor.ProposalState.Canceled),
+            uint256(governor.state(proposalId)),
+            uint256(IGovernor.ProposalState.Canceled),
             "Proposal should be canceled"
         );
         vm.stopPrank();
@@ -437,6 +438,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
     /*
      * @dev Tests the proposalNeedsQueuing function.
      */
+
     function test_ProposalNeedsQueuing() public {
         deal(address(token), alice, governor.proposalThreshold());
         vm.roll(block.number + governor.votingDelay() + 1);
@@ -491,6 +493,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * @dev Tests the supportsInterface function of the governor.
      * Verifies correct interface support.
      */
+
     function test_SupportsInterface() public view {
         assertTrue(governor.supportsInterface(type(IGovernor).interfaceId));
         assertFalse(governor.supportsInterface(0xffffffff));
@@ -633,8 +636,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             "Proposal should be created successfully"
         );
         assertEq(
-            uint(governor.state(anotherProposalId)),
-            uint(IGovernor.ProposalState.Pending),
+            uint256(governor.state(anotherProposalId)),
+            uint256(IGovernor.ProposalState.Pending),
             "Proposal should be in Pending state"
         );
     }
@@ -714,8 +717,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
 
         assertEq(
-            uint(governor.state(proposalId)),
-            uint(IGovernor.ProposalState.Canceled)
+            uint256(governor.state(proposalId)),
+            uint256(IGovernor.ProposalState.Canceled)
         );
     }
 
@@ -740,8 +743,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         vm.stopPrank();
 
         assertEq(
-            uint(governor.state(proposalId)),
-            uint(IGovernor.ProposalState.Canceled)
+            uint256(governor.state(proposalId)),
+            uint256(IGovernor.ProposalState.Canceled)
         );
     }
 
@@ -795,8 +798,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         // Check proposal state
         assertEq(
-            uint(governor.state(proposalId)),
-            uint(IGovernor.ProposalState.Defeated),
+            uint256(governor.state(proposalId)),
+            uint256(IGovernor.ProposalState.Defeated),
             "Proposal should be defeated"
         );
 
@@ -820,10 +823,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
     function test_VariousVotingScenarios() public {
         // Mint tokens to voters
         vm.startPrank(address(timelock));
-        token.mint(alice, 1_000_000e18); // Increased Alice's tokens
-        token.mint(bob, 300_000e18);
-        token.mint(charlie, 200_000e18);
-        token.mint(david, 100_000e18);
+        token.mint(alice, 1000000e18); // Increased Alice's tokens
+        token.mint(bob, 300000e18);
+        token.mint(charlie, 200000e18);
+        token.mint(david, 100000e18);
         vm.stopPrank();
 
         // Delegate votes
@@ -873,8 +876,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         vm.roll(block.number + governor.votingPeriod());
         assertEq(
-            uint(governor.state(proposalId1)),
-            uint(IGovernor.ProposalState.Succeeded)
+            uint256(governor.state(proposalId1)),
+            uint256(IGovernor.ProposalState.Succeeded)
         );
 
         // Queue and execute the proposal
@@ -885,8 +888,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         governor.execute(targets, values, calldatas, descriptionHash);
 
         assertEq(
-            uint(governor.state(proposalId1)),
-            uint(IGovernor.ProposalState.Executed)
+            uint256(governor.state(proposalId1)),
+            uint256(IGovernor.ProposalState.Executed)
         );
 
         // Reset the state for the next scenario
@@ -913,8 +916,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         // This is the failing assertion
         assertEq(
-            uint(governor.state(proposalId2)),
-            uint(IGovernor.ProposalState.Succeeded)
+            uint256(governor.state(proposalId2)),
+            uint256(IGovernor.ProposalState.Succeeded)
         );
 
         // Add assertions to verify vote counts and quorum
@@ -938,8 +941,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         uint256 proposalId3 = createProposalAndVote(charlie, 0, 0, 1, 2);
         vm.roll(block.number + governor.votingPeriod());
         assertEq(
-            uint(governor.state(proposalId3)),
-            uint(IGovernor.ProposalState.Defeated)
+            uint256(governor.state(proposalId3)),
+            uint256(IGovernor.ProposalState.Defeated)
         );
     }
 

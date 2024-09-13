@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
+import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+
+import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
-import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
-import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 
 contract SummerGovernor is
     ISummerGovernor,
