@@ -1,23 +1,23 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 /**
- * ERC4626ArkModule for deploying the ERC4626Ark contract
+ * Factory function to create an ERC4626ArkModule for deploying the ERC4626Ark contract
  *
- * This module deploys the ERC4626Ark contract, which integrates with any ERC4626-compliant vault.
+ * This function creates a module that deploys the ERC4626Ark contract, which integrates with any ERC4626-compliant vault.
  *
- * @param {string} vault - The address of the ERC4626-compliant vault
- * @param {object} arkParams - An object containing the parameters for the Ark contract
- *
- * @returns {ERC4626ArkContracts} An object containing the address of the deployed ERC4626Ark contract
+ * @param {string} moduleName - Name of the module
+ * @returns {Function} A function that builds the module
  */
-export default buildModule('ERC4626ArkModule', (m) => {
-  const vault = m.getParameter('vault')
-  const arkParams = m.getParameter('arkParams')
+export function createERC4626ArkModule(moduleName: string) {
+  return buildModule(moduleName, (m) => {
+    const vault = m.getParameter('vault')
+    const arkParams = m.getParameter('arkParams')
 
-  const erc4626Ark = m.contract('ERC4626Ark', [vault, arkParams])
+    const erc4626Ark = m.contract('ERC4626Ark', [vault, arkParams])
 
-  return { erc4626Ark }
-})
+    return { erc4626Ark }
+  })
+}
 
 /**
  * Type definition for the returned contract address

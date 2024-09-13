@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { BaseConfig, Tokens, TokenType } from '../ignition/config/config-types'
-import ERC4626ArkModule, { ERC4626ArkContracts } from '../ignition/modules/arks/erc4626-ark'
+import { createERC4626ArkModule, ERC4626ArkContracts } from '../ignition/modules/arks/erc4626-ark'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -42,7 +42,7 @@ async function getUserInput(config: BaseConfig) {
       const vaultId = config.erc4626[token as TokenType][vaultName]
       erc4626Vaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
-        value: { token, vaultId },
+        value: { token, vaultId, vaultName },
       })
     }
   }
@@ -81,7 +81,9 @@ async function getUserInput(config: BaseConfig) {
   const aggregatedData = {
     ...responses,
     token: tokenAddress,
+    tokenSymbol: selectedVault.token,
     vaultId: selectedVault.vaultId,
+    vaultName: selectedVault.vaultName,
   }
 
   return aggregatedData
@@ -104,10 +106,10 @@ async function deployERC4626ArkContract(
 ): Promise<ERC4626ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-
-  return (await hre.ignition.deploy(ERC4626ArkModule, {
+  const name = `ERC4626Ark_${userInput.vaultName}_${userInput.tokenSymbol}`
+  return (await hre.ignition.deploy(createERC4626ArkModule(name), {
     parameters: {
-      ERC4626ArkModule: {
+      [name]: {
         vault: userInput.vaultId,
         arkParams: {
           name: 'ERC4626Ark',
