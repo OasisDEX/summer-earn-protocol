@@ -24,15 +24,11 @@ contract FleetCommanderConfigProvider is
 
     constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
 
-    function setFleetConfig(FleetConfig memory _config) internal {
-        config = _config;
+    function getArks() public view returns (address[] memory) {
+        return arks;
     }
 
-    function setFleetDepositCap(uint256 newCap) external onlyGovernor {
-        config.depositCap = newCap;
-        emit DepositCapUpdated(newCap);
-    }
-
+    // ARK MANAGEMENT
     function addArk(address ark) external onlyGovernor {
         _addArk(ark);
     }
@@ -77,6 +73,7 @@ contract FleetCommanderConfigProvider is
         IArk(ark).setMaxRebalanceInflow(newMaxRebalanceInflow);
     }
 
+    // FLEET MANAGEMENT
     function setMinimumBufferBalance(
         uint256 newMinimumBalance
     ) external onlyGovernor {
@@ -84,6 +81,16 @@ contract FleetCommanderConfigProvider is
         emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
 
+    function setFleetDepositCap(uint256 newCap) external onlyGovernor {
+        config.depositCap = newCap;
+        emit DepositCapUpdated(newCap);
+    }
+
+    function setFleetConfig(FleetConfig memory _config) internal {
+        config = _config;
+    }
+
+    // INTERNAL FUNCTIONS
     function _addArk(address ark) internal {
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();
@@ -125,9 +132,5 @@ contract FleetCommanderConfigProvider is
         if (_ark.totalAssets() != 0) {
             revert FleetCommanderArkAssetsNotZero(ark);
         }
-    }
-
-    function getArks() public view returns (address[] memory) {
-        return arks;
     }
 }
