@@ -99,7 +99,7 @@ interface IFleetCommanderEvents {
     /**
      * @notice Emitted when referee deposits into the FleetCommander
      * @param referee The address of the referee who was referred
-     * @param referralCode The referral code of the referee
+     * @param referralCode The referral code of the referrer
      */
     event FleetCommanderReferral(
         address indexed referee,
