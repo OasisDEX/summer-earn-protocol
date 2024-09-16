@@ -15,4 +15,16 @@ interface IRaftErrors {
      * @param rewardToken The address of the reward token
      */
     error RaftAuctionAlreadyRunning(address ark, address rewardToken);
+
+    /**
+     * @notice Thrown when attempting to board rewards to an Ark that does not require keeper data
+     * @param ark The address of the Ark
+     */
+    error RaftArkRequiresKeeperData(address ark);
+
+    /**
+     * @notice Thrown when attempting to board rewards to an Ark that requires keeper data
+     * @param ark The address of the Ark
+     */
+    error RaftArkDoesntRequireKeeperData(address ark);
 }

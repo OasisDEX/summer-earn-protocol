@@ -56,7 +56,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
 
         mockArk = new ArkMock(params);
@@ -254,6 +254,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             address(mockRewardToken),
             firstAuctionAmount
         );
+
         vm.stopPrank();
 
         // Verify first auction is finalized

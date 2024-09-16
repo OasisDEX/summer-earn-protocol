@@ -51,13 +51,13 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
 
         ark = new ArkMock(params);
         otherArk = new ArkMock(params);
 
-        params.requiresKeeperData = false;
+        params.requiresKeeperData = true;
         unrestrictedArk = new RestictedWithdrawalArkMock(params);
     }
 
@@ -70,7 +70,7 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: false
         });
 
         vm.expectRevert(
@@ -387,10 +387,10 @@ contract ArkTest is Test, IArkEvents, ArkTestHelpers {
 
         // Act && Assert
         vm.expectRevert(
-            abi.encodeWithSignature("CannotUseKeeperDataWhenNorRequired()")
+            abi.encodeWithSignature("CannotUseKeeperDataWhenNotRequired()")
         );
         vm.prank(commander);
-        ark.board(0, bytes("abcd"));
+        ark.board(0, bytes("test data test data test data 12"));
 
         vm.expectRevert(abi.encodeWithSignature("KeeperDataRequired()"));
         vm.prank(commander);

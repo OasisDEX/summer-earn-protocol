@@ -51,7 +51,7 @@ interface IArkErrors {
     /**
      * @notice Thrown when attempting to use keeper data when it's not required.
      */
-    error CannotUseKeeperDataWhenNorRequired();
+    error CannotUseKeeperDataWhenNotRequired();
 
     /**
      * @notice Thrown when keeper data is required but not provided.
