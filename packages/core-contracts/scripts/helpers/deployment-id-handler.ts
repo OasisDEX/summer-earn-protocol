@@ -29,7 +29,7 @@ export async function handleDeploymentId(chainId: number): Promise<string> {
       type: 'text',
       name: 'id',
       message: 'Please enter a DEPLOYMENT_ID:',
-      initial: `chain-${chainId}-<insert-identifier>`,
+      initial: `chain-${chainId}`,
       validate: (value) => value.length > 0 || 'DEPLOYMENT_ID cannot be empty',
     })
 

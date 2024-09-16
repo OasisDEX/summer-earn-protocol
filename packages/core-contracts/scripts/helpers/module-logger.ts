@@ -1,9 +1,12 @@
-import { AaveV3ArkContracts } from '../../ignition/modules/aavev3-ark'
-import { CompoundV3ArkContracts } from '../../ignition/modules/compoundv3-ark'
+import { AaveV3ArkContracts } from '../../ignition/modules/arks/aavev3-ark'
+import { CompoundV3ArkContracts } from '../../ignition/modules/arks/compoundv3-ark'
+import { ERC4626ArkContracts } from '../../ignition/modules/arks/erc4626-ark'
+import { MetaMorphoArkContracts } from '../../ignition/modules/arks/metamorpho-ark'
+import { MorphoArkContracts } from '../../ignition/modules/arks/morpho-ark'
+import { PendleLPArkContracts } from '../../ignition/modules/arks/pendle-lp-ark'
+import { PendlePTArkContracts } from '../../ignition/modules/arks/pendle-pt-ark'
 import { CoreContracts } from '../../ignition/modules/core'
 import { FleetContracts } from '../../ignition/modules/fleet'
-import { MetaMorphoArkContracts } from '../../ignition/modules/metamorpho-ark'
-import { MorphoArkContracts } from '../../ignition/modules/morpho-ark'
 
 export class ModuleLogger {
   private moduleName: string
@@ -66,6 +69,27 @@ export class ModuleLogger {
   static logMetaMorphoArk(contracts: MetaMorphoArkContracts): void {
     const logger = new ModuleLogger('MetaMorphoArkModule', {
       'MetaMorpho Ark': contracts.metaMorphoArk,
+    })
+    logger.logAddresses()
+  }
+
+  static logERC4626Ark(contracts: ERC4626ArkContracts): void {
+    const logger = new ModuleLogger('ERC4626ArkModule', {
+      'ERC4626 Ark': contracts.erc4626Ark,
+    })
+    logger.logAddresses()
+  }
+
+  static logPendlePTArk(contracts: PendlePTArkContracts): void {
+    const logger = new ModuleLogger('PendlePTArkModule', {
+      'Pendle PT Ark': contracts.pendlePTArk,
+    })
+    logger.logAddresses()
+  }
+
+  static logPendleLPArk(contracts: PendleLPArkContracts): void {
+    const logger = new ModuleLogger('PendleLPArkModule', {
+      'Pendle LP Ark': contracts.pendleLPArk,
     })
     logger.logAddresses()
   }

@@ -2,7 +2,9 @@
   "base": {
     "tokens": {
       "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
+      "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+      "usde": "0x0000000000000000000000000000000000000000",
+      "usdt": "0x0000000000000000000000000000000000000000"
     },
     "core": {
       "treasury": "0xAb1a4Ae0F851700CC42442c588f458B553cB2620",
@@ -21,12 +23,93 @@
     },
     "morpho": {
       "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
-      "usdc": {
-        "marketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
+      "vaults": {
+        "usdc": {
+          "Moonwell Flagship USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
+          "Gauntlet USDC Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12"
+        }
       },
-      "dai": {
-        "marketId": "0xdba352d93a64b17c71104cbddc6aef85cd432322a1446b5b65163cbbc615cd0c"
+      "markets": {
+        "usdc": {
+          "wstETH-USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
+        },
+        "dai": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "usde": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "usdt": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        }
       }
+    },
+    "compoundV3": {
+      "pools": {
+        "usdc": {
+          "cToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
+        }
+      },
+      "rewards": "0x1B0e765F6224C21223AeA2af16c1C46E38885a40"
+    }
+  },
+  "arbitrum": {
+    "tokens": {
+      "usdc": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+      "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+      "usdt": "0x0000000000000000000000000000000000000000"
+    },
+    "core": {
+      "treasury": "0x13371f8Cf79706907a5A18939b77b426636C3BA0",
+      "governor": "0x83D49b4Bed539C942BEDDCBab58b52CD201b2D04",
+      "tipJar": "0x0aB9d0d28628f29c03e97bce756a1815Ca2eCbC3",
+      "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "raft": "0x48221C4D87e4e45A6B346577575Fe4B1206Ef877",
+      "protocolAccessManager": "0x86709b404e79CF6fD4b752F4d3aa22C4b3d45a3d",
+      "configurationManager": "0x1c74887678Def106af978c7b52d7B43bA45D6c31",
+      "harborCommand": "0xC5630Ffd045a83C893A3726c2f58b2B288B7E6F3",
+      "tipRate": "100"
+    },
+    "erc4626": {
+      "usdc": { "gearbox": "0x890a69ef363c9c7bdd5e36eb95ceb569f63acbf6" }
+    },
+    "pendle": {
+      "router": "0x888888888889758F76e7103c6CbF23ABbF58F946",
+      "lp-oracle": "0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2",
+      "markets": { "usde": { "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d" } }
+    },
+    "aaveV3": {
+      "pool": "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
+      "rewards": "0x929EC64c34a17401F460460D4B9390518E5B473e"
+    },
+    "morpho": {
+      "blue": "0x0000000000000000000000000000000000000000",
+      "markets": {
+        "usdc": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "dai": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "usde": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        },
+        "usdt": {
+          "nomarket": "0x0000000000000000000000000000000000000000"
+        }
+      }
+    },
+    "compoundV3": {
+      "pools": {
+        "usdc": {
+          "cToken": "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"
+        },
+        "usdt": {
+          "cToken": "0xd98Be00b5D27fc98112BdE293e487f8D4cA57d07"
+        }
+      },
+      "rewards": "0x88730d254A2f7e6AC8388c3198aFd694bA9f7fae"
     }
   }
 }
