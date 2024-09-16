@@ -50,22 +50,10 @@ contract FleetCommander is
     )
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
-        FleetCommanderConfigProvider(params.accessManager)
+        FleetCommanderConfigProvider(params)
         Tipper(params.configurationManager, params.initialTipRate)
         CooldownEnforcer(params.initialRebalanceCooldown, false)
-    {
-        setFleetConfig(
-            FleetConfig({
-                bufferArk: IArk(params.bufferArk),
-                minimumBufferBalance: params.initialMinimumBufferBalance,
-                depositCap: params.depositCap
-            })
-        );
-        isArkActive[address(config.bufferArk)] = true;
-        isArkWithdrawable[address(config.bufferArk)] = true;
-
-        _setupArks(params.initialArks);
-    }
+    {}
 
     /**
      * @dev Modifier to collect the tip before any other action is taken
@@ -496,12 +484,6 @@ contract FleetCommander is
         bytes memory disembarkData
     ) internal {
         IArk(fromArk).move(amount, toArk, boardData, disembarkData);
-    }
-
-    function _setupArks(address[] memory _arkAddresses) internal {
-        for (uint256 i = 0; i < _arkAddresses.length; i++) {
-            _addArk(_arkAddresses[i]);
-        }
     }
 
     /* INTERNAL */
