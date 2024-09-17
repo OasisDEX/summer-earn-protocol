@@ -25,14 +25,12 @@ library VotingDecayLibrary {
 
     /*
      * @notice Structure to store decay information for an account
-     * @param retentionFactor The current retention factor of the account's voting power
+     * @param decayFactor The current decay factor of the account's voting power
      * @param lastUpdateTimestamp The timestamp of the last update to the account's decay info
-     * @param delegateTo The address to which this account has delegated its voting power, if any
      */
     struct DecayInfo {
-        uint256 retentionFactor;
+        uint256 decayFactor;
         uint40 lastUpdateTimestamp;
-        address delegateTo;
     }
 
     /**
@@ -41,34 +39,31 @@ library VotingDecayLibrary {
     error InvalidDecayType();
 
     /*
-     * @notice Calculates the new retention factor based on elapsed time and decay parameters
-     * @param currentRetentionFactor The current retention factor
+     * @notice Calculates the new decay factor based on elapsed time and decay parameters
+     * @param currentDecayFactor The current retention factor
      * @param elapsedSeconds The number of seconds elapsed since the last update
      * @param decayRatePerSecond The decay rate per second
      * @param decayFreeWindow The duration (in seconds) during which no decay occurs
      * @param decayFunction The type of decay function to use (Linear or Exponential)
      * @return The newly calculated retention factor
      */
-    function calculateRetentionFactor(
-        uint256 currentRetentionFactor,
+    function calculateDecayFactor(
+        uint256 currentDecayFactor,
         uint256 elapsedSeconds,
         uint256 decayRatePerSecond,
         uint256 decayFreeWindow,
         DecayFunction decayFunction
     ) internal pure returns (uint256) {
-        if (elapsedSeconds <= decayFreeWindow) return currentRetentionFactor;
+        if (elapsedSeconds <= decayFreeWindow) return currentDecayFactor;
 
         uint256 decayTime = elapsedSeconds - decayFreeWindow;
 
         if (decayFunction == DecayFunction.Linear) {
             return
-                currentRetentionFactor.linearDecay(
-                    decayRatePerSecond,
-                    decayTime
-                );
+                currentDecayFactor.linearDecay(decayRatePerSecond, decayTime);
         } else if (decayFunction == DecayFunction.Exponential) {
             return
-                currentRetentionFactor.exponentialDecay(
+                currentDecayFactor.exponentialDecay(
                     decayRatePerSecond,
                     decayTime
                 );
