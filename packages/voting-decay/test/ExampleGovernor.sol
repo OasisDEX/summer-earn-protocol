@@ -10,6 +10,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 // TODO: Refactor to only use VotingDecayManager when proposing or casting votes
 
@@ -24,6 +25,13 @@ contract ExampleGovernor is
 {
     bytes32 private constant DELEGATION_TYPEHASH =
         keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
+
+    // Add these constants
+    uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
+    uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
+
+    // Add this state variable
+    uint256 private _proposalThreshold;
 
     constructor(
         string memory name,
@@ -126,4 +134,43 @@ contract ExampleGovernor is
 
     // Define the custom error at the contract level
     error InvalidSignature(address signer, address account);
+
+    // Add these functions to expose internal functionality for testing
+    function initializeAccount(address account) public {
+        _initializeAccountIfNew(account);
+    }
+
+    function resetDecay(address account) public {
+        _resetDecay(account);
+    }
+
+    /**
+     * @dev Proposes a new governance action.
+     * @param targets The addresses of the contracts to call.
+     * @param values The ETH values to send with the calls.
+     * @param calldatas The call data for each contract call.
+     * @param description A description of the proposal.
+     * @return The ID of the newly created proposal.
+     */
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public virtual override(Governor) returns (uint256) {
+        address proposer = _msgSender();
+
+        _initializeAccountIfNew(proposer);
+
+        /* uint256 proposerVotes =*/ getVotes(proposer, block.number - 1);
+
+        uint256 proposalId = super.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        return proposalId;
+    }
 }

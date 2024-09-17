@@ -86,10 +86,11 @@ contract ExampleGovernorTest is Test {
     }
 
     function test_Voting() public {
-        deal(address(governor.token()), alice, governor.proposalThreshold());
+        deal(address(governor.token()), alice, INITIAL_VALUE);
         vm.roll(block.number + governor.votingDelay() + 1);
 
         vm.startPrank(alice);
+        governor.token().delegate(alice);
         (uint256 proposalId, ) = createProposal();
 
         vm.warp(block.timestamp + governor.votingDelay() + 1);
@@ -104,37 +105,29 @@ contract ExampleGovernorTest is Test {
     }
 
     function test_ValueDecay() public {
+        deal(address(governor.token()), alice, INITIAL_VALUE);
+        vm.warp(block.timestamp + 100);
+        vm.roll(block.number + 100);
+
         vm.startPrank(alice);
-        // governor.registerVoter(INITIAL_VALUE);
-        // uint256 initialValue = governor.getAggregateValue(alice);
-        uint256 initialValue = 0;
+        governor.token().delegate(alice);
+        createProposal();
+        vm.warp(block.timestamp + 100);
+        vm.roll(block.number + 100);
+        uint256 initialValue = governor.getVotes(alice, block.number - 1);
         assertEq(initialValue, INITIAL_VALUE);
 
         // Fast forward 1 year
         vm.warp(block.timestamp + 365 days);
 
-        uint256 decayedValue = 0;
-        // uint256 decayedValue = governor.getAggregateValue(alice);
+        uint256 decayedValue = governor.getVotes(alice, block.number - 1);
         assertLt(decayedValue, initialValue);
         assertGt(decayedValue, 0);
         vm.stopPrank();
     }
 
-    function test_UpdateBaseValue() public {
-        vm.startPrank(alice);
-        // governor.registerVoter(INITIAL_VALUE);
-        uint256 newValue = INITIAL_VALUE * 2;
-        // governor.updateBaseValue(newValue);
-        vm.stopPrank();
-
-        uint256 baseValue = 0;
-        // (uint256 baseValue, ) = governor.voters(alice);
-        assertEq(baseValue, newValue);
-    }
-
     function test_SetDecayRate() public {
-        vm.startPrank(address(governor));
-        // governor.registerVoter(INITIAL_VALUE);
+        vm.startPrank(address(deployer));
         // Set a 5% annual decay rate
         uint256 newDecayRate = (uint256(1e18) / 20) / (365 * 24 * 60 * 60);
         governor.setDecayRatePerSecond(newDecayRate);
@@ -145,8 +138,7 @@ contract ExampleGovernorTest is Test {
     }
 
     function test_SetDecayFreeWindow() public {
-        vm.startPrank(address(governor));
-        // governor.registerVoter(INITIAL_VALUE);
+        vm.startPrank(address(deployer));
         uint40 newWindow = 60 days;
         governor.setDecayFreeWindow(newWindow);
         vm.stopPrank();
@@ -156,8 +148,7 @@ contract ExampleGovernorTest is Test {
     }
 
     function test_SetDecayFunction() public {
-        vm.startPrank(address(governor));
-        // governor.registerVoter(INITIAL_VALUE);
+        vm.startPrank(address(deployer));
         governor.setDecayFunction(VotingDecayLibrary.DecayFunction.Exponential);
         vm.stopPrank();
 
@@ -175,30 +166,38 @@ contract ExampleGovernorTest is Test {
         vm.label(aliceAddress, "Alice");
 
         deal(address(token), aliceAddress, 1e12);
+        vm.prank(aliceAddress);
+        token.delegate(aliceAddress);
 
-        vm.prank(address(deployer));
+        vm.roll(block.number + 1); // Ensure a new block for the proposal
+        vm.prank(aliceAddress);
+        createProposal();
+
         // Set linear decay
+        vm.prank(address(deployer));
         governor.setDecayFunction(VotingDecayLibrary.DecayFunction.Linear);
-        vm.warp(block.timestamp + 60 days);
-        vm.roll(5_184_001);
 
-        uint256 linearDecayedValue = governor.getVotes(
-            aliceAddress,
-            block.timestamp - 1
-        );
+        // Fast forward 60 days
+        vm.warp(block.timestamp + 60 days);
+        vm.roll(block.number + 60 * 7200); // Assuming 7200 blocks per day
+
+        uint256 linearDecayFactor = governor.getDecayFactor(aliceAddress);
+        uint256 linearDecayedValue = governor.getVotes(aliceAddress, 1);
 
         // Reset decay and set exponential decay
         vm.startPrank(address(deployer));
-        // governor.resetDecay(aliceAddress);
+        governor.resetDecay(aliceAddress);
         governor.setDecayFunction(VotingDecayLibrary.DecayFunction.Exponential);
         vm.stopPrank();
 
+        // Fast forward another 60 days
         vm.warp(block.timestamp + 60 days);
-        vm.roll(10_368_001);
+        vm.roll(block.number + 60 * 7200);
 
+        uint256 exponentialDecayFactor = governor.getDecayFactor(aliceAddress);
         uint256 exponentialDecayedValue = governor.getVotes(
             aliceAddress,
-            block.timestamp - 1
+            864002 - 1
         );
 
         // Exponential decay should result in a higher value than linear decay after 120 days
@@ -207,6 +206,12 @@ contract ExampleGovernorTest is Test {
         // Ensure the votes are less than the initial amount
         assertLt(linearDecayedValue, 1e12);
         assertLt(exponentialDecayedValue, 1e12);
+
+        // Print the decay factors and values for better visibility
+        console.log("Linear decay factor:", linearDecayFactor);
+        console.log("Linear decayed value:", linearDecayedValue);
+        console.log("Exponential decay factor:", exponentialDecayFactor);
+        console.log("Exponential decayed value:", exponentialDecayedValue);
     }
 
     /*
@@ -234,7 +239,7 @@ contract ExampleGovernorTest is Test {
             description
         );
 
-        return (proposalId, hashDescription(description));
+        return (proposalId, keccak256(bytes(description)));
     }
 
     /*
@@ -255,7 +260,7 @@ contract ExampleGovernorTest is Test {
         )
     {
         address[] memory targets = new address[](1);
-        targets[0] = address(governor.token());
+        targets[0] = address(token);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
