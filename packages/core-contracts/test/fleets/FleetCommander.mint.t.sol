@@ -7,9 +7,10 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
+
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 constant MINT_AMOUNT = 1000 * 10 ** 6;

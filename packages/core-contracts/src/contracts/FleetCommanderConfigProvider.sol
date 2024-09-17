@@ -25,10 +25,12 @@ contract FleetCommanderConfigProvider is
     function getArks() public view returns (address[] memory) {
         return arks;
     }
+
     function getConfig() external view override returns (FleetConfig memory) {
         return config;
     }
     // ARK MANAGEMENT
+
     function addArk(address ark) external onlyGovernor {
         _addArk(ark);
     }

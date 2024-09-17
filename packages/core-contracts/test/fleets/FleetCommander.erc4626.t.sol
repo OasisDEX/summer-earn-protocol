@@ -6,12 +6,14 @@ import {Test, console} from "forge-std/Test.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 /**
  * @title ERC4626 methods test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's ERC4626 methods
  */
+
 contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;

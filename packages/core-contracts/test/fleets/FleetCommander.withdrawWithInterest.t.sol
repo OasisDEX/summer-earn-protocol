@@ -9,8 +9,9 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 contract WithdrawWithInterestTest is
     Test,

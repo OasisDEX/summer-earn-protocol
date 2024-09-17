@@ -15,8 +15,9 @@ import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {

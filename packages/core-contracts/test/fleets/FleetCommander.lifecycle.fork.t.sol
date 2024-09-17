@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {RebalanceData, FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import "../../src/contracts/arks/AaveV3Ark.sol";
