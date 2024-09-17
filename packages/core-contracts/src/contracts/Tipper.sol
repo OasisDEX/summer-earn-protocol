@@ -8,7 +8,7 @@ import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
+import {Constants} from "./libraries/Constants.sol";
 /**
  * @title Tipper
  * @notice Contract implementing tip accrual functionality
@@ -37,11 +37,6 @@ abstract contract Tipper is ITipper {
      * @notice The protocol configuration manager
      */
     IConfigurationManager public manager;
-
-    /**
-     * @dev Constant representing the number of seconds in a year
-     */
-    uint256 private constant SECONDS_PER_YEAR = 365 days;
 
     /**
      * @notice Initializes the TipAccruer contract
@@ -118,7 +113,7 @@ abstract contract Tipper is ITipper {
         uint256 timeElapsed
     ) internal view returns (uint256) {
         Percentage ratePerSecond = Percentage.wrap(
-            (Percentage.unwrap(tipRate) / SECONDS_PER_YEAR)
+            (Percentage.unwrap(tipRate) / Constants.SECONDS_PER_YEAR)
         );
 
         // Calculate (1 + r)^t using a custom power function
