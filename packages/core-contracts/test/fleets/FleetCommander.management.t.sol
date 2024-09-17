@@ -79,8 +79,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             .FleetCommanderminimumBufferBalanceUpdated(newBalance);
         fleetCommander.setMinimumBufferBalance(newBalance);
 
-        (, uint256 minimumBufferBalance, , ) = fleetCommander.config();
-        assertEq(minimumBufferBalance, newBalance);
+        FleetConfig memory config = fleetCommander.getConfig();
+        assertEq(config.minimumBufferBalance, newBalance);
     }
 
     function test_TransferDisabled() public {
@@ -210,8 +210,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         fleetCommander.setFleetDepositCap(newDepositCap);
 
-        (, , uint256 depositCap, ) = fleetCommander.config();
-        assertEq(depositCap, newDepositCap);
+        FleetConfig memory config = fleetCommander.getConfig();
+        assertEq(config.depositCap, newDepositCap);
     }
 
     function test_setArkDepositCap() public {
