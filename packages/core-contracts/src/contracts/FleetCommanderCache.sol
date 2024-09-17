@@ -8,8 +8,6 @@ import {IArk} from "../interfaces/IArk.sol";
 contract FleetCommanderCache {
     using StorageSlot for *;
 
-
-
     /**
      * @title ArkData
      * @dev Struct to store information about an Ark.
