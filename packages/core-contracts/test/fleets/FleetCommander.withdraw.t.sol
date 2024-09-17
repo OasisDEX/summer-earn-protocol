@@ -11,6 +11,7 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title Withdraw test suite for FleetCommander
@@ -276,14 +277,14 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_WithdrawUpdatesBufferBalance() public {
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         uint256 assetsToWithdraw = DEPOSIT_AMOUNT / 2;
-        uint256 initialBufferBalance = bufferArk.totalAssets();
+        uint256 initialBufferBalance = config.bufferArk.totalAssets();
 
         vm.prank(mockUser);
         fleetCommander.withdraw(assetsToWithdraw, mockUser, mockUser);
 
-        uint256 finalBufferBalance = bufferArk.totalAssets();
+        uint256 finalBufferBalance = config.bufferArk.totalAssets();
         assertEq(
             finalBufferBalance,
             initialBufferBalance - assetsToWithdraw,
@@ -293,15 +294,23 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_WithdrawWithRebalancedFunds() public {
         // Move some funds to different arks
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 3)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 3
+            )
         );
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark2, DEPOSIT_AMOUNT / 3)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark2,
+                DEPOSIT_AMOUNT / 3
+            )
         );
         vm.stopPrank();
 
@@ -345,11 +354,15 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_WithdrawBufferPlusOne() public {
         // Move some funds to arks
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
         );
         vm.stopPrank();
 
@@ -436,11 +449,15 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_WithdrawFromArks() public {
         // Move some funds to arks
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
         );
         vm.stopPrank();
 
@@ -467,7 +484,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_MaxBufferWithdraw() public {
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         uint256 maxBufferWithdraw = fleetCommander.maxBufferWithdraw(mockUser);
         assertEq(
             maxBufferWithdraw,
@@ -479,7 +496,11 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
         );
         vm.stopPrank();
 
@@ -492,22 +513,30 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_WithdrawForce_withNonWithdrawableArk() public {
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         uint256 depositShares = fleetCommander.balanceOf(mockUser);
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 4)
-        );
-        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark2, DEPOSIT_AMOUNT / 4)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 4
+            )
         );
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
             generateRebalanceData(
-                address(bufferArk),
+                address(config.bufferArk),
+                ark2,
+                DEPOSIT_AMOUNT / 4
+            )
+        );
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.adjustBuffer(
+            generateRebalanceData(
+                address(config.bufferArk),
                 ark4,
                 DEPOSIT_AMOUNT / 4,
                 bytes("dummy data 12345 dummy data 1234"), // mock ark validates lenngth of call data to be 32 bytes
@@ -529,17 +558,25 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     }
 
     function test_WithdrawForce() public {
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         uint256 depositShares = fleetCommander.balanceOf(mockUser);
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
         );
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark2, DEPOSIT_AMOUNT / 4)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark2,
+                DEPOSIT_AMOUNT / 4
+            )
         );
         vm.stopPrank();
 

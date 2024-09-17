@@ -10,6 +10,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 contract RedeemWithInterestTest is
     Test,
@@ -26,7 +27,7 @@ contract RedeemWithInterestTest is
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
         // Deposit for tests
         mockToken.mint(mockUser, DEPOSIT_AMOUNT);
@@ -38,7 +39,7 @@ contract RedeemWithInterestTest is
         initialConversionRate = fleetCommander.convertToAssets(100000);
 
         // Simulate interest accrual
-        mockToken.mint(address(bufferArk), INTEREST_AMOUNT);
+        mockToken.mint(address(config.bufferArk), INTEREST_AMOUNT);
 
         vm.prank(governor);
         fleetCommander.setMinimumBufferBalance(0);
@@ -80,12 +81,16 @@ contract RedeemWithInterestTest is
     }
 
     function test_RedeemBufferPlusOne() public {
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
         );
         vm.stopPrank();
 
@@ -264,7 +269,7 @@ contract RedeemWithInterestTest is
 
     function test_TwoUsersRedeemAllShares() public {
         // Setup second user
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
         address secondUser = address(0x456);
         mockToken.mint(secondUser, DEPOSIT_AMOUNT);
@@ -277,7 +282,7 @@ contract RedeemWithInterestTest is
         vm.stopPrank();
 
         // Simulate more interest accrual
-        mockToken.mint(address(bufferArk), INTEREST_AMOUNT);
+        mockToken.mint(address(config.bufferArk), INTEREST_AMOUNT);
 
         uint256 totalAssets = fleetCommander.totalAssets();
         uint256 user1Shares = fleetCommander.balanceOf(mockUser);

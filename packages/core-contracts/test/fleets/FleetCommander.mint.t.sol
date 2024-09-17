@@ -9,6 +9,7 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     uint256 constant MINT_AMOUNT = 1000 * 10 ** 6;
@@ -194,15 +195,15 @@ contract MintTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 assets = fleetCommander.previewMint(shares);
         mockToken.mint(mockUser, assets);
 
-        (IArk bufferArk, , ) = fleetCommander.config();
-        uint256 initialBufferBalance = bufferArk.totalAssets();
+        FleetConfig memory config = fleetCommander.getConfig();
+        uint256 initialBufferBalance = config.bufferArk.totalAssets();
 
         vm.startPrank(mockUser);
         mockToken.approve(address(fleetCommander), assets);
         fleetCommander.mint(shares, mockUser);
         vm.stopPrank();
 
-        uint256 finalBufferBalance = bufferArk.totalAssets();
+        uint256 finalBufferBalance = config.bufferArk.totalAssets();
         assertEq(
             finalBufferBalance,
             initialBufferBalance + assets,

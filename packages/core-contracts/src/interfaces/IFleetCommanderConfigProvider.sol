@@ -30,14 +30,10 @@ interface IFleetCommanderConfigProvider is
      */
     function getArks() external view returns (address[] memory);
 
-    function config()
-        external
-        view
-        returns (
-            IArk bufferArk,
-            uint256 minimumBufferBalance,
-            uint256 depositCap
-        );
+    /**
+     * @notice Retrieves the current fleet config
+     */
+    function getConfig() external view returns (FleetConfig memory);
 
     /**
      * @notice Checks if the ark is part of the fleet
@@ -80,6 +76,20 @@ interface IFleetCommanderConfigProvider is
     function setArkDepositCap(address ark, uint256 newDepositCap) external;
 
     /**
+     * @dev Sets the minimum buffer balance for the fleet commander.
+     * @param newMinimumBalance The new minimum buffer balance to be set.
+     */
+    function setMinimumBufferBalance(uint256 newMinimumBalance) external;
+
+    /**
+     * @dev Sets the minimum number of allowe rebalance operations.
+     * @param newMaxRebalanceOperations The new maximum allowed rebalance operations.
+     */
+    function setMaxRebalanceOperations(
+        uint256 newMaxRebalanceOperations
+    ) external;
+
+    /**
      * @notice Sets the maxRebalanceOutflow for an Ark
      * @dev Only callable by the governor
      * @param ark The address of the Ark
@@ -100,10 +110,4 @@ interface IFleetCommanderConfigProvider is
         address ark,
         uint256 newMaxRebalanceInflow
     ) external;
-
-    /**
-     * @dev Sets the minimum buffer balance for the fleet commander.
-     * @param newMinimumBalance The new minimum buffer balance to be set.
-     */
-    function setMinimumBufferBalance(uint256 newMinimumBalance) external;
 }

@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {RebalanceData, FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import "../../src/contracts/arks/AaveV3Ark.sol";
@@ -436,12 +436,12 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 amountPerArk
     ) internal {
         address[] memory arks = fleet.getArks();
-        (IArk bufferArk, , ) = fleet.config();
+        FleetConfig memory config = fleet.getConfig();
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](arks.length);
         for (uint256 i = 0; i < arks.length; i++) {
             rebalanceData[i] = RebalanceData({
-                fromArk: address(bufferArk),
+                fromArk: address(config.bufferArk),
                 toArk: arks[i],
                 amount: amountPerArk,
                 boardData: bytes(""),

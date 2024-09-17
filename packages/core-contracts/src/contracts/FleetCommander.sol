@@ -58,7 +58,8 @@ contract FleetCommander is
             FleetConfig({
                 bufferArk: IArk(params.bufferArk),
                 minimumBufferBalance: params.initialMinimumBufferBalance,
-                depositCap: params.depositCap
+                depositCap: params.depositCap,
+                maxRebalanceOperations: 10
             })
         );
         isArkActive[address(config.bufferArk)] = true;
@@ -888,7 +889,7 @@ contract FleetCommander is
     function _validateReallocateAllAssets(
         RebalanceData[] calldata rebalanceData
     ) internal view {
-        if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
+        if (rebalanceData.length > config.maxRebalanceOperations) {
             revert FleetCommanderRebalanceTooManyOperations(
                 rebalanceData.length
             );

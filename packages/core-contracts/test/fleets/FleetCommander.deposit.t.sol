@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 
 import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -190,8 +191,8 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 amount = DEPOSIT_AMOUNT;
         mockToken.mint(mockUser, amount);
 
-        (IArk bufferArk, , ) = fleetCommander.config();
-        uint256 initialBufferBalance = bufferArk.totalAssets();
+        FleetConfig memory config = fleetCommander.getConfig();
+        uint256 initialBufferBalance = config.bufferArk.totalAssets();
 
         vm.startPrank(mockUser);
         mockToken.approve(address(fleetCommander), amount);

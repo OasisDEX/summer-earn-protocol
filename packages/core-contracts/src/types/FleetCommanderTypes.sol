@@ -48,6 +48,10 @@ struct FleetConfig {
      *      of the underlying asset.
      */
     uint256 depositCap;
+    /**
+     * @notice The maximum number of rebalance operations in a single rebalance
+     */
+    uint256 maxRebalanceOperations;
 }
 
 /**

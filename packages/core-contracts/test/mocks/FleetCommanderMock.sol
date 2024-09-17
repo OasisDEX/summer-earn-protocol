@@ -132,5 +132,13 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function maxBufferWithdraw(address owner) external view returns (uint256) {}
 
+    function getConfig() external view override returns (FleetConfig memory) {
+        return config;
+    }
+
     function test() public {}
+
+    function setMaxRebalanceOperations(
+        uint256 newMaxRebalanceOperations
+    ) external {}
 }

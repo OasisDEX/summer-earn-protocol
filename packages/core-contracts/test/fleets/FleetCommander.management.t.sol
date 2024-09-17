@@ -16,6 +16,7 @@ import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetComman
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function setUp() public {
@@ -39,15 +40,12 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);
-        (
-            IArk bufferArk,
-            uint256 minimumBufferBalance,
-            uint256 depositCap
-        ) = newFleetCommander.config();
+        FleetConfig memory config = newFleetCommander.getConfig();
 
-        assertEq(minimumBufferBalance, 1000);
-        assertEq(depositCap, 10000);
-        assertEq(address(bufferArk), bufferArkAddress);
+        assertEq(config.minimumBufferBalance, 1000);
+        assertEq(config.depositCap, 10000);
+        assertEq(config.maxRebalanceOperations, 10);
+        assertEq(address(config.bufferArk), bufferArkAddress);
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
 
@@ -80,7 +78,7 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             .FleetCommanderminimumBufferBalanceUpdated(newBalance);
         fleetCommander.setMinimumBufferBalance(newBalance);
 
-        (, uint256 minimumBufferBalance, ) = fleetCommander.config();
+        (, uint256 minimumBufferBalance, , ) = fleetCommander.config();
         assertEq(minimumBufferBalance, newBalance);
     }
 
@@ -187,17 +185,31 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
+    function test_SetMaxRebalanceOperations() public {
+        uint256 newMaxRebalanceOperations = 20;
+        vm.prank(governor);
+        vm.expectEmit();
+        emit IFleetCommanderConfigProviderEvents
+            .FleetCommanderMaxRebalanceOperationsUpdated(
+                newMaxRebalanceOperations
+            );
+
+        fleetCommander.setMaxRebalanceOperations(newMaxRebalanceOperations);
+
+        FleetConfig memory config = fleetCommander.getConfig();
+        assertEq(config.maxRebalanceOperations, newMaxRebalanceOperations);
+    }
+
     function test_SetDepositCap() public {
         uint256 newDepositCap = 10000;
         vm.prank(governor);
         vm.expectEmit();
-        emit IFleetCommanderConfigProviderEvents.DepositCapUpdated(
-            newDepositCap
-        );
+        emit IFleetCommanderConfigProviderEvents
+            .FleetCommanderDepositCapUpdated(newDepositCap);
 
         fleetCommander.setFleetDepositCap(newDepositCap);
 
-        (, , uint256 depositCap) = fleetCommander.config();
+        (, , uint256 depositCap, ) = fleetCommander.config();
         assertEq(depositCap, newDepositCap);
     }
 

@@ -12,6 +12,7 @@ import "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title Rebalance test suite for FleetCommander
@@ -60,9 +61,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -105,9 +106,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -156,9 +157,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -482,9 +483,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.forceRebalance(rebalanceData);
 
         // Assert
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );

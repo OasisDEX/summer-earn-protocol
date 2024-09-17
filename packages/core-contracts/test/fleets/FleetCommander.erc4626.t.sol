@@ -7,7 +7,7 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 /**
  * @title ERC4626 methods test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's ERC4626 methods
@@ -67,7 +67,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_MaxWithdraw() public {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         uint256 bufferBalance = bufferArk.totalAssets();
 
         // Mock user balance
@@ -91,7 +91,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_MaxRedeem() public {
         // Arrange
         uint256 userBalance = 1000 * 10 ** 6;
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         uint256 bufferBalance = bufferArk.totalAssets();
 
         // Mock user balance
@@ -115,7 +115,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Arrange
         uint256 mintAmount = 1000 * 10 ** 6;
         uint256 maxDepositCap = 100000 * 10 ** 6;
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         uint256 bufferBalance = bufferArk.totalAssets();
 
         // Set buffer balance
@@ -158,7 +158,7 @@ contract ERC4626Test is Test, ArkTestHelpers, FleetCommanderTestBase {
         mockToken.approve(address(fleetCommander), depositAmount);
         fleetCommander.deposit(depositAmount, mockUser);
 
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         uint256 bufferBalance = bufferArk.totalAssets();
 
         // Act

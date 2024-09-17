@@ -20,14 +20,14 @@ contract FleetCommanderConfigProvider is
     mapping(address => bool) public isArkActive;
     mapping(address => bool) public isArkWithdrawable;
 
-    uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
-
     constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
 
     function getArks() public view returns (address[] memory) {
         return arks;
     }
-
+    function getConfig() external view override returns (FleetConfig memory) {
+        return config;
+    }
     // ARK MANAGEMENT
     function addArk(address ark) external onlyGovernor {
         _addArk(ark);
@@ -83,7 +83,16 @@ contract FleetCommanderConfigProvider is
 
     function setFleetDepositCap(uint256 newCap) external onlyGovernor {
         config.depositCap = newCap;
-        emit DepositCapUpdated(newCap);
+        emit FleetCommanderDepositCapUpdated(newCap);
+    }
+
+    function setMaxRebalanceOperations(
+        uint256 newMaxRebalanceOperations
+    ) external onlyGovernor {
+        config.maxRebalanceOperations = newMaxRebalanceOperations;
+        emit FleetCommanderMaxRebalanceOperationsUpdated(
+            newMaxRebalanceOperations
+        );
     }
 
     function setFleetConfig(FleetConfig memory _config) internal {
