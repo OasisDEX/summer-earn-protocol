@@ -21,8 +21,19 @@ contract TestVotingDecayManager is VotingDecayManager {
 
     function _getDelegateTo(
         address account
-    ) internal view override returns (address) {
-        return address(0x0);
+    ) internal pure override returns (address) {
+        return account;
+    }
+
+    function initializeAccount(address account) public {
+        _initializeAccountIfNew(account);
+    }
+
+    function resetDecay(address account) public {
+        decayInfoByAccount[account] = VotingDecayLibrary.DecayInfo({
+            decayFactor: VotingDecayLibrary.WAD,
+            lastUpdateTimestamp: uint40(block.timestamp)
+        });
     }
 }
 
@@ -44,6 +55,7 @@ contract VotingDecayFuzzTest is Test {
      * @dev Set up the test environment
      */
     function setUp() public {
+        vm.prank(owner);
         decayManager = new TestVotingDecayManager(
             30 days,
             MAX_DECAY_RATE / 10, // 10% decay per year
@@ -55,9 +67,10 @@ contract VotingDecayFuzzTest is Test {
      * @dev Test decay over time
      * @param elapsedTime Random time period to test decay
      */
+
     function testFuzz_DecayOverTime(uint256 elapsedTime) public {
         vm.assume(elapsedTime > 0 && elapsedTime <= YEAR_IN_SECONDS);
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
 
         uint256 initialFactor = decayManager.getDecayFactor(user);
         vm.warp(block.timestamp + elapsedTime);
@@ -78,7 +91,7 @@ contract VotingDecayFuzzTest is Test {
         vm.assume(initialValue > 0 && initialValue <= 1e36);
         vm.assume(elapsedTime > 0 && elapsedTime <= YEAR_IN_SECONDS);
 
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
         vm.warp(block.timestamp + elapsedTime);
 
         uint256 decayedValue = decayManager.getVotingPower(user, initialValue);
@@ -128,7 +141,7 @@ contract VotingDecayFuzzTest is Test {
                 elapsedTimes[i] > 0 && elapsedTimes[i] <= YEAR_IN_SECONDS
             );
             accounts[i] = address(uint160(i + 1));
-            // decayManager.initializeAccount(accounts[i]);
+            decayManager.initializeAccount(accounts[i]);
             initialFactors[i] = decayManager.getDecayFactor(accounts[i]);
         }
 
@@ -146,7 +159,7 @@ contract VotingDecayFuzzTest is Test {
     function testFuzz_ResetDecay(uint256 elapsedTime) public {
         vm.assume(elapsedTime > 0 && elapsedTime <= YEAR_IN_SECONDS);
 
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
 
         uint256 initialFactor = decayManager.getDecayFactor(user);
 
@@ -155,7 +168,7 @@ contract VotingDecayFuzzTest is Test {
 
         uint256 decayedFactor = decayManager.getDecayFactor(user);
 
-        //  RESET HERe
+        decayManager.resetDecay(user);
         uint256 resetFactor = decayManager.getDecayFactor(user);
 
         assertEq(
@@ -192,7 +205,7 @@ contract VotingDecayFuzzTest is Test {
         vm.assume(initialValue > 0 && initialValue <= 1e36);
         vm.assume(elapsedTime > 0 && elapsedTime <= YEAR_IN_SECONDS);
 
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
 
         // Linear decay
         vm.warp(block.timestamp + elapsedTime);
@@ -202,8 +215,8 @@ contract VotingDecayFuzzTest is Test {
         );
 
         // Reset decay and change to exponential
+        decayManager.resetDecay(user);
 
-        // RESET HERE
         vm.prank(owner);
         decayManager.setDecayFunction(
             VotingDecayLibrary.DecayFunction.Exponential
@@ -237,7 +250,7 @@ contract VotingDecayFuzzTest is Test {
             VotingDecayLibrary.DecayFunction.Exponential
         );
 
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
         uint256 initialFactor = decayManager.getDecayFactor(user);
 
         vm.warp(block.timestamp + elapsedTime);
@@ -282,7 +295,7 @@ contract VotingDecayFuzzTest is Test {
         decayManager.setDecayRatePerSecond(decayRate);
         vm.stopPrank();
 
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
         uint256 initialFactor = decayManager.getDecayFactor(user);
 
         vm.warp(block.timestamp + elapsedTime);

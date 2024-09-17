@@ -20,7 +20,7 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
 
     /// @notice Stores decay information for each account
     mapping(address account => VotingDecayLibrary.DecayInfo info)
-        private decayInfoByAccount;
+        internal decayInfoByAccount;
 
     /// @notice Duration of the decay-free window in seconds
     uint40 public decayFreeWindow;
