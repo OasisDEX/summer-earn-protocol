@@ -89,11 +89,6 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
         address accountAddress,
         uint256 originalValue
     ) public view returns (uint256) {
-        console.log("getVotingPower", accountAddress, originalValue);
-        if (!_hasDecayInfo(accountAddress)) {
-            revert AccountNotInitialized();
-        }
-
         uint256 decayFactor = getDecayFactor(accountAddress);
 
         return VotingDecayLibrary.applyDecay(originalValue, decayFactor);
@@ -107,18 +102,27 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
     function getDecayFactor(
         address accountAddress
     ) public view returns (uint256) {
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
-            accountAddress
-        ];
+        address delegateTo = _getDelegateTo(accountAddress);
 
-        if (account.lastUpdateTimestamp == 0) {
+        // Has Delegate + Delegate has Decay Info
+        if (
+            delegateTo != address(0) &&
+            delegateTo != accountAddress &&
+            _hasDecayInfo(delegateTo)
+        ) {
+            return getDecayFactor(delegateTo);
+        }
+
+        // Has Delegate + Delegate does not have Decay Info
+        // OR No Delegate + Does not have Decay Info
+        if (!_hasDecayInfo(accountAddress)) {
             revert AccountNotInitialized();
         }
 
-        address delegateTo = _getDelegateTo(accountAddress);
-        if (delegateTo != address(0) && delegateTo != accountAddress) {
-            return getDecayFactor(delegateTo);
-        }
+        // No Delegate + Has Decay Info
+        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
+            accountAddress
+        ];
 
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
 

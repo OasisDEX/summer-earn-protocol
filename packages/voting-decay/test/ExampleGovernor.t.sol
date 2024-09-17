@@ -180,7 +180,7 @@ contract ExampleGovernorTest is Test {
         // Set linear decay
         governor.setDecayFunction(VotingDecayLibrary.DecayFunction.Linear);
         vm.warp(block.timestamp + 60 days);
-        vm.roll(5184001);
+        vm.roll(5_184_001);
 
         uint256 linearDecayedValue = governor.getVotes(
             aliceAddress,
@@ -194,7 +194,7 @@ contract ExampleGovernorTest is Test {
         vm.stopPrank();
 
         vm.warp(block.timestamp + 60 days);
-        vm.roll(10368001);
+        vm.roll(10_368_001);
 
         uint256 exponentialDecayedValue = governor.getVotes(
             aliceAddress,

@@ -5,8 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "../src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "../src/VotingDecayManager.sol";
 
-// TODO: Remove delegate and undelegate tests
-
 // Concrete implementation of VotingDecayManager for testing
 contract TestVotingDecayManager is VotingDecayManager {
     constructor(
@@ -23,9 +21,12 @@ contract TestVotingDecayManager is VotingDecayManager {
 
     function _getDelegateTo(
         address account
-    ) internal view override returns (address) {
-        // IMPLEMENT
+    ) internal pure override returns (address) {
         return account;
+    }
+
+    function initializeAccount(address account) public {
+        _initializeAccountIfNew(account);
     }
 }
 
@@ -63,8 +64,8 @@ contract VotingDecayTest is Test {
     /*
      * @notice Tests that the initial retention factor is set correctly
      */
-    function test_InitialRetentionFactor() public view {
-        // decayManager.initializeAccount(user);
+    function test_InitialRetentionFactor() public {
+        decayManager.initializeAccount(user);
 
         assertEq(decayManager.getDecayFactor(user), VotingDecayLibrary.WAD);
     }
@@ -73,7 +74,7 @@ contract VotingDecayTest is Test {
      * @notice Tests the decay calculation over a one-year period
      */
     function test_DecayOverOneYear() public {
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
 
         // Fast forward one year
         vm.warp(block.timestamp + 365 days);
@@ -90,7 +91,7 @@ contract VotingDecayTest is Test {
      * @notice Tests setting a new decay rate and its effect on the retention factor
      */
     function test_SetDecayRatePerSecond() public {
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
 
         uint256 newRate = uint256(2e17) / (365 * 24 * 60 * 60); // 20% per year
         vm.prank(owner);
@@ -121,7 +122,7 @@ contract VotingDecayTest is Test {
      * @notice Tests the application of decay to value
      */
     function test_ApplyDecayToValue() public {
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
 
         // Fast forward 1 year
         vm.warp(block.timestamp + 365 days);
@@ -138,7 +139,7 @@ contract VotingDecayTest is Test {
      * @notice Tests setting and using a decay-free window
      */
     function test_SetDecayFreeWindow() public {
-        // decayManager.initializeAccount(user);
+        decayManager.initializeAccount(user);
 
         uint40 newDecayFreeWindow = 60 days;
         vm.prank(owner);
