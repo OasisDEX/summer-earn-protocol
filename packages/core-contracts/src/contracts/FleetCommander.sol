@@ -45,6 +45,8 @@ contract FleetCommander is
     using Math for uint256;
     using StorageSlot for *;
 
+    uint256 public constant DEFAULT_MAX_REBALANCE_OPERATIONS = 10;
+
     constructor(
         FleetCommanderParams memory params
     )
@@ -59,7 +61,7 @@ contract FleetCommander is
                 bufferArk: IArk(params.bufferArk),
                 minimumBufferBalance: params.initialMinimumBufferBalance,
                 depositCap: params.depositCap,
-                maxRebalanceOperations: 10
+                maxRebalanceOperations: DEFAULT_MAX_REBALANCE_OPERATIONS
             })
         );
         isArkActive[address(config.bufferArk)] = true;
