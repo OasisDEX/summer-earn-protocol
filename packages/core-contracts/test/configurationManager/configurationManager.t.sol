@@ -62,6 +62,19 @@ contract ConfigurationManagerTest is Test {
         );
     }
 
+    function test_Initialize_ShouldFail() public {
+        ConfigurationManagerParams memory params = ConfigurationManagerParams({
+            raft: initialRaft,
+            tipJar: initialTipJar,
+            treasury: initialTreasury
+        });
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature("ConfigurationManagerAlreadyInitialized()")
+        );
+        configurationManager.initialize(params);
+    }
+
     function test_SetRaftByGovernor() public {
         address newRaft = address(5);
         vm.prank(governor);

@@ -48,6 +48,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         raft = params.raft;
         tipJar = params.tipJar;
         treasury = params.treasury;
+        initialized = true;
     }
     /**
      * @notice Sets a new address for the Raft contract
