@@ -3,8 +3,8 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import "../../src/contracts/arks/AaveV3Ark.sol";
 import "../../src/contracts/arks/CompoundV3Ark.sol";
@@ -19,12 +19,13 @@ import "../../src/contracts/arks/ERC4626Ark.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
  * @dev Test suite of full lifecycle tests for both USDC and DAI fleets
  */
-contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     // USDC Fleet Arks
     CompoundV3Ark public usdcCompoundArk;
     AaveV3Ark public usdcAaveArk;

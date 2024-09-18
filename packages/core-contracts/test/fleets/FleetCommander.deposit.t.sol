@@ -3,12 +3,13 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title Deposit test suite for FleetCommander
@@ -20,7 +21,7 @@ import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.s
  * - Deposit
  * - Error cases and edge scenarios
  */
-contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
     uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
 
@@ -45,6 +46,38 @@ contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.prank(mockUser);
         fleetCommander.deposit(amount, mockUser);
 
+        assertEq(amount, fleetCommander.balanceOf(mockUser));
+    }
+
+    function test_DepositWithReferral() public {
+        uint256 amount = 1000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
+
+        (address referrer, uint256 referrerPk) = makeAddrAndKey("1337");
+
+        // The message to sign (in this case, the signer's address)
+        string memory message = vm.toString(referrer);
+
+        bytes memory signature = signMessage(referrerPk, message);
+
+        fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
+        mockToken.mint(mockUser, amount);
+
+        vm.prank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+        mockArkTotalAssets(ark1, 0);
+        mockArkTotalAssets(ark2, 0);
+
+        vm.prank(mockUser);
+        vm.expectEmit();
+        emit IFleetCommanderEvents.FleetCommanderReferral(mockUser, signature);
+        fleetCommander.deposit(amount, mockUser, signature);
+
+        assertEq(
+            verifySignature(message, signature, referrer),
+            true,
+            "Signature should be valid"
+        );
         assertEq(amount, fleetCommander.balanceOf(mockUser));
     }
 

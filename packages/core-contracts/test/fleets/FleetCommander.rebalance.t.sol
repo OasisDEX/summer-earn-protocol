@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
 
@@ -25,7 +25,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * - Rebalancing operations
  * - Error cases and edge scenarios
  */
-contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);

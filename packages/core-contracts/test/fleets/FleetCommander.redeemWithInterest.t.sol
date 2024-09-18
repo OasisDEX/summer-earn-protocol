@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
@@ -13,11 +13,7 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract RedeemWithInterestTest is
-    Test,
-    ArkTestHelpers,
-    FleetCommanderTestBase
-{
+contract RedeemWithInterestTest is Test, TestHelpers, FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;

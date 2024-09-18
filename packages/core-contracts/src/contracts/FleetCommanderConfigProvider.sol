@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {IArk} from "../interfaces/IArk.sol";
+import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
@@ -20,7 +21,24 @@ contract FleetCommanderConfigProvider is
     mapping(address => bool) public isArkActive;
     mapping(address => bool) public isArkWithdrawable;
 
-    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
+    uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
+
+    constructor(
+        FleetCommanderParams memory params
+    ) ProtocolAccessManaged(params.accessManager) {
+        setFleetConfig(
+            FleetConfig({
+                bufferArk: IArk(params.bufferArk),
+                minimumBufferBalance: params.initialMinimumBufferBalance,
+                depositCap: params.depositCap,
+                maxRebalanceOperations: MAX_REBALANCE_OPERATIONS
+            })
+        );
+        isArkActive[address(config.bufferArk)] = true;
+        isArkWithdrawable[address(config.bufferArk)] = true;
+
+        _setupArks(params.initialArks);
+    }
 
     function getArks() public view returns (address[] memory) {
         return arks;
@@ -133,6 +151,12 @@ contract FleetCommanderConfigProvider is
 
         isArkActive[ark] = false;
         emit ArkRemoved(ark);
+    }
+
+    function _setupArks(address[] memory _arkAddresses) internal {
+        for (uint256 i = 0; i < _arkAddresses.length; i++) {
+            _addArk(_arkAddresses[i]);
+        }
     }
 
     function _validateArkRemoval(address ark) internal view {
