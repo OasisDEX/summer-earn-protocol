@@ -51,6 +51,10 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
     }
 }
 
+/**
+ * @title ExampleGovernorTest
+ * @dev Test contract for ExampleGovernor functionality
+ */
 contract ExampleGovernorTest is Test {
     MockERC20Votes public token;
 
@@ -67,6 +71,9 @@ contract ExampleGovernorTest is Test {
     // (0.1e18 / (365 * 24 * 60 * 60))
     uint256 internal constant INITIAL_DECAY_RATE = 3.1709792e9; // ~10% per year
 
+    /**
+     * @dev Sets up the test environment
+     */
     function setUp() public {
         token = new MockERC20Votes();
         vm.label(address(token), "MockERC20Votes");
@@ -85,6 +92,9 @@ contract ExampleGovernorTest is Test {
         vm.label(address(governor), "Governor");
     }
 
+    /**
+     * @dev Tests the voting functionality
+     */
     function test_Voting() public {
         deal(address(governor.token()), alice, INITIAL_VALUE);
         vm.roll(block.number + governor.votingDelay() + 1);
@@ -104,6 +114,9 @@ contract ExampleGovernorTest is Test {
         assertTrue(governor.hasVoted(proposalId, alice));
     }
 
+    /**
+     * @dev Tests the value decay functionality
+     */
     function test_ValueDecay() public {
         deal(address(governor.token()), alice, INITIAL_VALUE);
         vm.warp(block.timestamp + 100);
@@ -126,6 +139,9 @@ contract ExampleGovernorTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Tests setting the decay rate
+     */
     function test_SetDecayRate() public {
         vm.startPrank(address(deployer));
         // Set a 5% annual decay rate
@@ -137,6 +153,9 @@ contract ExampleGovernorTest is Test {
         assertEq(decayRatePerSecond, newDecayRate);
     }
 
+    /**
+     * @dev Tests setting the decay-free window
+     */
     function test_SetDecayFreeWindow() public {
         vm.startPrank(address(deployer));
         uint40 newWindow = 60 days;
@@ -147,6 +166,9 @@ contract ExampleGovernorTest is Test {
         assertEq(decayFreeWindow, newWindow);
     }
 
+    /**
+     * @dev Tests setting the decay function
+     */
     function test_SetDecayFunction() public {
         vm.startPrank(address(deployer));
         governor.setDecayFunction(VotingDecayLibrary.DecayFunction.Exponential);
@@ -160,6 +182,9 @@ contract ExampleGovernorTest is Test {
         );
     }
 
+    /**
+     * @dev Compares linear and exponential decay functions
+     */
     function test_CompareDecayFunctions() public {
         uint256 alicePrivateKey = 0xa11ce;
         address aliceAddress = vm.addr(alicePrivateKey);

@@ -4,11 +4,6 @@ pragma solidity 0.8.26;
 import {VotingDecayLibrary} from "./VotingDecayLibrary.sol";
 import {IVotingDecayManager} from "./IVotingDecayManager.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Test, console} from "forge-std/Test.sol";
-
-// TODO: Refactor decayReset from delegate and undelegate
-// TODO: We don't need to track delegators, can just use the delegatee
-// OQ: How do we track the decay of the delegators if we're not tracking delegateTo?
 
 /**
  * @title VotingDecayManager
@@ -18,15 +13,15 @@ import {Test, console} from "forge-std/Test.sol";
 abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
     using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
 
-    /// @notice Stores decay information for each account
+    /* @notice Stores decay information for each account */
     mapping(address account => VotingDecayLibrary.DecayInfo info)
         internal decayInfoByAccount;
 
-    /// @notice Duration of the decay-free window in seconds
+    /* @notice Duration of the decay-free window in seconds */
     uint40 public decayFreeWindow;
-    /// @notice Rate of decay per second (in WAD format)
+    /* @notice Rate of decay per second (in WAD format) */
     uint256 public decayRatePerSecond;
-    /// @notice Type of decay function used (Linear or Exponential)
+    /* @notice Type of decay function used (Linear or Exponential) */
     VotingDecayLibrary.DecayFunction public decayFunction;
 
     /**
@@ -160,6 +155,11 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
         }
     }
 
+    /**
+     * @notice Internal function to check if an account has decay info
+     * @param accountAddress Address of the account to check
+     * @return bool indicating whether the account has decay info
+     */
     function _hasDecayInfo(
         address accountAddress
     ) internal view returns (bool) {
@@ -203,6 +203,11 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
         emit IVotingDecayManager.DecayReset(accountAddress);
     }
 
+    /**
+     * @notice Internal function to get the delegate address for an account
+     * @param accountAddress Address of the account to get the delegate for
+     * @return Address of the delegate
+     */
     function _getDelegateTo(
         address accountAddress
     ) internal view virtual returns (address);

@@ -73,7 +73,7 @@ contract CompoundV3Ark is Ark {
     /**
      * @notice Deposits assets into Compound V3
      * @param amount Amount of assets to deposit
-     * @param /// boardData /// Additional data for boarding (unused in this implementation)
+     * @param /// boardData Additional data for boarding (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
         config.token.approve(address(comet), amount);
