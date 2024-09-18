@@ -9,7 +9,9 @@ contract BufferArk is Ark {
     function totalAssets() public view override returns (uint256) {
         return config.token.balanceOf(address(this));
     }
-
+    function rate() public pure override returns (uint256) {
+        return 0;
+    }
     function _board(uint256 amount, bytes calldata) internal override {}
 
     function _disembark(

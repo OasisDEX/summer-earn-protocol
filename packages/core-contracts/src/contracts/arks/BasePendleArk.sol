@@ -39,6 +39,8 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
 
     /// @notice Address of the current Pendle market
     address public market;
+    /// @notice Address of the next Pendle market
+    address public nextMarket;
     /// @notice Address of the Pendle router
     address public router;
     /// @notice Address of the Pendle oracle
@@ -92,10 +94,6 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Sets the slippage tolerance
-     * @param _slippagePercentage New slippage tolerance
-     */
     function setSlippagePercentage(
         Percentage _slippagePercentage
     ) external onlyGovernor {
@@ -109,16 +107,20 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
         emit SlippageUpdated(_slippagePercentage);
     }
 
-    /**
-     * @notice Sets the oracle duration
-     * @param _oracleDuration New oracle duration
-     */
     function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
         if (_oracleDuration < MIN_ORACLE_DURATION) {
             revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
         }
         oracleDuration = _oracleDuration;
         emit OracleDurationUpdated(_oracleDuration);
+    }
+
+    function setNextMarket(address newMarket) external onlyGovernor {
+        if (newMarket == address(0) || newMarket == market) {
+            revert InvalidNextMarket();
+        }
+        nextMarket = newMarket;
+        emit NextMarketUpdated(newMarket);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -299,12 +301,6 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @notice Sets up token approvals
      */
     function _setupApprovals() internal virtual;
-
-    /**
-     * @notice Finds the next valid market
-     * @return Address of the next market
-     */
-    function nextMarket() public view virtual returns (address);
 
     /**
      * @notice Redeems all tokens from the current position

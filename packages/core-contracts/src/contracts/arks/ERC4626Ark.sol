@@ -36,12 +36,14 @@ contract ERC4626Ark is Ark {
         config.token.approve(_vault, Constants.MAX_UINT256);
     }
 
-    /**
-     * @notice Calculates the total assets held by this Ark in the vault
-     * @return The total amount of underlying assets the Ark can withdraw from the vault
-     */
     function totalAssets() public view override returns (uint256) {
         return vault.convertToAssets(vault.balanceOf(address(this)));
+    }
+
+    // we cant directly get the rate from an ERC4626 vault so we return 0,
+    // this will be handeled offchain using subgraph or other means
+    function rate() public pure override returns (uint256) {
+        return 0;
     }
 
     /**
@@ -70,6 +72,7 @@ contract ERC4626Ark is Ark {
         bytes calldata
     )
         internal
+        pure
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {

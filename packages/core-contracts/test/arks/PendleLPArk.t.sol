@@ -60,6 +60,9 @@ contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
 
         ark = new PendleLPArk(MARKET, ORACLE, ROUTER, params);
 
+        vm.prank(governor);
+        ark.setNextMarket(NEXT_MARKET);
+
         // Permissioning
         vm.startPrank(governor);
         ark.grantCommanderRole(commander);

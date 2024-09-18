@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import "../Ark.sol";
 import {IMorpho, Id, Market, MarketParams, Position} from "morpho-blue/interfaces/IMorpho.sol";
 
+import {IIrm} from "morpho-blue/interfaces/IIrm.sol";
 import {MarketParamsLib} from "morpho-blue/libraries/MarketParamsLib.sol";
 import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
@@ -51,6 +52,35 @@ contract MorphoArk is Ark {
                 market.totalSupplyAssets,
                 market.totalSupplyShares
             );
+    }
+
+    function rate() public view override returns (uint256) {
+        Market memory market = MORPHO.market(marketId);
+        if (market.lastUpdate == 0) {
+            return 0;
+        }
+
+        IIrm interestRateModel = IIrm(marketParams.irm);
+        // Calculate borrow rate
+        uint256 borrowRate = interestRateModel.borrowRateView(
+            marketParams,
+            market
+        );
+        // Calculate utilization
+        uint256 utilization = market.totalSupplyAssets == 0
+            ? 0
+            : (market.totalBorrowAssets * Constants.WAD) /
+                market.totalSupplyAssets;
+        // Calculate fee percentage
+        uint256 feePercentage = Constants.WAD - market.fee;
+        // Calculate supply rate
+        uint256 supplyRatePerSecond = (borrowRate *
+            utilization *
+            feePercentage) / (Constants.WAD * Constants.WAD);
+        // Convert to APY
+        return (supplyRatePerSecond *
+            Constants.SECONDS_PER_YEAR *
+            (Constants.RAY / Constants.WAD));
     }
 
     function _board(uint256 amount, bytes calldata) internal override {

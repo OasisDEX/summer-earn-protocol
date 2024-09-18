@@ -53,6 +53,15 @@ contract CompoundV3Ark is Ark {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function rate() public view override returns (uint256 supplyRate) {
+        uint256 utilization = comet.getUtilization();
+        uint256 supplyRatePerSecond = comet.getSupplyRate(utilization);
+        supplyRate =
+            supplyRatePerSecond *
+            Constants.SECONDS_PER_YEAR *
+            Constants.WAD_TO_RAY;
+    }
+
     /**
      * @notice Calculates the total assets held by the Ark
      * @return suppliedAssets The total assets supplied to Compound V3

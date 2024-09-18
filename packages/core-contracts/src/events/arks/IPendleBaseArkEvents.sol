@@ -29,4 +29,11 @@ interface IPendleBaseArkEvents {
      * @param newOracleDuration The new oracle duration in seconds
      */
     event OracleDurationUpdated(uint32 newOracleDuration);
+
+    /**
+     * @notice Emitted when the next market is updated
+     * @dev This event is triggered when the governor changes the next market
+     * @param nextMarket The address of the new next market
+     */
+    event NextMarketUpdated(address indexed nextMarket);
 }

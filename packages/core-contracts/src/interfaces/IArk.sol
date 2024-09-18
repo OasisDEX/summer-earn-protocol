@@ -16,6 +16,13 @@ interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
     /* FUNCTIONS - PUBLIC */
 
     /**
+     * @notice Returns the instantenous rate of the Ark
+     * @return rate raw rate of the Ark (APR) - excluding rewards
+     * @dev rate returned in RAY precision
+     */
+    function rate() external view returns (uint256 rate);
+
+    /**
      * @dev Returns the name of the Ark.
      * @return The name of the Ark as a string.
      */

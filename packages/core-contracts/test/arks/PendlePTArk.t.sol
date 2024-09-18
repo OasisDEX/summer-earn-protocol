@@ -20,7 +20,7 @@ import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
+contract PendlePTArkTestFork is IArkEvents, ArkTestBase {
     PendlePTArk public ark;
 
     address constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
@@ -61,6 +61,9 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
         });
 
         ark = new PendlePTArk(MARKET, ORACLE, ROUTER, params);
+
+        vm.prank(governor);
+        ark.setNextMarket(NEXT_MARKET);
 
         // Permissioning
         vm.startPrank(governor);

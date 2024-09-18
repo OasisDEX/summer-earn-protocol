@@ -148,13 +148,9 @@ contract PendleLPArk is BasePendleArk {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Finds the next valid market
-     * @return Address of the next market
-     * @dev TODO: Implement logic to find the next valid market
-     */
-    function nextMarket() public pure override returns (address) {
-        return 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
+    function rate() public pure override returns (uint256) {
+        //  TODO: add method that returns current rate for LP = swap fee + PT rate + underlying rate
+        return 0;
     }
 
     /**
