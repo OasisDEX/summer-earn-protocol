@@ -93,6 +93,5 @@ cache
 .cache
 broadcast
 
-**/cache_forge
-
-solidity-files-cache.json
+cache_forge/
+**/cache_forge/
