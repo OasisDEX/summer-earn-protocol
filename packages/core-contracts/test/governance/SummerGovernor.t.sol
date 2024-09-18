@@ -58,12 +58,9 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
     }
 }
 
-/**
+/*
  * @title SummerGovernorTest
  * @dev Test contract for SummerGovernor functionality.
- * This contract contains comprehensive tests for the SummerGovernor,
- * covering various scenarios including proposal creation, voting,
- * execution, cancellation, and edge cases.
  */
 contract SummerGovernorTest is Test, ISummerGovernorErrors {
     SummerGovernor public governor;
@@ -87,12 +84,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
     uint256 internal constant INITIAL_DECAY_RATE_PER_SECOND = 3.1709792e9;
     uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
 
-    /**
+    /*
      * @dev Sets up the test environment.
-     * This function initializes the test setup, including:
-     * - Deploying mock contracts (ERC20 token, timelock)
-     * - Setting up the SummerGovernor with initial parameters
-     * - Minting initial token supply and delegating votes
      */
     function setUp() public {
         vm.label(alice, "Alice");
@@ -140,7 +133,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         token.delegate(alice);
     }
 
-    /**
+    /*
      * @dev Tests the initial setup of the governor.
      * Verifies that the governor's parameters are set correctly.
      */
@@ -174,7 +167,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         assertEq(governor.getWhitelistGuardian(), whitelistGuardian);
     }
 
-    /**
+    /*
      * @dev Tests the proposal creation process.
      * Ensures that a proposal can be created successfully.
      */
@@ -188,7 +181,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         assertGt(proposalId, 0);
     }
 
-    /**
+    /*
      * @dev Tests the voting process on a proposal.
      * Verifies that votes are correctly cast and counted.
      */
@@ -209,7 +202,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         assertEq(forVotes, INITIAL_SUPPLY);
     }
 
-    /**
+    /*
      * @dev Tests the full proposal execution flow.
      * Covers proposal creation, voting, queueing, execution, and result verification.
      */
@@ -260,7 +253,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         assertEq(token.balanceOf(bob), 100);
     }
 
-    /**
+    /*
      * @dev Tests the whitelisting process through a governance proposal.
      * Verifies that an account can be whitelisted via a proposal.
      */
@@ -339,7 +332,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
-    /**
+    /*
      * @dev Tests the proposal cancellation process.
      * Ensures that a proposal can be canceled by the whitelist guardian.
      */
@@ -426,7 +419,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         vm.stopPrank();
     }
 
-    /**
+    /*
      * @dev Tests that a proposal creation fails when the proposer is below threshold and not whitelisted.
      */
     function test_ProposalCreationBelowThresholdAndNotWhitelisted() public {
@@ -459,11 +452,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         vm.stopPrank();
     }
-
-    /**
+    /*
      * @dev Tests the proposalNeedsQueuing function.
-     * Verifies that proposals correctly identify when they need queuing.
      */
+
     function test_ProposalNeedsQueuing() public {
         deal(address(token), alice, governor.proposalThreshold());
         vm.roll(block.number + governor.votingDelay() + 1);
@@ -490,9 +482,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         assertTrue(needsQueuing, "Proposal should need queuing");
     }
 
-    /**
+    /*
      * @dev Tests the CLOCK_MODE function.
-     * Ensures the correct clock mode is returned.
      */
     function test_ClockMode() public view {
         string memory clockMode = governor.CLOCK_MODE();
@@ -503,9 +494,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
-    /**
+    /*
      * @dev Tests the clock function.
-     * Verifies that the clock returns the current block number.
      */
     function test_Clock() public view {
         uint256 currentBlock = block.number;
@@ -516,17 +506,17 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             "Clock value should match current block number"
         );
     }
-
-    /**
+    /*
      * @dev Tests the supportsInterface function of the governor.
      * Verifies correct interface support.
      */
+
     function test_SupportsInterface() public view {
         assertTrue(governor.supportsInterface(type(IGovernor).interfaceId));
         assertFalse(governor.supportsInterface(0xffffffff));
     }
 
-    /**
+    /*
      * @dev Tests the proposal threshold settings.
      * Ensures the threshold is within the allowed range.
      */
@@ -536,7 +526,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         assertLe(threshold, governor.MAX_PROPOSAL_THRESHOLD());
     }
 
-    /**
+    /*
      * @dev Tests setting proposal threshold out of bounds.
      * Verifies that setting thresholds outside the allowed range reverts.
      */
@@ -580,7 +570,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         new SummerGovernor(params);
     }
 
-    /**
+    /*
      * @dev Tests proposal creation by a whitelisted account.
      * Ensures a whitelisted account can create a proposal without meeting the threshold.
      */
@@ -672,7 +662,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
-    /**
+    /*
      * @dev Tests cancellation of a proposal by the whitelist guardian.
      * Verifies that the guardian can cancel a proposal.
      */
@@ -752,7 +742,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
     }
 
-    /**
+    /*
      * @dev Tests cancellation of a proposal by the proposer.
      * Ensures the proposer can cancel their own proposal.
      */
@@ -777,90 +767,6 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             uint256(IGovernor.ProposalState.Canceled)
         );
     }
-
-    /**
-     * @dev Tests a proposal that doesn't reach quorum.
-     * Verifies that a proposal is defeated if it doesn't reach quorum.
-     */
-    function test_ProposalWithoutQuorum() public {
-        // ... implementation ...
-    }
-
-    /**
-     * @dev Tests various voting scenarios.
-     * Covers cases like majority in favor, tie, and majority against.
-     */
-    function test_VariousVotingScenarios() public {
-        // ... implementation ...
-    }
-
-    /**
-     * @dev Calculates the quorum threshold based on the total token supply.
-     * @return The quorum threshold value.
-     */
-    function getQuorumThreshold() public view returns (uint256) {
-        // ... implementation ...
-    }
-
-    /**
-     * @dev Creates a proposal and casts votes for testing purposes.
-     * @param proposer The address creating the proposal.
-     * @param aliceVote Alice's vote (0: Against, 1: For, 2: Abstain).
-     * @param bobVote Bob's vote.
-     * @param charlieVote Charlie's vote.
-     * @param davidVote David's vote.
-     * @return The ID of the created proposal.
-     */
-    function createProposalAndVote(
-        address proposer,
-        uint8 aliceVote,
-        uint8 bobVote,
-        uint8 charlieVote,
-        uint8 davidVote
-    ) internal returns (uint256) {
-        // ... implementation ...
-    }
-
-    /**
-     * @dev Creates a proposal for testing purposes.
-     * @return proposalId The ID of the created proposal.
-     * @return descriptionHash The hash of the proposal description.
-     */
-    function createProposal() internal returns (uint256, bytes32) {
-        // ... implementation ...
-    }
-
-    /**
-     * @dev Creates parameters for a proposal.
-     * @return targets The target addresses for the proposal.
-     * @return values The values to be sent with the proposal.
-     * @return calldatas The function call data for the proposal.
-     * @return description The description of the proposal.
-     */
-    function createProposalParams()
-        internal
-        view
-        returns (
-            address[] memory,
-            uint256[] memory,
-            bytes[] memory,
-            string memory
-        )
-    {
-        // ... implementation ...
-    }
-
-    /**
-     * @dev Hashes the description of a proposal.
-     * @param description The description to hash.
-     * @return The keccak256 hash of the description.
-     */
-    function hashDescription(
-        string memory description
-    ) internal pure returns (bytes32) {
-        // ... implementation ...
-    }
-}
 
     /*
      * @dev Tests a proposal that doesn't reach quorum.
