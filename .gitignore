@@ -93,4 +93,5 @@ cache
 .cache
 broadcast
 
-**/cache_forge
+cache_forge/
+**/cache_forge/

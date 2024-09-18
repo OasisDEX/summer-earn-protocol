@@ -4,22 +4,10 @@ pragma solidity ^0.8.26;
 import {StorageSlot} from "../../lib/openzeppelin-next/StorageSlot.sol";
 import {StorageSlots} from "./libraries/StorageSlots.sol";
 import {IArk} from "../interfaces/IArk.sol";
+import {ArkData} from "../types/FleetCommanderTypes.sol";
 
 contract FleetCommanderCache {
     using StorageSlot for *;
-
-    /**
-     * @title ArkData
-     * @dev Struct to store information about an Ark.
-     * This struct holds the address of the Ark and the total assets it holds.
-     * @dev used in the caching mechanism for the FleetCommander
-     */
-    struct ArkData {
-        /// @notice The address of the Ark.
-        address arkAddress;
-        /// @notice The total assets held by the Ark.
-        uint256 totalAssets;
-    }
 
     function _totalAssets(
         address[] memory arks,
