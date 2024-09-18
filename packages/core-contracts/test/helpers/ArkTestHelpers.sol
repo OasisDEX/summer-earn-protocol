@@ -70,6 +70,4 @@ contract ArkTestHelpers is Test {
             abi.encode(maxRebalanceInflow)
         );
     }
-
-    function test() public {}
 }

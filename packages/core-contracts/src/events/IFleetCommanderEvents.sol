@@ -96,4 +96,13 @@ interface IFleetCommanderEvents {
         address receiver,
         uint256 totalRedeemed
     );
+    /**
+     * @notice Emitted when referee deposits into the FleetCommander
+     * @param referee The address of the referee who was referred
+     * @param referralCode The referral code of the referrer
+     */
+    event FleetCommanderReferral(
+        address indexed referee,
+        bytes indexed referralCode
+    );
 }

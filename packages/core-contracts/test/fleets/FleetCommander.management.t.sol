@@ -4,20 +4,21 @@ pragma solidity 0.8.26;
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {ArkTestHelpers, IArk} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
