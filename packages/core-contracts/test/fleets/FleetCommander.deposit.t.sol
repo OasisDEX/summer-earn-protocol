@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
@@ -20,7 +20,7 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
  * - Deposit
  * - Error cases and edge scenarios
  */
-contract DepositTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
     uint256 constant MAX_DEPOSIT_CAP = 100000 * 10 ** 6;
 

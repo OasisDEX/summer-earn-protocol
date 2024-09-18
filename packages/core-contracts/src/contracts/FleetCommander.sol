@@ -256,12 +256,12 @@ contract FleetCommander is
     }
 
     function deposit(
-        uint256 aseets,
+        uint256 assets,
         address receiver,
         bytes memory referralCode
     ) public returns (uint256) {
         emit FleetCommanderReferral(receiver, referralCode);
-        return deposit(aseets, receiver);
+        return deposit(assets, receiver);
     }
 
     function mint(

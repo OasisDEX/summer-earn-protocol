@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
 
@@ -22,7 +22,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * - Withdraw
  * - Error cases and edge scenarios
  */
-contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract WithdrawTest is Test, TestHelpers, FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;

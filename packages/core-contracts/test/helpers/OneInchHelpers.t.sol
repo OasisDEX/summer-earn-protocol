@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {OneInchHelpers} from "./OneInchHelpers.sol";
+import {OneInchTestHelpers} from "./OneInchTestHelpers.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 type Address is uint256;
 
-contract OneInchHelpersTest is Test, OneInchHelpers {
+contract OneInchHelpersTest is Test, OneInchTestHelpers {
     address public constant ONE_INCH_ROUTER =
         0x111111125421cA6dc452d289314280a0f8842A65;
     address public constant USDC_ADDRESS =

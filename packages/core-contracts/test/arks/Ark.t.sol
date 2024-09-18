@@ -15,11 +15,11 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 
-contract ArkTest is Test, IArkEvents, ArkTestHelpers {
+contract ArkTest is Test, IArkEvents, TestHelpers {
     ArkMock public ark;
     RestictedWithdrawalArkMock public unrestrictedArk;
     ArkMock public otherArk;

@@ -10,11 +10,11 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 import "../../src/contracts/arks/MetaMorphoArk.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import "../../src/events/IArkEvents.sol";
 
-contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
+contract MetaMorphoArkTestFork is Test, IArkEvents, TestHelpers {
     MetaMorphoArk public ark;
     address public governor = address(1);
     address public raft = address(2);
