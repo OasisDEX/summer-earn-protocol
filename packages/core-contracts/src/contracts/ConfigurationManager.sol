@@ -17,21 +17,42 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      * @notice The address of the Raft contract
      * @dev This is where rewards and farmed tokens are sent for processing
      */
-    address public raft;
+    address public _raft;
 
     /**
      * @notice The address of the TipJar contract
      * @dev This is the contract that owns tips and is responsible for
      *      dispensing them to claimants
      */
-    address public tipJar;
+    address public _tipJar;
 
     /**
      * @notice The address of the Treasury contract
      * @dev This is the contract that owns the treasury and is responsible for
      *      dispensing funds to the protocol's operations
      */
-    address public treasury;
+    address public _treasury;
+
+    function raft() external view override returns (address) {
+        if (_raft == address(0)) {
+            revert RaftNotSet();
+        }
+        return _raft;
+    }
+
+    function tipJar() external view override returns (address) {
+        if (_tipJar == address(0)) {
+            revert TipJarNotSet();
+        }
+        return _tipJar;
+    }
+
+    function treasury() external view override returns (address) {
+        if (_treasury == address(0)) {
+            revert TreasuryNotSet();
+        }
+        return _treasury;
+    }
 
     /**
      * @notice Constructs the ConfigurationManager contract
@@ -45,9 +66,16 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         if (initialized) {
             revert ConfigurationManagerAlreadyInitialized();
         }
-        raft = params.raft;
-        tipJar = params.tipJar;
-        treasury = params.treasury;
+        if (
+            params.raft == address(0) ||
+            params.tipJar == address(0) ||
+            params.treasury == address(0)
+        ) {
+            revert AddressZero();
+        }
+        _raft = params.raft;
+        _tipJar = params.tipJar;
+        _treasury = params.treasury;
         initialized = true;
     }
     /**
@@ -57,7 +85,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      * @dev Emits a RaftUpdated event
      */
     function setRaft(address newRaft) external onlyGovernor {
-        raft = newRaft;
+        _raft = newRaft;
         emit RaftUpdated(newRaft);
     }
 
@@ -68,7 +96,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      * @dev Emits a TipJarUpdated event
      */
     function setTipJar(address newTipJar) external onlyGovernor {
-        tipJar = newTipJar;
+        _tipJar = newTipJar;
         emit TipJarUpdated(newTipJar);
     }
 
@@ -79,7 +107,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      * @dev Emits a TreasuryUpdated event
      */
     function setTreasury(address newTreasury) external onlyGovernor {
-        treasury = newTreasury;
+        _treasury = newTreasury;
         emit TreasuryUpdated(newTreasury);
     }
 }

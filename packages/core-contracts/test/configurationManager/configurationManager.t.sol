@@ -160,21 +160,15 @@ contract ConfigurationManagerTest is Test {
     function test_SetRaftToZeroAddress() public {
         vm.prank(governor);
         configurationManager.setRaft(address(0));
-        assertEq(
-            configurationManager.raft(),
-            address(0),
-            "Raft address should be set to zero address"
-        );
+        vm.expectRevert(abi.encodeWithSignature("RaftNotSet()"));
+        configurationManager.raft();
     }
 
     function test_SetTipJarToZeroAddress() public {
         vm.prank(governor);
         configurationManager.setTipJar(address(0));
-        assertEq(
-            configurationManager.tipJar(),
-            address(0),
-            "TipJar address should be set to zero address"
-        );
+        vm.expectRevert(abi.encodeWithSignature("TipJarNotSet()"));
+        configurationManager.tipJar();
     }
 
     function test_SetTreasuryByGovernor() public {
@@ -202,10 +196,7 @@ contract ConfigurationManagerTest is Test {
     function test_SetTreasuryToZeroAddress() public {
         vm.prank(governor);
         configurationManager.setTreasury(address(0));
-        assertEq(
-            configurationManager.treasury(),
-            address(0),
-            "Treasury address should be set to zero address"
-        );
+        vm.expectRevert(abi.encodeWithSignature("TreasuryNotSet()"));
+        configurationManager.treasury();
     }
 }
