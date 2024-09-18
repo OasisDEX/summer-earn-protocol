@@ -87,7 +87,10 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, TestHelpers {
 
         // Expect the ArkPoked event to be emitted
         vm.expectEmit();
-        emit ArkPoked(metaMorpho.convertToAssets(WAD), block.timestamp);
+        emit ArkPoked(
+            metaMorpho.convertToAssets(Constants.WAD),
+            block.timestamp
+        );
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -198,13 +201,16 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, TestHelpers {
 
         // Case 1 - Ark poked in the right time
         vm.expectEmit();
-        emit ArkPoked(metaMorpho.convertToAssets(WAD), block.timestamp);
+        emit ArkPoked(
+            metaMorpho.convertToAssets(Constants.WAD),
+            block.timestamp
+        );
         ark.poke();
 
-        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
+        uint256 currentPrice = metaMorpho.convertToAssets(Constants.WAD);
         vm.mockCall(
             address(metaMorpho),
-            abi.encodeWithSignature("convertToAssets(uint256)", WAD),
+            abi.encodeWithSignature("convertToAssets(uint256)", Constants.WAD),
             abi.encode(currentPrice)
         );
 
@@ -222,7 +228,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, TestHelpers {
 
         vm.mockCall(
             address(metaMorpho),
-            abi.encodeWithSignature("convertToAssets(uint256)", WAD),
+            abi.encodeWithSignature("convertToAssets(uint256)", Constants.WAD),
             abi.encode(currentPrice + 1)
         );
 
