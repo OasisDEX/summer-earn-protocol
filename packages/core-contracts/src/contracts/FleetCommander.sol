@@ -53,6 +53,8 @@ contract FleetCommander is
      * @dev Modifier to cache ark data for deposit operations.
      * @notice This modifier retrieves ark data before the function execution,
      *         allows the modified function to run, and then flushes the cache.
+     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
+     *         those calls migh be gas expensive for some arks.
      */
     modifier useDepositCache() {
         _getArksData(arks, config.bufferArk);
@@ -64,6 +66,8 @@ contract FleetCommander is
      * @dev Modifier to cache withdrawable ark data for withdraw operations.
      * @notice This modifier retrieves withdrawable ark data before the function execution,
      *         allows the modified function to run, and then flushes the cache.
+     * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
+     *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
         _getWithdrawableArksData(arks, config.bufferArk, isArkWithdrawable);
