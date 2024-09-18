@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Test} from "forge-std/Test.sol";
 
 import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
@@ -21,7 +21,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Buffer adjustment
  * - Error cases and edge scenarios
  */
-contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
