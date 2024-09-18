@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Test} from "forge-std/Test.sol";
 
 import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
@@ -21,7 +21,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * - Buffer adjustment
  * - Error cases and edge scenarios
  */
-contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
@@ -38,24 +38,24 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
         // Get the bufferArk from FleetCommander config
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
         // Mock token balance
-        mockToken.mint(address(bufferArk), initialBufferBalance);
+        mockToken.mint(address(config.bufferArk), initialBufferBalance);
 
         // Mock Ark behavior
 
         // Prepare rebalance data
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: address(config.bufferArk),
             toArk: ark1,
             amount: ark1RebalanceAmount,
             boardData: bytes(""),
             disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: address(config.bufferArk),
             toArk: ark2,
             amount: ark2RebalanceAmount,
             boardData: bytes(""),
@@ -88,14 +88,14 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         RebalanceData[] memory rebalanceFromData = new RebalanceData[](2);
         rebalanceFromData[0] = RebalanceData({
             fromArk: ark1,
-            toArk: address(bufferArk),
+            toArk: address(config.bufferArk),
             amount: ark1RebalanceAmount,
             boardData: bytes(""),
             disembarkData: bytes("")
         });
         rebalanceFromData[1] = RebalanceData({
             fromArk: ark2,
-            toArk: address(bufferArk),
+            toArk: address(config.bufferArk),
             amount: ark2RebalanceAmount,
             boardData: bytes(""),
             disembarkData: bytes("")
@@ -108,7 +108,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Assert round 2
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should be equal to initialBufferBalance - all funds moved back to buffer"
         );
@@ -295,28 +295,28 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 ark2RebalanceAmount = 2000 * 10 ** 6;
         uint256 ark3RebalanceAmount = 1000 * 10 ** 6;
 
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
-        mockToken.mint(address(bufferArk), initialBufferBalance);
+        mockToken.mint(address(config.bufferArk), initialBufferBalance);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](3);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: address(config.bufferArk),
             toArk: ark1,
             amount: ark1RebalanceAmount,
             boardData: bytes(""),
             disembarkData: bytes("")
         });
         rebalanceData[1] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: address(config.bufferArk),
             toArk: ark2,
             amount: ark2RebalanceAmount,
             boardData: bytes(""),
             disembarkData: bytes("")
         });
         rebalanceData[2] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: address(config.bufferArk),
             toArk: ark3,
             amount: ark3RebalanceAmount,
             boardData: bytes(""),
@@ -330,7 +330,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         // Assert
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance -
                 ark1RebalanceAmount -
                 ark2RebalanceAmount -
@@ -347,14 +347,14 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 minBufferBalance = 10000 * 10 ** 6;
         uint256 maxRebalanceAmount = initialBufferBalance - minBufferBalance;
 
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
-        mockToken.mint(address(bufferArk), initialBufferBalance);
+        mockToken.mint(address(config.bufferArk), initialBufferBalance);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: address(config.bufferArk),
             toArk: ark1,
             amount: maxRebalanceAmount,
             boardData: bytes(""),
@@ -367,7 +367,7 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.adjustBuffer(rebalanceData);
 
         // Assert
-        assertEq(bufferArk.totalAssets(), minBufferBalance);
+        assertEq(config.bufferArk.totalAssets(), minBufferBalance);
         assertEq(mockArk1.totalAssets(), maxRebalanceAmount);
     }
 
@@ -592,13 +592,13 @@ contract BufferTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
-        mockToken.mint(address(bufferArk), initialBufferBalance);
+        mockToken.mint(address(config.bufferArk), initialBufferBalance);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
-            fromArk: address(bufferArk),
+            fromArk: address(config.bufferArk),
             toArk: ark1,
             amount: rebalanceAmount,
             boardData: bytes(""),

@@ -3,13 +3,15 @@ pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol";
 
 import "../../src/events/IArkEvents.sol";
 import "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -23,7 +25,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * - Rebalancing operations
  * - Error cases and edge scenarios
  */
-contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
@@ -60,9 +62,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -105,9 +107,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -156,9 +158,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
 
         // Assert
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );
@@ -482,9 +484,9 @@ contract RebalanceTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.forceRebalance(rebalanceData);
 
         // Assert
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         assertEq(
-            bufferArk.totalAssets(),
+            config.bufferArk.totalAssets(),
             initialBufferBalance,
             "Buffer balance should remain unchanged"
         );

@@ -12,11 +12,11 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 
-contract ArkTestBase is Test {
+contract ArkTestBase is TestHelpers {
     address public governor = address(1);
     address public commander = address(4);
     address public raft = address(2);

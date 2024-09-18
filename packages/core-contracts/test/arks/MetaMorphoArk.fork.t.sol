@@ -10,17 +10,10 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 import "../../src/contracts/arks/MetaMorphoArk.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-
 import "../../src/events/IArkEvents.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract MetaMorphoArkTestFork is
-    Test,
-    IArkEvents,
-    ArkTestHelpers,
-    ArkTestBase
-{
+contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     MetaMorphoArk public ark;
 
     address public constant METAMORPHO_ADDRESS =
@@ -78,7 +71,10 @@ contract MetaMorphoArkTestFork is
 
         // Expect the ArkPoked event to be emitted
         vm.expectEmit();
-        emit ArkPoked(metaMorpho.convertToAssets(WAD), block.timestamp);
+        emit ArkPoked(
+            metaMorpho.convertToAssets(Constants.WAD),
+            block.timestamp
+        );
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -189,13 +185,16 @@ contract MetaMorphoArkTestFork is
 
         // Case 1 - Ark poked in the right time
         vm.expectEmit();
-        emit ArkPoked(metaMorpho.convertToAssets(WAD), block.timestamp);
+        emit ArkPoked(
+            metaMorpho.convertToAssets(Constants.WAD),
+            block.timestamp
+        );
         ark.poke();
 
-        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
+        uint256 currentPrice = metaMorpho.convertToAssets(Constants.WAD);
         vm.mockCall(
             address(metaMorpho),
-            abi.encodeWithSignature("convertToAssets(uint256)", WAD),
+            abi.encodeWithSignature("convertToAssets(uint256)", Constants.WAD),
             abi.encode(currentPrice)
         );
 
@@ -213,7 +212,7 @@ contract MetaMorphoArkTestFork is
 
         vm.mockCall(
             address(metaMorpho),
-            abi.encodeWithSignature("convertToAssets(uint256)", WAD),
+            abi.encodeWithSignature("convertToAssets(uint256)", Constants.WAD),
             abi.encode(currentPrice + 1)
         );
 

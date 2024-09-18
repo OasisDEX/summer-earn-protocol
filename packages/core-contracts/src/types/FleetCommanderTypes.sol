@@ -48,6 +48,10 @@ struct FleetConfig {
      *      of the underlying asset.
      */
     uint256 depositCap;
+    /**
+     * @notice The maximum number of rebalance operations in a single rebalance
+     */
+    uint256 maxRebalanceOperations;
 }
 
 /**
@@ -65,4 +69,17 @@ struct RebalanceData {
     uint256 amount;
     bytes boardData;
     bytes disembarkData;
+}
+
+/**
+ * @title ArkData
+ * @dev Struct to store information about an Ark.
+ * This struct holds the address of the Ark and the total assets it holds.
+ * @dev used in the caching mechanism for the FleetCommander
+ */
+struct ArkData {
+    /// @notice The address of the Ark.
+    address arkAddress;
+    /// @notice The total assets held by the Ark.
+    uint256 totalAssets;
 }
