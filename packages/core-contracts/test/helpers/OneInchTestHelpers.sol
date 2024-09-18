@@ -9,7 +9,7 @@ import {console} from "forge-std/console.sol";
  * This contract is designed to work with 1inch's unoswap function, which allows for efficient
  * token swaps across various DEX protocols.
  */
-contract OneInchHelpers {
+contract OneInchTestHelpers {
     // Custom type to represent addresses as uint256 for bitwise operations
     type Address is uint256;
 

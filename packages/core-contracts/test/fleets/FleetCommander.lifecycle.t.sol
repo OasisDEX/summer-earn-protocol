@@ -2,7 +2,7 @@
 pragma solidity 0.8.26;
 
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
@@ -10,7 +10,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
  * @title Lifecycle test suite for FleetCommander
  * @dev Test suite of full lifecycle tests EG Deposit -> Rebalance -> WithdrawFromArks
  */
-contract LifecycleTest is ArkTestHelpers, FleetCommanderTestBase {
+contract LifecycleTest is TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
