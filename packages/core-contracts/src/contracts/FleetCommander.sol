@@ -15,6 +15,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @custom:see IFleetCommander
@@ -30,6 +31,8 @@ contract FleetCommander is
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
     using Math for uint256;
+
+    uint256 public constant DEFAULT_MAX_REBALANCE_OPERATIONS = 10;
 
     constructor(
         FleetCommanderParams memory params
@@ -606,7 +609,7 @@ contract FleetCommander is
     function _validateReallocateAllAssets(
         RebalanceData[] calldata rebalanceData
     ) internal view {
-        if (rebalanceData.length > MAX_REBALANCE_OPERATIONS) {
+        if (rebalanceData.length > config.maxRebalanceOperations) {
             revert FleetCommanderRebalanceTooManyOperations(
                 rebalanceData.length
             );

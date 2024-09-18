@@ -19,6 +19,7 @@ import "../../src/contracts/arks/ERC4626Ark.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
@@ -436,12 +437,12 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         uint256 amountPerArk
     ) internal {
         address[] memory arks = fleet.getArks();
-        (IArk bufferArk, , ) = fleet.config();
+        FleetConfig memory config = fleet.getConfig();
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](arks.length);
         for (uint256 i = 0; i < arks.length; i++) {
             rebalanceData[i] = RebalanceData({
-                fromArk: address(bufferArk),
+                fromArk: address(config.bufferArk),
                 toArk: arks[i],
                 amount: amountPerArk,
                 boardData: bytes(""),

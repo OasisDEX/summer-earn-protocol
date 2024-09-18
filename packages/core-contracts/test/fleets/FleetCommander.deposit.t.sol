@@ -9,6 +9,7 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title Deposit test suite for FleetCommander
@@ -223,8 +224,8 @@ contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
         uint256 amount = DEPOSIT_AMOUNT;
         mockToken.mint(mockUser, amount);
 
-        (IArk bufferArk, , ) = fleetCommander.config();
-        uint256 initialBufferBalance = bufferArk.totalAssets();
+        FleetConfig memory config = fleetCommander.getConfig();
+        uint256 initialBufferBalance = config.bufferArk.totalAssets();
 
         vm.startPrank(mockUser);
         mockToken.approve(address(fleetCommander), amount);

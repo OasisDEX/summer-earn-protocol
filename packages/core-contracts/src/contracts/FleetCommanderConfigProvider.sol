@@ -30,7 +30,8 @@ contract FleetCommanderConfigProvider is
             FleetConfig({
                 bufferArk: IArk(params.bufferArk),
                 minimumBufferBalance: params.initialMinimumBufferBalance,
-                depositCap: params.depositCap
+                depositCap: params.depositCap,
+                maxRebalanceOperations: MAX_REBALANCE_OPERATIONS
             })
         );
         isArkActive[address(config.bufferArk)] = true;
@@ -43,7 +44,11 @@ contract FleetCommanderConfigProvider is
         return arks;
     }
 
+    function getConfig() external view override returns (FleetConfig memory) {
+        return config;
+    }
     // ARK MANAGEMENT
+
     function addArk(address ark) external onlyGovernor {
         _addArk(ark);
     }
@@ -98,7 +103,16 @@ contract FleetCommanderConfigProvider is
 
     function setFleetDepositCap(uint256 newCap) external onlyGovernor {
         config.depositCap = newCap;
-        emit DepositCapUpdated(newCap);
+        emit FleetCommanderDepositCapUpdated(newCap);
+    }
+
+    function setMaxRebalanceOperations(
+        uint256 newMaxRebalanceOperations
+    ) external onlyGovernor {
+        config.maxRebalanceOperations = newMaxRebalanceOperations;
+        emit FleetCommanderMaxRebalanceOperationsUpdated(
+            newMaxRebalanceOperations
+        );
     }
 
     function setFleetConfig(FleetConfig memory _config) internal {
