@@ -45,18 +45,18 @@ contract RestictedWithdrawalArkMock is Ark {
     /**
      * @notice Simulates boarding (depositing) assets into the Ark
      * @param amount The amount of assets to board
-     * @param data Additional data for boarding (must be a uint256 for this mock)
+     * @param // data /// Additional data for boarding (must be a uint256 for this mock)
      */
-    function _board(uint256 amount, bytes calldata data) internal override {
+    function _board(uint256 amount, bytes calldata) internal override {
         userBalances[msg.sender] += amount;
     }
 
     /**
      * @notice Simulates disembarking (withdrawing) assets from the Ark
      * @param amount The amount of assets to disembark
-     * @param data Additional data for disembarking (must be a uint256 for this mock)
+     * @param /// data /// Additional data for disembarking (must be a uint256 for this mock)
      */
-    function _disembark(uint256 amount, bytes calldata data) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal override {
         require(userBalances[msg.sender] >= amount, "Insufficient balance");
         userBalances[msg.sender] -= amount;
     }

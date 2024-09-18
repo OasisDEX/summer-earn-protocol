@@ -3,14 +3,18 @@ pragma solidity ^0.8.20;
 
 import {SummerGovernor} from "../../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
-import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
+
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
 
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import "@openzeppelin/contracts/governance/TimelockController.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "forge-std/Test.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 /*
  * @title MockERC20Votes
@@ -105,14 +109,6 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
         vm.label(address(timelock), "TimelockController");
 
-        votingDecayManager = new VotingDecayManager(
-            INITIAL_DECAY_FREE_WINDOW,
-            INITIAL_DECAY_RATE_PER_SECOND,
-            VotingDecayLibrary.DecayFunction.Linear,
-            address(this)
-        );
-        vm.label(address(votingDecayManager), "VotingDecayManager");
-
         SummerGovernor.GovernorParams memory params = SummerGovernor
             .GovernorParams({
                 token: IVotes(address(token)),
@@ -122,7 +118,9 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
-                votingDecayManager: votingDecayManager
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
 
         governor = new SummerGovernor(params);
@@ -149,7 +147,9 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0),
-                votingDecayManager: votingDecayManager
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -165,10 +165,6 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         assertEq(governor.proposalThreshold(), PROPOSAL_THRESHOLD);
         assertEq(governor.quorumNumerator(), QUORUM_FRACTION);
         assertEq(governor.getWhitelistGuardian(), whitelistGuardian);
-        assertEq(
-            address(governor.votingDecayManager()),
-            address(votingDecayManager)
-        );
     }
 
     /*
@@ -547,7 +543,9 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 proposalThreshold: belowMin,
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0x5),
-                votingDecayManager: votingDecayManager
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
 
         vm.expectRevert(

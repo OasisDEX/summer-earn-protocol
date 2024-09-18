@@ -6,13 +6,6 @@ import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensi
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {VotingDecayLibrary} from "../src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "../src/VotingDecayManager.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-
-// TODO: Refactor to only use VotingDecayManager when proposing or casting votes
 
 /**
  * @title ExampleGovernance

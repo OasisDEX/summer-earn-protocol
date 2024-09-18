@@ -493,7 +493,7 @@ contract WithdrawTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_WithdrawForce_withNonWithdrawableArk() public {
         (IArk bufferArk, , ) = fleetCommander.config();
-        uint256 depositShares = fleetCommander.balanceOf(mockUser);
+        /* uint256 depositShares = */ fleetCommander.balanceOf(mockUser);
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);

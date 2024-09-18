@@ -3,13 +3,18 @@ pragma solidity 0.8.26;
 
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 
-import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {GovernorTimelockControl, TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
+
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
 
 contract SummerGovernor is
     ISummerGovernor,
@@ -17,7 +22,8 @@ contract SummerGovernor is
     GovernorTimelockControl,
     GovernorSettings,
     GovernorCountingSimple,
-    GovernorVotesQuorumFraction
+    GovernorVotesQuorumFraction,
+    VotingDecayManager
 {
     // ===============================================
     // Constants
@@ -46,6 +52,9 @@ contract SummerGovernor is
         uint256 proposalThreshold;
         uint256 quorumFraction;
         address initialWhitelistGuardian;
+        uint40 initialDecayFreeWindow;
+        uint256 initialDecayRate;
+        VotingDecayLibrary.DecayFunction initialDecayFunction;
     }
 
     /**
@@ -64,6 +73,11 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
+        VotingDecayManager(
+            params.initialDecayFreeWindow,
+            params.initialDecayRate,
+            params.initialDecayFunction
+        )
     {
         if (
             params.proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
@@ -435,5 +449,11 @@ contract SummerGovernor is
         }
         config.whitelistGuardian = _whitelistGuardian;
         emit WhitelistGuardianSet(_whitelistGuardian);
+    }
+
+    function _getDelegateTo(
+        address account
+    ) internal view override returns (address) {
+        return token().delegates(account);
     }
 }
