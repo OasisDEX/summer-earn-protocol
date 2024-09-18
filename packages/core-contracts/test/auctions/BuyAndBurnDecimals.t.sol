@@ -17,12 +17,12 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
 
     function setUp() public override {
         super.setUp();
-
+        console.log("configuaration manager", address(configurationManager));
         summerToken = new SummerToken();
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
-            treasury,
             address(accessManager),
+            address(configurationManager),
             defaultParams
         );
 

@@ -30,8 +30,8 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         summerToken = new SummerToken();
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
-            treasury,
             address(accessManager),
+            address(configurationManager),
             defaultParams
         );
 
@@ -59,8 +59,8 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     function test_Constructor() public {
         BuyAndBurn newBuyAndBurn = new BuyAndBurn(
             address(summerToken),
-            treasury,
             address(accessManager),
+            address(configurationManager),
             defaultParams
         );
         (
@@ -210,13 +210,6 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
             Percentage.unwrap(defaultParams.kickerRewardPercentage)
         );
         assertEq(uint256(decayType), uint256(defaultParams.decayType));
-    }
-
-    function test_SetTreasury() public {
-        address newTreasury = address(4);
-        vm.prank(governor);
-        buyAndBurn.setTreasury(newTreasury);
-        assertEq(buyAndBurn.treasury(), newTreasury);
     }
 
     function test_MultipleAuctionsCycle() public {

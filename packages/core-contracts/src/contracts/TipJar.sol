@@ -9,6 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
  * @title TipJar
@@ -20,18 +21,18 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
 
     mapping(address recipient => TipStream tipStream) public tipStreams;
     address[] public tipStreamRecipients;
-    address public treasuryAddress;
+    IConfigurationManager public manager;
 
     /**
      * @notice Constructs a new TipJar contract
-     * @param accessManager The address of the access manager contract
-     * @param treasuryAddress_ The address of the treasury to receive remaining funds
+     * @param _accessManager The address of the access manager contract
+     * @param _configurationManager The address of the configuration manager contract
      */
     constructor(
-        address accessManager,
-        address treasuryAddress_
-    ) ProtocolAccessManaged(accessManager) {
-        treasuryAddress = treasuryAddress_;
+        address _accessManager,
+        address _configurationManager
+    ) ProtocolAccessManaged(_accessManager) {
+        manager = IConfigurationManager(_configurationManager);
     }
 
     /**
@@ -153,19 +154,6 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     }
 
     /**
-     * @notice Sets a new treasury address
-     * @param newTreasuryAddress The new address for the treasury
-     */
-    function setTreasuryAddress(
-        address newTreasuryAddress
-    ) external onlyGovernor {
-        if (newTreasuryAddress == address(0)) {
-            revert InvalidTreasuryAddress();
-        }
-        treasuryAddress = newTreasuryAddress;
-    }
-
-    /**
      * @notice Distributes accumulated tips from a single FleetCommander
      * @param fleetCommander_ The address of the FleetCommander contract to distribute tips from
      */
@@ -218,7 +206,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         // Transfer remaining balance to treasury
         uint256 remaining = withdrawnAssets - totalDistributed;
         if (remaining > 0) {
-            underlyingAsset.transfer(treasuryAddress, remaining);
+            underlyingAsset.transfer(manager.treasury(), remaining);
         }
 
         emit TipJarShaken(address(fleetCommander), withdrawnAssets);

@@ -2,10 +2,10 @@
 pragma solidity 0.8.26;
 
 /**
- * @notice Constructor parameters for the ConfigurationManager contract
+ * @notice Initialization parameters for the ConfigurationManager contract
  */
 struct ConfigurationManagerParams {
-    address accessManager;
     address raft;
     address tipJar;
+    address treasury;
 }

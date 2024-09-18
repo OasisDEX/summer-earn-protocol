@@ -13,13 +13,10 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract CompoundV3ArkTest is Test, IArkEvents {
+contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;
-    address public governor = address(1);
-    address public raft = address(2);
-    address public tipJar = address(3);
-    address public commander = address(4);
 
     address public constant cometAddress =
         0xc3d688B66703497DAA19211EEdff47f25384cdc3;
@@ -31,22 +28,11 @@ contract CompoundV3ArkTest is Test, IArkEvents {
     uint256 forkId;
 
     function setUp() public {
+        initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
         comet = IComet(cometAddress);
-
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
-
-        IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
 
         ArkParams memory params = ArkParams({
             name: "TestArk",

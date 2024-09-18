@@ -62,6 +62,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     address public ark4 = address(14);
     address public bufferArkAddress = address(13);
     address public invalidArk = address(999);
+    address public treasury = address(777);
     address public nonOwner = address(0xdeadbeef);
 
     // Other variables
@@ -111,10 +112,14 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
+                address(accessManager)
+            );
+            vm.prank(governor);
+            configurationManager.initialize(
                 ConfigurationManagerParams({
-                    accessManager: address(accessManager),
-                    tipJar: tipJar,
-                    raft: raft
+                    raft: address(raft),
+                    tipJar: address(tipJar),
+                    treasury: treasury
                 })
             );
         }

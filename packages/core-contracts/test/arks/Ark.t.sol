@@ -15,33 +15,17 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract ArkTest is Test, IArkEvents, TestHelpers {
+contract ArkTest is Test, IArkEvents, ArkTestBase {
     ArkMock public ark;
     RestictedWithdrawalArkMock public unrestrictedArk;
     ArkMock public otherArk;
-    address public governor = address(1);
-    address public commander = address(4);
-    address public raft = address(2);
-    ERC20Mock public mockToken;
-    IProtocolAccessManager accessManager;
-    IConfigurationManager configurationManager;
 
     function setUp() public {
-        mockToken = new ERC20Mock();
-
-        accessManager = new ProtocolAccessManager(governor);
-
-        configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                raft: raft,
-                tipJar: address(0)
-            })
-        );
+        initializeCoreContracts();
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
@@ -61,7 +45,7 @@ contract ArkTest is Test, IArkEvents, TestHelpers {
         unrestrictedArk = new RestictedWithdrawalArkMock(params);
     }
 
-    function test_Constructor() public {
+    function test_ConstructorZ() public {
         ArkParams memory params = ArkParams({
             name: "",
             accessManager: address(0),
@@ -103,9 +87,7 @@ contract ArkTest is Test, IArkEvents, TestHelpers {
 
         vm.prank(governor);
         configurationManager.setRaft(address(0));
-        vm.expectRevert(
-            abi.encodeWithSignature("CannotDeployArkWithoutRaft()")
-        );
+        vm.expectRevert(abi.encodeWithSignature("RaftNotSet()"));
         params.name = "TestArk";
         new ArkMock(params);
 

@@ -13,43 +13,28 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract ERC4626ArkTestFork is Test, IArkEvents {
+contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
     ERC4626Ark public ark;
-    address public governor = address(1);
-    address public raft = address(2);
-    address public tipJar = address(3);
-    address public commander = address(4);
+    IERC4626 public vault;
+    IERC20 public usdc;
+    ArkParams public params;
 
     address public constant VAULT_ADDRESS =
         0xda00000035fef4082F78dEF6A8903bee419FbF8E;
     address public constant USDC_ADDRESS =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
-    IERC4626 public vault;
-    IERC20 public usdc;
-    ArkParams public params;
-
     uint256 forkBlock = 20000000; // A recent block number
     uint256 forkId;
 
     function setUp() public {
+        initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         usdc = IERC20(USDC_ADDRESS);
         vault = IERC4626(VAULT_ADDRESS);
-
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
-
-        IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
 
         params = ArkParams({
             name: "USDC ERC4626 Ark",
