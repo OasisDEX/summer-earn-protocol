@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 abstract contract ConfigurationManagerMock is IConfigurationManager {
     address public tipJar;
@@ -11,7 +12,7 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
         tipJar = _tipJar;
         treasury = _treasury;
     }
-
+    function initialize(ConfigurationManagerParams memory params) external {}
     function raft() external pure returns (address) {}
 
     function tipRate() external pure returns (uint256) {}

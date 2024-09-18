@@ -37,9 +37,10 @@ contract AuctionTestBase is Test {
     function setUp() public virtual {
         KICKER_REWARD_PERCENTAGE = 0;
         accessManager = new ProtocolAccessManager(governor);
-        configurationManager = new ConfigurationManager(
+        configurationManager = new ConfigurationManager(address(accessManager));
+        vm.prank(governor);
+        configurationManager.initialize(
             ConfigurationManagerParams({
-                accessManager: address(accessManager),
                 raft: address(0),
                 tipJar: address(0),
                 treasury: treasury

@@ -12,6 +12,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
  * @dev Implements the IConfigurationManager interface and inherits from ProtocolAccessManaged
  */
 contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
+    bool public initialized;
     /**
      * @notice The address of the Raft contract
      * @dev This is where rewards and farmed tokens are sent for processing
@@ -34,16 +35,20 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
 
     /**
      * @notice Constructs the ConfigurationManager contract
-     * @param params A struct containing the initial configuration parameters
+     * @param _accessManager The address of the ProtocolAccessManager contract
      */
-    constructor(
+    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
+
+    function initialize(
         ConfigurationManagerParams memory params
-    ) ProtocolAccessManaged(params.accessManager) {
+    ) external onlyGovernor {
+        if (initialized) {
+            revert ConfigurationManagerAlreadyInitialized();
+        }
         raft = params.raft;
         tipJar = params.tipJar;
         treasury = params.treasury;
     }
-
     /**
      * @notice Sets a new address for the Raft contract
      * @param newRaft The new address for the Raft contract

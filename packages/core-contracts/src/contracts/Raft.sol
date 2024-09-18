@@ -29,9 +29,9 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         public paymentTokensToBoard;
 
     constructor(
-        address accessManager,
+        address _accessManager,
         AuctionDefaultParameters memory defaultParameters
-    ) ArkAccessManaged(accessManager) AuctionManagerBase(defaultParameters) {}
+    ) ArkAccessManaged(_accessManager) AuctionManagerBase(defaultParameters) {}
 
     /* @inheritdoc IRaft */
     function harvestAndStartAuction(

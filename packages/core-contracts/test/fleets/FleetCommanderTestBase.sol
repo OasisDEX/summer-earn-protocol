@@ -112,10 +112,13 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
+                address(accessManager)
+            );
+            vm.prank(governor);
+            configurationManager.initialize(
                 ConfigurationManagerParams({
-                    accessManager: address(accessManager),
-                    tipJar: tipJar,
-                    raft: raft,
+                    raft: address(raft),
+                    tipJar: address(0),
                     treasury: treasury
                 })
             );

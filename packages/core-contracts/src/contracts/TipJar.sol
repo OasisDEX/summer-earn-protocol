@@ -25,13 +25,13 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
 
     /**
      * @notice Constructs a new TipJar contract
-     * @param accessManager The address of the access manager contract
+     * @param _accessManager The address of the access manager contract
      * @param _configurationManager The address of the configuration manager contract
      */
     constructor(
-        address accessManager,
+        address _accessManager,
         address _configurationManager
-    ) ProtocolAccessManaged(accessManager) {
+    ) ProtocolAccessManaged(_accessManager) {
         manager = IConfigurationManager(_configurationManager);
     }
 

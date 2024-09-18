@@ -16,7 +16,7 @@ import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 
-contract ArkTestBase {
+contract ArkTestBase is Test {
     address public governor = address(1);
     address public commander = address(4);
     address public raft = address(2);
@@ -34,8 +34,11 @@ contract ArkTestBase {
         }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
+                address(accessManager)
+            );
+            vm.prank(governor);
+            configurationManager.initialize(
                 ConfigurationManagerParams({
-                    accessManager: address(accessManager),
                     tipJar: tipJar,
                     raft: raft,
                     treasury: treasury
