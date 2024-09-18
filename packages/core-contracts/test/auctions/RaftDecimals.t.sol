@@ -24,7 +24,6 @@ contract RaftDecimalsTest is AuctionTestBase {
     using PercentageUtils for uint256;
 
     Raft public raft;
-    ConfigurationManager public configurationManager;
     ArkMock public mockArk18Dec;
     ArkMock public mockArk6Dec;
     ArkMock public mockArk8Dec;
@@ -47,7 +46,8 @@ contract RaftDecimalsTest is AuctionTestBase {
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
                 raft: address(raft),
-                tipJar: address(0)
+                tipJar: address(0),
+                treasury: treasury
             })
         );
 

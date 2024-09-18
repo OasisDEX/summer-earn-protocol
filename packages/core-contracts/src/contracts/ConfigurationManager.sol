@@ -26,6 +26,13 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     address public tipJar;
 
     /**
+     * @notice The address of the Treasury contract
+     * @dev This is the contract that owns the treasury and is responsible for
+     *      dispensing funds to the protocol's operations
+     */
+    address public treasury;
+
+    /**
      * @notice Constructs the ConfigurationManager contract
      * @param params A struct containing the initial configuration parameters
      */
@@ -34,6 +41,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     ) ProtocolAccessManaged(params.accessManager) {
         raft = params.raft;
         tipJar = params.tipJar;
+        treasury = params.treasury;
     }
 
     /**
@@ -56,5 +64,16 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     function setTipJar(address newTipJar) external onlyGovernor {
         tipJar = newTipJar;
         emit TipJarUpdated(newTipJar);
+    }
+
+    /**
+     * @notice Sets a new address for the Treasury contract
+     * @param newTreasury The new address for the Treasury contract
+     * @dev Can only be called by the governor
+     * @dev Emits a TreasuryUpdated event
+     */
+    function setTreasury(address newTreasury) external onlyGovernor {
+        treasury = newTreasury;
+        emit TreasuryUpdated(newTreasury);
     }
 }

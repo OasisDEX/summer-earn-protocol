@@ -36,7 +36,10 @@ contract TipJarTest is Test, ITipJarEvents {
         accessManager.grantKeeperRole(keeper);
 
         underlyingToken = new ERC20Mock();
-        configManager = new ConfigurationManagerImplMock(address(tipJar));
+        configManager = new ConfigurationManagerImplMock(
+            address(tipJar),
+            treasury
+        );
 
         Percentage initialTipRate = PercentageUtils.fromIntegerPercentage(1); // 1%
         fleetCommander = new FleetCommanderMock(
@@ -45,20 +48,11 @@ contract TipJarTest is Test, ITipJarEvents {
             initialTipRate
         );
 
-        tipJar = new TipJar(address(accessManager), treasury);
+        tipJar = new TipJar(address(accessManager), address(configManager));
         configManager.setTipRate(100); // 1%
 
         vm.prank(address(fleetCommander));
         underlyingToken.approve(address(fleetCommander), type(uint256).max);
-    }
-
-    function test_Constructor() public {
-        assertEq(tipJar.treasuryAddress(), treasury);
-
-        // Test with a different treasury address
-        address newTreasury = address(42);
-        TipJar newTipJar = new TipJar(address(accessManager), newTreasury);
-        assertEq(newTipJar.treasuryAddress(), newTreasury);
     }
 
     function test_AddTipStream() public {
@@ -402,12 +396,6 @@ contract TipJarTest is Test, ITipJarEvents {
         tipJar.removeTipStream(nonexistentRecipient);
     }
 
-    function test_FailSetInvalidTreasuryAddress() public {
-        vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("InvalidTreasuryAddress()"));
-        tipJar.setTreasuryAddress(address(0));
-    }
-
     function test_FailShakeInvalidFleetCommanderAddress() public {
         vm.expectRevert(
             abi.encodeWithSignature("InvalidFleetCommanderAddress()")
@@ -539,18 +527,13 @@ contract TipJarTest is Test, ITipJarEvents {
             block.timestamp
         );
     }
-
-    function test_SetTreasuryAddress() public {
-        address newTreasury = address(6);
-
-        vm.prank(governor);
-        tipJar.setTreasuryAddress(newTreasury);
-        assertEq(tipJar.treasuryAddress(), newTreasury);
-    }
 }
 
 contract ConfigurationManagerImplMock is ConfigurationManagerMock {
-    constructor(address _tipJar) ConfigurationManagerMock(_tipJar) {}
+    constructor(
+        address _tipJar,
+        address _treasury
+    ) ConfigurationManagerMock(_tipJar, _treasury) {}
 
     function setTipJar(address newTipJar) external override {}
 }

@@ -24,7 +24,6 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     MockERC20 public mockRewardToken;
     MockERC20 public mockRewardToken2;
     MockERC20 public mockPaymentToken;
-    ConfigurationManager public configurationManager;
 
     uint256 constant REWARD_AMOUNT = 100000000;
 
@@ -40,7 +39,8 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             ConfigurationManagerParams({
                 accessManager: address(accessManager),
                 raft: address(raft),
-                tipJar: address(0)
+                tipJar: address(0),
+                treasury: treasury
             })
         );
 

@@ -16,13 +16,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract PendleLPArkTestFork is Test, IArkEvents {
+contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
     PendleLPArk public ark;
-    address public governor = address(1);
-    address public raft = address(2);
-    address public tipJar = address(3);
-    address public commander = address(4);
 
     address constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
     address constant MARKET = 0x19588F29f9402Bb508007FeADd415c875Ee3f19F;
@@ -38,28 +35,17 @@ contract PendleLPArkTestFork is Test, IArkEvents {
     IERC20 public usde;
     IPMarketV3 public pendleMarket;
     IPAllActionV3 public pendleRouter;
-    IProtocolAccessManager public accessManager;
-    IConfigurationManager public configurationManager;
 
     uint256 forkBlock = 20300752;
     uint256 forkId;
 
     function setUp() public {
+        initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         usde = IERC20(USDE);
         pendleMarket = IPMarketV3(MARKET);
         pendleRouter = IPAllActionV3(ROUTER);
-
-        accessManager = new ProtocolAccessManager(governor);
-
-        configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
 
         ArkParams memory params = ArkParams({
             name: "Pendle USDE LP Ark",

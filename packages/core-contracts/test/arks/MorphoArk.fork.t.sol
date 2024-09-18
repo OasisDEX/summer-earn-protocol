@@ -11,16 +11,10 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {IMorpho, IMorphoBase, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract MorphoArkTestFork is Test, IArkEvents {
+contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     MorphoArk public ark;
-    address public governor = address(1);
-    address public raft = address(2);
-    address public tipJar = address(3);
-    address public commander = address(4);
-
-    IConfigurationManager configurationManager;
-    IProtocolAccessManager accessManager;
     address public constant MORPHO_ADDRESS =
         0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
     address public constant METAMORPHO_ADDRESS =
@@ -42,20 +36,11 @@ contract MorphoArkTestFork is Test, IArkEvents {
     uint256 forkId;
 
     function setUp() public {
+        initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         morpho = IMorpho(MORPHO_ADDRESS);
         usdc = IERC20(USDC_ADDRESS);
-
-        accessManager = new ProtocolAccessManager(governor);
-
-        configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
 
         ArkParams memory params = ArkParams({
             name: "TestArk",

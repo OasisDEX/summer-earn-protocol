@@ -11,14 +11,11 @@ import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract AaveV3ArkTestFork is Test, IArkEvents {
+contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
-    address public governor = address(1);
-    address public raft = address(2);
-    address public tipJar = address(3);
-    address public commander = address(4);
 
     address public constant aaveV3PoolAddress =
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
@@ -36,22 +33,11 @@ contract AaveV3ArkTestFork is Test, IArkEvents {
     uint256 forkId;
 
     function setUp() public {
+        initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         dai = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
         aaveV3Pool = IPoolV3(aaveV3PoolAddress);
-
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            governor
-        );
-
-        IConfigurationManager configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
 
         ArkParams memory params = ArkParams({
             name: "TestArk",

@@ -53,6 +53,7 @@ export const CoreModule = buildModule('CoreModule', (m) => {
     kickerRewardPercentage: 5n * 10n ** 18n,
     decayType: DecayType.Linear,
   }
+
   const buyAndBurn = m.contract(
     'BuyAndBurn',
     [summerToken, treasury, protocolAccessManager, auctionDefaultParams],

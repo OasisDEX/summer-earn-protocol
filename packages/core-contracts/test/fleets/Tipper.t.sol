@@ -31,7 +31,7 @@ contract TipperTest is Test, ITipperEvents {
         tipJar = address(0x123);
         initialTipRate = PercentageUtils.fromIntegerPercentage(1);
         configManager = ConfigurationManagerMock(
-            address(new ConfigurationManagerImplMock(tipJar))
+            address(new ConfigurationManagerImplMock(tipJar, address(0)))
         );
         fleetCommander = new FleetCommanderMock(
             address(underlyingToken),
@@ -119,7 +119,7 @@ contract TipperTest is Test, ITipperEvents {
 
     function test_SetTipJarCannotBeZeroAddress() public {
         ConfigurationManagerMock _configManager = ConfigurationManagerMock(
-            address(new ConfigurationManagerImplMock(address(0)))
+            address(new ConfigurationManagerImplMock(address(0), address(0)))
         );
         FleetCommanderMock _fleetCommander = new FleetCommanderMock(
             address(underlyingToken),
@@ -218,7 +218,10 @@ contract TipperTest is Test, ITipperEvents {
 }
 
 contract ConfigurationManagerImplMock is ConfigurationManagerMock {
-    constructor(address _tipJar) ConfigurationManagerMock(_tipJar) {}
+    constructor(
+        address _tipJar,
+        address _treasury
+    ) ConfigurationManagerMock(_tipJar, _treasury) {}
 
     function setTipJar(address newTipJar) external override {
         tipJar = newTipJar;

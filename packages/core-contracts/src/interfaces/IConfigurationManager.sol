@@ -26,6 +26,13 @@ interface IConfigurationManager is
     function tipJar() external returns (address);
 
     /**
+     * @notice Get the current treasury address
+     * @return The current treasury address
+     */
+
+    function treasury() external returns (address);
+
+    /**
      * @notice Set a new address for the Raft contract
      * @param newRaft The new address for the Raft contract
      * @dev Can only be called by the governor
@@ -38,4 +45,11 @@ interface IConfigurationManager is
      * @dev Can only be called by the governor
      */
     function setTipJar(address newTipJar) external;
+
+    /**
+     * @notice Set a new treasury address
+     * @param newTreasury The address of the new treasury
+     * @dev Can only be called by the governor
+     */
+    function setTreasury(address newTreasury) external;
 }

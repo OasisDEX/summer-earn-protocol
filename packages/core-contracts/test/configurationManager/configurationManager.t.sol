@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import "../../src/contracts/ConfigurationManager.sol";
 import "../../src/contracts/ProtocolAccessManager.sol";
 import "forge-std/Test.sol";
+import {IConfigurationManagerEvents} from "../../src/events/IConfigurationManagerEvents.sol";
 
 contract ConfigurationManagerTest is Test {
     ConfigurationManager public configManager;
@@ -12,15 +13,14 @@ contract ConfigurationManagerTest is Test {
     address public nonGovernor;
     address public initialRaft;
     address public initialTipJar;
-
-    event RaftUpdated(address newRaft);
-    event TipJarUpdated(address newTipJar);
+    address public initialTreasury;
 
     function setUp() public {
         governor = address(1);
         nonGovernor = address(2);
         initialRaft = address(3);
         initialTipJar = address(4);
+        initialTreasury = address(5);
 
         // Setup AccessManager
         accessManager = new ProtocolAccessManager(governor);
@@ -29,7 +29,8 @@ contract ConfigurationManagerTest is Test {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             accessManager: address(accessManager),
             raft: initialRaft,
-            tipJar: initialTipJar
+            tipJar: initialTipJar,
+            treasury: initialTreasury
         });
         configManager = new ConfigurationManager(params);
     }
@@ -38,7 +39,8 @@ contract ConfigurationManagerTest is Test {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             accessManager: address(accessManager),
             raft: initialRaft,
-            tipJar: initialTipJar
+            tipJar: initialTipJar,
+            treasury: initialTreasury
         });
         configManager = new ConfigurationManager(params);
         assertEq(
@@ -51,13 +53,18 @@ contract ConfigurationManagerTest is Test {
             initialTipJar,
             "Initial TipJar address should be set correctly"
         );
+        assertEq(
+            configManager.treasury(),
+            initialTreasury,
+            "Initial Treasury address should be set correctly"
+        );
     }
 
     function test_SetRaftByGovernor() public {
         address newRaft = address(5);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit RaftUpdated(newRaft);
+        emit IConfigurationManagerEvents.RaftUpdated(newRaft);
         configManager.setRaft(newRaft);
         assertEq(
             configManager.raft(),
@@ -79,7 +86,7 @@ contract ConfigurationManagerTest is Test {
         address newTipJar = address(6);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit TipJarUpdated(newTipJar);
+        emit IConfigurationManagerEvents.TipJarUpdated(newTipJar);
         configManager.setTipJar(newTipJar);
         assertEq(
             configManager.tipJar(),
@@ -106,7 +113,7 @@ contract ConfigurationManagerTest is Test {
         for (uint256 i = 0; i < newRafts.length; i++) {
             vm.prank(governor);
             vm.expectEmit(true, true, true, true);
-            emit RaftUpdated(newRafts[i]);
+            emit IConfigurationManagerEvents.RaftUpdated(newRafts[i]);
             configManager.setRaft(newRafts[i]);
             assertEq(
                 configManager.raft(),
@@ -125,7 +132,7 @@ contract ConfigurationManagerTest is Test {
         for (uint256 i = 0; i < newTipJars.length; i++) {
             vm.prank(governor);
             vm.expectEmit(true, true, true, true);
-            emit TipJarUpdated(newTipJars[i]);
+            emit IConfigurationManagerEvents.TipJarUpdated(newTipJars[i]);
             configManager.setTipJar(newTipJars[i]);
             assertEq(
                 configManager.tipJar(),
@@ -152,6 +159,38 @@ contract ConfigurationManagerTest is Test {
             configManager.tipJar(),
             address(0),
             "TipJar address should be set to zero address"
+        );
+    }
+
+    function test_SetTreasuryByGovernor() public {
+        address newTreasury = address(13);
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true);
+        emit IConfigurationManagerEvents.TreasuryUpdated(newTreasury);
+        configManager.setTreasury(newTreasury);
+        assertEq(
+            configManager.treasury(),
+            newTreasury,
+            "Treasury address should be updated"
+        );
+    }
+
+    function test_SetTreasuryByNonGovernor() public {
+        address newTreasury = address(13);
+        vm.prank(nonGovernor);
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", nonGovernor)
+        );
+        configManager.setTreasury(newTreasury);
+    }
+
+    function test_SetTreasuryToZeroAddress() public {
+        vm.prank(governor);
+        configManager.setTreasury(address(0));
+        assertEq(
+            configManager.treasury(),
+            address(0),
+            "Treasury address should be set to zero address"
         );
     }
 }

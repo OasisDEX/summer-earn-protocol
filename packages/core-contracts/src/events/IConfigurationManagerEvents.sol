@@ -23,4 +23,10 @@ interface IConfigurationManagerEvents {
      * @param newTipRate The new tip rate value
      */
     event TipRateUpdated(uint8 newTipRate);
+
+    /**
+     * @notice Emitted when the Treasury address is updated
+     * @param newTreasury The address of the new Treasury
+     */
+    event TreasuryUpdated(address newTreasury);
 }
