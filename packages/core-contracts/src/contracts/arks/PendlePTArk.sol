@@ -2,9 +2,6 @@
 pragma solidity 0.8.26;
 
 import "./BasePendleArk.sol";
-import {console} from "forge-std/console.sol";
-import {SD59x18, sd} from "@prb/math/src/SD59x18.sol";
-import {UD60x18, ud, unwrap} from "@prb/math/src/UD60x18.sol";
 
 /**
  * @title PendlePTArk
