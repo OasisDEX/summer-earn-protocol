@@ -6,6 +6,7 @@ import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from 
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
  * @title BuyAndBurn
@@ -16,7 +17,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
     ERC20Burnable public immutable summerToken;
-    address public treasury;
+    IConfigurationManager public manager;
 
     /// @notice Mapping of auction IDs to their respective auction data
     mapping(uint256 auctionId => DutchAuctionLibrary.Auction auction)
@@ -31,15 +32,15 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
 
     constructor(
         address _summer,
-        address _treasury,
         address _accessManager,
+        address _configurationManager,
         AuctionDefaultParameters memory _defaultParameters
     )
         ProtocolAccessManaged(_accessManager)
         AuctionManagerBase(_defaultParameters)
     {
         summerToken = ERC20Burnable(_summer);
-        treasury = _treasury;
+        manager = IConfigurationManager(_configurationManager);
     }
 
     /* @inheritdoc IBuyAndBurn */
@@ -57,7 +58,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
             auctionToken,
             summerToken,
             totalTokens,
-            treasury
+            manager.treasury()
         );
         uint256 auctionId = nextAuctionId;
         auctions[auctionId] = newAuction;
@@ -109,11 +110,6 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
         AuctionDefaultParameters calldata newParameters
     ) external override onlyGovernor {
         _updateAuctionDefaultParameters(newParameters);
-    }
-    /* @inheritdoc IBuyAndBurn */
-
-    function setTreasury(address newTreasury) external override onlyGovernor {
-        treasury = newTreasury;
     }
 
     /**

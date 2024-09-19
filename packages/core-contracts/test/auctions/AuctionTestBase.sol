@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/types/CommonAuctionTypes.sol";
 
@@ -17,6 +18,7 @@ contract AuctionTestBase is Test {
     using PercentageUtils for uint256;
 
     ProtocolAccessManager public accessManager;
+    ConfigurationManager public configurationManager;
 
     address public governor = address(1);
     address public buyer = address(2);
@@ -35,6 +37,16 @@ contract AuctionTestBase is Test {
     function setUp() public virtual {
         KICKER_REWARD_PERCENTAGE = 0;
         accessManager = new ProtocolAccessManager(governor);
+        configurationManager = new ConfigurationManager(address(accessManager));
+        vm.prank(governor);
+        configurationManager.initialize(
+            ConfigurationManagerParams({
+                raft: address(1),
+                tipJar: address(2),
+                treasury: treasury
+            })
+        );
+
         vm.prank(governor);
         accessManager.grantSuperKeeperRole(superKeeper);
 

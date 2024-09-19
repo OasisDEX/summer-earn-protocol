@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {IArk} from "../interfaces/IArk.sol";
+import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
@@ -22,13 +23,32 @@ contract FleetCommanderConfigProvider is
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
 
-    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
+    constructor(
+        FleetCommanderParams memory params
+    ) ProtocolAccessManaged(params.accessManager) {
+        setFleetConfig(
+            FleetConfig({
+                bufferArk: IArk(params.bufferArk),
+                minimumBufferBalance: params.initialMinimumBufferBalance,
+                depositCap: params.depositCap,
+                maxRebalanceOperations: MAX_REBALANCE_OPERATIONS
+            })
+        );
+        isArkActive[address(config.bufferArk)] = true;
+        isArkWithdrawable[address(config.bufferArk)] = true;
+
+        _setupArks(params.initialArks);
+    }
 
     function getArks() public view returns (address[] memory) {
         return arks;
     }
 
+    function getConfig() external view override returns (FleetConfig memory) {
+        return config;
+    }
     // ARK MANAGEMENT
+
     function addArk(address ark) external onlyGovernor {
         _addArk(ark);
     }
@@ -83,7 +103,16 @@ contract FleetCommanderConfigProvider is
 
     function setFleetDepositCap(uint256 newCap) external onlyGovernor {
         config.depositCap = newCap;
-        emit DepositCapUpdated(newCap);
+        emit FleetCommanderDepositCapUpdated(newCap);
+    }
+
+    function setMaxRebalanceOperations(
+        uint256 newMaxRebalanceOperations
+    ) external onlyGovernor {
+        config.maxRebalanceOperations = newMaxRebalanceOperations;
+        emit FleetCommanderMaxRebalanceOperationsUpdated(
+            newMaxRebalanceOperations
+        );
     }
 
     function setFleetConfig(FleetConfig memory _config) internal {
@@ -122,6 +151,12 @@ contract FleetCommanderConfigProvider is
 
         isArkActive[ark] = false;
         emit ArkRemoved(ark);
+    }
+
+    function _setupArks(address[] memory _arkAddresses) internal {
+        for (uint256 i = 0; i < _arkAddresses.length; i++) {
+            _addArk(_arkAddresses[i]);
+        }
     }
 
     function _validateArkRemoval(address ark) internal view {

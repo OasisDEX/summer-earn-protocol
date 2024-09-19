@@ -3,15 +3,16 @@ pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
 
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
@@ -234,8 +235,8 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
 
     function test_RedeemUpdatesBufferBalance() public {
         uint256 redeemAmount = fleetCommander.maxRedeem(mockUser) / 2;
-        (IArk bufferArk, , ) = fleetCommander.config();
-        uint256 initialBufferBalance = bufferArk.totalAssets();
+        FleetConfig memory config = fleetCommander.getConfig();
+        uint256 initialBufferBalance = config.bufferArk.totalAssets();
 
         vm.prank(mockUser);
         uint256 assets = fleetCommander.redeem(
@@ -244,7 +245,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             mockUser
         );
 
-        uint256 finalBufferBalance = bufferArk.totalAssets();
+        uint256 finalBufferBalance = config.bufferArk.totalAssets();
         assertEq(
             finalBufferBalance,
             initialBufferBalance - assets,
@@ -256,18 +257,26 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 userShares = fleetCommander.balanceOf(mockUser);
         vm.prank(governor);
         fleetCommander.setMinimumBufferBalance(0);
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
         // Move some funds to different arks
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 3)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 3
+            )
         );
 
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark2, DEPOSIT_AMOUNT / 3)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark2,
+                DEPOSIT_AMOUNT / 3
+            )
         );
         vm.stopPrank();
 
@@ -376,9 +385,13 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
         );
         vm.stopPrank();
 
@@ -414,7 +427,7 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
     function test_MaxBufferRedeem() public {
         uint256 maxBufferRedeem = fleetCommander.maxBufferRedeem(mockUser);
         uint256 userShares = fleetCommander.convertToShares(DEPOSIT_AMOUNT);
-        (IArk bufferArk, , ) = fleetCommander.config();
+        FleetConfig memory config = fleetCommander.getConfig();
 
         assertEq(
             userShares,
@@ -431,7 +444,11 @@ contract RedeemTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         fleetCommander.adjustBuffer(
-            generateRebalanceData(address(bufferArk), ark1, DEPOSIT_AMOUNT / 2)
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
         );
         vm.stopPrank();
 

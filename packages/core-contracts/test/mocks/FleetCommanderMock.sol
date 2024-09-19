@@ -45,6 +45,15 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         return super.deposit(assets, receiver);
     }
 
+    function deposit(
+        uint256 assets,
+        address receiver,
+        bytes memory referralCode
+    ) public returns (uint256) {
+        emit FleetCommanderReferral(receiver, referralCode);
+        return super.deposit(assets, receiver);
+    }
+
     function withdraw(
         uint256 assets,
         address receiver,
@@ -132,5 +141,13 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function maxBufferWithdraw(address owner) external view returns (uint256) {}
 
+    function getConfig() external view override returns (FleetConfig memory) {
+        return config;
+    }
+
     function test() public {}
+
+    function setMaxRebalanceOperations(
+        uint256 newMaxRebalanceOperations
+    ) external {}
 }

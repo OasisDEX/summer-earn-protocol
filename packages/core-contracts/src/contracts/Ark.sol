@@ -6,14 +6,14 @@ import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {ArkConfig, ArkParams, IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
-import {Constants} from "../utils/Constants.sol";
+import {Constants} from "./libraries/Constants.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @custom:see IArk
  */
-abstract contract Ark is IArk, ArkAccessManaged, Constants {
+abstract contract Ark is IArk, ArkAccessManaged {
     using SafeERC20 for IERC20;
 
     ArkConfig public config;

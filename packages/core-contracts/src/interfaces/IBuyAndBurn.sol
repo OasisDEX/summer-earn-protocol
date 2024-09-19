@@ -64,11 +64,4 @@ interface IBuyAndBurn is IBuyAndBurnEvents, IBuyAndBurnErrors {
     function updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newParameters
     ) external;
-
-    /**
-     * @notice Sets a new treasury address
-     * @param newTreasury The address of the new treasury
-     * @dev Only callable by the governor
-     */
-    function setTreasury(address newTreasury) external;
 }

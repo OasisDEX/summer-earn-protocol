@@ -10,43 +10,27 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 import "../../src/contracts/arks/MetaMorphoArk.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
-
 import "../../src/events/IArkEvents.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
+contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     MetaMorphoArk public ark;
-    address public governor = address(1);
-    address public raft = address(2);
-    address public tipJar = address(3);
-    address public commander = address(4);
 
     address public constant METAMORPHO_ADDRESS =
         0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB;
 
     IMetaMorpho public metaMorpho;
     IERC20 public asset;
-    IProtocolAccessManager accessManager;
-    IConfigurationManager configurationManager;
 
     uint256 forkBlock = 20376149; // Adjust this to a suitable block number
     uint256 forkId;
 
     function setUp() public {
+        initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         metaMorpho = IMetaMorpho(METAMORPHO_ADDRESS);
         asset = IERC20(metaMorpho.asset());
-
-        accessManager = new ProtocolAccessManager(governor);
-
-        configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
@@ -87,7 +71,10 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
 
         // Expect the ArkPoked event to be emitted
         vm.expectEmit();
-        emit ArkPoked(metaMorpho.convertToAssets(WAD), block.timestamp);
+        emit ArkPoked(
+            metaMorpho.convertToAssets(Constants.WAD),
+            block.timestamp
+        );
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
@@ -198,13 +185,16 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
 
         // Case 1 - Ark poked in the right time
         vm.expectEmit();
-        emit ArkPoked(metaMorpho.convertToAssets(WAD), block.timestamp);
+        emit ArkPoked(
+            metaMorpho.convertToAssets(Constants.WAD),
+            block.timestamp
+        );
         ark.poke();
 
-        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
+        uint256 currentPrice = metaMorpho.convertToAssets(Constants.WAD);
         vm.mockCall(
             address(metaMorpho),
-            abi.encodeWithSignature("convertToAssets(uint256)", WAD),
+            abi.encodeWithSignature("convertToAssets(uint256)", Constants.WAD),
             abi.encode(currentPrice)
         );
 
@@ -222,7 +212,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestHelpers {
 
         vm.mockCall(
             address(metaMorpho),
-            abi.encodeWithSignature("convertToAssets(uint256)", WAD),
+            abi.encodeWithSignature("convertToAssets(uint256)", Constants.WAD),
             abi.encode(currentPrice + 1)
         );
 

@@ -4,20 +4,23 @@ pragma solidity 0.8.26;
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {ArkTestHelpers, IArk} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
+import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
-contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
@@ -39,15 +42,12 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         });
 
         FleetCommander newFleetCommander = new FleetCommander(params);
-        (
-            IArk bufferArk,
-            uint256 minimumBufferBalance,
-            uint256 depositCap
-        ) = newFleetCommander.config();
+        FleetConfig memory config = newFleetCommander.getConfig();
 
-        assertEq(minimumBufferBalance, 1000);
-        assertEq(depositCap, 10000);
-        assertEq(address(bufferArk), bufferArkAddress);
+        assertEq(config.minimumBufferBalance, 1000);
+        assertEq(config.depositCap, 10000);
+        assertEq(config.maxRebalanceOperations, 10);
+        assertEq(address(config.bufferArk), bufferArkAddress);
         assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
     }
 
@@ -80,8 +80,8 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
             .FleetCommanderminimumBufferBalanceUpdated(newBalance);
         fleetCommander.setMinimumBufferBalance(newBalance);
 
-        (, uint256 minimumBufferBalance, ) = fleetCommander.config();
-        assertEq(minimumBufferBalance, newBalance);
+        FleetConfig memory config = fleetCommander.getConfig();
+        assertEq(config.minimumBufferBalance, newBalance);
     }
 
     function test_TransferDisabled() public {
@@ -187,18 +187,32 @@ contract ManagementTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
+    function test_SetMaxRebalanceOperations() public {
+        uint256 newMaxRebalanceOperations = 20;
+        vm.prank(governor);
+        vm.expectEmit();
+        emit IFleetCommanderConfigProviderEvents
+            .FleetCommanderMaxRebalanceOperationsUpdated(
+                newMaxRebalanceOperations
+            );
+
+        fleetCommander.setMaxRebalanceOperations(newMaxRebalanceOperations);
+
+        FleetConfig memory config = fleetCommander.getConfig();
+        assertEq(config.maxRebalanceOperations, newMaxRebalanceOperations);
+    }
+
     function test_SetDepositCap() public {
         uint256 newDepositCap = 10000;
         vm.prank(governor);
         vm.expectEmit();
-        emit IFleetCommanderConfigProviderEvents.DepositCapUpdated(
-            newDepositCap
-        );
+        emit IFleetCommanderConfigProviderEvents
+            .FleetCommanderDepositCapUpdated(newDepositCap);
 
         fleetCommander.setFleetDepositCap(newDepositCap);
 
-        (, , uint256 depositCap) = fleetCommander.config();
-        assertEq(depositCap, newDepositCap);
+        FleetConfig memory config = fleetCommander.getConfig();
+        assertEq(config.depositCap, newDepositCap);
     }
 
     function test_setArkDepositCap() public {

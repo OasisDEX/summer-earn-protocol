@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
-import {ArkTestHelpers} from "../helpers/ArkHelpers.sol";
+import {TestHelpers} from "../helpers/TestHelpers.sol";
 
 import "../../src/contracts/arks/AaveV3Ark.sol";
 import "../../src/contracts/arks/CompoundV3Ark.sol";
@@ -19,12 +19,13 @@ import "../../src/contracts/arks/ERC4626Ark.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
  * @dev Test suite of full lifecycle tests for both USDC and DAI fleets
  */
-contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
+contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     // USDC Fleet Arks
     CompoundV3Ark public usdcCompoundArk;
     AaveV3Ark public usdcAaveArk;
@@ -436,12 +437,12 @@ contract LifecycleTest is Test, ArkTestHelpers, FleetCommanderTestBase {
         uint256 amountPerArk
     ) internal {
         address[] memory arks = fleet.getArks();
-        (IArk bufferArk, , ) = fleet.config();
+        FleetConfig memory config = fleet.getConfig();
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](arks.length);
         for (uint256 i = 0; i < arks.length; i++) {
             rebalanceData[i] = RebalanceData({
-                fromArk: address(bufferArk),
+                fromArk: address(config.bufferArk),
                 toArk: arks[i],
                 amount: amountPerArk,
                 boardData: bytes(""),

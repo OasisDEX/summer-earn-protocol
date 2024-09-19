@@ -38,7 +38,7 @@ contract MetaMorphoArk is Ark {
             emit ArkPokedTooSoon();
             return;
         }
-        uint256 currentPrice = metaMorpho.convertToAssets(WAD);
+        uint256 currentPrice = metaMorpho.convertToAssets(Constants.WAD);
         if (currentPrice == lastPrice) {
             emit ArkPokedNoChange();
             return;

@@ -239,7 +239,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @return Equivalent amount of Ark-specific tokens
      */
     function _assetToArkTokens(uint256 amount) internal view returns (uint256) {
-        return (amount * WAD) / _fetchArkTokenToAssetRate();
+        return (amount * Constants.WAD) / _fetchArkTokenToAssetRate();
     }
 
     /**
@@ -248,7 +248,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @return Equivalent amount of asset
      */
     function _arkTokensToAsset(uint256 amount) internal view returns (uint256) {
-        return (amount * _fetchArkTokenToAssetRate()) / WAD;
+        return (amount * _fetchArkTokenToAssetRate()) / Constants.WAD;
     }
 
     /**

@@ -12,19 +12,13 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract AaveV3ArkTest is Test, IArkEvents {
+contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
 
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
-    IProtocolAccessManager accessManager;
-    IConfigurationManager configurationManager;
-
-    address public governor = address(1);
-    address public raft = address(2);
-    address public tipJar = address(3);
-    address public commander = address(4);
 
     address public constant aaveV3PoolAddress =
         0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
@@ -35,21 +29,11 @@ contract AaveV3ArkTest is Test, IArkEvents {
     address public rewardsController =
         0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
     IPoolV3 public aaveV3Pool;
-    ERC20Mock public mockToken;
 
     function setUp() public {
+        initializeCoreContracts();
         mockToken = new ERC20Mock();
         aaveV3Pool = IPoolV3(aaveV3PoolAddress);
-
-        accessManager = new ProtocolAccessManager(governor);
-
-        configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
 
         ArkParams memory params = ArkParams({
             name: "TestArk",

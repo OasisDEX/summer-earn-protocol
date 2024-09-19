@@ -6,7 +6,7 @@ interface IFleetCommanderConfigProviderEvents {
      * @notice Emitted when the deposit cap is updated
      * @param newCap The new deposit cap value
      */
-    event DepositCapUpdated(uint256 newCap);
+    event FleetCommanderDepositCapUpdated(uint256 newCap);
     /**
      * @notice Emitted when a new Ark is added
      * @param ark The address of the newly added Ark
@@ -19,8 +19,16 @@ interface IFleetCommanderConfigProviderEvents {
      */
     event ArkRemoved(address indexed ark);
     /**
-     *
+     * @notice Emitted when new minimum funds buffer balance is set
      * @param newBalance New minimum funds buffer balance
      */
     event FleetCommanderminimumBufferBalanceUpdated(uint256 newBalance);
+
+    /**
+     * @notice Emitted when new max allowed rebalance operations is set
+     * @param newMaxRebalanceOperations Max allowed rebalance operations
+     */
+    event FleetCommanderMaxRebalanceOperationsUpdated(
+        uint256 newMaxRebalanceOperations
+    );
 }

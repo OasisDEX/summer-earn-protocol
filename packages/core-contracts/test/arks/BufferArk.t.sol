@@ -12,31 +12,13 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
-contract BufferArkTest is Test, IArkEvents {
+contract BufferArkTest is Test, IArkEvents, ArkTestBase {
     BufferArk public ark;
-    IProtocolAccessManager accessManager;
-    IConfigurationManager configurationManager;
-    address public governor = address(1);
-    address public raft = address(2);
-    address public tipJar = address(3);
-    address public commander = address(4);
-
-    ERC20Mock public mockToken;
 
     function setUp() public {
-        mockToken = new ERC20Mock();
-
-        accessManager = new ProtocolAccessManager(governor);
-
-        configurationManager = new ConfigurationManager(
-            ConfigurationManagerParams({
-                accessManager: address(accessManager),
-                tipJar: tipJar,
-                raft: raft
-            })
-        );
-
+        initializeCoreContracts();
         ArkParams memory params = ArkParams({
             name: "TestArk",
             accessManager: address(accessManager),
