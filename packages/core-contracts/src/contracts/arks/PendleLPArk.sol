@@ -149,7 +149,6 @@ contract PendleLPArk is BasePendleArk {
     //////////////////////////////////////////////////////////////*/
 
     function rate() public pure override returns (uint256) {
-        //  TODO: add method that returns current rate for LP = swap fee + PT rate + underlying rate
         return 0;
     }
 

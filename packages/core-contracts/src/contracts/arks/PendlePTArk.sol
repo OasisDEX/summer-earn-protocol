@@ -2,6 +2,9 @@
 pragma solidity 0.8.26;
 
 import "./BasePendleArk.sol";
+import {console} from "forge-std/console.sol";
+import {SD59x18, sd} from "@prb/math/src/SD59x18.sol";
+import {UD60x18, ud, unwrap} from "@prb/math/src/UD60x18.sol";
 
 /**
  * @title PendlePTArk
@@ -186,9 +189,31 @@ contract PendlePTArk is BasePendleArk {
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function rate() public pure override returns (uint256) {
-        //  TODO: add method that returns current fixed rate for PT
-        return 0;
+    /**
+     * @notice Calculates the current APR for the Principal Token
+     * @return The APR in RAY precision (scaled by 1e27)
+     * @dev This function calculates the implied yield of the PT, converts it to APR, and returns it in RAY precision
+     * @dev : https://docs.pendle.finance/ProtocolMechanics/PendleMarketAPYCalculation
+     */
+    function rate() public view override returns (uint256) {
+        // Get the current exchange rate from PT to underlying asset (WAD)
+        uint256 exchangeRate = _fetchArkTokenToAssetRate();
+
+        // Get the time remaining until expiry
+        uint256 timeToExpiry = marketExpiry - block.timestamp;
+        if (timeToExpiry == 0) return 0; // Return 0 if market has expired
+
+        // Calculate the implied yield
+        // impliedYield = (1 / exchangeRate) - 1
+        uint256 impliedYield = ((Constants.RAY * Constants.WAD) /
+            exchangeRate) - Constants.RAY;
+
+        // Convert implied yield to APR
+        // APR = impliedYield * (SECONDS_PER_YEAR / timeToExpiry)
+        uint256 apr = (impliedYield * Constants.SECONDS_PER_YEAR) /
+            timeToExpiry;
+
+        return apr;
     }
 
     /**
