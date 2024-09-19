@@ -41,8 +41,8 @@ contract AuctionTestBase is Test {
         vm.prank(governor);
         configurationManager.initialize(
             ConfigurationManagerParams({
-                raft: address(0),
-                tipJar: address(0),
+                raft: address(1),
+                tipJar: address(2),
                 treasury: treasury
             })
         );

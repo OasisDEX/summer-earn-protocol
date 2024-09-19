@@ -40,7 +40,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         configurationManager.initialize(
             ConfigurationManagerParams({
                 raft: address(raft),
-                tipJar: address(0),
+                tipJar: address(1),
                 treasury: treasury
             })
         );
