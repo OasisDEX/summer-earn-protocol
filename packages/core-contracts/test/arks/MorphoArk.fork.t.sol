@@ -61,6 +61,11 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
     }
 
+    function test_Rate() public {
+        uint256 rate = ark.rate();
+        assertTrue(rate > 0, "Rate should be greater than 0");
+    }
+
     function test_Constructor_MorphoArk_fork() public {
         // Arrange
         ArkParams memory params = ArkParams({

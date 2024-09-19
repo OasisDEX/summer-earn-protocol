@@ -51,6 +51,11 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
     }
 
+    function test_Rate() public {
+        uint256 rate = ark.rate();
+        assertTrue(rate == 0, "Rate should be equal 0");
+    }
+
     function test_Board_MetaMorphoArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 6;

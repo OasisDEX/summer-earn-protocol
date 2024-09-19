@@ -51,6 +51,11 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
         ark.grantCommanderRole(commander);
     }
 
+    function test_Rate() public {
+        uint256 rate = ark.rate();
+        assertTrue(rate > 0, "Rate should be greater than 0");
+    }
+
     function test_Board_CompoundV3_fork() public {
         // Arrange
         uint256 amount = 1990 * 10 ** 6;

@@ -57,6 +57,11 @@ contract SDAIArkTest is ArkTestBase {
         deal(DAI_ADDRESS, commander, 1000000e18);
     }
 
+    function test_Rate() public {
+        uint256 rate = ark.rate();
+        assertTrue(rate > 0, "Rate should be greater than 0");
+    }
+
     function testRate() public view {
         uint256 arkRate = ark.rate();
         uint256 expectedRate = 6 * 10 ** 27;

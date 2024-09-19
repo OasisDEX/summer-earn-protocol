@@ -89,6 +89,11 @@ contract PendlePTArkTestFork is IArkEvents, ArkTestBase {
         vm.makePersistent(PT);
     }
 
+    function test_Rate() public {
+        uint256 rate = ark.rate();
+        assertTrue(rate > 0, "Rate should be greater than 0");
+    }
+
     function test_Board_PendlePTArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;

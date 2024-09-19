@@ -60,6 +60,11 @@ contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.stopPrank();
     }
 
+    function test_Rate() public {
+        uint256 rate = ark.rate();
+        assertTrue(rate > 0, "Rate should be greater than 0");
+    }
+
     function test_Board_AaveV3_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;
