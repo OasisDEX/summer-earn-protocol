@@ -36,14 +36,16 @@
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts"
   },
   "devDependencies": {
+    "@layerzerolabs/test-devtools-evm-foundry": "~0.2.12",
+    "@layerzerolabs/toolbox-foundry": "~0.1.9",
     "@nomicfoundation/hardhat-foundry": "^1.1.2",
     "@nomicfoundation/hardhat-ignition": "^0.15.5",
     "@nomicfoundation/hardhat-ignition-viem": "^0.15.5",
     "@summerfi/dutch-auction": "workspace:*",
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
-    "@summerfi/percentage-solidity": "workspace:*",
     "@summerfi/math-utils": "workspace:*",
+    "@summerfi/percentage-solidity": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
     "@types/prompts": "^2.4.9",
@@ -53,6 +55,14 @@
     "ts-node": "^10.9.2"
   },
   "dependencies": {
-    "solhint-plugin-prettier": "^0.1.0"
+    "@layerzerolabs/lz-definitions": "^2.3.39",
+    "@layerzerolabs/lz-evm-messagelib-v2": "^2.3.39",
+    "@layerzerolabs/lz-evm-protocol-v2": "^2.3.39",
+    "@layerzerolabs/lz-evm-v1-0.7": "^2.3.39",
+    "@layerzerolabs/lz-v2-utilities": "^2.3.39",
+    "@layerzerolabs/oapp-evm": "^0.0.4",
+    "@layerzerolabs/oft-evm": "^0.0.11",
+    "solhint-plugin-prettier": "^0.1.0",
+    "solidity-bytes-utils": "^0.8.2"
   }
 }

@@ -8,3 +8,4 @@ metamorpho/=lib/metamorpho/src/
 @pendle/core-v2/contracts/=lib/pendle-core-v2-public/contracts/
 @openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@layerzerolabs/=node_modules/@layerzerolabs/

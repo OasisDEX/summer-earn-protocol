@@ -9,16 +9,36 @@ import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 contract BuyAndBurnDecimalsTest is AuctionTestBase {
     using PercentageUtils for uint256;
 
+    uint32 private aEid = 1;
+
     BuyAndBurn public buyAndBurn;
     SummerToken public summerToken;
     MockERC20 public tokenToAuction6Dec;
     MockERC20 public tokenToAuction8Dec;
     MockERC20 public tokenToAuction18Dec;
 
+    address public summerGovernor = address(0x9);
+
+    uint256 constant INITIAL_SUPPLY = 1000000000;
+
     function setUp() public override {
         super.setUp();
-        console.log("configuaration manager", address(configurationManager));
-        summerToken = new SummerToken();
+        console.log("configuration manager", address(configurationManager));
+        vm.label(summerGovernor, "Summer Governor");
+
+        setUpEndpoints(2, LibraryType.UltraLightNode);
+        address lzEndpoint = address(endpoints[aEid]);
+        vm.label(lzEndpoint, "LayerZero Endpoint");
+
+        SummerToken.TokenParams memory tokenParams = SummerToken.TokenParams({
+            name: "SummerToken",
+            symbol: "SUMMER",
+            lzEndpoint: lzEndpoint,
+            governor: summerGovernor
+        });
+
+        summerToken = new SummerToken(tokenParams);
+
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             address(accessManager),
