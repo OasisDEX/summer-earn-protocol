@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "test": "orge test",
+    "test": "forge test",
     "start:node": "hardhat node",
     "build": "forge build && bash ./abi.sh",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
