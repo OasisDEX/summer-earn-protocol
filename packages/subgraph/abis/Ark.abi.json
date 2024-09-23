@@ -760,6 +760,28 @@
   },
   {
     "type": "error",
+    "name": "AddressEmptyCode",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AddressInsufficientBalance",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "CallerIsNotAdmin",
     "inputs": [
       {
@@ -906,6 +928,11 @@
   {
     "type": "error",
     "name": "ERC4626AssetMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FailedInnerCall",
     "inputs": []
   },
   {
