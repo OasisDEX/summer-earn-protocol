@@ -737,7 +737,6 @@ type Rebalance @entity @transaction {
 
   " The vault involving this transaction "
   vault: Vault!
-
 }
 
 type Board implements Event @entity @transaction {
@@ -868,6 +867,9 @@ type Ark @entity @regularPolling {
   " Name of liquidity pool (e.g. Curve.fi DAI/USDC/USDT) "
   name: String
 
+  " Type of the Ark - e.g. Yearn, Convex, ERC4626, etc. "
+  type: String!
+
   " Symbol of liquidity pool (e.g. 3CRV) "
   symbol: String
 
@@ -955,10 +957,8 @@ type ArkDailySnapshot @entity @dailySnapshot {
   " Current TVL (Total Value Locked) of this pool in USD "
   totalValueLockedUSD: BigDecimal!
 
-
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
-
 
   " Block number of this snapshot "
   blockNumber: BigInt!

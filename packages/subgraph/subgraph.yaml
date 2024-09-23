@@ -100,7 +100,7 @@ templates:
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
           receipt: true
-        - event: Rebalanced(indexed address,(address,address,uint256)[])
+        - event: Rebalanced(indexed address,(address,address,uint256,bytes,bytes)[])
           handler: handleRebalance
           receipt: true
         - event: ArkAdded(indexed address)
