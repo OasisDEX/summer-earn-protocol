@@ -27,16 +27,7 @@ contract SummerToken is OFT, ERC20Burnable, ERC20Votes, ERC20Permit {
         ERC20Permit(params.name)
         Ownable(params.governor)
     {
-        _mint(msg.sender, INITIAL_SUPPLY * 10 ** decimals());
-    }
-
-    /*
-     * @dev Mints tokens to a specified address.
-     * @param to The address to mint tokens to.
-     * @param amount The amount of tokens to mint.
-     */
-    function mint(address to, uint256 amount) public {
-        _mint(to, amount);
+        _mint(params.governor, INITIAL_SUPPLY * 10 ** decimals());
     }
 
     /*

@@ -6,6 +6,4 @@ lcov.info
 broadcast/
 typechain-types/
 
-cache_forge/
-
 solidity-files-cache.json
