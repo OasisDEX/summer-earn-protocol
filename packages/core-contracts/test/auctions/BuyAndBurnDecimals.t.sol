@@ -2,7 +2,8 @@
 pragma solidity 0.8.26;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
+import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
+import {MockSummerToken} from "../mocks/SummerTokenMock.sol";
 import "./AuctionTestBase.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
@@ -12,7 +13,7 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
     uint32 private aEid = 1;
 
     BuyAndBurn public buyAndBurn;
-    SummerToken public summerToken;
+    ISummerToken public summerToken;
     MockERC20 public tokenToAuction6Dec;
     MockERC20 public tokenToAuction8Dec;
     MockERC20 public tokenToAuction18Dec;
@@ -30,14 +31,7 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
         address lzEndpoint = address(endpoints[aEid]);
         vm.label(lzEndpoint, "LayerZero Endpoint");
 
-        SummerToken.TokenParams memory tokenParams = SummerToken.TokenParams({
-            name: "SummerToken",
-            symbol: "SUMMER",
-            lzEndpoint: lzEndpoint,
-            governor: summerGovernor
-        });
-
-        summerToken = new SummerToken(tokenParams);
+        summerToken = new MockSummerToken("SummerToken", "SUMMER");
 
         buyAndBurn = new BuyAndBurn(
             address(summerToken),

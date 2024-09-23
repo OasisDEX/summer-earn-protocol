@@ -1,0 +1,7 @@
+forge-std/=lib/forge-std/src/
+@summerfi/dutch-auction/src/=node_modules/@summerfi/dutch-auction/src/
+@prb/math/=lib/prb-math/
+@summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/
+@layerzerolabs/=node_modules/@layerzerolabs/
+@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/

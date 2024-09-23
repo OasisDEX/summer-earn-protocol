@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/types/CommonAuctionTypes.sol";
 
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";

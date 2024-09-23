@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import "../../src/contracts/SummerToken.sol";
-import "forge-std/Test.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {IOAppOptionsType3, EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -45,19 +46,21 @@ contract SummerTokenTest is TestHelperOz5 {
         vm.label(lzEndpointA, "LayerZero Endpoint A");
         vm.label(lzEndpointB, "LayerZero Endpoint B");
 
-        SummerToken.TokenParams memory tokenParamsA = SummerToken.TokenParams({
-            name: "SummerToken A",
-            symbol: "SUMMERA",
-            lzEndpoint: lzEndpointA,
-            governor: summerGovernor
-        });
+        ISummerToken.TokenParams memory tokenParamsA = ISummerToken
+            .TokenParams({
+                name: "SummerToken A",
+                symbol: "SUMMERA",
+                lzEndpoint: lzEndpointA,
+                governor: summerGovernor
+            });
 
-        SummerToken.TokenParams memory tokenParamsB = SummerToken.TokenParams({
-            name: "SummerToken B",
-            symbol: "SUMMERB",
-            lzEndpoint: lzEndpointB,
-            governor: summerGovernor
-        });
+        ISummerToken.TokenParams memory tokenParamsB = ISummerToken
+            .TokenParams({
+                name: "SummerToken B",
+                symbol: "SUMMERB",
+                lzEndpoint: lzEndpointB,
+                governor: summerGovernor
+            });
 
         aSummerToken = new SummerToken(tokenParamsA);
         bSummerToken = new SummerToken(tokenParamsB);

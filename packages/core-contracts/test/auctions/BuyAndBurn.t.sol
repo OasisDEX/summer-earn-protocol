@@ -2,10 +2,11 @@
 pragma solidity 0.8.26;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/errors/IAccessControlErrors.sol";
 import "../../src/errors/IBuyAndBurnErrors.sol";
 
+import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
+import {MockSummerToken} from "../mocks/SummerTokenMock.sol";
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
 import "./AuctionTestBase.sol";
@@ -18,7 +19,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     uint32 private aEid = 1;
 
     BuyAndBurn public buyAndBurn;
-    SummerToken public summerToken;
+    ISummerToken public summerToken;
     MockERC20 public tokenToAuction1;
     MockERC20 public tokenToAuction2;
 
@@ -39,14 +40,14 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         address lzEndpoint = address(endpoints[aEid]);
         vm.label(lzEndpoint, "LayerZero Endpoint");
 
-        SummerToken.TokenParams memory tokenParams = SummerToken.TokenParams({
-            name: "SummerToken",
-            symbol: "SUMMER",
-            lzEndpoint: lzEndpoint,
-            governor: summerGovernor
-        });
+        // ISummerToken.TokenParams memory tokenParams = ISummerToken.TokenParams({
+        //     name: "SummerToken",
+        //     symbol: "SUMMER",
+        //     lzEndpoint: lzEndpoint,
+        //     governor: summerGovernor
+        // });
 
-        summerToken = new SummerToken(tokenParams);
+        summerToken = new MockSummerToken("SummerToken", "SUMMER");
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             address(accessManager),

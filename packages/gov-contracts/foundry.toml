@@ -8,6 +8,8 @@ libs = [
 test = 'test'
 cache_path  = 'cache_forge'
 solc = "0.8.26"
+viaIR = true
+optimizer_steps = 100
 evm_version = "cancun"
 cbor_metadata = true
 
