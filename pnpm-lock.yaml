@@ -299,6 +299,9 @@ importers:
 
   packages/summer-earn-protocol-subgraph:
     devDependencies:
+      '@graphprotocol/graph-cli':
+        specifier: ^0.82.0
+        version: 0.82.0(@types/node@20.16.1)(node-fetch@3.3.2)(typescript@5.5.4)
       '@graphprotocol/graph-ts':
         specifier: ^0.35.1
         version: 0.35.1

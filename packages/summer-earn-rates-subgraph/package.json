@@ -5,7 +5,7 @@
   "scripts": {
     "test": "graph test",
     "codegen": "graph codegen",
-    "build": "graph build",
+    "build:mainnet": "pnpm run prepare:mainnet && graph codegen && graph build --network mainnet",
     "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:optimism": "mustache config/optimism.json subgraph.template.yaml > subgraph.yaml ",

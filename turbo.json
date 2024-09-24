@@ -7,9 +7,6 @@
       "cache": false,
       "persistent": true
     },
-    "@summerfi/summer-earn-rates-subgraph#prepare:mainnet": {
-      "dependsOn": ["^prepare:mainnet"]
-    },
     "prebuild": {
       "dependsOn": ["^prebuild", "^prebuild:nocache"],
       "outputs": ["src/types/graphql/generated.ts", "src/generated"]
@@ -18,8 +15,12 @@
       "dependsOn": ["^prebuild:nocache"],
       "cache": false
     },
+    "build:mainnet": {
+      "dependsOn": [],
+      "outputs": []
+    },
     "build": {
-      "dependsOn": ["prebuild", "^build", "@summerfi/summer-earn-rates-subgraph#prepare:mainnet"],
+      "dependsOn": ["prebuild", "^build","build:mainnet"],
       "outputs": ["dist/**", "artifacts/**"]
     },
     "test": {
