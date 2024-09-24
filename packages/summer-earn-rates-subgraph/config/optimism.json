@@ -1,6 +1,6 @@
 {
-    "network": "optimism",
-    "entry_point_address": "0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3",
-    "entry_point_start_block": 116198000,
-    "interval-handler-block-interval": 43200
-  }
+  "network": "optimism",
+  "entry_point_address": "0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3",
+  "entry_point_start_block": 116198000,
+  "interval-handler-block-interval": 43200
+}

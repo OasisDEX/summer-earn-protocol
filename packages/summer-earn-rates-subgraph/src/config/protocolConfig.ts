@@ -1,13 +1,13 @@
 import { Address, BigInt } from '@graphprotocol/graph-ts'
+import { addresses } from '../constants/addresses'
 import { Protocol } from '../models/Protocol'
 import { CompoundProduct } from '../products/CompoundProduct'
-import { GearboxProduct } from '../products/GearboxProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
-import { addresses } from '../constants/addresses'
-import { getOrCreateToken } from '../utils/initializers'
-import { PendlePtProduct } from '../products/PendlePt'
-import { PendleLpProduct } from '../products/PendleLp'
+import { GearboxProduct } from '../products/GearboxProduct'
 import { GenericVaultProduct } from '../products/GenericVault'
+import { PendleLpProduct } from '../products/PendleLp'
+import { PendlePtProduct } from '../products/PendlePt'
+import { getOrCreateToken } from '../utils/initializers'
 
 export const protocolConfig: Protocol[] = [
   new Protocol('CompoundV3', [
@@ -109,7 +109,7 @@ export const protocolConfig: Protocol[] = [
       Address.fromString('0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0'),
       BigInt.fromI32(18928285),
       'Swell - SWETH',
-    )
+    ),
   ]),
   new Protocol('Staked Stables', [
     new GenericVaultProduct(
@@ -125,5 +125,4 @@ export const protocolConfig: Protocol[] = [
       'Ethena - SUSDE',
     ),
   ]),
-
-];
+]

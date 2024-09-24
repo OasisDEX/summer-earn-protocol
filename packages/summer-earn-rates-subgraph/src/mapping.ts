@@ -1,7 +1,6 @@
 import { ethereum } from '@graphprotocol/graph-ts'
-import { InterestRate, EMA } from '../generated/schema'
-import { handleInterestRate, updateEMA } from './utils/interestRateHandlers'
 import { protocolConfig } from './config/protocolConfig'
+import { handleInterestRate } from './utils/interestRateHandlers'
 
 export function handleBlock(block: ethereum.Block): void {
   for (let i = 0; i < protocolConfig.length; i++) {
