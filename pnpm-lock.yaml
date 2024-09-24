@@ -297,7 +297,13 @@ importers:
         specifier: ^3.6.2
         version: 3.6.2(typescript@5.5.4)
 
-  packages/subgraph:
+  packages/summer-earn-protocol-subgraph:
+    devDependencies:
+      '@graphprotocol/graph-ts':
+        specifier: ^0.35.1
+        version: 0.35.1
+
+  packages/summer-earn-rates-subgraph:
     devDependencies:
       '@graphprotocol/graph-ts':
         specifier: ^0.35.1

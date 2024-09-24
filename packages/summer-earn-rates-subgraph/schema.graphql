@@ -1,0 +1,33 @@
+type InterestRate @entity(immutable: true) {
+  id: String!
+  type: String!
+  rate: BigDecimal!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  protocol: String!
+  token: Token!
+  productId: String!
+}
+
+type EMA @entity {
+  id: String!
+  value: BigDecimal!
+  lastUpdateTimestamp: BigInt!
+  protocol: String!
+  token: Token!
+  productId: String!
+}
+
+type VaultState @entity {
+  # id = address
+  id: Bytes!
+  lastUpdateTimestamp: BigInt!
+  lastSharePrice: BigDecimal!
+}
+type Token @entity(immutable: true) {
+  id: Bytes!
+  address: Bytes!
+  symbol: String!
+  decimals: BigInt!
+  precision: BigInt!
+}
