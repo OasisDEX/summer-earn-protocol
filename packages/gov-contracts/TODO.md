@@ -1,0 +1,16 @@
+- TODO: Refactor core-contracts to Ark / Protocol domain
+- TODO: ArkFactory for each protocol? 
+- ~~TODO: Shall we use upgrade-ability?~~
+- TODO: Remove or disconnect an ark?
+- TODO: In `FleetCommander` - check if we want to handle this `  uint256 amountToMove = (data.amount < remainingExcess)` as is - or validate offchain data - how to handle this? Maybe some buffor we always go below buffor - or maybe we should leave it as is?
+- TODO: In `FleetCommander` make the rebalance from buffor more explicitely visible - maybe add a comment or a function? 
+- TODO: implement erc4626 methods in fleet commander - `maxDeposit`,`maxWithdraw`,`previewMint`,`previewWithdraw`,`maxRedeem`,`previewRedeem`,`convertToShares`,`convertToAssets` -> https://ethereum.org/en/developers/docs/standards/tokens/erc-4626/ ![image](https://ethereum.org/_next/image/?url=%2Fcontent%2Fdevelopers%2Fdocs%2Fstandards%2Ftokens%2Ferc-4626%2Fmap-of-erc-4626.png&w=828&q=75)
+-  TODO: `FleetCommander` propry handle the actual deposited amount in the context of approval and/or funny tokens that might deposit different amount than expected ( also how does that affect buffer - do we want to accept that? - for sure we can't go the `we will take extra care and remember about it` way - we need to have a clear strategy for that)
+-  TODO: add a generic `bytes` data in rebalance - in case we want to add some additional data in the future (e.g. oracle data, operation executor data etc)
+-  TODO: add `coverage` badge to the repo
+-  TODO: check coverage on PRs - code quality checks
+-  TODO: add static analysis to the repo
+-  TODO: add `code quality` badge to the repo
+-  TODO: decide on the deployment scripts - do we go with what we have or `hardhat-ignition`
+- TODO: decide whether want to uni-laterally block grantRole and revokeRole methods in ProtocolAccessManager.sol
+- TODO: organise addresses more effectively and reading from config in /scripts

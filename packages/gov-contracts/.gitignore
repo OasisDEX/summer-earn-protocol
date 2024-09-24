@@ -1,0 +1,9 @@
+cache/
+out/
+.idea
+lcov.info
+
+broadcast/
+typechain-types/
+
+solidity-files-cache.json

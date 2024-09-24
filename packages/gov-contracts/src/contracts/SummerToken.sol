@@ -10,14 +10,15 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 
-contract SummerToken is OFT, ERC20Burnable, ERC20Votes, ERC20Permit {
-    struct TokenParams {
-        string name;
-        string symbol;
-        address lzEndpoint;
-        address governor;
-    }
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
 
+contract SummerToken is
+    OFT,
+    ERC20Burnable,
+    ERC20Votes,
+    ERC20Permit,
+    ISummerToken
+{
     uint256 private constant INITIAL_SUPPLY = 1e9;
 
     constructor(

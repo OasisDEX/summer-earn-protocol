@@ -5,6 +5,7 @@ metamorpho/=lib/metamorpho/src/
 @prb/math/=lib/prb-math/
 @summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/
 @summerfi/math-utils/contracts/=node_modules/@summerfi/math-utils/contracts/
+@summerfi/earn-gov-contracts/=node_modules/@summerfi/earn-gov-contracts/src/
 @pendle/core-v2/contracts/=lib/pendle-core-v2-public/contracts/
 @openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
