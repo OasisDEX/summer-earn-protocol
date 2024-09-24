@@ -20,7 +20,7 @@ export class Product {
     this.poolAddress = poolAddress
     this.startBlock = startBlock
     this.oracle = oracle
-    this.name = `${groupName}-${token.address.toHexString()}-${poolAddress.toHexString()}-${getChainIdByNetworkName(dataSource.network()).toString()}`
+    this.name = `${groupName}-${token.address.toHexString()}-${poolAddress.toHexString()}-${getChainIdByNetworkName(dataSource.network()).toString().split('.')[0]}`
   }
   getRate(currentTimestamp: BigInt): BigDecimal {
     return BigDecimal.zero()
