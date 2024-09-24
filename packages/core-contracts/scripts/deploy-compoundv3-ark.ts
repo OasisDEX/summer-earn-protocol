@@ -132,7 +132,7 @@ async function deployCompoundV3ArkContract(
         compoundV3Pools: userInput.compoundV3Pools,
         compoundV3Rewards: userInput.compoundV3Rewards,
         arkParams: {
-          name: 'CompoundV3Ark',
+          name: `CompoundV3-${userInput.token}-${userInput.compoundV3Pools}-${chainId}`,
           accessManager: config.core.protocolAccessManager,
           configurationManager: config.core.configurationManager,
           token: userInput.token,

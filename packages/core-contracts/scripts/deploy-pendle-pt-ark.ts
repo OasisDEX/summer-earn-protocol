@@ -118,7 +118,7 @@ async function deployPendlePTArkContract(
         oracle: userInput.oracle,
         router: userInput.router,
         arkParams: {
-          name: 'PendlePTArk',
+          name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
           accessManager: config.core.protocolAccessManager,
           configurationManager: config.core.configurationManager,
           token: userInput.token,
