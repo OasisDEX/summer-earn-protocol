@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "../../src/contracts/SummerGovernor.sol";
+import {SummerGovernor} from "../../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
 
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
+
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import "@openzeppelin/contracts/governance/TimelockController.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "forge-std/Test.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 /*
  * @title MockERC20Votes
@@ -60,6 +66,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
     SummerGovernor public governor;
     MockERC20Votes public token;
     TimelockController public timelock;
+    VotingDecayManager public votingDecayManager;
 
     address public alice = address(0x1);
     address public bob = address(0x2);
@@ -72,6 +79,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
     uint32 public constant VOTING_PERIOD = 50400;
     uint256 public constant PROPOSAL_THRESHOLD = 10000e18;
     uint256 public constant QUORUM_FRACTION = 4;
+    /// @notice Initial decay rate per second (approximately 10% per year)
+    /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
+    uint256 internal constant INITIAL_DECAY_RATE_PER_SECOND = 3.1709792e9;
+    uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
 
     /*
      * @dev Sets up the test environment.
@@ -106,7 +117,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian
+                initialWhitelistGuardian: whitelistGuardian,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
 
         governor = new SummerGovernor(params);
@@ -132,7 +146,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: address(0)
+                initialWhitelistGuardian: address(0),
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -525,7 +542,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: belowMin,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: address(0x5)
+                initialWhitelistGuardian: address(0x5),
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
 
         vm.expectRevert(
