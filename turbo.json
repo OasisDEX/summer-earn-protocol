@@ -15,8 +15,12 @@
       "dependsOn": ["^prebuild:nocache"],
       "cache": false
     },
+    "build:mainnet": {
+      "dependsOn": [],
+      "outputs": []
+    },
     "build": {
-      "dependsOn": ["prebuild", "^build"],
+      "dependsOn": ["prebuild", "^build", "build:mainnet"],
       "outputs": ["dist/**", "artifacts/**"]
     },
     "test": {

@@ -6,8 +6,8 @@
     }
   },
   "mainnet": {
-    "FleetCommanderFactory": {
-      "address": "0xabc...",
+    "HarborCommand": {
+      "address": "0xf9c71B49De6cA90d6369B2898664b3f2d2fF8a90",
       "startBlock": 123456
     }
   }

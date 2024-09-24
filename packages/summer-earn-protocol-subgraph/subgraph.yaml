@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: base
+    network: mainnet
     source:
       abi: HarborCommand
       address: "0xf9c71B49De6cA90d6369B2898664b3f2d2fF8a90"
-      startBlock: 17728659
+      startBlock: 123456
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -57,7 +57,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: base
+    network: mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -100,7 +100,7 @@ templates:
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
           receipt: true
-        - event: Rebalanced(indexed address,(address,address,uint256)[])
+        - event: Rebalanced(indexed address,(address,address,uint256,bytes,bytes)[])
           handler: handleRebalance
           receipt: true
         - event: ArkAdded(indexed address)
@@ -109,7 +109,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: base
+    network: mainnet
     source:
       abi: Ark
     mapping:
