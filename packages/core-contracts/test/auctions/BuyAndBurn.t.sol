@@ -16,8 +16,6 @@ import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 
 contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
-    uint32 private aEid = 1;
-
     BuyAndBurn public buyAndBurn;
     ISummerToken public summerToken;
     MockERC20 public tokenToAuction1;
@@ -31,14 +29,9 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     function setUp() public override {
         super.setUp();
 
-        setUpEndpoints(2, LibraryType.UltraLightNode);
-
         defaultParams.kickerRewardPercentage = Percentage.wrap(
             KICKER_REWARD_PERCENTAGE
         );
-
-        address lzEndpoint = address(endpoints[aEid]);
-        vm.label(lzEndpoint, "LayerZero Endpoint");
 
         summerToken = new MockSummerToken("SummerToken", "SUMMER");
         buyAndBurn = new BuyAndBurn(

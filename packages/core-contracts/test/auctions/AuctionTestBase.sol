@@ -13,9 +13,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 import {Test, console} from "forge-std/Test.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
-import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
-
-contract AuctionTestBase is TestHelperOz5 {
+contract AuctionTestBase is Test {
     using PercentageUtils for uint256;
 
     ProtocolAccessManager public accessManager;
@@ -35,9 +33,7 @@ contract AuctionTestBase is TestHelperOz5 {
 
     AuctionDefaultParameters defaultParams;
 
-    function setUp() public virtual override {
-        super.setUp();
-
+    function setUp() public virtual {
         KICKER_REWARD_PERCENTAGE = 0;
         accessManager = new ProtocolAccessManager(governor);
         configurationManager = new ConfigurationManager(address(accessManager));
