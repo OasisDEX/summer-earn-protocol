@@ -22,6 +22,10 @@ dataSources:
           file: ./abis/Comet.json
         - name: GearboxPool
           file: ./abis/GearboxPool.json  
+        - name: AaveV3Pool
+          file: ./abis/AaveV3Pool.json  
+        - name: AaveV3PoolDataProvider
+          file: ./abis/AaveV3PoolDataProvider.json  
         - name: ERC4626
           file: ./abis/ERC4626.json  
         - name: ERC20

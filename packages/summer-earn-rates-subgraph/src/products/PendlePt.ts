@@ -8,9 +8,10 @@ import { Product } from '../models/Product'
 
 export class PendlePtProduct extends Product {
   marketExpiry: BigInt
-  constructor(token: Token, address: Address, startBlock: BigInt, name: string) {
-    super(token, address, startBlock, name)
-    const market = PendleMarket.bind(this.address)
+
+  constructor(token: Token, poolAddress: Address, startBlock: BigInt, name: string) {
+    super(token, poolAddress, startBlock, name)
+    const market = PendleMarket.bind(this.poolAddress)
     const expiry = market.expiry()
     this.marketExpiry = expiry
   }
@@ -40,7 +41,7 @@ export class PendlePtProduct extends Product {
   private _fetchArkTokenToAssetRate(): BigInt {
     const pendleOracle = PendleOracle.bind(addresses.PENDLE_ORACLE)
     const maybeRate = pendleOracle.try_getPtToAssetRate(
-      this.address,
+      this.poolAddress,
       BigIntConstants.THIRTY_MINUTES_IN_SECONDS,
     )
     if (!maybeRate.reverted) {
@@ -49,4 +50,7 @@ export class PendlePtProduct extends Product {
       return BigIntConstants.ZERO
     }
   }
+}
+function getChainIdByNetworkName(arg0: any): number {
+  throw new Error('Function not implemented.')
 }
