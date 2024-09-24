@@ -1,16 +1,48 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import "forge-std/Test.sol";
-import "../src/VotingDecayManager.sol";
-import "../src/VotingDecayLibrary.sol";
+import {Test} from "forge-std/Test.sol";
+import {VotingDecayManager} from "../src/VotingDecayManager.sol";
+import {VotingDecayLibrary} from "../src/VotingDecayLibrary.sol";
+
+// Concrete implementation of VotingDecayManager for testing
+contract TestVotingDecayManager is VotingDecayManager {
+    constructor(
+        uint40 decayFreeWindow_,
+        uint256 decayRatePerSecond_,
+        VotingDecayLibrary.DecayFunction decayFunction_
+    )
+        VotingDecayManager(
+            decayFreeWindow_,
+            decayRatePerSecond_,
+            decayFunction_
+        )
+    {}
+
+    function _getDelegateTo(
+        address account
+    ) internal pure override returns (address) {
+        return account;
+    }
+
+    function initializeAccount(address account) public {
+        _initializeAccountIfNew(account);
+    }
+
+    function resetDecay(address account) public {
+        decayInfoByAccount[account] = VotingDecayLibrary.DecayInfo({
+            decayFactor: VotingDecayLibrary.WAD,
+            lastUpdateTimestamp: uint40(block.timestamp)
+        });
+    }
+}
 
 /**
  * @title VotingDecayFuzzTest
  * @dev Fuzz testing suite for the VotingDecayManager contract
  */
 contract VotingDecayFuzzTest is Test {
-    VotingDecayManager internal decayManager;
+    TestVotingDecayManager internal decayManager;
     address internal owner = address(0x1);
     address internal user = address(0x2);
     address internal delegate = address(0x3);
@@ -23,27 +55,26 @@ contract VotingDecayFuzzTest is Test {
      * @dev Set up the test environment
      */
     function setUp() public {
-        decayManager = new VotingDecayManager(
+        vm.prank(owner);
+        decayManager = new TestVotingDecayManager(
             30 days,
             MAX_DECAY_RATE / 10, // 10% decay per year
-            VotingDecayLibrary.DecayFunction.Linear,
-            owner
+            VotingDecayLibrary.DecayFunction.Linear
         );
-        vm.prank(owner);
-        decayManager.setAuthorizedRefresher(address(this), true);
     }
 
     /**
      * @dev Test decay over time
      * @param elapsedTime Random time period to test decay
      */
+
     function testFuzz_DecayOverTime(uint256 elapsedTime) public {
         vm.assume(elapsedTime > 0 && elapsedTime <= YEAR_IN_SECONDS);
         decayManager.initializeAccount(user);
 
-        uint256 initialFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 initialFactor = decayManager.getDecayFactor(user);
         vm.warp(block.timestamp + elapsedTime);
-        uint256 finalFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 finalFactor = decayManager.getDecayFactor(user);
 
         assertLe(finalFactor, initialFactor);
     }
@@ -94,32 +125,6 @@ contract VotingDecayFuzzTest is Test {
     }
 
     /**
-     * @dev Test delegation and undelegation
-     * @param elapsedTime Random time period to test delegation effects
-     */
-    function testFuzz_DelegationAndUndelegation(uint256 elapsedTime) public {
-        vm.assume(elapsedTime > 0 && elapsedTime <= YEAR_IN_SECONDS);
-
-        decayManager.initializeAccount(user);
-        decayManager.initializeAccount(delegate);
-
-        decayManager.delegate(user, delegate);
-        vm.warp(block.timestamp + elapsedTime);
-
-        uint256 userFactor = decayManager.getCurrentRetentionFactor(user);
-        uint256 delegateFactor = decayManager.getCurrentRetentionFactor(
-            delegate
-        );
-        assertEq(userFactor, delegateFactor);
-
-        decayManager.undelegate(user);
-        assertEq(
-            decayManager.getCurrentRetentionFactor(user),
-            VotingDecayLibrary.WAD
-        );
-    }
-
-    /**
      * @dev Test decay for multiple accounts
      * @param elapsedTimes Array of random time periods to test decay for multiple accounts
      */
@@ -137,16 +142,12 @@ contract VotingDecayFuzzTest is Test {
             );
             accounts[i] = address(uint160(i + 1));
             decayManager.initializeAccount(accounts[i]);
-            initialFactors[i] = decayManager.getCurrentRetentionFactor(
-                accounts[i]
-            );
+            initialFactors[i] = decayManager.getDecayFactor(accounts[i]);
         }
 
         for (uint256 i = 0; i < elapsedTimes.length; i++) {
             vm.warp(block.timestamp + elapsedTimes[i]);
-            uint256 finalFactor = decayManager.getCurrentRetentionFactor(
-                accounts[i]
-            );
+            uint256 finalFactor = decayManager.getDecayFactor(accounts[i]);
             assertLe(finalFactor, initialFactors[i]);
         }
     }
@@ -160,17 +161,15 @@ contract VotingDecayFuzzTest is Test {
 
         decayManager.initializeAccount(user);
 
-        uint256 initialFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 initialFactor = decayManager.getDecayFactor(user);
 
         // Warp time and update decay
         vm.warp(block.timestamp + elapsedTime);
-        decayManager.updateDecay(user);
 
-        uint256 decayedFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 decayedFactor = decayManager.getDecayFactor(user);
 
         decayManager.resetDecay(user);
-
-        uint256 resetFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 resetFactor = decayManager.getDecayFactor(user);
 
         assertEq(
             initialFactor,
@@ -217,6 +216,7 @@ contract VotingDecayFuzzTest is Test {
 
         // Reset decay and change to exponential
         decayManager.resetDecay(user);
+
         vm.prank(owner);
         decayManager.setDecayFunction(
             VotingDecayLibrary.DecayFunction.Exponential
@@ -251,10 +251,10 @@ contract VotingDecayFuzzTest is Test {
         );
 
         decayManager.initializeAccount(user);
-        uint256 initialFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 initialFactor = decayManager.getDecayFactor(user);
 
         vm.warp(block.timestamp + elapsedTime);
-        uint256 finalFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 finalFactor = decayManager.getDecayFactor(user);
         uint256 decayedValue = decayManager.getVotingPower(user, initialValue);
 
         assertLe(
@@ -296,10 +296,10 @@ contract VotingDecayFuzzTest is Test {
         vm.stopPrank();
 
         decayManager.initializeAccount(user);
-        uint256 initialFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 initialFactor = decayManager.getDecayFactor(user);
 
         vm.warp(block.timestamp + elapsedTime);
-        uint256 finalFactor = decayManager.getCurrentRetentionFactor(user);
+        uint256 finalFactor = decayManager.getDecayFactor(user);
 
         assertLe(
             finalFactor,

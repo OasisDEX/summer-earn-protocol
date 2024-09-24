@@ -3,21 +3,33 @@ pragma solidity 0.8.26;
 
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 
-import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {GovernorTimelockControl, TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
+
+/*
+ * @title SummerGovernor
+ * @dev This contract implements the governance mechanism for the Summer protocol.
+ * It extends various OpenZeppelin governance modules and includes custom functionality
+ * such as whitelisting and voting decay.
+ */
 contract SummerGovernor is
     ISummerGovernor,
     ISummerGovernorErrors,
     GovernorTimelockControl,
     GovernorSettings,
     GovernorCountingSimple,
-    GovernorVotesQuorumFraction
+    GovernorVotesQuorumFraction,
+    VotingDecayManager
 {
     // ===============================================
     // Constants
@@ -28,6 +40,11 @@ contract SummerGovernor is
     // ===============================================
     // State Variables
     // ===============================================
+    /*
+     * @dev Configuration structure for the governor
+     * @param whitelistAccountExpirations Mapping of account addresses to their whitelist expiration timestamps
+     * @param whitelistGuardian Address of the account with special privileges for managing the whitelist
+     */
     struct GovernorConfig {
         mapping(address => uint256) whitelistAccountExpirations;
         address whitelistGuardian;
@@ -46,6 +63,9 @@ contract SummerGovernor is
         uint256 proposalThreshold;
         uint256 quorumFraction;
         address initialWhitelistGuardian;
+        uint40 initialDecayFreeWindow;
+        uint256 initialDecayRate;
+        VotingDecayLibrary.DecayFunction initialDecayFunction;
     }
 
     /**
@@ -64,6 +84,11 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
+        VotingDecayManager(
+            params.initialDecayFreeWindow,
+            params.initialDecayRate,
+            params.initialDecayFunction
+        )
     {
         if (
             params.proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
@@ -217,13 +242,13 @@ contract SummerGovernor is
      * dynamic settings, etc.).
      */
 
-    /**
-     * @dev Internal function to cancel a proposal.
-     * @param targets The addresses of the contracts to call.
-     * @param values The ETH values to send with the calls.
-     * @param calldatas The call data for each contract call.
-     * @param descriptionHash The hash of the proposal description.
-     * @return The ID of the cancelled proposal.
+    /*
+     * @dev Overrides the internal cancellation function to use the timelocked version
+     * @param targets The addresses of the contracts to call
+     * @param values The ETH values to send with the calls
+     * @param calldatas The call data for each contract call
+     * @param descriptionHash The hash of the proposal description
+     * @return The ID of the cancelled proposal
      */
     function _cancel(
         address[] memory targets,
@@ -427,6 +452,10 @@ contract SummerGovernor is
         return super.votingPeriod();
     }
 
+    /*
+     * @dev Internal function to set the whitelist guardian
+     * @param _whitelistGuardian The address of the new whitelist guardian
+     */
     function _setWhitelistGuardian(address _whitelistGuardian) internal {
         if (_whitelistGuardian == address(0)) {
             revert ISummerGovernorErrors.SummerGovernorInvalidWhitelistGuardian(
@@ -435,5 +464,16 @@ contract SummerGovernor is
         }
         config.whitelistGuardian = _whitelistGuardian;
         emit WhitelistGuardianSet(_whitelistGuardian);
+    }
+
+    /*
+     * @dev Internal function to get the delegate of an account
+     * @param account The address of the account to check
+     * @return The address of the delegate for the given account
+     */
+    function _getDelegateTo(
+        address account
+    ) internal view override returns (address) {
+        return token().delegates(account);
     }
 }
