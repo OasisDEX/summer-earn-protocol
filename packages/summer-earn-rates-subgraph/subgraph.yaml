@@ -1,0 +1,40 @@
+specVersion: 0.0.8
+description: Rates
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: EntryPoint
+    network: mainnet
+    source:
+      abi: Comet
+      startBlock: 20000000
+      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.8
+      language: wasm/assemblyscript
+      entities:
+        - Oracle
+        - DerivedOracle
+      abis:
+        - name: Comet
+          file: ./abis/Comet.json
+        - name: GearboxPool
+          file: ./abis/GearboxPool.json  
+        - name: ERC4626
+          file: ./abis/ERC4626.json  
+        - name: ERC20
+          file: ./abis/ERC20.json  
+        - name: PendleOracle
+          file: ./abis/PendleOracle.json
+        - name: PendleMarket
+          file: ./abis/PendleMarket.json
+        - name: IRateProvider
+          file: ./abis/IRateProvider.json
+      blockHandlers:
+        - handler: handleBlock
+          filter:
+            kind: polling
+            every: 50    
+      file: ./src/mapping.ts

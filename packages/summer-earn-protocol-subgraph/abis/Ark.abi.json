@@ -20,10 +20,76 @@
         "name": "amount",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "boardData",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "commander",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "config",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "commander",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "raft",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "contract IERC20"
+      },
+      {
+        "name": "depositCap",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRebalanceOutflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRebalanceInflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "requiresKeeperData",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -46,6 +112,11 @@
         "name": "amount",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "disembarkData",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [],
@@ -88,24 +159,41 @@
     "name": "grantRole",
     "inputs": [
       {
-        "name": "role",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "account",
+        "name": "",
         "type": "address",
         "internalType": "address"
       }
     ],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "harvest",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      {
+        "name": "additionalData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "rewardTokens",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "rewardAmounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
@@ -131,6 +219,93 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "manager",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IConfigurationManager"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxRebalanceInflow",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxRebalanceOutflow",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "move",
+    "inputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiverArk",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "boardData",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "disembarkData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "name",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poke",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -178,6 +353,19 @@
   },
   {
     "type": "function",
+    "name": "requiresKeeperData",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "revokeCommanderRole",
     "inputs": [
       {
@@ -194,25 +382,25 @@
     "name": "revokeRole",
     "inputs": [
       {
-        "name": "role",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "account",
+        "name": "",
         "type": "address",
         "internalType": "address"
       }
     ],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "setDepositCap",
     "inputs": [
       {
-        "name": "newCap",
+        "name": "newDepositCap",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -222,12 +410,25 @@
   },
   {
     "type": "function",
-    "name": "setRaft",
+    "name": "setMaxRebalanceInflow",
     "inputs": [
       {
-        "name": "newRaft",
-        "type": "address",
-        "internalType": "address"
+        "name": "newMaxRebalanceInflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMaxRebalanceOutflow",
+    "inputs": [
+      {
+        "name": "newMaxRebalanceOutflow",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -277,6 +478,56 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "ArkHarvested",
+    "inputs": [
+      {
+        "name": "rewardTokens",
+        "type": "address[]",
+        "indexed": true,
+        "internalType": "address[]"
+      },
+      {
+        "name": "rewardAmounts",
+        "type": "uint256[]",
+        "indexed": true,
+        "internalType": "uint256[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ArkPoked",
+    "inputs": [
+      {
+        "name": "currentPrice",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ArkPokedNoChange",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ArkPokedTooSoon",
+    "inputs": [],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -343,8 +594,52 @@
   },
   {
     "type": "event",
-    "name": "Harvested",
+    "name": "MaxRebalanceInflowUpdated",
     "inputs": [
+      {
+        "name": "newMaxInflow",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MaxRebalanceOutflowUpdated",
+    "inputs": [
+      {
+        "name": "newMaxOutflow",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Moved",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
       {
         "name": "amount",
         "type": "uint256",
@@ -465,6 +760,28 @@
   },
   {
     "type": "error",
+    "name": "CallerIsNotAdmin",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotAuthorizedToBoard",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "CallerIsNotCommander",
     "inputs": [
       {
@@ -487,6 +804,112 @@
   },
   {
     "type": "error",
+    "name": "CallerIsNotKeeper",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotRaft",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotRaftOrCommander",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotSuperKeeper",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CannotAddCommanderToArkWithCommander",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotDeployArkWithEmptyName",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotDeployArkWithoutConfigurationManager",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotDeployArkWithoutRaft",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotDeployArkWithoutToken",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotRemoveCommanderFromArkWithAssets",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotUseKeeperDataWhenNotRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DirectGrantIsDisabled",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DirectRevokeIsDisabled",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC4626AssetMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidAccessManagerAddress",
     "inputs": [
       {
@@ -495,6 +918,26 @@
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidBoardData",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidDisembarkData",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidVaultAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "KeeperDataRequired",
+    "inputs": []
   },
   {
     "type": "error",

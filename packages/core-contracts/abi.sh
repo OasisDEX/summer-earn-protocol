@@ -3,7 +3,7 @@
 # Set the paths
 FORGE_DIR="."
 OUT_DIR="./out"
-ABI_DIR="../subgraph/abis"
+ABI_DIR="../summer-earn-protocol-subgraph/abis"
 
 # Run the Forge build
 echo "Running Forge build..."
