@@ -17,6 +17,7 @@ artifacts
 packages/core-contracts/lib/**
 packages/voting-decay/lib/**
 packages/dutch-auction/lib/**
+packages/gov-contracts/lib/**
 **/.sst/**
 **/.turbo/**
 packages/**/src/generated
