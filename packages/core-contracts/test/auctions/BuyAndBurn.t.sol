@@ -40,13 +40,6 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         address lzEndpoint = address(endpoints[aEid]);
         vm.label(lzEndpoint, "LayerZero Endpoint");
 
-        // ISummerToken.TokenParams memory tokenParams = ISummerToken.TokenParams({
-        //     name: "SummerToken",
-        //     symbol: "SUMMER",
-        //     lzEndpoint: lzEndpoint,
-        //     governor: summerGovernor
-        // });
-
         summerToken = new MockSummerToken("SummerToken", "SUMMER");
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
