@@ -7,6 +7,7 @@
     "deploy:base": "pnpm build:base && graph deploy summer-protocol-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key FhnHtpQ81E --ipfs https://ipfs.satsuma.xyz"
   },
   "devDependencies": {
-    "@graphprotocol/graph-ts": "^0.35.1"
+    "@graphprotocol/graph-ts": "^0.35.1",
+    "mustache": "^4.2.0"
   }
 }

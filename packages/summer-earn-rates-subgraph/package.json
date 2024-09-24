@@ -23,6 +23,8 @@
     "deploy:alchemy:all": "pnpm deploy:mainnet:alchemy && pnpm deploy:arbitrum:alchemy && pnpm deploy:base:alchemy && pnpm deploy:optimism:alchemy"
   },
   "devDependencies": {
-    "@graphprotocol/graph-ts": "^0.35.1"
+    "@graphprotocol/graph-cli": "^0.82.0",
+    "@graphprotocol/graph-ts": "^0.35.1",
+    "mustache": "^4.2.0"
   }
 }
