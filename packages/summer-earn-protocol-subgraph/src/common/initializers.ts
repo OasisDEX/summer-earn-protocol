@@ -335,10 +335,8 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.symbol = utils.readValue<string>(vaultContract.try_symbol(), '')
 
     vault.protocol = constants.PROTOCOL_ID
-    vault.depositLimit = utils.readValue<BigInt>(
-      vaultContract.try_depositCap(),
-      constants.BigIntConstants.ZERO,
-    )
+    const config = vaultContract.getConfig()
+    vault.depositLimit = config.depositCap
 
     const inputToken = getOrCreateToken(vaultContract.asset())
     vault.inputToken = inputToken.id
@@ -374,7 +372,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.fees = [managementFeeId, performanceFeeId]
 
     const initialVaultArks = utils.readValue<Address[]>(
-      vaultContract.try_arks(),
+      vaultContract.try_getArks(),
       new Array<Address>(),
     )
 

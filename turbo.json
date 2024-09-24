@@ -20,7 +20,7 @@
       "outputs": []
     },
     "build": {
-      "dependsOn": ["prebuild", "^build","build:mainnet"],
+      "dependsOn": ["prebuild", "^build", "build:mainnet"],
       "outputs": ["dist/**", "artifacts/**"]
     },
     "test": {

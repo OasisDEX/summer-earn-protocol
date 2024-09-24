@@ -7,31 +7,61 @@
         "type": "tuple",
         "internalType": "struct FleetCommanderParams",
         "components": [
-          { "name": "configurationManager", "type": "address", "internalType": "address" },
-          { "name": "accessManager", "type": "address", "internalType": "address" },
-          { "name": "initialArks", "type": "address[]", "internalType": "address[]" },
           {
-            "name": "initialMinimumFundsBufferBalance",
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "initialArks",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "configurationManager",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "accessManager",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "asset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "bufferArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "initialMinimumBufferBalance",
             "type": "uint256",
             "internalType": "uint256"
           },
-          { "name": "initialRebalanceCooldown", "type": "uint256", "internalType": "uint256" },
-          { "name": "asset", "type": "address", "internalType": "address" },
-          { "name": "name", "type": "string", "internalType": "string" },
-          { "name": "symbol", "type": "string", "internalType": "string" },
           {
-            "name": "initialMinimumPositionWithdrawal",
+            "name": "initialRebalanceCooldown",
             "type": "uint256",
-            "internalType": "Percentage"
+            "internalType": "uint256"
           },
           {
-            "name": "initialMaximumBufferWithdrawal",
+            "name": "depositCap",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "initialTipRate",
             "type": "uint256",
             "internalType": "Percentage"
-          },
-          { "name": "depositCap", "type": "uint256", "internalType": "uint256" },
-          { "name": "bufferArk", "type": "address", "internalType": "address" },
-          { "name": "initialTipRate", "type": "uint256", "internalType": "uint256" }
+          }
         ]
       }
     ],
@@ -39,22 +69,53 @@
   },
   {
     "type": "function",
+    "name": "DEFAULT_MAX_REBALANCE_OPERATIONS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "MAX_REBALANCE_OPERATIONS",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "addArk",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }],
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "addArks",
-    "inputs": [{ "name": "_arkAddresses", "type": "address[]", "internalType": "address[]" }],
+    "inputs": [
+      {
+        "name": "_arkAddresses",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -67,9 +128,31 @@
         "type": "tuple[]",
         "internalType": "struct RebalanceData[]",
         "components": [
-          { "name": "fromArk", "type": "address", "internalType": "address" },
-          { "name": "toArk", "type": "address", "internalType": "address" },
-          { "name": "amount", "type": "uint256", "internalType": "uint256" }
+          {
+            "name": "fromArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "toArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "boardData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "disembarkData",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
         ]
       }
     ],
@@ -80,87 +163,232 @@
     "type": "function",
     "name": "allowance",
     "inputs": [
-      { "name": "owner", "type": "address", "internalType": "address" },
-      { "name": "spender", "type": "address", "internalType": "address" }
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "approve",
     "inputs": [
-      { "name": "spender", "type": "address", "internalType": "address" },
-      { "name": "value", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "arks",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "address[]", "internalType": "address[]" }],
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "asset",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "balanceOf",
-    "inputs": [{ "name": "account", "type": "address", "internalType": "address" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "bufferArk",
+    "name": "config",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "address", "internalType": "contract IArk" }],
+    "outputs": [
+      {
+        "name": "bufferArk",
+        "type": "address",
+        "internalType": "contract IArk"
+      },
+      {
+        "name": "minimumBufferBalance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "depositCap",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRebalanceOperations",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "convertToAssets",
-    "inputs": [{ "name": "shares", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "convertToShares",
-    "inputs": [{ "name": "assets", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "decimals",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint8", "internalType": "uint8" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "deposit",
     "inputs": [
-      { "name": "assets", "type": "uint256", "internalType": "uint256" },
-      { "name": "receiver", "type": "address", "internalType": "address" }
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "depositCap",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
+    "name": "deposit",
+    "inputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "referralCode",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -173,7 +401,13 @@
     "type": "function",
     "name": "estimateAccruedTip",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
@@ -185,9 +419,31 @@
         "type": "tuple[]",
         "internalType": "struct RebalanceData[]",
         "components": [
-          { "name": "fromArk", "type": "address", "internalType": "address" },
-          { "name": "toArk", "type": "address", "internalType": "address" },
-          { "name": "amount", "type": "uint256", "internalType": "uint256" }
+          {
+            "name": "fromArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "toArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "boardData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "disembarkData",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
         ]
       }
     ],
@@ -196,34 +452,127 @@
   },
   {
     "type": "function",
-    "name": "forceWithdraw",
-    "inputs": [
-      { "name": "assets", "type": "uint256", "internalType": "uint256" },
-      { "name": "receiver", "type": "address", "internalType": "address" },
-      { "name": "owner", "type": "address", "internalType": "address" }
+    "name": "getArks",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
     ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct FleetConfig",
+        "components": [
+          {
+            "name": "bufferArk",
+            "type": "address",
+            "internalType": "contract IArk"
+          },
+          {
+            "name": "minimumBufferBalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "depositCap",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxRebalanceOperations",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getCooldown",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getLastActionTimestamp",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isArkActive",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isArkWithdrawable",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "lastTipTimestamp",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
@@ -231,95 +580,239 @@
     "name": "manager",
     "inputs": [],
     "outputs": [
-      { "name": "", "type": "address", "internalType": "contract IConfigurationManager" }
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IConfigurationManager"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxBufferRedeem",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "_maxBufferRedeem",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxBufferWithdraw",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "_maxBufferWithdraw",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "maxDeposit",
-    "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "maxForceWithdraw",
-    "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "_maxDeposit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "maxMint",
-    "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "_maxMint",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "maxRedeem",
-    "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "_maxRedeem",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "maxWithdraw",
-    "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "minFundsBufferBalance",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "_maxWithdraw",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "mint",
     "inputs": [
-      { "name": "shares", "type": "uint256", "internalType": "uint256" },
-      { "name": "receiver", "type": "address", "internalType": "address" }
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "name",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "previewDeposit",
-    "inputs": [{ "name": "assets", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "previewMint",
-    "inputs": [{ "name": "shares", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "previewRedeem",
-    "inputs": [{ "name": "shares", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "previewWithdraw",
-    "inputs": [{ "name": "assets", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
@@ -331,9 +824,31 @@
         "type": "tuple[]",
         "internalType": "struct RebalanceData[]",
         "components": [
-          { "name": "fromArk", "type": "address", "internalType": "address" },
-          { "name": "toArk", "type": "address", "internalType": "address" },
-          { "name": "amount", "type": "uint256", "internalType": "uint256" }
+          {
+            "name": "fromArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "toArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "boardData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "disembarkData",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
         ]
       }
     ],
@@ -344,41 +859,192 @@
     "type": "function",
     "name": "redeem",
     "inputs": [
-      { "name": "shares", "type": "uint256", "internalType": "uint256" },
-      { "name": "receiver", "type": "address", "internalType": "address" },
-      { "name": "owner", "type": "address", "internalType": "address" }
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "redeemFromArks",
+    "inputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "totalAssetsToWithdraw",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "redeemFromBuffer",
+    "inputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "removeArk",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setDepositCap",
-    "inputs": [{ "name": "newCap", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setMaxAllocation",
     "inputs": [
-      { "name": "ark", "type": "address", "internalType": "address" },
-      { "name": "newMaxAllocation", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "setMinBufferBalance",
-    "inputs": [{ "name": "newBalance", "type": "uint256", "internalType": "uint256" }],
+    "name": "setArkDepositCap",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "newDepositCap",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setArkMaxRebalanceInflow",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "newMaxRebalanceInflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setArkMaxRebalanceOutflow",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "newMaxRebalanceOutflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setFleetDepositCap",
+    "inputs": [
+      {
+        "name": "newCap",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMaxRebalanceOperations",
+    "inputs": [
+      {
+        "name": "newMaxRebalanceOperations",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMinimumBufferBalance",
+    "inputs": [
+      {
+        "name": "newMinimumBalance",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -392,7 +1058,13 @@
   {
     "type": "function",
     "name": "setTipRate",
-    "inputs": [{ "name": "newTipRate", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "newTipRate",
+        "type": "uint256",
+        "internalType": "Percentage"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -400,69 +1072,143 @@
     "type": "function",
     "name": "symbol",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "tip",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "tipJar",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "tipRate",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "Percentage"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "totalAssets",
     "inputs": [],
-    "outputs": [{ "name": "total", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "totalSupply",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "transfer",
     "inputs": [
-      { "name": "", "type": "address", "internalType": "address" },
-      { "name": "", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
     "stateMutability": "pure"
   },
   {
     "type": "function",
     "name": "transferFrom",
     "inputs": [
-      { "name": "from", "type": "address", "internalType": "address" },
-      { "name": "to", "type": "address", "internalType": "address" },
-      { "name": "value", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
-    "stateMutability": "nonpayable"
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "pure"
   },
   {
     "type": "function",
     "name": "updateRebalanceCooldown",
-    "inputs": [{ "name": "newCooldown", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "newCooldown",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -470,36 +1216,120 @@
     "type": "function",
     "name": "withdraw",
     "inputs": [
-      { "name": "assets", "type": "uint256", "internalType": "uint256" },
-      { "name": "receiver", "type": "address", "internalType": "address" },
-      { "name": "owner", "type": "address", "internalType": "address" }
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawFromArks",
+    "inputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "totalSharesToRedeem",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawFromBuffer",
+    "inputs": [
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawableTotalAssets",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "event",
     "name": "Approval",
     "inputs": [
-      { "name": "owner", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "spender", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "value", "type": "uint256", "indexed": false, "internalType": "uint256" }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ArkAdded",
-    "inputs": [{ "name": "ark", "type": "address", "indexed": true, "internalType": "address" }],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ArkMaxAllocationUpdated",
-    "inputs": [
-      { "name": "ark", "type": "address", "indexed": true, "internalType": "address" },
       {
-        "name": "newMaxAllocation",
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "value",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -509,8 +1339,28 @@
   },
   {
     "type": "event",
+    "name": "ArkAdded",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "ArkRemoved",
-    "inputs": [{ "name": "ark", "type": "address", "indexed": true, "internalType": "address" }],
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
     "anonymous": false
   },
   {
@@ -523,7 +1373,12 @@
         "indexed": false,
         "internalType": "uint256"
       },
-      { "name": "newCooldown", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "newCooldown",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -531,18 +1386,30 @@
     "type": "event",
     "name": "Deposit",
     "inputs": [
-      { "name": "sender", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "owner", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "assets", "type": "uint256", "indexed": false, "internalType": "uint256" },
-      { "name": "shares", "type": "uint256", "indexed": false, "internalType": "uint256" }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DepositCapUpdated",
-    "inputs": [
-      { "name": "newCap", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -550,7 +1417,12 @@
     "type": "event",
     "name": "FeeAddressUpdated",
     "inputs": [
-      { "name": "newAddress", "type": "address", "indexed": false, "internalType": "address" }
+      {
+        "name": "newAddress",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
     ],
     "anonymous": false
   },
@@ -558,16 +1430,126 @@
     "type": "event",
     "name": "FleetCommanderBufferAdjusted",
     "inputs": [
-      { "name": "keeper", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "totalMoved", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "keeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "totalMoved",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
   {
     "type": "event",
-    "name": "FleetCommanderMinFundsBufferBalanceUpdated",
+    "name": "FleetCommanderDepositCapUpdated",
     "inputs": [
-      { "name": "newBalance", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "newCap",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FleetCommanderMaxRebalanceOperationsUpdated",
+    "inputs": [
+      {
+        "name": "newMaxRebalanceOperations",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FleetCommanderRedeemedFromArks",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "totalRedeemed",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FleetCommanderReferral",
+    "inputs": [
+      {
+        "name": "referee",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "referralCode",
+        "type": "bytes",
+        "indexed": true,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FleetCommanderWithdrawnFromArks",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "totalWithdrawn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FleetCommanderminimumBufferBalanceUpdated",
+    "inputs": [
+      {
+        "name": "newBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -575,9 +1557,24 @@
     "type": "event",
     "name": "FundsBufferBalanceUpdated",
     "inputs": [
-      { "name": "user", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "prevBalance", "type": "uint256", "indexed": false, "internalType": "uint256" },
-      { "name": "newBalance", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "prevBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "newBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -585,9 +1582,24 @@
     "type": "event",
     "name": "FundsQueueRefilled",
     "inputs": [
-      { "name": "keeper", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "prevBalance", "type": "uint256", "indexed": false, "internalType": "uint256" },
-      { "name": "newBalance", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "keeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "prevBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "newBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -595,8 +1607,18 @@
     "type": "event",
     "name": "MinFundsQueueBalanceUpdated",
     "inputs": [
-      { "name": "keeper", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "newBalance", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "keeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -604,9 +1626,24 @@
     "type": "event",
     "name": "QueuedFundsCommitted",
     "inputs": [
-      { "name": "keeper", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "prevBalance", "type": "uint256", "indexed": false, "internalType": "uint256" },
-      { "name": "newBalance", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "keeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "prevBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "newBalance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -614,16 +1651,43 @@
     "type": "event",
     "name": "Rebalanced",
     "inputs": [
-      { "name": "keeper", "type": "address", "indexed": true, "internalType": "address" },
+      {
+        "name": "keeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
       {
         "name": "rebalances",
         "type": "tuple[]",
         "indexed": false,
         "internalType": "struct RebalanceData[]",
         "components": [
-          { "name": "fromArk", "type": "address", "internalType": "address" },
-          { "name": "toArk", "type": "address", "internalType": "address" },
-          { "name": "amount", "type": "uint256", "internalType": "uint256" }
+          {
+            "name": "fromArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "toArk",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "boardData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "disembarkData",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
         ]
       }
     ],
@@ -633,7 +1697,12 @@
     "type": "event",
     "name": "TipAccrued",
     "inputs": [
-      { "name": "tipAmount", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "tipAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -641,7 +1710,12 @@
     "type": "event",
     "name": "TipJarUpdated",
     "inputs": [
-      { "name": "newTipJar", "type": "address", "indexed": false, "internalType": "address" }
+      {
+        "name": "newTipJar",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
     ],
     "anonymous": false
   },
@@ -649,7 +1723,12 @@
     "type": "event",
     "name": "TipRateUpdated",
     "inputs": [
-      { "name": "newTipRate", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "newTipRate",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "Percentage"
+      }
     ],
     "anonymous": false
   },
@@ -657,9 +1736,24 @@
     "type": "event",
     "name": "Transfer",
     "inputs": [
-      { "name": "from", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "to", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "value", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -667,205 +1761,614 @@
     "type": "event",
     "name": "Withdraw",
     "inputs": [
-      { "name": "sender", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "receiver", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "owner", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "assets", "type": "uint256", "indexed": false, "internalType": "uint256" },
-      { "name": "shares", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
   {
     "type": "error",
-    "name": "AddressEmptyCode",
-    "inputs": [{ "name": "target", "type": "address", "internalType": "address" }]
+    "name": "CallerIsNotAdmin",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
-    "name": "AddressInsufficientBalance",
-    "inputs": [{ "name": "account", "type": "address", "internalType": "address" }]
+    "name": "CallerIsNotAuthorizedToBoard",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotCommander",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "CallerIsNotGovernor",
-    "inputs": [{ "name": "caller", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "CallerIsNotKeeper",
-    "inputs": [{ "name": "caller", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotRaft",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotRaftOrCommander",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotSuperKeeper",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "CooldownNotElapsed",
     "inputs": [
-      { "name": "lastActionTimestamp", "type": "uint256", "internalType": "uint256" },
-      { "name": "cooldown", "type": "uint256", "internalType": "uint256" },
-      { "name": "currentTimestamp", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "lastActionTimestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cooldown",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentTimestamp",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DirectGrantIsDisabled",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DirectRevokeIsDisabled",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
     ]
   },
   {
     "type": "error",
     "name": "ERC20InsufficientAllowance",
     "inputs": [
-      { "name": "spender", "type": "address", "internalType": "address" },
-      { "name": "allowance", "type": "uint256", "internalType": "uint256" },
-      { "name": "needed", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "allowance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "needed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ]
   },
   {
     "type": "error",
     "name": "ERC20InsufficientBalance",
     "inputs": [
-      { "name": "sender", "type": "address", "internalType": "address" },
-      { "name": "balance", "type": "uint256", "internalType": "uint256" },
-      { "name": "needed", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "balance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "needed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ]
   },
   {
     "type": "error",
     "name": "ERC20InvalidApprover",
-    "inputs": [{ "name": "approver", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "approver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "ERC20InvalidReceiver",
-    "inputs": [{ "name": "receiver", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "ERC20InvalidSender",
-    "inputs": [{ "name": "sender", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "ERC20InvalidSpender",
-    "inputs": [{ "name": "spender", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "ERC4626ExceededMaxDeposit",
     "inputs": [
-      { "name": "receiver", "type": "address", "internalType": "address" },
-      { "name": "assets", "type": "uint256", "internalType": "uint256" },
-      { "name": "max", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ]
   },
   {
     "type": "error",
     "name": "ERC4626ExceededMaxMint",
     "inputs": [
-      { "name": "receiver", "type": "address", "internalType": "address" },
-      { "name": "shares", "type": "uint256", "internalType": "uint256" },
-      { "name": "max", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ]
   },
   {
     "type": "error",
     "name": "ERC4626ExceededMaxRedeem",
     "inputs": [
-      { "name": "owner", "type": "address", "internalType": "address" },
-      { "name": "shares", "type": "uint256", "internalType": "uint256" },
-      { "name": "max", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ]
   },
   {
     "type": "error",
     "name": "ERC4626ExceededMaxWithdraw",
     "inputs": [
-      { "name": "owner", "type": "address", "internalType": "address" },
-      { "name": "assets", "type": "uint256", "internalType": "uint256" },
-      { "name": "max", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ]
   },
-  { "type": "error", "name": "FailedInnerCall", "inputs": [] },
   {
     "type": "error",
     "name": "FleetCommanderArkAlreadyExists",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "FleetCommanderArkAssetsNotZero",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
-    "name": "FleetCommanderArkMaxAllocationGreaterThanZero",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }]
+    "name": "FleetCommanderArkDepositCapGreaterThanZero",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
-    "name": "FleetCommanderArkMaxAllocationZero",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }]
+    "name": "FleetCommanderArkDepositCapZero",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "FleetCommanderArkNotActive",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "FleetCommanderArkNotFound",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "FleetCommanderCantRebalanceToArk",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
-  { "type": "error", "name": "FleetCommanderInsufficientBuffer", "inputs": [] },
-  { "type": "error", "name": "FleetCommanderInvalidArkAddress", "inputs": [] },
-  { "type": "error", "name": "FleetCommanderInvalidBufferAdjustment", "inputs": [] },
-  { "type": "error", "name": "FleetCommanderNoExcessFunds", "inputs": [] },
+  {
+    "type": "error",
+    "name": "FleetCommanderCantUseMaxUintForBufferAdjustement",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderCantUseRebalanceOnBufferArk",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderExceedsMaxInflow",
+    "inputs": [
+      {
+        "name": "fromArk",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRebalanceInflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderExceedsMaxOutflow",
+    "inputs": [
+      {
+        "name": "fromArk",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxRebalanceOutflow",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderInsufficientBuffer",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderInvalidArkAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderInvalidBufferAdjustment",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderInvalidSourceArk",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderMovedMoreThanAvailable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderNoExcessFunds",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderNoFundsMoved",
+    "inputs": []
+  },
   {
     "type": "error",
     "name": "FleetCommanderRebalanceAmountZero",
-    "inputs": [{ "name": "ark", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
-  { "type": "error", "name": "FleetCommanderRebalanceNoOperations", "inputs": [] },
+  {
+    "type": "error",
+    "name": "FleetCommanderRebalanceNoOperations",
+    "inputs": []
+  },
   {
     "type": "error",
     "name": "FleetCommanderRebalanceTooManyOperations",
-    "inputs": [{ "name": "operationsCount", "type": "uint256", "internalType": "uint256" }]
+    "inputs": [
+      {
+        "name": "operationsCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
-    "name": "FleetCommanderTargetArkRateTooLow",
-    "inputs": [
-      { "name": "ark", "type": "address", "internalType": "address" },
-      { "name": "targetRate", "type": "uint256", "internalType": "uint256" },
-      { "name": "currentRate", "type": "uint256", "internalType": "uint256" }
-    ]
+    "name": "FleetCommanderTransfersDisabled",
+    "inputs": []
   },
-  { "type": "error", "name": "FleetCommanderTransfersDisabled", "inputs": [] },
   {
     "type": "error",
     "name": "FleetCommanderUnauthorizedRedemption",
     "inputs": [
-      { "name": "caller", "type": "address", "internalType": "address" },
-      { "name": "owner", "type": "address", "internalType": "address" }
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
     ]
   },
   {
     "type": "error",
     "name": "FleetCommanderUnauthorizedWithdrawal",
     "inputs": [
-      { "name": "caller", "type": "address", "internalType": "address" },
-      { "name": "owner", "type": "address", "internalType": "address" }
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
     ]
   },
   {
     "type": "error",
     "name": "InvalidAccessManagerAddress",
-    "inputs": [{ "name": "invalidAddress", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "invalidAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
-  { "type": "error", "name": "InvalidTipJarAddress", "inputs": [] },
-  { "type": "error", "name": "MathOverflowedMulDiv", "inputs": [] },
+  {
+    "type": "error",
+    "name": "InvalidFleetCommanderAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTipJarAddress",
+    "inputs": []
+  },
   {
     "type": "error",
     "name": "SafeERC20FailedOperation",
-    "inputs": [{ "name": "token", "type": "address", "internalType": "address" }]
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
-  { "type": "error", "name": "TipRateCannotExceedOneHundredPercent", "inputs": [] }
+  {
+    "type": "error",
+    "name": "TipRateCannotExceedOneHundredPercent",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WithdrawalAmountExceedsMaxBufferLimit",
+    "inputs": []
+  }
 ]
