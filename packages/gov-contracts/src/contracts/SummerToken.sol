@@ -55,4 +55,40 @@ contract SummerToken is
     ) internal override(ERC20, ERC20Votes) {
         super._update(from, to, amount);
     }
+
+    /**
+     * @dev Burns tokens from the sender's specified balance.
+     * @param _from The address to debit the tokens from.
+     * @param _amountLD The amount of tokens to send in local decimals.
+     * @param _minAmountLD The minimum amount to send in local decimals.
+     * @param _dstEid The destination chain ID.
+     * @return amountSentLD The amount sent in local decimals.
+     * @return amountReceivedLD The amount received in local decimals on the remote.
+     */
+    function _debit(
+        address _from,
+        uint256 _amountLD,
+        uint256 _minAmountLD,
+        uint32 _dstEid
+    )
+        internal
+        override
+        returns (uint256 amountSentLD, uint256 amountReceivedLD)
+    {
+        (amountSentLD, amountReceivedLD) = _debitView(
+            _amountLD,
+            _minAmountLD,
+            _dstEid
+        );
+
+        // @dev In NON-default OFT, amountSentLD could be 100, with a 10% fee, the amountReceivedLD amount is 90,
+        // therefore amountSentLD CAN differ from amountReceivedLD.
+
+        // @dev See Votes.sol::_transferVotingUnits
+        // We burn the account holders voting units on teleport
+        _transferVotingUnits(_from, address(0), _amountLD);
+
+        // @dev Default OFT burns on src.
+        _burn(_from, amountSentLD);
+    }
 }
