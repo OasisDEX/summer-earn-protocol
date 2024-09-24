@@ -16,7 +16,7 @@
       "cache": false
     },
     "build": {
-      "dependsOn": ["prebuild", "^build", "build:mainnet"],
+      "dependsOn": ["prebuild", "^build"],
       "outputs": ["dist/**", "artifacts/**"]
     },
     "test": {
