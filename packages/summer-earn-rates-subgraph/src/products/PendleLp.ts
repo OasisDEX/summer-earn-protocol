@@ -1,14 +1,10 @@
-import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { BigDecimal } from '@graphprotocol/graph-ts'
 import { PendleOracle } from '../../generated/EntryPoint/PendleOracle'
-import { Token } from '../../generated/schema'
 import { addresses } from '../constants/addresses'
 import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { BaseVaultProduct } from './BaseVaultProduct'
 
 export class PendleLpProduct extends BaseVaultProduct {
-  constructor(token: Token, poolAddress: Address, startBlock: BigInt, name: string) {
-    super(token, poolAddress, startBlock, name)
-  }
   getSharePrice(): BigDecimal {
     const pendleOracle = PendleOracle.bind(addresses.PENDLE_ORACLE)
     const maybeRate = pendleOracle.try_getLpToAssetRate(

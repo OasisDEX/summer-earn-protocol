@@ -51,6 +51,3 @@ export class PendlePtProduct extends Product {
     }
   }
 }
-function getChainIdByNetworkName(arg0: any): number {
-  throw new Error('Function not implemented.')
-}

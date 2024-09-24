@@ -1,13 +1,9 @@
-import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { GearboxPool } from '../../generated/EntryPoint/GearboxPool'
-import { Token } from '../../generated/schema'
 import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
 
 export class GearboxProduct extends Product {
-  constructor(token: Token, poolAddress: Address, startBlock: BigInt, name: string) {
-    super(token, poolAddress, startBlock, name)
-  }
   getRate(currentTimestamp: BigInt): BigDecimal {
     const pool = GearboxPool.bind(this.poolAddress)
     const tryRate = pool.try_supplyRate()

@@ -7,6 +7,8 @@ export function getChainIdByNetworkName(network: string): number {
     return 10
   } else if (network == 'polygon') {
     return 137
+  } else if (network == 'base') {
+    return 8453
   } else {
     throw new Error(`Unsupported network: ${network}`)
   }
