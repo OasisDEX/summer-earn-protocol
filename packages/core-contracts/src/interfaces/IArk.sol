@@ -66,11 +66,6 @@ interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
     function commander() external view returns (address);
 
     /**
-     * @notice Updates information about the Ark
-     */
-    function poke() external;
-
-    /**
      * @notice Triggers a harvest operation to collect rewards
      * @param additionalData Optional bytes that might be required by a specific protocol to harvest
      * @return rewardTokens The reward token addresses
