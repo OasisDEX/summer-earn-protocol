@@ -514,7 +514,7 @@ contract WithdrawTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_WithdrawForce_withNonWithdrawableArk() public {
         FleetConfig memory config = fleetCommander.getConfig();
-        uint256 depositShares = fleetCommander.balanceOf(mockUser);
+
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
