@@ -196,9 +196,6 @@ abstract contract Ark is IArk, ArkAccessManaged {
         emit MaxRebalanceInflowUpdated(newMaxRebalanceInflow);
     }
 
-    /* @inheritdoc IArk */
-    function poke() public virtual {}
-
     /* EXTERNAL - GOVERNANCE */
 
     /* @inheritdoc IArk */
