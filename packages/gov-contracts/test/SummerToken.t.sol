@@ -12,8 +12,6 @@ import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/O
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
-// TODO: Add test for voting after teleportation. Expect a revert based on decrease voting units
-
 contract SummerTokenTest is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
@@ -308,6 +306,67 @@ contract SummerTokenTest is TestHelperOz5 {
         assertEq(composer.message(), composerMsg_);
         assertEq(composer.executor(), address(this));
         assertEq(composer.extraData(), composerMsg_);
+    }
+
+    function test_VotingPowerAfterTeleport() public {
+        vm.deal(user1, 100 ether);
+
+        // Transfer tokens to user1
+        uint256 tokensToSend = 100 ether;
+        aSummerToken.transfer(user1, tokensToSend);
+
+        // Check initial voting power
+        vm.prank(user1);
+        aSummerToken.delegate(user1);
+
+        vm.warp(block.timestamp + 100000);
+        vm.roll(block.number + 100000);
+
+        uint256 initialVotingPower = aSummerToken.getVotes(user1);
+        assertEq(
+            initialVotingPower,
+            tokensToSend,
+            "Initial voting power should match transferred tokens"
+        );
+
+        // Prepare for teleport
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(200000, 0);
+        SendParam memory sendParam = SendParam(
+            bEid,
+            addressToBytes32(user2),
+            tokensToSend,
+            tokensToSend,
+            options,
+            "",
+            ""
+        );
+        MessagingFee memory fee = aSummerToken.quoteSend(sendParam, false);
+
+        // Teleport tokens
+        vm.prank(user1);
+        aSummerToken.send{value: fee.nativeFee}(
+            sendParam,
+            fee,
+            payable(address(this))
+        );
+        verifyPackets(bEid, addressToBytes32(address(bSummerToken)));
+
+        // Check voting power after teleport
+        uint256 finalVotingPower = aSummerToken.getVotes(user1);
+        assertEq(
+            finalVotingPower,
+            0,
+            "Voting power should be zero after teleport"
+        );
+
+        // Verify tokens arrived at destination
+        assertEq(
+            bSummerToken.balanceOf(user2),
+            tokensToSend,
+            "Tokens should have arrived at destination"
+        );
     }
 }
 
