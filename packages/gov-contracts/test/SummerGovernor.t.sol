@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {SummerGovernor} from "../../src/contracts/SummerGovernor.sol";
-import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
+import {SummerGovernor} from "../src/contracts/SummerGovernor.sol";
+import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
 
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
@@ -13,7 +13,7 @@ import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVote
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import {TestHelperOz5, IOAppSetPeer} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Test, console} from "forge-std/Test.sol";
 
@@ -109,6 +109,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         tokenB = new MockERC20Votes();
         vm.label(address(tokenA), "MockERC20Votes A");
         vm.label(address(tokenB), "MockERC20Votes B");
+
         tokenA.mint(alice, INITIAL_SUPPLY);
         tokenB.mint(alice, INITIAL_SUPPLY);
 
@@ -188,7 +189,23 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         address[] memory governors = new address[](2);
         governors[0] = address(governorA);
         governors[1] = address(governorB);
-        this.wireOApps(governors);
+
+        IOAppSetPeer aOApp = IOAppSetPeer(address(governorA));
+        IOAppSetPeer bOApp = IOAppSetPeer(address(governorB));
+
+        // Connect governorA to governorB
+        vm.prank(address(governorB));
+        uint32 bEid_ = (bOApp.endpoint()).eid();
+
+        vm.prank(address(governorA));
+        aOApp.setPeer(bEid_, addressToBytes32(address(bOApp)));
+
+        // Connect governorB to governorA
+        vm.prank(address(governorA));
+        uint32 aEid_ = (aOApp.endpoint()).eid();
+
+        vm.prank(address(governorB));
+        bOApp.setPeer(aEid, addressToBytes32(address(aOApp)));
     }
 
     /*

@@ -53,7 +53,6 @@ contract SummerGovernor is
 
     GovernorConfig public config;
 
-    // Add this state variable
     mapping(uint32 => address) public trustedRemotes;
 
     // ===============================================
@@ -225,15 +224,24 @@ contract SummerGovernor is
         emit ProposalReceivedCrossChain(proposalId, _origin.srcEid, messageId);
 
         // Verify the message origin
+        // We rely on CREATE2 to ensure that the contract address is deterministic across chains
+        // This allows us to use the contract's own address as a trusted sender
         address originSender = address(uint160(uint256(_origin.sender)));
         if (originSender != address(this)) {
             revert SummerGovernorInvalidSender(originSender);
         }
 
         // Second layer of defense
+        // We also check against a mapping of trusted remotes, which should be set to this contract's address
+        // This provides an additional safeguard in case the CREATE2 deployment is somehow compromised
         if (trustedRemotes[_origin.srcEid] != address(this)) {
             revert SummerGovernorInvalidSender(originSender);
         }
+
+        // Note: Both checks above rely on the fact that this contract is deployed using CREATE2
+        // with the same salt and init code on all chains, ensuring its address is consistent
+        // across the network. This allows for secure cross-chain communication without additional
+        // trusted parties or complex verification schemes.
 
         // Verify the messageId
         bytes32 expectedMessageId = _generateMessageId(

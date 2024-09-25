@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
+import {SummerToken} from "../src/contracts/SummerToken.sol";
+import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {IOAppOptionsType3, EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
