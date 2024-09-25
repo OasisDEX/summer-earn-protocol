@@ -302,13 +302,6 @@
   },
   {
     "type": "function",
-    "name": "poke",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "raft",
     "inputs": [],
     "outputs": [
