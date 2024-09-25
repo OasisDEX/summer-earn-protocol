@@ -40,4 +40,31 @@ interface ISummerGovernor is IGovernor {
      * @param _whitelistGuardian The address of the new whitelist guardian
      */
     function setWhitelistGuardian(address _whitelistGuardian) external;
+
+    /* @notice Emitted when a proposal is sent cross-chain
+     * @param proposalId The ID of the proposal
+     * @param dstEid The destination endpoint ID
+     * @param messageId The ID of the message
+     */
+    event ProposalSentCrossChain(
+        uint256 indexed proposalId,
+        uint32 indexed dstEid,
+        bytes32 messageId
+    );
+
+    /* @notice Emitted when a proposal is received cross-chain
+     * @param proposalId The ID of the proposal
+     * @param srcEid The source endpoint ID
+     */
+    event ProposalReceivedCrossChain(
+        uint256 indexed proposalId,
+        uint32 indexed srcEid,
+        bytes32 messageId
+    );
+
+    /* @notice Emitted when a trusted remote is set
+     * @param srcEid The source endpoint ID
+     * @param srcAddress The source address
+     */
+    event TrustedRemoteSet(uint32 indexed srcEid, address indexed srcAddress);
 }

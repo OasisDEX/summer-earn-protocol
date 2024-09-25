@@ -5,16 +5,16 @@ import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorTimelockControl, TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
-
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
+import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /*
  * @title SummerGovernor
@@ -29,7 +29,8 @@ contract SummerGovernor is
     GovernorSettings,
     GovernorCountingSimple,
     GovernorVotesQuorumFraction,
-    VotingDecayManager
+    VotingDecayManager,
+    OApp
 {
     // ===============================================
     // Constants
@@ -52,6 +53,9 @@ contract SummerGovernor is
 
     GovernorConfig public config;
 
+    // Add this state variable
+    mapping(uint32 => address) public trustedRemotes;
+
     // ===============================================
     // Constructor
     // ===============================================
@@ -66,6 +70,7 @@ contract SummerGovernor is
         uint40 initialDecayFreeWindow;
         uint256 initialDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
+        address endpoint;
     }
 
     /**
@@ -89,6 +94,7 @@ contract SummerGovernor is
             params.initialDecayRate,
             params.initialDecayFunction
         )
+        OApp(params.endpoint, address(this))
     {
         if (
             params.proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
@@ -105,6 +111,203 @@ contract SummerGovernor is
         _setWhitelistGuardian(params.initialWhitelistGuardian);
     }
 
+    // ===============================================
+    // Cross-Chain Messaging Functions
+    // ===============================================
+    /**
+     * @dev Generates a unique message ID for cross-chain proposals.
+     * @param srcChainId The source chain ID.
+     * @param srcAddress The source contract address.
+     * @param proposalId The ID of the proposal.
+     * @param targets The target addresses for the proposal.
+     * @param values The values for the proposal.
+     * @param calldatas The calldata for the proposal.
+     * @param descriptionHash The description hash for the proposal.
+     * @return A unique bytes32 message ID.
+     */
+    function _generateMessageId(
+        uint256 srcChainId,
+        address srcAddress,
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    srcChainId,
+                    srcAddress,
+                    proposalId,
+                    targets,
+                    values,
+                    calldatas,
+                    descriptionHash
+                )
+            );
+    }
+
+    /**
+     * @dev Sends a proposal to another chain for execution.
+     * @param _dstEid The destination Endpoint ID.
+     * @param proposalId The ID of the proposal to send.
+     * @param _options Message execution options.
+     */
+    function sendProposalToChain(
+        uint32 _dstEid,
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash,
+        bytes calldata _options
+    ) external payable onlyGovernance {
+        // Create a unique identifier for this cross-chain message
+        bytes32 messageId = _generateMessageId(
+            block.chainid,
+            address(this),
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+
+        // Encode the full payload
+        bytes memory payload = abi.encode(
+            messageId,
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+
+        _lzSend(
+            _dstEid,
+            payload,
+            _options,
+            MessagingFee(msg.value, 0),
+            payable(msg.sender)
+        );
+
+        emit ProposalSentCrossChain(proposalId, _dstEid, messageId);
+    }
+
+    /**
+     * @dev Receives a proposal from another chain and executes it.
+     * @param _origin The origin of the message.
+     * @param _guid The global packet identifier.
+     * @param payload The encoded message payload.
+     * @param executor_ The Executor address.
+     * @param _extraData Arbitrary data appended by the Executor.
+     */
+    function _lzReceive(
+        Origin calldata _origin,
+        bytes32 _guid,
+        bytes calldata payload,
+        address executor_,
+        bytes calldata _extraData
+    ) internal override {
+        (
+            bytes32 messageId,
+            uint256 proposalId,
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            bytes32 descriptionHash
+        ) = abi.decode(
+                payload,
+                (bytes32, uint256, address[], uint256[], bytes[], bytes32)
+            );
+
+        emit ProposalReceivedCrossChain(proposalId, _origin.srcEid, messageId);
+
+        // Verify the message origin
+        address originSender = address(uint160(uint256(_origin.sender)));
+        if (originSender != address(this)) {
+            revert SummerGovernorInvalidSender(originSender);
+        }
+
+        // Second layer of defense
+        if (trustedRemotes[_origin.srcEid] != address(this)) {
+            revert SummerGovernorInvalidSender(originSender);
+        }
+
+        // Verify the messageId
+        bytes32 expectedMessageId = _generateMessageId(
+            _origin.srcEid,
+            originSender,
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+
+        if (messageId != expectedMessageId) {
+            revert SummerGovernorInvalidMessageId(messageId, expectedMessageId);
+        }
+
+        // Execute the proposal
+        _executeCrossChainProposal(
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+    }
+
+    /**
+     * @dev Quotes the fee for sending a cross-chain message.
+     * @param _dstEid The destination endpoint ID.
+     * @param _message The message payload being sent.
+     * @param _options The message execution options.
+     * @param _payInLzToken Boolean indicating whether to pay in LZ token.
+     * @return fee The messaging fee structure containing native and LZ token fees.
+     */
+    function quote(
+        uint32 _dstEid,
+        bytes memory _message,
+        bytes memory _options,
+        bool _payInLzToken
+    ) public view returns (MessagingFee memory fee) {
+        return _quote(_dstEid, _message, _options, _payInLzToken);
+    }
+
+    /**
+     * @dev Internal function to execute a proposal.
+     * @param proposalId The ID of the proposal to execute.
+     * @param targets The target addresses for the proposal.
+     * @param values The values for the proposal.
+     * @param calldatas The calldata for the proposal.
+     * @param descriptionHash The description hash for the proposal.
+     */
+    function _executeCrossChainProposal(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal returns (uint256) {
+        _executeOperations(
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+
+        emit ProposalExecuted(proposalId);
+
+        return proposalId;
+    }
+
+    // ===============================================
+    // Existing Functions
+    // ===============================================
     /**
      * @dev Proposes a new governance action.
      * @param targets The addresses of the contracts to call.
@@ -475,5 +678,14 @@ contract SummerGovernor is
         address account
     ) internal view override returns (address) {
         return token().delegates(account);
+    }
+
+    // Add this function to set trusted remote addresses
+    function setTrustedRemote(
+        uint32 _srcEid,
+        address _srcAddress
+    ) external onlyGovernance {
+        trustedRemotes[_srcEid] = _srcAddress;
+        emit TrustedRemoteSet(_srcEid, _srcAddress);
     }
 }

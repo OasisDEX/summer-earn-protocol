@@ -34,7 +34,7 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
         uint40 decayFreeWindow_,
         uint256 decayRatePerSecond_,
         VotingDecayLibrary.DecayFunction decayFunction_
-    ) Ownable(msg.sender) {
+    ) Ownable(address(this)) {
         decayFreeWindow = decayFreeWindow_;
         decayRatePerSecond = decayRatePerSecond_;
         decayFunction = decayFunction_;

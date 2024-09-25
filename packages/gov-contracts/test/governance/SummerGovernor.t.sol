@@ -13,6 +13,7 @@ import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVote
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
+import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Test, console} from "forge-std/Test.sol";
 
@@ -62,11 +63,18 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
  * @title SummerGovernorTest
  * @dev Test contract for SummerGovernor functionality.
  */
-contract SummerGovernorTest is Test, ISummerGovernorErrors {
-    SummerGovernor public governor;
-    MockERC20Votes public token;
-    TimelockController public timelock;
-    VotingDecayManager public votingDecayManager;
+contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
+    SummerGovernor public governorA;
+    SummerGovernor public governorB;
+    MockERC20Votes public tokenA;
+    MockERC20Votes public tokenB;
+    TimelockController public timelockA;
+    TimelockController public timelockB;
+    VotingDecayManager public votingDecayManagerA;
+    VotingDecayManager public votingDecayManagerB;
+
+    uint32 private aEid = 1;
+    uint32 private bEid = 2;
 
     address public alice = address(0x1);
     address public bob = address(0x2);
@@ -87,32 +95,53 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
     /*
      * @dev Sets up the test environment.
      */
-    function setUp() public {
+    function setUp() public override {
+        super.setUp();
+
+        setUpEndpoints(2, LibraryType.UltraLightNode);
+
         vm.label(alice, "Alice");
         vm.label(bob, "Bob");
         vm.label(charlie, "Charlie");
         vm.label(david, "David");
 
-        token = new MockERC20Votes();
-        vm.label(address(token), "MockERC20Votes");
-        token.mint(alice, INITIAL_SUPPLY);
+        tokenA = new MockERC20Votes();
+        tokenB = new MockERC20Votes();
+        vm.label(address(tokenA), "MockERC20Votes A");
+        vm.label(address(tokenB), "MockERC20Votes B");
+        tokenA.mint(alice, INITIAL_SUPPLY);
+        tokenB.mint(alice, INITIAL_SUPPLY);
 
+        address lzEndpointA = address(endpoints[aEid]);
+        address lzEndpointB = address(endpoints[bEid]);
+        vm.label(lzEndpointA, "LayerZero Endpoint A");
+        vm.label(lzEndpointB, "LayerZero Endpoint B");
+
+        // Set up TimelockController for both chains
         address[] memory proposers = new address[](1);
         proposers[0] = address(this);
         address[] memory executors = new address[](1);
         executors[0] = address(0);
-        timelock = new TimelockController(
+        timelockA = new TimelockController(
             1 days,
             proposers,
             executors,
             address(this)
         );
-        vm.label(address(timelock), "TimelockController");
+        timelockB = new TimelockController(
+            1 days,
+            proposers,
+            executors,
+            address(this)
+        );
+        vm.label(address(timelockA), "TimelockController A");
+        vm.label(address(timelockB), "TimelockController B");
 
-        SummerGovernor.GovernorParams memory params = SummerGovernor
+        // Set up SummerGovernor for both chains
+        SummerGovernor.GovernorParams memory paramsA = SummerGovernor
             .GovernorParams({
-                token: IVotes(address(token)),
-                timelock: timelock,
+                token: IVotes(address(tokenA)),
+                timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
@@ -120,17 +149,46 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 initialWhitelistGuardian: whitelistGuardian,
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                endpoint: lzEndpointA
             });
 
-        governor = new SummerGovernor(params);
-        vm.label(address(governor), "SummerGovernor");
+        SummerGovernor.GovernorParams memory paramsB = SummerGovernor
+            .GovernorParams({
+                token: IVotes(address(tokenB)),
+                timelock: timelockB,
+                votingDelay: VOTING_DELAY,
+                votingPeriod: VOTING_PERIOD,
+                proposalThreshold: PROPOSAL_THRESHOLD,
+                quorumFraction: QUORUM_FRACTION,
+                initialWhitelistGuardian: whitelistGuardian,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                endpoint: lzEndpointB
+            });
 
-        timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
-        timelock.grantRole(timelock.CANCELLER_ROLE(), address(governor));
+        governorA = new SummerGovernor(paramsA);
+        governorB = new SummerGovernor(paramsB);
+
+        vm.label(address(governorA), "SummerGovernor A");
+        vm.label(address(governorB), "SummerGovernor B");
+
+        timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));
+        timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(governorA));
+        timelockB.grantRole(timelockB.PROPOSER_ROLE(), address(governorB));
+        timelockB.grantRole(timelockB.CANCELLER_ROLE(), address(governorB));
 
         vm.prank(alice);
-        token.delegate(alice);
+        tokenA.delegate(alice);
+        vm.prank(alice);
+        tokenB.delegate(alice);
+
+        // Wire the governors (if needed)
+        address[] memory governors = new address[](2);
+        governors[0] = address(governorA);
+        governors[1] = address(governorB);
+        this.wireOApps(governors);
     }
 
     /*
@@ -138,10 +196,12 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Verifies that the governor's parameters are set correctly.
      */
     function test_InitialSetup() public {
+        address lzEndpointA = address(endpoints[aEid]);
+
         SummerGovernor.GovernorParams memory params = SummerGovernor
             .GovernorParams({
-                token: IVotes(address(token)),
-                timelock: timelock,
+                token: IVotes(address(tokenA)),
+                timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
@@ -149,7 +209,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 initialWhitelistGuardian: address(0),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                endpoint: lzEndpointA
             });
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -159,12 +220,12 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
         new SummerGovernor(params);
         params.initialWhitelistGuardian = whitelistGuardian;
-        assertEq(governor.name(), "SummerGovernor");
-        assertEq(governor.votingDelay(), VOTING_DELAY);
-        assertEq(governor.votingPeriod(), VOTING_PERIOD);
-        assertEq(governor.proposalThreshold(), PROPOSAL_THRESHOLD);
-        assertEq(governor.quorumNumerator(), QUORUM_FRACTION);
-        assertEq(governor.getWhitelistGuardian(), whitelistGuardian);
+        assertEq(governorA.name(), "SummerGovernor");
+        assertEq(governorA.votingDelay(), VOTING_DELAY);
+        assertEq(governorA.votingPeriod(), VOTING_PERIOD);
+        assertEq(governorA.proposalThreshold(), PROPOSAL_THRESHOLD);
+        assertEq(governorA.quorumNumerator(), QUORUM_FRACTION);
+        assertEq(governorA.getWhitelistGuardian(), whitelistGuardian);
     }
 
     /*
@@ -172,8 +233,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Ensures that a proposal can be created successfully.
      */
     function test_ProposalCreation() public {
-        deal(address(token), alice, governor.proposalThreshold());
-        vm.roll(block.number + governor.votingDelay() + 1);
+        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
@@ -186,19 +247,19 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Verifies that votes are correctly cast and counted.
      */
     function test_Voting() public {
-        deal(address(token), alice, governor.proposalThreshold());
-        vm.roll(block.number + governor.votingDelay() + 1);
+        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
 
-        vm.warp(block.timestamp + governor.votingDelay() + 1);
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
-        governor.castVote(proposalId, 1);
+        governorA.castVote(proposalId, 1);
 
-        (, uint256 forVotes, ) = governor.proposalVotes(proposalId);
+        (, uint256 forVotes, ) = governorA.proposalVotes(proposalId);
         assertEq(forVotes, INITIAL_SUPPLY);
     }
 
@@ -207,9 +268,9 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Covers proposal creation, voting, queueing, execution, and result verification.
      */
     function test_ProposalExecution() public {
-        deal(address(token), address(timelock), 100);
-        deal(address(token), alice, governor.proposalThreshold());
-        vm.roll(block.number + governor.votingDelay() + 1);
+        deal(address(tokenA), address(timelockA), 100);
+        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
         (
@@ -218,39 +279,39 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             bytes[] memory calldatas,
             string memory description
         ) = createProposalParams();
-        uint256 proposalId = governor.propose(
+        uint256 proposalId = governorA.propose(
             targets,
             values,
             calldatas,
             description
         );
 
-        vm.warp(block.timestamp + governor.votingDelay() + 1);
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
-        governor.castVote(proposalId, 1);
+        governorA.castVote(proposalId, 1);
 
-        vm.warp(block.timestamp + governor.votingPeriod() + 1);
-        vm.roll(block.number + governor.votingPeriod() + 1);
+        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
+        vm.roll(block.number + governorA.votingPeriod() + 1);
 
-        governor.queue(
+        governorA.queue(
             targets,
             values,
             calldatas,
             hashDescription(description)
         );
 
-        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
 
-        governor.execute(
+        governorA.execute(
             targets,
             values,
             calldatas,
             hashDescription(description)
         );
 
-        assertEq(token.balanceOf(bob), 100);
+        assertEq(tokenA.balanceOf(bob), 100);
     }
 
     /*
@@ -261,18 +322,18 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         address account = address(0x03);
         uint256 expiration = block.timestamp + 10 days;
 
-        uint256 proposalThreshold = governor.proposalThreshold();
+        uint256 proposalThreshold = governorA.proposalThreshold();
 
-        vm.prank(address(token));
-        deal(address(token), alice, proposalThreshold);
+        vm.prank(address(tokenA));
+        deal(address(tokenA), alice, proposalThreshold);
 
         vm.startPrank(alice);
-        token.delegate(alice);
+        tokenA.delegate(alice);
         vm.roll(block.number + 1);
         vm.stopPrank();
 
         address[] memory targets = new address[](1);
-        targets[0] = address(governor);
+        targets[0] = address(governorA);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
@@ -284,43 +345,43 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         string memory description = "Whitelist account proposal";
 
         vm.prank(alice);
-        uint256 proposalId = governor.propose(
+        uint256 proposalId = governorA.propose(
             targets,
             values,
             calldatas,
             description
         );
 
-        uint256 votingDelay = governor.votingDelay();
+        uint256 votingDelay = governorA.votingDelay();
         vm.warp(block.timestamp + votingDelay + 1);
         vm.roll(block.number + votingDelay + 1);
 
         vm.prank(alice);
-        governor.castVote(proposalId, 1);
+        governorA.castVote(proposalId, 1);
 
-        uint256 votingPeriod = governor.votingPeriod();
+        uint256 votingPeriod = governorA.votingPeriod();
         vm.warp(block.timestamp + votingPeriod + 1);
         vm.roll(block.number + votingPeriod + 1);
 
-        governor.queue(
+        governorA.queue(
             targets,
             values,
             calldatas,
             keccak256(bytes(description))
         );
 
-        uint256 timelockDelay = timelock.getMinDelay();
+        uint256 timelockDelay = timelockA.getMinDelay();
         vm.warp(block.timestamp + timelockDelay + 1);
 
-        governor.execute(
+        governorA.execute(
             targets,
             values,
             calldatas,
             keccak256(bytes(description))
         );
 
-        bool isWhitelisted = governor.isWhitelisted(account);
-        uint256 actualExpiration = governor.getWhitelistAccountExpiration(
+        bool isWhitelisted = governorA.isWhitelisted(account);
+        uint256 actualExpiration = governorA.getWhitelistAccountExpiration(
             account
         );
 
@@ -337,15 +398,15 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Ensures that a proposal can be canceled by the whitelist guardian.
      */
     function test_ProposalCancellation() public {
-        deal(address(token), alice, governor.proposalThreshold() * 2);
+        deal(address(tokenA), alice, governorA.proposalThreshold() * 2);
 
         vm.startPrank(alice);
-        token.delegate(alice);
+        tokenA.delegate(alice);
         vm.roll(block.number + 1); // Move to next block to activate voting power
 
         // Create proposal to set Bob as whitelist guardian
         address[] memory targets = new address[](1);
-        targets[0] = address(governor);
+        targets[0] = address(governorA);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
@@ -355,29 +416,29 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
         string memory description = "Set Bob as whitelist guardian";
 
-        uint256 proposalId = governor.propose(
+        uint256 proposalId = governorA.propose(
             targets,
             values,
             calldatas,
             description
         );
 
-        vm.warp(block.timestamp + governor.votingDelay() + 1);
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
-        governor.castVote(proposalId, 1);
+        governorA.castVote(proposalId, 1);
 
-        vm.warp(block.timestamp + governor.votingPeriod() + 1);
-        vm.roll(block.number + governor.votingPeriod() + 1);
+        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
+        vm.roll(block.number + governorA.votingPeriod() + 1);
 
         // Check the proposal state before queueing
         assertEq(
-            uint256(governor.state(proposalId)),
+            uint256(governorA.state(proposalId)),
             uint256(IGovernor.ProposalState.Succeeded),
             "Proposal should be in Succeeded state"
         );
 
-        governor.queue(
+        governorA.queue(
             targets,
             values,
             calldatas,
@@ -392,11 +453,11 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 bob,
                 alice,
                 1000000000000000000000000,
-                governor.proposalThreshold()
+                governorA.proposalThreshold()
             )
         );
         vm.prank(bob);
-        governor.cancel(
+        governorA.cancel(
             targets,
             values,
             calldatas,
@@ -404,7 +465,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
 
         vm.startPrank(whitelistGuardian);
-        governor.cancel(
+        governorA.cancel(
             targets,
             values,
             calldatas,
@@ -412,7 +473,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
 
         assertEq(
-            uint256(governor.state(proposalId)),
+            uint256(governorA.state(proposalId)),
             uint256(IGovernor.ProposalState.Canceled),
             "Proposal should be canceled"
         );
@@ -424,11 +485,11 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      */
     function test_ProposalCreationBelowThresholdAndNotWhitelisted() public {
         // Ensure Charlie has some tokens, but below the proposal threshold
-        uint256 belowThreshold = governor.proposalThreshold() - 1;
-        deal(address(token), charlie, belowThreshold);
+        uint256 belowThreshold = governorA.proposalThreshold() - 1;
+        deal(address(tokenA), charlie, belowThreshold);
 
         vm.startPrank(charlie);
-        token.delegate(charlie);
+        tokenA.delegate(charlie);
         vm.roll(block.number + 1); // Move to next block to activate voting power
 
         // Attempt to create a proposal
@@ -445,10 +506,10 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 SummerGovernorProposerBelowThresholdAndNotWhitelisted.selector,
                 charlie,
                 belowThreshold,
-                governor.proposalThreshold()
+                governorA.proposalThreshold()
             )
         );
-        governor.propose(targets, values, calldatas, description);
+        governorA.propose(targets, values, calldatas, description);
 
         vm.stopPrank();
     }
@@ -457,26 +518,26 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      */
 
     function test_ProposalNeedsQueuing() public {
-        deal(address(token), alice, governor.proposalThreshold());
-        vm.roll(block.number + governor.votingDelay() + 1);
+        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
 
         // Move to voting period
-        vm.warp(block.timestamp + governor.votingDelay() + 1);
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         // Cast votes
         vm.prank(alice);
-        governor.castVote(proposalId, 1);
+        governorA.castVote(proposalId, 1);
 
         // Move to end of voting period
-        vm.warp(block.timestamp + governor.votingPeriod() + 1);
-        vm.roll(block.number + governor.votingPeriod() + 1);
+        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
+        vm.roll(block.number + governorA.votingPeriod() + 1);
 
         // Check if the proposal needs queuing
-        bool needsQueuing = governor.proposalNeedsQueuing(proposalId);
+        bool needsQueuing = governorA.proposalNeedsQueuing(proposalId);
 
         // Since we're using a TimelockController, the proposal should need queuing
         assertTrue(needsQueuing, "Proposal should need queuing");
@@ -486,7 +547,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * @dev Tests the CLOCK_MODE function.
      */
     function test_ClockMode() public view {
-        string memory clockMode = governor.CLOCK_MODE();
+        string memory clockMode = governorA.CLOCK_MODE();
         assertEq(
             clockMode,
             "mode=blocknumber&from=default",
@@ -499,7 +560,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      */
     function test_Clock() public view {
         uint256 currentBlock = block.number;
-        uint48 clockValue = governor.clock();
+        uint48 clockValue = governorA.clock();
         assertEq(
             uint256(clockValue),
             currentBlock,
@@ -512,8 +573,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      */
 
     function test_SupportsInterface() public view {
-        assertTrue(governor.supportsInterface(type(IGovernor).interfaceId));
-        assertFalse(governor.supportsInterface(0xffffffff));
+        assertTrue(governorA.supportsInterface(type(IGovernor).interfaceId));
+        assertFalse(governorA.supportsInterface(0xffffffff));
     }
 
     /*
@@ -521,9 +582,9 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Ensures the threshold is within the allowed range.
      */
     function test_ProposalThreshold() public view {
-        uint256 threshold = governor.proposalThreshold();
-        assertGe(threshold, governor.MIN_PROPOSAL_THRESHOLD());
-        assertLe(threshold, governor.MAX_PROPOSAL_THRESHOLD());
+        uint256 threshold = governorA.proposalThreshold();
+        assertGe(threshold, governorA.MIN_PROPOSAL_THRESHOLD());
+        assertLe(threshold, governorA.MAX_PROPOSAL_THRESHOLD());
     }
 
     /*
@@ -531,13 +592,15 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Verifies that setting thresholds outside the allowed range reverts.
      */
     function test_SetProposalThresholdOutOfBounds() public {
-        uint256 belowMin = governor.MIN_PROPOSAL_THRESHOLD() - 1;
-        uint256 aboveMax = governor.MAX_PROPOSAL_THRESHOLD() + 1;
+        uint256 belowMin = governorA.MIN_PROPOSAL_THRESHOLD() - 1;
+        uint256 aboveMax = governorA.MAX_PROPOSAL_THRESHOLD() + 1;
+
+        address lzEndpointA = address(endpoints[aEid]);
 
         SummerGovernor.GovernorParams memory params = SummerGovernor
             .GovernorParams({
-                token: IVotes(address(token)),
-                timelock: timelock,
+                token: IVotes(address(tokenA)),
+                timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: belowMin,
@@ -545,15 +608,16 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
                 initialWhitelistGuardian: address(0x5),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                endpoint: lzEndpointA
             });
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 SummerGovernorInvalidProposalThreshold.selector,
                 belowMin,
-                governor.MIN_PROPOSAL_THRESHOLD(),
-                governor.MAX_PROPOSAL_THRESHOLD()
+                governorA.MIN_PROPOSAL_THRESHOLD(),
+                governorA.MAX_PROPOSAL_THRESHOLD()
             )
         );
         new SummerGovernor(params);
@@ -563,8 +627,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             abi.encodeWithSelector(
                 SummerGovernorInvalidProposalThreshold.selector,
                 aboveMax,
-                governor.MIN_PROPOSAL_THRESHOLD(),
-                governor.MAX_PROPOSAL_THRESHOLD()
+                governorA.MIN_PROPOSAL_THRESHOLD(),
+                governorA.MAX_PROPOSAL_THRESHOLD()
             )
         );
         new SummerGovernor(params);
@@ -579,17 +643,17 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         uint256 expiration = block.timestamp + 10 days;
 
         // Ensure Alice has enough voting power
-        uint256 proposalThreshold = governor.proposalThreshold();
-        deal(address(token), alice, proposalThreshold);
+        uint256 proposalThreshold = governorA.proposalThreshold();
+        deal(address(tokenA), alice, proposalThreshold);
 
         vm.startPrank(alice);
-        token.delegate(alice);
+        tokenA.delegate(alice);
         vm.roll(block.number + 1); // Move to next block to activate voting power
         vm.stopPrank();
 
         // Create and execute a proposal to set the whitelist account expiration
         address[] memory targets = new address[](1);
-        targets[0] = address(governor);
+        targets[0] = address(governorA);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
@@ -601,34 +665,34 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         string memory description = "Set whitelist account expiration";
 
         vm.prank(alice);
-        uint256 proposalId = governor.propose(
+        uint256 proposalId = governorA.propose(
             targets,
             values,
             calldatas,
             description
         );
 
-        vm.warp(block.timestamp + governor.votingDelay() + 1);
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
-        governor.castVote(proposalId, 1);
+        governorA.castVote(proposalId, 1);
 
-        vm.warp(block.timestamp + governor.votingPeriod() + 1);
-        vm.roll(block.number + governor.votingPeriod() + 1);
+        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
+        vm.roll(block.number + governorA.votingPeriod() + 1);
 
         vm.prank(alice);
-        governor.queue(
+        governorA.queue(
             targets,
             values,
             calldatas,
             keccak256(bytes(description))
         );
 
-        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
 
         vm.prank(bob);
-        governor.execute(
+        governorA.execute(
             targets,
             values,
             calldatas,
@@ -637,11 +701,11 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         // Ensure the whitelisted user has no voting power
         vm.prank(whitelistedUser);
-        token.delegate(address(0));
+        tokenA.delegate(address(0));
 
         // Verify that the user is whitelisted
         assertTrue(
-            governor.isWhitelisted(whitelistedUser),
+            governorA.isWhitelisted(whitelistedUser),
             "User should be whitelisted"
         );
 
@@ -656,7 +720,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             "Proposal should be created successfully"
         );
         assertEq(
-            uint256(governor.state(anotherProposalId)),
+            uint256(governorA.state(anotherProposalId)),
             uint256(IGovernor.ProposalState.Pending),
             "Proposal should be in Pending state"
         );
@@ -667,8 +731,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Verifies that the guardian can cancel a proposal.
      */
     function test_CancelProposalByGuardian() public {
-        deal(address(token), alice, governor.proposalThreshold());
-        vm.roll(block.number + governor.votingDelay() + 1);
+        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
         (uint256 proposalId, bytes32 descriptionHash) = createProposal();
@@ -677,7 +741,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         // Create and execute a proposal to set the whitelist guardian
         address[] memory targets = new address[](1);
-        targets[0] = address(governor);
+        targets[0] = address(governorA);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
@@ -688,32 +752,32 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         string memory description = "Set whitelist guardian";
 
         vm.prank(alice);
-        uint256 guardianProposalId = governor.propose(
+        uint256 guardianProposalId = governorA.propose(
             targets,
             values,
             calldatas,
             description
         );
 
-        vm.warp(block.timestamp + governor.votingDelay() + 1);
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
-        governor.castVote(guardianProposalId, 1);
+        governorA.castVote(guardianProposalId, 1);
 
-        vm.warp(block.timestamp + governor.votingPeriod() + 1);
-        vm.roll(block.number + governor.votingPeriod() + 1);
+        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
+        vm.roll(block.number + governorA.votingPeriod() + 1);
 
-        governor.queue(
+        governorA.queue(
             targets,
             values,
             calldatas,
             keccak256(bytes(description))
         );
 
-        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
 
-        governor.execute(
+        governorA.execute(
             targets,
             values,
             calldatas,
@@ -729,7 +793,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         ) = createProposalParams();
 
         vm.prank(guardian);
-        governor.cancel(
+        governorA.cancel(
             cancelTargets,
             cancelValues,
             cancelCalldatas,
@@ -737,7 +801,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         );
 
         assertEq(
-            uint256(governor.state(proposalId)),
+            uint256(governorA.state(proposalId)),
             uint256(IGovernor.ProposalState.Canceled)
         );
     }
@@ -747,8 +811,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      * Ensures the proposer can cancel their own proposal.
      */
     function test_CancelProposalByProposer() public {
-        deal(address(token), alice, governor.proposalThreshold());
-        vm.roll(block.number + governor.votingDelay() + 1);
+        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.startPrank(alice);
         (uint256 proposalId, bytes32 descriptionHash) = createProposal();
@@ -759,11 +823,11 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         ) = createProposalParams();
 
-        governor.cancel(targets, values, calldatas, descriptionHash);
+        governorA.cancel(targets, values, calldatas, descriptionHash);
         vm.stopPrank();
 
         assertEq(
-            uint256(governor.state(proposalId)),
+            uint256(governorA.state(proposalId)),
             uint256(IGovernor.ProposalState.Canceled)
         );
     }
@@ -776,21 +840,21 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         uint256 quorumThreshold = getQuorumThreshold();
 
         // Give Charlie enough tokens to meet the proposal threshold but not enough to reach quorum
-        vm.startPrank(address(timelock));
-        token.mint(charlie, quorumThreshold / 2);
-        token.mint(alice, quorumThreshold / 2);
+        vm.startPrank(address(timelockA));
+        tokenA.mint(charlie, quorumThreshold / 2);
+        tokenA.mint(alice, quorumThreshold / 2);
         vm.stopPrank();
 
         // Charlie delegates to himself
         vm.prank(charlie);
-        token.delegate(charlie);
+        tokenA.delegate(charlie);
 
         // Move forward more blocks to ensure voting power is updated
         vm.roll(block.number + 10);
 
         // Ensure Charlie has enough tokens to meet the proposal threshold
-        uint256 charlieVotes = governor.getVotes(charlie, block.number - 1);
-        uint256 proposalThreshold = governor.proposalThreshold();
+        uint256 charlieVotes = governorA.getVotes(charlie, block.number - 1);
+        uint256 proposalThreshold = governorA.proposalThreshold();
         assertGe(
             charlieVotes,
             proposalThreshold,
@@ -807,18 +871,18 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         (uint256 proposalId, ) = createProposal();
 
         // Move to voting period
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         // Charlie votes in favor
         vm.prank(charlie);
-        governor.castVote(proposalId, 1);
+        governorA.castVote(proposalId, 1);
 
         // Move to end of voting period
-        vm.roll(block.number + governor.votingPeriod());
+        vm.roll(block.number + governorA.votingPeriod());
 
         // Check proposal state
         assertEq(
-            uint256(governor.state(proposalId)),
+            uint256(governorA.state(proposalId)),
             uint256(IGovernor.ProposalState.Defeated),
             "Proposal should be defeated"
         );
@@ -828,8 +892,8 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             uint256 againstVotes,
             uint256 forVotes,
             uint256 abstainVotes
-        ) = governor.proposalVotes(proposalId);
-        uint256 quorum = governor.quorum(block.number - 1);
+        ) = governorA.proposalVotes(proposalId);
+        uint256 quorum = governorA.quorum(block.number - 1);
         assertTrue(
             forVotes + againstVotes + abstainVotes < quorum,
             "Quorum should not be reached"
@@ -842,29 +906,29 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
      */
     function test_VariousVotingScenarios() public {
         // Mint tokens to voters
-        vm.startPrank(address(timelock));
-        token.mint(alice, 1000000e18); // Increased Alice's tokens
-        token.mint(bob, 300000e18);
-        token.mint(charlie, 200000e18);
-        token.mint(david, 100000e18);
+        vm.startPrank(address(timelockA));
+        tokenA.mint(alice, 1000000e18); // Increased Alice's tokens
+        tokenA.mint(bob, 300000e18);
+        tokenA.mint(charlie, 200000e18);
+        tokenA.mint(david, 100000e18);
         vm.stopPrank();
 
         // Delegate votes
         vm.prank(alice);
-        token.delegate(alice);
+        tokenA.delegate(alice);
         vm.prank(bob);
-        token.delegate(bob);
+        tokenA.delegate(bob);
         vm.prank(charlie);
-        token.delegate(charlie);
+        tokenA.delegate(charlie);
         vm.prank(david);
-        token.delegate(david);
+        tokenA.delegate(david);
 
         // Move forward a few blocks to ensure voting power is updated
         vm.roll(block.number + 10);
 
         // Mint tokens to the timelock
-        vm.startPrank(address(timelock));
-        token.mint(address(timelock), 1000); // Mint more than needed for the proposal
+        vm.startPrank(address(timelockA));
+        tokenA.mint(address(timelockA), 1000); // Mint more than needed for the proposal
         vm.stopPrank();
 
         // Scenario 1: Majority in favor, quorum reached
@@ -876,39 +940,39 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         ) = createProposalParams();
 
         vm.prank(alice); // Ensure Alice is the proposer
-        uint256 proposalId1 = governor.propose(
+        uint256 proposalId1 = governorA.propose(
             targets,
             values,
             calldatas,
             description
         );
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         // Cast votes
         vm.prank(alice);
-        governor.castVote(proposalId1, 1);
+        governorA.castVote(proposalId1, 1);
         vm.prank(bob);
-        governor.castVote(proposalId1, 1);
+        governorA.castVote(proposalId1, 1);
         vm.prank(charlie);
-        governor.castVote(proposalId1, 0);
+        governorA.castVote(proposalId1, 0);
         vm.prank(david);
-        governor.castVote(proposalId1, 2);
+        governorA.castVote(proposalId1, 2);
 
-        vm.roll(block.number + governor.votingPeriod());
+        vm.roll(block.number + governorA.votingPeriod());
         assertEq(
-            uint256(governor.state(proposalId1)),
+            uint256(governorA.state(proposalId1)),
             uint256(IGovernor.ProposalState.Succeeded)
         );
 
         // Queue and execute the proposal
         bytes32 descriptionHash = keccak256(bytes(description));
-        governor.queue(targets, values, calldatas, descriptionHash);
+        governorA.queue(targets, values, calldatas, descriptionHash);
 
-        vm.warp(block.timestamp + timelock.getMinDelay());
-        governor.execute(targets, values, calldatas, descriptionHash);
+        vm.warp(block.timestamp + timelockA.getMinDelay());
+        governorA.execute(targets, values, calldatas, descriptionHash);
 
         assertEq(
-            uint256(governor.state(proposalId1)),
+            uint256(governorA.state(proposalId1)),
             uint256(IGovernor.ProposalState.Executed)
         );
 
@@ -917,26 +981,26 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         // Scenario 2: Tie, quorum reached
         uint256 proposalId2 = createProposalAndVote(bob, 1, 1, 1, 1);
-        vm.roll(block.number + governor.votingPeriod());
+        vm.roll(block.number + governorA.votingPeriod());
 
         // Add logging statements
         (
             uint256 againstVotes,
             uint256 forVotes,
             uint256 abstainVotes
-        ) = governor.proposalVotes(proposalId2);
+        ) = governorA.proposalVotes(proposalId2);
         console.log("For votes:", forVotes);
         console.log("Against votes:", againstVotes);
         console.log("Abstain votes:", abstainVotes);
-        console.log("Quorum:", governor.quorum(block.number - 1));
+        console.log("Quorum:", governorA.quorum(block.number - 1));
         console.log(
             "Total supply:",
-            token.getPastTotalSupply(block.number - 1)
+            tokenA.getPastTotalSupply(block.number - 1)
         );
 
         // This is the failing assertion
         assertEq(
-            uint256(governor.state(proposalId2)),
+            uint256(governorA.state(proposalId2)),
             uint256(IGovernor.ProposalState.Succeeded)
         );
 
@@ -950,7 +1014,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         assertEq(abstainVotes, 0, "There should be no 'abstain' votes");
         assertGe(
             forVotes,
-            governor.quorum(block.number - 1),
+            governorA.quorum(block.number - 1),
             "For votes should meet or exceed quorum"
         );
 
@@ -959,15 +1023,15 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
 
         // Scenario 3: Majority against, quorum reached
         uint256 proposalId3 = createProposalAndVote(charlie, 0, 0, 1, 2);
-        vm.roll(block.number + governor.votingPeriod());
+        vm.roll(block.number + governorA.votingPeriod());
         assertEq(
-            uint256(governor.state(proposalId3)),
+            uint256(governorA.state(proposalId3)),
             uint256(IGovernor.ProposalState.Defeated)
         );
     }
 
     function getQuorumThreshold() public view returns (uint256) {
-        return (token.totalSupply() * QUORUM_FRACTION) / 100;
+        return (tokenA.totalSupply() * QUORUM_FRACTION) / 100;
     }
 
     function createProposalAndVote(
@@ -984,16 +1048,16 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         // Add a check here to ensure the proposal is created successfully
         require(proposalId != 0, "Proposal creation failed");
 
-        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
-        governor.castVote(proposalId, aliceVote);
+        governorA.castVote(proposalId, aliceVote);
         vm.prank(bob);
-        governor.castVote(proposalId, bobVote);
+        governorA.castVote(proposalId, bobVote);
         vm.prank(charlie);
-        governor.castVote(proposalId, charlieVote);
+        governorA.castVote(proposalId, charlieVote);
         vm.prank(david);
-        governor.castVote(proposalId, davidVote);
+        governorA.castVote(proposalId, davidVote);
 
         return proposalId;
     }
@@ -1016,7 +1080,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
             abi.encodePacked(description, " - ", block.number)
         );
 
-        uint256 proposalId = governor.propose(
+        uint256 proposalId = governorA.propose(
             targets,
             values,
             calldatas,
@@ -1044,7 +1108,7 @@ contract SummerGovernorTest is Test, ISummerGovernorErrors {
         )
     {
         address[] memory targets = new address[](1);
-        targets[0] = address(token);
+        targets[0] = address(tokenA);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);

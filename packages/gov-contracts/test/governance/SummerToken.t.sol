@@ -12,6 +12,8 @@ import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/O
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
+// TODO: Add test for voting after teleportation. Expect a revert based on decrease voting units
+
 contract SummerTokenTest is TestHelperOz5 {
     using OptionsBuilder for bytes;
 

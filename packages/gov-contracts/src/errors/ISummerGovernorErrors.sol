@@ -44,4 +44,18 @@ interface ISummerGovernorErrors {
      * @param whitelistGuardian The address of the whitelist guardian
      */
     error SummerGovernorInvalidWhitelistGuardian(address whitelistGuardian);
+
+    /* @notice Error thrown when the sender is invalid
+     * @param originSender The invalid sender
+     */
+    error SummerGovernorInvalidSender(address originSender);
+
+    /* @notice Error thrown when the message ID is invalid
+     * @param messageId The invalid message ID
+     * @param expectedMessageId The expected message ID
+     */
+    error SummerGovernorInvalidMessageId(
+        bytes32 messageId,
+        bytes32 expectedMessageId
+    );
 }
