@@ -58,4 +58,37 @@ interface ISummerGovernorErrors {
         bytes32 messageId,
         bytes32 expectedMessageId
     );
+
+    /* @notice Error thrown when only executed (on the source chain) proposals can be sent cross-chain
+     * @param proposalId The ID of the proposal
+     */
+    error SummerGovernorOnlyExecutedProposalsCanBeSentCrossChain(
+        uint256 proposalId
+    );
+
+    /* @notice Error thrown when the proposal is not queued cross-chain
+     * @param proposalId The ID of the proposal
+     */
+    error SummerGovernorProposalNotQueuedCrossChain(uint256 proposalId);
+
+    /* @notice Error thrown when the fee is insufficient
+     * @param sentFee The fee sent
+     * @param requiredFee The required fee
+     */
+    error SummerGovernorInsufficientFee(uint256 sentFee, uint256 requiredFee);
+
+    /* @notice Error thrown when the refund fails
+     * @param sender The address of the sender
+     * @param refund The amount of refund
+     */
+    error SummerGovernorRefundFailed(address sender, uint256 refund);
+
+    /* @notice Error thrown when the cross-chain proposal data is invalid
+     */
+    error SummerGovernorInvalidCrossChainProposalData();
+
+    /* @notice Error thrown when the cross-chain proposal is already sent
+     * @param proposalId The ID of the proposal
+     */
+    error SummerGovernorProposalAlreadySentCrossChain(uint256 proposalId);
 }
