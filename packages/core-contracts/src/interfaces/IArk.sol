@@ -77,6 +77,18 @@ interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
         external
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts);
 
+    /**
+     * @notice Sweeps tokens from the Ark
+     * @param tokens The tokens to sweep
+     * @return sweptTokens The swept tokens
+     * @return sweptAmounts The swept amounts
+     */
+    function sweep(
+        address[] calldata tokens
+    )
+        external
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
+
     /* FUNCTIONS - EXTERNAL - COMMANDER */
 
     /**

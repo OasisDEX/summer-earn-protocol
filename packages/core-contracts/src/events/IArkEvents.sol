@@ -76,6 +76,16 @@ interface IArkEvents {
     event ArkPoked(uint256 currentPrice, uint256 timestamp);
 
     /**
+     * @notice Emitted when the Ark is swept
+     * @param sweptTokens The addresses of the swept tokens
+     * @param sweptAmounts The amounts of the swept tokens
+     */
+    event ArkSwept(
+        address[] indexed sweptTokens,
+        uint256[] indexed sweptAmounts
+    );
+
+    /**
      * @notice Emitted when the maximum outflow limit for the Ark during rebalancing is updated
      * @param newMaxOutflow The new maximum amount that can be transferred out of the Ark during a rebalance
      */

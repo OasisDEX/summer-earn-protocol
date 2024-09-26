@@ -11,18 +11,13 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
-
-contract AuctionTestBase is Test {
+import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {console} from "forge-std/console.sol";
+contract AuctionTestBase is FleetCommanderTestBase {
     using PercentageUtils for uint256;
 
-    ProtocolAccessManager public accessManager;
-    ConfigurationManager public configurationManager;
-
-    address public governor = address(1);
     address public buyer = address(2);
-    address public treasury = address(3);
     address public superKeeper = address(8);
 
     uint256 constant AUCTION_DURATION = 7 days;
@@ -36,20 +31,9 @@ contract AuctionTestBase is Test {
 
     function setUp() public virtual {
         KICKER_REWARD_PERCENTAGE = 0;
-        accessManager = new ProtocolAccessManager(governor);
-        configurationManager = new ConfigurationManager(address(accessManager));
-        vm.prank(governor);
-        configurationManager.initialize(
-            ConfigurationManagerParams({
-                raft: address(1),
-                tipJar: address(2),
-                treasury: treasury
-            })
-        );
-
+        initializeFleetCommanderWithMockArks(0);
         vm.prank(governor);
         accessManager.grantSuperKeeperRole(superKeeper);
-
         defaultParams = AuctionDefaultParameters({
             duration: uint40(AUCTION_DURATION),
             startPrice: START_PRICE,
@@ -66,12 +50,11 @@ contract AuctionTestBase is Test {
     }
 
     function createMockToken(
-        string memory name,
-        string memory symbol,
-        uint8 decimals
-    ) internal returns (MockERC20) {
-        MockERC20 token = new MockERC20();
-        token.initialize(name, symbol, decimals);
+        string memory,
+        string memory,
+        uint8
+    ) internal returns (ERC20Mock) {
+        ERC20Mock token = new ERC20Mock();
         return token;
     }
 

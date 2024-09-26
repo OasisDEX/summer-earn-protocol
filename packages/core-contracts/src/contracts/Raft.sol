@@ -17,7 +17,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     /// @notice Mapping of harvested rewards for each Ark and reward token
 
     mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount))
-        public harvestedRewards;
+        public obtainedTokens;
     /// @notice Mapping of ongoing auctions for each Ark and reward token
     mapping(address ark => mapping(address rewardToken => DutchAuctionLibrary.Auction))
         public auctions;
@@ -44,6 +44,19 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
             _startAuction(ark, harvestedTokens[i], paymentToken);
         }
     }
+
+    /* @inheritdoc IRaft */
+    function sweepAndStartAuction(
+        address ark,
+        address[] calldata tokens,
+        address paymentToken
+    ) external onlyGovernor {
+        (address[] memory sweptTokens, ) = _sweep(ark, tokens);
+        for (uint256 i = 0; i < sweptTokens.length; i++) {
+            _startAuction(ark, sweptTokens[i], paymentToken);
+        }
+    }
+
     /* @inheritdoc IRaft */
 
     function startAuction(
@@ -53,11 +66,39 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     ) public onlyGovernor {
         _startAuction(ark, rewardToken, paymentToken);
     }
+
     /* @inheritdoc IRaft */
 
     function harvest(address ark, bytes calldata rewardData) public {
         _harvest(ark, rewardData);
     }
+
+    /* @inheritdoc IRaft */
+    function sweep(
+        address ark,
+        address[] calldata tokens
+    )
+        external
+        onlyGovernor
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        (sweptTokens, sweptAmounts) = _sweep(ark, tokens);
+    }
+
+    function _sweep(
+        address ark,
+        address[] calldata tokens
+    )
+        internal
+        onlyGovernor
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        (sweptTokens, sweptAmounts) = IArk(ark).sweep(tokens);
+        for (uint256 i = 0; i < sweptTokens.length; i++) {
+            obtainedTokens[ark][sweptTokens[i]] += sweptAmounts[i];
+        }
+    }
+
     /* @inheritdoc IRaft */
 
     function buyTokens(
@@ -76,6 +117,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
             _settleAuction(ark, rewardToken, auction);
         }
     }
+
     /* @inheritdoc IRaft */
 
     function finalizeAuction(address ark, address rewardToken) external {
@@ -101,6 +143,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     ) external view returns (uint256) {
         return _getCurrentPrice(auctions[ark][rewardToken]);
     }
+
     /* @inheritdoc IRaft */
 
     function updateAuctionDefaultParameters(
@@ -108,13 +151,14 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     ) external onlyGovernor {
         _updateAuctionDefaultParameters(newConfig);
     }
+
     /* @inheritdoc IRaft */
 
-    function getHarvestedRewards(
+    function getObtainedTokens(
         address ark,
         address rewardToken
     ) external view returns (uint256) {
-        return harvestedRewards[ark][rewardToken];
+        return obtainedTokens[ark][rewardToken];
     }
 
     function _harvest(
@@ -129,7 +173,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     {
         (harvestedTokens, harvestedAmounts) = IArk(ark).harvest(rewardData);
         for (uint256 i = 0; i < harvestedTokens.length; i++) {
-            harvestedRewards[ark][harvestedTokens[i]] += harvestedAmounts[i];
+            obtainedTokens[ark][harvestedTokens[i]] += harvestedAmounts[i];
         }
 
         emit ArkHarvested(ark, harvestedTokens, harvestedAmounts);
@@ -150,7 +194,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
             revert RaftAuctionAlreadyRunning(ark, rewardToken);
         }
 
-        uint256 totalTokens = harvestedRewards[ark][rewardToken] +
+        uint256 totalTokens = obtainedTokens[ark][rewardToken] +
             unsoldTokens[ark][rewardToken];
 
         DutchAuctionLibrary.Auction memory newAuction = _createAuction(
@@ -161,7 +205,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         );
         auctions[ark][rewardToken] = newAuction;
 
-        harvestedRewards[ark][rewardToken] = 0;
+        obtainedTokens[ark][rewardToken] = 0;
         unsoldTokens[ark][rewardToken] = 0;
 
         emit ArkRewardTokenAuctionStarted(

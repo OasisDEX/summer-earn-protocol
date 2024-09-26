@@ -23,20 +23,20 @@ interface IConfigurationManager is
      * @notice Get the address of the Raft contract
      * @return The address of the Raft contract
      */
-    function raft() external returns (address);
+    function raft() external view returns (address);
 
     /**
      * @notice Get the current tip jar address
      * @return The current tip jar address
      */
-    function tipJar() external returns (address);
+    function tipJar() external view returns (address);
 
     /**
      * @notice Get the current treasury address
      * @return The current treasury address
      */
 
-    function treasury() external returns (address);
+    function treasury() external view returns (address);
 
     /**
      * @notice Set a new address for the Raft contract

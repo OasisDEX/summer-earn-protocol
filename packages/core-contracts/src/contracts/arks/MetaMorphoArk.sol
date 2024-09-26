@@ -120,10 +120,7 @@ contract MetaMorphoArk is Ark {
             );
             rewardTokens[i] = claimData.rewards[i];
             rewardAmounts[i] = claimData.claimable[i];
-            IERC20(claimData.rewards[i]).safeTransfer(
-                config.raft,
-                rewardAmounts[i]
-            );
+            IERC20(claimData.rewards[i]).safeTransfer(raft(), rewardAmounts[i]);
         }
 
         emit ArkHarvested(rewardTokens, rewardAmounts);

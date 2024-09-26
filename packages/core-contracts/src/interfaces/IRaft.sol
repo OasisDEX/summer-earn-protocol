@@ -18,6 +18,19 @@ interface IRaft is IRaftEvents, IRaftErrors {
      */
     function harvest(address ark, bytes calldata extraHarvestData) external;
 
+    function sweep(
+        address ark,
+        address[] calldata tokens
+    )
+        external
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
+
+    function sweepAndStartAuction(
+        address ark,
+        address[] calldata tokens,
+        address paymentToken
+    ) external;
+
     /**
      * @notice Retrieves the amount of harvested rewards for a specific Ark and reward token.
      * @dev This function allows querying the balance of harvested rewards before deciding on further actions.
@@ -25,7 +38,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * @param rewardToken The address of the reward token.
      * @return The amount of harvested rewards for the specified Ark and token.
      */
-    function getHarvestedRewards(
+    function getObtainedTokens(
         address ark,
         address rewardToken
     ) external view returns (uint256);

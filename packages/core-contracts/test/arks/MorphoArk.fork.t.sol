@@ -13,7 +13,7 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {IMorpho, IMorphoBase, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {MockUniversalRewardsDistributor} from "../mocks/MockUniversalRewardsDistributor.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     MorphoArk public ark;
@@ -45,7 +45,7 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
         rewardsDistributor = new MockUniversalRewardsDistributor();
-        rewardToken = IERC20(address(new MockERC20()));
+        rewardToken = IERC20(address(new ERC20Mock()));
 
         morpho = IMorpho(MORPHO_ADDRESS);
         usdc = IERC20(USDC_ADDRESS);
@@ -241,6 +241,7 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         emit IArkEvents.ArkHarvested(rewards, claimable);
 
         // Call harvest
+        vm.prank(address(raft));
         (
             address[] memory harvestedTokens,
             uint256[] memory harvestedAmounts

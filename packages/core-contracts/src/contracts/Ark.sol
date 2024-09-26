@@ -9,7 +9,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @custom:see IArk
  */
@@ -80,8 +80,8 @@ abstract contract Ark is IArk, ArkAccessManaged {
     }
 
     /* @inheritdoc IArk */
-    function raft() external view returns (address) {
-        return config.raft;
+    function raft() public view returns (address) {
+        return manager.raft();
     }
 
     /* @inheritdoc IArk */
@@ -123,11 +123,42 @@ abstract contract Ark is IArk, ArkAccessManaged {
         bytes calldata additionalData
     )
         external
+        onlyRaft
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        _updateRaft(manager.raft());
         (rewardTokens, rewardAmounts) = _harvest(additionalData);
         emit ArkHarvested(rewardTokens, rewardAmounts);
+    }
+
+    function sweep(
+        address[] memory tokens
+    )
+        external
+        onlyRaft
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
+    {
+        sweptTokens = new address[](tokens.length);
+        sweptAmounts = new uint256[](tokens.length);
+        if (config.token.balanceOf(address(this)) > 0) {
+            config.token.safeTransfer(
+                address(
+                    IFleetCommander(config.commander).getConfig().bufferArk
+                ),
+                config.token.balanceOf(address(this))
+            );
+        }
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 amount = IERC20(tokens[i]).balanceOf(address(this));
+            if (amount > 0) {
+                IERC20(tokens[i]).safeTransfer(
+                    raft(),
+                    IERC20(tokens[i]).balanceOf(address(this))
+                );
+                sweptTokens[i] = tokens[i];
+                sweptAmounts[i] = amount;
+            }
+        }
+        emit ArkSwept(sweptTokens, sweptAmounts);
     }
 
     /* EXTERNAL - COMMANDER */

@@ -288,6 +288,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         emit ArkHarvested(rewardTokens, rewardAmounts);
 
         // Act
+        vm.prank(address(raft));
         ark.harvest(abi.encode(address(mockRewardToken)));
     }
 }
