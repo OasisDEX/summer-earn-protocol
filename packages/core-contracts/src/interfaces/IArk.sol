@@ -5,7 +5,7 @@ import {IArkErrors} from "../errors/IArkErrors.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 
 import {IArkEvents} from "../events/IArkEvents.sol";
-
+import {IArkConfigProvider} from "./IArkConfigProvider.sol";
 import "../types/ArkTypes.sol";
 import {IArkConfigProvider} from "./IArkConfigProvider.sol";
 

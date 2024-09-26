@@ -9,6 +9,7 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 
 /**
  * @custom:see IArk
