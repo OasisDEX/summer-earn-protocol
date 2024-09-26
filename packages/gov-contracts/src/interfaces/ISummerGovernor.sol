@@ -21,36 +21,6 @@ interface ISummerGovernor is IGovernor {
      */
     event WhitelistGuardianSet(address indexed newGuardian);
 
-    /* @notice Emitted when a proposal is queued cross-chain
-     * @param proposalId The ID of the proposal
-     * @param dstEid The destination endpoint ID
-     */
-    event ProposalQueuedCrossChain(
-        uint256 indexed proposalId,
-        uint32 indexed dstEid
-    );
-
-    /* @notice Emitted when a proposal is sent cross-chain
-     * @param srcProposalId The ID of the proposal
-     * @param dstProposalId The ID of the proposal on the destination chain
-     * @param dstEid The destination endpoint ID
-     */
-    event ProposalSentCrossChain(
-        uint256 indexed srcProposalId,
-        uint256 indexed dstProposalId,
-        uint32 indexed dstEid
-    );
-
-    /* @notice Emitted when a proposal is received cross-chain
-     * @param proposalId The ID of the proposal
-     * @param srcEid The source endpoint ID
-     */
-    event ProposalReceivedCrossChain(
-        uint256 indexed proposalId,
-        uint32 indexed srcEid,
-        bytes32 messageId
-    );
-
     /* @notice Checks if an account is whitelisted
      * @param account The address to check
      * @return bool True if the account is whitelisted, false otherwise
@@ -70,4 +40,31 @@ interface ISummerGovernor is IGovernor {
      * @param _whitelistGuardian The address of the new whitelist guardian
      */
     function setWhitelistGuardian(address _whitelistGuardian) external;
+
+    /* @notice Emitted when a proposal is sent cross-chain
+     * @param proposalId The ID of the proposal
+     * @param dstEid The destination endpoint ID
+     * @param messageId The ID of the message
+     */
+    event ProposalSentCrossChain(
+        uint256 indexed proposalId,
+        uint32 indexed dstEid,
+        bytes32 messageId
+    );
+
+    /* @notice Emitted when a proposal is received cross-chain
+     * @param proposalId The ID of the proposal
+     * @param srcEid The source endpoint ID
+     */
+    event ProposalReceivedCrossChain(
+        uint256 indexed proposalId,
+        uint32 indexed srcEid,
+        bytes32 messageId
+    );
+
+    /* @notice Emitted when a trusted remote is set
+     * @param srcEid The source endpoint ID
+     * @param srcAddress The source address
+     */
+    event TrustedRemoteSet(uint32 indexed srcEid, address indexed srcAddress);
 }

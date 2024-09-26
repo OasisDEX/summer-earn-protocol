@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {SummerGovernor} from "../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
-import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
+
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
 
@@ -12,7 +12,6 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 import {TestHelperOz5, IOAppSetPeer} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
@@ -65,8 +64,6 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
  * @dev Test contract for SummerGovernor functionality.
  */
 contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
-    using OptionsBuilder for bytes;
-
     SummerGovernor public governorA;
     SummerGovernor public governorB;
     MockERC20Votes public tokenA;
@@ -208,7 +205,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         uint32 aEid_ = (aOApp.endpoint()).eid();
 
         vm.prank(address(governorB));
-        bOApp.setPeer(aEid_, addressToBytes32(address(aOApp)));
+        bOApp.setPeer(aEid, addressToBytes32(address(aOApp)));
     }
 
     /*
@@ -591,6 +588,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * @dev Tests the supportsInterface function of the governor.
      * Verifies correct interface support.
      */
+
     function test_SupportsInterface() public view {
         assertTrue(governorA.supportsInterface(type(IGovernor).interfaceId));
         assertFalse(governorA.supportsInterface(0xffffffff));
@@ -1049,215 +1047,6 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         );
     }
 
-    /*
-     * @dev Tests cross-chain proposal submission.
-     * Ensures a proposal can be submitted from one chain and received on another.
-     */
-    function test_CrossChainExecution() public {
-        vm.deal(address(governorA), 100 ether);
-        vm.deal(address(governorB), 100 ether);
-
-        // Prepare cross-chainproposal parameters
-        (
-            address[] memory srcTargets,
-            uint256[] memory srcValues,
-            bytes[] memory srcCalldatas,
-            string memory srcDescription,
-            uint256 dstProposalId
-        ) = createCrossChainProposal(bEid, governorA);
-
-        // Ensure Alice has enough tokens on chain A
-        deal(address(tokenA), alice, governorA.proposalThreshold() * 2); // Increased token amount
-        vm.prank(alice);
-        tokenA.delegate(alice);
-        vm.roll(block.number + 1);
-
-        // Submit proposal on chain A
-        vm.prank(alice);
-        uint256 proposalIdA = governorA.propose(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            srcDescription
-        );
-
-        // Move to voting period
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
-
-        // Cast vote
-        vm.prank(alice);
-        governorA.castVote(proposalIdA, 1); // Vote in favor
-
-        // Move to end of voting period
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
-
-        governorA.queue(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            hashDescription(srcDescription)
-        );
-
-        vm.warp(block.timestamp + timelockA.getMinDelay());
-
-        vm.expectEmit(true, true, true, true);
-        emit ISummerGovernor.ProposalQueuedCrossChain(dstProposalId, bEid);
-        governorA.execute(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            hashDescription(srcDescription)
-        );
-    }
-
-    function test_SendCrossChainProposalAndExecution() public {
-        // Test
-    }
-
-    function test_SendCrossChainProposal_RevertWhenCalldataIsEmpty() public {
-        // Test that the function reverts when _srcCalldatas is empty
-    }
-
-    function test_SendCrossChainProposal_RevertWhenDstEidIsZero() public {
-        // Test that the function reverts when the decoded dstEid is 0
-    }
-
-    function test_SendCrossChainProposal_RevertWhenSourceProposalNotExecuted()
-        public
-    {
-        // Test that the function reverts when the source proposal is not in Executed state
-    }
-
-    function test_SendCrossChainProposal_RevertWhenProposalNotQueuedCrossChain()
-        public
-    {
-        // Test that the function reverts when the proposal has not been queued cross-chain
-    }
-
-    function test_SendCrossChainProposal_RevertWhenProposalAlreadySentCrossChain()
-        public
-    {
-        // Test that the function reverts when the proposal has already been sent cross-chain
-    }
-
-    function test_SendCrossChainProposal_RevertWhenRefundFails() public {
-        // Test that the function reverts when the refund to the sender fails
-    }
-
-    function test_SendCrossChainProposal_SuccessfulExecution() public {
-        // Test a successful execution of sendCrossChainProposal
-    }
-
-    function test_SendCrossChainProposal_CorrectEventEmitted() public {
-        // Test that the correct ProposalSentCrossChain event is emitted
-    }
-
-    function test_SendCrossChainProposal_CorrectProposalMarkedAsSent() public {
-        // Test that the proposal is correctly marked as sent in the queuedCrossChainProposals mapping
-    }
-
-    function test_SendCrossChainProposal_CorrectMessageSentToLzEndpoint()
-        public
-    {
-        // Test that the correct message is sent to the LayerZero endpoint
-    }
-
-    function test_SendCrossChainProposal_CorrectRefundAmount() public {
-        // Test that the correct amount is refunded to the sender
-    }
-
-    /*
-     * @dev Creates parameters for a proposal.
-     * @return targets The target addresses for the proposal.
-     * @return values The values to be sent with the proposal.
-     * @return calldatas The function call data for the proposal.
-     * @return description The description of the proposal.
-     */
-    function createProposalParams()
-        internal
-        view
-        returns (
-            address[] memory,
-            uint256[] memory,
-            bytes[] memory,
-            string memory
-        )
-    {
-        address[] memory targets = new address[](1);
-        targets[0] = address(tokenA);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSignature(
-            "transfer(address,uint256)",
-            bob,
-            100
-        );
-        string memory description = "Transfer 100 tokens to Bob";
-
-        return (targets, values, calldatas, description);
-    }
-
-    function createCrossChainProposal(
-        uint32 dstEid,
-        SummerGovernor srcGovernor
-    )
-        internal
-        view
-        returns (
-            address[] memory,
-            uint256[] memory,
-            bytes[] memory,
-            string memory,
-            uint256
-        )
-    {
-        (
-            address[] memory dstTargets,
-            uint256[] memory dstValues,
-            bytes[] memory dstCalldatas,
-            string memory dstDescription
-        ) = createProposalParams();
-
-        bytes[] memory srcCalldatas = new bytes[](1);
-
-        srcCalldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.queueCrossChainProposal.selector,
-            dstEid,
-            dstTargets,
-            dstValues,
-            dstCalldatas,
-            keccak256(bytes(dstDescription))
-        );
-
-        uint256 dstProposalId = srcGovernor.hashProposal(
-            dstTargets,
-            dstValues,
-            dstCalldatas,
-            keccak256(bytes(dstDescription))
-        );
-
-        address[] memory srcTargets = new address[](1);
-        srcTargets[0] = address(srcGovernor);
-
-        uint256[] memory srcValues = new uint256[](1);
-        srcValues[0] = 0;
-
-        string memory srcDescription = string(
-            abi.encodePacked("Cross-chain proposal: ", dstDescription)
-        );
-
-        return (
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            srcDescription,
-            dstProposalId
-        );
-    }
-
     function getQuorumThreshold() public view returns (uint256) {
         return (tokenA.totalSupply() * QUORUM_FRACTION) / 100;
     }
@@ -1316,6 +1105,38 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         );
 
         return (proposalId, hashDescription(description));
+    }
+
+    /*
+     * @dev Creates parameters for a proposal.
+     * @return targets The target addresses for the proposal.
+     * @return values The values to be sent with the proposal.
+     * @return calldatas The function call data for the proposal.
+     * @return description The description of the proposal.
+     */
+    function createProposalParams()
+        internal
+        view
+        returns (
+            address[] memory,
+            uint256[] memory,
+            bytes[] memory,
+            string memory
+        )
+    {
+        address[] memory targets = new address[](1);
+        targets[0] = address(tokenA);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature(
+            "transfer(address,uint256)",
+            bob,
+            100
+        );
+        string memory description = "Transfer 100 tokens to Bob";
+
+        return (targets, values, calldatas, description);
     }
 
     /*
