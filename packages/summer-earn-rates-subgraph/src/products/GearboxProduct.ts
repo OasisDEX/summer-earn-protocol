@@ -5,7 +5,7 @@ import { Product } from '../models/Product'
 
 export class GearboxProduct extends Product {
   getRate(currentTimestamp: BigInt): BigDecimal {
-    const pool = GearboxPool.bind(this.address)
+    const pool = GearboxPool.bind(this.poolAddress)
     const tryRate = pool.try_supplyRate()
     if (tryRate.reverted) {
       return BigDecimal.zero()

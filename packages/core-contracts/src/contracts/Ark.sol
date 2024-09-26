@@ -117,9 +117,6 @@ abstract contract Ark is IArk, ArkAccessManaged {
     /* @inheritdoc IArk */
     function totalAssets() external view virtual returns (uint256) {}
 
-    /* @inheritdoc IArk */
-    function rate() external view virtual returns (uint256) {}
-
     /* EXTERNAL - RAFT */
     /* @inheritdoc IArk */
     function harvest(

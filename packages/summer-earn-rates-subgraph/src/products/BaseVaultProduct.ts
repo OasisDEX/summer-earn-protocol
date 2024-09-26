@@ -63,7 +63,7 @@ export abstract class BaseVaultProduct extends Product {
   }
 
   private getTimeDifference(currentTimestamp: BigInt): BigInt {
-    let vaultState = VaultState.load(this.address)
+    let vaultState = VaultState.load(this.poolAddress)
     if (!vaultState) {
       return BigInt.zero()
     } else {
@@ -72,7 +72,7 @@ export abstract class BaseVaultProduct extends Product {
   }
 
   private getPreviousSharePrice(): BigDecimal {
-    let vaultState = VaultState.load(this.address)
+    let vaultState = VaultState.load(this.poolAddress)
     if (!vaultState || vaultState.lastSharePrice.equals(BigDecimalConstants.ZERO)) {
       return BigDecimalConstants.ONE
     } else {
@@ -81,9 +81,9 @@ export abstract class BaseVaultProduct extends Product {
   }
 
   private updatePreviousSharePrice(newSharePrice: BigDecimal, currentTimestamp: BigInt): void {
-    let vaultState = VaultState.load(this.address)
+    let vaultState = VaultState.load(this.poolAddress)
     if (!vaultState) {
-      vaultState = new VaultState(this.address)
+      vaultState = new VaultState(this.poolAddress)
       vaultState.lastSharePrice = newSharePrice
       vaultState.lastUpdateTimestamp = currentTimestamp
     } else {

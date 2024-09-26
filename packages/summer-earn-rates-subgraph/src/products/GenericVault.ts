@@ -4,7 +4,10 @@ import { BaseVaultProduct } from './BaseVaultProduct'
 
 export class GenericVaultProduct extends BaseVaultProduct {
   getSharePrice(): BigDecimal {
-    const vault = IRateProvider.bind(this.address)
+    if (this.oracle === null) {
+      return BigDecimal.zero()
+    }
+    const vault = IRateProvider.bind(this.oracle!)
     const tryGetRate = vault.try_getRate()
     if (tryGetRate.reverted) {
       return BigDecimal.zero()

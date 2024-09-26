@@ -8,7 +8,7 @@ export class PendleLpProduct extends BaseVaultProduct {
   getSharePrice(): BigDecimal {
     const pendleOracle = PendleOracle.bind(addresses.PENDLE_ORACLE)
     const maybeRate = pendleOracle.try_getLpToAssetRate(
-      this.address,
+      this.poolAddress,
       BigIntConstants.THIRTY_MINUTES_IN_SECONDS,
     )
     if (!maybeRate.reverted) {

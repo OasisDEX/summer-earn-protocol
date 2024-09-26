@@ -112,7 +112,7 @@ async function deployERC4626ArkContract(
       [name]: {
         vault: userInput.vaultId,
         arkParams: {
-          name: 'ERC4626Ark',
+          name: `ERC4626-${userInput.token}-${userInput.vaultId}-${chainId}`,
           accessManager: config.core.protocolAccessManager,
           configurationManager: config.core.configurationManager,
           token: userInput.token,

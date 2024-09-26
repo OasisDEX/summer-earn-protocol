@@ -4,7 +4,7 @@ import { BaseVaultProduct } from './BaseVaultProduct'
 
 export class ERC4626Product extends BaseVaultProduct {
   getSharePrice(): BigDecimal {
-    const vault = ERC4626.bind(this.address)
+    const vault = ERC4626.bind(this.poolAddress)
     const tryTotalAssets = vault.try_totalAssets()
     const tryTotalSupply = vault.try_totalSupply()
 

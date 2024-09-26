@@ -117,7 +117,7 @@ async function deployAaveV3ArkContract(
         aaveV3Pool: config.aaveV3.pool,
         rewardsController: config.aaveV3.rewards,
         arkParams: {
-          name: 'AaveV3Ark',
+          name: `AaveV3-${userInput.token}-${config.aaveV3.pool}-${chainId}`,
           accessManager: config.core.protocolAccessManager,
           configurationManager: config.core.configurationManager,
           token: userInput.token,

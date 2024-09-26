@@ -76,7 +76,7 @@ export function getAddressesProvider(): ServiceAddresses {
       DAI: Address.fromString('0x6B175474E89094C44Da98b954EedeAC495271d0F'),
       SDAI: Address.fromString('0x83F20F44975D03b1b09e64809B757c47f942BEeA'),
       AAVE_LENDING_POOL: Address.fromString('0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9'),
-      AAVE_DATA_PROVIDER: Address.fromString('0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d'),
+      AAVE_DATA_PROVIDER: Address.fromString('0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3'),
       AAVE_PRICE_ORACLE: Address.fromString('0xA50ba011c48153De246E5192C8f9258A2ba79Ca9'),
       FEED_REGISTRY: Address.fromString('0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf'),
       AAVE_V3_LENDING_POOL: Address.fromString('0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2'),
