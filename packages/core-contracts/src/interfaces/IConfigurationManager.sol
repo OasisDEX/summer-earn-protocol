@@ -9,6 +9,7 @@ import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol
  * @notice Interface for the ConfigurationManager contract, which manages system-wide parameters
  * @dev This interface defines the getters and setters for system-wide parameters
  */
+
 interface IConfigurationManager is
     IConfigurationManagerEvents,
     IConfigurationManagerErrors
@@ -35,7 +36,6 @@ interface IConfigurationManager is
      * @notice Get the current treasury address
      * @return The current treasury address
      */
-
     function treasury() external view returns (address);
 
     /**

@@ -10,10 +10,10 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
+import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {ArkTestBase} from "./ArkTestBase.sol";
 
 contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
     ERC4626Ark public ark;

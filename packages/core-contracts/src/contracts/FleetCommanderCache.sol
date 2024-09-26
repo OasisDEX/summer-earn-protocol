@@ -2,9 +2,10 @@
 pragma solidity ^0.8.26;
 
 import {StorageSlot} from "../../lib/openzeppelin-next/StorageSlot.sol";
-import {StorageSlots} from "./libraries/StorageSlots.sol";
+
 import {IArk} from "../interfaces/IArk.sol";
 import {ArkData} from "../types/FleetCommanderTypes.sol";
+import {StorageSlots} from "./libraries/StorageSlots.sol";
 
 contract FleetCommanderCache {
     using StorageSlot for *;

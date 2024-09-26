@@ -8,9 +8,9 @@ import {MarketParamsLib} from "morpho-blue/libraries/MarketParamsLib.sol";
 import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 
+import {IUniversalRewardsDistributor} from "../../interfaces/morpho/IUniversalRewardsDistributor.sol";
 import {MorphoBalancesLib} from "morpho-blue/libraries/periphery/MorphoBalancesLib.sol";
 import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
-import {IUniversalRewardsDistributor} from "../../interfaces/morpho/IUniversalRewardsDistributor.sol";
 
 error InvalidMorphoAddress();
 error InvalidMarketId();
@@ -53,7 +53,6 @@ contract MorphoArk is Ark {
      * @param _morpho The Morpho Vault address
      * @param _marketId The market ID
      */
-
     constructor(
         address _morpho,
         Id _marketId,
