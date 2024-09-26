@@ -92,7 +92,8 @@ contract SummerGovernor is
         VotingDecayManager(
             params.initialDecayFreeWindow,
             params.initialDecayRate,
-            params.initialDecayFunction
+            params.initialDecayFunction,
+            address(this)
         )
         OApp(params.endpoint, address(this))
     {

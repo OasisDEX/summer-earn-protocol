@@ -15,7 +15,8 @@ contract TestVotingDecayManager is VotingDecayManager {
         VotingDecayManager(
             decayFreeWindow_,
             decayRatePerSecond_,
-            decayFunction_
+            decayFunction_,
+            msg.sender
         )
     {}
 
