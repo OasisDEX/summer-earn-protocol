@@ -21,6 +21,42 @@ interface ISummerGovernor is IGovernor {
      */
     event WhitelistGuardianSet(address indexed newGuardian);
 
+    /* @notice Emitted when a proposal is sent cross-chain
+     * @param proposalId The ID of the proposal
+     * @param dstEid The destination endpoint ID
+     */
+    event ProposalSentCrossChain(
+        uint256 indexed proposalId,
+        uint32 indexed dstEid
+    );
+
+    /* @notice Emitted when a proposal is received cross-chain
+     * @param proposalId The ID of the proposal
+     * @param srcEid The source endpoint ID
+     */
+    event ProposalReceivedCrossChain(
+        uint256 indexed proposalId,
+        uint32 indexed srcEid
+    );
+
+    /**
+     * @dev Sends a proposal to another chain for execution.
+     * @param _dstEid The destination Endpoint ID.
+     * @param _dstTargets The target addresses for the proposal.
+     * @param _dstValues The values for the proposal.
+     * @param _dstCalldatas The calldata for the proposal.
+     * @param _dstDescriptionHash The description hash for the proposal.
+     * @param _options Message execution options.
+     */
+    function sendProposalToTargetChain(
+        uint32 _dstEid,
+        address[] memory _dstTargets,
+        uint256[] memory _dstValues,
+        bytes[] memory _dstCalldatas,
+        bytes32 _dstDescriptionHash,
+        bytes calldata _options
+    ) external;
+
     /* @notice Checks if an account is whitelisted
      * @param account The address to check
      * @return bool True if the account is whitelisted, false otherwise
@@ -41,30 +77,9 @@ interface ISummerGovernor is IGovernor {
      */
     function setWhitelistGuardian(address _whitelistGuardian) external;
 
-    /* @notice Emitted when a proposal is sent cross-chain
-     * @param proposalId The ID of the proposal
-     * @param dstEid The destination endpoint ID
-     * @param messageId The ID of the message
+    /* @notice Sets a trusted remote for a specific chain ID
+     * @param _chainId The chain ID to set the trusted remote for
+     * @param _trustedRemote The address of the trusted remote on the specified chain
      */
-    event ProposalSentCrossChain(
-        uint256 indexed proposalId,
-        uint32 indexed dstEid,
-        bytes32 messageId
-    );
-
-    /* @notice Emitted when a proposal is received cross-chain
-     * @param proposalId The ID of the proposal
-     * @param srcEid The source endpoint ID
-     */
-    event ProposalReceivedCrossChain(
-        uint256 indexed proposalId,
-        uint32 indexed srcEid,
-        bytes32 messageId
-    );
-
-    /* @notice Emitted when a trusted remote is set
-     * @param srcEid The source endpoint ID
-     * @param srcAddress The source address
-     */
-    event TrustedRemoteSet(uint32 indexed srcEid, address indexed srcAddress);
+    function setTrustedRemote(uint32 _chainId, address _trustedRemote) external;
 }

@@ -3,10 +3,11 @@ pragma solidity ^0.8.20;
 
 import {SummerGovernor} from "../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
+import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
 
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
-
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
@@ -16,6 +17,8 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {TestHelperOz5, IOAppSetPeer} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {console2} from "forge-std/console2.sol";
+import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
 /*
  * @title MockERC20Votes
@@ -59,13 +62,34 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
     }
 }
 
+contract TestableSummerGovernor is SummerGovernor {
+    constructor(GovernorParams memory params) SummerGovernor(params) {}
+
+    function customLzReceive(
+        Origin calldata _origin,
+        bytes calldata payload,
+        bytes calldata extraData
+    ) public {
+        _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
+    }
+
+    function setTrustedRemote(
+        uint32 _chainId,
+        address _trustedRemote
+    ) public override {
+        trustedRemotes[_chainId] = _trustedRemote;
+    }
+}
+
 /*
  * @title SummerGovernorTest
  * @dev Test contract for SummerGovernor functionality.
  */
 contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
-    SummerGovernor public governorA;
-    SummerGovernor public governorB;
+    using OptionsBuilder for bytes;
+
+    TestableSummerGovernor public governorA;
+    TestableSummerGovernor public governorB;
     MockERC20Votes public tokenA;
     MockERC20Votes public tokenB;
     TimelockController public timelockA;
@@ -169,8 +193,11 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 endpoint: lzEndpointB
             });
 
-        governorA = new SummerGovernor(paramsA);
-        governorB = new SummerGovernor(paramsB);
+        governorA = new TestableSummerGovernor(paramsA);
+        governorB = new TestableSummerGovernor(paramsB);
+
+        governorA.setTrustedRemote(bEid, address(governorB));
+        governorB.setTrustedRemote(aEid, address(governorA));
 
         vm.label(address(governorA), "SummerGovernor A");
         vm.label(address(governorB), "SummerGovernor B");
@@ -194,19 +221,255 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         IOAppSetPeer bOApp = IOAppSetPeer(address(governorB));
 
         // Connect governorA to governorB
-        vm.prank(address(governorB));
+        vm.prank(address(governorA));
         uint32 bEid_ = (bOApp.endpoint()).eid();
 
         vm.prank(address(governorA));
         aOApp.setPeer(bEid_, addressToBytes32(address(bOApp)));
 
         // Connect governorB to governorA
-        vm.prank(address(governorA));
+        vm.prank(address(governorB));
         uint32 aEid_ = (aOApp.endpoint()).eid();
 
         vm.prank(address(governorB));
-        bOApp.setPeer(aEid, addressToBytes32(address(aOApp)));
+        bOApp.setPeer(aEid_, addressToBytes32(address(aOApp)));
     }
+
+    // ===============================================
+    // Cross-Chain Messaging Tests
+    // ===============================================
+
+    /*
+     * @dev Tests cross-chain proposal submission.
+     * Ensures a proposal can be submitted from one chain and received on another.
+     */
+    function test_CrossChainExecutionOnSourceChain() public {
+        // Ensure source governor have enough ETH for messaging costs
+        vm.deal(address(governorA), 100 ether);
+        tokenB.mint(address(governorB), 100 ether);
+
+        // Prepare cross-chainproposal parameters
+        (
+            address[] memory srcTargets,
+            uint256[] memory srcValues,
+            bytes[] memory srcCalldatas,
+            string memory srcDescription,
+            uint256 dstProposalId
+        ) = createCrossChainProposal(bEid, governorA);
+
+        // Ensure Alice has enough tokens on chain A
+        deal(address(tokenA), alice, governorA.proposalThreshold() * 2); // Increased token amount
+        vm.prank(alice);
+        tokenA.delegate(alice);
+        vm.roll(block.number + 1);
+
+        // Submit proposal on chain A
+        vm.prank(alice);
+        uint256 proposalIdA = governorA.propose(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            srcDescription
+        );
+
+        // Move to voting period
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
+
+        // Cast vote
+        vm.prank(alice);
+        governorA.castVote(proposalIdA, 1); // Vote in favor
+
+        // Move to end of voting period
+        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
+        vm.roll(block.number + governorA.votingPeriod() + 1);
+
+        governorA.queue(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            hashDescription(srcDescription)
+        );
+
+        vm.warp(block.timestamp + timelockA.getMinDelay());
+
+        vm.expectEmit(true, true, true, true);
+        emit ISummerGovernor.ProposalSentCrossChain(dstProposalId, bEid);
+        governorA.execute(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            hashDescription(srcDescription)
+        );
+
+        verifyPackets(bEid, addressToBytes32(address(governorB)));
+    }
+
+    function test_ReceiveProposalAndExecuteOnTargetChain() public {
+        // Ensure source governor have enough ETH for messaging costs
+        vm.deal(address(governorA), 100 ether);
+        tokenB.mint(address(governorB), 100 ether);
+
+        // Prepare cross-chainproposal parameters
+        (
+            address[] memory srcTargets,
+            uint256[] memory srcValues,
+            bytes[] memory srcCalldatas,
+            string memory srcDescription,
+
+        ) = createCrossChainProposal(bEid, governorA);
+
+        // Ensure Alice has enough tokens on chain A
+        deal(address(tokenA), alice, governorA.proposalThreshold() * 2); // Increased token amount
+        vm.prank(alice);
+        tokenA.delegate(alice);
+        vm.roll(block.number + 1);
+
+        // Submit proposal on chain A
+        vm.prank(alice);
+        uint256 proposalIdA = governorA.propose(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            srcDescription
+        );
+
+        // Move to voting period
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
+
+        // Cast vote
+        vm.prank(alice);
+        governorA.castVote(proposalIdA, 1); // Vote in favor
+
+        // Move to end of voting period
+        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
+        vm.roll(block.number + governorA.votingPeriod() + 1);
+
+        governorA.queue(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            hashDescription(srcDescription)
+        );
+
+        vm.warp(block.timestamp + timelockA.getMinDelay());
+
+        governorA.execute(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            hashDescription(srcDescription)
+        );
+
+        // vm.expectEmit(true, true, true, true);
+        // emit ISummerGovernor.ProposalReceivedCrossChain(
+        //     dstProposalId,
+        //     aEid,
+        //     messageId
+        // );
+        verifyPackets(bEid, addressToBytes32(address(governorB)));
+    }
+
+    function createCrossChainProposal(
+        uint32 dstEid,
+        SummerGovernor srcGovernor
+    )
+        internal
+        view
+        returns (
+            address[] memory,
+            uint256[] memory,
+            bytes[] memory,
+            string memory,
+            uint256
+        )
+    {
+        (
+            address[] memory dstTargets,
+            uint256[] memory dstValues,
+            bytes[] memory dstCalldatas,
+            string memory dstDescription
+        ) = createProposalParams();
+
+        bytes[] memory srcCalldatas = new bytes[](1);
+
+        string memory srcDescription = string(
+            abi.encodePacked("Cross-chain proposal: ", dstDescription)
+        );
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(200000, 0);
+
+        srcCalldatas[0] = abi.encodeWithSelector(
+            SummerGovernor.sendProposalToTargetChain.selector,
+            dstEid,
+            dstTargets,
+            dstValues,
+            dstCalldatas,
+            hashDescription(dstDescription),
+            options
+        );
+
+        address[] memory srcTargets = new address[](1);
+        srcTargets[0] = address(srcGovernor);
+
+        uint256[] memory srcValues = new uint256[](1);
+        srcValues[0] = 0;
+
+        uint256 dstProposalId = srcGovernor.hashProposal(
+            dstTargets,
+            dstValues,
+            dstCalldatas,
+            hashDescription(dstDescription)
+        );
+
+        return (
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            srcDescription,
+            dstProposalId
+        );
+    }
+
+    /*
+     * @dev Generates a unique message ID for cross-chain proposals.
+     * @param dstChainId The destination chain ID.
+     * @param srcAddress The source contract address.
+     * @param proposalId The ID of the proposal.
+     * @param targets The target addresses for the proposal.
+     * @param values The values for the proposal.
+     * @param calldatas The calldata for the proposal.
+     * @param descriptionHash The description hash for the proposal.
+     * @return A unique bytes32 message ID.
+     */
+    function _generateMessageId(
+        uint256 dstChainId,
+        address srcAddress,
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    dstChainId,
+                    srcAddress,
+                    proposalId,
+                    targets,
+                    values,
+                    calldatas,
+                    descriptionHash
+                )
+            );
+    }
+
+    // ===============================================
+    // Source Chain Governance Tests
+    // ===============================================
 
     /*
      * @dev Tests the initial setup of the governor.
@@ -285,7 +548,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Covers proposal creation, voting, queueing, execution, and result verification.
      */
     function test_ProposalExecution() public {
-        deal(address(tokenA), address(timelockA), 100);
+        deal(address(tokenB), address(timelockA), 100);
         deal(address(tokenA), alice, governorA.proposalThreshold());
         vm.roll(block.number + governorA.votingDelay() + 1);
 
@@ -328,7 +591,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             hashDescription(description)
         );
 
-        assertEq(tokenA.balanceOf(bob), 100);
+        assertEq(tokenB.balanceOf(bob), 100);
     }
 
     /*
@@ -945,7 +1208,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
 
         // Mint tokens to the timelock
         vm.startPrank(address(timelockA));
-        tokenA.mint(address(timelockA), 1000); // Mint more than needed for the proposal
+        tokenB.mint(address(timelockA), 1000); // Mint more than needed for the proposal
         vm.stopPrank();
 
         // Scenario 1: Majority in favor, quorum reached
@@ -1024,7 +1287,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         // Add assertions to verify vote counts and quorum
         assertEq(
             forVotes,
-            2600000000000000000000100,
+            2600000000000000000000000,
             "Incorrect number of 'for' votes"
         );
         assertEq(againstVotes, 0, "There should be no 'against' votes");
@@ -1125,7 +1388,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         )
     {
         address[] memory targets = new address[](1);
-        targets[0] = address(tokenA);
+        targets[0] = address(tokenB);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);

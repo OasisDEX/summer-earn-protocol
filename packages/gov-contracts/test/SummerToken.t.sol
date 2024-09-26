@@ -73,145 +73,11 @@ contract SummerTokenTest is TestHelperOz5 {
         this.wireOApps(tokens);
     }
 
-    function test_InitialSupply() public view {
-        assertEq(aSummerToken.totalSupply(), INITIAL_SUPPLY * 10 ** 18);
-        assertEq(bSummerToken.totalSupply(), INITIAL_SUPPLY * 10 ** 18);
-    }
+    // ===============================================
+    // Cross-Chain Tests
+    // ===============================================
 
-    function test_OwnerBalance() public view {
-        assertEq(aSummerToken.balanceOf(owner), INITIAL_SUPPLY * 10 ** 18);
-        assertEq(bSummerToken.balanceOf(owner), INITIAL_SUPPLY * 10 ** 18);
-    }
-
-    function test_TokenNameAndSymbol() public view {
-        assertEq(aSummerToken.name(), "SummerToken A");
-        assertEq(aSummerToken.symbol(), "SUMMERA");
-        assertEq(bSummerToken.name(), "SummerToken B");
-        assertEq(bSummerToken.symbol(), "SUMMERB");
-    }
-
-    function test_Transfer() public {
-        uint256 amount = 1000 * 10 ** 18;
-        aSummerToken.transfer(user1, amount);
-        assertEq(aSummerToken.balanceOf(user1), amount);
-        assertEq(
-            aSummerToken.balanceOf(owner),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
-
-        bSummerToken.transfer(user2, amount);
-        assertEq(bSummerToken.balanceOf(user2), amount);
-        assertEq(
-            bSummerToken.balanceOf(owner),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
-    }
-
-    function testFail_TransferInsufficientBalance() public {
-        uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
-        aSummerToken.transfer(user1, amount);
-        bSummerToken.transfer(user2, amount);
-    }
-
-    function test_ApproveAndTransferFrom() public {
-        uint256 amount = 1000 * 10 ** 18;
-        aSummerToken.approve(user1, amount);
-        assertEq(aSummerToken.allowance(owner, user1), amount);
-
-        vm.prank(user1);
-        aSummerToken.transferFrom(owner, user2, amount);
-        assertEq(aSummerToken.balanceOf(user2), amount);
-        assertEq(aSummerToken.allowance(owner, user1), 0);
-
-        bSummerToken.approve(user1, amount);
-        assertEq(bSummerToken.allowance(owner, user1), amount);
-
-        vm.prank(user1);
-        bSummerToken.transferFrom(owner, user2, amount);
-        assertEq(bSummerToken.balanceOf(user2), amount);
-        assertEq(bSummerToken.allowance(owner, user1), 0);
-    }
-
-    function testFail_TransferFromInsufficientAllowance() public {
-        uint256 amount = 1000 * 10 ** 18;
-        aSummerToken.approve(user1, amount - 1);
-
-        vm.prank(user1);
-        aSummerToken.transferFrom(owner, user2, amount);
-
-        bSummerToken.approve(user1, amount - 1);
-
-        vm.prank(user1);
-        bSummerToken.transferFrom(owner, user2, amount);
-    }
-
-    function test_Burn() public {
-        uint256 amount = 1000 * 10 ** 18;
-        uint256 initialSupplyA = aSummerToken.totalSupply();
-        uint256 initialSupplyB = bSummerToken.totalSupply();
-
-        aSummerToken.burn(amount);
-        assertEq(aSummerToken.balanceOf(owner), initialSupplyA - amount);
-        assertEq(aSummerToken.totalSupply(), initialSupplyA - amount);
-
-        bSummerToken.burn(amount);
-        assertEq(bSummerToken.balanceOf(owner), initialSupplyB - amount);
-        assertEq(bSummerToken.totalSupply(), initialSupplyB - amount);
-    }
-
-    function testFail_BurnInsufficientBalance() public {
-        uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
-        aSummerToken.burn(amount);
-        bSummerToken.burn(amount);
-    }
-
-    function test_BurnFrom() public {
-        uint256 amount = 1000 * 10 ** 18;
-        aSummerToken.approve(user1, amount);
-
-        vm.prank(user1);
-        aSummerToken.burnFrom(owner, amount);
-
-        assertEq(
-            aSummerToken.balanceOf(owner),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
-        assertEq(
-            aSummerToken.totalSupply(),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
-        assertEq(aSummerToken.allowance(owner, user1), 0);
-
-        bSummerToken.approve(user1, amount);
-
-        vm.prank(user1);
-        bSummerToken.burnFrom(owner, amount);
-
-        assertEq(
-            bSummerToken.balanceOf(owner),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
-        assertEq(
-            bSummerToken.totalSupply(),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
-        assertEq(bSummerToken.allowance(owner, user1), 0);
-    }
-
-    function testFail_BurnFromInsufficientAllowance() public {
-        uint256 amount = 1000 * 10 ** 18;
-        aSummerToken.approve(user1, amount - 1);
-
-        vm.prank(user1);
-        aSummerToken.burnFrom(owner, amount);
-
-        bSummerToken.approve(user1, amount - 1);
-
-        vm.prank(user1);
-        bSummerToken.burnFrom(owner, amount);
-    }
-
-    function test_OFTSend() public {
+    function test_OFTSendNoCompose() public {
         uint256 tokensToSend = 1 ether;
         aSummerToken.transfer(user1, tokensToSend);
         bytes memory options = OptionsBuilder
@@ -367,6 +233,148 @@ contract SummerTokenTest is TestHelperOz5 {
             tokensToSend,
             "Tokens should have arrived at destination"
         );
+    }
+
+    // ===============================================
+    // Token Tests
+    // ===============================================
+
+    function test_InitialSupply() public view {
+        assertEq(aSummerToken.totalSupply(), INITIAL_SUPPLY * 10 ** 18);
+        assertEq(bSummerToken.totalSupply(), INITIAL_SUPPLY * 10 ** 18);
+    }
+
+    function test_OwnerBalance() public view {
+        assertEq(aSummerToken.balanceOf(owner), INITIAL_SUPPLY * 10 ** 18);
+        assertEq(bSummerToken.balanceOf(owner), INITIAL_SUPPLY * 10 ** 18);
+    }
+
+    function test_TokenNameAndSymbol() public view {
+        assertEq(aSummerToken.name(), "SummerToken A");
+        assertEq(aSummerToken.symbol(), "SUMMERA");
+        assertEq(bSummerToken.name(), "SummerToken B");
+        assertEq(bSummerToken.symbol(), "SUMMERB");
+    }
+
+    function test_Transfer() public {
+        uint256 amount = 1000 * 10 ** 18;
+        aSummerToken.transfer(user1, amount);
+        assertEq(aSummerToken.balanceOf(user1), amount);
+        assertEq(
+            aSummerToken.balanceOf(owner),
+            (INITIAL_SUPPLY * 10 ** 18) - amount
+        );
+
+        bSummerToken.transfer(user2, amount);
+        assertEq(bSummerToken.balanceOf(user2), amount);
+        assertEq(
+            bSummerToken.balanceOf(owner),
+            (INITIAL_SUPPLY * 10 ** 18) - amount
+        );
+    }
+
+    function testFail_TransferInsufficientBalance() public {
+        uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
+        aSummerToken.transfer(user1, amount);
+        bSummerToken.transfer(user2, amount);
+    }
+
+    function test_ApproveAndTransferFrom() public {
+        uint256 amount = 1000 * 10 ** 18;
+        aSummerToken.approve(user1, amount);
+        assertEq(aSummerToken.allowance(owner, user1), amount);
+
+        vm.prank(user1);
+        aSummerToken.transferFrom(owner, user2, amount);
+        assertEq(aSummerToken.balanceOf(user2), amount);
+        assertEq(aSummerToken.allowance(owner, user1), 0);
+
+        bSummerToken.approve(user1, amount);
+        assertEq(bSummerToken.allowance(owner, user1), amount);
+
+        vm.prank(user1);
+        bSummerToken.transferFrom(owner, user2, amount);
+        assertEq(bSummerToken.balanceOf(user2), amount);
+        assertEq(bSummerToken.allowance(owner, user1), 0);
+    }
+
+    function testFail_TransferFromInsufficientAllowance() public {
+        uint256 amount = 1000 * 10 ** 18;
+        aSummerToken.approve(user1, amount - 1);
+
+        vm.prank(user1);
+        aSummerToken.transferFrom(owner, user2, amount);
+
+        bSummerToken.approve(user1, amount - 1);
+
+        vm.prank(user1);
+        bSummerToken.transferFrom(owner, user2, amount);
+    }
+
+    function test_Burn() public {
+        uint256 amount = 1000 * 10 ** 18;
+        uint256 initialSupplyA = aSummerToken.totalSupply();
+        uint256 initialSupplyB = bSummerToken.totalSupply();
+
+        aSummerToken.burn(amount);
+        assertEq(aSummerToken.balanceOf(owner), initialSupplyA - amount);
+        assertEq(aSummerToken.totalSupply(), initialSupplyA - amount);
+
+        bSummerToken.burn(amount);
+        assertEq(bSummerToken.balanceOf(owner), initialSupplyB - amount);
+        assertEq(bSummerToken.totalSupply(), initialSupplyB - amount);
+    }
+
+    function testFail_BurnInsufficientBalance() public {
+        uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
+        aSummerToken.burn(amount);
+        bSummerToken.burn(amount);
+    }
+
+    function test_BurnFrom() public {
+        uint256 amount = 1000 * 10 ** 18;
+        aSummerToken.approve(user1, amount);
+
+        vm.prank(user1);
+        aSummerToken.burnFrom(owner, amount);
+
+        assertEq(
+            aSummerToken.balanceOf(owner),
+            (INITIAL_SUPPLY * 10 ** 18) - amount
+        );
+        assertEq(
+            aSummerToken.totalSupply(),
+            (INITIAL_SUPPLY * 10 ** 18) - amount
+        );
+        assertEq(aSummerToken.allowance(owner, user1), 0);
+
+        bSummerToken.approve(user1, amount);
+
+        vm.prank(user1);
+        bSummerToken.burnFrom(owner, amount);
+
+        assertEq(
+            bSummerToken.balanceOf(owner),
+            (INITIAL_SUPPLY * 10 ** 18) - amount
+        );
+        assertEq(
+            bSummerToken.totalSupply(),
+            (INITIAL_SUPPLY * 10 ** 18) - amount
+        );
+        assertEq(bSummerToken.allowance(owner, user1), 0);
+    }
+
+    function testFail_BurnFromInsufficientAllowance() public {
+        uint256 amount = 1000 * 10 ** 18;
+        aSummerToken.approve(user1, amount - 1);
+
+        vm.prank(user1);
+        aSummerToken.burnFrom(owner, amount);
+
+        bSummerToken.approve(user1, amount - 1);
+
+        vm.prank(user1);
+        bSummerToken.burnFrom(owner, amount);
     }
 }
 

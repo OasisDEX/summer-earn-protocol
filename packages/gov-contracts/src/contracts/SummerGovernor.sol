@@ -15,7 +15,7 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-
+import {console} from "forge-std/Test.sol";
 /*
  * @title SummerGovernor
  * @dev This contract implements the governance mechanism for the Summer protocol.
@@ -53,7 +53,8 @@ contract SummerGovernor is
 
     GovernorConfig public config;
 
-    mapping(uint32 => address) public trustedRemotes;
+    // Add a mapping for trusted remotes
+    mapping(uint32 chainId => address trustedRemote) public trustedRemotes;
 
     // ===============================================
     // Constructor
@@ -113,104 +114,80 @@ contract SummerGovernor is
     // ===============================================
     // Cross-Chain Messaging Functions
     // ===============================================
-    /**
-     * @dev Generates a unique message ID for cross-chain proposals.
-     * @param srcChainId The source chain ID.
-     * @param srcAddress The source contract address.
-     * @param proposalId The ID of the proposal.
-     * @param targets The target addresses for the proposal.
-     * @param values The values for the proposal.
-     * @param calldatas The calldata for the proposal.
-     * @param descriptionHash The description hash for the proposal.
-     * @return A unique bytes32 message ID.
-     */
-    function _generateMessageId(
-        uint256 srcChainId,
-        address srcAddress,
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    srcChainId,
-                    srcAddress,
-                    proposalId,
-                    targets,
-                    values,
-                    calldatas,
-                    descriptionHash
-                )
-            );
-    }
 
     /**
      * @dev Sends a proposal to another chain for execution.
      * @param _dstEid The destination Endpoint ID.
-     * @param proposalId The ID of the proposal to send.
+     * @param _dstTargets The target addresses for the proposal.
+     * @param _dstValues The values for the proposal.
+     * @param _dstCalldatas The calldata for the proposal.
+     * @param _dstDescriptionHash The description hash for the proposal.
      * @param _options Message execution options.
      */
-    function sendProposalToChain(
+    function sendProposalToTargetChain(
         uint32 _dstEid,
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash,
+        address[] memory _dstTargets,
+        uint256[] memory _dstValues,
+        bytes[] memory _dstCalldatas,
+        bytes32 _dstDescriptionHash,
         bytes calldata _options
-    ) external payable onlyGovernance {
-        // Create a unique identifier for this cross-chain message
-        bytes32 messageId = _generateMessageId(
-            block.chainid,
-            address(this),
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            descriptionHash
+    ) external onlyGovernance {
+        uint256 dstProposalId = hashProposal(
+            _dstTargets,
+            _dstValues,
+            _dstCalldatas,
+            _dstDescriptionHash
         );
 
         // Encode the full payload
         bytes memory payload = abi.encode(
-            messageId,
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            descriptionHash
+            dstProposalId,
+            _dstTargets,
+            _dstValues,
+            _dstCalldatas,
+            _dstDescriptionHash
         );
+
+        MessagingFee memory fee = _quote(_dstEid, payload, _options, false);
 
         _lzSend(
             _dstEid,
             payload,
             _options,
-            MessagingFee(msg.value, 0),
-            payable(msg.sender)
+            MessagingFee(fee.nativeFee + 100000, 0),
+            payable(address(this))
         );
 
-        emit ProposalSentCrossChain(proposalId, _dstEid, messageId);
+        emit ProposalSentCrossChain(dstProposalId, _dstEid);
     }
+
+    function _payNative(
+        uint256 _nativeFee
+    ) internal view override returns (uint256 nativeFee) {
+        if (address(this).balance < _nativeFee)
+            revert NotEnoughNative(address(this).balance);
+        return _nativeFee;
+    }
+
+    // Override the receive function to allow the contract to receive ETH from LayerZero
+    receive() external payable override {}
 
     /**
      * @dev Receives a proposal from another chain and executes it.
      * @param _origin The origin of the message.
-     * @param _guid The global packet identifier.
+     * @param // _guid The global packet identifier.
      * @param payload The encoded message payload.
-     * @param executor_ The Executor address.
-     * @param _extraData Arbitrary data appended by the Executor.
+     * @param // executor_ The Executor address.
+     * @param // _extraData Arbitrary data appended by the Executor.
      */
     function _lzReceive(
         Origin calldata _origin,
-        bytes32 _guid,
+        bytes32,
         bytes calldata payload,
-        address executor_,
-        bytes calldata _extraData
+        address,
+        bytes calldata
     ) internal override {
         (
-            bytes32 messageId,
             uint256 proposalId,
             address[] memory targets,
             uint256[] memory values,
@@ -218,44 +195,17 @@ contract SummerGovernor is
             bytes32 descriptionHash
         ) = abi.decode(
                 payload,
-                (bytes32, uint256, address[], uint256[], bytes[], bytes32)
+                (uint256, address[], uint256[], bytes[], bytes32)
             );
 
-        emit ProposalReceivedCrossChain(proposalId, _origin.srcEid, messageId);
+        emit ProposalReceivedCrossChain(proposalId, _origin.srcEid);
 
-        // Verify the message origin
-        // We rely on CREATE2 to ensure that the contract address is deterministic across chains
-        // This allows us to use the contract's own address as a trusted sender
+        // Verify the message origin using the trustedRemotes mapping
+        address trustedRemote = trustedRemotes[_origin.srcEid];
         address originSender = address(uint160(uint256(_origin.sender)));
-        if (originSender != address(this)) {
+
+        if (originSender != trustedRemote) {
             revert SummerGovernorInvalidSender(originSender);
-        }
-
-        // Second layer of defense
-        // We also check against a mapping of trusted remotes, which should be set to this contract's address
-        // This provides an additional safeguard in case the CREATE2 deployment is somehow compromised
-        if (trustedRemotes[_origin.srcEid] != address(this)) {
-            revert SummerGovernorInvalidSender(originSender);
-        }
-
-        // Note: Both checks above rely on the fact that this contract is deployed using CREATE2
-        // with the same salt and init code on all chains, ensuring its address is consistent
-        // across the network. This allows for secure cross-chain communication without additional
-        // trusted parties or complex verification schemes.
-
-        // Verify the messageId
-        bytes32 expectedMessageId = _generateMessageId(
-            _origin.srcEid,
-            originSender,
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            descriptionHash
-        );
-
-        if (messageId != expectedMessageId) {
-            revert SummerGovernorInvalidMessageId(messageId, expectedMessageId);
         }
 
         // Execute the proposal
@@ -266,23 +216,6 @@ contract SummerGovernor is
             calldatas,
             descriptionHash
         );
-    }
-
-    /**
-     * @dev Quotes the fee for sending a cross-chain message.
-     * @param _dstEid The destination endpoint ID.
-     * @param _message The message payload being sent.
-     * @param _options The message execution options.
-     * @param _payInLzToken Boolean indicating whether to pay in LZ token.
-     * @return fee The messaging fee structure containing native and LZ token fees.
-     */
-    function quote(
-        uint32 _dstEid,
-        bytes memory _message,
-        bytes memory _options,
-        bool _payInLzToken
-    ) public view returns (MessagingFee memory fee) {
-        return _quote(_dstEid, _message, _options, _payInLzToken);
     }
 
     /**
@@ -300,7 +233,7 @@ contract SummerGovernor is
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) internal returns (uint256) {
-        _executeOperations(
+        _executeCrossChainOperations(
             proposalId,
             targets,
             values,
@@ -313,9 +246,39 @@ contract SummerGovernor is
         return proposalId;
     }
 
+    /**
+     * @dev Internal function to execute cross-chain proposal operations.
+     * @param proposalId The ID of the proposal.
+     * @param targets The addresses of the contracts to call on the destination chain.
+     * @param values The ETH values to send with the calls on the destination chain.
+     * @param calldatas The call data for each contract call on the destination chain.
+     * @param descriptionHash The hash of the proposal description.
+     *
+     * This function is used for executing proposals that have been received from another chain.
+     * It bypasses the timelock and directly executes the operations using the base Governor's
+     * _executeOperations function. This is necessary because the proposal has already been
+     * executed on the source chain and we want to avoid double-queueing.
+     */
+    function _executeCrossChainOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal {
+        Governor._executeOperations(
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+    }
+
     // ===============================================
     // Existing Functions
     // ===============================================
+
     /**
      * @dev Proposes a new governance action.
      * @param targets The addresses of the contracts to call.
@@ -688,12 +651,20 @@ contract SummerGovernor is
         return token().delegates(account);
     }
 
-    // Add this function to set trusted remote addresses
+    /**
+     * @dev Sets a trusted remote for a specific chain ID.
+     * @param _chainId The chain ID to set the trusted remote for.
+     * @param _trustedRemote The address of the trusted remote on the specified chain.
+     */
     function setTrustedRemote(
-        uint32 _srcEid,
-        address _srcAddress
-    ) external onlyGovernance {
-        trustedRemotes[_srcEid] = _srcAddress;
-        emit TrustedRemoteSet(_srcEid, _srcAddress);
+        uint32 _chainId,
+        address _trustedRemote
+    ) external virtual onlyGovernance {
+        require(_trustedRemote != address(0), "Invalid trusted remote address");
+        trustedRemotes[_chainId] = _trustedRemote;
+        emit TrustedRemoteSet(_chainId, _trustedRemote);
     }
+
+    // Add this event to the ISummerGovernor interface
+    event TrustedRemoteSet(uint32 indexed chainId, address trustedRemote);
 }
