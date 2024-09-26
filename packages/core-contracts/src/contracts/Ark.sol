@@ -9,44 +9,15 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {console} from "forge-std/console.sol";
+import {ArkConfigProvider} from "./ArkConfigProvider.sol";
+
 /**
  * @custom:see IArk
  */
-abstract contract Ark is IArk, ArkAccessManaged {
+abstract contract Ark is IArk, ArkConfigProvider {
     using SafeERC20 for IERC20;
 
-    ArkConfig public config;
-    IConfigurationManager public manager;
-
-    constructor(
-        ArkParams memory _params
-    ) ArkAccessManaged(_params.accessManager) {
-        if (_params.configurationManager == address(0)) {
-            revert CannotDeployArkWithoutConfigurationManager();
-        }
-        if (_params.token == address(0)) {
-            revert CannotDeployArkWithoutToken();
-        }
-        if (bytes(_params.name).length == 0) {
-            revert CannotDeployArkWithEmptyName();
-        }
-        manager = IConfigurationManager(_params.configurationManager);
-        if (manager.raft() == address(0)) {
-            revert CannotDeployArkWithoutRaft();
-        }
-
-        config = ArkConfig({
-            token: IERC20(_params.token),
-            commander: address(0), // Will be set later
-            raft: manager.raft(),
-            depositCap: _params.depositCap,
-            maxRebalanceOutflow: _params.maxRebalanceOutflow,
-            maxRebalanceInflow: _params.maxRebalanceInflow,
-            name: _params.name,
-            requiresKeeperData: _params.requiresKeeperData
-        });
-    }
+    constructor(ArkParams memory _params) ArkConfigProvider(_params) {}
 
     /**
      * @notice Modifier to validate board data.
@@ -72,46 +43,6 @@ abstract contract Ark is IArk, ArkAccessManaged {
         _validateCommonData(data);
         _validateDisembarkData(data);
         _;
-    }
-
-    /* EXTERNAL */
-    function name() external view returns (string memory) {
-        return config.name;
-    }
-
-    /* @inheritdoc IArk */
-    function raft() public view returns (address) {
-        return manager.raft();
-    }
-
-    /* @inheritdoc IArk */
-    function depositCap() external view returns (uint256) {
-        return config.depositCap;
-    }
-
-    /* @inheritdoc IArk */
-    function token() external view returns (IERC20) {
-        return config.token;
-    }
-
-    /* @inheritdoc IArk */
-    function commander() external view returns (address) {
-        return config.commander;
-    }
-
-    /* @inheritdoc IArk */
-    function maxRebalanceOutflow() external view returns (uint256) {
-        return config.maxRebalanceOutflow;
-    }
-
-    /* @inheritdoc IArk */
-    function maxRebalanceInflow() external view returns (uint256) {
-        return config.maxRebalanceInflow;
-    }
-
-    /* @inheritdoc IArk */
-    function requiresKeeperData() external view returns (bool) {
-        return config.requiresKeeperData;
     }
 
     /* @inheritdoc IArk */
@@ -205,32 +136,7 @@ abstract contract Ark is IArk, ArkAccessManaged {
         emit Moved(address(this), receiverArk, address(config.token), amount);
     }
 
-    /* @inheritdoc IArk */
-    function setDepositCap(uint256 newDepositCap) external onlyCommander {
-        config.depositCap = newDepositCap;
-        emit DepositCapUpdated(newDepositCap);
-    }
-
-    /* @inheritdoc IArk */
-    function setMaxRebalanceOutflow(
-        uint256 newMaxRebalanceOutflow
-    ) external onlyCommander {
-        config.maxRebalanceOutflow = newMaxRebalanceOutflow;
-        emit MaxRebalanceOutflowUpdated(newMaxRebalanceOutflow);
-    }
-
-    /* @inheritdoc IArk */
-    function setMaxRebalanceInflow(
-        uint256 newMaxRebalanceInflow
-    ) external onlyCommander {
-        config.maxRebalanceInflow = newMaxRebalanceInflow;
-        emit MaxRebalanceInflowUpdated(newMaxRebalanceInflow);
-    }
-
     /* EXTERNAL - GOVERNANCE */
-
-    /* @inheritdoc IArk */
-    function _updateRaft(address newRaft) internal {}
 
     /**
      * @notice Hook executed before the Commander role is revoked
