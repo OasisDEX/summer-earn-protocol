@@ -5,7 +5,6 @@ import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";

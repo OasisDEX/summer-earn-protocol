@@ -2,7 +2,8 @@
 pragma solidity 0.8.26;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
+import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
+import {MockSummerToken} from "../mocks/SummerTokenMock.sol";
 import "./AuctionTestBase.sol";
 import {MockERC20} from "forge-std/mocks/MockERC20.sol";
 
@@ -10,15 +11,21 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
     using PercentageUtils for uint256;
 
     BuyAndBurn public buyAndBurn;
-    SummerToken public summerToken;
+    ISummerToken public summerToken;
     MockERC20 public tokenToAuction6Dec;
     MockERC20 public tokenToAuction8Dec;
     MockERC20 public tokenToAuction18Dec;
 
+    address public summerGovernor = address(0x9);
+
+    uint256 constant INITIAL_SUPPLY = 1000000000;
+
     function setUp() public override {
         super.setUp();
-        console.log("configuaration manager", address(configurationManager));
-        summerToken = new SummerToken();
+        vm.label(summerGovernor, "Summer Governor");
+
+        summerToken = new MockSummerToken("SummerToken", "SUMMER");
+
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             address(accessManager),

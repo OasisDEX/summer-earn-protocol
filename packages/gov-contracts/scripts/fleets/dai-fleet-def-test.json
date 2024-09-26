@@ -1,0 +1,10 @@
+{
+  "base": {
+    "fleetName": "FleetCommander_BaseDAI_Test",
+    "symbol": "FDAI",
+    "arks": [
+      "0xFdfD148f804122C50BB7dDeFC7b3C77b25D720D2",
+      "0xd45CD5AD788E5b5F7E5641C79B1127Cb8668B803"
+    ]
+  }
+}
