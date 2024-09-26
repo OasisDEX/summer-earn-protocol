@@ -131,7 +131,7 @@ async function deployMorphoArkContract(
         morphoBlue: config.morpho.blue,
         marketId: userInput.marketId,
         arkParams: {
-          name: 'MorphoArk',
+          name: `Morpho-${userInput.token}-${userInput.marketId}-${chainId}`,
           accessManager: config.core.protocolAccessManager,
           configurationManager: config.core.configurationManager,
           token: userInput.token,

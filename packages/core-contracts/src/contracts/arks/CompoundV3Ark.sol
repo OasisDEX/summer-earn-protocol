@@ -54,8 +54,7 @@ contract CompoundV3Ark is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Calculates the total assets held by the Ark
-     * @return suppliedAssets The total assets supplied to Compound V3
+     * @inheritdoc IArk
      */
     function totalAssets()
         public

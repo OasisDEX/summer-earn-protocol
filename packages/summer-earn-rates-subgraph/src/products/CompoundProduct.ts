@@ -5,7 +5,7 @@ import { Product } from '../models/Product'
 
 export class CompoundProduct extends Product {
   getRate(currentTimestamp: BigInt): BigDecimal {
-    const comet = Comet.bind(this.address)
+    const comet = Comet.bind(this.poolAddress)
     const tryUtilization = comet.try_getUtilization()
     if (tryUtilization.reverted) {
       return BigDecimal.zero()

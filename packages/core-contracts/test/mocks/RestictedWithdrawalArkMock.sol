@@ -35,14 +35,6 @@ contract RestictedWithdrawalArkMock is Ark {
     }
 
     /**
-     * @notice Returns the current rate of the Ark
-     * @return The mock rate
-     */
-    function rate() public view override returns (uint256) {
-        return mockRate;
-    }
-
-    /**
      * @notice Simulates boarding (depositing) assets into the Ark
      * @param amount The amount of assets to board
      * @param // data Additional data for boarding (must be a uint256 for this mock)

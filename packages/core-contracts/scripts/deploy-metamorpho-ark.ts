@@ -134,7 +134,7 @@ async function deployMetaMorphoArkContract(
       MetaMorphoArkModule: {
         strategyVault: userInput.vaultId,
         arkParams: {
-          name: 'MetaMorphoArk',
+          name: `MetaMorpho-${userInput.token}-${userInput.vaultId}-${chainId}`,
           accessManager: config.core.protocolAccessManager,
           configurationManager: config.core.configurationManager,
           token: userInput.token,

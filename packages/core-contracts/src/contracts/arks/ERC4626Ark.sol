@@ -12,9 +12,16 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 contract ERC4626Ark is Ark {
     using SafeERC20 for IERC20;
 
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
     /// @notice The ERC4626 vault this Ark interacts with
     IERC4626 public immutable vault;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
     /**
      * @dev Constructor to set up the ERC4626Ark
      * @param _vault Address of the ERC4626-compliant vault
@@ -37,12 +44,15 @@ contract ERC4626Ark is Ark {
     }
 
     /**
-     * @notice Calculates the total assets held by this Ark in the vault
-     * @return The total amount of underlying assets the Ark can withdraw from the vault
+     * @inheritdoc IArk
      */
     function totalAssets() public view override returns (uint256) {
         return vault.convertToAssets(vault.balanceOf(address(this)));
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Internal function to deposit assets into the vault
@@ -80,6 +90,13 @@ contract ERC4626Ark is Ark {
         rewardAmounts[0] = 0;
     }
 
-    function _validateBoardData(bytes calldata data) internal override {}
-    function _validateDisembarkData(bytes calldata data) internal override {}
+    /**
+     * @notice No-op for validateBoardData function
+     */
+    function _validateBoardData(bytes calldata) internal override {}
+
+    /**
+     * @notice No-op for validateDisembarkData function
+     */
+    function _validateDisembarkData(bytes calldata) internal override {}
 }

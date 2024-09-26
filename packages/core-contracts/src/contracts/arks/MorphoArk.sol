@@ -14,6 +14,10 @@ import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
 error InvalidMorphoAddress();
 error InvalidMarketId();
 
+/**
+ * @title MorphoArk
+ * @notice This contract manages a Morpho token strategy within the Ark system
+ */
 contract MorphoArk is Ark {
     using SafeERC20 for IERC20;
     using SharesMathLib for uint256;
@@ -22,9 +26,25 @@ contract MorphoArk is Ark {
     using MorphoLib for IMorpho;
     using MorphoBalancesLib for IMorpho;
 
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+    /// @notice The Morpho Vault address
     IMorpho public immutable MORPHO;
+    /// @notice The market ID
     Id public marketId;
+    /// @notice The market parameters
     MarketParams public marketParams;
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Constructor for MorphoArk
+     * @param _morpho The Morpho Vault address
+     * @param _marketId The market ID
+     */
 
     constructor(
         address _morpho,
@@ -42,6 +62,13 @@ contract MorphoArk is Ark {
         marketParams = MORPHO.idToMarketParams(_marketId);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @inheritdoc IArk
+     */
     function totalAssets() public view override returns (uint256) {
         Position memory position = MORPHO.position(marketId, address(this));
         Market memory market = MORPHO.market(marketId);
@@ -53,17 +80,34 @@ contract MorphoArk is Ark {
             );
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Boards tokens into the Morpho Vault
+     * @param amount The amount of tokens to board
+     */
     function _board(uint256 amount, bytes calldata) internal override {
         MORPHO.accrueInterest(marketParams);
         config.token.approve(address(MORPHO), amount);
         MORPHO.supply(marketParams, amount, 0, address(this), hex"");
     }
 
+    /**
+     * @notice Disembarks tokens from the Morpho Vault
+     * @param amount The amount of tokens to disembark
+     */
     function _disembark(uint256 amount, bytes calldata) internal override {
         MORPHO.accrueInterest(marketParams);
         MORPHO.withdraw(marketParams, amount, 0, address(this), address(this));
     }
 
+    /**
+     * @notice No-op for harvest function
+     * @dev MorphoArk does not generate any rewards, so this function is not implemented
+     * todo Implement rewards collection for MorphoArk if required
+     */
     function _harvest(
         bytes calldata
     )
@@ -71,6 +115,16 @@ contract MorphoArk is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {}
+
+    /**
+     * @notice No-op for validateBoardData function
+     * @dev MorphoArk does not require any validation for board data
+     */
     function _validateBoardData(bytes calldata data) internal override {}
+
+    /**
+     * @notice No-op for validateDisembarkData function
+     * @dev MorphoArk does not require any validation for disembark data
+     */
     function _validateDisembarkData(bytes calldata data) internal override {}
 }
