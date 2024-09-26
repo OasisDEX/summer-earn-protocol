@@ -100,7 +100,6 @@ contract MetaMorphoArk is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        // todo: needs validation for URD - since we could call arbitrary contract with urd interface and use it to drain ark
         RewardsData memory claimData = abi.decode(_claimData, (RewardsData));
         rewardTokens = new address[](claimData.rewards.length);
         rewardAmounts = new uint256[](claimData.rewards.length);
