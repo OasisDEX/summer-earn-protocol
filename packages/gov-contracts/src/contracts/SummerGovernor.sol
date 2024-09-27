@@ -15,7 +15,7 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {console} from "forge-std/Test.sol";
+
 /*
  * @title SummerGovernor
  * @dev This contract implements the governance mechanism for the Summer protocol.

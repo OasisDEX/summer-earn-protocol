@@ -19,6 +19,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 /*
  * @title MockERC20Votes
@@ -316,7 +317,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory srcValues,
             bytes[] memory srcCalldatas,
             string memory srcDescription,
-
+            uint256 dstProposalId
         ) = createCrossChainProposal(bEid, governorA);
 
         // Ensure Alice has enough tokens on chain A
@@ -362,13 +363,38 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             hashDescription(srcDescription)
         );
 
-        // vm.expectEmit(true, true, true, true);
-        // emit ISummerGovernor.ProposalReceivedCrossChain(
-        //     dstProposalId,
-        //     aEid,
-        //     messageId
-        // );
+        vm.recordLogs();
         verifyPackets(bEid, addressToBytes32(address(governorB)));
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        // Check for the ProposalSentCrossChain event
+        bool foundEvent = false;
+        for (uint i = 0; i < entries.length; i++) {
+            // The first topic is the event signature
+            if (
+                entries[i].topics[0] ==
+                keccak256("ProposalReceivedCrossChain(uint256,uint32)")
+            ) {
+                console.log("ProposalReceivedCrossChain event found");
+
+                uint256 emittedDstProposalId = uint256(entries[i].topics[1]);
+                uint32 emittedSrcEid = uint32(uint256(entries[i].topics[2]));
+                // Decode the event data
+
+                // Verify the event data
+                assertEq(
+                    emittedDstProposalId,
+                    dstProposalId,
+                    "Incorrect proposalId emitted"
+                );
+                assertEq(emittedSrcEid, aEid, "Incorrect srcEid emitted");
+
+                foundEvent = true;
+                break;
+            }
+        }
+
+        assertTrue(foundEvent, "ProposalSentCrossChain event not found");
     }
 
     function createCrossChainProposal(
