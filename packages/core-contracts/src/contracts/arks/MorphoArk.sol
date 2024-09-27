@@ -8,8 +8,10 @@ import {MarketParamsLib} from "morpho-blue/libraries/MarketParamsLib.sol";
 import {SharesMathLib} from "morpho-blue/libraries/SharesMathLib.sol";
 import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 
+import {IUniversalRewardsDistributor} from "../../interfaces/morpho/IUniversalRewardsDistributor.sol";
 import {MorphoBalancesLib} from "morpho-blue/libraries/periphery/MorphoBalancesLib.sol";
 import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
+import {IUniversalRewardsDistributor} from "../../interfaces/morpho/IUniversalRewardsDistributor.sol";
 
 error InvalidMorphoAddress();
 error InvalidMarketId();
@@ -25,6 +27,13 @@ contract MorphoArk is Ark {
     using MarketParamsLib for MarketParams;
     using MorphoLib for IMorpho;
     using MorphoBalancesLib for IMorpho;
+
+    struct RewardsData {
+        address[] urd;
+        address[] rewards;
+        uint256[] claimable;
+        bytes32[][] proofs;
+    }
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -45,7 +54,6 @@ contract MorphoArk is Ark {
      * @param _morpho The Morpho Vault address
      * @param _marketId The market ID
      */
-
     constructor(
         address _morpho,
         Id _marketId,
@@ -104,17 +112,57 @@ contract MorphoArk is Ark {
     }
 
     /**
-     * @notice No-op for harvest function
-     * @dev MorphoArk does not generate any rewards, so this function is not implemented
-     * todo Implement rewards collection for MorphoArk if required
+     * @dev Internal function to harvest rewards based on the provided claim data.
+     *
+     * This function decodes the claim data, iterates through the rewards, and claims them
+     * from the respective rewards distributors. The claimed rewards are then transferred
+     * to the configured raft address.
+     *
+     * @param _claimData The encoded claim data containing information about the rewards to be claimed.
+     *
+     * @return rewardTokens An array of addresses of the reward tokens that were claimed.
+     * @return rewardAmounts An array of amounts of the reward tokens that were claimed.
+     *
+     * The claim data is expected to be in the following format:
+     * - claimData.urd: An array of addresses of the rewards distributors.
+     * - claimData.rewards: An array of addresses of the rewards tokens.
+     * - claimData.claimable: An array of amounts of the rewards to be claimed.
+     * - claimData.proofs: An array of Merkle proofs to claim the rewards.
+     *
+     * Emits an {ArkHarvested} event upon successful harvesting of rewards.
      */
     function _harvest(
-        bytes calldata
+        bytes calldata _claimData
     )
         internal
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
-    {}
+    {
+        RewardsData memory claimData = abi.decode(_claimData, (RewardsData));
+        rewardTokens = new address[](claimData.rewards.length);
+        rewardAmounts = new uint256[](claimData.rewards.length);
+        for (uint256 i = 0; i < claimData.rewards.length; i++) {
+            /**
+             * @dev Calls the `claim` function of the `IUniversalRewardsDistributorBase` contract to claim rewards.
+             * @param claimData.urd[i] The address of the rewards distributor to claim from.
+             * @param claimData.rewards[i] The address of the rewards token to claim.
+             * @param claimData.claimable[i] The amount of rewards to claim.
+             * @param claimData.proofs[i] The Merkle proof to claim the rewards.
+             * @param address(this) The address of the contract claiming the rewards - DPM proxy.
+             */
+            IUniversalRewardsDistributor(claimData.urd[i]).claim(
+                address(this),
+                claimData.rewards[i],
+                claimData.claimable[i],
+                claimData.proofs[i]
+            );
+            rewardTokens[i] = claimData.rewards[i];
+            rewardAmounts[i] = claimData.claimable[i];
+            IERC20(claimData.rewards[i]).safeTransfer(raft(), rewardAmounts[i]);
+        }
+
+        emit ArkHarvested(rewardTokens, rewardAmounts);
+    }
 
     /**
      * @notice No-op for validateBoardData function

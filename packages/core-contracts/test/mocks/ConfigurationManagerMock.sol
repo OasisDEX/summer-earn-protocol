@@ -12,6 +12,7 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
         tipJar = _tipJar;
         treasury = _treasury;
     }
+
     function initialize(ConfigurationManagerParams memory params) external {}
     function raft() external pure returns (address) {}
 

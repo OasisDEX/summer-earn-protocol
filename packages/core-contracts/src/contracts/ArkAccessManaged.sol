@@ -62,6 +62,13 @@ contract ArkAccessManaged is
         _;
     }
 
+    modifier onlyRaft() {
+        if (_msgSender() != IArk(address(this)).raft()) {
+            revert CallerIsNotRaft(msg.sender);
+        }
+        _;
+    }
+
     /**
      * @notice Hook executed before the Commander role is granted
      * @dev This function is called internally before granting the Commander role.

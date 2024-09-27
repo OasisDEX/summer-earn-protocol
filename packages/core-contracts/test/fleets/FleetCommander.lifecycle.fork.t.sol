@@ -16,10 +16,11 @@ import "../../src/events/IArkEvents.sol";
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/ERC4626Ark.sol";
+
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander

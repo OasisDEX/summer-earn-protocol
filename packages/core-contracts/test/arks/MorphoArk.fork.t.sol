@@ -10,11 +10,15 @@ import "../../src/events/IArkEvents.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {IMorpho, IMorphoBase, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
+
+import {MockUniversalRewardsDistributor} from "../mocks/MockUniversalRewardsDistributor.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IMorpho, IMorphoBase, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
 
 contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     MorphoArk public ark;
+
     address public constant MORPHO_ADDRESS =
         0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
     address public constant METAMORPHO_ADDRESS =
@@ -31,6 +35,8 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
     IMorpho public morpho;
     IERC20 public usdc;
+    IERC20 public rewardToken;
+    MockUniversalRewardsDistributor public rewardsDistributor;
 
     uint256 forkBlock = 20376149;
     uint256 forkId;
@@ -38,6 +44,9 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     function setUp() public {
         initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
+
+        rewardsDistributor = new MockUniversalRewardsDistributor();
+        rewardToken = IERC20(address(new ERC20Mock()));
 
         morpho = IMorpho(MORPHO_ADDRESS);
         usdc = IERC20(USDC_ADDRESS);
@@ -59,6 +68,13 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.startPrank(governor);
         ark.grantCommanderRole(commander);
         vm.stopPrank();
+
+        // Set up the rewards distributor
+        bytes32 mockRoot = keccak256("mockRoot");
+        rewardsDistributor.setRoot(mockRoot, mockRoot);
+
+        // Fund the rewards distributor
+        deal(address(rewardToken), address(rewardsDistributor), 1000e18);
     }
 
     function test_Constructor_MorphoArk_fork() public {
@@ -187,6 +203,69 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         assertTrue(
             remainingAssets > 1000 * 10 ** 6 - amountToWithdraw,
             "Remaining assets should more than initial balance minus withdrawn amount (accounting the accrued interest)"
+        );
+    }
+    function testHarvest() public {
+        // Prepare harvest data
+        address[] memory urd = new address[](1);
+        urd[0] = address(rewardsDistributor);
+
+        address[] memory rewards = new address[](1);
+        rewards[0] = address(rewardToken);
+
+        uint256[] memory claimable = new uint256[](1);
+        claimable[0] = 100e18;
+
+        bytes32[][] memory proofs = new bytes32[][](1);
+        proofs[0] = new bytes32[](1);
+        proofs[0][0] = keccak256("mockProof");
+
+        MorphoArk.RewardsData memory rewardsData = MorphoArk.RewardsData({
+            urd: urd,
+            rewards: rewards,
+            claimable: claimable,
+            proofs: proofs
+        });
+
+        bytes memory harvestData = abi.encode(rewardsData);
+
+        // Expect the Claimed event from the rewards distributor
+        vm.expectEmit(true, true, true, true, address(rewardsDistributor));
+        emit IUniversalRewardsDistributor.Claimed(
+            address(ark),
+            address(rewardToken),
+            100e18
+        );
+
+        // Expect the ArkHarvested event from the MorphoArk
+        vm.expectEmit(true, true, true, true, address(ark));
+        emit IArkEvents.ArkHarvested(rewards, claimable);
+
+        // Call harvest
+        vm.prank(address(raft));
+        (
+            address[] memory harvestedTokens,
+            uint256[] memory harvestedAmounts
+        ) = ark.harvest(harvestData);
+
+        // Assert the harvested amounts
+        assertEq(harvestedTokens.length, 1, "Should have harvested 1 token");
+        assertEq(
+            harvestedTokens[0],
+            address(rewardToken),
+            "Harvested token should be reward token"
+        );
+        assertEq(
+            harvestedAmounts[0],
+            100e18,
+            "Should have harvested 100e18 reward tokens"
+        );
+
+        // Assert the rewards were transferred to the raft
+        assertEq(
+            rewardToken.balanceOf(ark.raft()),
+            100e18,
+            "Raft should have received the harvested rewards"
         );
     }
 }

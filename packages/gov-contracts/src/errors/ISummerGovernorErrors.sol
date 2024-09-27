@@ -50,15 +50,6 @@ interface ISummerGovernorErrors {
      */
     error SummerGovernorInvalidSender(address originSender);
 
-    /* @notice Error thrown when the message ID is invalid
-     * @param messageId The invalid message ID
-     * @param expectedMessageId The expected message ID
-     */
-    error SummerGovernorInvalidMessageId(
-        bytes32 messageId,
-        bytes32 expectedMessageId
-    );
-
     /* @notice Error thrown when the trusted remote is invalid
      * @param trustedRemote The invalid trusted remote
      */

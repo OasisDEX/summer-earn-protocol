@@ -5,7 +5,8 @@ import "../Ark.sol";
 
 /**
  * @title BufferArk
- * @notice Specialized Ark for Buffer operations. Funds in buffer are not deployed and are not subject to any yield-generating strategies.
+ * @notice Specialized Ark for Buffer operations. Funds in buffer are not deployed and are not subject to any
+ * yield-generating strategies.
  */
 contract BufferArk is Ark {
     /*//////////////////////////////////////////////////////////////
@@ -31,9 +32,9 @@ contract BufferArk is Ark {
     }
 
     /**
-* @notice No-op for board function
-@dev tokens are transferred using Ark.board()
- */
+     * @notice No-op for board function
+     * @dev tokens are transferred using Ark.board()
+     */
     function _board(uint256 amount, bytes calldata) internal override {}
 
     /**

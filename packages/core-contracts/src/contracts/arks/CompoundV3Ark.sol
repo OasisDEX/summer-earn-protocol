@@ -111,10 +111,7 @@ contract CompoundV3Ark is Ark {
         rewardAmounts[0] = IERC20(rewardsData.rewardToken).balanceOf(
             address(this)
         );
-        IERC20(rewardsData.rewardToken).safeTransfer(
-            config.raft,
-            rewardAmounts[0]
-        );
+        IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }

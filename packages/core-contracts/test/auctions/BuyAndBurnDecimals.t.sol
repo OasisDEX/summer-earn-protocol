@@ -5,16 +5,16 @@ import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 import {MockSummerToken} from "../mocks/SummerTokenMock.sol";
 import "./AuctionTestBase.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract BuyAndBurnDecimalsTest is AuctionTestBase {
     using PercentageUtils for uint256;
 
     BuyAndBurn public buyAndBurn;
     ISummerToken public summerToken;
-    MockERC20 public tokenToAuction6Dec;
-    MockERC20 public tokenToAuction8Dec;
-    MockERC20 public tokenToAuction18Dec;
+    ERC20Mock public tokenToAuction6Dec;
+    ERC20Mock public tokenToAuction8Dec;
+    ERC20Mock public tokenToAuction18Dec;
 
     address public summerGovernor = address(0x9);
 
@@ -81,7 +81,7 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
     }
 
     function _runAuctionTest(
-        MockERC20 tokenToAuction,
+        ERC20Mock tokenToAuction,
         uint8 decimals
     ) internal {
         uint256 initialSummerTokenSupply = summerToken.totalSupply();

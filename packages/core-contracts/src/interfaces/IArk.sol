@@ -5,70 +5,26 @@ import {IArkErrors} from "../errors/IArkErrors.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 
 import {IArkEvents} from "../events/IArkEvents.sol";
+import {IArkConfigProvider} from "./IArkConfigProvider.sol";
 import "../types/ArkTypes.sol";
+import {IArkConfigProvider} from "./IArkConfigProvider.sol";
 
 /**
  * @title IArk
  * @notice Interface for the Ark contract, which manages funds and interacts with Rafts
  * @dev Inherits from IArkAccessManaged for access control and IArkEvents for event definitions
  */
-interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
-    /* FUNCTIONS - PUBLIC */
-
-    /**
-     * @dev Returns the name of the Ark.
-     * @return The name of the Ark as a string.
-     */
-    function name() external view returns (string memory);
-
-    /**
-     * @notice Returns the address of the associated Raft contract
-     * @return The address of the Raft contract
-     */
-    function raft() external view returns (address);
-
-    /**
-     * @notice Returns the deposit cap for this Ark
-     * @return The maximum amount of tokens that can be deposited into the Ark
-     */
-    function depositCap() external view returns (uint256);
-
-    /**
-     * @notice Returns the maximum amount that can be moved to this Ark in one rebalance
-     * @return maximum amount that can be moved to this Ark in one rebalance
-     */
-    function maxRebalanceInflow() external view returns (uint256);
-
-    /**
-     * @notice Returns the maximum amount that can be moved from this Ark in one rebalance
-     * @return maximum amount that can be moved from this Ark in one rebalance
-     */
-    function maxRebalanceOutflow() external view returns (uint256);
-
-    function requiresKeeperData() external view returns (bool);
-
-    /**
-     * @notice Returns the ERC20 token managed by this Ark
-     * @return The IERC20 interface of the managed token
-     */
-    function token() external view returns (IERC20);
-
+interface IArk is
+    IArkAccessManaged,
+    IArkEvents,
+    IArkErrors,
+    IArkConfigProvider
+{
     /**
      * @notice Returns the current underlying balance of the Ark
      * @return The total assets in the Ark, in token precision
      */
     function totalAssets() external view returns (uint256);
-
-    /**
-     * @notice Returns the address of the Fleet commander managing the ark
-     * @return address Address of Fleet commander managing the ark if a Commander is assigned, address(0) otherwise
-     */
-    function commander() external view returns (address);
-
-    /**
-     * @notice Updates information about the Ark
-     */
-    function poke() external;
 
     /**
      * @notice Triggers a harvest operation to collect rewards
@@ -81,6 +37,18 @@ interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
     )
         external
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts);
+
+    /**
+     * @notice Sweeps tokens from the Ark
+     * @param tokens The tokens to sweep
+     * @return sweptTokens The swept tokens
+     * @return sweptAmounts The swept amounts
+     */
+    function sweep(
+        address[] calldata tokens
+    )
+        external
+        returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
 
     /* FUNCTIONS - EXTERNAL - COMMANDER */
 
@@ -111,22 +79,4 @@ interface IArk is IArkAccessManaged, IArkEvents, IArkErrors {
         bytes calldata boardData,
         bytes calldata disembarkData
     ) external;
-
-    /**
-     * @notice Sets a new maximum allocation for the Ark
-     * @param newDepositCap The new maximum allocation amount
-     */
-    function setDepositCap(uint256 newDepositCap) external;
-
-    /**
-     * @notice Sets a new maximum amount that can be moved from the Ark in one rebalance
-     * @param newMaxRebalanceOutflow The new maximum amount that can be moved from the Ark
-     */
-    function setMaxRebalanceOutflow(uint256 newMaxRebalanceOutflow) external;
-
-    /**
-     * @notice Sets a new maximum amount that can be moved to the Ark in one rebalance
-     * @param newMaxRebalanceInflow The new maximum amount that can be moved to the Ark
-     */
-    function setMaxRebalanceInflow(uint256 newMaxRebalanceInflow) external;
 }

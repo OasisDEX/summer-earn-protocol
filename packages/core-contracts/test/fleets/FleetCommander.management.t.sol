@@ -10,7 +10,9 @@ import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWrite
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Test} from "forge-std/Test.sol";
 
+import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvents.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
+import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
@@ -219,7 +221,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         uint256 newDepositCap = 10000;
         vm.prank(governor);
         vm.expectEmit();
-        emit IArkEvents.DepositCapUpdated(newDepositCap);
+        emit IArkConfigProviderEvents.DepositCapUpdated(newDepositCap);
         fleetCommander.setArkDepositCap(address(mockArk2), newDepositCap);
         assertEq(mockArk2.depositCap(), newDepositCap);
     }
@@ -247,7 +249,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         uint256 maxMoveTo = 1000;
         vm.prank(governor);
         vm.expectEmit();
-        emit IArkEvents.MaxRebalanceInflowUpdated(maxMoveTo);
+        emit IArkConfigProviderEvents.MaxRebalanceInflowUpdated(maxMoveTo);
         fleetCommander.setArkMaxRebalanceInflow(address(mockArk2), maxMoveTo);
 
         assertEq(mockArk2.maxRebalanceInflow(), maxMoveTo);
@@ -271,7 +273,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         uint256 maxMoveFrom = 1000;
         vm.prank(governor);
         vm.expectEmit();
-        emit IArkEvents.MaxRebalanceOutflowUpdated(maxMoveFrom);
+        emit IArkConfigProviderEvents.MaxRebalanceOutflowUpdated(maxMoveFrom);
         fleetCommander.setArkMaxRebalanceOutflow(
             address(mockArk2),
             maxMoveFrom

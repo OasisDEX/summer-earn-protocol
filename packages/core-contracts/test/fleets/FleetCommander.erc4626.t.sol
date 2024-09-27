@@ -8,8 +8,9 @@ import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
-import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
+
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 /**
  * @title ERC4626 methods test suite for FleetCommander

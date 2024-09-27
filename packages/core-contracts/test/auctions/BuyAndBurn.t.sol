@@ -18,8 +18,8 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibra
 contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     BuyAndBurn public buyAndBurn;
     ISummerToken public summerToken;
-    MockERC20 public tokenToAuction1;
-    MockERC20 public tokenToAuction2;
+    ERC20Mock public tokenToAuction1;
+    ERC20Mock public tokenToAuction2;
 
     address public summerGovernor = address(0x9);
 
@@ -404,7 +404,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     }
 
     function test_CannotStartAuctionWithNoTokens() public {
-        MockERC20 emptyToken = new MockERC20();
+        ERC20Mock emptyToken = new ERC20Mock();
         vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
         vm.prank(governor);
         buyAndBurn.startAuction(address(emptyToken));
