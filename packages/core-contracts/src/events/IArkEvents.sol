@@ -47,28 +47,6 @@ interface IArkEvents {
     );
 
     /**
-     * @notice Emitted when the deposit cap of the Ark is updated
-     * @param newCap The new deposit cap value
-     */
-    event DepositCapUpdated(uint256 newCap);
-
-    /**
-     * @notice Emitted when the Raft address associated with the Ark is updated
-     * @param newRaft The address of the new Raft
-     */
-    event RaftUpdated(address newRaft);
-
-    /**
-     * @notice Emitted when the Ark is poked twice in the same block
-     */
-    event ArkPokedTooSoon();
-
-    /**
-     * @notice Emitted when the Ark is poked and the share price did not change
-     */
-    event ArkPokedNoChange();
-
-    /**
      * @notice Emitted when the Ark is poked and the share price is updated
      * @param currentPrice Current share price of the Ark
      * @param timestamp The timestamp of the poke
@@ -84,16 +62,4 @@ interface IArkEvents {
         address[] indexed sweptTokens,
         uint256[] indexed sweptAmounts
     );
-
-    /**
-     * @notice Emitted when the maximum outflow limit for the Ark during rebalancing is updated
-     * @param newMaxOutflow The new maximum amount that can be transferred out of the Ark during a rebalance
-     */
-    event MaxRebalanceOutflowUpdated(uint256 newMaxOutflow);
-
-    /**
-     * @notice Emitted when the maximum inflow limit for the Ark during rebalancing is updated
-     * @param newMaxInflow The new maximum amount that can be transferred into the Ark during a rebalance
-     */
-    event MaxRebalanceInflowUpdated(uint256 newMaxInflow);
 }

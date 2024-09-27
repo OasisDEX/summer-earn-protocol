@@ -84,6 +84,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      * @dev Can only be called by the governor
      * @dev Emits a RaftUpdated event
      */
+
     function setRaft(address newRaft) external onlyGovernor {
         _raft = newRaft;
         emit RaftUpdated(newRaft);
