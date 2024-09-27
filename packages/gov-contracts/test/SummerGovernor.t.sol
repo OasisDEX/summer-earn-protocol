@@ -63,10 +63,10 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
     }
 }
 
-contract TestableSummerGovernor is SummerGovernor {
+contract ExposedSummerGovernor is SummerGovernor {
     constructor(GovernorParams memory params) SummerGovernor(params) {}
 
-    function customLzReceive(
+    function exposedLzReceive(
         Origin calldata _origin,
         bytes calldata payload,
         bytes calldata extraData
@@ -80,6 +80,24 @@ contract TestableSummerGovernor is SummerGovernor {
     ) public override {
         trustedRemotes[_chainId] = _trustedRemote;
     }
+
+    function exposedSendProposalToTargetChain(
+        uint32 _dstEid,
+        address[] memory _dstTargets,
+        uint256[] memory _dstValues,
+        bytes[] memory _dstCalldatas,
+        bytes32 _dstDescriptionHash,
+        bytes calldata _options
+    ) public {
+        _sendProposalToTargetChain(
+            _dstEid,
+            _dstTargets,
+            _dstValues,
+            _dstCalldatas,
+            _dstDescriptionHash,
+            _options
+        );
+    }
 }
 
 /*
@@ -89,8 +107,8 @@ contract TestableSummerGovernor is SummerGovernor {
 contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
     using OptionsBuilder for bytes;
 
-    TestableSummerGovernor public governorA;
-    TestableSummerGovernor public governorB;
+    ExposedSummerGovernor public governorA;
+    ExposedSummerGovernor public governorB;
     MockERC20Votes public tokenA;
     MockERC20Votes public tokenB;
     TimelockController public timelockA;
@@ -194,8 +212,8 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 endpoint: lzEndpointB
             });
 
-        governorA = new TestableSummerGovernor(paramsA);
-        governorB = new TestableSummerGovernor(paramsB);
+        governorA = new ExposedSummerGovernor(paramsA);
+        governorB = new ExposedSummerGovernor(paramsB);
 
         governorA.setTrustedRemote(bEid, address(governorB));
         governorB.setTrustedRemote(aEid, address(governorA));
@@ -395,6 +413,99 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         }
 
         assertTrue(foundEvent, "ProposalSentCrossChain event not found");
+    }
+
+    function test_ReceiveProposalFromUntrustedSource() public {
+        // Setup: Prepare a cross-chain proposal
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description,
+            uint256 proposalId
+        ) = createCrossChainProposal(aEid, governorB);
+
+        // Encode the proposal data
+        bytes memory payload = abi.encode(
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        // Create an Origin struct with an untrusted source
+        Origin memory origin = Origin(
+            aEid,
+            bytes32(uint256(uint160(address(0x1234)))),
+            0
+        );
+
+        // Attempt to receive the proposal
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "SummerGovernorInvalidSender(address)",
+                address(0x1234)
+            )
+        );
+        governorB.exposedLzReceive(origin, payload, "");
+    }
+
+    function test_InsufficientNativeFeeForCrossChainMessage() public {
+        // Prepare cross-chain proposal parameters
+        (
+            address[] memory srcTargets,
+            uint256[] memory srcValues,
+            bytes[] memory srcCalldatas,
+            string memory srcDescription,
+            uint256 dstProposalId
+        ) = createCrossChainProposal(bEid, governorA);
+
+        // Ensure governorA has insufficient ETH
+        vm.deal(address(governorA), 1 wei);
+
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(200000, 0);
+
+        // Attempt to send proposal
+        vm.expectRevert(abi.encodeWithSignature("NotEnoughNative(uint256)", 1));
+        governorA.exposedSendProposalToTargetChain(
+            bEid,
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            keccak256(bytes(srcDescription)),
+            options
+        );
+    }
+
+    function test_NonGovernanceSendCrossChainProposal() public {
+        // Prepare cross-chain proposal parameters
+        (
+            address[] memory srcTargets,
+            uint256[] memory srcValues,
+            bytes[] memory srcCalldatas,
+            string memory srcDescription,
+            uint256 dstProposalId
+        ) = createCrossChainProposal(bEid, governorA);
+
+        // Attempt to send proposal as non-governance address
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "GovernorOnlyExecutor(address)",
+                address(alice)
+            )
+        );
+        governorA.sendProposalToTargetChain(
+            bEid,
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            keccak256(bytes(srcDescription)),
+            ""
+        );
     }
 
     function createCrossChainProposal(

@@ -58,4 +58,9 @@ interface ISummerGovernorErrors {
         bytes32 messageId,
         bytes32 expectedMessageId
     );
+
+    /* @notice Error thrown when the trusted remote is invalid
+     * @param trustedRemote The invalid trusted remote
+     */
+    error SummerGovernorInvalidTrustedRemote(address trustedRemote);
 }

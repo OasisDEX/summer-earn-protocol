@@ -133,6 +133,24 @@ contract SummerGovernor is
         bytes32 _dstDescriptionHash,
         bytes calldata _options
     ) external onlyGovernance {
+        _sendProposalToTargetChain(
+            _dstEid,
+            _dstTargets,
+            _dstValues,
+            _dstCalldatas,
+            _dstDescriptionHash,
+            _options
+        );
+    }
+
+    function _sendProposalToTargetChain(
+        uint32 _dstEid,
+        address[] memory _dstTargets,
+        uint256[] memory _dstValues,
+        bytes[] memory _dstCalldatas,
+        bytes32 _dstDescriptionHash,
+        bytes calldata _options
+    ) internal {
         uint256 dstProposalId = hashProposal(
             _dstTargets,
             _dstValues,
@@ -661,7 +679,8 @@ contract SummerGovernor is
         uint32 _chainId,
         address _trustedRemote
     ) external virtual onlyGovernance {
-        require(_trustedRemote != address(0), "Invalid trusted remote address");
+        if (_trustedRemote == address(0))
+            revert SummerGovernorInvalidTrustedRemote(_trustedRemote);
         trustedRemotes[_chainId] = _trustedRemote;
         emit TrustedRemoteSet(_chainId, _trustedRemote);
     }
