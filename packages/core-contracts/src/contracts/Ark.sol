@@ -61,6 +61,7 @@ abstract contract Ark is IArk, ArkConfigProvider {
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }
 
+    /* @inheritdoc IArk */
     function sweep(
         address[] memory tokens
     )

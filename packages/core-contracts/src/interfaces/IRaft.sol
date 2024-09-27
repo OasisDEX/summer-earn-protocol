@@ -18,6 +18,14 @@ interface IRaft is IRaftEvents, IRaftErrors {
      */
     function harvest(address ark, bytes calldata extraHarvestData) external;
 
+    /**
+     * @notice Sweeps tokens from the specified Ark and returns them to the caller.
+     * @dev This function is used to retrieve any excess tokens from the Ark that are not needed for further operations.
+     * @param ark The address of the Ark contract to sweep tokens from.
+     * @param tokens The addresses of the tokens to sweep.
+     * @return sweptTokens The addresses of the tokens that were swept.
+     * @return sweptAmounts The amounts of the tokens that were swept.
+     */
     function sweep(
         address ark,
         address[] calldata tokens
@@ -25,6 +33,13 @@ interface IRaft is IRaftEvents, IRaftErrors {
         external
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
 
+    /**
+     * @notice Sweeps tokens from the specified Ark and starts an auction for them.
+     * @dev This function is used to handle excess tokens from the Ark that are not needed for further operations.
+     * @param ark The address of the Ark contract to sweep tokens from.
+     * @param tokens The addresses of the tokens to sweep.
+     * @param paymentToken The address of the token used for payment in the auction.
+     */
     function sweepAndStartAuction(
         address ark,
         address[] calldata tokens,
