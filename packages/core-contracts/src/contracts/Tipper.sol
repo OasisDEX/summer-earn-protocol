@@ -5,14 +5,16 @@ import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+
+import {Constants} from "./libraries/Constants.sol";
 import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Constants} from "./libraries/Constants.sol";
 /**
  * @title Tipper
  * @notice Contract implementing tip accrual functionality
  */
+
 abstract contract Tipper is ITipper {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;

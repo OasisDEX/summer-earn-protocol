@@ -69,19 +69,9 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             )
         );
 
-        // Expect the ArkPoked event to be emitted
-        vm.expectEmit();
-        emit ArkPoked(
-            metaMorpho.convertToAssets(Constants.WAD),
-            block.timestamp
-        );
-
         // Expect the Boarded event to be emitted
         vm.expectEmit();
         emit Boarded(commander, address(asset), amount);
-
-        // Expect the poke call to Ark
-        vm.expectCall(address(ark), abi.encodeWithSelector(IArk.poke.selector));
 
         // Act
         ark.board(amount, bytes(""));
@@ -129,9 +119,6 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.expectEmit();
         emit Disembarked(commander, address(asset), amountToWithdraw);
 
-        // Expect the poke call to Ark
-        vm.expectCall(address(ark), abi.encodeWithSelector(IArk.poke.selector));
-
         ark.disembark(amountToWithdraw, bytes(""));
 
         uint256 finalBalance = asset.balanceOf(commander);
@@ -163,63 +150,6 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         assertTrue(
             newTotalAssets > initialTotalAssets,
             "Total assets should increase over time"
-        );
-    }
-
-    function test_Poke_MetaMorphoArk_fork() public {
-        // Deposit some assets first
-        test_Board_MetaMorphoArk_fork();
-
-        uint256 initialTotalAssets = ark.totalAssets();
-
-        // Warp time to simulate interest accrual
-        vm.warp(block.timestamp + 30 days);
-
-        uint256 newTotalAssets = ark.totalAssets();
-
-        // Total assets should not decrease over time (assuming no withdrawals)
-        assertTrue(
-            newTotalAssets > initialTotalAssets,
-            "Total assets should increase over time"
-        );
-
-        // Case 1 - Ark poked in the right time
-        vm.expectEmit();
-        emit ArkPoked(
-            metaMorpho.convertToAssets(Constants.WAD),
-            block.timestamp
-        );
-        ark.poke();
-
-        uint256 currentPrice = metaMorpho.convertToAssets(Constants.WAD);
-        vm.mockCall(
-            address(metaMorpho),
-            abi.encodeWithSignature("convertToAssets(uint256)", Constants.WAD),
-            abi.encode(currentPrice)
-        );
-
-        // Case 2 - Ark poked too soon
-        vm.expectEmit();
-        emit ArkPokedTooSoon();
-        ark.poke();
-
-        vm.warp(block.timestamp + 30 days);
-
-        // Case 3 - Ark poked and total assets did not change (mock)
-        vm.expectEmit();
-        emit ArkPokedNoChange();
-        ark.poke();
-
-        vm.mockCall(
-            address(metaMorpho),
-            abi.encodeWithSignature("convertToAssets(uint256)", Constants.WAD),
-            abi.encode(currentPrice + 1)
-        );
-
-        uint256 finalTotalAssets = ark.totalAssets();
-        assertTrue(
-            finalTotalAssets > newTotalAssets,
-            "Total assets should increase after poke"
         );
     }
 

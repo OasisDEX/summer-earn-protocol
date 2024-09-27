@@ -7,6 +7,7 @@ import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
  * @dev A contract containing helper functions for FleetCommander tests
  * @notice This contract provides utility functions to simplify the creation of test data for FleetCommander tests
  */
+
 contract FleetCommanderTestHelpers {
     /**
      * @notice Generates a RebalanceData array with a single entry

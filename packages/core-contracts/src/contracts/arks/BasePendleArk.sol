@@ -176,7 +176,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
         rewardTokens = IPMarketV3(market).getRewardTokens();
         rewardAmounts = IPMarketV3(market).redeemRewards(address(this));
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            IERC20(rewardTokens[i]).safeTransfer(config.raft, rewardAmounts[i]);
+            IERC20(rewardTokens[i]).safeTransfer(raft(), rewardAmounts[i]);
         }
     }
 

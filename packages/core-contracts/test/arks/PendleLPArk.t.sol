@@ -13,10 +13,10 @@ import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManage
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {ArkTestBase} from "./ArkTestBase.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {ArkTestBase} from "./ArkTestBase.sol";
 
 contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
     PendleLPArk public ark;

@@ -109,10 +109,7 @@ contract AaveV3Ark is Ark {
             type(uint256).max,
             rewardsData.rewardToken
         );
-        IERC20(rewardsData.rewardToken).safeTransfer(
-            config.raft,
-            rewardAmounts[0]
-        );
+        IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }

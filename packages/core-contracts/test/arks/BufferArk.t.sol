@@ -11,8 +11,9 @@ import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+
 import {ArkTestBase} from "./ArkTestBase.sol";
+import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract BufferArkTest is Test, IArkEvents, ArkTestBase {
     BufferArk public ark;
