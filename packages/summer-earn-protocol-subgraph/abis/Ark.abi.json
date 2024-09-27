@@ -523,18 +523,6 @@
   },
   {
     "type": "event",
-    "name": "ArkPokedNoChange",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ArkPokedTooSoon",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "ArkSwept",
     "inputs": [
       {
