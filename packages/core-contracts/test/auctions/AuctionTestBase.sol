@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/types/CommonAuctionTypes.sol";
 
+import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {console} from "forge-std/console.sol";
+
 contract AuctionTestBase is FleetCommanderTestBase {
     using PercentageUtils for uint256;
 

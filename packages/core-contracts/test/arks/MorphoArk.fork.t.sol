@@ -10,10 +10,11 @@ import "../../src/events/IArkEvents.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {IMorpho, IMorphoBase, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
-import {ArkTestBase} from "./ArkTestBase.sol";
+
 import {MockUniversalRewardsDistributor} from "../mocks/MockUniversalRewardsDistributor.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IMorpho, IMorphoBase, Id, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
 
 contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     MorphoArk public ark;
@@ -204,6 +205,7 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             "Remaining assets should more than initial balance minus withdrawn amount (accounting the accrued interest)"
         );
     }
+
     function testHarvest() public {
         // Prepare harvest data
         address[] memory urd = new address[](1);
