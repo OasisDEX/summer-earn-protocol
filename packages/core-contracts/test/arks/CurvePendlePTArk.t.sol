@@ -20,10 +20,14 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {PendlePtArkConstructorParams} from "../../src/contracts/arks/PendlePTArk.sol";
+import {CurveSwapArkConstructorParams} from "../../src/contracts/arks/CurveSwapArk.sol";
+import {CurveSwapPendlePtArk} from "../../src/contracts/arks/CurveSwapArk.sol";
+
 contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
     PendlePTArk public ark;
 
     address constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
+    address constant SUSDE = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
     address constant MARKET = 0x19588F29f9402Bb508007FeADd415c875Ee3f19F;
     address constant NEXT_MARKET = 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
     uint256 constant MARKET_EXPIRY_BLOCK = 20379839;
@@ -33,7 +37,8 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
     address constant PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
     address constant ROUTER = 0x888888888889758F76e7103c6CbF23ABbF58F946;
     address constant ORACLE = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
-
+    address constant CURVE_POOL = 0x02950460E2b9529D0E00284A5fA2d7bDF3fA4d72;
+    
     IERC20 public usde;
     IPMarketV3 public pendleMarket;
     IPAllActionV3 public pendleRouter;
@@ -65,8 +70,11 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
             oracle: ORACLE,
             router: ROUTER
         });
-
-        ark = new PendlePTArk(pendlePtArkConstructorParams, params);
+        CurveSwapArkConstructorParams memory curveSwapArkConstructorParams = CurveSwapArkConstructorParams({
+            curvePool: CURVE_POOL,
+            susde: SUSDE
+        });
+        ark = new CurveSwapPendlePtArk(params, pendlePtArkConstructorParams, curveSwapArkConstructorParams);
 
         // Permissioning
         vm.startPrank(governor);
@@ -92,6 +100,10 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.makePersistent(PT);
     }
 
+
+function test_XXXX() public {
+    ark.
+}
     function test_Board_PendlePTArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 18;

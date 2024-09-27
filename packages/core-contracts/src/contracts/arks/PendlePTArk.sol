@@ -3,6 +3,12 @@ pragma solidity 0.8.26;
 
 import "./BasePendleArk.sol";
 
+    struct PendlePtArkConstructorParams {
+        address market;
+        address oracle;
+        address router;
+    }
+
 /**
  * @title PendlePTArk
  * @notice This contract manages a Pendle Principal Token (PT) strategy within the Ark system
@@ -16,19 +22,16 @@ contract PendlePTArk is BasePendleArk {
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+
     /**
      * @notice Constructor for PendlePTArk
-     * @param _market Address of the Pendle market
-     * @param _oracle Address of the Pendle oracle
-     * @param _router Address of the Pendle router
+     * @param _pendlePtArkConstructorParams PendlePtArkConstructorParams struct containing initialization parameters
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address _market,
-        address _oracle,
-        address _router,
+        PendlePtArkConstructorParams memory _pendlePtArkConstructorParams,
         ArkParams memory _params
-    ) BasePendleArk(_market, _oracle, _router, _params) {}
+    ) BasePendleArk(_pendlePtArkConstructorParams.market, _pendlePtArkConstructorParams.oracle, _pendlePtArkConstructorParams.router, _params) {}
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
@@ -218,5 +221,6 @@ contract PendlePTArk is BasePendleArk {
     }
 
     function _validateBoardData(bytes calldata data) internal override {}
+
     function _validateDisembarkData(bytes calldata data) internal override {}
 }
