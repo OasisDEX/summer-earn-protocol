@@ -3,11 +3,12 @@ pragma solidity 0.8.26;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {FleetCommanderParams, FleetConfig, RebalanceData, ArkData} from "../types/FleetCommanderTypes.sol";
+import {ArkData, FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {CooldownEnforcer} from "../utils/CooldownEnforcer/CooldownEnforcer.sol";
-import {FleetCommanderConfigProvider} from "./FleetCommanderConfigProvider.sol";
+
 import {FleetCommanderCache} from "./FleetCommanderCache.sol";
+import {FleetCommanderConfigProvider} from "./FleetCommanderConfigProvider.sol";
 
 import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -15,7 +16,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 
 /**
  * @custom:see IFleetCommander

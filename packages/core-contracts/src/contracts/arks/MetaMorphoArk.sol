@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.26;
 
+import {IUniversalRewardsDistributor} from "../../interfaces/morpho/IUniversalRewardsDistributor.sol";
 import "../Ark.sol";
 import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 import {IUniversalRewardsDistributor} from "../../interfaces/morpho/IUniversalRewardsDistributor.sol";
@@ -120,10 +121,7 @@ contract MetaMorphoArk is Ark {
             );
             rewardTokens[i] = claimData.rewards[i];
             rewardAmounts[i] = claimData.claimable[i];
-            IERC20(claimData.rewards[i]).safeTransfer(
-                config.raft,
-                rewardAmounts[i]
-            );
+            IERC20(claimData.rewards[i]).safeTransfer(raft(), rewardAmounts[i]);
         }
 
         emit ArkHarvested(rewardTokens, rewardAmounts);

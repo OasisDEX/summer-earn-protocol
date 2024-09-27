@@ -11,8 +11,9 @@ import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+
 import {ArkTestBase} from "./ArkTestBase.sol";
+import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
@@ -288,6 +289,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         emit ArkHarvested(rewardTokens, rewardAmounts);
 
         // Act
+        vm.prank(address(raft));
         ark.harvest(abi.encode(address(mockRewardToken)));
     }
 }

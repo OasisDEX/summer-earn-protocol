@@ -12,8 +12,9 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;

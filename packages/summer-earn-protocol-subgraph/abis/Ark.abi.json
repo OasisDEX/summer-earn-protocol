@@ -435,6 +435,30 @@
   },
   {
     "type": "function",
+    "name": "sweep",
+    "inputs": [
+      {
+        "name": "tokens",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "sweptTokens",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "sweptAmounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "token",
     "inputs": [],
     "outputs": [
@@ -499,14 +523,21 @@
   },
   {
     "type": "event",
-    "name": "ArkPokedNoChange",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ArkPokedTooSoon",
-    "inputs": [],
+    "name": "ArkSwept",
+    "inputs": [
+      {
+        "name": "sweptTokens",
+        "type": "address[]",
+        "indexed": true,
+        "internalType": "address[]"
+      },
+      {
+        "name": "sweptAmounts",
+        "type": "uint256[]",
+        "indexed": true,
+        "internalType": "uint256[]"
+      }
+    ],
     "anonymous": false
   },
   {

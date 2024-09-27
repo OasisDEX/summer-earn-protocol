@@ -5,16 +5,15 @@ import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import "./AuctionTestBase.sol";
-import {MockERC20} from "forge-std/mocks/MockERC20.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 struct TestParams {
-    MockERC20 rewardToken;
-    MockERC20 underlyingToken;
+    ERC20Mock rewardToken;
+    ERC20Mock underlyingToken;
     uint8 rewardDecimals;
     uint8 underlyingDecimals;
     ArkMock mockArk;
@@ -23,16 +22,16 @@ struct TestParams {
 contract RaftDecimalsTest is AuctionTestBase {
     using PercentageUtils for uint256;
 
-    Raft public raft;
+    Raft public raftContract;
     ArkMock public mockArk18Dec;
     ArkMock public mockArk6Dec;
     ArkMock public mockArk8Dec;
-    MockERC20 public rewardToken6Dec;
-    MockERC20 public rewardToken8Dec;
-    MockERC20 public rewardToken18Dec;
-    MockERC20 public underlyingToken6Dec;
-    MockERC20 public underlyingToken8Dec;
-    MockERC20 public underlyingToken18Dec;
+    ERC20Mock public rewardToken6Dec;
+    ERC20Mock public rewardToken8Dec;
+    ERC20Mock public rewardToken18Dec;
+    ERC20Mock public underlyingToken6Dec;
+    ERC20Mock public underlyingToken8Dec;
+    ERC20Mock public underlyingToken18Dec;
 
     function setUp() public override {
         super.setUp();
@@ -40,13 +39,13 @@ contract RaftDecimalsTest is AuctionTestBase {
         defaultParams.kickerRewardPercentage = Percentage.wrap(
             KICKER_REWARD_PERCENTAGE
         );
-        raft = new Raft(address(accessManager), defaultParams);
+        raftContract = new Raft(address(accessManager), defaultParams);
 
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
         configurationManager.initialize(
             ConfigurationManagerParams({
-                raft: address(raft),
+                raft: address(raftContract),
                 tipJar: address(1),
                 treasury: treasury
             })
@@ -131,9 +130,9 @@ contract RaftDecimalsTest is AuctionTestBase {
         mintTokens(address(underlyingToken18Dec), buyer, 10000000 * 10 ** 18);
 
         vm.startPrank(buyer);
-        underlyingToken6Dec.approve(address(raft), type(uint256).max);
-        underlyingToken8Dec.approve(address(raft), type(uint256).max);
-        underlyingToken18Dec.approve(address(raft), type(uint256).max);
+        underlyingToken6Dec.approve(address(raftContract), type(uint256).max);
+        underlyingToken8Dec.approve(address(raftContract), type(uint256).max);
+        underlyingToken18Dec.approve(address(raftContract), type(uint256).max);
         vm.stopPrank();
 
         vm.label(address(rewardToken6Dec), "rewardToken6Dec");
@@ -142,7 +141,7 @@ contract RaftDecimalsTest is AuctionTestBase {
         vm.label(address(underlyingToken6Dec), "underlyingToken6Dec");
         vm.label(address(underlyingToken8Dec), "underlyingToken8Dec");
         vm.label(address(underlyingToken18Dec), "underlyingToken18Dec");
-        vm.label(address(raft), "raft");
+        vm.label(address(raftContract), "raftContract");
         vm.label(address(mockArk18Dec), "mockArk18Dec");
         vm.label(address(mockArk6Dec), "mockArk6Dec");
         vm.label(address(mockArk8Dec), "mockArk8Dec");
@@ -215,7 +214,7 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         // Update auction parameters for this specific test
         vm.prank(governor);
-        raft.updateAuctionDefaultParameters(
+        raftContract.updateAuctionDefaultParameters(
             AuctionDefaultParameters({
                 duration: uint40(AUCTION_DURATION),
                 startPrice: adjustedStartPrice,
@@ -234,21 +233,21 @@ contract RaftDecimalsTest is AuctionTestBase {
         uint256[] memory rewardAmounts = new uint256[](1);
         rewardAmounts[0] = rewardAmount;
 
-        raft.harvest(
+        raftContract.harvest(
             address(params.mockArk),
             _getEncodedRewardData(rewardTokens, rewardAmounts)
         );
 
         // Start auction
         vm.prank(governor);
-        raft.startAuction(
+        raftContract.startAuction(
             address(params.mockArk),
             address(params.rewardToken),
             address(params.underlyingToken)
         );
 
         // Test initial price
-        uint256 currentPrice = raft.getCurrentPrice(
+        uint256 currentPrice = raftContract.getCurrentPrice(
             address(params.mockArk),
             address(params.rewardToken)
         );
@@ -256,7 +255,7 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         // Test price halfway through auction
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
-        currentPrice = raft.getCurrentPrice(
+        currentPrice = raftContract.getCurrentPrice(
             address(params.mockArk),
             address(params.rewardToken)
         );
@@ -270,7 +269,7 @@ contract RaftDecimalsTest is AuctionTestBase {
         // Test buying tokens
         uint256 buyAmount = 100000 * 10 ** params.rewardDecimals;
         vm.prank(buyer);
-        uint256 tokensPaid = raft.buyTokens(
+        uint256 tokensPaid = raftContract.buyTokens(
             address(params.mockArk),
             address(params.rewardToken),
             buyAmount
@@ -285,14 +284,14 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         // Test final price
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
-        currentPrice = raft.getCurrentPrice(
+        currentPrice = raftContract.getCurrentPrice(
             address(params.mockArk),
             address(params.rewardToken)
         );
         assertEq(currentPrice, adjustedEndPrice, "Final price incorrect");
 
         // Finalize auction
-        raft.finalizeAuction(
+        raftContract.finalizeAuction(
             address(params.mockArk),
             address(params.rewardToken)
         );
@@ -304,7 +303,7 @@ contract RaftDecimalsTest is AuctionTestBase {
         uint256 expectedUnsoldTokens = rewardAmount - buyAmount - kickerReward;
         {
             assertEq(
-                raft.unsoldTokens(
+                raftContract.unsoldTokens(
                     address(params.mockArk),
                     address(params.rewardToken)
                 ),

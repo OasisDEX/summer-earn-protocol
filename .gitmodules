@@ -42,3 +42,12 @@
 [submodule "packages/core-contracts/lib/openzeppelin-contracts-upgradeable"]
 	path = packages/core-contracts/lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
+[submodule "packages/gov-contracts/lib/forge-std"]
+	path = packages/gov-contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "packages/gov-contracts/lib/openzeppelin-contracts-upgradeable"]
+	path = packages/gov-contracts/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
+[submodule "packages/gov-contracts/lib/prb-math"]
+	path = packages/gov-contracts/lib/prb-math
+	url = https://github.com/PaulRBerg/prb-math

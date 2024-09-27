@@ -1,21 +1,15 @@
 [profile.default]
 src = "src"
 out = "out"
-libs = ['node_modules', 'lib']
+libs = [
+  'node_modules', 
+  'lib'
+]
 test = 'test'
 cache_path  = 'cache_forge'
 solc = "0.8.26"
 evm_version = "cancun"
 cbor_metadata = true
-viaIR = false
-fs_permissions = [
-    { access = "read-write", path = "./scripts/config.json"},
-    { access = "read", path = "./scripts/fleets/dai-fleet-def-test.json"},
-    { access = "read", path = "./scripts/fleets/usdc-fleet-def-test.json"},
-    { access = "read", path = "./scripts/fleets/usdc-fleet-def-1.json"}
-]
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
 [fmt]
   bracket_spacing = true
@@ -42,4 +36,3 @@ sepolia = { key = "7KB7N6WAQJFFC2F5UP98RBTESZ11EK8X8W}" }
 base = { key = "8M4JVVERCDQURGWJ6UIVQU23YNAQU9Y5PK"  }
 #                   Paste TENDERLY_ACCESS_TOKEN            Chain ID         Verifier URL: RPC_URL/verify/etherscan
 unknown_chain = { key = "${TENDERLY_ACCESS_KEY}", chain = 84537357, url = "${TENDERLY_VIRTUAL_TESTNET_RPC_URL}/verify/etherscan" }
-
