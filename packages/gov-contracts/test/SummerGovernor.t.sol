@@ -267,7 +267,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         vm.deal(address(governorA), 100 ether);
         tokenB.mint(address(governorB), 100 ether);
 
-        // Prepare cross-chainproposal parameters
+        // Prepare cross-chain proposal parameters
         (
             address[] memory srcTargets,
             uint256[] memory srcValues,
