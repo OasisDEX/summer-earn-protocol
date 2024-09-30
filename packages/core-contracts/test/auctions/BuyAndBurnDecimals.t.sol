@@ -2,10 +2,11 @@
 pragma solidity 0.8.26;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
+
 import {MockSummerToken} from "../mocks/SummerTokenMock.sol";
 import "./AuctionTestBase.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 
 contract BuyAndBurnDecimalsTest is AuctionTestBase {
     using PercentageUtils for uint256;

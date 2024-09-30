@@ -11,8 +11,9 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 
 import "../../src/contracts/arks/MetaMorphoArk.sol";
 import "../../src/events/IArkEvents.sol";
-import {ArkTestBase} from "./ArkTestBase.sol";
+
 import {IArk} from "../../src/interfaces/IArk.sol";
+import {ArkTestBase} from "./ArkTestBase.sol";
 
 contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     MetaMorphoArk public ark;
