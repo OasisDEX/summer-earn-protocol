@@ -1,5 +1,5 @@
 # ArkAccessManaged
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/contracts/ArkAccessManaged.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/contracts/ArkAccessManaged.sol)
 
 **Inherits:**
 [IArkAccessManaged](/src/interfaces/IArkAccessManaged.sol/interface.IArkAccessManaged.md), [ProtocolAccessManaged](/src/contracts/ProtocolAccessManaged.sol/contract.ProtocolAccessManaged.md), [LimitedAccessControl](/src/contracts/LimitedAccessControl.sol/contract.LimitedAccessControl.md)

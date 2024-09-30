@@ -178,14 +178,25 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="ifleetcommander"><a class="header" href="#ifleetcommander">IFleetCommander</a></h1>
-<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/interfaces/IFleetCommander.sol">Git Source</a></p>
+<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/interfaces/IFleetCommander.sol">Git Source</a></p>
 <p><strong>Inherits:</strong>
 IERC4626, <a href="/src/events/IFleetCommanderEvents.sol/interface.IFleetCommanderEvents.html">IFleetCommanderEvents</a>, <a href="/src/errors/IFleetCommanderErrors.sol/interface.IFleetCommanderErrors.html">IFleetCommanderErrors</a>, <a href="/src/interfaces/IFleetCommanderConfigProvider.sol/interface.IFleetCommanderConfigProvider.html">IFleetCommanderConfigProvider</a></p>
 <p>Interface for the FleetCommander contract, which manages asset allocation across multiple Arks</p>
 <h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
 <h3 id="withdrawabletotalassets"><a class="header" href="#withdrawabletotalassets">withdrawableTotalAssets</a></h3>
 <p>Returns the total assets that are currently withdrawable from the FleetCommander.</p>
+<p><em>If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)</em></p>
 <pre><code class="language-solidity">function withdrawableTotalAssets() external view returns (uint256);
+</code></pre>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The total amount of assets that can be withdrawn.</td></tr>
+</tbody></table>
+</div>
+<h3 id="totalassets"><a class="header" href="#totalassets">totalAssets</a></h3>
+<p>Returns the total assets that are managed the FleetCommander.</p>
+<p><em>If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)</em></p>
+<pre><code class="language-solidity">function totalAssets() external view returns (uint256);
 </code></pre>
 <p><strong>Returns</strong></p>
 <div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
@@ -205,6 +216,21 @@ Vault, directly from Buffer.</p>
 <p><strong>Returns</strong></p>
 <div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The maximum amount that can be withdrawn.</td></tr>
+</tbody></table>
+</div>
+<h3 id="maxbufferredeem"><a class="header" href="#maxbufferredeem">maxBufferRedeem</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be redeemed from the owner balance in the
+Vault, directly from Buffer.</p>
+<pre><code class="language-solidity">function maxBufferRedeem(address owner) external view returns (uint256);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The maximum amount that can be redeemed.</td></tr>
 </tbody></table>
 </div>
 <h3 id="deposit"><a class="header" href="#deposit">deposit</a></h3>
@@ -232,6 +258,42 @@ Vault, directly from Buffer.</p>
 <p><strong>Returns</strong></p>
 <div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>shares</code></td><td><code>uint256</code></td><td>The amount of shares redeemed</td></tr>
+</tbody></table>
+</div>
+<h3 id="withdraw"><a class="header" href="#withdraw">withdraw</a></h3>
+<p>Withdraws a specified amount of assets from the FleetCommander</p>
+<p><em>This function first attempts to withdraw from the buffer. If the buffer doesn't have enough assets,
+it will withdraw from the arks. It also handles the case where the maximum possible amount is requested.</em></p>
+<pre><code class="language-solidity">function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to withdraw. If set to type(uint256).max, it will withdraw the maximum possible amount.</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the withdrawn assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares burned in exchange for the withdrawn assets</td></tr>
+</tbody></table>
+</div>
+<h3 id="redeem"><a class="header" href="#redeem">redeem</a></h3>
+<p>Redeems a specified amount of shares from the FleetCommander</p>
+<p><em>This function first attempts to redeem from the buffer. If the buffer doesn't have enough assets,
+it will redeem from the arks. It also handles the case where the maximum possible amount is requested.</em></p>
+<pre><code class="language-solidity">function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares to redeem. If set to type(uint256).max, it will redeem all shares owned by the owner.</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the redeemed assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets received in exchange for the redeemed shares</td></tr>
 </tbody></table>
 </div>
 <h3 id="redeemfromarks"><a class="header" href="#redeemfromarks">redeemFromArks</a></h3>
@@ -341,7 +403,8 @@ minFundsBufferBalance</em></p>
 <pre><code class="language-solidity">function setTipJar() external;
 </code></pre>
 <h3 id="settiprate"><a class="header" href="#settiprate">setTipRate</a></h3>
-<p>Sets a new tip rate</p>
+<p>Sets a new tip rate for the FleetCommander</p>
+<p><em>Only callable by the governor</em></p>
 <p><em>The tip rate is set as a Percentage. Percentages use 18 decimals of precision
 For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)</em></p>
 <pre><code class="language-solidity">function setTipRate(Percentage newTipRate) external;
@@ -406,22 +469,6 @@ role.</em></p>
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

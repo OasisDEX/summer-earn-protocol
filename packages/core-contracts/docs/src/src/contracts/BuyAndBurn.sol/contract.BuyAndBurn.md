@@ -1,5 +1,5 @@
 # BuyAndBurn
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/contracts/BuyAndBurn.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/contracts/BuyAndBurn.sol)
 
 **Inherits:**
 [IBuyAndBurn](/src/interfaces/IBuyAndBurn.sol/interface.IBuyAndBurn.md), [ProtocolAccessManaged](/src/contracts/ProtocolAccessManaged.sol/contract.ProtocolAccessManaged.md), [AuctionManagerBase](/src/contracts/AuctionManagerBase.sol/abstract.AuctionManagerBase.md)

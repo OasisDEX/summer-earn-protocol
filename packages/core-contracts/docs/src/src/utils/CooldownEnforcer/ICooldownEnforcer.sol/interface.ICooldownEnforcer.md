@@ -1,5 +1,5 @@
 # ICooldownEnforcer
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/utils/CooldownEnforcer/ICooldownEnforcer.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/utils/CooldownEnforcer/ICooldownEnforcer.sol)
 
 Enforces a cooldown period between actions. It provides the basic management for a cooldown
 period, allows to update the cooldown period and provides a modifier to enforce the cooldown.

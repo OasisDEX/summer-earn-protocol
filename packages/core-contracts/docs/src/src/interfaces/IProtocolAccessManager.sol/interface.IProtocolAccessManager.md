@@ -1,5 +1,5 @@
 # IProtocolAccessManager
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/interfaces/IProtocolAccessManager.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/interfaces/IProtocolAccessManager.sol)
 
 Defines system roles and provides role based remote-access control for
 contracts that inherit from ProtocolAccessManaged contract

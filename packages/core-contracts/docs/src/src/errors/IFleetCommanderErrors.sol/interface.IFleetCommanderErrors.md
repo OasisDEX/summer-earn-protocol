@@ -1,5 +1,5 @@
 # IFleetCommanderErrors
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/errors/IFleetCommanderErrors.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/errors/IFleetCommanderErrors.sol)
 
 These custom errors provide more gas-efficient and informative error handling
 compared to traditional require statements with string messages.

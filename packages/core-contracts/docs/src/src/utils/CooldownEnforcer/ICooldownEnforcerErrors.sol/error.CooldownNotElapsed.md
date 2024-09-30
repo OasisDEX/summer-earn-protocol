@@ -1,5 +1,5 @@
 # CooldownNotElapsed
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol)
 
 Emitted by the modifier when the cooldown period has not elapsed.
 

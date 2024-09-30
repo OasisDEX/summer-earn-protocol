@@ -1,5 +1,5 @@
 # FleetCommander
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/contracts/FleetCommander.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/contracts/FleetCommander.sol)
 
 **Inherits:**
 [IFleetCommander](/src/interfaces/IFleetCommander.sol/interface.IFleetCommander.md), ERC4626, [Tipper](/src/contracts/Tipper.sol/abstract.Tipper.md), [FleetCommanderConfigProvider](/src/contracts/FleetCommanderConfigProvider.sol/contract.FleetCommanderConfigProvider.md), [FleetCommanderCache](/src/contracts/FleetCommanderCache.sol/contract.FleetCommanderCache.md), [CooldownEnforcer](/src/utils/CooldownEnforcer/CooldownEnforcer.sol/abstract.CooldownEnforcer.md)
@@ -74,6 +74,11 @@ function withdrawFromBuffer(uint256 assets, address receiver, address owner) pub
 
 ### redeem
 
+Redeems a specified amount of shares from the FleetCommander
+
+*This function first attempts to redeem from the buffer. If the buffer doesn't have enough assets,
+it will redeem from the arks. It also handles the case where the maximum possible amount is requested.*
+
 
 ```solidity
 function redeem(
@@ -82,13 +87,29 @@ function redeem(
     address owner
 )
     public
-    override(ERC4626, IERC4626)
+    override(ERC4626, IFleetCommander)
     collectTip
     useWithdrawCache
     returns (uint256 assets);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The number of shares to redeem. If set to type(uint256).max, it will redeem all shares owned by the owner.|
+|`receiver`|`address`|The address that will receive the redeemed assets|
+|`owner`|`address`|The address of the owner of the shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of assets received in exchange for the redeemed shares|
+
 
 ### redeemFromBuffer
+
+Redeems shares for assets directly from the Buffer
 
 
 ```solidity
@@ -102,8 +123,27 @@ function redeemFromBuffer(
     useWithdrawCache
     returns (uint256 assets);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The amount of shares to redeem|
+|`receiver`|`address`|The address that will receive the assets|
+|`owner`|`address`|The address of the owner of the shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of assets redeemed|
+
 
 ### withdraw
+
+Withdraws a specified amount of assets from the FleetCommander
+
+*This function first attempts to withdraw from the buffer. If the buffer doesn't have enough assets,
+it will withdraw from the arks. It also handles the case where the maximum possible amount is requested.*
 
 
 ```solidity
@@ -113,13 +153,29 @@ function withdraw(
     address owner
 )
     public
-    override(ERC4626, IERC4626)
+    override(ERC4626, IFleetCommander)
     collectTip
     useWithdrawCache
     returns (uint256 shares);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of assets to withdraw. If set to type(uint256).max, it will withdraw the maximum possible amount.|
+|`receiver`|`address`|The address that will receive the withdrawn assets|
+|`owner`|`address`|The address of the owner of the shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The number of shares burned in exchange for the withdrawn assets|
+
 
 ### withdrawFromArks
+
+Forces a withdrawal of assets from the FleetCommander
 
 
 ```solidity
@@ -134,8 +190,24 @@ function withdrawFromArks(
     useWithdrawCache
     returns (uint256 totalSharesToRedeem);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of assets to forcefully withdraw|
+|`receiver`|`address`|The address that will receive the withdrawn assets|
+|`owner`|`address`|The address of the owner of the assets|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`totalSharesToRedeem`|`uint256`|shares The amount of shares redeemed|
+
 
 ### redeemFromArks
+
+Redeems shares for assets from the FleetCommander
 
 
 ```solidity
@@ -150,8 +222,32 @@ function redeemFromArks(
     useWithdrawCache
     returns (uint256 totalAssetsToWithdraw);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The amount of shares to redeem|
+|`receiver`|`address`| The address that will receive the assets|
+|`owner`|`address`|The address of the owner of the shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`totalAssetsToWithdraw`|`uint256`|assets The amount of assets forcefully withdrawn|
+
 
 ### deposit
+
+Mints shares Vault shares to receiver by depositing exactly amount of underlying tokens.
+
+*
+- MUST emit the Deposit event.
+- MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
+deposit execution, and are accounted for during deposit.
+- MUST revert if all of assets cannot be deposited (due to deposit limit being reached, slippage, the user not
+approving enough underlying tokens to the Vault contract, etc).
+NOTE: most implementations will require pre-approval of the Vault with the Vault’s underlying asset token.*
 
 
 ```solidity
@@ -168,12 +264,32 @@ function deposit(
 
 ### deposit
 
+Deposits a specified amount of assets into the contract for a given receiver.
+
 
 ```solidity
 function deposit(uint256 assets, address receiver, bytes memory referralCode) public returns (uint256);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of assets to be deposited.|
+|`receiver`|`address`|The address of the receiver who will receive the deposited assets.|
+|`referralCode`|`bytes`|An optional referral code that can be used for tracking or rewards.|
+
 
 ### mint
+
+Mints exactly shares Vault shares to receiver by depositing amount of underlying tokens.
+
+*
+- MUST emit the Deposit event.
+- MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the mint
+execution, and are accounted for during mint.
+- MUST revert if all of shares cannot be minted (due to deposit limit being reached, slippage, the user not
+approving enough underlying tokens to the Vault contract, etc).
+NOTE: most implementations will require pre-approval of the Vault with the Vault’s underlying asset token.*
 
 
 ```solidity
@@ -190,26 +306,62 @@ function mint(
 
 ### tip
 
+Accrues and distributes tips
+
 
 ```solidity
 function tip() public returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|uint256 The amount of tips accrued|
+
 
 ### totalAssets
 
+Returns the total assets that are managed the FleetCommander.
+
+*If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)*
+
 
 ```solidity
-function totalAssets() public view override(ERC4626, IERC4626) returns (uint256);
+function totalAssets() public view override(IFleetCommander, ERC4626) returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|uint256 The total amount of assets that can be withdrawn.|
+
 
 ### withdrawableTotalAssets
+
+Returns the total assets that are currently withdrawable from the FleetCommander.
+
+*If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)*
 
 
 ```solidity
 function withdrawableTotalAssets() public view returns (uint256);
 ```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|uint256 The total amount of assets that can be withdrawn.|
+
 
 ### maxDeposit
+
+Returns the maximum amount of the underlying asset that can be deposited into the Vault for the receiver,
+through a deposit call.
+
+*
+- MUST return a limited value if receiver is subject to some deposit limit.
+- MUST return 2 ** 256 - 1 if there is no limit on the maximum amount of assets that may be deposited.
+- MUST NOT revert.*
 
 
 ```solidity
@@ -218,6 +370,13 @@ function maxDeposit(address owner) public view override(ERC4626, IERC4626) retur
 
 ### maxMint
 
+Returns the maximum amount of the Vault shares that can be minted for the receiver, through a mint call.
+
+*
+- MUST return a limited value if receiver is subject to some mint limit.
+- MUST return 2 ** 256 - 1 if there is no limit on the maximum amount of shares that may be minted.
+- MUST NOT revert.*
+
 
 ```solidity
 function maxMint(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxMint);
@@ -225,12 +384,34 @@ function maxMint(address owner) public view override(ERC4626, IERC4626) returns 
 
 ### maxBufferWithdraw
 
+Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
+Vault, directly from Buffer.
+
 
 ```solidity
 function maxBufferWithdraw(address owner) public view returns (uint256 _maxBufferWithdraw);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address of the owner of the assets|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_maxBufferWithdraw`|`uint256`|uint256 The maximum amount that can be withdrawn.|
+
 
 ### maxWithdraw
+
+Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
+Vault, through a withdraw call.
+
+*
+- MUST return a limited value if owner is subject to some withdrawal limit or timelock.
+- MUST NOT revert.*
 
 
 ```solidity
@@ -239,6 +420,14 @@ function maxWithdraw(address owner) public view override(ERC4626, IERC4626) retu
 
 ### maxRedeem
 
+Returns the maximum amount of Vault shares that can be redeemed from the owner balance in the Vault,
+through a redeem call.
+
+*
+- MUST return a limited value if owner is subject to some withdrawal limit or timelock.
+- MUST return balanceOf(owner) if owner is not subject to any withdrawal limit or timelock.
+- MUST NOT revert.*
+
 
 ```solidity
 function maxRedeem(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem);
@@ -246,26 +435,71 @@ function maxRedeem(address owner) public view override(ERC4626, IERC4626) return
 
 ### maxBufferRedeem
 
+Returns the maximum amount of the underlying asset that can be redeemed from the owner balance in the
+Vault, directly from Buffer.
+
 
 ```solidity
 function maxBufferRedeem(address owner) public view returns (uint256 _maxBufferRedeem);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address of the owner of the assets|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_maxBufferRedeem`|`uint256`|uint256 The maximum amount that can be redeemed.|
+
 
 ### rebalance
+
+Rebalances the assets across Arks
+
+*RebalanceData struct contains:
+- fromArk: The address of the Ark to move assets from
+- toArk: The address of the Ark to move assets to
+- amount: The amount of assets to move*
 
 
 ```solidity
 function rebalance(RebalanceData[] calldata rebalanceData) external onlyKeeper enforceCooldown collectTip;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rebalanceData`|`RebalanceData[]`||
+
 
 ### adjustBuffer
+
+Adjusts the buffer of funds by moving assets between the buffer Ark and other Arks
+
+*RebalanceData struct contains:
+- fromArk: The address of the Ark to move assets from (must be buffer Ark for withdrawing from buffer)
+- toArk: The address of the Ark to move assets to (must be buffer Ark for depositing to buffer)
+- amount: The amount of assets to move*
 
 
 ```solidity
 function adjustBuffer(RebalanceData[] calldata rebalanceData) external onlyKeeper enforceCooldown collectTip;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rebalanceData`|`RebalanceData[]`||
+
 
 ### setTipJar
+
+Sets a new tip jar address
+
+*This function sets the tipJar address to the address specified in the configuration manager.*
 
 
 ```solidity
@@ -274,12 +508,9 @@ function setTipJar() external onlyGovernor;
 
 ### setTipRate
 
-Sets a new tip rate for the protocol
+Sets a new tip rate for the FleetCommander
 
 *Only callable by the governor*
-
-*The tip rate is set as a Percentage. Percentages use 18 decimals of precision
-For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)*
 
 
 ```solidity
@@ -294,17 +525,35 @@ function setTipRate(Percentage newTipRate) external onlyGovernor;
 
 ### updateRebalanceCooldown
 
+Updates the rebalance cooldown period
+
 
 ```solidity
 function updateRebalanceCooldown(uint256 newCooldown) external onlyGovernor;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`newCooldown`|`uint256`|The new cooldown period in seconds|
+
 
 ### forceRebalance
+
+Forces a rebalance operation
+
+*has no cooldown enforced but only callable by privileged role*
 
 
 ```solidity
 function forceRebalance(RebalanceData[] calldata rebalanceData) external onlyGovernor collectTip;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rebalanceData`|`RebalanceData[]`||
+
 
 ### emergencyShutdown
 
@@ -315,12 +564,17 @@ function emergencyShutdown() external onlyGovernor;
 
 ### transfer
 
+Moves `amount` tokens from the caller's account to `to`.
+
 
 ```solidity
 function transfer(address, uint256) public pure override(IERC20, ERC20) returns (bool);
 ```
 
 ### transferFrom
+
+Moves `amount` tokens from `from` to `to` using the allowance mechanism.
+`amount` is then deducted from the caller's allowance.
 
 
 ```solidity
@@ -336,26 +590,60 @@ function _mintTip(address account, uint256 amount) internal virtual override;
 
 ### _reallocateAllAssets
 
+Reallocates all assets based on the provided rebalance data
+
 
 ```solidity
 function _reallocateAllAssets(RebalanceData[] calldata rebalanceData) internal returns (uint256 totalMoved);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`rebalanceData`|`RebalanceData[]`|Array of RebalanceData structs containing information about the reallocation|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`totalMoved`|`uint256`|The total amount of assets moved during the reallocation|
+
 
 ### _board
+
+Approves and boards a specified amount of assets to an Ark
 
 
 ```solidity
 function _board(address ark, uint256 amount) internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ark`|`address`|The address of the Ark|
+|`amount`|`uint256`|The amount of assets to board|
+
 
 ### _disembark
+
+Disembarks a specified amount of assets from an Ark
 
 
 ```solidity
 function _disembark(address ark, uint256 amount) internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ark`|`address`|The address of the Ark|
+|`amount`|`uint256`|The amount of assets to disembark|
+
 
 ### _move
+
+Moves a specified amount of assets from one Ark to another
 
 
 ```solidity
@@ -368,6 +656,16 @@ function _move(
 )
     internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`fromArk`|`address`|The address of the Ark to move assets from|
+|`toArk`|`address`|The address of the Ark to move assets to|
+|`amount`|`uint256`|The amount of assets to move|
+|`boardData`|`bytes`|Additional data for the board operation|
+|`disembarkData`|`bytes`|Additional data for the disembark operation|
+
 
 ### _reallocateAssets
 

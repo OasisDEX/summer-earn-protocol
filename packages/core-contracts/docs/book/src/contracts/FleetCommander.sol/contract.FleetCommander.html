@@ -178,7 +178,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="fleetcommander"><a class="header" href="#fleetcommander">FleetCommander</a></h1>
-<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/contracts/FleetCommander.sol">Git Source</a></p>
+<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/contracts/FleetCommander.sol">Git Source</a></p>
 <p><strong>Inherits:</strong>
 <a href="/src/interfaces/IFleetCommander.sol/interface.IFleetCommander.html">IFleetCommander</a>, ERC4626, <a href="/src/contracts/Tipper.sol/abstract.Tipper.html">Tipper</a>, <a href="/src/contracts/FleetCommanderConfigProvider.sol/contract.FleetCommanderConfigProvider.html">FleetCommanderConfigProvider</a>, <a href="/src/contracts/FleetCommanderCache.sol/contract.FleetCommanderCache.html">FleetCommanderCache</a>, <a href="/src/utils/CooldownEnforcer/CooldownEnforcer.sol/abstract.CooldownEnforcer.html">CooldownEnforcer</a></p>
 <h2 id="state-variables"><a class="header" href="#state-variables">State Variables</a></h2>
@@ -218,18 +218,34 @@ those calls migh be gas expensive for some arks.</em></p>
 <pre><code class="language-solidity">function withdrawFromBuffer(uint256 assets, address receiver, address owner) public returns (uint256 shares);
 </code></pre>
 <h3 id="redeem"><a class="header" href="#redeem">redeem</a></h3>
+<p>Redeems a specified amount of shares from the FleetCommander</p>
+<p><em>This function first attempts to redeem from the buffer. If the buffer doesn't have enough assets,
+it will redeem from the arks. It also handles the case where the maximum possible amount is requested.</em></p>
 <pre><code class="language-solidity">function redeem(
     uint256 shares,
     address receiver,
     address owner
 )
     public
-    override(ERC4626, IERC4626)
+    override(ERC4626, IFleetCommander)
     collectTip
     useWithdrawCache
     returns (uint256 assets);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares to redeem. If set to type(uint256).max, it will redeem all shares owned by the owner.</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the redeemed assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets received in exchange for the redeemed shares</td></tr>
+</tbody></table>
+</div>
 <h3 id="redeemfrombuffer"><a class="header" href="#redeemfrombuffer">redeemFromBuffer</a></h3>
+<p>Redeems shares for assets directly from the Buffer</p>
 <pre><code class="language-solidity">function redeemFromBuffer(
     uint256 shares,
     address receiver,
@@ -240,19 +256,47 @@ those calls migh be gas expensive for some arks.</em></p>
     useWithdrawCache
     returns (uint256 assets);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The amount of shares to redeem</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets redeemed</td></tr>
+</tbody></table>
+</div>
 <h3 id="withdraw"><a class="header" href="#withdraw">withdraw</a></h3>
+<p>Withdraws a specified amount of assets from the FleetCommander</p>
+<p><em>This function first attempts to withdraw from the buffer. If the buffer doesn't have enough assets,
+it will withdraw from the arks. It also handles the case where the maximum possible amount is requested.</em></p>
 <pre><code class="language-solidity">function withdraw(
     uint256 assets,
     address receiver,
     address owner
 )
     public
-    override(ERC4626, IERC4626)
+    override(ERC4626, IFleetCommander)
     collectTip
     useWithdrawCache
     returns (uint256 shares);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to withdraw. If set to type(uint256).max, it will withdraw the maximum possible amount.</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the withdrawn assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares burned in exchange for the withdrawn assets</td></tr>
+</tbody></table>
+</div>
 <h3 id="withdrawfromarks"><a class="header" href="#withdrawfromarks">withdrawFromArks</a></h3>
+<p>Forces a withdrawal of assets from the FleetCommander</p>
 <pre><code class="language-solidity">function withdrawFromArks(
     uint256 assets,
     address receiver,
@@ -264,7 +308,20 @@ those calls migh be gas expensive for some arks.</em></p>
     useWithdrawCache
     returns (uint256 totalSharesToRedeem);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to forcefully withdraw</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the withdrawn assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>totalSharesToRedeem</code></td><td><code>uint256</code></td><td>shares The amount of shares redeemed</td></tr>
+</tbody></table>
+</div>
 <h3 id="redeemfromarks"><a class="header" href="#redeemfromarks">redeemFromArks</a></h3>
+<p>Redeems shares for assets from the FleetCommander</p>
 <pre><code class="language-solidity">function redeemFromArks(
     uint256 shares,
     address receiver,
@@ -276,7 +333,31 @@ those calls migh be gas expensive for some arks.</em></p>
     useWithdrawCache
     returns (uint256 totalAssetsToWithdraw);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The amount of shares to redeem</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>totalAssetsToWithdraw</code></td><td><code>uint256</code></td><td>assets The amount of assets forcefully withdrawn</td></tr>
+</tbody></table>
+</div>
 <h3 id="deposit"><a class="header" href="#deposit">deposit</a></h3>
+<p>Mints shares Vault shares to receiver by depositing exactly amount of underlying tokens.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST emit the Deposit event.</li>
+<li>MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
+deposit execution, and are accounted for during deposit.</li>
+<li>MUST revert if all of assets cannot be deposited (due to deposit limit being reached, slippage, the user not
+approving enough underlying tokens to the Vault contract, etc).
+NOTE: most implementations will require pre-approval of the Vault with the Vault’s underlying asset token.*</li>
+</ul>
 <pre><code class="language-solidity">function deposit(
     uint256 assets,
     address receiver
@@ -288,9 +369,29 @@ those calls migh be gas expensive for some arks.</em></p>
     returns (uint256 shares);
 </code></pre>
 <h3 id="deposit-1"><a class="header" href="#deposit-1">deposit</a></h3>
+<p>Deposits a specified amount of assets into the contract for a given receiver.</p>
 <pre><code class="language-solidity">function deposit(uint256 assets, address receiver, bytes memory referralCode) public returns (uint256);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to be deposited.</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address of the receiver who will receive the deposited assets.</td></tr>
+<tr><td><code>referralCode</code></td><td><code>bytes</code></td><td>An optional referral code that can be used for tracking or rewards.</td></tr>
+</tbody></table>
+</div>
 <h3 id="mint"><a class="header" href="#mint">mint</a></h3>
+<p>Mints exactly shares Vault shares to receiver by depositing amount of underlying tokens.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST emit the Deposit event.</li>
+<li>MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the mint
+execution, and are accounted for during mint.</li>
+<li>MUST revert if all of shares cannot be minted (due to deposit limit being reached, slippage, the user not
+approving enough underlying tokens to the Vault contract, etc).
+NOTE: most implementations will require pre-approval of the Vault with the Vault’s underlying asset token.*</li>
+</ul>
 <pre><code class="language-solidity">function mint(
     uint256 shares,
     address receiver
@@ -302,46 +403,152 @@ those calls migh be gas expensive for some arks.</em></p>
     returns (uint256 assets);
 </code></pre>
 <h3 id="tip"><a class="header" href="#tip">tip</a></h3>
+<p>Accrues and distributes tips</p>
 <pre><code class="language-solidity">function tip() public returns (uint256);
 </code></pre>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The amount of tips accrued</td></tr>
+</tbody></table>
+</div>
 <h3 id="totalassets"><a class="header" href="#totalassets">totalAssets</a></h3>
-<pre><code class="language-solidity">function totalAssets() public view override(ERC4626, IERC4626) returns (uint256);
+<p>Returns the total assets that are managed the FleetCommander.</p>
+<p><em>If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)</em></p>
+<pre><code class="language-solidity">function totalAssets() public view override(IFleetCommander, ERC4626) returns (uint256);
 </code></pre>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The total amount of assets that can be withdrawn.</td></tr>
+</tbody></table>
+</div>
 <h3 id="withdrawabletotalassets"><a class="header" href="#withdrawabletotalassets">withdrawableTotalAssets</a></h3>
+<p>Returns the total assets that are currently withdrawable from the FleetCommander.</p>
+<p><em>If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)</em></p>
 <pre><code class="language-solidity">function withdrawableTotalAssets() public view returns (uint256);
 </code></pre>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The total amount of assets that can be withdrawn.</td></tr>
+</tbody></table>
+</div>
 <h3 id="maxdeposit"><a class="header" href="#maxdeposit">maxDeposit</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be deposited into the Vault for the receiver,
+through a deposit call.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST return a limited value if receiver is subject to some deposit limit.</li>
+<li>MUST return 2 ** 256 - 1 if there is no limit on the maximum amount of assets that may be deposited.</li>
+<li>MUST NOT revert.*</li>
+</ul>
 <pre><code class="language-solidity">function maxDeposit(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit);
 </code></pre>
 <h3 id="maxmint"><a class="header" href="#maxmint">maxMint</a></h3>
+<p>Returns the maximum amount of the Vault shares that can be minted for the receiver, through a mint call.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST return a limited value if receiver is subject to some mint limit.</li>
+<li>MUST return 2 ** 256 - 1 if there is no limit on the maximum amount of shares that may be minted.</li>
+<li>MUST NOT revert.*</li>
+</ul>
 <pre><code class="language-solidity">function maxMint(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxMint);
 </code></pre>
 <h3 id="maxbufferwithdraw"><a class="header" href="#maxbufferwithdraw">maxBufferWithdraw</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
+Vault, directly from Buffer.</p>
 <pre><code class="language-solidity">function maxBufferWithdraw(address owner) public view returns (uint256 _maxBufferWithdraw);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_maxBufferWithdraw</code></td><td><code>uint256</code></td><td>uint256 The maximum amount that can be withdrawn.</td></tr>
+</tbody></table>
+</div>
 <h3 id="maxwithdraw"><a class="header" href="#maxwithdraw">maxWithdraw</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
+Vault, through a withdraw call.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST return a limited value if owner is subject to some withdrawal limit or timelock.</li>
+<li>MUST NOT revert.*</li>
+</ul>
 <pre><code class="language-solidity">function maxWithdraw(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw);
 </code></pre>
 <h3 id="maxredeem"><a class="header" href="#maxredeem">maxRedeem</a></h3>
+<p>Returns the maximum amount of Vault shares that can be redeemed from the owner balance in the Vault,
+through a redeem call.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST return a limited value if owner is subject to some withdrawal limit or timelock.</li>
+<li>MUST return balanceOf(owner) if owner is not subject to any withdrawal limit or timelock.</li>
+<li>MUST NOT revert.*</li>
+</ul>
 <pre><code class="language-solidity">function maxRedeem(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem);
 </code></pre>
 <h3 id="maxbufferredeem"><a class="header" href="#maxbufferredeem">maxBufferRedeem</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be redeemed from the owner balance in the
+Vault, directly from Buffer.</p>
 <pre><code class="language-solidity">function maxBufferRedeem(address owner) public view returns (uint256 _maxBufferRedeem);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_maxBufferRedeem</code></td><td><code>uint256</code></td><td>uint256 The maximum amount that can be redeemed.</td></tr>
+</tbody></table>
+</div>
 <h3 id="rebalance"><a class="header" href="#rebalance">rebalance</a></h3>
+<p>Rebalances the assets across Arks</p>
+<p>*RebalanceData struct contains:</p>
+<ul>
+<li>fromArk: The address of the Ark to move assets from</li>
+<li>toArk: The address of the Ark to move assets to</li>
+<li>amount: The amount of assets to move*</li>
+</ul>
 <pre><code class="language-solidity">function rebalance(RebalanceData[] calldata rebalanceData) external onlyKeeper enforceCooldown collectTip;
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td></td></tr>
+</tbody></table>
+</div>
 <h3 id="adjustbuffer"><a class="header" href="#adjustbuffer">adjustBuffer</a></h3>
+<p>Adjusts the buffer of funds by moving assets between the buffer Ark and other Arks</p>
+<p>*RebalanceData struct contains:</p>
+<ul>
+<li>fromArk: The address of the Ark to move assets from (must be buffer Ark for withdrawing from buffer)</li>
+<li>toArk: The address of the Ark to move assets to (must be buffer Ark for depositing to buffer)</li>
+<li>amount: The amount of assets to move*</li>
+</ul>
 <pre><code class="language-solidity">function adjustBuffer(RebalanceData[] calldata rebalanceData) external onlyKeeper enforceCooldown collectTip;
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td></td></tr>
+</tbody></table>
+</div>
 <h3 id="settipjar"><a class="header" href="#settipjar">setTipJar</a></h3>
+<p>Sets a new tip jar address</p>
+<p><em>This function sets the tipJar address to the address specified in the configuration manager.</em></p>
 <pre><code class="language-solidity">function setTipJar() external onlyGovernor;
 </code></pre>
 <h3 id="settiprate"><a class="header" href="#settiprate">setTipRate</a></h3>
-<p>Sets a new tip rate for the protocol</p>
+<p>Sets a new tip rate for the FleetCommander</p>
 <p><em>Only callable by the governor</em></p>
-<p><em>The tip rate is set as a Percentage. Percentages use 18 decimals of precision
-For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)</em></p>
 <pre><code class="language-solidity">function setTipRate(Percentage newTipRate) external onlyGovernor;
 </code></pre>
 <p><strong>Parameters</strong></p>
@@ -350,33 +557,75 @@ For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)</em>
 </tbody></table>
 </div>
 <h3 id="updaterebalancecooldown"><a class="header" href="#updaterebalancecooldown">updateRebalanceCooldown</a></h3>
+<p>Updates the rebalance cooldown period</p>
 <pre><code class="language-solidity">function updateRebalanceCooldown(uint256 newCooldown) external onlyGovernor;
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>newCooldown</code></td><td><code>uint256</code></td><td>The new cooldown period in seconds</td></tr>
+</tbody></table>
+</div>
 <h3 id="forcerebalance"><a class="header" href="#forcerebalance">forceRebalance</a></h3>
+<p>Forces a rebalance operation</p>
+<p><em>has no cooldown enforced but only callable by privileged role</em></p>
 <pre><code class="language-solidity">function forceRebalance(RebalanceData[] calldata rebalanceData) external onlyGovernor collectTip;
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td></td></tr>
+</tbody></table>
+</div>
 <h3 id="emergencyshutdown"><a class="header" href="#emergencyshutdown">emergencyShutdown</a></h3>
 <pre><code class="language-solidity">function emergencyShutdown() external onlyGovernor;
 </code></pre>
 <h3 id="transfer"><a class="header" href="#transfer">transfer</a></h3>
+<p>Moves <code>amount</code> tokens from the caller's account to <code>to</code>.</p>
 <pre><code class="language-solidity">function transfer(address, uint256) public pure override(IERC20, ERC20) returns (bool);
 </code></pre>
 <h3 id="transferfrom"><a class="header" href="#transferfrom">transferFrom</a></h3>
+<p>Moves <code>amount</code> tokens from <code>from</code> to <code>to</code> using the allowance mechanism.
+<code>amount</code> is then deducted from the caller's allowance.</p>
 <pre><code class="language-solidity">function transferFrom(address, address, uint256) public pure override(IERC20, ERC20) returns (bool);
 </code></pre>
 <h3 id="_minttip"><a class="header" href="#_minttip">_mintTip</a></h3>
 <pre><code class="language-solidity">function _mintTip(address account, uint256 amount) internal virtual override;
 </code></pre>
 <h3 id="_reallocateallassets"><a class="header" href="#_reallocateallassets">_reallocateAllAssets</a></h3>
+<p>Reallocates all assets based on the provided rebalance data</p>
 <pre><code class="language-solidity">function _reallocateAllAssets(RebalanceData[] calldata rebalanceData) internal returns (uint256 totalMoved);
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td>Array of RebalanceData structs containing information about the reallocation</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>totalMoved</code></td><td><code>uint256</code></td><td>The total amount of assets moved during the reallocation</td></tr>
+</tbody></table>
+</div>
 <h3 id="_board"><a class="header" href="#_board">_board</a></h3>
+<p>Approves and boards a specified amount of assets to an Ark</p>
 <pre><code class="language-solidity">function _board(address ark, uint256 amount) internal;
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>ark</code></td><td><code>address</code></td><td>The address of the Ark</td></tr>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of assets to board</td></tr>
+</tbody></table>
+</div>
 <h3 id="_disembark"><a class="header" href="#_disembark">_disembark</a></h3>
+<p>Disembarks a specified amount of assets from an Ark</p>
 <pre><code class="language-solidity">function _disembark(address ark, uint256 amount) internal;
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>ark</code></td><td><code>address</code></td><td>The address of the Ark</td></tr>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of assets to disembark</td></tr>
+</tbody></table>
+</div>
 <h3 id="_move"><a class="header" href="#_move">_move</a></h3>
+<p>Moves a specified amount of assets from one Ark to another</p>
 <pre><code class="language-solidity">function _move(
     address fromArk,
     address toArk,
@@ -386,6 +635,15 @@ For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)</em>
 )
     internal;
 </code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>fromArk</code></td><td><code>address</code></td><td>The address of the Ark to move assets from</td></tr>
+<tr><td><code>toArk</code></td><td><code>address</code></td><td>The address of the Ark to move assets to</td></tr>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of assets to move</td></tr>
+<tr><td><code>boardData</code></td><td><code>bytes</code></td><td>Additional data for the board operation</td></tr>
+<tr><td><code>disembarkData</code></td><td><code>bytes</code></td><td>Additional data for the disembark operation</td></tr>
+</tbody></table>
+</div>
 <h3 id="_reallocateassets"><a class="header" href="#_reallocateassets">_reallocateAssets</a></h3>
 <p>Reallocates assets from one Ark to another</p>
 <p>*This function handles the reallocation of assets between Arks, considering:</p>
@@ -591,22 +849,6 @@ the buffer balance remains above the minimum required balance</em></p>
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

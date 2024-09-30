@@ -178,7 +178,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="iraft"><a class="header" href="#iraft">IRaft</a></h1>
-<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/interfaces/IRaft.sol">Git Source</a></p>
+<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/interfaces/IRaft.sol">Git Source</a></p>
 <p><strong>Inherits:</strong>
 <a href="/src/events/IRaftEvents.sol/interface.IRaftEvents.html">IRaftEvents</a>, <a href="/src/errors/IRaftErrors.sol/interface.IRaftErrors.html">IRaftErrors</a></p>
 <p>Interface for the Raft contract which manages harvesting, auctioning, and reinvesting of rewards.</p>
@@ -342,22 +342,6 @@
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

@@ -1,5 +1,5 @@
 # ProtocolAccessManager
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/contracts/ProtocolAccessManager.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/contracts/ProtocolAccessManager.sol)
 
 **Inherits:**
 [IProtocolAccessManager](/src/interfaces/IProtocolAccessManager.sol/interface.IProtocolAccessManager.md), [LimitedAccessControl](/src/contracts/LimitedAccessControl.sol/contract.LimitedAccessControl.md)

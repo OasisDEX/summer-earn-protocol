@@ -178,7 +178,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="auctiondefaultparameters"><a class="header" href="#auctiondefaultparameters">AuctionDefaultParameters</a></h1>
-<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/types/CommonAuctionTypes.sol">Git Source</a></p>
+<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/types/CommonAuctionTypes.sol">Git Source</a></p>
 <p>Struct containing default parameters for Dutch auctions</p>
 <p><em>This struct is used to configure the default settings for Dutch auctions in the protocol</em></p>
 <pre><code class="language-solidity">struct AuctionDefaultParameters {
@@ -219,22 +219,6 @@
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

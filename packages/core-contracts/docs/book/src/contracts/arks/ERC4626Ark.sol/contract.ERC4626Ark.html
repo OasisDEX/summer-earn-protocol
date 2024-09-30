@@ -178,7 +178,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="erc4626ark"><a class="header" href="#erc4626ark">ERC4626Ark</a></h1>
-<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/contracts/arks/ERC4626Ark.sol">Git Source</a></p>
+<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/contracts/arks/ERC4626Ark.sol">Git Source</a></p>
 <p><strong>Inherits:</strong>
 <a href="/src/contracts/Ark.sol/abstract.Ark.html">Ark</a></p>
 <p>This contract allows the Fleet Commander to interact with any ERC4626 vault</p>
@@ -281,22 +281,6 @@
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

@@ -1,5 +1,5 @@
 # FleetCommanderConfigProvider
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/contracts/FleetCommanderConfigProvider.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/contracts/FleetCommanderConfigProvider.sol)
 
 **Inherits:**
 [IFleetCommanderConfigProvider](/src/interfaces/IFleetCommanderConfigProvider.sol/interface.IFleetCommanderConfigProvider.md), [ProtocolAccessManaged](/src/contracts/ProtocolAccessManaged.sol/contract.ProtocolAccessManaged.md)

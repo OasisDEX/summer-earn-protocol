@@ -1,5 +1,5 @@
 # IAdmiralsQuartersEvents
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/events/IAdmiralsQuartersEvents.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/events/IAdmiralsQuartersEvents.sol)
 
 This interface defines the events that can be emitted during various operations
 in the AdmiralsQuarters contract, such as token deposits, withdrawals, fleet interactions,

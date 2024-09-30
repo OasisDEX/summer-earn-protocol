@@ -1,5 +1,5 @@
 # IAggregationRouterV6
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/interfaces/1inch/IAggregationRouterV6.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/02b633fc64591288020c32f3fcb6421ab62209d5/src/interfaces/1inch/IAggregationRouterV6.sol)
 
 
 ## Functions
