@@ -97,10 +97,8 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         uint256 newLockedUntilEpoch
     ) external onlyGovernor {
         _validateTipStream(recipient);
-        _validateTipStreamAllocation(
-            newAllocation,
-            tipStreams[recipient].allocation
-        );
+        Percentage currentAllocation = tipStreams[recipient].allocation;
+        _validateTipStreamAllocation(newAllocation, currentAllocation);
 
         tipStreams[recipient].allocation = newAllocation;
         tipStreams[recipient].lockedUntilEpoch = newLockedUntilEpoch;
@@ -237,11 +235,11 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     /**
      * @notice Validates the allocation for a tip stream
      * @param newAllocation The allocation to validate
-     * @param oldAllocation The old allocation to compare against
+     * @param currentAllocation The current allocation to compare against
      */
     function _validateTipStreamAllocation(
         Percentage newAllocation,
-        Percentage oldAllocation
+        Percentage currentAllocation
     ) internal view {
         if (
             newAllocation == toPercentage(0) ||
@@ -251,7 +249,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         }
         if (
             !PercentageUtils.isPercentageInRange(
-                getTotalAllocation() + newAllocation - oldAllocation
+                getTotalAllocation() + newAllocation - currentAllocation
             )
         ) {
             revert TotalAllocationExceedsOneHundredPercent();
