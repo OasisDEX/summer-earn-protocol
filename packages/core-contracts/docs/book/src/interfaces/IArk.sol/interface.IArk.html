@@ -1,0 +1,329 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>IArk</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../../favicon.svg">
+        <link rel="shortcut icon" href="../../../favicon.png">
+        <link rel="stylesheet" href="../../../css/variables.css">
+        <link rel="stylesheet" href="../../../css/general.css">
+        <link rel="stylesheet" href="../../../css/chrome.css">
+        <link rel="stylesheet" href="../../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../../highlight.css">
+        <link rel="stylesheet" href="../../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../../../book.css">
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item "><a href="../../../index.html">Home</a></li><li class="chapter-item affix "><li class="part-title">src</li><li class="chapter-item "><a href="../../../src/contracts/index.html">❱ contracts</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/contracts/arks/index.html">❱ arks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/contracts/arks/AaveV3Ark.sol/contract.AaveV3Ark.html">AaveV3Ark</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/BasePendleArk.sol/abstract.BasePendleArk.html">BasePendleArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/BufferArk.sol/contract.BufferArk.html">BufferArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/CompoundV3Ark.sol/contract.CompoundV3Ark.html">CompoundV3Ark</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/ERC4626Ark.sol/contract.ERC4626Ark.html">ERC4626Ark</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/MetaMorphoArk.sol/contract.MetaMorphoArk.html">MetaMorphoArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/MorphoArk.sol/error.InvalidMorphoAddress.html">InvalidMorphoAddress</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/MorphoArk.sol/error.InvalidMarketId.html">InvalidMarketId</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/MorphoArk.sol/contract.MorphoArk.html">MorphoArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/PendleLPArk.sol/contract.PendleLPArk.html">PendleLPArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/PendlePTArk.sol/contract.PendlePTArk.html">PendlePTArk</a></li></ol></li><li class="chapter-item "><a href="../../../src/contracts/libraries/index.html">❱ libraries</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/contracts/libraries/Constants.sol/library.Constants.html">Constants</a></li><li class="chapter-item "><a href="../../../src/contracts/libraries/StorageSlots.sol/library.StorageSlots.html">StorageSlots</a></li></ol></li><li class="chapter-item "><a href="../../../src/contracts/AdmiralsQuarters.sol/contract.AdmiralsQuarters.html">AdmiralsQuarters</a></li><li class="chapter-item "><a href="../../../src/contracts/Ark.sol/abstract.Ark.html">Ark</a></li><li class="chapter-item "><a href="../../../src/contracts/ArkAccessManaged.sol/contract.ArkAccessManaged.html">ArkAccessManaged</a></li><li class="chapter-item "><a href="../../../src/contracts/ArkConfigProvider.sol/abstract.ArkConfigProvider.html">ArkConfigProvider</a></li><li class="chapter-item "><a href="../../../src/contracts/AuctionManagerBase.sol/abstract.AuctionManagerBase.html">AuctionManagerBase</a></li><li class="chapter-item "><a href="../../../src/contracts/BuyAndBurn.sol/contract.BuyAndBurn.html">BuyAndBurn</a></li><li class="chapter-item "><a href="../../../src/contracts/ConfigurationManager.sol/contract.ConfigurationManager.html">ConfigurationManager</a></li><li class="chapter-item "><a href="../../../src/contracts/FleetCommander.sol/contract.FleetCommander.html">FleetCommander</a></li><li class="chapter-item "><a href="../../../src/contracts/FleetCommanderCache.sol/contract.FleetCommanderCache.html">FleetCommanderCache</a></li><li class="chapter-item "><a href="../../../src/contracts/FleetCommanderConfigProvider.sol/contract.FleetCommanderConfigProvider.html">FleetCommanderConfigProvider</a></li><li class="chapter-item "><a href="../../../src/contracts/HarborCommand.sol/contract.HarborCommand.html">HarborCommand</a></li><li class="chapter-item "><a href="../../../src/contracts/LimitedAccessControl.sol/contract.LimitedAccessControl.html">LimitedAccessControl</a></li><li class="chapter-item "><a href="../../../src/contracts/ProtocolAccessManaged.sol/contract.ProtocolAccessManaged.html">ProtocolAccessManaged</a></li><li class="chapter-item "><a href="../../../src/contracts/ProtocolAccessManager.sol/contract.ProtocolAccessManager.html">ProtocolAccessManager</a></li><li class="chapter-item "><a href="../../../src/contracts/Raft.sol/contract.Raft.html">Raft</a></li><li class="chapter-item "><a href="../../../src/contracts/TipJar.sol/contract.TipJar.html">TipJar</a></li><li class="chapter-item "><a href="../../../src/contracts/Tipper.sol/abstract.Tipper.html">Tipper</a></li></ol></li><li class="chapter-item "><a href="../../../src/errors/index.html">❱ errors</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/errors/arks/index.html">❱ arks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/errors/arks/IPendleBaseArkErrors.sol/interface.IPendleBaseArkErrors.html">IPendleBaseArkErrors</a></li></ol></li><li class="chapter-item "><a href="../../../src/errors/IAccessControlErrors.sol/interface.IAccessControlErrors.html">IAccessControlErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IAdmiralsQuartersErrors.sol/interface.IAdmiralsQuartersErrors.html">IAdmiralsQuartersErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IArkConfigProviderErrors.sol/interface.IArkConfigProviderErrors.html">IArkConfigProviderErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IArkErrors.sol/interface.IArkErrors.html">IArkErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IArkFactoryErrors.sol/interface.IArkFactoryErrors.html">IArkFactoryErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IBuyAndBurnErrors.sol/interface.IBuyAndBurnErrors.html">IBuyAndBurnErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IConfigurationManagerErrors.sol/interface.IConfigurationManagerErrors.html">IConfigurationManagerErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IFleetCommanderConfigProviderErrors.sol/interface.IFleetCommanderConfigProviderErrors.html">IFleetCommanderConfigProviderErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IFleetCommanderErrors.sol/interface.IFleetCommanderErrors.html">IFleetCommanderErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IHarborCommandErrors.sol/interface.IHarborCommandErrors.html">IHarborCommandErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IRaftErrors.sol/interface.IRaftErrors.html">IRaftErrors</a></li><li class="chapter-item "><a href="../../../src/errors/ITipJarErrors.sol/interface.ITipJarErrors.html">ITipJarErrors</a></li><li class="chapter-item "><a href="../../../src/errors/ITipperErrors.sol/interface.ITipperErrors.html">ITipperErrors</a></li></ol></li><li class="chapter-item "><a href="../../../src/events/index.html">❱ events</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/events/arks/index.html">❱ arks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/events/arks/IPendleBaseArkEvents.sol/interface.IPendleBaseArkEvents.html">IPendleBaseArkEvents</a></li></ol></li><li class="chapter-item "><a href="../../../src/events/IAdmiralsQuartersEvents.sol/interface.IAdmiralsQuartersEvents.html">IAdmiralsQuartersEvents</a></li><li class="chapter-item "><a href="../../../src/events/IArkConfigProviderEvents.sol/interface.IArkConfigProviderEvents.html">IArkConfigProviderEvents</a></li><li class="chapter-item "><a href="../../../src/events/IArkEvents.sol/interface.IArkEvents.html">IArkEvents</a></li><li class="chapter-item "><a href="../../../src/events/IAuctionManagerBaseEvents.sol/interface.IAuctionManagerBaseEvents.html">IAuctionManagerBaseEvents</a></li><li class="chapter-item "><a href="../../../src/events/IBuyAndBurnEvents.sol/interface.IBuyAndBurnEvents.html">IBuyAndBurnEvents</a></li><li class="chapter-item "><a href="../../../src/events/IConfigurationManagerEvents.sol/interface.IConfigurationManagerEvents.html">IConfigurationManagerEvents</a></li><li class="chapter-item "><a href="../../../src/events/IFleetCommanderConfigProviderEvents.sol/interface.IFleetCommanderConfigProviderEvents.html">IFleetCommanderConfigProviderEvents</a></li><li class="chapter-item "><a href="../../../src/events/IFleetCommanderEvents.sol/interface.IFleetCommanderEvents.html">IFleetCommanderEvents</a></li><li class="chapter-item "><a href="../../../src/events/IHarborCommandEvents.sol/interface.IHarborCommandEvents.html">IHarborCommandEvents</a></li><li class="chapter-item "><a href="../../../src/events/IRaftEvents.sol/interface.IRaftEvents.html">IRaftEvents</a></li><li class="chapter-item "><a href="../../../src/events/ITipJarEvents.sol/interface.ITipJarEvents.html">ITipJarEvents</a></li><li class="chapter-item "><a href="../../../src/events/ITipperEvents.sol/interface.ITipperEvents.html">ITipperEvents</a></li></ol></li><li class="chapter-item expanded "><a href="../../../src/interfaces/index.html">❱ interfaces</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/1inch/index.html">❱ 1inch</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/1inch/IAggregationRouterV6.sol/interface.IAggregationRouterV6.html">IAggregationRouterV6</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/index.html">❱ aave-v3</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/DataTypes.sol/library.DataTypes.html">DataTypes</a></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/IPoolAddressesProvider.sol/interface.IPoolAddressesProvider.html">IPoolAddressesProvider</a></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/IPoolDataProvider.sol/interface.IPoolDataProvider.html">IPoolDataProvider</a></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/IPoolV3.sol/interface.IPoolV3.html">IPoolV3</a></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/IRewardsController.sol/interface.IRewardsController.html">IRewardsController</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/arks/index.html">❱ arks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/arks/IPendleBaseArk.sol/interface.IPendleBaseArk.html">IPendleBaseArk</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/compound-v3/index.html">❱ compound-v3</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/compound-v3/IComet.sol/interface.IComet.html">IComet</a></li><li class="chapter-item "><a href="../../../src/interfaces/compound-v3/ICometRewards.sol/interface.ICometRewards.html">ICometRewards</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/maker/index.html">❱ maker</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/maker/IPot.sol/interface.IPot.html">IPot</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/morpho/index.html">❱ morpho</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/morpho/IUniversalRewardsDistributor.sol/struct.PendingRoot.html">PendingRoot</a></li><li class="chapter-item "><a href="../../../src/interfaces/morpho/IUniversalRewardsDistributor.sol/interface.IUniversalRewardsDistributor.html">IUniversalRewardsDistributor</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/IAdmiralsQuarters.sol/interface.IAdmiralsQuarters.html">IAdmiralsQuarters</a></li><li class="chapter-item expanded "><a href="../../../src/interfaces/IArk.sol/interface.IArk.html" class="active">IArk</a></li><li class="chapter-item "><a href="../../../src/interfaces/IArkAccessManaged.sol/interface.IArkAccessManaged.html">IArkAccessManaged</a></li><li class="chapter-item "><a href="../../../src/interfaces/IArkConfigProvider.sol/interface.IArkConfigProvider.html">IArkConfigProvider</a></li><li class="chapter-item "><a href="../../../src/interfaces/IBuyAndBurn.sol/interface.IBuyAndBurn.html">IBuyAndBurn</a></li><li class="chapter-item "><a href="../../../src/interfaces/IConfigurationManager.sol/interface.IConfigurationManager.html">IConfigurationManager</a></li><li class="chapter-item "><a href="../../../src/interfaces/IFleetCommander.sol/interface.IFleetCommander.html">IFleetCommander</a></li><li class="chapter-item "><a href="../../../src/interfaces/IFleetCommanderConfigProvider.sol/interface.IFleetCommanderConfigProvider.html">IFleetCommanderConfigProvider</a></li><li class="chapter-item "><a href="../../../src/interfaces/IHarborCommand.sol/interface.IHarborCommand.html">IHarborCommand</a></li><li class="chapter-item "><a href="../../../src/interfaces/IProtocolAccessManager.sol/interface.IProtocolAccessManager.html">IProtocolAccessManager</a></li><li class="chapter-item "><a href="../../../src/interfaces/IRaft.sol/interface.IRaft.html">IRaft</a></li><li class="chapter-item "><a href="../../../src/interfaces/ITipJar.sol/interface.ITipJar.html">ITipJar</a></li><li class="chapter-item "><a href="../../../src/interfaces/ITipper.sol/interface.ITipper.html">ITipper</a></li></ol></li><li class="chapter-item "><a href="../../../src/types/index.html">❱ types</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/types/ArkFactoryTypes.sol/struct.ArkFactoryParams.html">ArkFactoryParams</a></li><li class="chapter-item "><a href="../../../src/types/ArkTypes.sol/struct.ArkParams.html">ArkParams</a></li><li class="chapter-item "><a href="../../../src/types/ArkTypes.sol/struct.ArkConfig.html">ArkConfig</a></li><li class="chapter-item "><a href="../../../src/types/CommonAuctionTypes.sol/struct.AuctionDefaultParameters.html">AuctionDefaultParameters</a></li><li class="chapter-item "><a href="../../../src/types/ConfigurationManagerTypes.sol/struct.ConfigurationManagerParams.html">ConfigurationManagerParams</a></li><li class="chapter-item "><a href="../../../src/types/FleetCommanderTypes.sol/struct.FleetCommanderParams.html">FleetCommanderParams</a></li><li class="chapter-item "><a href="../../../src/types/FleetCommanderTypes.sol/struct.FleetConfig.html">FleetConfig</a></li><li class="chapter-item "><a href="../../../src/types/FleetCommanderTypes.sol/struct.RebalanceData.html">RebalanceData</a></li><li class="chapter-item "><a href="../../../src/types/FleetCommanderTypes.sol/struct.ArkData.html">ArkData</a></li></ol></li><li class="chapter-item "><a href="../../../src/utils/index.html">❱ utils</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/index.html">❱ CooldownEnforcer</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/CooldownEnforcer.sol/abstract.CooldownEnforcer.html">CooldownEnforcer</a></li><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/ICooldownEnforcer.sol/interface.ICooldownEnforcer.html">ICooldownEnforcer</a></li><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol/error.CooldownNotElapsed.html">CooldownNotElapsed</a></li><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/ICooldownEnforcerEvents.sol/event.CooldownUpdated.html">CooldownUpdated</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="../../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/OasisDEX/summer-earn-protocol" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="iark"><a class="header" href="#iark">IArk</a></h1>
+<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/interfaces/IArk.sol">Git Source</a></p>
+<p><strong>Inherits:</strong>
+<a href="/src/interfaces/IArkAccessManaged.sol/interface.IArkAccessManaged.html">IArkAccessManaged</a>, <a href="/src/events/IArkEvents.sol/interface.IArkEvents.html">IArkEvents</a>, <a href="/src/errors/IArkErrors.sol/interface.IArkErrors.html">IArkErrors</a>, <a href="/src/interfaces/IArkConfigProvider.sol/interface.IArkConfigProvider.html">IArkConfigProvider</a></p>
+<p>Interface for the Ark contract, which manages funds and interacts with Rafts</p>
+<p><em>Inherits from IArkAccessManaged for access control and IArkEvents for event definitions</em></p>
+<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<h3 id="totalassets"><a class="header" href="#totalassets">totalAssets</a></h3>
+<p>Returns the current underlying balance of the Ark</p>
+<pre><code class="language-solidity">function totalAssets() external view returns (uint256);
+</code></pre>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>The total assets in the Ark, in token precision</td></tr>
+</tbody></table>
+</div>
+<h3 id="harvest"><a class="header" href="#harvest">harvest</a></h3>
+<p>Triggers a harvest operation to collect rewards</p>
+<pre><code class="language-solidity">function harvest(bytes calldata additionalData)
+    external
+    returns (address[] memory rewardTokens, uint256[] memory rewardAmounts);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>additionalData</code></td><td><code>bytes</code></td><td>Optional bytes that might be required by a specific protocol to harvest</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rewardTokens</code></td><td><code>address[]</code></td><td>The reward token addresses</td></tr>
+<tr><td><code>rewardAmounts</code></td><td><code>uint256[]</code></td><td>The reward amounts</td></tr>
+</tbody></table>
+</div>
+<h3 id="sweep"><a class="header" href="#sweep">sweep</a></h3>
+<p>Sweeps tokens from the Ark</p>
+<pre><code class="language-solidity">function sweep(address[] calldata tokens)
+    external
+    returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>tokens</code></td><td><code>address[]</code></td><td>The tokens to sweep</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>sweptTokens</code></td><td><code>address[]</code></td><td>The swept tokens</td></tr>
+<tr><td><code>sweptAmounts</code></td><td><code>uint256[]</code></td><td>The swept amounts</td></tr>
+</tbody></table>
+</div>
+<h3 id="board"><a class="header" href="#board">board</a></h3>
+<p>Deposits (boards) tokens into the Ark</p>
+<pre><code class="language-solidity">function board(uint256 amount, bytes calldata boardData) external;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of tokens to deposit</td></tr>
+<tr><td><code>boardData</code></td><td><code>bytes</code></td><td>Additional data that might be required by a specific protocol to deposit funds</td></tr>
+</tbody></table>
+</div>
+<h3 id="disembark"><a class="header" href="#disembark">disembark</a></h3>
+<p>Withdraws (disembarks) tokens from the Ark</p>
+<pre><code class="language-solidity">function disembark(uint256 amount, bytes calldata disembarkData) external;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of tokens to withdraw</td></tr>
+<tr><td><code>disembarkData</code></td><td><code>bytes</code></td><td>Additional data that might be required by a specific protocol to withdraw funds</td></tr>
+</tbody></table>
+</div>
+<h3 id="move"><a class="header" href="#move">move</a></h3>
+<p>Moves tokens from one ark to another</p>
+<pre><code class="language-solidity">function move(uint256 amount, address receiver, bytes calldata boardData, bytes calldata disembarkData) external;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of tokens to move</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address of the Ark the funds will be boarded to</td></tr>
+<tr><td><code>boardData</code></td><td><code>bytes</code></td><td>Additional data that might be required by a specific protocol to board funds</td></tr>
+<tr><td><code>disembarkData</code></td><td><code>bytes</code></td><td>Additional data that might be required by a specific protocol to disembark funds</td></tr>
+</tbody></table>
+</div>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../../src/interfaces/IAdmiralsQuarters.sol/interface.IAdmiralsQuarters.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../../src/interfaces/IArkAccessManaged.sol/interface.IArkAccessManaged.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../../src/interfaces/IAdmiralsQuarters.sol/interface.IAdmiralsQuarters.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../../src/interfaces/IArkAccessManaged.sol/interface.IArkAccessManaged.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../../elasticlunr.min.js"></script>
+        <script src="../../../mark.min.js"></script>
+        <script src="../../../searcher.js"></script>
+
+        <script src="../../../clipboard.min.js"></script>
+        <script src="../../../highlight.js"></script>
+        <script src="../../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../../solidity.min.js"></script>
+
+
+    </div>
+    </body>
+</html>
