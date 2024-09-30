@@ -1,5 +1,5 @@
 # IFleetCommander
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/interfaces/IFleetCommander.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/0276900cbe9b1188d82d1b9bcbb8c174e79a15a1/src/interfaces/IFleetCommander.sol)
 
 **Inherits:**
 IERC4626, [IFleetCommanderEvents](/src/events/IFleetCommanderEvents.sol/interface.IFleetCommanderEvents.md), [IFleetCommanderErrors](/src/errors/IFleetCommanderErrors.sol/interface.IFleetCommanderErrors.md), [IFleetCommanderConfigProvider](/src/interfaces/IFleetCommanderConfigProvider.sol/interface.IFleetCommanderConfigProvider.md)
@@ -12,9 +12,28 @@ Interface for the FleetCommander contract, which manages asset allocation across
 
 Returns the total assets that are currently withdrawable from the FleetCommander.
 
+*If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)*
+
 
 ```solidity
 function withdrawableTotalAssets() external view returns (uint256);
+```
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|uint256 The total amount of assets that can be withdrawn.|
+
+
+### totalAssets
+
+Returns the total assets that are managed the FleetCommander.
+
+*If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)*
+
+
+```solidity
+function totalAssets() external view returns (uint256);
 ```
 **Returns**
 
@@ -43,6 +62,28 @@ function maxBufferWithdraw(address owner) external view returns (uint256);
 |Name|Type|Description|
 |----|----|-----------|
 |`<none>`|`uint256`|uint256 The maximum amount that can be withdrawn.|
+
+
+### maxBufferRedeem
+
+Returns the maximum amount of the underlying asset that can be redeemed from the owner balance in the
+Vault, directly from Buffer.
+
+
+```solidity
+function maxBufferRedeem(address owner) external view returns (uint256);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`owner`|`address`|The address of the owner of the assets|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint256`|uint256 The maximum amount that can be redeemed.|
 
 
 ### deposit
@@ -83,6 +124,58 @@ function withdrawFromArks(uint256 assets, address receiver, address owner) exter
 |Name|Type|Description|
 |----|----|-----------|
 |`shares`|`uint256`|The amount of shares redeemed|
+
+
+### withdraw
+
+Withdraws a specified amount of assets from the FleetCommander
+
+*This function first attempts to withdraw from the buffer. If the buffer doesn't have enough assets,
+it will withdraw from the arks. It also handles the case where the maximum possible amount is requested.*
+
+
+```solidity
+function withdraw(uint256 assets, address receiver, address owner) external returns (uint256 shares);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of assets to withdraw. If set to type(uint256).max, it will withdraw the maximum possible amount.|
+|`receiver`|`address`|The address that will receive the withdrawn assets|
+|`owner`|`address`|The address of the owner of the shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The number of shares burned in exchange for the withdrawn assets|
+
+
+### redeem
+
+Redeems a specified amount of shares from the FleetCommander
+
+*This function first attempts to redeem from the buffer. If the buffer doesn't have enough assets,
+it will redeem from the arks. It also handles the case where the maximum possible amount is requested.*
+
+
+```solidity
+function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`shares`|`uint256`|The number of shares to redeem. If set to type(uint256).max, it will redeem all shares owned by the owner.|
+|`receiver`|`address`|The address that will receive the redeemed assets|
+|`owner`|`address`|The address of the owner of the shares|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`assets`|`uint256`|The amount of assets received in exchange for the redeemed shares|
 
 
 ### redeemFromArks
@@ -248,7 +341,9 @@ function setTipJar() external;
 
 ### setTipRate
 
-Sets a new tip rate
+Sets a new tip rate for the FleetCommander
+
+*Only callable by the governor*
 
 *The tip rate is set as a Percentage. Percentages use 18 decimals of precision
 For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)*

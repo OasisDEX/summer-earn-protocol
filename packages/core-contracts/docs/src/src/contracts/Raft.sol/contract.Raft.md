@@ -1,5 +1,5 @@
 # Raft
-[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/f5de2d90d66614e7bd59fd42a9d06b870fe474cd/src/contracts/Raft.sol)
+[Git Source](https://github.com/OasisDEX/summer-earn-protocol/blob/0276900cbe9b1188d82d1b9bcbb8c174e79a15a1/src/contracts/Raft.sol)
 
 **Inherits:**
 [IRaft](/src/interfaces/IRaft.sol/interface.IRaft.md), [ArkAccessManaged](/src/contracts/ArkAccessManaged.sol/contract.ArkAccessManaged.md), [AuctionManagerBase](/src/contracts/AuctionManagerBase.sol/abstract.AuctionManagerBase.md)
