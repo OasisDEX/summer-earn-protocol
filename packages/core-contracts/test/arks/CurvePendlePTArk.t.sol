@@ -24,16 +24,17 @@ import {CurveSwapArkConstructorParams} from "../../src/contracts/arks/CurveSwapA
 import {CurveSwapPendlePtArk} from "../../src/contracts/arks/CurveSwapArk.sol";
 
 contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
-    PendlePTArk public ark;
+    CurveSwapPendlePtArk public ark;
 
     address constant USDE = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
+    address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address constant SUSDE = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
-    address constant MARKET = 0x19588F29f9402Bb508007FeADd415c875Ee3f19F;
+    address constant MARKET = 0xcDd26Eb5EB2Ce0f203a84553853667aE69Ca29Ce;
     address constant NEXT_MARKET = 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
     uint256 constant MARKET_EXPIRY_BLOCK = 20379839;
-    address constant SY = 0x42862F48eAdE25661558AFE0A630b132038553D0;
-    address constant PT = 0xa0021EF8970104c2d008F38D92f115ad56a9B8e1;
-    address constant YT = 0x1e3d13932C31d7355fCb3FEc680b0cD159dC1A07;
+    address constant SY = 0x3Ee118EFC826d30A29645eAf3b2EaaC9E8320185;
+    address constant PT = 0xE00bd3Df25fb187d6ABBB620b3dfd19839947b81;
+    address constant YT =  0x96512230bF0Fa4E20Cf02C3e8A7d983132cd2b9F;
     address constant PENDLE = 0x808507121B80c02388fAd14726482e061B8da827;
     address constant ROUTER = 0x888888888889758F76e7103c6CbF23ABbF58F946;
     address constant ORACLE = 0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2;
@@ -43,7 +44,7 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
     IPMarketV3 public pendleMarket;
     IPAllActionV3 public pendleRouter;
 
-    uint256 forkBlock = 20300752;
+    uint256 forkBlock = 20842720;
     uint256 forkId;
 
     function setUp() public {
@@ -58,7 +59,7 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
             name: "Pendle USDE PT Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: USDE,
+            token: SUSDE,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -102,7 +103,20 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
 
 
 function test_XXXX() public {
-    ark.
+    uint256 amount = 1000000 * 10 ** 6;
+    deal(USDC, commander, amount);
+    vm.prank(commander);
+    IERC20(USDC).approve(address(ark), amount);
+    vm.prank(commander);
+    ark.x(amount, bytes(""));
+    uint256 susdeBalanceOfArk = IERC20(SUSDE).balanceOf(address(ark));
+    console.log("susdeBalanceOfArk        : ", susdeBalanceOfArk);
+    uint256 usdeBalanceOfArk = IERC20(USDE).balanceOf(address(ark));
+    console.log("usdeBalanceOfArk         : ", usdeBalanceOfArk);
+    uint256 usdcBalanceOfArk = IERC20(USDC).balanceOf(address(ark));
+    console.log("usdcBalanceOfArk         : ", usdcBalanceOfArk);
+    uint256 ptBalanceOfArk = IERC20(PT).balanceOf(address(ark));
+    console.log("ptBalanceOfArk           : ", ptBalanceOfArk);
 }
     function test_Board_PendlePTArk_fork() public {
         // Arrange

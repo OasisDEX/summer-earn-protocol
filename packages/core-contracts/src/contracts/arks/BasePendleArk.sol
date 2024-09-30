@@ -130,7 +130,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @dev Rolls over to a new market if needed, then deposits tokens for Ark-specific tokens
      * @param amount Amount of assets to deposit
      */
-    function _board(uint256 amount, bytes calldata) internal override {
+    function _board(uint256 amount, bytes calldata) internal virtual override {
         _rolloverIfNeeded();
         _depositTokenForArkToken(amount);
     }
@@ -146,7 +146,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      *
      * The slippage is applied differently in each case to protect the user from unfavorable price movements.
      */
-    function _disembark(uint256 amount, bytes calldata) internal override {
+    function _disembark(uint256 amount, bytes calldata) internal virtual override {
         _rolloverIfNeeded();
         if (block.timestamp >= marketExpiry) {
             _redeemTokensPostExpiry(amount, amount);

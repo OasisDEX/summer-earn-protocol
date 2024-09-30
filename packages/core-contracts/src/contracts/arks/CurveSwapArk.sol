@@ -5,10 +5,12 @@ import {BaseSwapArk, ArkParams} from "./BaseSwapArk.sol";
 import {ICurveSwap} from "../../interfaces/curve/ICurveSwap.sol";
 import {PendlePTArk, PendlePtArkConstructorParams} from "./PendlePTArk.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 struct CurveSwapArkConstructorParams {
     address curvePool;
     address susde;
 }
+import {console} from "forge-std/console.sol";
 
 contract CurveSwapPendlePtArk is PendlePTArk {
     // 0x02950460e2b9529d0e00284a5fa2d7bdf3fa4d72
@@ -20,10 +22,11 @@ contract CurveSwapPendlePtArk is PendlePTArk {
 
     ICurveSwap public curveSwap;
     IERC4626 public susde;
-    uint256 public lowerEma = 0.99925 * 1e18;
-    uint256 public upperEma = 1.00075 * 1e18;
-    uint256 public constant USDE_INDEX = 0;
-    uint256 public constant USDC_INDEX = 1;
+    uint256 public lowerEma = 0.9995 * 1e18;
+     uint256 public upperEma = 1.00099 * 1e18;
+
+    int128 public constant USDE_INDEX = 0;
+    int128 public constant USDC_INDEX = 1;
 
     constructor(
         ArkParams memory _params,
@@ -31,30 +34,51 @@ contract CurveSwapPendlePtArk is PendlePTArk {
         CurveSwapArkConstructorParams memory _curveSwapArkConstructorParams
     ) PendlePTArk(_pendlePtArkConstructorParams, _params) {
         curveSwap = ICurveSwap(_curveSwapArkConstructorParams.curvePool);
+        susde = IERC4626(_curveSwapArkConstructorParams.susde);
     }
 
     function getExchangeRate() public view returns (uint256 price) {
-        price = curveSwap.ema_price(0);
+        price = curveSwap.last_price(0);
     }
 
-    function _board(uint256 amount, bytes calldata data) internal override shouldBuy {
+    function _board(
+        uint256 amount,
+        bytes calldata data
+    ) internal override shouldBuy {
         uint256 usdcAmount = amount;
-        uint256 minUsdeOut = (usdcAmount * getExchangeRate() * 99925) / 100000;
+        uint256 perfectOut = (usdcAmount * getExchangeRate()  ) / 1e6;
+        console.log("preview susde amount     : ", susde.previewDeposit(perfectOut));
+        console.log("perfectOut               : ", perfectOut);
+        uint256 minUsdeOut =( ( usdcAmount * getExchangeRate() * lowerEma  ) / 1e18)/ 1e6;
+        IERC20(curveSwap.coins(1)).approve(address(curveSwap), usdcAmount);
         uint256 usdeAmount = curveSwap.exchange(
             USDC_INDEX,
             USDE_INDEX,
             usdcAmount,
             minUsdeOut
         );
+        console.log("usdcAmount               : ", usdcAmount);
+        console.log("minUsdeOut               : ", minUsdeOut );
+        console.log("bought usde              : ", usdeAmount);
+        IERC20(curveSwap.coins(0)).approve(address(susde), usdeAmount);
         susde.deposit(usdeAmount, address(this));
+        console.log("got    susde             : ", susde.balanceOf(address(this)));
         super._board(susde.balanceOf(address(this)), data);
     }
-    function _disembark(uint256 amount, bytes calldata data) internal override shouldTrade {
-        super._disembark(amount, data);
-        susde.withdraw(amount, address(this), address(this));
-        uint256 minUsdcOut = amount;
-        uint256 minUsde
-        curveSwap.exchange(USDE_INDEX, USDC_INDEX, amount, 0);
+
+    function x(uint256 amount, bytes calldata data) public {
+        IERC20(curveSwap.coins(1)).transferFrom(msg.sender, address(this), amount);
+        _board(amount, data);
+    }
+
+    function _disembark(
+        uint256 amount,
+        bytes calldata data
+    ) internal override shouldTrade {
+        // super._disembark(amount, data);
+        // susde.withdraw(amount, address(this), address(this));
+        // uint256 minUsdcOut = amount;
+        // curveSwap.exchange(USDE_INDEX, USDC_INDEX, amount, 0);
     }
 
     modifier shouldBuy() {
