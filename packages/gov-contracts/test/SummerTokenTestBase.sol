@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
+import {SummerToken} from "../src/contracts/SummerToken.sol";
+import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
 
 import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -24,6 +24,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
     SummerToken public aSummerToken;
     SummerToken public bSummerToken;
 
+    address public lzEndpointA;
+    address public lzEndpointB;
+
     address public owner = address(this);
     address public summerGovernor = address(this);
 
@@ -39,8 +42,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
 
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
-        address lzEndpointA = address(endpoints[aEid]);
-        address lzEndpointB = address(endpoints[bEid]);
+        lzEndpointA = address(endpoints[aEid]);
+        lzEndpointB = address(endpoints[bEid]);
         vm.label(lzEndpointA, "LayerZero Endpoint A");
         vm.label(lzEndpointB, "LayerZero Endpoint B");
 
@@ -71,9 +74,12 @@ contract SummerTokenTestBase is TestHelperOz5 {
         this.wireOApps(tokens);
     }
 
-    function changeTokensOwnership(address _newOwner) public {
-        aSummerToken.transferOwnership(_newOwner);
-        bSummerToken.transferOwnership(_newOwner);
+    function changeTokensOwnership(
+        address _newOwnerA,
+        address _newOwnerB
+    ) public {
+        aSummerToken.transferOwnership(_newOwnerA);
+        bSummerToken.transferOwnership(_newOwnerB);
     }
 }
 

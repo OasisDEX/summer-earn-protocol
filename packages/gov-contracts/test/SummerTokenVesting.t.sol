@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
-import {SummerVestingWallet} from "../../src/contracts/SummerVestingWallet.sol";
-import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
+import {SummerToken} from "../src/contracts/SummerToken.sol";
+import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
+import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";

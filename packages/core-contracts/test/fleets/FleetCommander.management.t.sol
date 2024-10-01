@@ -11,8 +11,9 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvents.sol";
-import {IArkEvents} from "../../src/events/IArkEvents.sol";
+
 import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvents.sol";
+import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";

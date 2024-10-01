@@ -205,6 +205,7 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             "Remaining assets should more than initial balance minus withdrawn amount (accounting the accrued interest)"
         );
     }
+
     function testHarvest() public {
         // Prepare harvest data
         address[] memory urd = new address[](1);

@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -124,10 +123,6 @@ contract SummerToken is
 
         // @dev In NON-default OFT, amountSentLD could be 100, with a 10% fee, the amountReceivedLD amount is 90,
         // therefore amountSentLD CAN differ from amountReceivedLD.
-
-        // @dev See Votes.sol::_transferVotingUnits
-        // We burn the account holders voting units on teleport
-        _transferVotingUnits(_from, address(0), _amountLD);
 
         // @dev Default OFT burns on src.
         _burn(_from, amountSentLD);
