@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -12,8 +12,7 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 
-import "./SummerVestingWallet.sol";
-import {console} from "forge-std/console.sol";
+import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 
 contract SummerToken is
     OFT,
@@ -31,9 +30,7 @@ contract SummerToken is
         OFT(params.name, params.symbol, params.lzEndpoint, params.governor)
         ERC20Permit(params.name)
         Ownable(params.governor)
-    {
-        _mint(params.governor, INITIAL_SUPPLY * 10 ** decimals());
-    }
+    {}
 
     /**
      * @dev Creates a new vesting wallet for a beneficiary
@@ -134,6 +131,29 @@ contract SummerToken is
 
         // @dev Default OFT burns on src.
         _burn(_from, amountSentLD);
+    }
+
+    /**
+     * @dev Override to include all user tokens in voting power - including locked up tokens
+     * @param account The address to get voting units for
+     * @return The number of voting units for the account
+     */
+    function _getVotingUnits(
+        address account
+    ) internal view override returns (uint256) {
+        uint256 directBalance = balanceOf(account);
+        address vestingWalletAddress = vestingWallets[account];
+
+        if (vestingWalletAddress != address(0)) {
+            uint256 vestingWalletBalance = balanceOf(vestingWalletAddress);
+            return directBalance + vestingWalletBalance;
+        }
+
+        return directBalance;
+    }
+
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
     }
 
     /**

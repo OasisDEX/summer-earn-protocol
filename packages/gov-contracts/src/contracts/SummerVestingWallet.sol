@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "@openzeppelin/contracts/finance/VestingWallet.sol";
 
@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/finance/VestingWallet.sol";
  * @dev Extension of OpenZeppelin's VestingWallet with custom vesting schedules.
  * Supports two types of vesting: 6-month cliff with full unlock, and 2-year vesting with quarterly unlocks.
  */
-
 contract SummerVestingWallet is VestingWallet {
     /// @dev Duration of a quarter in seconds
     uint256 private constant QUARTER = 91 days;
