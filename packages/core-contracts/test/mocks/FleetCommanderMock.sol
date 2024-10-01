@@ -37,7 +37,14 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function withdrawableTotalAssets() external pure returns (uint256) {
         return 0;
     }
-
+    function totalAssets()
+        public
+        view
+        override(IFleetCommander, ERC4626)
+        returns (uint256)
+    {
+        return super.totalAssets();
+    }
     function deposit(
         uint256 assets,
         address receiver
@@ -58,8 +65,16 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         uint256 assets,
         address receiver,
         address owner
-    ) public override(IERC4626, ERC4626) returns (uint256) {
+    ) public override(IFleetCommander, ERC4626) returns (uint256) {
         return super.withdraw(assets, receiver, owner);
+    }
+
+    function redeem(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override(IFleetCommander, ERC4626) returns (uint256) {
+        return super.redeem(assets, receiver, owner);
     }
 
     function setTipRate(Percentage newTipRate) external {
@@ -140,6 +155,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     ) external returns (uint256) {}
 
     function maxBufferWithdraw(address owner) external view returns (uint256) {}
+    function maxBufferRedeem(address owner) external view returns (uint256) {}
 
     function getConfig() external view override returns (FleetConfig memory) {
         return config;

@@ -23,3 +23,6 @@ packages/gov-contracts/lib/**
 packages/**/src/generated
 packages/**/types/generated
 apps/**/types/generated/*
+**/*.min.js
+**/searchindex.js
+**/book/**

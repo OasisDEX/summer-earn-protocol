@@ -1,0 +1,874 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>FleetCommander</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../../favicon.svg">
+        <link rel="shortcut icon" href="../../../favicon.png">
+        <link rel="stylesheet" href="../../../css/variables.css">
+        <link rel="stylesheet" href="../../../css/general.css">
+        <link rel="stylesheet" href="../../../css/chrome.css">
+        <link rel="stylesheet" href="../../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../../highlight.css">
+        <link rel="stylesheet" href="../../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../../../book.css">
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item "><a href="../../../index.html">Home</a></li><li class="chapter-item affix "><li class="part-title">src</li><li class="chapter-item expanded "><a href="../../../src/contracts/index.html">❱ contracts</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/contracts/arks/index.html">❱ arks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/contracts/arks/AaveV3Ark.sol/contract.AaveV3Ark.html">AaveV3Ark</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/BasePendleArk.sol/abstract.BasePendleArk.html">BasePendleArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/BufferArk.sol/contract.BufferArk.html">BufferArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/CompoundV3Ark.sol/contract.CompoundV3Ark.html">CompoundV3Ark</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/ERC4626Ark.sol/contract.ERC4626Ark.html">ERC4626Ark</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/MetaMorphoArk.sol/contract.MetaMorphoArk.html">MetaMorphoArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/MorphoArk.sol/error.InvalidMorphoAddress.html">InvalidMorphoAddress</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/MorphoArk.sol/error.InvalidMarketId.html">InvalidMarketId</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/MorphoArk.sol/contract.MorphoArk.html">MorphoArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/PendleLPArk.sol/contract.PendleLPArk.html">PendleLPArk</a></li><li class="chapter-item "><a href="../../../src/contracts/arks/PendlePTArk.sol/contract.PendlePTArk.html">PendlePTArk</a></li></ol></li><li class="chapter-item "><a href="../../../src/contracts/libraries/index.html">❱ libraries</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/contracts/libraries/Constants.sol/library.Constants.html">Constants</a></li><li class="chapter-item "><a href="../../../src/contracts/libraries/StorageSlots.sol/library.StorageSlots.html">StorageSlots</a></li></ol></li><li class="chapter-item "><a href="../../../src/contracts/AdmiralsQuarters.sol/contract.AdmiralsQuarters.html">AdmiralsQuarters</a></li><li class="chapter-item "><a href="../../../src/contracts/Ark.sol/abstract.Ark.html">Ark</a></li><li class="chapter-item "><a href="../../../src/contracts/ArkAccessManaged.sol/contract.ArkAccessManaged.html">ArkAccessManaged</a></li><li class="chapter-item "><a href="../../../src/contracts/ArkConfigProvider.sol/abstract.ArkConfigProvider.html">ArkConfigProvider</a></li><li class="chapter-item "><a href="../../../src/contracts/AuctionManagerBase.sol/abstract.AuctionManagerBase.html">AuctionManagerBase</a></li><li class="chapter-item "><a href="../../../src/contracts/BuyAndBurn.sol/contract.BuyAndBurn.html">BuyAndBurn</a></li><li class="chapter-item "><a href="../../../src/contracts/ConfigurationManager.sol/contract.ConfigurationManager.html">ConfigurationManager</a></li><li class="chapter-item expanded "><a href="../../../src/contracts/FleetCommander.sol/contract.FleetCommander.html" class="active">FleetCommander</a></li><li class="chapter-item "><a href="../../../src/contracts/FleetCommanderCache.sol/contract.FleetCommanderCache.html">FleetCommanderCache</a></li><li class="chapter-item "><a href="../../../src/contracts/FleetCommanderConfigProvider.sol/contract.FleetCommanderConfigProvider.html">FleetCommanderConfigProvider</a></li><li class="chapter-item "><a href="../../../src/contracts/HarborCommand.sol/contract.HarborCommand.html">HarborCommand</a></li><li class="chapter-item "><a href="../../../src/contracts/LimitedAccessControl.sol/contract.LimitedAccessControl.html">LimitedAccessControl</a></li><li class="chapter-item "><a href="../../../src/contracts/ProtocolAccessManaged.sol/contract.ProtocolAccessManaged.html">ProtocolAccessManaged</a></li><li class="chapter-item "><a href="../../../src/contracts/ProtocolAccessManager.sol/contract.ProtocolAccessManager.html">ProtocolAccessManager</a></li><li class="chapter-item "><a href="../../../src/contracts/Raft.sol/contract.Raft.html">Raft</a></li><li class="chapter-item "><a href="../../../src/contracts/TipJar.sol/contract.TipJar.html">TipJar</a></li><li class="chapter-item "><a href="../../../src/contracts/Tipper.sol/abstract.Tipper.html">Tipper</a></li></ol></li><li class="chapter-item "><a href="../../../src/errors/index.html">❱ errors</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/errors/arks/index.html">❱ arks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/errors/arks/IPendleBaseArkErrors.sol/interface.IPendleBaseArkErrors.html">IPendleBaseArkErrors</a></li></ol></li><li class="chapter-item "><a href="../../../src/errors/IAccessControlErrors.sol/interface.IAccessControlErrors.html">IAccessControlErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IAdmiralsQuartersErrors.sol/interface.IAdmiralsQuartersErrors.html">IAdmiralsQuartersErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IArkConfigProviderErrors.sol/interface.IArkConfigProviderErrors.html">IArkConfigProviderErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IArkErrors.sol/interface.IArkErrors.html">IArkErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IArkFactoryErrors.sol/interface.IArkFactoryErrors.html">IArkFactoryErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IBuyAndBurnErrors.sol/interface.IBuyAndBurnErrors.html">IBuyAndBurnErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IConfigurationManagerErrors.sol/interface.IConfigurationManagerErrors.html">IConfigurationManagerErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IFleetCommanderConfigProviderErrors.sol/interface.IFleetCommanderConfigProviderErrors.html">IFleetCommanderConfigProviderErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IFleetCommanderErrors.sol/interface.IFleetCommanderErrors.html">IFleetCommanderErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IHarborCommandErrors.sol/interface.IHarborCommandErrors.html">IHarborCommandErrors</a></li><li class="chapter-item "><a href="../../../src/errors/IRaftErrors.sol/interface.IRaftErrors.html">IRaftErrors</a></li><li class="chapter-item "><a href="../../../src/errors/ITipJarErrors.sol/interface.ITipJarErrors.html">ITipJarErrors</a></li><li class="chapter-item "><a href="../../../src/errors/ITipperErrors.sol/interface.ITipperErrors.html">ITipperErrors</a></li></ol></li><li class="chapter-item "><a href="../../../src/events/index.html">❱ events</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/events/arks/index.html">❱ arks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/events/arks/IPendleBaseArkEvents.sol/interface.IPendleBaseArkEvents.html">IPendleBaseArkEvents</a></li></ol></li><li class="chapter-item "><a href="../../../src/events/IAdmiralsQuartersEvents.sol/interface.IAdmiralsQuartersEvents.html">IAdmiralsQuartersEvents</a></li><li class="chapter-item "><a href="../../../src/events/IArkConfigProviderEvents.sol/interface.IArkConfigProviderEvents.html">IArkConfigProviderEvents</a></li><li class="chapter-item "><a href="../../../src/events/IArkEvents.sol/interface.IArkEvents.html">IArkEvents</a></li><li class="chapter-item "><a href="../../../src/events/IAuctionManagerBaseEvents.sol/interface.IAuctionManagerBaseEvents.html">IAuctionManagerBaseEvents</a></li><li class="chapter-item "><a href="../../../src/events/IBuyAndBurnEvents.sol/interface.IBuyAndBurnEvents.html">IBuyAndBurnEvents</a></li><li class="chapter-item "><a href="../../../src/events/IConfigurationManagerEvents.sol/interface.IConfigurationManagerEvents.html">IConfigurationManagerEvents</a></li><li class="chapter-item "><a href="../../../src/events/IFleetCommanderConfigProviderEvents.sol/interface.IFleetCommanderConfigProviderEvents.html">IFleetCommanderConfigProviderEvents</a></li><li class="chapter-item "><a href="../../../src/events/IFleetCommanderEvents.sol/interface.IFleetCommanderEvents.html">IFleetCommanderEvents</a></li><li class="chapter-item "><a href="../../../src/events/IHarborCommandEvents.sol/interface.IHarborCommandEvents.html">IHarborCommandEvents</a></li><li class="chapter-item "><a href="../../../src/events/IRaftEvents.sol/interface.IRaftEvents.html">IRaftEvents</a></li><li class="chapter-item "><a href="../../../src/events/ITipJarEvents.sol/interface.ITipJarEvents.html">ITipJarEvents</a></li><li class="chapter-item "><a href="../../../src/events/ITipperEvents.sol/interface.ITipperEvents.html">ITipperEvents</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/index.html">❱ interfaces</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/1inch/index.html">❱ 1inch</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/1inch/IAggregationRouterV6.sol/interface.IAggregationRouterV6.html">IAggregationRouterV6</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/index.html">❱ aave-v3</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/DataTypes.sol/library.DataTypes.html">DataTypes</a></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/IPoolAddressesProvider.sol/interface.IPoolAddressesProvider.html">IPoolAddressesProvider</a></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/IPoolDataProvider.sol/interface.IPoolDataProvider.html">IPoolDataProvider</a></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/IPoolV3.sol/interface.IPoolV3.html">IPoolV3</a></li><li class="chapter-item "><a href="../../../src/interfaces/aave-v3/IRewardsController.sol/interface.IRewardsController.html">IRewardsController</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/arks/index.html">❱ arks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/arks/IPendleBaseArk.sol/interface.IPendleBaseArk.html">IPendleBaseArk</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/compound-v3/index.html">❱ compound-v3</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/compound-v3/IComet.sol/interface.IComet.html">IComet</a></li><li class="chapter-item "><a href="../../../src/interfaces/compound-v3/ICometRewards.sol/interface.ICometRewards.html">ICometRewards</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/maker/index.html">❱ maker</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/maker/IPot.sol/interface.IPot.html">IPot</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/morpho/index.html">❱ morpho</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/interfaces/morpho/IUniversalRewardsDistributor.sol/struct.PendingRoot.html">PendingRoot</a></li><li class="chapter-item "><a href="../../../src/interfaces/morpho/IUniversalRewardsDistributor.sol/interface.IUniversalRewardsDistributor.html">IUniversalRewardsDistributor</a></li></ol></li><li class="chapter-item "><a href="../../../src/interfaces/IAdmiralsQuarters.sol/interface.IAdmiralsQuarters.html">IAdmiralsQuarters</a></li><li class="chapter-item "><a href="../../../src/interfaces/IArk.sol/interface.IArk.html">IArk</a></li><li class="chapter-item "><a href="../../../src/interfaces/IArkAccessManaged.sol/interface.IArkAccessManaged.html">IArkAccessManaged</a></li><li class="chapter-item "><a href="../../../src/interfaces/IArkConfigProvider.sol/interface.IArkConfigProvider.html">IArkConfigProvider</a></li><li class="chapter-item "><a href="../../../src/interfaces/IBuyAndBurn.sol/interface.IBuyAndBurn.html">IBuyAndBurn</a></li><li class="chapter-item "><a href="../../../src/interfaces/IConfigurationManager.sol/interface.IConfigurationManager.html">IConfigurationManager</a></li><li class="chapter-item "><a href="../../../src/interfaces/IFleetCommander.sol/interface.IFleetCommander.html">IFleetCommander</a></li><li class="chapter-item "><a href="../../../src/interfaces/IFleetCommanderConfigProvider.sol/interface.IFleetCommanderConfigProvider.html">IFleetCommanderConfigProvider</a></li><li class="chapter-item "><a href="../../../src/interfaces/IHarborCommand.sol/interface.IHarborCommand.html">IHarborCommand</a></li><li class="chapter-item "><a href="../../../src/interfaces/IProtocolAccessManager.sol/interface.IProtocolAccessManager.html">IProtocolAccessManager</a></li><li class="chapter-item "><a href="../../../src/interfaces/IRaft.sol/interface.IRaft.html">IRaft</a></li><li class="chapter-item "><a href="../../../src/interfaces/ITipJar.sol/interface.ITipJar.html">ITipJar</a></li><li class="chapter-item "><a href="../../../src/interfaces/ITipper.sol/interface.ITipper.html">ITipper</a></li></ol></li><li class="chapter-item "><a href="../../../src/types/index.html">❱ types</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/types/ArkFactoryTypes.sol/struct.ArkFactoryParams.html">ArkFactoryParams</a></li><li class="chapter-item "><a href="../../../src/types/ArkTypes.sol/struct.ArkParams.html">ArkParams</a></li><li class="chapter-item "><a href="../../../src/types/ArkTypes.sol/struct.ArkConfig.html">ArkConfig</a></li><li class="chapter-item "><a href="../../../src/types/CommonAuctionTypes.sol/struct.AuctionDefaultParameters.html">AuctionDefaultParameters</a></li><li class="chapter-item "><a href="../../../src/types/ConfigurationManagerTypes.sol/struct.ConfigurationManagerParams.html">ConfigurationManagerParams</a></li><li class="chapter-item "><a href="../../../src/types/FleetCommanderTypes.sol/struct.FleetCommanderParams.html">FleetCommanderParams</a></li><li class="chapter-item "><a href="../../../src/types/FleetCommanderTypes.sol/struct.FleetConfig.html">FleetConfig</a></li><li class="chapter-item "><a href="../../../src/types/FleetCommanderTypes.sol/struct.RebalanceData.html">RebalanceData</a></li><li class="chapter-item "><a href="../../../src/types/FleetCommanderTypes.sol/struct.ArkData.html">ArkData</a></li></ol></li><li class="chapter-item "><a href="../../../src/utils/index.html">❱ utils</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/index.html">❱ CooldownEnforcer</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/CooldownEnforcer.sol/abstract.CooldownEnforcer.html">CooldownEnforcer</a></li><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/ICooldownEnforcer.sol/interface.ICooldownEnforcer.html">ICooldownEnforcer</a></li><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/ICooldownEnforcerErrors.sol/error.CooldownNotElapsed.html">CooldownNotElapsed</a></li><li class="chapter-item "><a href="../../../src/utils/CooldownEnforcer/ICooldownEnforcerEvents.sol/event.CooldownUpdated.html">CooldownUpdated</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="../../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/OasisDEX/summer-earn-protocol" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="fleetcommander"><a class="header" href="#fleetcommander">FleetCommander</a></h1>
+<p><a href="https://github.com/OasisDEX/summer-earn-protocol/blob/0276900cbe9b1188d82d1b9bcbb8c174e79a15a1/src/contracts/FleetCommander.sol">Git Source</a></p>
+<p><strong>Inherits:</strong>
+<a href="/src/interfaces/IFleetCommander.sol/interface.IFleetCommander.html">IFleetCommander</a>, ERC4626, <a href="/src/contracts/Tipper.sol/abstract.Tipper.html">Tipper</a>, <a href="/src/contracts/FleetCommanderConfigProvider.sol/contract.FleetCommanderConfigProvider.html">FleetCommanderConfigProvider</a>, <a href="/src/contracts/FleetCommanderCache.sol/contract.FleetCommanderCache.html">FleetCommanderCache</a>, <a href="/src/utils/CooldownEnforcer/CooldownEnforcer.sol/abstract.CooldownEnforcer.html">CooldownEnforcer</a></p>
+<h2 id="state-variables"><a class="header" href="#state-variables">State Variables</a></h2>
+<h3 id="default_max_rebalance_operations"><a class="header" href="#default_max_rebalance_operations">DEFAULT_MAX_REBALANCE_OPERATIONS</a></h3>
+<pre><code class="language-solidity">uint256 public constant DEFAULT_MAX_REBALANCE_OPERATIONS = 10;
+</code></pre>
+<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<h3 id="constructor"><a class="header" href="#constructor">constructor</a></h3>
+<pre><code class="language-solidity">constructor(FleetCommanderParams memory params)
+    ERC4626(IERC20(params.asset))
+    ERC20(params.name, params.symbol)
+    FleetCommanderConfigProvider(params)
+    Tipper(params.configurationManager, params.initialTipRate)
+    CooldownEnforcer(params.initialRebalanceCooldown, false);
+</code></pre>
+<h3 id="collecttip"><a class="header" href="#collecttip">collectTip</a></h3>
+<p><em>Modifier to collect the tip before any other action is taken</em></p>
+<pre><code class="language-solidity">modifier collectTip();
+</code></pre>
+<h3 id="usedepositcache"><a class="header" href="#usedepositcache">useDepositCache</a></h3>
+<p>This modifier retrieves ark data before the function execution,
+allows the modified function to run, and then flushes the cache.</p>
+<p><em>Modifier to cache ark data for deposit operations.</em></p>
+<p><em>The cache is required due to multiple calls to <code>totalAssets</code> in the same transaction.
+those calls migh be gas expensive for some arks.</em></p>
+<pre><code class="language-solidity">modifier useDepositCache();
+</code></pre>
+<h3 id="usewithdrawcache"><a class="header" href="#usewithdrawcache">useWithdrawCache</a></h3>
+<p>This modifier retrieves withdrawable ark data before the function execution,
+allows the modified function to run, and then flushes the cache.</p>
+<p><em>Modifier to cache withdrawable ark data for withdraw operations.</em></p>
+<p><em>The cache is required due to multiple calls to <code>totalAssets</code> in the same transaction.
+those calls migh be gas expensive for some arks.</em></p>
+<pre><code class="language-solidity">modifier useWithdrawCache();
+</code></pre>
+<h3 id="withdrawfrombuffer"><a class="header" href="#withdrawfrombuffer">withdrawFromBuffer</a></h3>
+<pre><code class="language-solidity">function withdrawFromBuffer(uint256 assets, address receiver, address owner) public returns (uint256 shares);
+</code></pre>
+<h3 id="redeem"><a class="header" href="#redeem">redeem</a></h3>
+<p>Redeems a specified amount of shares from the FleetCommander</p>
+<p><em>This function first attempts to redeem from the buffer. If the buffer doesn't have enough assets,
+it will redeem from the arks. It also handles the case where the maximum possible amount is requested.</em></p>
+<pre><code class="language-solidity">function redeem(
+    uint256 shares,
+    address receiver,
+    address owner
+)
+    public
+    override(ERC4626, IFleetCommander)
+    collectTip
+    useWithdrawCache
+    returns (uint256 assets);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares to redeem. If set to type(uint256).max, it will redeem all shares owned by the owner.</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the redeemed assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets received in exchange for the redeemed shares</td></tr>
+</tbody></table>
+</div>
+<h3 id="redeemfrombuffer"><a class="header" href="#redeemfrombuffer">redeemFromBuffer</a></h3>
+<p>Redeems shares for assets directly from the Buffer</p>
+<pre><code class="language-solidity">function redeemFromBuffer(
+    uint256 shares,
+    address receiver,
+    address owner
+)
+    public
+    collectTip
+    useWithdrawCache
+    returns (uint256 assets);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The amount of shares to redeem</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets redeemed</td></tr>
+</tbody></table>
+</div>
+<h3 id="withdraw"><a class="header" href="#withdraw">withdraw</a></h3>
+<p>Withdraws a specified amount of assets from the FleetCommander</p>
+<p><em>This function first attempts to withdraw from the buffer. If the buffer doesn't have enough assets,
+it will withdraw from the arks. It also handles the case where the maximum possible amount is requested.</em></p>
+<pre><code class="language-solidity">function withdraw(
+    uint256 assets,
+    address receiver,
+    address owner
+)
+    public
+    override(ERC4626, IFleetCommander)
+    collectTip
+    useWithdrawCache
+    returns (uint256 shares);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to withdraw. If set to type(uint256).max, it will withdraw the maximum possible amount.</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the withdrawn assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares burned in exchange for the withdrawn assets</td></tr>
+</tbody></table>
+</div>
+<h3 id="withdrawfromarks"><a class="header" href="#withdrawfromarks">withdrawFromArks</a></h3>
+<p>Forces a withdrawal of assets from the FleetCommander</p>
+<pre><code class="language-solidity">function withdrawFromArks(
+    uint256 assets,
+    address receiver,
+    address owner
+)
+    public
+    override(IFleetCommander)
+    collectTip
+    useWithdrawCache
+    returns (uint256 totalSharesToRedeem);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to forcefully withdraw</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the withdrawn assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>totalSharesToRedeem</code></td><td><code>uint256</code></td><td>shares The amount of shares redeemed</td></tr>
+</tbody></table>
+</div>
+<h3 id="redeemfromarks"><a class="header" href="#redeemfromarks">redeemFromArks</a></h3>
+<p>Redeems shares for assets from the FleetCommander</p>
+<pre><code class="language-solidity">function redeemFromArks(
+    uint256 shares,
+    address receiver,
+    address owner
+)
+    public
+    override(IFleetCommander)
+    collectTip
+    useWithdrawCache
+    returns (uint256 totalAssetsToWithdraw);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The amount of shares to redeem</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address that will receive the assets</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>totalAssetsToWithdraw</code></td><td><code>uint256</code></td><td>assets The amount of assets forcefully withdrawn</td></tr>
+</tbody></table>
+</div>
+<h3 id="deposit"><a class="header" href="#deposit">deposit</a></h3>
+<p>Mints shares Vault shares to receiver by depositing exactly amount of underlying tokens.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST emit the Deposit event.</li>
+<li>MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the
+deposit execution, and are accounted for during deposit.</li>
+<li>MUST revert if all of assets cannot be deposited (due to deposit limit being reached, slippage, the user not
+approving enough underlying tokens to the Vault contract, etc).
+NOTE: most implementations will require pre-approval of the Vault with the Vault’s underlying asset token.*</li>
+</ul>
+<pre><code class="language-solidity">function deposit(
+    uint256 assets,
+    address receiver
+)
+    public
+    override(ERC4626, IERC4626)
+    collectTip
+    useDepositCache
+    returns (uint256 shares);
+</code></pre>
+<h3 id="deposit-1"><a class="header" href="#deposit-1">deposit</a></h3>
+<p>Deposits a specified amount of assets into the contract for a given receiver.</p>
+<pre><code class="language-solidity">function deposit(uint256 assets, address receiver, bytes memory referralCode) public returns (uint256);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to be deposited.</td></tr>
+<tr><td><code>receiver</code></td><td><code>address</code></td><td>The address of the receiver who will receive the deposited assets.</td></tr>
+<tr><td><code>referralCode</code></td><td><code>bytes</code></td><td>An optional referral code that can be used for tracking or rewards.</td></tr>
+</tbody></table>
+</div>
+<h3 id="mint"><a class="header" href="#mint">mint</a></h3>
+<p>Mints exactly shares Vault shares to receiver by depositing amount of underlying tokens.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST emit the Deposit event.</li>
+<li>MAY support an additional flow in which the underlying tokens are owned by the Vault contract before the mint
+execution, and are accounted for during mint.</li>
+<li>MUST revert if all of shares cannot be minted (due to deposit limit being reached, slippage, the user not
+approving enough underlying tokens to the Vault contract, etc).
+NOTE: most implementations will require pre-approval of the Vault with the Vault’s underlying asset token.*</li>
+</ul>
+<pre><code class="language-solidity">function mint(
+    uint256 shares,
+    address receiver
+)
+    public
+    override(ERC4626, IERC4626)
+    collectTip
+    useDepositCache
+    returns (uint256 assets);
+</code></pre>
+<h3 id="tip"><a class="header" href="#tip">tip</a></h3>
+<p>Accrues and distributes tips</p>
+<pre><code class="language-solidity">function tip() public returns (uint256);
+</code></pre>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The amount of tips accrued</td></tr>
+</tbody></table>
+</div>
+<h3 id="totalassets"><a class="header" href="#totalassets">totalAssets</a></h3>
+<p>Returns the total assets that are managed the FleetCommander.</p>
+<p><em>If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)</em></p>
+<pre><code class="language-solidity">function totalAssets() public view override(IFleetCommander, ERC4626) returns (uint256);
+</code></pre>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The total amount of assets that can be withdrawn.</td></tr>
+</tbody></table>
+</div>
+<h3 id="withdrawabletotalassets"><a class="header" href="#withdrawabletotalassets">withdrawableTotalAssets</a></h3>
+<p>Returns the total assets that are currently withdrawable from the FleetCommander.</p>
+<p><em>If cached data is available, it will be used. Otherwise, it will be calculated on demand (and cached)</em></p>
+<pre><code class="language-solidity">function withdrawableTotalAssets() public view returns (uint256);
+</code></pre>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 The total amount of assets that can be withdrawn.</td></tr>
+</tbody></table>
+</div>
+<h3 id="maxdeposit"><a class="header" href="#maxdeposit">maxDeposit</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be deposited into the Vault for the receiver,
+through a deposit call.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST return a limited value if receiver is subject to some deposit limit.</li>
+<li>MUST return 2 ** 256 - 1 if there is no limit on the maximum amount of assets that may be deposited.</li>
+<li>MUST NOT revert.*</li>
+</ul>
+<pre><code class="language-solidity">function maxDeposit(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit);
+</code></pre>
+<h3 id="maxmint"><a class="header" href="#maxmint">maxMint</a></h3>
+<p>Returns the maximum amount of the Vault shares that can be minted for the receiver, through a mint call.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST return a limited value if receiver is subject to some mint limit.</li>
+<li>MUST return 2 ** 256 - 1 if there is no limit on the maximum amount of shares that may be minted.</li>
+<li>MUST NOT revert.*</li>
+</ul>
+<pre><code class="language-solidity">function maxMint(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxMint);
+</code></pre>
+<h3 id="maxbufferwithdraw"><a class="header" href="#maxbufferwithdraw">maxBufferWithdraw</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
+Vault, directly from Buffer.</p>
+<pre><code class="language-solidity">function maxBufferWithdraw(address owner) public view returns (uint256 _maxBufferWithdraw);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_maxBufferWithdraw</code></td><td><code>uint256</code></td><td>uint256 The maximum amount that can be withdrawn.</td></tr>
+</tbody></table>
+</div>
+<h3 id="maxwithdraw"><a class="header" href="#maxwithdraw">maxWithdraw</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be withdrawn from the owner balance in the
+Vault, through a withdraw call.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST return a limited value if owner is subject to some withdrawal limit or timelock.</li>
+<li>MUST NOT revert.*</li>
+</ul>
+<pre><code class="language-solidity">function maxWithdraw(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw);
+</code></pre>
+<h3 id="maxredeem"><a class="header" href="#maxredeem">maxRedeem</a></h3>
+<p>Returns the maximum amount of Vault shares that can be redeemed from the owner balance in the Vault,
+through a redeem call.</p>
+<ul>
+<li></li>
+</ul>
+<ul>
+<li>MUST return a limited value if owner is subject to some withdrawal limit or timelock.</li>
+<li>MUST return balanceOf(owner) if owner is not subject to any withdrawal limit or timelock.</li>
+<li>MUST NOT revert.*</li>
+</ul>
+<pre><code class="language-solidity">function maxRedeem(address owner) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem);
+</code></pre>
+<h3 id="maxbufferredeem"><a class="header" href="#maxbufferredeem">maxBufferRedeem</a></h3>
+<p>Returns the maximum amount of the underlying asset that can be redeemed from the owner balance in the
+Vault, directly from Buffer.</p>
+<pre><code class="language-solidity">function maxBufferRedeem(address owner) public view returns (uint256 _maxBufferRedeem);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_maxBufferRedeem</code></td><td><code>uint256</code></td><td>uint256 The maximum amount that can be redeemed.</td></tr>
+</tbody></table>
+</div>
+<h3 id="rebalance"><a class="header" href="#rebalance">rebalance</a></h3>
+<p>Rebalances the assets across Arks</p>
+<p>*RebalanceData struct contains:</p>
+<ul>
+<li>fromArk: The address of the Ark to move assets from</li>
+<li>toArk: The address of the Ark to move assets to</li>
+<li>amount: The amount of assets to move*</li>
+</ul>
+<pre><code class="language-solidity">function rebalance(RebalanceData[] calldata rebalanceData) external onlyKeeper enforceCooldown collectTip;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td></td></tr>
+</tbody></table>
+</div>
+<h3 id="adjustbuffer"><a class="header" href="#adjustbuffer">adjustBuffer</a></h3>
+<p>Adjusts the buffer of funds by moving assets between the buffer Ark and other Arks</p>
+<p>*RebalanceData struct contains:</p>
+<ul>
+<li>fromArk: The address of the Ark to move assets from (must be buffer Ark for withdrawing from buffer)</li>
+<li>toArk: The address of the Ark to move assets to (must be buffer Ark for depositing to buffer)</li>
+<li>amount: The amount of assets to move*</li>
+</ul>
+<pre><code class="language-solidity">function adjustBuffer(RebalanceData[] calldata rebalanceData) external onlyKeeper enforceCooldown collectTip;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td></td></tr>
+</tbody></table>
+</div>
+<h3 id="settipjar"><a class="header" href="#settipjar">setTipJar</a></h3>
+<p>Sets a new tip jar address</p>
+<p><em>This function sets the tipJar address to the address specified in the configuration manager.</em></p>
+<pre><code class="language-solidity">function setTipJar() external onlyGovernor;
+</code></pre>
+<h3 id="settiprate"><a class="header" href="#settiprate">setTipRate</a></h3>
+<p>Sets a new tip rate for the FleetCommander</p>
+<p><em>Only callable by the governor</em></p>
+<pre><code class="language-solidity">function setTipRate(Percentage newTipRate) external onlyGovernor;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>newTipRate</code></td><td><code>Percentage</code></td><td>The new tip rate as a Percentage</td></tr>
+</tbody></table>
+</div>
+<h3 id="updaterebalancecooldown"><a class="header" href="#updaterebalancecooldown">updateRebalanceCooldown</a></h3>
+<p>Updates the rebalance cooldown period</p>
+<pre><code class="language-solidity">function updateRebalanceCooldown(uint256 newCooldown) external onlyGovernor;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>newCooldown</code></td><td><code>uint256</code></td><td>The new cooldown period in seconds</td></tr>
+</tbody></table>
+</div>
+<h3 id="forcerebalance"><a class="header" href="#forcerebalance">forceRebalance</a></h3>
+<p>Forces a rebalance operation</p>
+<p><em>has no cooldown enforced but only callable by privileged role</em></p>
+<pre><code class="language-solidity">function forceRebalance(RebalanceData[] calldata rebalanceData) external onlyGovernor collectTip;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td></td></tr>
+</tbody></table>
+</div>
+<h3 id="emergencyshutdown"><a class="header" href="#emergencyshutdown">emergencyShutdown</a></h3>
+<pre><code class="language-solidity">function emergencyShutdown() external onlyGovernor;
+</code></pre>
+<h3 id="transfer"><a class="header" href="#transfer">transfer</a></h3>
+<p>Moves <code>amount</code> tokens from the caller's account to <code>to</code>.</p>
+<pre><code class="language-solidity">function transfer(address, uint256) public pure override(IERC20, ERC20) returns (bool);
+</code></pre>
+<h3 id="transferfrom"><a class="header" href="#transferfrom">transferFrom</a></h3>
+<p>Moves <code>amount</code> tokens from <code>from</code> to <code>to</code> using the allowance mechanism.
+<code>amount</code> is then deducted from the caller's allowance.</p>
+<pre><code class="language-solidity">function transferFrom(address, address, uint256) public pure override(IERC20, ERC20) returns (bool);
+</code></pre>
+<h3 id="_minttip"><a class="header" href="#_minttip">_mintTip</a></h3>
+<pre><code class="language-solidity">function _mintTip(address account, uint256 amount) internal virtual override;
+</code></pre>
+<h3 id="_reallocateallassets"><a class="header" href="#_reallocateallassets">_reallocateAllAssets</a></h3>
+<p>Reallocates all assets based on the provided rebalance data</p>
+<pre><code class="language-solidity">function _reallocateAllAssets(RebalanceData[] calldata rebalanceData) internal returns (uint256 totalMoved);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td>Array of RebalanceData structs containing information about the reallocation</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>totalMoved</code></td><td><code>uint256</code></td><td>The total amount of assets moved during the reallocation</td></tr>
+</tbody></table>
+</div>
+<h3 id="_board"><a class="header" href="#_board">_board</a></h3>
+<p>Approves and boards a specified amount of assets to an Ark</p>
+<pre><code class="language-solidity">function _board(address ark, uint256 amount) internal;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>ark</code></td><td><code>address</code></td><td>The address of the Ark</td></tr>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of assets to board</td></tr>
+</tbody></table>
+</div>
+<h3 id="_disembark"><a class="header" href="#_disembark">_disembark</a></h3>
+<p>Disembarks a specified amount of assets from an Ark</p>
+<pre><code class="language-solidity">function _disembark(address ark, uint256 amount) internal;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>ark</code></td><td><code>address</code></td><td>The address of the Ark</td></tr>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of assets to disembark</td></tr>
+</tbody></table>
+</div>
+<h3 id="_move"><a class="header" href="#_move">_move</a></h3>
+<p>Moves a specified amount of assets from one Ark to another</p>
+<pre><code class="language-solidity">function _move(
+    address fromArk,
+    address toArk,
+    uint256 amount,
+    bytes memory boardData,
+    bytes memory disembarkData
+)
+    internal;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>fromArk</code></td><td><code>address</code></td><td>The address of the Ark to move assets from</td></tr>
+<tr><td><code>toArk</code></td><td><code>address</code></td><td>The address of the Ark to move assets to</td></tr>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of assets to move</td></tr>
+<tr><td><code>boardData</code></td><td><code>bytes</code></td><td>Additional data for the board operation</td></tr>
+<tr><td><code>disembarkData</code></td><td><code>bytes</code></td><td>Additional data for the disembark operation</td></tr>
+</tbody></table>
+</div>
+<h3 id="_reallocateassets"><a class="header" href="#_reallocateassets">_reallocateAssets</a></h3>
+<p>Reallocates assets from one Ark to another</p>
+<p>*This function handles the reallocation of assets between Arks, considering:</p>
+<ol>
+<li>The maximum allocation of the destination Ark</li>
+<li>The current allocation of the destination Ark*</li>
+</ol>
+<pre><code class="language-solidity">function _reallocateAssets(RebalanceData memory data) internal returns (uint256 amount);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>data</code></td><td><code>RebalanceData</code></td><td>The RebalanceData struct containing information about the reallocation</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>uint256 The actual amount of assets reallocated</td></tr>
+</tbody></table>
+</div>
+<h3 id="_forcedisembarkfromsortedarks"><a class="header" href="#_forcedisembarkfromsortedarks">_forceDisembarkFromSortedArks</a></h3>
+<p>Withdraws assets from multiple arks in a specific order</p>
+<p><em>This function attempts to withdraw the requested amount from arks,
+that allow such operations, in the order of total assets held</em></p>
+<pre><code class="language-solidity">function _forceDisembarkFromSortedArks(uint256 assets) internal;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The total amount of assets to withdraw</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validateadjustbuffer"><a class="header" href="#_validateadjustbuffer">_validateAdjustBuffer</a></h3>
+<p>Validates the data for adjusting the buffer</p>
+<p><em>This function checks if all operations in the rebalance data are consistent
+(either all moving to buffer or all moving from buffer) and ensures that
+the buffer balance remains above the minimum required balance</em></p>
+<pre><code class="language-solidity">function _validateAdjustBuffer(RebalanceData[] calldata rebalanceData) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td>An array of RebalanceData structs containing the rebalance operations</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validaterebalance"><a class="header" href="#_validaterebalance">_validateRebalance</a></h3>
+<p>Validates the rebalance operations to ensure they meet all required constraints</p>
+<p>*This function performs a series of checks on each rebalance operation:</p>
+<ol>
+<li>Ensures general reallocation constraints are met</li>
+<li>Verifies the buffer ark is not directly involved in rebalancing*</li>
+</ol>
+<pre><code class="language-solidity">function _validateRebalance(RebalanceData[] calldata rebalanceData) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td>An array of RebalanceData structs, each representing a rebalance operation</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validatebufferarknotinvolved"><a class="header" href="#_validatebufferarknotinvolved">_validateBufferArkNotInvolved</a></h3>
+<p>Validates that the buffer ark is not directly involved in a rebalance operation</p>
+<p><em>This function checks if either the source or destination ark in a rebalance operation is the buffer ark</em></p>
+<pre><code class="language-solidity">function _validateBufferArkNotInvolved(RebalanceData memory data) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>data</code></td><td><code>RebalanceData</code></td><td>The RebalanceData struct containing the source and destination ark addresses</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validatereallocateallassets"><a class="header" href="#_validatereallocateallassets">_validateReallocateAllAssets</a></h3>
+<p>Validates the asset reallocation data for correctness and consistency</p>
+<p>*This function checks various conditions of the rebalance operations:</p>
+<ul>
+<li>Number of operations is within limits</li>
+<li>Each operation has valid amounts and addresses</li>
+<li>Arks involved in the operations are active and have proper allocations*</li>
+</ul>
+<pre><code class="language-solidity">function _validateReallocateAllAssets(RebalanceData[] calldata rebalanceData) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rebalanceData</code></td><td><code>RebalanceData[]</code></td><td>An array of RebalanceData structs containing the rebalance operations</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validatereallocateassets"><a class="header" href="#_validatereallocateassets">_validateReallocateAssets</a></h3>
+<p>Validates the reallocation of assets between two ARKs.</p>
+<pre><code class="language-solidity">function _validateReallocateAssets(address fromArk, address toArk, uint256 amount) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>fromArk</code></td><td><code>address</code></td><td>The address of the source ARK.</td></tr>
+<tr><td><code>toArk</code></td><td><code>address</code></td><td>The address of the destination ARK.</td></tr>
+<tr><td><code>amount</code></td><td><code>uint256</code></td><td>The amount of assets to be reallocated.</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validatebufferwithdraw"><a class="header" href="#_validatebufferwithdraw">_validateBufferWithdraw</a></h3>
+<p>Validates the withdraw request</p>
+<p>*This function checks two conditions:</p>
+<ol>
+<li>The caller is authorized to withdraw on behalf of the owner</li>
+<li>The withdrawal amount does not exceed the maximum allowed*</li>
+</ol>
+<pre><code class="language-solidity">function _validateBufferWithdraw(uint256 assets, uint256 shares, address owner) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to withdraw</td></tr>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares to redeem</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validatebufferredeem"><a class="header" href="#_validatebufferredeem">_validateBufferRedeem</a></h3>
+<p>Validates the redemption request</p>
+<p>*This function checks two conditions:</p>
+<ol>
+<li>The caller is authorized to redeem on behalf of the owner</li>
+<li>The redemption amount does not exceed the maximum allowed*</li>
+</ol>
+<pre><code class="language-solidity">function _validateBufferRedeem(uint256 shares, address owner) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares to redeem</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the shares</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validatedeposit"><a class="header" href="#_validatedeposit">_validateDeposit</a></h3>
+<p>Validates the deposit request</p>
+<p><em>This function checks if the requested deposit amount exceeds the maximum allowed</em></p>
+<pre><code class="language-solidity">function _validateDeposit(uint256 assets, address owner) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to deposit</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the account making the deposit</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validatemint"><a class="header" href="#_validatemint">_validateMint</a></h3>
+<p>Validates the mint request</p>
+<p><em>This function checks if the requested mint amount exceeds the maximum allowed</em></p>
+<pre><code class="language-solidity">function _validateMint(uint256 shares, address owner) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The number of shares to mint</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the account minting the shares</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validatewithdrawfromarks"><a class="header" href="#_validatewithdrawfromarks">_validateWithdrawFromArks</a></h3>
+<p>Validates the force withdraw request</p>
+<p>*This function checks two conditions:</p>
+<ol>
+<li>The caller is authorized to withdraw on behalf of the owner</li>
+<li>The withdrawal amount does not exceed the maximum allowed*</li>
+</ol>
+<pre><code class="language-solidity">function _validateWithdrawFromArks(uint256 assets, uint256 shares, address owner) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>assets</code></td><td><code>uint256</code></td><td>The amount of assets to withdraw</td></tr>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The amount of shares to redeem</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+<h3 id="_validateforceredeem"><a class="header" href="#_validateforceredeem">_validateForceRedeem</a></h3>
+<p>Validates the force redeem request</p>
+<p>*This function checks two conditions:</p>
+<ol>
+<li>The caller is authorized to redeem on behalf of the owner</li>
+<li>The redemption amount does not exceed the maximum allowed*</li>
+</ol>
+<pre><code class="language-solidity">function _validateForceRedeem(uint256 shares, address owner) internal view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>shares</code></td><td><code>uint256</code></td><td>The amount of shares to redeem</td></tr>
+<tr><td><code>owner</code></td><td><code>address</code></td><td>The address of the owner of the assets</td></tr>
+</tbody></table>
+</div>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../../src/contracts/ConfigurationManager.sol/contract.ConfigurationManager.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../../src/contracts/FleetCommanderCache.sol/contract.FleetCommanderCache.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../../src/contracts/ConfigurationManager.sol/contract.ConfigurationManager.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../../src/contracts/FleetCommanderCache.sol/contract.FleetCommanderCache.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../../elasticlunr.min.js"></script>
+        <script src="../../../mark.min.js"></script>
+        <script src="../../../searcher.js"></script>
+
+        <script src="../../../clipboard.min.js"></script>
+        <script src="../../../highlight.js"></script>
+        <script src="../../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../../solidity.min.js"></script>
+
+
+    </div>
+    </body>
+</html>
