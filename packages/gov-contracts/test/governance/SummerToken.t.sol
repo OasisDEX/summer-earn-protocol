@@ -3,14 +3,17 @@ pragma solidity 0.8.26;
 
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
-import {IOAppOptionsType3, EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+
+import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {IOFT, SendParam, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
-import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
+import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
+import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 contract SummerTokenTest is TestHelperOz5 {
     using OptionsBuilder for bytes;
@@ -29,8 +32,12 @@ contract SummerTokenTest is TestHelperOz5 {
 
     uint256 constant INITIAL_SUPPLY = 1000000000;
 
-    function setUp() public override {
+    function setUp() public virtual override {
         super.setUp();
+        initializeTokenTests();
+    }
+
+    function initializeTokenTests() public {
         vm.label(summerGovernor, "Summer Governor");
 
         setUpEndpoints(2, LibraryType.UltraLightNode);

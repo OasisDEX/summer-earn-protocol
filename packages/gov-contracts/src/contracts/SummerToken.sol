@@ -6,11 +6,14 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
+
+import "./SummerVestingWallet.sol";
+import {console} from "forge-std/console.sol";
 
 contract SummerToken is
     OFT,
@@ -20,6 +23,7 @@ contract SummerToken is
     ISummerToken
 {
     uint256 private constant INITIAL_SUPPLY = 1e9;
+    mapping(address owner => address vestingWallet) public vestingWallets;
 
     constructor(
         TokenParams memory params
@@ -29,6 +33,46 @@ contract SummerToken is
         Ownable(params.governor)
     {
         _mint(params.governor, INITIAL_SUPPLY * 10 ** decimals());
+    }
+
+    /**
+     * @dev Creates a new vesting wallet for a beneficiary
+     * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
+     * @param amount Amount of tokens to be vested
+     * @param vestingType Type of vesting schedule. See VestingType for options.
+     */
+    function createVestingWallet(
+        address beneficiary,
+        uint256 amount,
+        SummerVestingWallet.VestingType vestingType
+    ) external {
+        if (vestingWallets[beneficiary] != address(0)) {
+            revert VestingWalletAlreadyExists(beneficiary);
+        }
+
+        uint64 startTimestamp = uint64(block.timestamp);
+        uint64 durationSeconds = 0;
+        if (vestingType == SummerVestingWallet.VestingType.SixMonthCliff) {
+            durationSeconds = 180 days;
+        } else if (
+            vestingType == SummerVestingWallet.VestingType.TwoYearQuarterly
+        ) {
+            durationSeconds = 730 days;
+        } else {
+            revert InvalidVestingType(vestingType);
+        }
+
+        address newVestingWallet = address(
+            new SummerVestingWallet(
+                beneficiary,
+                startTimestamp,
+                durationSeconds,
+                vestingType
+            )
+        );
+        vestingWallets[beneficiary] = newVestingWallet;
+
+        _transfer(msg.sender, newVestingWallet, amount);
     }
 
     /*
@@ -91,4 +135,16 @@ contract SummerToken is
         // @dev Default OFT burns on src.
         _burn(_from, amountSentLD);
     }
+
+    /**
+     * @dev Error thrown when attempting to create a vesting wallet for an address that already has one
+     * @param beneficiary The address for which a vesting wallet already exists
+     */
+    error VestingWalletAlreadyExists(address beneficiary);
+
+    /**
+     * @dev Error thrown when an invalid vesting type is provided
+     * @param invalidType The invalid vesting type that was provided
+     */
+    error InvalidVestingType(SummerVestingWallet.VestingType invalidType);
 }
