@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
@@ -24,7 +23,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract SummerGovernor is
     ISummerGovernor,
-    ISummerGovernorErrors,
     GovernorTimelockControl,
     GovernorSettings,
     GovernorCountingSimple,
@@ -37,10 +35,11 @@ contract SummerGovernor is
     // ===============================================
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
     uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
-
+    uint32 public immutable proposalChainId;
     // ===============================================
     // State Variables
     // ===============================================
+
     /*
      * @dev Configuration structure for the governor
      * @param whitelistAccountExpirations Mapping of account addresses to their whitelist expiration timestamps
@@ -59,6 +58,21 @@ contract SummerGovernor is
     // ===============================================
     // Constructor
     // ===============================================
+    /*
+     * @dev Struct for the governor parameters
+     * @param token The token contract address
+     * @param timelock The timelock controller contract address
+     * @param votingDelay The voting delay in seconds
+     * @param votingPeriod The voting period in seconds
+     * @param proposalThreshold The proposal threshold in tokens
+     * @param quorumFraction The quorum fraction in tokens
+     * @param initialWhitelistGuardian The initial whitelist guardian address
+     * @param initialDecayFreeWindow The initial decay free window in seconds
+     * @param initialDecayRate The initial decay rate
+     * @param initialDecayFunction The initial decay function
+     * @param endpoint The LayerZero endpoint address
+     * @param proposalChainId The proposal chain ID
+     */
     struct GovernorParams {
         IVotes token;
         TimelockController timelock;
@@ -71,6 +85,17 @@ contract SummerGovernor is
         uint256 initialDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
         address endpoint;
+        uint32 proposalChainId;
+    }
+
+    /**
+     * @dev Modifier to ensure the function is only called on the proposal chain.
+     */
+    modifier onlyProposalChain() {
+        if (block.chainid != proposalChainId) {
+            revert SummerGovernorInvalidChain(block.chainid, proposalChainId);
+        }
+        _;
     }
 
     /**
@@ -110,21 +135,14 @@ contract SummerGovernor is
 
         // Initialize the whitelistGuardian with the provided address
         _setWhitelistGuardian(params.initialWhitelistGuardian);
+        proposalChainId = params.proposalChainId;
     }
 
     // ===============================================
     // Cross-Chain Messaging Functions
     // ===============================================
 
-    /**
-     * @dev Sends a proposal to another chain for execution.
-     * @param _dstEid The destination Endpoint ID.
-     * @param _dstTargets The target addresses for the proposal.
-     * @param _dstValues The values for the proposal.
-     * @param _dstCalldatas The calldata for the proposal.
-     * @param _dstDescriptionHash The description hash for the proposal.
-     * @param _options Message execution options.
-     */
+    /// @inheritdoc ISummerGovernor
     function sendProposalToTargetChain(
         uint32 _dstEid,
         address[] memory _dstTargets,
@@ -143,6 +161,15 @@ contract SummerGovernor is
         );
     }
 
+    /**
+     * @dev Internal function to send a proposal to another chain.
+     * @param _dstEid The destination endpoint ID.
+     * @param _dstTargets The target addresses for the proposal.
+     * @param _dstValues The values for the proposal.
+     * @param _dstCalldatas The calldata for the proposal.
+     * @param _dstDescriptionHash The description hash for the proposal.
+     * @param _options Message execution options.
+     */
     function _sendProposalToTargetChain(
         uint32 _dstEid,
         address[] memory _dstTargets,
@@ -179,7 +206,11 @@ contract SummerGovernor is
 
         emit ProposalSentCrossChain(dstProposalId, _dstEid);
     }
-
+    /**
+     * @dev Internal function to pay the native fee for LayerZero messaging.
+     * @param _nativeFee The amount of native tokens to pay for the fee.
+     * @return nativeFee The amount of native tokens to pay for the fee.
+     */
     function _payNative(
         uint256 _nativeFee
     ) internal view override returns (uint256 nativeFee) {
@@ -298,20 +329,18 @@ contract SummerGovernor is
     // Existing Functions
     // ===============================================
 
-    /**
-     * @dev Proposes a new governance action.
-     * @param targets The addresses of the contracts to call.
-     * @param values The ETH values to send with the calls.
-     * @param calldatas The call data for each contract call.
-     * @param description A description of the proposal.
-     * @return The ID of the newly created proposal.
-     */
+    /// @inheritdoc ISummerGovernor
     function propose(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         string memory description
-    ) public override(Governor, IGovernor) returns (uint256) {
+    )
+        public
+        override(Governor, ISummerGovernor)
+        onlyProposalChain
+        returns (uint256)
+    {
         address proposer = _msgSender();
         // Use block.number - 1 to get the proposer's voting power from the previous block.
         // This ensures we're using a finalized state and prevents potential same-block manipulations,
@@ -329,20 +358,34 @@ contract SummerGovernor is
         return _propose(targets, values, calldatas, description, proposer);
     }
 
-    /**
-     * @dev Cancels an existing proposal.
-     * @param targets The addresses of the contracts to call.
-     * @param values The ETH values to send with the calls.
-     * @param calldatas The call data for each contract call.
-     * @param descriptionHash The hash of the proposal description.
-     * @return The ID of the cancelled proposal.
-     */
+    /// @inheritdoc ISummerGovernor
+    function execute(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
+        public
+        payable
+        override(Governor, ISummerGovernor)
+        onlyProposalChain
+        returns (uint256)
+    {
+        return super.execute(targets, values, calldatas, descriptionHash);
+    }
+
+    /// @inheritdoc ISummerGovernor
     function cancel(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) public override(Governor, IGovernor) returns (uint256) {
+    )
+        public
+        override(Governor, ISummerGovernor)
+        onlyProposalChain
+        returns (uint256)
+    {
         uint256 proposalId = hashProposal(
             targets,
             values,
@@ -368,22 +411,15 @@ contract SummerGovernor is
     // ===============================================
     // Whitelist Management Functions
     // ===============================================
-    /**
-     * @dev Checks if an account is whitelisted.
-     * @param account The address to check.
-     * @return True if the account is whitelisted, false otherwise.
-     */
+
+    /// @inheritdoc ISummerGovernor
     function isWhitelisted(
         address account
     ) public view override returns (bool) {
         return (config.whitelistAccountExpirations[account] > block.timestamp);
     }
 
-    /**
-     * @dev Sets the expiration time for a whitelisted account.
-     * @param account The address to whitelist.
-     * @param expiration The timestamp when the whitelist status expires.
-     */
+    /// @inheritdoc ISummerGovernor
     function setWhitelistAccountExpiration(
         address account,
         uint256 expiration
@@ -392,10 +428,7 @@ contract SummerGovernor is
         emit WhitelistAccountExpirationSet(account, expiration);
     }
 
-    /**
-     * @dev Sets the whitelist guardian address.
-     * @param _whitelistGuardian The new whitelist guardian address.
-     */
+    /// @inheritdoc ISummerGovernor
     function setWhitelistGuardian(
         address _whitelistGuardian
     ) external override onlyGovernance {
@@ -405,21 +438,14 @@ contract SummerGovernor is
     // ===============================================
     // Getter Functions
     // ===============================================
-    /**
-     * @dev Gets the expiration time for a whitelisted account.
-     * @param account The address to check.
-     * @return The expiration timestamp for the account's whitelist status.
-     */
+    /// @inheritdoc ISummerGovernor
     function getWhitelistAccountExpiration(
         address account
     ) public view returns (uint256) {
         return config.whitelistAccountExpirations[account];
     }
 
-    /**
-     * @dev Gets the current whitelist guardian address.
-     * @return The address of the current whitelist guardian.
-     */
+    /// @inheritdoc ISummerGovernor
     function getWhitelistGuardian() public view returns (address) {
         return config.whitelistGuardian;
     }
@@ -651,9 +677,7 @@ contract SummerGovernor is
      */
     function _setWhitelistGuardian(address _whitelistGuardian) internal {
         if (_whitelistGuardian == address(0)) {
-            revert ISummerGovernorErrors.SummerGovernorInvalidWhitelistGuardian(
-                _whitelistGuardian
-            );
+            revert SummerGovernorInvalidWhitelistGuardian(_whitelistGuardian);
         }
         config.whitelistGuardian = _whitelistGuardian;
         emit WhitelistGuardianSet(_whitelistGuardian);

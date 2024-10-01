@@ -54,4 +54,10 @@ interface ISummerGovernorErrors {
      * @param trustedRemote The invalid trusted remote
      */
     error SummerGovernorInvalidTrustedRemote(address trustedRemote);
+
+    /* @notice Error thrown when the chain id is invalid
+     * @param chainId The invalid chain id
+     * @param proposalChainId The proposal chain id
+     */
+    error SummerGovernorInvalidChain(uint256 chainId, uint256 proposalChainId);
 }

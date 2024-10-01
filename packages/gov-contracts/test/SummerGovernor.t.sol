@@ -194,7 +194,8 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                endpoint: lzEndpointA
+                endpoint: lzEndpointA,
+                proposalChainId: 31337
             });
 
         SummerGovernor.GovernorParams memory paramsB = SummerGovernor
@@ -209,7 +210,8 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                endpoint: lzEndpointB
+                endpoint: lzEndpointB,
+                proposalChainId: 31337
             });
 
         governorA = new ExposedSummerGovernor(paramsA);
@@ -627,7 +629,8 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                endpoint: lzEndpointA
+                endpoint: lzEndpointA,
+                proposalChainId: 31337
             });
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -1026,7 +1029,8 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                endpoint: lzEndpointA
+                endpoint: lzEndpointA,
+                proposalChainId: 31337
             });
 
         vm.expectRevert(
@@ -1445,6 +1449,63 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256(governorA.state(proposalId3)),
             uint256(IGovernor.ProposalState.Defeated)
         );
+    }
+    function test_ProposalCreationOnWrongChain() public {
+        uint32 governanceChainId = 1; // Ethereum mainnet
+        uint32 currentChainId = 31337; // Anvil's default chain ID
+
+        // Ensure we're on the expected test chain
+        assertEq(
+            block.chainid,
+            currentChainId,
+            "Test environment should be on chain 31337"
+        );
+
+        // Deploy the governor with a different chain ID than the current one
+        SummerGovernor.GovernorParams memory params = SummerGovernor
+            .GovernorParams({
+                token: IVotes(address(tokenA)),
+                timelock: timelockA,
+                votingDelay: VOTING_DELAY,
+                votingPeriod: VOTING_PERIOD,
+                proposalThreshold: PROPOSAL_THRESHOLD,
+                quorumFraction: QUORUM_FRACTION,
+                initialWhitelistGuardian: whitelistGuardian,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                endpoint: address(endpoints[aEid]),
+                proposalChainId: governanceChainId // Set to a different chain ID
+            });
+
+        ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(
+            params
+        );
+
+        // Ensure Alice has enough tokens to meet the proposal threshold
+        deal(address(tokenA), alice, wrongChainGovernor.proposalThreshold());
+        vm.prank(alice);
+        tokenA.delegate(alice);
+        vm.roll(block.number + 1);
+
+        // Prepare proposal parameters
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description
+        ) = createProposalParams();
+
+        // Attempt to create a proposal, expecting it to revert
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SummerGovernorInvalidChain.selector,
+                currentChainId,
+                governanceChainId
+            )
+        );
+        wrongChainGovernor.propose(targets, values, calldatas, description);
     }
 
     function getQuorumThreshold() public view returns (uint256) {
