@@ -11,7 +11,7 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {DynamicRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
@@ -185,8 +185,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     ) internal {
         vm.startPrank(governor);
         accessManager.grantKeeperRole(_keeper);
-        accessManager.grantDynamicRole(
-            DynamicRoles.CURATOR_ROLE,
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.CURATOR_ROLE,
             address(fleetCommander),
             governor
         );

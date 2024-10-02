@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import {IProtocolAccessManager, DynamicRoles} from "../interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager, ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 
 /**
@@ -117,8 +117,8 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     }
 
     /* @inheritdoc IProtocolAccessManager */
-    function grantDynamicRole(
-        DynamicRoles roleName,
+    function grantContractSpecificRole(
+        ContractSpecificRoles roleName,
         address roleTargetContract,
         address roleOwner
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -127,8 +127,8 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     }
 
     /* @inheritdoc IProtocolAccessManager */
-    function revokeDynamicRole(
-        DynamicRoles roleName,
+    function revokeContractSpecificRole(
+        ContractSpecificRoles roleName,
         address roleTargetContract,
         address roleOwner
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -137,20 +137,20 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     }
 
     /* @inheritdoc IProtocolAccessManager */
-    function selfRevokeDynamicRole(
-        DynamicRoles roleName,
+    function selfRevokeContractSpecificRole(
+        ContractSpecificRoles roleName,
         address roleTargetContract
     ) public {
         bytes32 role = generateRole(roleName, roleTargetContract);
         if (!hasRole(role, msg.sender)) {
-            revert CallerIsNotDynamicRole(msg.sender, role);
+            revert CallerIsNotContractSpecificRole(msg.sender, role);
         }
         _revokeRole(role, msg.sender);
     }
 
     /* @inheritdoc IProtocolAccessManager */
     function generateRole(
-        DynamicRoles roleName,
+        ContractSpecificRoles roleName,
         address roleTargetContract
     ) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(roleName, roleTargetContract));

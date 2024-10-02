@@ -4,10 +4,10 @@ pragma solidity 0.8.27;
 /**
 @dev Dynamic roles are roles that are not hardcoded in the contract but are defined by the protocol
 * Members of this enum are treated as prefixes to the role genrated using prefix and target contract address    
-* e.g generateRole(DynamicRoles.CURATOR_ROLE, address(this)) for FleetCommander, to generate the CURATOR_ROLE
+* e.g generateRole(ContractSpecificRoles.CURATOR_ROLE, address(this)) for FleetCommander, to generate the CURATOR_ROLE
 * for the curator of the  FleetCommander contract
  */
-enum DynamicRoles {
+enum ContractSpecificRoles {
     CURATOR_ROLE
 }
 
@@ -81,41 +81,41 @@ interface IProtocolAccessManager {
      * @return The generated role hash
      */
     function generateRole(
-        DynamicRoles roleName,
+        ContractSpecificRoles roleName,
         address roleTargetContract
     ) external pure returns (bytes32);
 
     /**
-     * @notice Grants a dynamic role to a given account
+     * @notice Grants a contract specific role to a given account
      * @param roleName The name of the role to grant
      * @param roleTargetContract The address of the contract to grant the role for
      * @param account The account to which the role will be granted
      */
-    function grantDynamicRole(
-        DynamicRoles roleName,
+    function grantContractSpecificRole(
+        ContractSpecificRoles roleName,
         address roleTargetContract,
         address account
     ) external;
 
     /**
-     * @notice Revokes a dynamic role from a given account
+     * @notice Revokes a contract specific role from a given account
      * @param roleName The name of the role to revoke
      * @param roleTargetContract The address of the contract to revoke the role for
      * @param account The account from which the role will be revoked
      */
-    function revokeDynamicRole(
-        DynamicRoles roleName,
+    function revokeContractSpecificRole(
+        ContractSpecificRoles roleName,
         address roleTargetContract,
         address account
     ) external;
 
     /**
-     * @notice Revokes a dynamic role from the caller
+     * @notice Revokes a contract specific role from the caller
      * @param roleName The name of the role to revoke
      * @param roleTargetContract The address of the contract to revoke the role for
      */
-    function selfRevokeDynamicRole(
-        DynamicRoles roleName,
+    function selfRevokeContractSpecificRole(
+        ContractSpecificRoles roleName,
         address roleTargetContract
     ) external;
 }

@@ -11,7 +11,7 @@ interface IAccessControlErrors {
     /**
      * @notice Thrown when a caller does not have the required role.
      */
-    error CallerIsNotDynamicRole(address caller, bytes32 role);
+    error CallerIsNotContractSpecificRole(address caller, bytes32 role);
 
     /**
      * @notice Thrown when a caller is not the curator.

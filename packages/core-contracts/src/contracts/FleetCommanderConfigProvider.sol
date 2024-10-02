@@ -7,7 +7,7 @@ import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {DynamicRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 /**
  * @title FleetCommanderConfigProvider
  * @notice This contract provides configuration management for the FleetCommander
