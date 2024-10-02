@@ -46,7 +46,13 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         Percentage allocation,
         uint256 lockedUntilEpoch
     ) external onlyGovernor {
-        _validateTipStreamAllocation(allocation);
+        if (tipStreams[recipient].recipient != address(0)) {
+            revert TipStreamAlreadyExists(recipient);
+        }
+        _validateTipStreamAllocation(
+            allocation,
+            tipStreams[recipient].allocation
+        );
 
         tipStreams[recipient] = TipStream({
             recipient: recipient,
@@ -91,7 +97,8 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         uint256 newLockedUntilEpoch
     ) external onlyGovernor {
         _validateTipStream(recipient);
-        _validateTipStreamAllocation(newAllocation);
+        Percentage currentAllocation = tipStreams[recipient].allocation;
+        _validateTipStreamAllocation(newAllocation, currentAllocation);
 
         tipStreams[recipient].allocation = newAllocation;
         tipStreams[recipient].lockedUntilEpoch = newLockedUntilEpoch;
@@ -227,18 +234,22 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
 
     /**
      * @notice Validates the allocation for a tip stream
-     * @param allocation The allocation to validate
+     * @param newAllocation The allocation to validate
+     * @param currentAllocation The current allocation to compare against
      */
-    function _validateTipStreamAllocation(Percentage allocation) internal view {
+    function _validateTipStreamAllocation(
+        Percentage newAllocation,
+        Percentage currentAllocation
+    ) internal view {
         if (
-            allocation == toPercentage(0) ||
-            !PercentageUtils.isPercentageInRange(allocation)
+            newAllocation == toPercentage(0) ||
+            !PercentageUtils.isPercentageInRange(newAllocation)
         ) {
-            revert InvalidTipStreamAllocation(allocation);
+            revert InvalidTipStreamAllocation(newAllocation);
         }
         if (
             !PercentageUtils.isPercentageInRange(
-                getTotalAllocation() + allocation
+                getTotalAllocation() + newAllocation - currentAllocation
             )
         ) {
             revert TotalAllocationExceedsOneHundredPercent();
