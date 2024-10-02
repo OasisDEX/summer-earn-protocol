@@ -346,6 +346,20 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertFalse(fleetCommander.paused());
     }
 
+    function test_PauseAndUnpauseBeforeTime() public {
+        vm.prank(governor);
+        fleetCommander.pause();
+        assertTrue(fleetCommander.paused());
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderPausableMinimumPauseTimeNotElapsed()"
+            )
+        );
+        fleetCommander.unpause();
+    }
+    
     function test_SetMinimumPauseTime() public {
         uint256 newMinimumPauseTime = 48 hours;
 
