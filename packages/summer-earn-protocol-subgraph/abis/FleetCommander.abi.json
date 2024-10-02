@@ -452,6 +452,30 @@
   },
   {
     "type": "function",
+    "name": "generateRole",
+    "inputs": [
+      {
+        "name": "roleName",
+        "type": "uint8",
+        "internalType": "enum DynamicRoles"
+      },
+      {
+        "name": "roleTargetContract",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
     "name": "getArks",
     "inputs": [],
     "outputs": [
@@ -1846,6 +1870,33 @@
         "name": "caller",
         "type": "address",
         "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotCurator",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotDynamicRole",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "role",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ]
   },
