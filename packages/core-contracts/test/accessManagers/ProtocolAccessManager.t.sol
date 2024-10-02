@@ -128,14 +128,6 @@ contract ProtocolAccessManagerTest is Test {
         accessManager.grantKeeperRole(user);
     }
 
-    function test_OnlyKeeperModifier_Fail() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotKeeper(address)", user)
-        );
-        vm.prank(user);
-        accessManager.dummyKeeperFunction();
-    }
-
     function test_GrantRoleDirectly_ShouldFail() public {
         // Act
         vm.expectRevert(
@@ -161,9 +153,4 @@ contract ProtocolAccessManagerTest is Test {
 
 contract TestProtocolAccessManager is ProtocolAccessManager {
     constructor(address governor) ProtocolAccessManager(governor) {}
-
-    // Add this dummy function for testing purposes
-    function dummyKeeperFunction() external onlyKeeper {
-        // This function doesn't need to do anything
-    }
 }

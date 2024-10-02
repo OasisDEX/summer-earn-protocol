@@ -3,13 +3,14 @@ pragma solidity 0.8.27;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
-import {ArkConfig, ArkParams, IArk} from "../interfaces/IArk.sol";
+import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
+import {IArk} from "../interfaces/IArk.sol";
 
 import {IArkConfigProvider} from "../interfaces/IArkConfigProvider.sol";
 
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @custom:see IArkConfigProvider
