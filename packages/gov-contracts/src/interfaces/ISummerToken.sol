@@ -16,12 +16,20 @@ interface ISummerToken is IERC20 {
     /**
      * @dev Creates a new vesting wallet for a beneficiary
      * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
-     * @param amount Amount of tokens to be vested
-     * @param vestingType Type of vesting schedule (0 for SixMonthCliff, 1 for TwoYearQuarterly)
+     * @param timeBasedAmount Amount of tokens to be vested
+     * @param goal1Amount Amount of tokens to be vested
+     * @param goal2Amount Amount of tokens to be vested
+     * @param goal3Amount Amount of tokens to be vested
+     * @param goal4Amount Amount of tokens to be vested
+     * @param vestingType Type of vesting schedule. See VestingType for options.
      */
     function createVestingWallet(
         address beneficiary,
-        uint256 amount,
+        uint256 timeBasedAmount,
+        uint256 goal1Amount,
+        uint256 goal2Amount,
+        uint256 goal3Amount,
+        uint256 goal4Amount,
         SummerVestingWallet.VestingType vestingType
     ) external;
 }

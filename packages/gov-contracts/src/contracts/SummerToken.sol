@@ -35,12 +35,20 @@ contract SummerToken is
     /**
      * @dev Creates a new vesting wallet for a beneficiary
      * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
-     * @param amount Amount of tokens to be vested
+     * @param timeBasedAmount Amount of tokens to be vested
+     * @param goal1Amount Amount of tokens to be vested
+     * @param goal2Amount Amount of tokens to be vested
+     * @param goal3Amount Amount of tokens to be vested
+     * @param goal4Amount Amount of tokens to be vested
      * @param vestingType Type of vesting schedule. See VestingType for options.
      */
     function createVestingWallet(
         address beneficiary,
-        uint256 amount,
+        uint256 timeBasedAmount,
+        uint256 goal1Amount,
+        uint256 goal2Amount,
+        uint256 goal3Amount,
+        uint256 goal4Amount,
         SummerVestingWallet.VestingType vestingType
     ) external {
         if (vestingWallets[beneficiary] != address(0)) {
@@ -48,28 +56,32 @@ contract SummerToken is
         }
 
         uint64 startTimestamp = uint64(block.timestamp);
-        uint64 durationSeconds = 0;
-        if (vestingType == SummerVestingWallet.VestingType.SixMonthCliff) {
-            durationSeconds = 180 days;
-        } else if (
-            vestingType == SummerVestingWallet.VestingType.TwoYearQuarterly
-        ) {
-            durationSeconds = 730 days;
-        } else {
-            revert InvalidVestingType(vestingType);
-        }
+        uint64 durationSeconds = 730 days; // 2 years for both vesting types
+
+        uint256 totalAmount = timeBasedAmount +
+            goal1Amount +
+            goal2Amount +
+            goal3Amount +
+            goal4Amount;
 
         address newVestingWallet = address(
             new SummerVestingWallet(
+                address(this),
                 beneficiary,
                 startTimestamp,
                 durationSeconds,
-                vestingType
+                vestingType,
+                timeBasedAmount,
+                goal1Amount,
+                goal2Amount,
+                goal3Amount,
+                goal4Amount,
+                msg.sender // Set the caller as the admin
             )
         );
         vestingWallets[beneficiary] = newVestingWallet;
 
-        _transfer(msg.sender, newVestingWallet, amount);
+        _transfer(msg.sender, newVestingWallet, totalAmount);
     }
 
     /*
