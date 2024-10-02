@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager, DynamicRoles} from "../interfaces/IProtocolAccessManager.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 
 /**
@@ -76,43 +76,83 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
             super.supportsInterface(interfaceId);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function grantAdminRole(address account) external onlyAdmin {
         _grantRole(DEFAULT_ADMIN_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function revokeAdminRole(address account) external onlyAdmin {
         _revokeRole(DEFAULT_ADMIN_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function grantGovernorRole(address account) external onlyAdmin {
         _grantRole(GOVERNOR_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function revokeGovernorRole(address account) external onlyAdmin {
         _revokeRole(GOVERNOR_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function grantKeeperRole(address account) external onlyGovernor {
         _grantRole(KEEPER_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function revokeKeeperRole(address account) external onlyGovernor {
         _revokeRole(KEEPER_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function grantSuperKeeperRole(address account) external onlyGovernor {
         _grantRole(SUPER_KEEPER_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function revokeSuperKeeperRole(address account) external onlyGovernor {
         _revokeRole(SUPER_KEEPER_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessManager */
+    function grantDynamicRole(
+        DynamicRoles roleName,
+        address roleTargetContract,
+        address roleOwner
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        bytes32 role = generateRole(roleName, roleTargetContract);
+        _grantRole(role, roleOwner);
+    }
+
+    /* @inheritdoc IProtocolAccessManager */
+    function revokeDynamicRole(
+        DynamicRoles roleName,
+        address roleTargetContract,
+        address roleOwner
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        bytes32 role = generateRole(roleName, roleTargetContract);
+        _revokeRole(role, roleOwner);
+    }
+
+    /* @inheritdoc IProtocolAccessManager */
+    function selfRevokeDynamicRole(
+        DynamicRoles roleName,
+        address roleTargetContract
+    ) public {
+        bytes32 role = generateRole(roleName, roleTargetContract);
+        if (!hasRole(role, msg.sender)) {
+            revert CallerIsNotDynamicRole(msg.sender, role);
+        }
+        _revokeRole(role, msg.sender);
+    }
+
+    /* @inheritdoc IProtocolAccessManager */
+    function generateRole(
+        DynamicRoles roleName,
+        address roleTargetContract
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(roleName, roleTargetContract));
     }
 }

@@ -9,6 +9,16 @@ pragma solidity 0.8.27;
  */
 interface IAccessControlErrors {
     /**
+     * @notice Thrown when a caller does not have the required role.
+     */
+    error CallerIsNotDynamicRole(address caller, bytes32 role);
+
+    /**
+     * @notice Thrown when a caller is not the curator.
+     */
+    error CallerIsNotCurator(address caller);
+
+    /**
      * @notice Thrown when a caller is not the governor.
      */
     error CallerIsNotGovernor(address caller);

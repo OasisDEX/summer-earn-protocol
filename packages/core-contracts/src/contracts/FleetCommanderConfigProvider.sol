@@ -7,7 +7,7 @@ import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-
+import {DynamicRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 /**
  * @title FleetCommanderConfigProvider
  * @notice This contract provides configuration management for the FleetCommander
@@ -26,7 +26,7 @@ contract FleetCommanderConfigProvider is
     constructor(
         FleetCommanderParams memory params
     ) ProtocolAccessManaged(params.accessManager) {
-        setFleetConfig(
+        _setFleetConfig(
             FleetConfig({
                 bufferArk: IArk(params.bufferArk),
                 minimumBufferBalance: params.initialMinimumBufferBalance,
@@ -66,7 +66,7 @@ contract FleetCommanderConfigProvider is
     function setArkDepositCap(
         address ark,
         uint256 newDepositCap
-    ) external onlyGovernor {
+    ) external onlyCurator {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -76,7 +76,7 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceOutflow(
         address ark,
         uint256 newMaxRebalanceOutflow
-    ) external onlyGovernor {
+    ) external onlyCurator {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -86,7 +86,7 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceInflow(
         address ark,
         uint256 newMaxRebalanceInflow
-    ) external onlyGovernor {
+    ) external onlyCurator {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -96,30 +96,30 @@ contract FleetCommanderConfigProvider is
     // FLEET MANAGEMENT
     function setMinimumBufferBalance(
         uint256 newMinimumBalance
-    ) external onlyGovernor {
+    ) external onlyCurator {
         config.minimumBufferBalance = newMinimumBalance;
         emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
 
-    function setFleetDepositCap(uint256 newCap) external onlyGovernor {
+    function setFleetDepositCap(uint256 newCap) external onlyCurator {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
     }
 
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
-    ) external onlyGovernor {
+    ) external onlyCurator {
         config.maxRebalanceOperations = newMaxRebalanceOperations;
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations
         );
     }
 
-    function setFleetConfig(FleetConfig memory _config) internal {
+    // INTERNAL FUNCTIONS
+    function _setFleetConfig(FleetConfig memory _config) internal {
         config = _config;
     }
 
-    // INTERNAL FUNCTIONS
     function _addArk(address ark) internal {
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();

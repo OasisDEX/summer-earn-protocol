@@ -2,7 +2,7 @@
 pragma solidity 0.8.27;
 
 import {IAccessControlErrors} from "../errors/IAccessControlErrors.sol";
-import {IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager, DynamicRoles} from "../interfaces/IProtocolAccessManager.sol";
 import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
@@ -64,5 +64,28 @@ contract ProtocolAccessManaged is IAccessControlErrors {
             revert CallerIsNotSuperKeeper(msg.sender);
         }
         _;
+    }
+
+    /**
+     * @dev Modifier to check that the caller has the Curator role
+     */
+    modifier onlyCurator() {
+        if (
+            !_accessManager.hasRole(
+                generateRole(DynamicRoles.CURATOR_ROLE, address(this)),
+                msg.sender
+            )
+        ) {
+            revert CallerIsNotCurator(msg.sender);
+        }
+        _;
+    }
+
+    /* @inheritdoc IProtocolAccessControl */
+    function generateRole(
+        DynamicRoles roleName,
+        address roleTargetContract
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(roleName, roleTargetContract));
     }
 }
