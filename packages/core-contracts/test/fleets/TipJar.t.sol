@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ITipJarEvents} from "../../src/events/ITipJarEvents.sol";
 import {ITipJar} from "../../src/interfaces/ITipJar.sol";
@@ -73,25 +73,46 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(stream.lockedUntilEpoch, block.timestamp + 1 days);
     }
 
+    function test_AddAnExistingStream() public {
+        vm.prank(governor);
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            PercentageUtils.fromIntegerPercentage(20),
+            block.timestamp + 1 days
+        );
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "TipStreamAlreadyExists(address)",
+                mockTipStreamRecipient
+            )
+        );
+        vm.prank(governor);
+        tipJar.addTipStream(
+            mockTipStreamRecipient,
+            PercentageUtils.fromIntegerPercentage(20),
+            block.timestamp + 1 days
+        );
+    }
+
     function test_UpdateTipStream() public {
         vm.startPrank(governor);
         tipJar.addTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(30),
+            PercentageUtils.fromIntegerPercentage(60),
             block.timestamp + 1 days
         );
 
         vm.warp(block.timestamp + 2 days);
         tipJar.updateTipStream(
             mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(30),
+            PercentageUtils.fromIntegerPercentage(60),
             block.timestamp + 3 days
         );
         vm.stopPrank();
 
         ITipJar.TipStream memory stream = tipJar.getTipStream(address(4));
         assertEq(stream.recipient, mockTipStreamRecipient);
-        assertEq(fromPercentage(stream.allocation), 30);
+        assertEq(fromPercentage(stream.allocation), 60);
         assertEq(stream.lockedUntilEpoch, block.timestamp + 3 days);
     }
 

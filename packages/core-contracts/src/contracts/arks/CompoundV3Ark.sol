@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {IComet} from "../../interfaces/compound-v3/IComet.sol";
 import {ICometRewards} from "../../interfaces/compound-v3/ICometRewards.sol";
