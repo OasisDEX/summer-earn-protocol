@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 /**
  * @notice Emitted by the modifier when the cooldown period has not elapsed.
