@@ -8,7 +8,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 /// @dev This contract should be inherited by other contracts that require a minimum pause duration
 abstract contract FleetCommanderPausable is Pausable {
     /// @notice The minimum duration that the contract must remain paused
-    uint256 public minimumPauseTime = 36 hours;
+    uint256 public minimumPauseTime;
 
     /// @notice The timestamp when the contract was last paused
     uint256 public pauseStartTime;

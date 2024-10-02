@@ -359,7 +359,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.unpause();
     }
-    
+
     function test_SetMinimumPauseTime() public {
         uint256 newMinimumPauseTime = 48 hours;
 

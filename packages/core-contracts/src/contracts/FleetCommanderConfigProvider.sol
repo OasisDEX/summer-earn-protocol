@@ -24,12 +24,13 @@ contract FleetCommanderConfigProvider is
     mapping(address => bool) public isArkWithdrawable;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
+    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
 
     constructor(
         FleetCommanderParams memory params
     )
         ProtocolAccessManaged(params.accessManager)
-        FleetCommanderPausable(36 hours)
+        FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
     {
         _setFleetConfig(
             FleetConfig({
