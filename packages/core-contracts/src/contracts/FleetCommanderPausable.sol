@@ -54,7 +54,7 @@ abstract contract FleetCommanderPausable is Pausable {
      * @param _newMinimumPauseTime The new minimum pause time in seconds
      * @dev Emits a MinimumPauseTimeUpdated event
      */
-    function _setMinimumPauseTime(uint256 _newMinimumPauseTime) {
+    function _setMinimumPauseTime(uint256 _newMinimumPauseTime) internal {
         minimumPauseTime = _newMinimumPauseTime;
         emit MinimumPauseTimeUpdated(_newMinimumPauseTime);
     }

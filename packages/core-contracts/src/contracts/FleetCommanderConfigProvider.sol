@@ -14,8 +14,8 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
  * @notice This contract provides configuration management for the FleetCommander
  */
 contract FleetCommanderConfigProvider is
-    IFleetCommanderConfigProvider,
     FleetCommanderPausable,
+    IFleetCommanderConfigProvider,
     ProtocolAccessManaged
 {
     FleetConfig public config;

@@ -2,6 +2,7 @@
 pragma solidity 0.8.27;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {FleetCommanderPausable} from "../../src/contracts/FleetCommanderPausable.sol";
 
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
@@ -331,9 +332,9 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         // Try to unpause immediately (should fail)
         vm.prank(governor);
         vm.expectRevert(
-            FleetCommanderPausable
-                .FleetCommanderPausableMinimumPauseTimeNotElapsed
-                .selector
+            abi.encodeWithSignature(
+                "FleetCommanderPausableMinimumPauseTimeNotElapsed()"
+            )
         );
         fleetCommander.unpause();
 
@@ -404,7 +405,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(address(0x123));
         vm.expectRevert(
             abi.encodeWithSignature(
-                "CallerIsNotGuardianOrGovernor(address)",
+                "CallerIsNotGovernor(address)",
                 address(0x123)
             )
         );
