@@ -128,6 +128,7 @@ contract FleetCommanderConfigProvider is
     function _setFleetConfig(FleetConfig memory _config) internal {
         config = _config;
     }
+
     function _addArk(address ark) internal {
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();

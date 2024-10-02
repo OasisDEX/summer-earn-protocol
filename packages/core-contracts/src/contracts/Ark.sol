@@ -2,8 +2,9 @@
 pragma solidity 0.8.27;
 
 import {IArk} from "../interfaces/IArk.sol";
-import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
+
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
