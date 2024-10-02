@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";

@@ -4,7 +4,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-solc = "0.8.26"
+solc = "0.8.27"
 evm_version = "cancun"
 cbor_metadata = true
 viaIR = false

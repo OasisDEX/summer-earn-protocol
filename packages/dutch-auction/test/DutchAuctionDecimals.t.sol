@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {DecayFunctions} from "../src/DecayFunctions.sol";
 import {DutchAuctionLibrary} from "../src/DutchAuctionLibrary.sol";

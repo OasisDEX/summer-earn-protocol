@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {GovernorVotes, Governor, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
