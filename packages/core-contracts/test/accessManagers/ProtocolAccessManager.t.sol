@@ -96,11 +96,7 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_GrantKeeperRole() public {
         vm.prank(governor);
-        accessManager.grantContractSpecificRole(
-            ContractSpecificRoles.KEEPER_ROLE,
-            address(0),
-            keeper
-        );
+        accessManager.grantKeeperRole(address(0), keeper);
         assertTrue(
             accessManager.hasRole(
                 accessManager.generateRole(
@@ -119,11 +115,7 @@ contract ProtocolAccessManagerTest is Test {
             address(0),
             keeper
         );
-        accessManager.revokeContractSpecificRole(
-            ContractSpecificRoles.KEEPER_ROLE,
-            address(0),
-            keeper
-        );
+        accessManager.revokeKeeperRole(address(0), keeper);
         vm.stopPrank();
         assertFalse(
             accessManager.hasRole(
@@ -138,11 +130,7 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_GrantCommanderRole() public {
         vm.prank(governor);
-        accessManager.grantContractSpecificRole(
-            ContractSpecificRoles.COMMANDER_ROLE,
-            address(0),
-            commander
-        );
+        accessManager.grantCommanderRole(address(0), commander);
     }
 
     function test_RevokeCommanderRole() public {
@@ -188,16 +176,8 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_RevokeCuratorRole() public {
         vm.startPrank(governor);
-        accessManager.grantContractSpecificRole(
-            ContractSpecificRoles.CURATOR_ROLE,
-            address(0),
-            curator
-        );
-        accessManager.revokeContractSpecificRole(
-            ContractSpecificRoles.CURATOR_ROLE,
-            address(0),
-            curator
-        );
+        accessManager.grantCuratorRole(address(0), curator);
+        accessManager.revokeCuratorRole(address(0), curator);
         vm.stopPrank();
         assertFalse(
             accessManager.hasRole(
