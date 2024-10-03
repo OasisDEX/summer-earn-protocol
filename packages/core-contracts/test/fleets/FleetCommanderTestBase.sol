@@ -77,17 +77,22 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         uint256 initialTipRate
     ) internal {
         mockToken = new ERC20Mock();
+        // first setup the contracts
         setupBaseContracts(address(mockToken));
+        // then setup the mock arks - they are not initilaized with fleet commander address
         setupMockArks(address(mockToken));
         address[] memory mockArks = new address[](4);
         mockArks[0] = ark1;
         mockArks[1] = ark2;
         mockArks[2] = ark3;
         mockArks[3] = ark4;
-        setupFleetCommander(
+        // setup the fleet commander - fleetcommander deploys buffer ark
+        setupFleetCommanderWithBufferArk(
             address(mockToken),
             PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
+        // grant roles to the fleet commander - Dyanmic `COMMANDER_ROLE` to manage arks
+        // grants governor keepr, curator roles
         grantRoles(mockArks, address(bufferArk), keeper);
         vm.prank(governor);
         fleetCommander.addArks(mockArks);
@@ -102,7 +107,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         uint256 initialTipRate
     ) internal {
         setupBaseContracts(underlyingToken);
-        setupFleetCommander(
+        setupFleetCommanderWithBufferArk(
             underlyingToken,
             PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
@@ -127,7 +132,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         }
     }
 
-    function setupFleetCommander(
+    function setupFleetCommanderWithBufferArk(
         address underlyingToken,
         Percentage initialTipRate
     ) internal {
@@ -145,7 +150,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         fleetCommander = new FleetCommander(fleetCommanderParams);
         bufferArkAddress = fleetCommander.bufferArk();
         bufferArk = BufferArk(bufferArkAddress);
-        console.log("bufferArkAddress in test base", bufferArkAddress);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );

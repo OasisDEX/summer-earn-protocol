@@ -91,21 +91,6 @@ contract ProtocolAccessManaged is IAccessControlErrors {
         _;
     }
 
-    // modifier onlyCommander() {
-    //     if (
-    //         !_accessManager.hasRole(
-    //             generateRole(
-    //                 ContractSpecificRoles.COMMANDER_ROLE,
-    //                 address(this)
-    //             ),
-    //             msg.sender
-    //         )
-    //     ) {
-    //         revert CallerIsNotCommander(msg.sender);
-    //     }
-    //     _;
-    // }
-
     /* @inheritdoc IProtocolAccessControl */
     function generateRole(
         ContractSpecificRoles roleName,

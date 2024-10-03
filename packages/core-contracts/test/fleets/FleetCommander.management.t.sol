@@ -18,7 +18,7 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
-
+import {BufferArk, ArkParams} from "../../src/contracts/arks/BufferArk.sol";
 import {ContractSpecificRoles, IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
@@ -264,6 +264,15 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
         assertEq(mockArk2.maxRebalanceInflow(), maxMoveTo);
     }
+    function test_SetArkMoveToMax_FailNotCurator() public {
+        uint256 maxMoveTo = 1000;
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotCurator(address)", keeper)
+        );
+
+        fleetCommander.setArkMaxRebalanceInflow(address(mockArk2), maxMoveTo);
+    }
 
     function test_SetArkMoveToMaxInvalidArk_ShouldFail() public {
         vm.expectRevert(
@@ -334,5 +343,29 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         vm.prank(governor);
         fleetCommander.removeArk(address(0x123));
+    }
+
+    function test_AddArkWithExistingCommander() public {
+        // Create a new mock Ark with a commander already set
+        BufferArk mockArkWithCommander = new BufferArk(
+            ArkParams({
+                name: "MockArkWithCommander",
+                accessManager: address(accessManager),
+                token: address(mockToken),
+                configurationManager: address(configurationManager),
+                depositCap: 1000,
+                maxRebalanceOutflow: 500,
+                maxRebalanceInflow: 500,
+                requiresKeeperData: false
+            }),
+            address(fleetCommander)
+        );
+
+        // Try to add the Ark with an existing commander
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature("FleetCommanderArkAlreadyHasCommander()")
+        );
+        fleetCommander.addArk(address(mockArkWithCommander));
     }
 }

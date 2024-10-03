@@ -181,12 +181,6 @@ contract FleetCommanderConfigProvider is
         emit ArkRemoved(ark);
     }
 
-    function _setupArks(address[] memory _arkAddresses) internal {
-        for (uint256 i = 0; i < _arkAddresses.length; i++) {
-            _addArk(_arkAddresses[i]);
-        }
-    }
-
     function _validateArkRemoval(address ark) internal view {
         IArk _ark = IArk(ark);
         if (_ark.depositCap() > 0) {
