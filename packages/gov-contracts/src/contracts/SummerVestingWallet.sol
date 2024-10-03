@@ -8,6 +8,16 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  * @title SummerVestingWallet
  * @dev Extension of OpenZeppelin's VestingWallet with custom vesting schedules and separate admin role.
  * Supports two types of vesting: Team vesting and Investor/Ex-Team vesting, both with a 6-month cliff.
+ *
+ * Vesting Schedules:
+ * 1. Team Vesting:
+ *    - Time-based: 8 quarterly releases over 2 years, starting after the 6-month cliff.
+ *    - Performance-based: 4 additional milestone-based releases, triggered by the guardian.
+ * 2. Investor/Ex-Team Vesting:
+ *    - Time-based only: 8 quarterly releases over 2 years, starting after the 6-month cliff.
+ *
+ * The guardian role can mark performance goals as reached for team vesting and recall unvested
+ * performance-based tokens if necessary.
  */
 contract SummerVestingWallet is VestingWallet, AccessControl {
     /// @dev Duration of a quarter in seconds
@@ -52,7 +62,7 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
      * @param startTimestamp Unix timestamp marking the start of the vesting period
      * @param durationSeconds Duration of the vesting period in seconds
      * @param vestingType Type of vesting schedule (0 for TeamVesting, 1 for InvestorExTeamVesting)
-     * @param adminAddress Address to be granted the admin role
+     * @param guardianAddress Address to be granted the guardian role
      */
     constructor(
         address _token,
@@ -65,7 +75,7 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
         uint256 _goal2Amount,
         uint256 _goal3Amount,
         uint256 _goal4Amount,
-        address adminAddress
+        address guardianAddress
     ) VestingWallet(beneficiaryAddress, startTimestamp, durationSeconds) {
         _vestingType = vestingType;
         timeBasedVestingAmount = _timeBasedVestingAmount;
@@ -75,7 +85,7 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
         goal4Amount = _goal4Amount;
         token = _token;
 
-        _grantRole(GUARDIAN_ROLE, adminAddress);
+        _grantRole(GUARDIAN_ROLE, guardianAddress);
     }
 
     /**
@@ -146,10 +156,21 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
         if (_vestingType != VestingType.TeamVesting) {
             revert OnlyTeamVesting();
         }
-        uint256 vestedAmount = vestedAmount(token, uint64(block.timestamp));
-        uint256 unvestedAmount = IERC20(token).balanceOf(address(this)) -
-            vestedAmount;
-        IERC20(token).transfer(msg.sender, unvestedAmount);
+        uint256 unvestedPerformanceTokens = _calculateUnvestedPerformanceTokens();
+        IERC20(token).transfer(msg.sender, unvestedPerformanceTokens);
+    }
+
+    function _calculateUnvestedPerformanceTokens()
+        private
+        view
+        returns (uint256)
+    {
+        uint256 totalPerformanceTokens = goal1Amount +
+            goal2Amount +
+            goal3Amount +
+            goal4Amount;
+        uint256 vestedPerformanceTokens = _calculatePerformanceBasedVesting();
+        return totalPerformanceTokens - vestedPerformanceTokens;
     }
 
     function getVestingType() public view returns (VestingType) {

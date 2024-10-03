@@ -297,6 +297,8 @@ contract SummerVestingTest is SummerTokenTestBase {
         );
 
         vm.warp(block.timestamp + 365 days);
+        vestingWallet.markGoalReached(1);
+        vestingWallet.markGoalReached(3);
         uint256 initialBalance = aSummerToken.balanceOf(address(this));
 
         vestingWallet.recallUnvestedTokens();
@@ -304,7 +306,7 @@ contract SummerVestingTest is SummerTokenTestBase {
         uint256 finalBalance = aSummerToken.balanceOf(address(this));
         assertEq(
             finalBalance - initialBalance,
-            TOTAL_VESTING_AMOUNT - TIME_BASED_AMOUNT / 2,
+            GOAL_2_AMOUNT + GOAL_4_AMOUNT,
             "Admin should receive unvested tokens"
         );
     }
