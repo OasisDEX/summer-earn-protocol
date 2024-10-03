@@ -36,4 +36,9 @@ interface IConfigurationManagerErrors {
      * @notice Thrown when constructor address is set to the zero address.
      */
     error AddressZero();
+
+    /**
+     * @notice Thrown when the HarborCommand address is not set.
+     */
+    error HarborCommandNotSet();
 }
