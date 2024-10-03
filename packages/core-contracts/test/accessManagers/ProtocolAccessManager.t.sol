@@ -212,6 +212,23 @@ contract ProtocolAccessManagerTest is Test {
             )
         );
     }
+    function test_selfRevokeContractSpecificRole_shouldFail() public {
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotContractSpecificRole(address,bytes32)",
+                commander,
+                accessManager.generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(0)
+                )
+            )
+        );
+        vm.prank(commander);
+        accessManager.selfRevokeContractSpecificRole(
+            ContractSpecificRoles.COMMANDER_ROLE,
+            address(0)
+        );
+    }
     function test_OnlyAdminModifier() public {
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotAdmin(address)", user)
