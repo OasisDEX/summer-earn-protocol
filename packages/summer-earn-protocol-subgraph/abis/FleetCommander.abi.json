@@ -18,11 +18,6 @@
             "internalType": "string"
           },
           {
-            "name": "initialArks",
-            "type": "address[]",
-            "internalType": "address[]"
-          },
-          {
             "name": "configurationManager",
             "type": "address",
             "internalType": "address"
@@ -34,11 +29,6 @@
           },
           {
             "name": "asset",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "bufferArk",
             "type": "address",
             "internalType": "address"
           },
@@ -260,6 +250,19 @@
   },
   {
     "type": "function",
+    "name": "bufferArk",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "config",
     "inputs": [],
     "outputs": [
@@ -457,7 +460,7 @@
       {
         "name": "roleName",
         "type": "uint8",
-        "internalType": "enum DynamicRoles"
+        "internalType": "enum ContractSpecificRoles"
       },
       {
         "name": "roleTargetContract",
@@ -1875,18 +1878,7 @@
   },
   {
     "type": "error",
-    "name": "CallerIsNotCurator",
-    "inputs": [
-      {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "CallerIsNotDynamicRole",
+    "name": "CallerIsNotContractSpecificRole",
     "inputs": [
       {
         "name": "caller",
@@ -1897,6 +1889,17 @@
         "name": "role",
         "type": "bytes32",
         "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CallerIsNotCurator",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
       }
     ]
   },
@@ -2183,6 +2186,11 @@
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderArkAlreadyHasCommander",
+    "inputs": []
   },
   {
     "type": "error",
