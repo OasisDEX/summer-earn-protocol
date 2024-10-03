@@ -174,6 +174,10 @@ contract FleetCommanderConfigProvider is
 
         isArkActive[ark] = false;
         IArk(ark).unregisterFleetCommander();
+        _accessManager.selfRevokeContractSpecificRole(
+            ContractSpecificRoles.COMMANDER_ROLE,
+            address(ark)
+        );
         emit ArkRemoved(ark);
     }
 

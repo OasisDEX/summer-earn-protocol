@@ -11,11 +11,10 @@ import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @custom:see IArk
  */
-
 abstract contract Ark is IArk, ArkConfigProvider {
     using SafeERC20 for IERC20;
 
@@ -105,9 +104,6 @@ abstract contract Ark is IArk, ArkConfigProvider {
         onlyAuthorizedToBoard(this.commander())
         validateBoardData(boardData)
     {
-        console.log("commander", IArk(address(this)).commander());
-        console.log("raft", raft());
-        console.log("this ark", address(this));
         address msgSender = msg.sender;
         config.token.safeTransferFrom(msgSender, address(this), amount);
         _board(amount, boardData);

@@ -18,9 +18,12 @@ import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+
+import {ContractSpecificRoles, IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
@@ -115,8 +118,17 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(governor);
         fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
+        vm.expectEmit();
+        emit IAccessControl.RoleRevoked(
+            accessManager.generateRole(
+                ContractSpecificRoles.COMMANDER_ROLE,
+                address(mockArk1)
+            ),
+            address(fleetCommander),
+            address(fleetCommander)
+        );
         vm.prank(governor);
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit();
         emit IFleetCommanderConfigProviderEvents.ArkRemoved(address(mockArk1));
         fleetCommander.removeArk(address(mockArk1));
         assertEq(fleetCommander.getArks().length, initialArksCount - 1);

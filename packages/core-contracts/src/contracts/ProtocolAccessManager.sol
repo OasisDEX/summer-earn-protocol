@@ -15,12 +15,6 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
     /**
-     * @dev The Keeper role is in charge of rebalancing the funds between the different
-     *         Arks through the Fleet Commander
-     */
-    bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
-
-    /**
      * @dev The Super Keeper role is in charge of rebalancing the funds between the different
      *         Arks through the Fleet Commander
      */
@@ -56,16 +50,6 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         }
         _;
     }
-
-    /**
-     * @dev Modifier to check that the caller has the Keeper role
-     */
-    // modifier onlyKeeper() {
-    //     if (!hasRole(KEEPER_ROLE, msg.sender)) {
-    //         revert CallerIsNotKeeper(msg.sender);
-    //     }
-    //     _;
-    // }
 
     // Override supportsInterface to include IProtocolAccessManager
     function supportsInterface(
