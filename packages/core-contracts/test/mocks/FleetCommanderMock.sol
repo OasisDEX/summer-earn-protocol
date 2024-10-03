@@ -37,6 +37,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function withdrawableTotalAssets() external pure returns (uint256) {
         return 0;
     }
+
     function totalAssets()
         public
         view
@@ -45,6 +46,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     {
         return super.totalAssets();
     }
+
     function deposit(
         uint256 assets,
         address receiver
@@ -159,6 +161,10 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function getConfig() external view override returns (FleetConfig memory) {
         return config;
+    }
+
+    function bufferArk() external view returns (address) {
+        return address(config.bufferArk);
     }
 
     function test() public {}

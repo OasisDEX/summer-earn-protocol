@@ -10,11 +10,9 @@ import "@summerfi/percentage-solidity/contracts/Percentage.sol";
 struct FleetCommanderParams {
     string name;
     string symbol;
-    address[] initialArks;
     address configurationManager;
     address accessManager;
     address asset;
-    address bufferArk;
     uint256 initialMinimumBufferBalance;
     uint256 initialRebalanceCooldown;
     uint256 depositCap;

@@ -80,7 +80,8 @@ interface IFleetCommander is
      * @notice Withdraws a specified amount of assets from the FleetCommander
      * @dev This function first attempts to withdraw from the buffer. If the buffer doesn't have enough assets,
      *      it will withdraw from the arks. It also handles the case where the maximum possible amount is requested.
-     * @param assets The amount of assets to withdraw. If set to type(uint256).max, it will withdraw the maximum possible amount.
+     * @param assets The amount of assets to withdraw. If set to type(uint256).max, it will withdraw the maximum
+     * possible amount.
      * @param receiver The address that will receive the withdrawn assets
      * @param owner The address of the owner of the shares
      * @return shares The number of shares burned in exchange for the withdrawn assets
@@ -95,7 +96,8 @@ interface IFleetCommander is
      * @notice Redeems a specified amount of shares from the FleetCommander
      * @dev This function first attempts to redeem from the buffer. If the buffer doesn't have enough assets,
      *      it will redeem from the arks. It also handles the case where the maximum possible amount is requested.
-     * @param shares The number of shares to redeem. If set to type(uint256).max, it will redeem all shares owned by the owner.
+     * @param shares The number of shares to redeem. If set to type(uint256).max, it will redeem all shares owned by the
+     * owner.
      * @param receiver The address that will receive the redeemed assets
      * @param owner The address of the owner of the shares
      * @return assets The amount of assets received in exchange for the redeemed shares

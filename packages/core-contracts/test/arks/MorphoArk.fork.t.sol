@@ -66,7 +66,10 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.startPrank(governor);
-        ark.grantCommanderRole(commander);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
         vm.stopPrank();
 
         // Set up the rewards distributor

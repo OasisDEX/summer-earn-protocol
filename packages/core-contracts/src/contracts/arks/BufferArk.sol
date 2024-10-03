@@ -18,7 +18,12 @@ contract BufferArk is Ark {
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
-    constructor(ArkParams memory _params) Ark(_params) {}
+    constructor(
+        ArkParams memory _params,
+        address commanderAddress
+    ) Ark(_params) {
+        config.commander = commanderAddress;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 FUNCTIONS

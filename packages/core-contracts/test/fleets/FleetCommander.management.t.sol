@@ -33,14 +33,12 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         FleetCommanderParams memory params = FleetCommanderParams({
             configurationManager: address(configurationManager),
             accessManager: address(accessManager),
-            initialArks: new address[](0),
             initialMinimumBufferBalance: 1000,
             initialRebalanceCooldown: 1 hours,
             asset: address(mockToken),
             name: "Fleet Commander",
             symbol: "FC",
             depositCap: 10000,
-            bufferArk: bufferArkAddress,
             initialTipRate: Percentage.wrap(0)
         });
 
@@ -50,8 +48,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertEq(config.minimumBufferBalance, 1000);
         assertEq(config.depositCap, 10000);
         assertEq(config.maxRebalanceOperations, 10);
-        assertEq(address(config.bufferArk), bufferArkAddress);
-        assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
+        assertTrue(newFleetCommander.isArkActive(address(config.bufferArk)));
     }
 
     function test_GetArks() public view {

@@ -5,18 +5,24 @@ import {IArkConfigProviderErrors} from "../errors/IArkConfigProviderErrors.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 
 import {IArkConfigProviderEvents} from "../events/IArkConfigProviderEvents.sol";
-import "../types/ArkTypes.sol";
-
+import {ArkConfig} from "../types/ArkTypes.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @title IArkConfigProvider
  * @notice Interface for configuration of Ark contracts
  * @dev Inherits from IArkAccessManaged for access control and IArkConfigProviderEvents for event definitions
  */
+
 interface IArkConfigProvider is
     IArkAccessManaged,
     IArkConfigProviderErrors,
     IArkConfigProviderEvents
 {
+    /**
+     * @notice Retrieves the current fleet config
+     */
+    function getConfig() external view returns (ArkConfig memory);
+
     /**
      * @dev Returns the name of the Ark.
      * @return The name of the Ark as a string.
@@ -82,4 +88,19 @@ interface IArkConfigProvider is
      * @param newMaxRebalanceInflow The new maximum amount that can be moved to the Ark
      */
     function setMaxRebalanceInflow(uint256 newMaxRebalanceInflow) external;
+
+    /**
+     * @notice Registers the Fleet commander for the Ark
+     * @dev This function is used to register the Fleet commander for the Ark
+     * it's called by the FleetCommander when ark is added to the fleet
+     */
+    function registerFleetCommander() external;
+
+    /**
+     * @notice Unregisters the Fleet commander for the Ark
+     * @dev This function is used to unregister the Fleet commander for the Ark
+     * it's called by the FleetCommander when ark is removed from the fleet
+     * all balance checks are done within the FleetCommander
+     */
+    function unregisterFleetCommander() external;
 }

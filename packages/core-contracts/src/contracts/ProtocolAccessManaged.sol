@@ -2,9 +2,10 @@
 pragma solidity 0.8.27;
 
 import {IAccessControlErrors} from "../errors/IAccessControlErrors.sol";
-import {IProtocolAccessManager, ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+// import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
 /**
  * @title ProtocolAccessManaged
@@ -45,7 +46,16 @@ contract ProtocolAccessManaged is IAccessControlErrors {
      * @dev Modifier to check that the caller has the Keeper role
      */
     modifier onlyKeeper() {
-        if (!_accessManager.hasRole(_accessManager.KEEPER_ROLE(), msg.sender)) {
+        if (
+            !_accessManager.hasRole(
+                generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
+                msg.sender
+            ) &&
+            !_accessManager.hasRole(
+                _accessManager.SUPER_KEEPER_ROLE(),
+                msg.sender
+            )
+        ) {
             revert CallerIsNotKeeper(msg.sender);
         }
         _;
@@ -80,6 +90,21 @@ contract ProtocolAccessManaged is IAccessControlErrors {
         }
         _;
     }
+
+    // modifier onlyCommander() {
+    //     if (
+    //         !_accessManager.hasRole(
+    //             generateRole(
+    //                 ContractSpecificRoles.COMMANDER_ROLE,
+    //                 address(this)
+    //             ),
+    //             msg.sender
+    //         )
+    //     ) {
+    //         revert CallerIsNotCommander(msg.sender);
+    //     }
+    //     _;
+    // }
 
     /* @inheritdoc IProtocolAccessControl */
     function generateRole(

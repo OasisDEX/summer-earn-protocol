@@ -37,7 +37,7 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
 
         config = ArkConfig({
             token: IERC20(_params.token),
-            commander: address(0), // Will be set later
+            commander: address(0), // FleetCommanders self register
             raft: manager.raft(),
             depositCap: _params.depositCap,
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
@@ -68,7 +68,7 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
     }
 
     /* @inheritdoc IArk */
-    function commander() external view returns (address) {
+    function commander() public view returns (address) {
         return config.commander;
     }
 
@@ -85,6 +85,10 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
     /* @inheritdoc IArk */
     function requiresKeeperData() external view returns (bool) {
         return config.requiresKeeperData;
+    }
+
+    function getConfig() external view returns (ArkConfig memory) {
+        return config;
     }
 
     /* @inheritdoc IArk */
@@ -107,5 +111,15 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
     ) external onlyCommander {
         config.maxRebalanceInflow = newMaxRebalanceInflow;
         emit MaxRebalanceInflowUpdated(newMaxRebalanceInflow);
+    }
+
+    function registerFleetCommander() external onlyCommander {
+        config.commander = msg.sender;
+        emit FleetCommanderRegistered(msg.sender);
+    }
+
+    function unregisterFleetCommander() external onlyCommander {
+        config.commander = address(0);
+        emit FleetCommanderUnregistered(msg.sender);
     }
 }

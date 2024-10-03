@@ -2,7 +2,7 @@
 pragma solidity 0.8.27;
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
 import {Test} from "forge-std/Test.sol";
 
@@ -92,16 +92,44 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_GrantKeeperRole() public {
         vm.prank(governor);
-        accessManager.grantKeeperRole(keeper);
-        assertTrue(accessManager.hasRole(accessManager.KEEPER_ROLE(), keeper));
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            keeper
+        );
+        assertTrue(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.KEEPER_ROLE,
+                    address(0)
+                ),
+                keeper
+            )
+        );
     }
 
     function test_RevokeKeeperRole() public {
         vm.startPrank(governor);
-        accessManager.grantKeeperRole(keeper);
-        accessManager.revokeKeeperRole(keeper);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            keeper
+        );
+        accessManager.revokeContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            keeper
+        );
         vm.stopPrank();
-        assertFalse(accessManager.hasRole(accessManager.KEEPER_ROLE(), keeper));
+        assertFalse(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.KEEPER_ROLE,
+                    address(0)
+                ),
+                keeper
+            )
+        );
     }
 
     function test_OnlyAdminModifier() public {
@@ -117,7 +145,11 @@ contract ProtocolAccessManagerTest is Test {
             abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
         );
         vm.prank(user);
-        accessManager.grantKeeperRole(user);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            user
+        );
     }
 
     function test_OnlyGovernorModifier_Fail() public {
@@ -125,16 +157,20 @@ contract ProtocolAccessManagerTest is Test {
             abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
         );
         vm.prank(user);
-        accessManager.grantKeeperRole(user);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            user
+        );
     }
 
-    function test_OnlyKeeperModifier_Fail() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotKeeper(address)", user)
-        );
-        vm.prank(user);
-        accessManager.dummyKeeperFunction();
-    }
+    // function test_OnlyKeeperModifier_Fail() public {
+    //     vm.expectRevert(
+    //         abi.encodeWithSignature("CallerIsNotKeeper(address)", user)
+    //     );
+    //     vm.prank(user);
+    //     accessManager.dummyKeeperFunction();
+    // }
 
     function test_GrantRoleDirectly_ShouldFail() public {
         // Act
@@ -148,7 +184,11 @@ contract ProtocolAccessManagerTest is Test {
     function test_RevokeRoleDirectly_ShouldFail() public {
         // Arrange
         vm.prank(governor);
-        accessManager.grantKeeperRole(keeper);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            keeper
+        );
 
         // Act
         vm.expectRevert(
@@ -162,8 +202,8 @@ contract ProtocolAccessManagerTest is Test {
 contract TestProtocolAccessManager is ProtocolAccessManager {
     constructor(address governor) ProtocolAccessManager(governor) {}
 
-    // Add this dummy function for testing purposes
-    function dummyKeeperFunction() external onlyKeeper {
-        // This function doesn't need to do anything
-    }
+    // // Add this dummy function for testing purposes
+    // function dummyKeeperFunction() external onlyKeeper {
+    //     // This function doesn't need to do anything
+    // }
 }

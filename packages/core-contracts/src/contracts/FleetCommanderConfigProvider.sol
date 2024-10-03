@@ -5,13 +5,16 @@ import {IArk} from "../interfaces/IArk.sol";
 import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
+
+import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
+import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 /**
  * @title FleetCommanderConfigProvider
  * @notice This contract provides configuration management for the FleetCommander
  */
+
 contract FleetCommanderConfigProvider is
     IFleetCommanderConfigProvider,
     ProtocolAccessManaged
@@ -26,18 +29,29 @@ contract FleetCommanderConfigProvider is
     constructor(
         FleetCommanderParams memory params
     ) ProtocolAccessManaged(params.accessManager) {
+        BufferArk _bufferArk = new BufferArk(
+            ArkParams({
+                name: "BufferArk",
+                accessManager: address(params.accessManager),
+                token: params.asset,
+                configurationManager: address(params.configurationManager),
+                depositCap: type(uint256).max,
+                maxRebalanceOutflow: type(uint256).max,
+                maxRebalanceInflow: type(uint256).max,
+                requiresKeeperData: false
+            }),
+            address(this)
+        );
         _setFleetConfig(
             FleetConfig({
-                bufferArk: IArk(params.bufferArk),
+                bufferArk: IArk(address(_bufferArk)),
                 minimumBufferBalance: params.initialMinimumBufferBalance,
                 depositCap: params.depositCap,
                 maxRebalanceOperations: MAX_REBALANCE_OPERATIONS
             })
         );
-        isArkActive[address(config.bufferArk)] = true;
-        isArkWithdrawable[address(config.bufferArk)] = true;
-
-        _setupArks(params.initialArks);
+        isArkActive[address(_bufferArk)] = true;
+        isArkWithdrawable[address(_bufferArk)] = true;
     }
 
     function getArks() public view returns (address[] memory) {
@@ -47,6 +61,11 @@ contract FleetCommanderConfigProvider is
     function getConfig() external view override returns (FleetConfig memory) {
         return config;
     }
+
+    function bufferArk() external view returns (address) {
+        return address(config.bufferArk);
+    }
+
     // ARK MANAGEMENT
 
     function addArk(address ark) external onlyGovernor {
@@ -131,6 +150,10 @@ contract FleetCommanderConfigProvider is
         isArkActive[ark] = true;
         // Ark can be withdrawn by anyone if it doesnt' require keeper data
         isArkWithdrawable[ark] = !IArk(ark).requiresKeeperData();
+        if (IArk(ark).getConfig().commander != address(0)) {
+            revert FleetCommanderArkAlreadyHasCommander();
+        }
+        IArk(ark).registerFleetCommander();
         arks.push(ark);
         emit ArkAdded(ark);
     }
@@ -150,6 +173,7 @@ contract FleetCommanderConfigProvider is
         }
 
         isArkActive[ark] = false;
+        IArk(ark).unregisterFleetCommander();
         emit ArkRemoved(ark);
     }
 

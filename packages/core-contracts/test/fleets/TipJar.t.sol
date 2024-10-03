@@ -11,6 +11,7 @@ import {TipJar} from "../../src/contracts/TipJar.sol";
 
 import "../../src/errors/IAccessControlErrors.sol";
 import "../../src/errors/ITipJarErrors.sol";
+import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -33,7 +34,11 @@ contract TipJarTest is Test, ITipJarEvents {
     function setUp() public {
         accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
-        accessManager.grantKeeperRole(keeper);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            keeper
+        );
 
         underlyingToken = new ERC20Mock();
         configManager = new ConfigurationManagerImplMock(

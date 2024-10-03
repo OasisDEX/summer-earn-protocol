@@ -39,7 +39,10 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.prank(governor);
-        ark.grantCommanderRole(commander);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
     }
 
     function test_Constructor() public {

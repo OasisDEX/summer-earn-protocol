@@ -23,6 +23,7 @@ import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.so
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
@@ -78,17 +79,18 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         mockToken = new ERC20Mock();
         setupBaseContracts(address(mockToken));
         setupMockArks(address(mockToken));
-        address[] memory initialArks = new address[](4);
-        initialArks[0] = ark1;
-        initialArks[1] = ark2;
-        initialArks[2] = ark3;
-        initialArks[3] = ark4;
+        address[] memory mockArks = new address[](4);
+        mockArks[0] = ark1;
+        mockArks[1] = ark2;
+        mockArks[2] = ark3;
+        mockArks[3] = ark4;
         setupFleetCommander(
             address(mockToken),
-            initialArks,
             PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
-        grantRoles(initialArks, address(bufferArk), keeper);
+        grantRoles(mockArks, address(bufferArk), keeper);
+        vm.prank(governor);
+        fleetCommander.addArks(mockArks);
         vm.label(address(mockArk1), "Ark1");
         vm.label(address(mockArk2), "Ark2");
         vm.label(address(mockArk3), "Ark3");
@@ -102,7 +104,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         setupBaseContracts(underlyingToken);
         setupFleetCommander(
             underlyingToken,
-            new address[](0),
             PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
     }
@@ -124,40 +125,27 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 })
             );
         }
-        bufferArk = new BufferArk(
-            ArkParams({
-                name: "TestArk",
-                accessManager: address(accessManager),
-                token: underlyingToken,
-                configurationManager: address(configurationManager),
-                depositCap: type(uint256).max,
-                maxRebalanceOutflow: type(uint256).max,
-                maxRebalanceInflow: type(uint256).max,
-                requiresKeeperData: false
-            })
-        );
-        bufferArkAddress = address(bufferArk);
     }
 
     function setupFleetCommander(
         address underlyingToken,
-        address[] memory initialArks,
         Percentage initialTipRate
     ) internal {
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            initialArks: initialArks,
             initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             asset: underlyingToken,
             name: fleetName,
             symbol: "TEST-SUM",
             initialTipRate: initialTipRate,
-            depositCap: type(uint256).max,
-            bufferArk: bufferArkAddress
+            depositCap: type(uint256).max
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
+        bufferArkAddress = fleetCommander.bufferArk();
+        bufferArk = BufferArk(bufferArkAddress);
+        console.log("bufferArkAddress in test base", bufferArkAddress);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );
@@ -184,17 +172,14 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         address _keeper
     ) internal {
         vm.startPrank(governor);
-        accessManager.grantKeeperRole(_keeper);
-        accessManager.grantContractSpecificRole(
-            ContractSpecificRoles.CURATOR_ROLE,
-            address(fleetCommander),
-            governor
-        );
-        BufferArk(_bufferArkAddress).grantCommanderRole(
+        accessManager.grantKeeperRole(address(fleetCommander), _keeper);
+        accessManager.grantCuratorRole(address(fleetCommander), governor);
+        accessManager.grantCommanderRole(
+            address(_bufferArkAddress),
             address(fleetCommander)
         );
         for (uint256 i = 0; i < arks.length; i++) {
-            ArkMock(arks[i]).grantCommanderRole(address(fleetCommander));
+            accessManager.grantCommanderRole(arks[i], address(fleetCommander));
         }
         vm.stopPrank();
     }

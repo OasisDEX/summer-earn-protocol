@@ -22,9 +22,9 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  */
 contract FleetCommander is
     IFleetCommander,
+    FleetCommanderConfigProvider,
     ERC4626,
     Tipper,
-    FleetCommanderConfigProvider,
     FleetCommanderCache,
     CooldownEnforcer
 {
