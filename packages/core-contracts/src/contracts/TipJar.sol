@@ -13,9 +13,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 
 /**
- * @title TipJar
- * @notice Contract implementing the centralized collection and distribution of tips
- * @dev This contract manages tip streams, allowing for the addition, removal, and updating of tip allocations
+ * @custom:see ITipJar
  */
 contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     using PercentageUtils for uint256;
@@ -127,6 +125,20 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     /**
      * @notice Distributes accumulated tips from a single FleetCommander
      * @param fleetCommander_ The address of the FleetCommander contract to distribute tips from
+     * @custom:internal-logic
+     * - Verifies if the provided FleetCommander address is active
+     * - Retrieves the TipJar's balance of shares from the FleetCommander
+     * - Redeems the shares for underlying assets
+     * - Distributes the assets to tip stream recipients based on their allocations
+     * - Transfers any remaining balance to the treasury
+     * @custom:effects
+     * - Redeems shares from the FleetCommander
+     * - Transfers assets to tip stream recipients and treasury
+     * - Emits a TipJarShaken event
+     * @custom:security-considerations
+     * - Ensures the FleetCommander is active before processing
+     * - Handles potential rounding errors in asset distribution
+     * - Verifies there are shares to redeem and assets to distribute
      */
     function _shake(address fleetCommander_) internal {
         if (
@@ -190,6 +202,14 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     /**
      * @notice Validates that a tip stream exists and is not locked
      * @param recipient The address of the tip stream recipient
+     * @custom:internal-logic
+     * - Checks if the tip stream exists for the given recipient
+     * - Verifies if the current time is past the locked until epoch
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Prevents operations on non-existent tip streams
+     * - Enforces time-based locks on tip streams
      */
     function _validateTipStream(address recipient) internal view {
         if (tipStreams[recipient].recipient == address(0)) {
@@ -204,6 +224,15 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
      * @notice Validates the allocation for a tip stream
      * @param newAllocation The allocation to validate
      * @param currentAllocation The current allocation to compare against
+     * @custom:internal-logic
+     * - Checks if the new allocation is valid (non-zero and within range)
+     * - Verifies that the total allocation after the change doesn't exceed 100%
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Prevents invalid allocations (zero or out of range)
+     * - Ensures the total allocation across all tip streams remains valid
+     * - Accounts for the difference between new and current allocation when checking total
      */
     function _validateTipStreamAllocation(
         Percentage newAllocation,
