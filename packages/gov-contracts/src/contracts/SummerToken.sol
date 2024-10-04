@@ -36,19 +36,13 @@ contract SummerToken is
      * @dev Creates a new vesting wallet for a beneficiary
      * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
      * @param timeBasedAmount Amount of tokens to be vested
-     * @param goal1Amount Amount of tokens to be vested
-     * @param goal2Amount Amount of tokens to be vested
-     * @param goal3Amount Amount of tokens to be vested
-     * @param goal4Amount Amount of tokens to be vested
+     * @param goalAmounts Array of amounts to be vested
      * @param vestingType Type of vesting schedule. See VestingType for options.
      */
     function createVestingWallet(
         address beneficiary,
         uint256 timeBasedAmount,
-        uint256 goal1Amount,
-        uint256 goal2Amount,
-        uint256 goal3Amount,
-        uint256 goal4Amount,
+        uint256[] memory goalAmounts,
         SummerVestingWallet.VestingType vestingType
     ) external {
         if (vestingWallets[beneficiary] != address(0)) {
@@ -58,11 +52,10 @@ contract SummerToken is
         uint64 startTimestamp = uint64(block.timestamp);
         uint64 durationSeconds = 730 days; // 2 years for both vesting types
 
-        uint256 totalAmount = timeBasedAmount +
-            goal1Amount +
-            goal2Amount +
-            goal3Amount +
-            goal4Amount;
+        uint256 totalAmount = timeBasedAmount;
+        for (uint256 i = 0; i < goalAmounts.length; i++) {
+            totalAmount += goalAmounts[i];
+        }
 
         address newVestingWallet = address(
             new SummerVestingWallet(
@@ -72,10 +65,7 @@ contract SummerToken is
                 durationSeconds,
                 vestingType,
                 timeBasedAmount,
-                goal1Amount,
-                goal2Amount,
-                goal3Amount,
-                goal4Amount,
+                goalAmounts,
                 msg.sender // Set the caller as the admin
             )
         );
@@ -142,9 +132,22 @@ contract SummerToken is
     }
 
     /**
-     * @dev Override to include all user tokens in voting power - including locked up tokens
+     * @dev Overrides the default _getVotingUnits function to include all user tokens in voting power, including locked up tokens in vesting wallets
      * @param account The address to get voting units for
-     * @return The number of voting units for the account
+     * @return uint256 The total number of voting units for the account
+     * @custom:internal-logic
+     * - Retrieves the direct token balance of the account
+     * - Checks if the account has an associated vesting wallet
+     * - If a vesting wallet exists, adds its balance to the account's direct balance
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Ensures that tokens in vesting contracts still contribute to voting power
+     * - May increase the voting power of accounts with vesting wallets compared to standard ERC20Votes implementation
+     * - Consider the implications of this increased voting power on governance decisions
+     * @custom:gas-considerations
+     * - This function performs an additional storage read and potential balance check compared to the standard implementation
+     * - May slightly increase gas costs for voting-related operations
      */
     function _getVotingUnits(
         address account
@@ -160,6 +163,23 @@ contract SummerToken is
         return directBalance;
     }
 
+    /**
+     * @notice Mints new tokens and assigns them to the specified address
+     * @dev This function can only be called by the contract owner
+     * @param to The address to receive the minted tokens
+     * @param amount The amount of tokens to mint
+     * @custom:requirements
+     * - The caller must be the contract owner
+     * @custom:effects
+     * - Increases the total supply of tokens
+     * - Increases the balance of the recipient address
+     * @custom:emits A Transfer event from the zero address to the recipient
+     * @custom:security-considerations
+     * - This function allows the owner to arbitrarily increase the token supply
+     * - Ensure that the owner address is properly secured and trusted
+     * - Consider implementing additional checks or limits on minting to prevent abuse
+     * - there is no cap on the minting of tokens
+     */
     function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }

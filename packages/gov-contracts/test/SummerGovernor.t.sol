@@ -1499,10 +1499,7 @@ contract SummerGovernorTest is
         aSummerToken.createVestingWallet(
             alice,
             vestingAmount,
-            0,
-            0,
-            0,
-            0,
+            new uint256[](0),
             SummerVestingWallet.VestingType.TeamVesting
         );
         aSummerToken.mint(alice, directAmount);
