@@ -32,9 +32,15 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      */
     bytes32 public constant COMMANDER_ROLE = keccak256("COMMANDER_ROLE");
 
+    /**
+     * @notice The Guardian role is in charge of managing the protocol's state in case of emergency
+     */
+    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+
     constructor(address governor) {
         _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
+        _grantRole(GUARDIAN_ROLE, governor);
     }
 
     /**
@@ -57,16 +63,6 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         _;
     }
 
-    /**
-     * @dev Modifier to check that the caller has the Keeper role
-     */
-    modifier onlyKeeper() {
-        if (!hasRole(KEEPER_ROLE, msg.sender)) {
-            revert CallerIsNotKeeper(msg.sender);
-        }
-        _;
-    }
-
     // Override supportsInterface to include IProtocolAccessManager
     function supportsInterface(
         bytes4 interfaceId
@@ -76,43 +72,53 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
             super.supportsInterface(interfaceId);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function grantAdminRole(address account) external onlyAdmin {
         _grantRole(DEFAULT_ADMIN_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function revokeAdminRole(address account) external onlyAdmin {
         _revokeRole(DEFAULT_ADMIN_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function grantGovernorRole(address account) external onlyAdmin {
         _grantRole(GOVERNOR_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function revokeGovernorRole(address account) external onlyAdmin {
         _revokeRole(GOVERNOR_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function grantKeeperRole(address account) external onlyGovernor {
         _grantRole(KEEPER_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function revokeKeeperRole(address account) external onlyGovernor {
         _revokeRole(KEEPER_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function grantSuperKeeperRole(address account) external onlyGovernor {
         _grantRole(SUPER_KEEPER_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /* @inheritdoc IProtocolAccessManager */
     function revokeSuperKeeperRole(address account) external onlyGovernor {
         _revokeRole(SUPER_KEEPER_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessManager */
+    function grantGuardianRole(address account) external onlyGovernor {
+        _grantRole(GUARDIAN_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessManager */
+    function revokeGuardianRole(address account) external onlyGovernor {
+        _revokeRole(GUARDIAN_ROLE, account);
     }
 }

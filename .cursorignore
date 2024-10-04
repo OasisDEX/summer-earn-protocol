@@ -1,0 +1,98 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# next.js
+.next/
+out/
+build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env
+.env.local
+.env.test
+.env.development.local
+.env.test.local
+.env.production.local
+
+# turbo
+.turbo
+
+# vercel
+.vercel
+
+# JetBrains files
+.idea
+
+# all dist & artifacts folders
+dist
+artifacts
+
+# tsbuildinfo
+*.tsbuildinfo
+
+# geneated GraphQL types
+/**/types/graphql/*.ts
+
+# other generated files
+/packages/**/src/generated/
+/packages/**/typechain-types/
+
+# nx files
+.nx
+
+# sst
+.sst
+.build
+
+# opennext
+.open-next
+
+# local env files
+.env*.local
+
+# editors configs
+.vscode
+
+# private http envs
+*.private.env.json
+
+# CDK Contexts
+cdk.context.json
+
+# rays-dashboard specific
+/apps/rays-dashboard/types/generated
+
+#subgraph
+generated
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+*.egg-info/
+dist/
+build/
+
+cache
+.cache
+broadcast
+
+cache_forge/
+**/cache_forge/
