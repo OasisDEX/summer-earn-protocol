@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
@@ -13,6 +14,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
  * @notice This contract provides configuration management for the FleetCommander
  */
 contract FleetCommanderConfigProvider is
+    FleetCommanderPausable,
     IFleetCommanderConfigProvider,
     ProtocolAccessManaged
 {
@@ -22,11 +24,15 @@ contract FleetCommanderConfigProvider is
     mapping(address => bool) public isArkWithdrawable;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
+    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
 
     constructor(
         FleetCommanderParams memory params
-    ) ProtocolAccessManaged(params.accessManager) {
-        setFleetConfig(
+    )
+        ProtocolAccessManaged(params.accessManager)
+        FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
+    {
+        _setFleetConfig(
             FleetConfig({
                 bufferArk: IArk(params.bufferArk),
                 minimumBufferBalance: params.initialMinimumBufferBalance,
@@ -49,24 +55,26 @@ contract FleetCommanderConfigProvider is
     }
     // ARK MANAGEMENT
 
-    function addArk(address ark) external onlyGovernor {
+    function addArk(address ark) external onlyGovernor whenNotPaused {
         _addArk(ark);
     }
 
-    function addArks(address[] calldata _arkAddresses) external onlyGovernor {
+    function addArks(
+        address[] calldata _arkAddresses
+    ) external onlyGovernor whenNotPaused {
         for (uint256 i = 0; i < _arkAddresses.length; i++) {
             _addArk(_arkAddresses[i]);
         }
     }
 
-    function removeArk(address ark) external onlyGovernor {
+    function removeArk(address ark) external onlyGovernor whenNotPaused {
         _removeArk(ark);
     }
 
     function setArkDepositCap(
         address ark,
         uint256 newDepositCap
-    ) external onlyGovernor {
+    ) external onlyGovernor whenNotPaused {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -76,7 +84,7 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceOutflow(
         address ark,
         uint256 newMaxRebalanceOutflow
-    ) external onlyGovernor {
+    ) external onlyGovernor whenNotPaused {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -86,40 +94,42 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceInflow(
         address ark,
         uint256 newMaxRebalanceInflow
-    ) external onlyGovernor {
+    ) external onlyGovernor whenNotPaused {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
         IArk(ark).setMaxRebalanceInflow(newMaxRebalanceInflow);
     }
 
-    // FLEET MANAGEMENT
     function setMinimumBufferBalance(
         uint256 newMinimumBalance
-    ) external onlyGovernor {
+    ) external onlyGovernor whenNotPaused {
         config.minimumBufferBalance = newMinimumBalance;
         emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
 
-    function setFleetDepositCap(uint256 newCap) external onlyGovernor {
+    function setFleetDepositCap(
+        uint256 newCap
+    ) external onlyGovernor whenNotPaused {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
     }
 
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
-    ) external onlyGovernor {
+    ) external onlyGovernor whenNotPaused {
         config.maxRebalanceOperations = newMaxRebalanceOperations;
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations
         );
     }
 
-    function setFleetConfig(FleetConfig memory _config) internal {
+    // INTERNAL FUNCTIONS
+
+    function _setFleetConfig(FleetConfig memory _config) internal {
         config = _config;
     }
 
-    // INTERNAL FUNCTIONS
     function _addArk(address ark) internal {
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();

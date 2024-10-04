@@ -2,22 +2,19 @@
 pragma solidity 0.8.27;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {FleetCommanderPausable} from "../../src/contracts/FleetCommanderPausable.sol";
 
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
-import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvents.sol";
 
 import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvents.sol";
-import {IArkEvents} from "../../src/events/IArkEvents.sol";
-import {IArk} from "../../src/interfaces/IArk.sol";
 
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
-import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
@@ -325,5 +322,102 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         vm.prank(governor);
         fleetCommander.removeArk(address(0x123));
+    }
+
+    function test_PauseAndUnpause() public {
+        vm.prank(governor);
+        fleetCommander.pause();
+        assertTrue(fleetCommander.paused());
+
+        // Try to unpause immediately (should fail)
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderPausableMinimumPauseTimeNotElapsed()"
+            )
+        );
+        fleetCommander.unpause();
+
+        // Wait for minimum pause time
+        vm.warp(block.timestamp + fleetCommander.minimumPauseTime());
+
+        // Now unpause should succeed
+        vm.prank(governor);
+        fleetCommander.unpause();
+        assertFalse(fleetCommander.paused());
+    }
+
+    function test_PauseAndUnpauseBeforeTime() public {
+        vm.prank(governor);
+        fleetCommander.pause();
+        assertTrue(fleetCommander.paused());
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderPausableMinimumPauseTimeNotElapsed()"
+            )
+        );
+        fleetCommander.unpause();
+    }
+
+    function test_SetMinimumPauseTime() public {
+        uint256 newMinimumPauseTime = 48 hours;
+
+        vm.prank(governor);
+        vm.expectEmit(false, false, false, true);
+        emit FleetCommanderPausable.MinimumPauseTimeUpdated(
+            newMinimumPauseTime
+        );
+        fleetCommander.setMinimumPauseTime(newMinimumPauseTime);
+
+        assertEq(fleetCommander.minimumPauseTime(), newMinimumPauseTime);
+    }
+
+    function test_PauseNonGovernor() public {
+        vm.prank(address(0x123));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGuardianOrGovernor(address)",
+                address(0x123)
+            )
+        );
+        fleetCommander.pause();
+    }
+
+    function test_UnpauseNonGovernor() public {
+        // First pause the contract
+        vm.prank(governor);
+        fleetCommander.pause();
+
+        // Try to unpause with non-governor address
+        vm.prank(address(0x123));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGuardianOrGovernor(address)",
+                address(0x123)
+            )
+        );
+        fleetCommander.unpause();
+    }
+
+    function test_SetMinimumPauseTimeNonGovernor() public {
+        vm.prank(address(0x123));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGovernor(address)",
+                address(0x123)
+            )
+        );
+        fleetCommander.setMinimumPauseTime(48 hours);
+    }
+
+    function test_setDepositCapWhenPaused() public {
+        vm.prank(governor);
+        fleetCommander.pause();
+
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        fleetCommander.setFleetDepositCap(1000);
     }
 }

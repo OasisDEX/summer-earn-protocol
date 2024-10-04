@@ -17,9 +17,10 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     }
 
     function createVestingWallet(
-        address beneficiary,
-        uint256 amount,
-        SummerVestingWallet.VestingType vestingType
+        address,
+        uint256,
+        uint256[] memory,
+        SummerVestingWallet.VestingType
     ) external {
         revert("Not implemented");
     }

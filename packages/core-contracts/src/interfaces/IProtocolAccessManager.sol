@@ -62,4 +62,18 @@ interface IProtocolAccessManager {
      * @param account The account from which the Super Keeper role will be revoked
      */
     function revokeSuperKeeperRole(address account) external;
+
+    /**
+     * @notice Grants the Guardian role to a given account
+     *
+     * @param account The account to which the Guardian role will be granted
+     */
+    function grantGuardianRole(address account) external;
+
+    /**
+     * @notice Revokes the Guardian role from a given account
+     *
+     * @param account The account from which the Guardian role will be revoked
+     */
+    function revokeGuardianRole(address account) external;
 }
