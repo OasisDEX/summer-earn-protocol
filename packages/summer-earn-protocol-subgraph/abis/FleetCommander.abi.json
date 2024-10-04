@@ -572,6 +572,19 @@
   },
   {
     "type": "function",
+    "name": "harborCommand",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isArkActive",
     "inputs": [
       {
@@ -1142,6 +1155,19 @@
   },
   {
     "type": "function",
+    "name": "setMinimumPauseTime",
+    "inputs": [
+      {
+        "name": "_newMinimumPauseTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setTipRate",
     "inputs": [
       {
@@ -1296,6 +1322,13 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "unpause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
