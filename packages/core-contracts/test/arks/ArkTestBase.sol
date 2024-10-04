@@ -45,7 +45,7 @@ contract ArkTestBase is TestHelpers {
                 address(accessManager)
             );
             vm.prank(governor);
-            configurationManager.initialize(
+            configurationManager.initializeConfiguration(
                 ConfigurationManagerParams({
                     tipJar: tipJar,
                     raft: raft,

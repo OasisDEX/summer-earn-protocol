@@ -37,7 +37,7 @@ contract ConfigurationManagerTest is Test {
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
-        configurationManager.initialize(params);
+        configurationManager.initializeConfiguration(params);
     }
 
     function test_Constructor() public {
@@ -49,7 +49,7 @@ contract ConfigurationManagerTest is Test {
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
-        configurationManager.initialize(params);
+        configurationManager.initializeConfiguration(params);
         assertEq(
             configurationManager.raft(),
             initialRaft,
@@ -78,7 +78,7 @@ contract ConfigurationManagerTest is Test {
         vm.expectRevert(
             abi.encodeWithSignature("ConfigurationManagerAlreadyInitialized()")
         );
-        configurationManager.initialize(params);
+        configurationManager.initializeConfiguration(params);
     }
 
     function test_SetRaftByGovernor() public {
@@ -188,16 +188,26 @@ contract ConfigurationManagerTest is Test {
 
     function test_SetRaftToZeroAddress() public {
         vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         configurationManager.setRaft(address(0));
-        vm.expectRevert(abi.encodeWithSignature("RaftNotSet()"));
-        configurationManager.raft();
     }
 
     function test_SetTipJarToZeroAddress() public {
         vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         configurationManager.setTipJar(address(0));
-        vm.expectRevert(abi.encodeWithSignature("TipJarNotSet()"));
-        configurationManager.tipJar();
+    }
+
+    function test_SetTreasuryToZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
+        configurationManager.setTreasury(address(0));
+    }
+
+    function test_SetHarborCommandToZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
+        configurationManager.setHarborCommand(address(0));
     }
 
     function test_SetTreasuryByGovernor() public {
@@ -223,12 +233,5 @@ contract ConfigurationManagerTest is Test {
             abi.encodeWithSignature("CallerIsNotGovernor(address)", nonGovernor)
         );
         configurationManager.setTreasury(newTreasury);
-    }
-
-    function test_SetTreasuryToZeroAddress() public {
-        vm.prank(governor);
-        configurationManager.setTreasury(address(0));
-        vm.expectRevert(abi.encodeWithSignature("TreasuryNotSet()"));
-        configurationManager.treasury();
     }
 }

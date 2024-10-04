@@ -43,7 +43,7 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
-        configurationManager.initialize(
+        configurationManager.initializeConfiguration(
             ConfigurationManagerParams({
                 raft: address(raftContract),
                 tipJar: address(1),

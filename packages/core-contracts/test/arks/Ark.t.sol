@@ -46,7 +46,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
         unrestrictedArk = new RestictedWithdrawalArkMock(params);
     }
 
-    function test_ConstructorZ() public {
+    function test_Constructor() public {
         ArkParams memory params = ArkParams({
             name: "",
             accessManager: address(0),
@@ -57,7 +57,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
             maxRebalanceInflow: type(uint256).max,
             requiresKeeperData: false
         });
-
+        configurationManager = new ConfigurationManager(address(accessManager));
         vm.expectRevert(
             abi.encodeWithSignature(
                 "InvalidAccessManagerAddress(address)",
@@ -84,9 +84,9 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
         params.token = address(3);
         new ArkMock(params);
 
-        vm.prank(governor);
-        configurationManager.setRaft(address(0));
-        vm.expectRevert(abi.encodeWithSignature("RaftNotSet()"));
+        vm.expectRevert(
+            abi.encodeWithSignature("CannotDeployArkWithoutRaft()")
+        );
         params.name = "TestArk";
         new ArkMock(params);
 

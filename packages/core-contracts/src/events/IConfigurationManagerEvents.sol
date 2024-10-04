@@ -32,7 +32,11 @@ interface IConfigurationManagerEvents {
 
     /**
      * @notice Emitted when the Harbor Command address is updated
+     * @param oldHarborCommand The address of the old Harbor Command
      * @param newHarborCommand The address of the new Harbor Command
      */
-    event HarborCommandUpdated(address newHarborCommand);
+    event HarborCommandUpdated(
+        address oldHarborCommand,
+        address newHarborCommand
+    );
 }
