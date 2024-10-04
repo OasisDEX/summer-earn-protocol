@@ -56,7 +56,6 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /// @inheritdoc IRaft
-
     function startAuction(
         address ark,
         address rewardToken,
@@ -66,7 +65,6 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /// @inheritdoc IRaft
-
     function harvest(address ark, bytes calldata rewardData) public {
         _harvest(ark, rewardData);
     }
@@ -82,6 +80,24 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         (sweptTokens, sweptAmounts) = _sweep(ark, tokens);
     }
 
+    /**
+     * @dev Sweeps tokens from the specified Ark and updates the obtainedTokens mapping
+     * @param ark The address of the Ark contract to sweep tokens from
+     * @param tokens The addresses of the tokens to sweep
+     * @return sweptTokens The addresses of the tokens that were swept
+     * @return sweptAmounts The amounts of the tokens that were swept
+     * @custom:internal-logic
+     * - Calls the sweep function on the specified Ark contract
+     * - Iterates through the swept tokens and updates the obtainedTokens mapping
+     * @custom:effects
+     * - Updates the obtainedTokens mapping for each swept token
+     * - Transfers swept tokens from the Ark to this contract
+     * @custom:security-considerations
+     * - Ensure only the governor can call this function (enforced by onlyGovernor modifier)
+     * - Validate the Ark address and token addresses
+     * - Handle potential failures in the Ark's sweep function
+     * - Be aware of potential gas limitations when sweeping a large number of tokens
+     */
     function _sweep(
         address ark,
         address[] calldata tokens
