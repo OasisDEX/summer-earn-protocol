@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
+import {ISummerToken, SummerVestingWallet} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 
 contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     uint256 private constant INITIAL_SUPPLY = 1e9;
@@ -14,5 +14,13 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
+    }
+
+    function createVestingWallet(
+        address beneficiary,
+        uint256 amount,
+        SummerVestingWallet.VestingType vestingType
+    ) external {
+        revert("Not implemented");
     }
 }
