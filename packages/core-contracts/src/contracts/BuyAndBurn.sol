@@ -11,8 +11,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /**
- * @title BuyAndBurn
- * @author SummerFi
  * @custom:see IBuyAndBurn
  */
 contract BuyAndBurn is
@@ -50,9 +48,7 @@ contract BuyAndBurn is
     }
 
     /* @inheritdoc IBuyAndBurn */
-    function startAuction(
-        address tokenToAuction
-    ) external override onlyGovernor {
+    function startAuction(address tokenToAuction) external override {
         if (ongoingAuctions[tokenToAuction] != 0) {
             revert BuyAndBurnAuctionAlreadyRunning(tokenToAuction);
         }
@@ -91,7 +87,7 @@ contract BuyAndBurn is
     }
 
     /* @inheritdoc IBuyAndBurn */
-    function finalizeAuction(uint256 auctionId) external override onlyGovernor {
+    function finalizeAuction(uint256 auctionId) external override {
         DutchAuctionLibrary.Auction storage auction = auctions[auctionId];
         auction.finalizeAuction();
         _settleAuction(auction);

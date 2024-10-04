@@ -31,13 +31,22 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
     }
 
     /**
-     * @notice Creates a new Dutch auction
-     * @dev This function is internal and should be called by derived contracts
+     * @dev Creates a new Dutch auction
      * @param auctionToken The token being auctioned
      * @param paymentToken The token used for payments
      * @param totalTokens The total number of tokens to be auctioned
      * @param unsoldTokensRecipient The address to receive any unsold tokens after the auction
      * @return A new Auction struct
+     * @custom:internal-logic
+     * - Increments the nextAuctionId
+     * - Creates an AuctionParams struct with default and provided parameters
+     * - Calls the createAuction function of the DutchAuctionLibrary
+     * @custom:effects
+     * - Increments nextAuctionId
+     * - Creates and returns a new Auction struct
+     * @custom:security-considerations
+     * - Ensure that the provided token addresses are valid
+     * - Verify that totalTokens is non-zero and matches the actual token balance
      */
     function _createAuction(
         IERC20 auctionToken,
@@ -65,9 +74,17 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
     }
 
     /**
-     * @notice Updates the default parameters for future auctions
-     * @dev This function is internal and should be called by derived contracts
+     * @dev Updates the default parameters for future auctions
      * @param newParameters The new default parameters to set
+     * @custom:internal-logic
+     * - Replaces the current auctionDefaultParameters with newParameters
+     * @custom:effects
+     * - Updates auctionDefaultParameters
+     * - Emits an AuctionDefaultParametersUpdated event
+     * @custom:security-considerations
+     * - Validate the new parameters to ensure they are within acceptable ranges
+     * - Consider the impact on future auctions
+     * - Properly guard access to this function
      */
     function _updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newParameters
@@ -77,10 +94,15 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
     }
 
     /**
-     * @notice Gets the current price of an ongoing auction
-     * @dev This function is internal and should be called by derived contracts
+     * @dev Gets the current price of an ongoing auction
      * @param auction The storage pointer to the auction
      * @return The current price of the auction in payment token decimals
+     * @custom:internal-logic
+     * - Calls the getCurrentPrice function of the DutchAuctionLibrary
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Ensure that the auction is ongoing when calling this function
      */
     function _getCurrentPrice(
         DutchAuctionLibrary.Auction storage auction
