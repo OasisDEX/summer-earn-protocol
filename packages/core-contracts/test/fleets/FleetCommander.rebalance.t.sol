@@ -537,7 +537,7 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         mockToken.mint(ark1, 5000 * 10 ** 6);
         mockToken.mint(ark2, 5000 * 10 ** 6);
 
-        mockArkMoveToMax(ark2, maxRebalanceInflow);
+        _mockArkMoveToMax(ark2, maxRebalanceInflow);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({

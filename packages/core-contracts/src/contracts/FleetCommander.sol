@@ -22,9 +22,9 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  */
 contract FleetCommander is
     IFleetCommander,
+    FleetCommanderConfigProvider,
     ERC4626,
     Tipper,
-    FleetCommanderConfigProvider,
     FleetCommanderCache,
     CooldownEnforcer
 {
@@ -79,6 +79,7 @@ contract FleetCommander is
     }
 
     /* PUBLIC - USER */
+    /// @inheritdoc IFleetCommander
     function withdrawFromBuffer(
         uint256 assets,
         address receiver,
@@ -399,11 +400,6 @@ contract FleetCommander is
     }
 
     /// @inheritdoc IFleetCommander
-    function setTipJar() external onlyGovernor whenNotPaused {
-        _setTipJar();
-    }
-
-    /// @inheritdoc IFleetCommander
     function setTipRate(
         Percentage newTipRate
     ) external onlyGovernor whenNotPaused {
@@ -452,6 +448,16 @@ contract FleetCommander is
         revert FleetCommanderTransfersDisabled();
     }
 
+    /**
+     * @notice Mints new shares as tips to the specified account
+     * @dev This function overrides the abstract _mintTip function from the Tipper contract.
+     *      It is called internally by the _accrueTip function to mint new shares as tips.
+     *      In the context of FleetCommander, this creates new shares without requiring
+     *      additional underlying assets, effectively diluting existing shareholders slightly
+     *      to pay for the protocol's ongoing operations.
+     * @param account The address to receive the minted tip shares
+     * @param amount The amount of shares to mint as a tip
+     */
     function _mintTip(
         address account,
         uint256 amount

@@ -23,7 +23,9 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
         harborCommand = _harborCommand;
     }
 
-    function initialize(ConfigurationManagerParams memory params) external {}
+    function initializeConfiguration(
+        ConfigurationManagerParams memory params
+    ) external {}
 
     function setRaft(address) external pure {}
 

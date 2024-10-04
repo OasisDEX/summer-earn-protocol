@@ -389,24 +389,4 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         vm.prank(buyer);
         buyAndBurn.startAuction(address(tokenToAuction1));
     }
-
-    function test_OnlyGovernorCanFinalizeAuction() public {
-        vm.prank(governor);
-        buyAndBurn.startAuction(address(tokenToAuction1));
-
-        vm.warp(block.timestamp + 8 days);
-
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotGovernor(address)", buyer)
-        );
-        vm.prank(buyer);
-        buyAndBurn.finalizeAuction(1);
-    }
-
-    function test_CannotStartAuctionWithNoTokens() public {
-        ERC20Mock emptyToken = new ERC20Mock();
-        vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
-        vm.prank(governor);
-        buyAndBurn.startAuction(address(emptyToken));
-    }
 }

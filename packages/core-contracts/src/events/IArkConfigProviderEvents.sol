@@ -29,4 +29,16 @@ interface IArkConfigProviderEvents {
      * @param newMaxInflow The new maximum amount that can be transferred into the Ark during a rebalance
      */
     event MaxRebalanceInflowUpdated(uint256 newMaxInflow);
+
+    /**
+     * @notice Emitted when the Fleet Commander is registered
+     * @param commander The address of the Fleet Commander
+     */
+    event FleetCommanderRegistered(address commander);
+
+    /**
+     * @notice Emitted when the Fleet Commander is unregistered
+     * @param commander The address of the Fleet Commander
+     */
+    event FleetCommanderUnregistered(address commander);
 }

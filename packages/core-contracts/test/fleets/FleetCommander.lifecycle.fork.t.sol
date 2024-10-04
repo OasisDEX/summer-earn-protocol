@@ -13,6 +13,7 @@ import "../../src/contracts/arks/MetaMorphoArk.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
 
 import "../../src/events/IArkEvents.sol";
+import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/ERC4626Ark.sol";
@@ -42,6 +43,9 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     MetaMorphoArk public daiMetaMorphoArk;
     ERC4626Ark public sDAIArk;
     BufferArk public daiBufferArk;
+
+    address[] public usdcArks;
+    address[] public daiArks;
 
     // External contracts
     IComet public usdcCompoundCometContract;
@@ -107,7 +111,6 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         setupFleetCommanders(initialTipRate);
         setupArks();
         addArksToFleetCommanders();
-        grantPermissions();
 
         logSetupInfo();
         setupLabels();
@@ -236,46 +239,56 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function addArksToFleetCommanders() internal {
         // Add USDC Arks to USDC Fleet Commander
-        address[] memory usdcArks = new address[](6);
+        usdcArks = new address[](6);
         usdcArks[0] = address(usdcCompoundArk);
         usdcArks[1] = address(usdcAaveArk);
         usdcArks[2] = address(usdcMorphoArk);
         usdcArks[3] = address(usdcMetaMorphoArk);
         usdcArks[4] = address(usdcGearboxERC4626Ark);
         usdcArks[5] = address(usdcFluidERC4626Ark);
-        vm.prank(governor);
-        usdcFleetCommander.addArks(usdcArks);
 
         // Add DAI Arks to DAI Fleet Commander
-        address[] memory daiArks = new address[](4);
+        daiArks = new address[](4);
         daiArks[0] = address(daiAaveArk);
         daiArks[1] = address(daiMorphoArk);
         daiArks[2] = address(daiMetaMorphoArk);
         daiArks[3] = address(sDAIArk);
+
+        grantPermissions();
+
         vm.prank(governor);
         daiFleetCommander.addArks(daiArks);
+        vm.prank(governor);
+        usdcFleetCommander.addArks(usdcArks);
     }
 
     function grantPermissions() internal {
         vm.startPrank(governor);
         // Grant permissions for USDC Fleet
-        usdcCompoundArk.grantCommanderRole(address(usdcFleetCommander));
-        usdcAaveArk.grantCommanderRole(address(usdcFleetCommander));
-        usdcMorphoArk.grantCommanderRole(address(usdcFleetCommander));
-        usdcMetaMorphoArk.grantCommanderRole(address(usdcFleetCommander));
-        usdcGearboxERC4626Ark.grantCommanderRole(address(usdcFleetCommander));
-        usdcFluidERC4626Ark.grantCommanderRole(address(usdcFleetCommander));
-        usdcBufferArk.grantCommanderRole(address(usdcFleetCommander));
-
-        // Grant permissions for DAI Fleet
-        daiAaveArk.grantCommanderRole(address(daiFleetCommander));
-        daiMorphoArk.grantCommanderRole(address(daiFleetCommander));
-        daiMetaMorphoArk.grantCommanderRole(address(daiFleetCommander));
-        sDAIArk.grantCommanderRole(address(daiFleetCommander));
-        daiBufferArk.grantCommanderRole(address(daiFleetCommander));
+        for (uint256 i = 0; i < usdcArks.length; i++) {
+            accessManager.grantCommanderRole(
+                address(usdcArks[i]),
+                address(usdcFleetCommander)
+            );
+        }
+        for (uint256 i = 0; i < daiArks.length; i++) {
+            accessManager.grantCommanderRole(
+                address(daiArks[i]),
+                address(daiFleetCommander)
+            );
+        }
+        accessManager.grantCommanderRole(
+            address(usdcBufferArk),
+            address(usdcFleetCommander)
+        );
+        accessManager.grantCommanderRole(
+            address(daiBufferArk),
+            address(daiFleetCommander)
+        );
 
         // Grant keeper role
-        accessManager.grantKeeperRole(keeper);
+        accessManager.grantKeeperRole(address(usdcFleetCommander), keeper);
+        accessManager.grantKeeperRole(address(daiFleetCommander), keeper);
         vm.stopPrank();
     }
 

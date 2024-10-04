@@ -1,4 +1,5 @@
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.27;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
@@ -14,10 +15,10 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Test, console} from "forge-std/Test.sol";
 
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
-import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
 contract ArkTestBase is TestHelpers {
     address public governor = address(1);
@@ -44,7 +45,7 @@ contract ArkTestBase is TestHelpers {
                 address(accessManager)
             );
             vm.prank(governor);
-            configurationManager.initialize(
+            configurationManager.initializeConfiguration(
                 ConfigurationManagerParams({
                     tipJar: tipJar,
                     raft: raft,

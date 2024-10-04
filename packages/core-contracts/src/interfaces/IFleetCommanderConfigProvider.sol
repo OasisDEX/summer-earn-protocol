@@ -33,6 +33,11 @@ interface IFleetCommanderConfigProvider is
     function getConfig() external view returns (FleetConfig memory);
 
     /**
+     * @notice Retrieves the buffer ark address
+     */
+    function bufferArk() external view returns (address);
+
+    /**
      * @notice Checks if the ark is part of the fleet
      * @param ark The address of the Ark
      * @return bool Returns true if the ark is active, false otherwise.

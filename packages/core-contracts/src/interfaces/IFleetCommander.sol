@@ -76,7 +76,6 @@ interface IFleetCommander is
     ) external returns (uint256 shares);
 
     /**
-     * @inheritdoc IERC4626
      * @notice Withdraws a specified amount of assets from the FleetCommander
      * @dev This function first attempts to withdraw from the buffer. If the buffer doesn't have enough assets,
      *      it will withdraw from the arks. It also handles the case where the maximum possible amount is requested.
@@ -91,8 +90,8 @@ interface IFleetCommander is
         address receiver,
         address owner
     ) external returns (uint256 shares);
+
     /**
-     * @inheritdoc IERC4626
      * @notice Redeems a specified amount of shares from the FleetCommander
      * @dev This function first attempts to redeem from the buffer. If the buffer doesn't have enough assets,
      *      it will redeem from the arks. It also handles the case where the maximum possible amount is requested.
@@ -107,6 +106,7 @@ interface IFleetCommander is
         address receiver,
         address owner
     ) external returns (uint256 assets);
+
     /**
      * @notice Redeems shares for assets from the FleetCommander
      * @param shares The amount of shares to redeem
@@ -152,7 +152,6 @@ interface IFleetCommander is
      */
     function tip() external returns (uint256);
 
-    /* FUNCTIONS - EXTERNAL - KEEPER */
     /**
      * @notice Rebalances the assets across Arks
      * @param data Array of RebalanceData structs
@@ -160,9 +159,11 @@ interface IFleetCommander is
      *      - fromArk: The address of the Ark to move assets from
      *      - toArk: The address of the Ark to move assets to
      *      - amount: The amount of assets to move
+     *      - boardData: Additional data for the board operation
+     *      - disembarkData: Additional data for the disembark operation
      * @dev Using type(uint256).max as the amount will move all assets from the fromArk to the toArk
      * @dev Rebalance operations cannot involve the buffer Ark directly
-     * @dev The number of operations in a single rebalance call is limited to MAX_REBALANCE_OPERATIONS
+     * @dev The number of operations in a single rebalance call is limited to DEFAULT_MAX_REBALANCE_OPERATIONS
      * @dev Rebalance is subject to a cooldown period between calls
      * @dev Only callable by accounts with the Keeper role
      */
@@ -175,24 +176,19 @@ interface IFleetCommander is
      *      - fromArk: The address of the Ark to move assets from (must be buffer Ark for withdrawing from buffer)
      *      - toArk: The address of the Ark to move assets to (must be buffer Ark for depositing to buffer)
      *      - amount: The amount of assets to move
+     *      - boardData: Additional optional data for the board operation
+     *      - disembarkData: Additional optional data for the disembark operation
      * @dev Unlike rebalance, adjustBuffer operations must involve the buffer Ark
-     * @dev All operations in a single adjustBuffer call must be in the same direction (either all to buffer or all from
-     * buffer)
+     * @dev All operations in a single adjustBuffer call must be in the same direction (either all to buffer or all from buffer)
      * @dev type(uint256).max is not allowed as an amount for buffer adjustments
-     * @dev When withdrawing from the buffer, the total amount moved cannot reduce the buffer balance below
-     * minFundsBufferBalance
-     * @dev The number of operations in a single adjustBuffer call is limited to MAX_REBALANCE_OPERATIONS
+     * @dev When withdrawing from the buffer, the total amount moved cannot reduce the buffer balance below minFundsBufferBalance
+     * @dev The number of operations in a single adjustBuffer call is limited to DEFAULT_MAX_REBALANCE_OPERATIONS
      * @dev AdjustBuffer is subject to a cooldown period between calls
      * @dev Only callable by accounts with the Keeper role
      */
     function adjustBuffer(RebalanceData[] calldata data) external;
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
-    /**
-     * @notice Sets a new tip jar address
-     * @dev This function sets the tipJar address to the address specified in the configuration manager.
-     */
-    function setTipJar() external;
 
     /**
      * @notice Sets a new tip rate for the FleetCommander
@@ -226,13 +222,14 @@ interface IFleetCommander is
     /**
      * @notice Pauses the FleetCommander
      * @dev This function is used to pause the FleetCommander in case of critical issues or emergencies
-     * @dev Only callable by the governor or a privileged role
+     * @dev Only callable by the guardian or governor
      */
     function pause() external;
 
     /**
      * @notice Unpauses the FleetCommander
      * @dev This function is used to resume normal operations after a pause
+     * @dev Only callable by the guardian or governor
      */
     function unpause() external;
 }

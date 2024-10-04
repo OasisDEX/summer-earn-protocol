@@ -464,7 +464,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkMaxAllocation(ark1, ark1MaxAllocation);
+        _mockArkMaxAllocation(ark1, ark1MaxAllocation);
         mockToken.mint(address(ark1), ark1MaxAllocation);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
@@ -497,7 +497,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkMaxAllocation(ark1, ark1MaxAllocation);
+        _mockArkMaxAllocation(ark1, ark1MaxAllocation);
         mockToken.mint(address(ark1), ark1MaxAllocation);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
@@ -530,7 +530,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
         mockToken.mint(address(bufferArkAddress), initialBufferBalance);
 
-        mockArkMaxAllocation(ark1, ark1MaxAllocation);
+        _mockArkMaxAllocation(ark1, ark1MaxAllocation);
         // Max allocation is one unit less than the rebalance amount
         mockToken.mint(address(ark1), ark1MaxAllocation - rebalanceAmount + 1);
 

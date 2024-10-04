@@ -25,12 +25,6 @@ interface ITipper is ITipperEvents, ITipperErrors {
     function lastTipTimestamp() external view returns (uint256);
 
     /**
-     * @notice Get the current tip jar address
-     * @return The address where accrued tips are sent
-     */
-    function tipJar() external view returns (address);
-
-    /**
      * @notice Estimate the amount of tips accrued since the last tip accrual
      * @return The estimated amount of accrued tips in the underlying asset's smallest unit
      * @dev This function performs a calculation without changing the contract's state

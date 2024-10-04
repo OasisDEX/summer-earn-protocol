@@ -7,22 +7,19 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 
 /**
- * @title TipJar
- * @notice Contract implementing the centralized collection and distribution of tips
- * @dev This contract manages tip streams, allowing for the addition, removal, and updating of tip allocations
+ * @custom:see ITipJar
  */
-contract TipJar is ITipJar, ProtocolAccessManaged {
+contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     using PercentageUtils for uint256;
 
     mapping(address recipient => TipStream tipStream) public tipStreams;
     address[] public tipStreamRecipients;
-    IConfigurationManager public manager;
 
     /**
      * @notice Constructs a new TipJar contract
@@ -32,43 +29,30 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     constructor(
         address _accessManager,
         address _configurationManager
-    ) ProtocolAccessManaged(_accessManager) {
-        manager = IConfigurationManager(_configurationManager);
-    }
+    )
+        ProtocolAccessManaged(_accessManager)
+        ConfigurationManaged(_configurationManager)
+    {}
 
-    /**
-     * @notice Adds a new tip stream
-     * @param recipient The address of the tip stream recipient
-     * @param allocation The percentage of tips allocated to this stream
-     * @param lockedUntilEpoch The epoch until which this tip stream is locked
-     */
+    /// @inheritdoc ITipJar
     function addTipStream(
-        address recipient,
-        Percentage allocation,
-        uint256 lockedUntilEpoch
-    ) external onlyGovernor {
-        if (tipStreams[recipient].recipient != address(0)) {
-            revert TipStreamAlreadyExists(recipient);
+        TipStream memory tipStream
+    ) external onlyGovernor returns (uint256 lockedUntilEpoch) {
+        if (tipStreams[tipStream.recipient].recipient != address(0)) {
+            revert TipStreamAlreadyExists(tipStream.recipient);
         }
         _validateTipStreamAllocation(
-            allocation,
-            tipStreams[recipient].allocation
+            tipStream.allocation,
+            tipStreams[tipStream.recipient].allocation
         );
 
-        tipStreams[recipient] = TipStream({
-            recipient: recipient,
-            allocation: allocation,
-            lockedUntilEpoch: lockedUntilEpoch
-        });
-        tipStreamRecipients.push(recipient);
+        tipStreams[tipStream.recipient] = tipStream;
+        tipStreamRecipients.push(tipStream.recipient);
 
-        emit TipStreamAdded(recipient, allocation, lockedUntilEpoch);
+        emit TipStreamAdded(tipStream);
     }
 
-    /**
-     * @notice Removes an existing tip stream
-     * @param recipient The address of the tip stream recipient to remove
-     */
+    /// @inheritdoc ITipJar
     function removeTipStream(address recipient) external onlyGovernor {
         _validateTipStream(recipient);
 
@@ -86,42 +70,28 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         emit TipStreamRemoved(recipient);
     }
 
-    /**
-     * @notice Updates an existing tip stream
-     * @param recipient The address of the tip stream recipient to update
-     * @param newAllocation The new percentage allocation for the tip stream
-     * @param newLockedUntilEpoch The new epoch until which this tip stream is locked
-     */
-    function updateTipStream(
-        address recipient,
-        Percentage newAllocation,
-        uint256 newLockedUntilEpoch
-    ) external onlyGovernor {
-        _validateTipStream(recipient);
-        Percentage currentAllocation = tipStreams[recipient].allocation;
-        _validateTipStreamAllocation(newAllocation, currentAllocation);
+    /// @inheritdoc ITipJar
+    function updateTipStream(TipStream memory tipStream) external onlyGovernor {
+        _validateTipStream(tipStream.recipient);
+        TipStream memory oldTipStream = tipStreams[tipStream.recipient];
+        Percentage currentAllocation = oldTipStream.allocation;
+        _validateTipStreamAllocation(tipStream.allocation, currentAllocation);
 
-        tipStreams[recipient].allocation = newAllocation;
-        tipStreams[recipient].lockedUntilEpoch = newLockedUntilEpoch;
+        tipStreams[tipStream.recipient].allocation = tipStream.allocation;
+        tipStreams[tipStream.recipient].lockedUntilEpoch = tipStream
+            .lockedUntilEpoch;
 
-        emit TipStreamUpdated(recipient, newAllocation, newLockedUntilEpoch);
+        emit TipStreamUpdated(oldTipStream, tipStream);
     }
 
-    /**
-     * @notice Retrieves information about a specific tip stream
-     * @param recipient The address of the tip stream recipient
-     * @return TipStream struct containing the tip stream information
-     */
+    /// @inheritdoc ITipJar
     function getTipStream(
         address recipient
     ) external view returns (TipStream memory) {
         return tipStreams[recipient];
     }
 
-    /**
-     * @notice Retrieves information about all tip streams
-     * @return allStreams An array of TipStream structs containing all tip stream information
-     */
+    /// @inheritdoc ITipJar
     function getAllTipStreams() external view returns (TipStream[] memory) {
         TipStream[] memory allStreams = new TipStream[](
             tipStreamRecipients.length
@@ -132,28 +102,19 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         return allStreams;
     }
 
-    /**
-     * @notice Distributes accumulated tips from a single FleetCommander
-     * @param fleetCommander_ The address of the FleetCommander contract to distribute tips from
-     */
+    /// @inheritdoc ITipJar
     function shake(address fleetCommander_) public {
         _shake(fleetCommander_);
     }
 
-    /**
-     * @notice Distributes accumulated tips from multiple FleetCommanders
-     * @param fleetCommanders An array of FleetCommander contract addresses to distribute tips from
-     */
+    /// @inheritdoc ITipJar
     function shakeMultiple(address[] calldata fleetCommanders) external {
         for (uint256 i = 0; i < fleetCommanders.length; i++) {
             _shake(fleetCommanders[i]);
         }
     }
 
-    /**
-     * @notice Calculates the total allocation percentage across all tip streams
-     * @return total The total allocation as a Percentage
-     */
+    /// @inheritdoc ITipJar
     function getTotalAllocation() public view returns (Percentage total) {
         total = toPercentage(0);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
@@ -164,10 +125,24 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     /**
      * @notice Distributes accumulated tips from a single FleetCommander
      * @param fleetCommander_ The address of the FleetCommander contract to distribute tips from
+     * @custom:internal-logic
+     * - Verifies if the provided FleetCommander address is active
+     * - Retrieves the TipJar's balance of shares from the FleetCommander
+     * - Redeems the shares for underlying assets
+     * - Distributes the assets to tip stream recipients based on their allocations
+     * - Transfers any remaining balance to the treasury
+     * @custom:effects
+     * - Redeems shares from the FleetCommander
+     * - Transfers assets to tip stream recipients and treasury
+     * - Emits a TipJarShaken event
+     * @custom:security-considerations
+     * - Ensures the FleetCommander is active before processing
+     * - Handles potential rounding errors in asset distribution
+     * - Verifies there are shares to redeem and assets to distribute
      */
     function _shake(address fleetCommander_) internal {
         if (
-            !IHarborCommand(manager.harborCommand()).activeFleetCommanders(
+            !IHarborCommand(harborCommand()).activeFleetCommanders(
                 fleetCommander_
             )
         ) {
@@ -218,7 +193,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         // Transfer remaining balance to treasury
         uint256 remaining = withdrawnAssets - totalDistributed;
         if (remaining > 0) {
-            underlyingAsset.transfer(manager.treasury(), remaining);
+            underlyingAsset.transfer(treasury(), remaining);
         }
 
         emit TipJarShaken(address(fleetCommander), withdrawnAssets);
@@ -227,6 +202,14 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     /**
      * @notice Validates that a tip stream exists and is not locked
      * @param recipient The address of the tip stream recipient
+     * @custom:internal-logic
+     * - Checks if the tip stream exists for the given recipient
+     * - Verifies if the current time is past the locked until epoch
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Prevents operations on non-existent tip streams
+     * - Enforces time-based locks on tip streams
      */
     function _validateTipStream(address recipient) internal view {
         if (tipStreams[recipient].recipient == address(0)) {
@@ -241,6 +224,15 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
      * @notice Validates the allocation for a tip stream
      * @param newAllocation The allocation to validate
      * @param currentAllocation The current allocation to compare against
+     * @custom:internal-logic
+     * - Checks if the new allocation is valid (non-zero and within range)
+     * - Verifies that the total allocation after the change doesn't exceed 100%
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Prevents invalid allocations (zero or out of range)
+     * - Ensures the total allocation across all tip streams remains valid
+     * - Accounts for the difference between new and current allocation when checking total
      */
     function _validateTipStreamAllocation(
         Percentage newAllocation,

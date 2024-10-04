@@ -9,35 +9,22 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 /**
  * @title ConfigurationManager
  * @notice Manages system-wide configuration parameters for the protocol
- * @dev Implements the IConfigurationManager interface and inherits from ProtocolAccessManaged
+ * @custom:see IConfigurationManager
  */
 contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     bool public initialized;
-    /**
-     * @notice The address of the Raft contract
-     * @dev This is where rewards and farmed tokens are sent for processing
-     */
-    address public _raft;
 
-    /**
-     * @notice The address of the TipJar contract
-     * @dev This is the contract that owns tips and is responsible for
-     *      dispensing them to claimants
-     */
-    address public _tipJar;
+    /// @inheritdoc IConfigurationManager
+    address public raft;
 
-    /**
-     * @notice The address of the Treasury contract
-     * @dev This is the contract that owns the treasury and is responsible for
-     *      dispensing funds to the protocol's operations
-     */
-    address public _treasury;
+    /// @inheritdoc IConfigurationManager
+    address public tipJar;
 
-    /**
-     * @notice The address of theHarbor command
-     * @dev This is the contract that's the registry of all Fleet Commanders
-     */
-    address public _harborCommand;
+    /// @inheritdoc IConfigurationManager
+    address public treasury;
+
+    /// @inheritdoc IConfigurationManager
+    address public harborCommand;
 
     /**
      * @notice Constructs the ConfigurationManager contract
@@ -45,7 +32,8 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      */
     constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
 
-    function initialize(
+    /// @inheritdoc IConfigurationManager
+    function initializeConfiguration(
         ConfigurationManagerParams memory params
     ) external onlyGovernor {
         if (initialized) {
@@ -59,66 +47,50 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         ) {
             revert AddressZero();
         }
-        _raft = params.raft;
-        _tipJar = params.tipJar;
-        _treasury = params.treasury;
-        _harborCommand = params.harborCommand;
+        raft = params.raft;
+        tipJar = params.tipJar;
+        treasury = params.treasury;
+        harborCommand = params.harborCommand;
+        emit RaftUpdated(address(0), params.raft);
+        emit TipJarUpdated(address(0), params.tipJar);
+        emit TreasuryUpdated(address(0), params.treasury);
+        emit HarborCommandUpdated(address(0), params.harborCommand);
         initialized = true;
     }
 
     /// @inheritdoc IConfigurationManager
-    function raft() external view override returns (address) {
-        if (_raft == address(0)) {
-            revert RaftNotSet();
-        }
-        return _raft;
-    }
-
-    /// @inheritdoc IConfigurationManager
-    function tipJar() external view override returns (address) {
-        if (_tipJar == address(0)) {
-            revert TipJarNotSet();
-        }
-        return _tipJar;
-    }
-
-    /// @inheritdoc IConfigurationManager
-    function treasury() external view override returns (address) {
-        if (_treasury == address(0)) {
-            revert TreasuryNotSet();
-        }
-        return _treasury;
-    }
-
-    /// @inheritdoc IConfigurationManager
-    function harborCommand() external view override returns (address) {
-        if (_harborCommand == address(0)) {
-            revert HarborCommandNotSet();
-        }
-        return _harborCommand;
-    }
-
-    /// @inheritdoc IConfigurationManager
     function setRaft(address newRaft) external onlyGovernor {
-        _raft = newRaft;
-        emit RaftUpdated(newRaft);
+        if (newRaft == address(0)) {
+            revert AddressZero();
+        }
+        emit RaftUpdated(raft, newRaft);
+        raft = newRaft;
     }
 
     /// @inheritdoc IConfigurationManager
     function setTipJar(address newTipJar) external onlyGovernor {
-        _tipJar = newTipJar;
-        emit TipJarUpdated(newTipJar);
+        if (newTipJar == address(0)) {
+            revert AddressZero();
+        }
+        emit TipJarUpdated(tipJar, newTipJar);
+        tipJar = newTipJar;
     }
 
     /// @inheritdoc IConfigurationManager
     function setTreasury(address newTreasury) external onlyGovernor {
-        _treasury = newTreasury;
-        emit TreasuryUpdated(newTreasury);
+        if (newTreasury == address(0)) {
+            revert AddressZero();
+        }
+        emit TreasuryUpdated(treasury, newTreasury);
+        treasury = newTreasury;
     }
 
     /// @inheritdoc IConfigurationManager
     function setHarborCommand(address newHarborCommand) external onlyGovernor {
-        _harborCommand = newHarborCommand;
-        emit HarborCommandUpdated(newHarborCommand);
+        if (newHarborCommand == address(0)) {
+            revert AddressZero();
+        }
+        emit HarborCommandUpdated(harborCommand, newHarborCommand);
+        harborCommand = newHarborCommand;
     }
 }

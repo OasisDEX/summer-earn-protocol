@@ -15,11 +15,13 @@ interface IConfigurationManager is
     IConfigurationManagerErrors
 {
     /**
-     * @notice Initialize the ConfigurationManager contract
-     * @param params The parameters to initialize the contract with
+     * @notice Initialize the configuration with the given parameters
+     * @param params The parameters to initialize the configuration with
      * @dev Can only be called by the governor
      */
-    function initialize(ConfigurationManagerParams memory params) external;
+    function initializeConfiguration(
+        ConfigurationManagerParams memory params
+    ) external;
 
     /**
      * @notice Get the address of the Raft contract
