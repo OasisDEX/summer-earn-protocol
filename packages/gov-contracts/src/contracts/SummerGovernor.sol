@@ -2,9 +2,12 @@
 pragma solidity 0.8.27;
 
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
+
+import {MessagingFee, OApp, Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorTimelockControl, TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
@@ -12,8 +15,6 @@ import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /*
  * @title SummerGovernor
@@ -211,11 +212,13 @@ contract SummerGovernor is
      * @param _nativeFee The amount of native tokens to pay for the fee.
      * @return nativeFee The amount of native tokens to pay for the fee.
      */
+
     function _payNative(
         uint256 _nativeFee
     ) internal view override returns (uint256 nativeFee) {
-        if (address(this).balance < _nativeFee)
+        if (address(this).balance < _nativeFee) {
             revert NotEnoughNative(address(this).balance);
+        }
         return _nativeFee;
     }
 
@@ -703,8 +706,9 @@ contract SummerGovernor is
         uint32 _chainId,
         address _trustedRemote
     ) external virtual onlyGovernance {
-        if (_trustedRemote == address(0))
+        if (_trustedRemote == address(0)) {
             revert SummerGovernorInvalidTrustedRemote(_trustedRemote);
+        }
         trustedRemotes[_chainId] = _trustedRemote;
         emit TrustedRemoteSet(_chainId, _trustedRemote);
     }

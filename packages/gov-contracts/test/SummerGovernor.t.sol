@@ -1,67 +1,27 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.27;
 
-import {SummerGovernor} from "../src/contracts/SummerGovernor.sol";
+import {Origin, SummerGovernor} from "../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
-import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
 
+import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+
+import {SummerToken} from "../src/contracts/SummerToken.sol";
+import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-import {TestHelperOz5, IOAppSetPeer} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
+import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {console2} from "forge-std/console2.sol";
-import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {Vm} from "forge-std/Vm.sol";
-
-/*
- * @title MockERC20Votes
- * @dev A mock ERC20 token with voting capabilities for testing purposes.
- */
-contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
-    constructor() ERC20("Mock Token", "MTK") ERC20Permit("Mock Token") {}
-
-    /*
-     * @dev Mints tokens to a specified address.
-     * @param to The address to mint tokens to.
-     * @param amount The amount of tokens to mint.
-     */
-    function mint(address to, uint256 amount) public {
-        _mint(to, amount);
-    }
-
-    /*
-     * @dev Overrides the nonces function to resolve conflicts between ERC20Permit and Nonces.
-     * @param owner The address to check nonces for.
-     * @return The current nonce for the given address.
-     */
-    function nonces(
-        address owner
-    ) public view override(ERC20Permit, Nonces) returns (uint256) {
-        return super.nonces(owner);
-    }
-
-    /*
-     * @dev Internal function to update token balances.
-     * @param from The address to transfer tokens from.
-     * @param to The address to transfer tokens to.
-     * @param amount The amount of tokens to transfer.
-     */
-    function _update(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override(ERC20, ERC20Votes) {
-        super._update(from, to, amount);
-    }
-}
 
 contract ExposedSummerGovernor is SummerGovernor {
     constructor(GovernorParams memory params) SummerGovernor(params) {}
@@ -104,31 +64,29 @@ contract ExposedSummerGovernor is SummerGovernor {
  * @title SummerGovernorTest
  * @dev Test contract for SummerGovernor functionality.
  */
-contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
+contract SummerGovernorTest is
+    Test,
+    ISummerGovernorErrors,
+    SummerTokenTestBase
+{
     using OptionsBuilder for bytes;
 
     ExposedSummerGovernor public governorA;
     ExposedSummerGovernor public governorB;
-    MockERC20Votes public tokenA;
-    MockERC20Votes public tokenB;
     TimelockController public timelockA;
     TimelockController public timelockB;
     VotingDecayManager public votingDecayManagerA;
     VotingDecayManager public votingDecayManagerB;
 
-    uint32 private aEid = 1;
-    uint32 private bEid = 2;
+    address public alice = address(0x111);
+    address public bob = address(0x112);
+    address public charlie = address(0x113);
+    address public david = address(0x114);
+    address public whitelistGuardian = address(0x115);
 
-    address public alice = address(0x1);
-    address public bob = address(0x2);
-    address public charlie = address(0x3);
-    address public david = address(0x4);
-    address public whitelistGuardian = address(0x5);
-
-    uint256 public constant INITIAL_SUPPLY = 1000000e18;
     uint48 public constant VOTING_DELAY = 1;
     uint32 public constant VOTING_PERIOD = 50400;
-    uint256 public constant PROPOSAL_THRESHOLD = 10000e18;
+    uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
     uint256 public constant QUORUM_FRACTION = 4;
     /// @notice Initial decay rate per second (approximately 10% per year)
     /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
@@ -139,29 +97,15 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * @dev Sets up the test environment.
      */
     function setUp() public override {
-        super.setUp();
-
-        setUpEndpoints(2, LibraryType.UltraLightNode);
-
+        initializeTokenTests();
         vm.label(alice, "Alice");
         vm.label(bob, "Bob");
         vm.label(charlie, "Charlie");
         vm.label(david, "David");
 
-        tokenA = new MockERC20Votes();
-        tokenB = new MockERC20Votes();
-        vm.label(address(tokenA), "MockERC20Votes A");
-        vm.label(address(tokenB), "MockERC20Votes B");
+        vm.label(address(aSummerToken), "chain a token");
+        vm.label(address(bSummerToken), "chain b token");
 
-        tokenA.mint(alice, INITIAL_SUPPLY);
-        tokenB.mint(alice, INITIAL_SUPPLY);
-
-        address lzEndpointA = address(endpoints[aEid]);
-        address lzEndpointB = address(endpoints[bEid]);
-        vm.label(lzEndpointA, "LayerZero Endpoint A");
-        vm.label(lzEndpointB, "LayerZero Endpoint B");
-
-        // Set up TimelockController for both chains
         address[] memory proposers = new address[](1);
         proposers[0] = address(this);
         address[] memory executors = new address[](1);
@@ -181,10 +125,9 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         vm.label(address(timelockA), "TimelockController A");
         vm.label(address(timelockB), "TimelockController B");
 
-        // Set up SummerGovernor for both chains
         SummerGovernor.GovernorParams memory paramsA = SummerGovernor
             .GovernorParams({
-                token: IVotes(address(tokenA)),
+                token: IVotes(address(aSummerToken)),
                 timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -197,10 +140,9 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 endpoint: lzEndpointA,
                 proposalChainId: 31337
             });
-
         SummerGovernor.GovernorParams memory paramsB = SummerGovernor
             .GovernorParams({
-                token: IVotes(address(tokenB)),
+                token: IVotes(address(bSummerToken)),
                 timelock: timelockB,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -213,25 +155,21 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 endpoint: lzEndpointB,
                 proposalChainId: 31337
             });
-
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
 
         governorA.setTrustedRemote(bEid, address(governorB));
         governorB.setTrustedRemote(aEid, address(governorA));
 
-        vm.label(address(governorA), "SummerGovernor A");
-        vm.label(address(governorB), "SummerGovernor B");
+        vm.label(address(governorA), "SummerGovernor");
+        vm.label(address(governorB), "SummerGovernor");
+
+        changeTokensOwnership(address(timelockA), address(timelockB));
 
         timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));
         timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(governorA));
         timelockB.grantRole(timelockB.PROPOSER_ROLE(), address(governorB));
         timelockB.grantRole(timelockB.CANCELLER_ROLE(), address(governorB));
-
-        vm.prank(alice);
-        tokenA.delegate(alice);
-        vm.prank(alice);
-        tokenB.delegate(alice);
 
         // Wire the governors (if needed)
         address[] memory governors = new address[](2);
@@ -255,7 +193,6 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         vm.prank(address(governorB));
         bOApp.setPeer(aEid_, addressToBytes32(address(aOApp)));
     }
-
     // ===============================================
     // Cross-Chain Messaging Tests
     // ===============================================
@@ -265,9 +202,10 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Ensures a proposal can be submitted from one chain and received on another.
      */
     function test_CrossChainExecutionOnSourceChain() public {
-        // Ensure source governor have enough ETH for messaging costs
+        // Ensure source governorA have enough ETH for messaging costs
         vm.deal(address(governorA), 100 ether);
-        tokenB.mint(address(governorB), 100 ether);
+        vm.prank(address(timelockB));
+        bSummerToken.mint(address(governorB), 100 ether);
 
         // Prepare cross-chain proposal parameters
         (
@@ -279,9 +217,9 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         ) = createCrossChainProposal(bEid, governorA);
 
         // Ensure Alice has enough tokens on chain A
-        deal(address(tokenA), alice, governorA.proposalThreshold() * 2); // Increased token amount
+        deal(address(aSummerToken), alice, governorA.proposalThreshold() * 2); // Increased token amount
         vm.prank(alice);
-        tokenA.delegate(alice);
+        aSummerToken.delegate(alice);
         vm.roll(block.number + 1);
 
         // Submit proposal on chain A
@@ -327,9 +265,10 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
     }
 
     function test_ReceiveProposalAndExecuteOnTargetChain() public {
-        // Ensure source governor have enough ETH for messaging costs
+        // Ensure source governorA have enough ETH for messaging costs
         vm.deal(address(governorA), 100 ether);
-        tokenB.mint(address(governorB), 100 ether);
+        vm.prank(address(timelockB));
+        bSummerToken.mint(address(governorB), 100 ether);
 
         // Prepare cross-chainproposal parameters
         (
@@ -341,9 +280,9 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         ) = createCrossChainProposal(bEid, governorA);
 
         // Ensure Alice has enough tokens on chain A
-        deal(address(tokenA), alice, governorA.proposalThreshold() * 2); // Increased token amount
+        deal(address(aSummerToken), alice, governorA.proposalThreshold() * 2); // Increased token amount
         vm.prank(alice);
-        tokenA.delegate(alice);
+        aSummerToken.delegate(alice);
         vm.roll(block.number + 1);
 
         // Submit proposal on chain A
@@ -389,7 +328,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
 
         // Check for the ProposalSentCrossChain event
         bool foundEvent = false;
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             // The first topic is the event signature
             if (
                 entries[i].topics[0] ==
@@ -529,7 +468,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory dstValues,
             bytes[] memory dstCalldatas,
             string memory dstDescription
-        ) = createProposalParams();
+        ) = createProposalParams(address(bSummerToken));
 
         bytes[] memory srcCalldatas = new bytes[](1);
 
@@ -611,15 +550,15 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
     // ===============================================
 
     /*
-     * @dev Tests the initial setup of the governor.
-     * Verifies that the governor's parameters are set correctly.
+     * @dev Tests the initial setup of the governorA.
+     * Verifies that the governorA's parameters are set correctly.
      */
     function test_InitialSetup() public {
         address lzEndpointA = address(endpoints[aEid]);
 
         SummerGovernor.GovernorParams memory params = SummerGovernor
             .GovernorParams({
-                token: IVotes(address(tokenA)),
+                token: IVotes(address(aSummerToken)),
                 timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -653,7 +592,13 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Ensures that a proposal can be created successfully.
      */
     function test_ProposalCreation() public {
-        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(address(alice), governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
         vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
@@ -667,7 +612,13 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Verifies that votes are correctly cast and counted.
      */
     function test_Voting() public {
-        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
         vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
@@ -680,7 +631,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         governorA.castVote(proposalId, 1);
 
         (, uint256 forVotes, ) = governorA.proposalVotes(proposalId);
-        assertEq(forVotes, INITIAL_SUPPLY);
+        assertEq(forVotes, governorA.proposalThreshold());
     }
 
     /*
@@ -688,8 +639,14 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Covers proposal creation, voting, queueing, execution, and result verification.
      */
     function test_ProposalExecution() public {
-        deal(address(tokenB), address(timelockA), 100);
-        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(address(timelockA), 100);
+        aSummerToken.mint(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
         vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
@@ -698,7 +655,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory values,
             bytes[] memory calldatas,
             string memory description
-        ) = createProposalParams();
+        ) = createProposalParams(address(aSummerToken));
         uint256 proposalId = governorA.propose(
             targets,
             values,
@@ -731,7 +688,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             hashDescription(description)
         );
 
-        assertEq(tokenB.balanceOf(bob), 100);
+        assertEq(aSummerToken.balanceOf(bob), 100);
     }
 
     /*
@@ -744,11 +701,12 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
 
         uint256 proposalThreshold = governorA.proposalThreshold();
 
-        vm.prank(address(tokenA));
-        deal(address(tokenA), alice, proposalThreshold);
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, proposalThreshold);
+        vm.stopPrank();
 
         vm.startPrank(alice);
-        tokenA.delegate(alice);
+        aSummerToken.delegate(alice);
         vm.roll(block.number + 1);
         vm.stopPrank();
 
@@ -818,10 +776,12 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Ensures that a proposal can be canceled by the whitelist guardian.
      */
     function test_ProposalCancellation() public {
-        deal(address(tokenA), alice, governorA.proposalThreshold() * 2);
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, governorA.proposalThreshold() * 2);
+        vm.stopPrank();
 
         vm.startPrank(alice);
-        tokenA.delegate(alice);
+        aSummerToken.delegate(alice);
         vm.roll(block.number + 1); // Move to next block to activate voting power
 
         // Create proposal to set Bob as whitelist guardian
@@ -872,7 +832,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
                 "SummerGovernorUnauthorizedCancellation(address,address,uint256,uint256)",
                 bob,
                 alice,
-                1000000000000000000000000,
+                governorA.proposalThreshold() * 2,
                 governorA.proposalThreshold()
             )
         );
@@ -906,10 +866,12 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
     function test_ProposalCreationBelowThresholdAndNotWhitelisted() public {
         // Ensure Charlie has some tokens, but below the proposal threshold
         uint256 belowThreshold = governorA.proposalThreshold() - 1;
-        deal(address(tokenA), charlie, belowThreshold);
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(charlie, belowThreshold);
+        vm.stopPrank();
 
         vm.startPrank(charlie);
-        tokenA.delegate(charlie);
+        aSummerToken.delegate(charlie);
         vm.roll(block.number + 1); // Move to next block to activate voting power
 
         // Attempt to create a proposal
@@ -918,7 +880,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory values,
             bytes[] memory calldatas,
             string memory description
-        ) = createProposalParams();
+        ) = createProposalParams(address(aSummerToken));
 
         // Expect the transaction to revert with SummerGovernorProposerBelowThresholdAndNotWhitelisted error
         vm.expectRevert(
@@ -938,7 +900,13 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      */
 
     function test_ProposalNeedsQueuing() public {
-        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
         vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
@@ -988,7 +956,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         );
     }
     /*
-     * @dev Tests the supportsInterface function of the governor.
+     * @dev Tests the supportsInterface function of the governorA.
      * Verifies correct interface support.
      */
 
@@ -1015,11 +983,9 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         uint256 belowMin = governorA.MIN_PROPOSAL_THRESHOLD() - 1;
         uint256 aboveMax = governorA.MAX_PROPOSAL_THRESHOLD() + 1;
 
-        address lzEndpointA = address(endpoints[aEid]);
-
         SummerGovernor.GovernorParams memory params = SummerGovernor
             .GovernorParams({
-                token: IVotes(address(tokenA)),
+                token: IVotes(address(aSummerToken)),
                 timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -1065,10 +1031,13 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
 
         // Ensure Alice has enough voting power
         uint256 proposalThreshold = governorA.proposalThreshold();
-        deal(address(tokenA), alice, proposalThreshold);
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, proposalThreshold);
+        vm.stopPrank();
 
         vm.startPrank(alice);
-        tokenA.delegate(alice);
+        aSummerToken.delegate(alice);
+
         vm.roll(block.number + 1); // Move to next block to activate voting power
         vm.stopPrank();
 
@@ -1122,7 +1091,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
 
         // Ensure the whitelisted user has no voting power
         vm.prank(whitelistedUser);
-        tokenA.delegate(address(0));
+        aSummerToken.delegate(address(0));
 
         // Verify that the user is whitelisted
         assertTrue(
@@ -1152,7 +1121,13 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Verifies that the guardian can cancel a proposal.
      */
     function test_CancelProposalByGuardian() public {
-        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
         vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.prank(alice);
@@ -1211,7 +1186,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory cancelValues,
             bytes[] memory cancelCalldatas,
 
-        ) = createProposalParams();
+        ) = createProposalParams(address(aSummerToken));
 
         vm.prank(guardian);
         governorA.cancel(
@@ -1232,7 +1207,13 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Ensures the proposer can cancel their own proposal.
      */
     function test_CancelProposalByProposer() public {
-        deal(address(tokenA), alice, governorA.proposalThreshold());
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
         vm.roll(block.number + governorA.votingDelay() + 1);
 
         vm.startPrank(alice);
@@ -1242,7 +1223,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory values,
             bytes[] memory calldatas,
 
-        ) = createProposalParams();
+        ) = createProposalParams(address(aSummerToken));
 
         governorA.cancel(targets, values, calldatas, descriptionHash);
         vm.stopPrank();
@@ -1258,21 +1239,29 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * Verifies that a proposal is defeated if it doesn't reach quorum.
      */
     function test_ProposalWithoutQuorum() public {
-        uint256 quorumThreshold = getQuorumThreshold();
+        uint256 supply = 100000000 * 10 ** 18;
+
+        uint256 quorumThreshold = getQuorumThreshold(supply);
+        assertTrue(
+            quorumThreshold > governorA.proposalThreshold(),
+            "Quorum threshold should be greater than proposal threshold"
+        );
 
         // Give Charlie enough tokens to meet the proposal threshold but not enough to reach quorum
         vm.startPrank(address(timelockA));
-        tokenA.mint(charlie, quorumThreshold / 2);
-        tokenA.mint(alice, quorumThreshold / 2);
+        aSummerToken.mint(charlie, quorumThreshold / 2);
+        aSummerToken.mint(alice, supply - quorumThreshold / 2);
         vm.stopPrank();
 
         // Charlie delegates to himself
         vm.prank(charlie);
-        tokenA.delegate(charlie);
+        aSummerToken.delegate(charlie);
 
         // Move forward more blocks to ensure voting power is updated
         vm.roll(block.number + 10);
 
+        console.log("Charlie's votes :", aSummerToken.getVotes(charlie));
+        console.log("Charlie's balance :", aSummerToken.balanceOf(charlie));
         // Ensure Charlie has enough tokens to meet the proposal threshold
         uint256 charlieVotes = governorA.getVotes(charlie, block.number - 1);
         uint256 proposalThreshold = governorA.proposalThreshold();
@@ -1327,29 +1316,34 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      */
     function test_VariousVotingScenarios() public {
         // Mint tokens to voters
+        uint256 aliceTokens = 1000000e18;
+        uint256 bobTokens = 300000e18;
+        uint256 charlieTokens = 200000e18;
+        uint256 davidTokens = 100000e18;
+
         vm.startPrank(address(timelockA));
-        tokenA.mint(alice, 1000000e18); // Increased Alice's tokens
-        tokenA.mint(bob, 300000e18);
-        tokenA.mint(charlie, 200000e18);
-        tokenA.mint(david, 100000e18);
+        aSummerToken.mint(alice, aliceTokens); // Increased Alice's tokens
+        aSummerToken.mint(bob, bobTokens);
+        aSummerToken.mint(charlie, charlieTokens);
+        aSummerToken.mint(david, davidTokens);
         vm.stopPrank();
 
         // Delegate votes
         vm.prank(alice);
-        tokenA.delegate(alice);
+        aSummerToken.delegate(alice);
         vm.prank(bob);
-        tokenA.delegate(bob);
+        aSummerToken.delegate(bob);
         vm.prank(charlie);
-        tokenA.delegate(charlie);
+        aSummerToken.delegate(charlie);
         vm.prank(david);
-        tokenA.delegate(david);
+        aSummerToken.delegate(david);
 
         // Move forward a few blocks to ensure voting power is updated
         vm.roll(block.number + 10);
 
-        // Mint tokens to the timelock
+        // Mint tokens to the timelockA
         vm.startPrank(address(timelockA));
-        tokenB.mint(address(timelockA), 1000); // Mint more than needed for the proposal
+        aSummerToken.mint(address(timelockA), 1000); // Mint more than needed for the proposal
         vm.stopPrank();
 
         // Scenario 1: Majority in favor, quorum reached
@@ -1358,7 +1352,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory values,
             bytes[] memory calldatas,
             string memory description
-        ) = createProposalParams();
+        ) = createProposalParams(address(aSummerToken));
 
         vm.prank(alice); // Ensure Alice is the proposer
         uint256 proposalId1 = governorA.propose(
@@ -1368,14 +1362,33 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             description
         );
         vm.roll(block.number + governorA.votingDelay() + 1);
-
+        console.log(
+            "Alice's votes     :",
+            governorA.getVotes(alice, block.number - 1)
+        );
+        console.log(
+            "Bob's votes       :",
+            governorA.getVotes(bob, block.number - 1)
+        );
+        console.log(
+            "Charlie's votes   :",
+            governorA.getVotes(charlie, block.number - 1)
+        );
+        console.log(
+            "David's votes     :",
+            governorA.getVotes(david, block.number - 1)
+        );
         // Cast votes
+
         vm.prank(alice);
         governorA.castVote(proposalId1, 1);
+
         vm.prank(bob);
         governorA.castVote(proposalId1, 1);
+
         vm.prank(charlie);
         governorA.castVote(proposalId1, 0);
+
         vm.prank(david);
         governorA.castVote(proposalId1, 2);
 
@@ -1401,6 +1414,11 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         vm.roll(block.number + 1);
 
         // Scenario 2: Tie, quorum reached
+        aliceTokens = aSummerToken.getVotes(alice);
+        bobTokens = aSummerToken.getVotes(bob);
+        charlieTokens = aSummerToken.getVotes(charlie);
+        davidTokens = aSummerToken.getVotes(david);
+
         uint256 proposalId2 = createProposalAndVote(bob, 1, 1, 1, 1);
         vm.roll(block.number + governorA.votingPeriod());
 
@@ -1410,25 +1428,26 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256 forVotes,
             uint256 abstainVotes
         ) = governorA.proposalVotes(proposalId2);
-        console.log("For votes:", forVotes);
-        console.log("Against votes:", againstVotes);
-        console.log("Abstain votes:", abstainVotes);
-        console.log("Quorum:", governorA.quorum(block.number - 1));
+        console.log("For votes      :", forVotes);
+        console.log("Against votes  :", againstVotes);
+        console.log("Abstain votes  :", abstainVotes);
+        console.log("Quorum         :", governorA.quorum(block.number - 1));
         console.log(
-            "Total supply:",
-            tokenA.getPastTotalSupply(block.number - 1)
+            "Total supply   :",
+            aSummerToken.getPastTotalSupply(block.number - 1)
         );
 
         // This is the failing assertion
         assertEq(
             uint256(governorA.state(proposalId2)),
-            uint256(IGovernor.ProposalState.Succeeded)
+            uint256(IGovernor.ProposalState.Succeeded),
+            "Proposal should be succeeded"
         );
 
         // Add assertions to verify vote counts and quorum
         assertEq(
             forVotes,
-            2600000000000000000000000,
+            aliceTokens + bobTokens + charlieTokens + davidTokens,
             "Incorrect number of 'for' votes"
         );
         assertEq(againstVotes, 0, "There should be no 'against' votes");
@@ -1443,13 +1462,86 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         vm.roll(block.number + 1);
 
         // Scenario 3: Majority against, quorum reached
+        aliceTokens = aSummerToken.getVotes(alice);
+        bobTokens = aSummerToken.getVotes(bob);
+        charlieTokens = aSummerToken.getVotes(charlie);
+        davidTokens = aSummerToken.getVotes(david);
+
         uint256 proposalId3 = createProposalAndVote(charlie, 0, 0, 1, 2);
         vm.roll(block.number + governorA.votingPeriod());
+        (againstVotes, forVotes, abstainVotes) = governorA.proposalVotes(
+            proposalId3
+        );
+        assertEq(aliceTokens + bobTokens, againstVotes, "Should be equal");
+        assertEq(forVotes, charlieTokens, "For votes should be zero");
+        assertEq(
+            abstainVotes,
+            davidTokens,
+            "Against votes should be equal to David's votes"
+        );
         assertEq(
             uint256(governorA.state(proposalId3)),
-            uint256(IGovernor.ProposalState.Defeated)
+            uint256(IGovernor.ProposalState.Defeated),
+            "Proposal should be defeated"
         );
     }
+
+    function test_VotingPowerIncludesVestingWalletBalance() public {
+        // Setup: Create a vesting wallet for Alice
+        uint256 vestingAmount = 500000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
+        console.log("Vesting amount :", vestingAmount);
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(address(timelockA), vestingAmount);
+        vm.stopPrank();
+
+        vm.startPrank(address(timelockA));
+        aSummerToken.createVestingWallet(
+            alice,
+            vestingAmount,
+            new uint256[](0),
+            SummerVestingWallet.VestingType.TeamVesting
+        );
+        aSummerToken.mint(alice, directAmount);
+        vm.stopPrank();
+
+        // Alice delegates to herself
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        // Move forward a few blocks to ensure voting power is updated
+        vm.roll(block.number + 10);
+
+        // Check Alice's voting power
+        uint256 aliceVotingPower = governorA.getVotes(alice, block.number - 1);
+        uint256 expectedVotingPower = vestingAmount + directAmount;
+
+        assertEq(
+            aliceVotingPower,
+            expectedVotingPower,
+            "Alice's voting power should include both locked and unlocked tokens"
+        );
+
+        // Create a proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+
+        // Move to voting period
+        vm.roll(block.number + governorA.votingDelay() + 1);
+
+        // Alice votes
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        // Check proposal votes
+        (, uint256 forVotes, ) = governorA.proposalVotes(proposalId);
+        assertEq(
+            forVotes,
+            expectedVotingPower,
+            "Proposal votes should reflect Alice's full voting power"
+        );
+    }
+
     function test_ProposalCreationOnWrongChain() public {
         uint32 governanceChainId = 1; // Ethereum mainnet
         uint32 currentChainId = 31337; // Anvil's default chain ID
@@ -1461,10 +1553,10 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             "Test environment should be on chain 31337"
         );
 
-        // Deploy the governor with a different chain ID than the current one
+        // Deploy the governorA with a different chain ID than the current one
         SummerGovernor.GovernorParams memory params = SummerGovernor
             .GovernorParams({
-                token: IVotes(address(tokenA)),
+                token: IVotes(address(aSummerToken)),
                 timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -1483,9 +1575,13 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         );
 
         // Ensure Alice has enough tokens to meet the proposal threshold
-        deal(address(tokenA), alice, wrongChainGovernor.proposalThreshold());
+        deal(
+            address(aSummerToken),
+            alice,
+            wrongChainGovernor.proposalThreshold()
+        );
         vm.prank(alice);
-        tokenA.delegate(alice);
+        aSummerToken.delegate(alice);
         vm.roll(block.number + 1);
 
         // Prepare proposal parameters
@@ -1494,7 +1590,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory values,
             bytes[] memory calldatas,
             string memory description
-        ) = createProposalParams();
+        ) = createProposalParams(address(aSummerToken));
 
         // Attempt to create a proposal, expecting it to revert
         vm.prank(alice);
@@ -1508,8 +1604,8 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         wrongChainGovernor.propose(targets, values, calldatas, description);
     }
 
-    function getQuorumThreshold() public view returns (uint256) {
-        return (tokenA.totalSupply() * QUORUM_FRACTION) / 100;
+    function getQuorumThreshold(uint256 supply) public view returns (uint256) {
+        return (supply * QUORUM_FRACTION) / 100;
     }
 
     function createProposalAndVote(
@@ -1551,7 +1647,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
             uint256[] memory values,
             bytes[] memory calldatas,
             string memory description
-        ) = createProposalParams();
+        ) = createProposalParams(address(aSummerToken));
 
         // Add a unique identifier to the description to ensure unique proposals
         description = string(
@@ -1575,7 +1671,9 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
      * @return calldatas The function call data for the proposal.
      * @return description The description of the proposal.
      */
-    function createProposalParams()
+    function createProposalParams(
+        address tokenAddress
+    )
         internal
         view
         returns (
@@ -1586,7 +1684,7 @@ contract SummerGovernorTest is TestHelperOz5, ISummerGovernorErrors {
         )
     {
         address[] memory targets = new address[](1);
-        targets[0] = address(tokenB);
+        targets[0] = tokenAddress;
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
