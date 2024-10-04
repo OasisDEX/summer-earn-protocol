@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 
 import {Constants} from "./libraries/Constants.sol";
 import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
@@ -24,7 +24,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * 3. The contract uses its own address as the token for calculations,
  *    assuming it represents shares in the system.
  */
-abstract contract Tipper is ITipper {
+abstract contract Tipper is ITipper, ConfigurationManaged {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;
 
@@ -40,25 +40,15 @@ abstract contract Tipper is ITipper {
     uint256 public lastTipTimestamp;
 
     /**
-     * @notice The address where accrued tips are sent
-     */
-    address public tipJar;
-
-    /**
-     * @notice The protocol configuration manager
-     */
-    IConfigurationManager public manager;
-
-    /**
      * @notice Initializes the TipAccruer contract
      * @param configurationManager The address of the ConfigurationManager contract
      * @param initialTipRate The initialTipRate for the Fleet
      */
-    constructor(address configurationManager, Percentage initialTipRate) {
-        manager = IConfigurationManager(configurationManager);
-
+    constructor(
+        address configurationManager,
+        Percentage initialTipRate
+    ) ConfigurationManaged(configurationManager) {
         tipRate = initialTipRate;
-        tipJar = manager.tipJar();
         lastTipTimestamp = block.timestamp;
     }
 
@@ -88,20 +78,6 @@ abstract contract Tipper is ITipper {
     }
 
     /**
-     * @notice Sets a new tip jar address
-     * @dev Only callable by the FleetCommander
-     */
-    function _setTipJar() internal {
-        tipJar = manager.tipJar();
-
-        if (tipJar == address(0)) {
-            revert InvalidTipJarAddress();
-        }
-
-        emit TipJarUpdated(manager.tipJar());
-    }
-
-    /**
      * @notice Accrues tips based on the current tip rate and time elapsed
      * @dev Only callable by the FleetCommander
      * @return tippedShares The amount of tips accrued in shares
@@ -122,7 +98,7 @@ abstract contract Tipper is ITipper {
         tippedShares = _calculateTip(totalShares, timeElapsed);
 
         if (tippedShares > 0) {
-            _mintTip(tipJar, tippedShares);
+            _mintTip(tipJar(), tippedShares);
             lastTipTimestamp = block.timestamp;
             emit TipAccrued(tippedShares);
         }

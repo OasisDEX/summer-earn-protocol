@@ -5,6 +5,8 @@ import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
+
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -14,11 +16,15 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
  * @notice This contract manages auctions for tokens, accepting SUMMER tokens as payment and burning them.
  * @dev Inherits from IBuyAndBurn, ProtocolAccessManaged, and AuctionManagerBase to handle auctions and access control.
  */
-contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
+contract BuyAndBurn is
+    IBuyAndBurn,
+    ProtocolAccessManaged,
+    AuctionManagerBase,
+    ConfigurationManaged
+{
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
     ERC20Burnable public immutable summerToken;
-    IConfigurationManager public manager;
 
     /// @notice Mapping of auction IDs to their respective auction data
     mapping(uint256 auctionId => DutchAuctionLibrary.Auction auction)
@@ -39,9 +45,9 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
     )
         ProtocolAccessManaged(_accessManager)
         AuctionManagerBase(_defaultParameters)
+        ConfigurationManaged(_configurationManager)
     {
         summerToken = ERC20Burnable(_summer);
-        manager = IConfigurationManager(_configurationManager);
     }
 
     /* @inheritdoc IBuyAndBurn */
@@ -59,7 +65,7 @@ contract BuyAndBurn is IBuyAndBurn, ProtocolAccessManaged, AuctionManagerBase {
             auctionToken,
             summerToken,
             totalTokens,
-            manager.treasury()
+            treasury()
         );
         uint256 auctionId = nextAuctionId;
         auctions[auctionId] = newAuction;

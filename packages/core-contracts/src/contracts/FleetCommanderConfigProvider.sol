@@ -10,11 +10,11 @@ import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProt
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
+
 /**
  * @title FleetCommanderConfigProvider
  * @notice This contract provides configuration management for the FleetCommander
  */
-
 contract FleetCommanderConfigProvider is
     ProtocolAccessManaged,
     IFleetCommanderConfigProvider

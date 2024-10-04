@@ -16,9 +16,9 @@ import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvent
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 
+import {ArkParams, BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
-import {BufferArk, ArkParams} from "../../src/contracts/arks/BufferArk.sol";
 import {ContractSpecificRoles, IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
@@ -264,6 +264,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
         assertEq(mockArk2.maxRebalanceInflow(), maxMoveTo);
     }
+
     function test_SetArkMoveToMax_FailNotCurator() public {
         uint256 maxMoveTo = 1000;
         vm.prank(keeper);

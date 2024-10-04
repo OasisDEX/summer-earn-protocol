@@ -4,8 +4,9 @@ pragma solidity 0.8.27;
 import {IAccessControlErrors} from "../errors/IAccessControlErrors.sol";
 import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title ProtocolAccessManager

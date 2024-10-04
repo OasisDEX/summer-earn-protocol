@@ -3,11 +3,12 @@ pragma solidity 0.8.27;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
+
+import {IConfigurationManaged} from "../interfaces/IConfigurationManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
-import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
 
 /**
  * @title ArkAccessControl
@@ -35,7 +36,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
         if (!hasCommanderRole()) {
             address msgSender = _msgSender();
             bool isRaft = msgSender ==
-                ConfigurationManaged(address(this)).raft();
+                IConfigurationManaged(address(this)).raft();
 
             if (!isRaft) {
                 bool isArk = IFleetCommander(commander).isArkActive(msgSender);
@@ -48,7 +49,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     }
 
     modifier onlyRaft() {
-        if (_msgSender() != ConfigurationManaged(address(this)).raft()) {
+        if (_msgSender() != IConfigurationManaged(address(this)).raft()) {
             revert CallerIsNotRaft(_msgSender());
         }
         _;

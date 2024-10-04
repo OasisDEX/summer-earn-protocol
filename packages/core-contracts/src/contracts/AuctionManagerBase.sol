@@ -6,12 +6,12 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibra
 
 import {IAuctionManagerBaseEvents} from "../events/IAuctionManagerBaseEvents.sol";
 import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
-
 /**
  * @title AuctionManagerBase
  * @notice Base contract for managing Dutch auctions
  * @dev This abstract contract provides core functionality for creating and managing Dutch auctions
  */
+
 abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
     using SafeERC20 for IERC20;
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;

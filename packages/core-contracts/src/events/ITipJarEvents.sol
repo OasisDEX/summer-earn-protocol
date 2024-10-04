@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {ITipJar} from "../interfaces/ITipJar.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 /**
  * @title ITipJarEvents
  * @notice Interface for events emitted by the TipJar contract
  */
+
 interface ITipJarEvents {
     /**
      * @notice Emitted when a new tip stream is added to the TipJar

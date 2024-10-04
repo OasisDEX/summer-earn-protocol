@@ -387,11 +387,6 @@ contract FleetCommander is
     }
 
     /// @inheritdoc IFleetCommander
-    function setTipJar() external onlyGovernor {
-        _setTipJar();
-    }
-
-    /// @inheritdoc IFleetCommander
     function setTipRate(Percentage newTipRate) external onlyGovernor {
         _setTipRate(newTipRate);
     }

@@ -44,7 +44,10 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_InitialState() public view {
-        assertEq(address(fleetCommander.manager()), address(configManager));
+        assertEq(
+            address(fleetCommander.configurationManager()),
+            address(configManager)
+        );
         assertTrue(fleetCommander.tipRate() == initialTipRate);
         assertEq(fleetCommander.tipJar(), tipJar);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
@@ -56,20 +59,6 @@ contract TipperTest is Test, ITipperEvents {
         emit TipRateUpdated(newTipRate);
         fleetCommander.setTipRate(newTipRate);
         assertTrue(fleetCommander.tipRate() == newTipRate);
-    }
-
-    function test_SetTipJar() public {
-        address newTipJar = address(0x456);
-        vm.mockCall(
-            address(configManager),
-            abi.encodeWithSelector(IConfigurationManager.tipJar.selector),
-            abi.encode(newTipJar)
-        );
-
-        vm.expectEmit(true, true, false, true);
-        emit TipJarUpdated(newTipJar);
-        fleetCommander.setTipJar();
-        assertEq(fleetCommander.tipJar(), newTipJar);
     }
 
     function test_AccrueTip() public {
@@ -115,19 +104,6 @@ contract TipperTest is Test, ITipperEvents {
             abi.encodeWithSignature("TipRateCannotExceedOneHundredPercent()")
         );
         fleetCommander.setTipRate(PercentageUtils.fromIntegerPercentage(101));
-    }
-
-    function test_SetTipJarCannotBeZeroAddress() public {
-        ConfigurationManagerMock _configManager = ConfigurationManagerMock(
-            address(new ConfigurationManagerImplMock(address(0), address(0)))
-        );
-        FleetCommanderMock _fleetCommander = new FleetCommanderMock(
-            address(underlyingToken),
-            address(_configManager),
-            initialTipRate
-        );
-        vm.expectRevert(abi.encodeWithSignature("InvalidTipJarAddress()"));
-        _fleetCommander.setTipJar();
     }
 
     function test_CompoundingEffect() public {

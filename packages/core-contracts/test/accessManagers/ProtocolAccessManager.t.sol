@@ -156,6 +156,7 @@ contract ProtocolAccessManagerTest is Test {
             )
         );
     }
+
     function test_GrantCuratorRole() public {
         vm.prank(governor);
         accessManager.grantContractSpecificRole(
@@ -212,6 +213,7 @@ contract ProtocolAccessManagerTest is Test {
             )
         );
     }
+
     function test_selfRevokeContractSpecificRole_shouldFail() public {
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -229,6 +231,7 @@ contract ProtocolAccessManagerTest is Test {
             address(0)
         );
     }
+
     function test_OnlyAdminModifier() public {
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotAdmin(address)", user)

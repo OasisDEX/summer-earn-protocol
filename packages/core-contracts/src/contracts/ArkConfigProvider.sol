@@ -9,11 +9,12 @@ import {IArkConfigProvider} from "../interfaces/IArkConfigProvider.sol";
 
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /**
  * @custom:see IArkConfigProvider
  */
+
 abstract contract ArkConfigProvider is
     IArkConfigProvider,
     ArkAccessManaged,
@@ -36,14 +37,14 @@ abstract contract ArkConfigProvider is
         if (bytes(_params.name).length == 0) {
             revert CannotDeployArkWithEmptyName();
         }
-        if (configurationManager.raft() == address(0)) {
+        if (raft() == address(0)) {
             revert CannotDeployArkWithoutRaft();
         }
 
         config = ArkConfig({
             token: IERC20(_params.token),
             commander: address(0), // Will be set later
-            raft: configurationManager.raft(),
+            raft: raft(),
             depositCap: _params.depositCap,
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
             maxRebalanceInflow: _params.maxRebalanceInflow,

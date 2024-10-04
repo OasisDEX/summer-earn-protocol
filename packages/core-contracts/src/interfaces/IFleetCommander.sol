@@ -188,11 +188,6 @@ interface IFleetCommander is
     function adjustBuffer(RebalanceData[] calldata data) external;
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
-    /**
-     * @notice Sets a new tip jar address
-     * @dev This function sets the tipJar address to the address specified in the configuration manager.
-     */
-    function setTipJar() external;
 
     /**
      * @notice Sets a new tip rate for the FleetCommander

@@ -7,7 +7,7 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -16,12 +16,11 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * @notice Contract implementing the centralized collection and distribution of tips
  * @dev This contract manages tip streams, allowing for the addition, removal, and updating of tip allocations
  */
-contract TipJar is ITipJar, ProtocolAccessManaged {
+contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     using PercentageUtils for uint256;
 
     mapping(address recipient => TipStream tipStream) public tipStreams;
     address[] public tipStreamRecipients;
-    IConfigurationManager public manager;
 
     /**
      * @notice Constructs a new TipJar contract
@@ -31,9 +30,10 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
     constructor(
         address _accessManager,
         address _configurationManager
-    ) ProtocolAccessManaged(_accessManager) {
-        manager = IConfigurationManager(_configurationManager);
-    }
+    )
+        ProtocolAccessManaged(_accessManager)
+        ConfigurationManaged(_configurationManager)
+    {}
 
     /// @inheritdoc ITipJar
     function addTipStream(
@@ -176,7 +176,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         // Transfer remaining balance to treasury
         uint256 remaining = withdrawnAssets - totalDistributed;
         if (remaining > 0) {
-            underlyingAsset.transfer(manager.treasury(), remaining);
+            underlyingAsset.transfer(treasury(), remaining);
         }
 
         emit TipJarShaken(address(fleetCommander), withdrawnAssets);

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
+import {IConfigurationManaged} from "../interfaces/IConfigurationManaged.sol";
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 /**
@@ -10,7 +11,7 @@ import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
  *      configuration values from the ConfigurationManager. It should be inherited
  *      by contracts that need to read these configurations.
  */
-abstract contract ConfigurationManaged {
+abstract contract ConfigurationManaged is IConfigurationManaged {
     IConfigurationManager public immutable configurationManager;
 
     /**
@@ -24,32 +25,18 @@ abstract contract ConfigurationManaged {
         configurationManager = IConfigurationManager(_configurationManager);
     }
 
-    /**
-     * @notice Gets the address of the Raft contract
-     * @return The address of the Raft contract
-     */
-    function raft() public view returns (address) {
+    /// @inheritdoc IConfigurationManaged
+    function raft() public view virtual returns (address) {
         return configurationManager.raft();
     }
 
-    /**
-     * @notice Gets the address of the TipJar contract
-     * @return The address of the TipJar contract
-     */
-    function tipJar() public view returns (address) {
+    /// @inheritdoc IConfigurationManaged
+    function tipJar() public view virtual returns (address) {
         return configurationManager.tipJar();
     }
 
-    /**
-     * @notice Gets the address of the Treasury contract
-     * @return The address of the Treasury contract
-     */
-    function treasury() public view returns (address) {
+    /// @inheritdoc IConfigurationManaged
+    function treasury() public view virtual returns (address) {
         return configurationManager.treasury();
     }
-
-    // Add other configuration getter functions as needed
 }
-
-// Custom error
-error ConfigurationManagerZeroAddress();
