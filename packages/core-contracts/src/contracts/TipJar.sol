@@ -10,6 +10,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 
 /**
  * @title TipJar
@@ -165,7 +166,11 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
      * @param fleetCommander_ The address of the FleetCommander contract to distribute tips from
      */
     function _shake(address fleetCommander_) internal {
-        if (fleetCommander_ == address(0)) {
+        if (
+            !IHarborCommand(manager.harborCommand()).activeFleetCommanders(
+                fleetCommander_
+            )
+        ) {
             revert InvalidFleetCommanderAddress();
         }
 

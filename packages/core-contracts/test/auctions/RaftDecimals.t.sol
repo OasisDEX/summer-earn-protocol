@@ -47,7 +47,8 @@ contract RaftDecimalsTest is AuctionTestBase {
             ConfigurationManagerParams({
                 raft: address(raftContract),
                 tipJar: address(1),
-                treasury: treasury
+                treasury: treasury,
+                harborCommand: address(2)
             })
         );
 

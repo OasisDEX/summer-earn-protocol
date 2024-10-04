@@ -17,6 +17,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
 contract ArkTestBase is TestHelpers {
     address public governor = address(1);
@@ -28,11 +29,15 @@ contract ArkTestBase is TestHelpers {
 
     ProtocolAccessManager public accessManager;
     ConfigurationManager public configurationManager;
+    HarborCommand public harborCommand;
 
     function initializeCoreContracts() internal {
         mockToken = new ERC20Mock();
         if (address(accessManager) == address(0)) {
             accessManager = new ProtocolAccessManager(governor);
+        }
+        if (address(harborCommand) == address(0)) {
+            harborCommand = new HarborCommand(address(accessManager));
         }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
@@ -43,7 +48,8 @@ contract ArkTestBase is TestHelpers {
                 ConfigurationManagerParams({
                     tipJar: tipJar,
                     raft: raft,
-                    treasury: treasury
+                    treasury: treasury,
+                    harborCommand: address(harborCommand)
                 })
             );
         }

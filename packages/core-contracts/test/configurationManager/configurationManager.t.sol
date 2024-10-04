@@ -15,6 +15,7 @@ contract ConfigurationManagerTest is Test {
     address public initialRaft;
     address public initialTipJar;
     address public initialTreasury;
+    address public initialHarborCommand;
 
     function setUp() public {
         governor = address(1);
@@ -22,6 +23,7 @@ contract ConfigurationManagerTest is Test {
         initialRaft = address(3);
         initialTipJar = address(4);
         initialTreasury = address(5);
+        initialHarborCommand = address(6);
 
         // Setup AccessManager
         accessManager = new ProtocolAccessManager(governor);
@@ -30,7 +32,8 @@ contract ConfigurationManagerTest is Test {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             raft: initialRaft,
             tipJar: initialTipJar,
-            treasury: initialTreasury
+            treasury: initialTreasury,
+            harborCommand: initialHarborCommand
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
@@ -41,7 +44,8 @@ contract ConfigurationManagerTest is Test {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             raft: initialRaft,
             tipJar: initialTipJar,
-            treasury: initialTreasury
+            treasury: initialTreasury,
+            harborCommand: initialHarborCommand
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
@@ -67,7 +71,8 @@ contract ConfigurationManagerTest is Test {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             raft: initialRaft,
             tipJar: initialTipJar,
-            treasury: initialTreasury
+            treasury: initialTreasury,
+            harborCommand: address(0)
         });
         vm.prank(governor);
         vm.expectRevert(
