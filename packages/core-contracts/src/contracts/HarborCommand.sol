@@ -5,6 +5,25 @@ import {IHarborCommandEvents} from "../events/IHarborCommandEvents.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
+/**
+ * @title HarborCommand - Fleet Commander Management System
+ * @dev This contract serves as a central registry for managing official Fleet Commanders in the system.
+ *
+ * The HarborCommand contract is responsible for:
+ * 1. Maintaining a list of authorized Fleet Commanders.
+ * 2. Providing functions to enlist new Fleet Commanders and decommission existing ones.
+ * 3. Offering a way to verify the active status of Fleet Commanders.
+ * 4. Ensuring that only authorized entities (Governors) can modify the Fleet Commander roster.
+ *
+ * Key features:
+ * - Enlistment and decommissioning of Fleet Commanders with proper access control.
+ * - Prevention of duplicate enlistments and erroneous decommissions.
+ * - Efficient storage and retrieval of active Fleet Commanders.
+ * - Event emission for transparent tracking of roster changes.
+ *
+ * This contract plays a crucial role in maintaining the integrity and security of the fleet management system
+ * by providing a reliable source of truth for official fleet verification.
+ */
 contract HarborCommand is
     ProtocolAccessManaged,
     IHarborCommandEvents,

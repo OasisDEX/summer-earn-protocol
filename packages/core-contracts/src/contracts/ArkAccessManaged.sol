@@ -6,7 +6,7 @@ import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 /**
  * @title ArkAccessControl
  * @notice Extends the ProtocolAccessManaged contract with Ark specific AccessControl
@@ -50,7 +50,8 @@ contract ArkAccessManaged is
     modifier onlyAuthorizedToBoard(address commander) {
         if (!hasCommanderRole()) {
             address msgSender = _msgSender();
-            bool isRaft = msgSender == IArk(address(this)).raft();
+            bool isRaft = msgSender ==
+                ConfigurationManaged(address(this)).raft();
 
             if (!isRaft) {
                 bool isArk = IFleetCommander(commander).isArkActive(msgSender);
@@ -63,7 +64,7 @@ contract ArkAccessManaged is
     }
 
     modifier onlyRaft() {
-        if (_msgSender() != IArk(address(this)).raft()) {
+        if (_msgSender() != ConfigurationManaged(address(this)).raft()) {
             revert CallerIsNotRaft(msg.sender);
         }
         _;

@@ -26,15 +26,11 @@ interface ITipJar is ITipJarEvents, ITipJarErrors {
 
     /**
      * @notice Adds a new tip stream
-     * @param recipient The address of the tip stream recipient
-     * @param allocation The percentage of tips allocated to this stream
-     * @param lockedUntilEpoch The epoch until which this tip stream is locked
+     * @param tipStream The tip stream to add
      */
     function addTipStream(
-        address recipient,
-        Percentage allocation,
-        uint256 lockedUntilEpoch
-    ) external;
+        TipStream memory tipStream
+    ) external returns (uint256 lockedUntilEpoch);
 
     /**
      * @notice Removes an existing tip stream
@@ -44,15 +40,9 @@ interface ITipJar is ITipJarEvents, ITipJarErrors {
 
     /**
      * @notice Updates an existing tip stream
-     * @param recipient The address of the tip stream recipient to update
-     * @param newAllocation The new percentage allocation for the tip stream
-     * @param newLockedUntilEpoch The new epoch until which this tip stream is locked
+     * @param tipStream The tip stream to update
      */
-    function updateTipStream(
-        address recipient,
-        Percentage newAllocation,
-        uint256 newLockedUntilEpoch
-    ) external;
+    function updateTipStream(TipStream memory tipStream) external;
 
     /**
      * @notice Retrieves information about a specific tip stream

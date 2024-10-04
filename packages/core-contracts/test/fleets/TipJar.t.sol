@@ -58,9 +58,11 @@ contract TipJarTest is Test, ITipJarEvents {
     function test_AddTipStream() public {
         vm.prank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp + 1 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
         );
 
         ITipJar.TipStream memory stream = tipJar.getTipStream(
@@ -76,9 +78,11 @@ contract TipJarTest is Test, ITipJarEvents {
     function test_AddAnExistingStream() public {
         vm.prank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp + 1 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
         );
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -88,26 +92,33 @@ contract TipJarTest is Test, ITipJarEvents {
         );
         vm.prank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp + 1 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
         );
     }
 
     function test_UpdateTipStream() public {
         vm.startPrank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(60),
-            block.timestamp + 1 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(60),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
         );
 
         vm.warp(block.timestamp + 2 days);
         tipJar.updateTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(60),
-            block.timestamp + 3 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(60),
+                lockedUntilEpoch: block.timestamp + 3 days
+            })
         );
+
         vm.stopPrank();
 
         ITipJar.TipStream memory stream = tipJar.getTipStream(address(4));
@@ -119,9 +130,11 @@ contract TipJarTest is Test, ITipJarEvents {
     function test_RemoveTipStream() public {
         vm.startPrank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp + 1 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
         );
 
         vm.warp(block.timestamp + 2 days);
@@ -140,14 +153,18 @@ contract TipJarTest is Test, ITipJarEvents {
         address anotherMockTipStreamParticipant = address(5);
         vm.startPrank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp + 1 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
         );
         tipJar.addTipStream(
-            anotherMockTipStreamParticipant,
-            PercentageUtils.fromIntegerPercentage(30),
-            block.timestamp + 2 days
+            ITipJar.TipStream({
+                recipient: anotherMockTipStreamParticipant,
+                allocation: PercentageUtils.fromIntegerPercentage(30),
+                lockedUntilEpoch: block.timestamp + 2 days
+            })
         );
         vm.stopPrank();
 
@@ -163,14 +180,18 @@ contract TipJarTest is Test, ITipJarEvents {
         // Setup tip streams
         vm.startPrank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(60),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(60),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         tipJar.addTipStream(
-            anotherMockTipStreamParticipant,
-            PercentageUtils.fromIntegerPercentage(30),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: anotherMockTipStreamParticipant,
+                allocation: PercentageUtils.fromIntegerPercentage(30),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         vm.stopPrank();
 
@@ -201,14 +222,18 @@ contract TipJarTest is Test, ITipJarEvents {
         // Setup tip streams
         vm.startPrank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(60),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(60),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         tipJar.addTipStream(
-            anotherMockTipStreamParticipant,
-            PercentageUtils.fromIntegerPercentage(40),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: anotherMockTipStreamParticipant,
+                allocation: PercentageUtils.fromIntegerPercentage(40),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         vm.stopPrank();
 
@@ -239,14 +264,18 @@ contract TipJarTest is Test, ITipJarEvents {
         // Setup tip streams
         vm.startPrank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(60),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(60),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         tipJar.addTipStream(
-            anotherMockTipStreamParticipant,
-            PercentageUtils.fromIntegerPercentage(30),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: anotherMockTipStreamParticipant,
+                allocation: PercentageUtils.fromIntegerPercentage(30),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         vm.stopPrank();
 
@@ -289,14 +318,18 @@ contract TipJarTest is Test, ITipJarEvents {
         // Setup tip streams
         vm.startPrank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(60),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(60),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         tipJar.addTipStream(
-            anotherMockTipStreamParticipant,
-            PercentageUtils.fromIntegerPercentage(30),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: anotherMockTipStreamParticipant,
+                allocation: PercentageUtils.fromIntegerPercentage(30),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         vm.stopPrank();
 
@@ -348,14 +381,18 @@ contract TipJarTest is Test, ITipJarEvents {
         // Setup initial tip streams
         vm.startPrank(governor);
         tipJar.addTipStream(
-            address(4),
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: address(4),
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         tipJar.addTipStream(
-            address(5),
-            PercentageUtils.fromIntegerPercentage(30),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: address(5),
+                allocation: PercentageUtils.fromIntegerPercentage(30),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         vm.stopPrank();
 
@@ -366,9 +403,11 @@ contract TipJarTest is Test, ITipJarEvents {
         // Add another tip stream
         vm.prank(governor);
         tipJar.addTipStream(
-            address(6),
-            PercentageUtils.fromIntegerPercentage(25),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: address(6),
+                allocation: PercentageUtils.fromIntegerPercentage(25),
+                lockedUntilEpoch: block.timestamp
+            })
         );
 
         // Check updated total allocation
@@ -435,9 +474,11 @@ contract TipJarTest is Test, ITipJarEvents {
             )
         );
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(0),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(0),
+                lockedUntilEpoch: block.timestamp
+            })
         );
 
         // Test with allocation greater than 100%
@@ -448,9 +489,11 @@ contract TipJarTest is Test, ITipJarEvents {
             )
         );
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(101),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(101),
+                lockedUntilEpoch: block.timestamp
+            })
         );
 
         vm.stopPrank();
@@ -469,19 +512,25 @@ contract TipJarTest is Test, ITipJarEvents {
 
         vm.startPrank(governor);
         tipJar.addTipStream(
-            recipient1,
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: recipient1,
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         tipJar.addTipStream(
-            recipient2,
-            PercentageUtils.fromIntegerPercentage(30),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: recipient2,
+                allocation: PercentageUtils.fromIntegerPercentage(30),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         tipJar.addTipStream(
-            recipient3,
-            PercentageUtils.fromIntegerPercentage(10),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: recipient3,
+                allocation: PercentageUtils.fromIntegerPercentage(10),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         vm.stopPrank();
 
@@ -502,18 +551,22 @@ contract TipJarTest is Test, ITipJarEvents {
             abi.encodeWithSignature("CallerIsNotGovernor(address)", notGovernor)
         );
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp + 1 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
         );
     }
 
     function test_FailUpdateTipStreamBeforeMinTerm() public {
         vm.prank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(20),
-            block.timestamp + 1 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
         );
 
         vm.prank(governor);
@@ -524,9 +577,11 @@ contract TipJarTest is Test, ITipJarEvents {
             )
         );
         tipJar.updateTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(30),
-            block.timestamp + 2 days
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(30),
+                lockedUntilEpoch: block.timestamp + 2 days
+            })
         );
     }
 
@@ -535,17 +590,21 @@ contract TipJarTest is Test, ITipJarEvents {
 
         vm.startPrank(governor);
         tipJar.addTipStream(
-            mockTipStreamRecipient,
-            PercentageUtils.fromIntegerPercentage(60),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(60),
+                lockedUntilEpoch: block.timestamp
+            })
         );
         vm.expectRevert(
             abi.encodeWithSignature("TotalAllocationExceedsOneHundredPercent()")
         );
         tipJar.addTipStream(
-            anotherMockTipStreamParticipant,
-            PercentageUtils.fromIntegerPercentage(50),
-            block.timestamp
+            ITipJar.TipStream({
+                recipient: anotherMockTipStreamParticipant,
+                allocation: PercentageUtils.fromIntegerPercentage(50),
+                lockedUntilEpoch: block.timestamp
+            })
         );
     }
 }

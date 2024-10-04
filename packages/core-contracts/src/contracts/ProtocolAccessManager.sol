@@ -22,7 +22,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
 
     /**
      * @dev The Super Keeper role is in charge of rebalancing the funds between the different
-     *         Arks through the Fleet Commander
+     *         Arks through the Fleet Commander - global role for all fleet commanders
      */
     bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 

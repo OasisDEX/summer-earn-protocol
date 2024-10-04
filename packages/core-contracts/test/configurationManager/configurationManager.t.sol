@@ -80,7 +80,7 @@ contract ConfigurationManagerTest is Test {
         address newRaft = address(5);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IConfigurationManagerEvents.RaftUpdated(newRaft);
+        emit IConfigurationManagerEvents.RaftUpdated(initialRaft, newRaft);
         configurationManager.setRaft(newRaft);
         assertEq(
             configurationManager.raft(),
@@ -102,7 +102,10 @@ contract ConfigurationManagerTest is Test {
         address newTipJar = address(6);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IConfigurationManagerEvents.TipJarUpdated(newTipJar);
+        emit IConfigurationManagerEvents.TipJarUpdated(
+            initialTipJar,
+            newTipJar
+        );
         configurationManager.setTipJar(newTipJar);
         assertEq(
             configurationManager.tipJar(),
@@ -129,7 +132,17 @@ contract ConfigurationManagerTest is Test {
         for (uint256 i = 0; i < newRafts.length; i++) {
             vm.prank(governor);
             vm.expectEmit(true, true, true, true);
-            emit IConfigurationManagerEvents.RaftUpdated(newRafts[i]);
+            if (i == 0) {
+                emit IConfigurationManagerEvents.RaftUpdated(
+                    initialRaft,
+                    newRafts[i]
+                );
+            } else {
+                emit IConfigurationManagerEvents.RaftUpdated(
+                    newRafts[i - 1],
+                    newRafts[i]
+                );
+            }
             configurationManager.setRaft(newRafts[i]);
             assertEq(
                 configurationManager.raft(),
@@ -148,7 +161,17 @@ contract ConfigurationManagerTest is Test {
         for (uint256 i = 0; i < newTipJars.length; i++) {
             vm.prank(governor);
             vm.expectEmit(true, true, true, true);
-            emit IConfigurationManagerEvents.TipJarUpdated(newTipJars[i]);
+            if (i == 0) {
+                emit IConfigurationManagerEvents.TipJarUpdated(
+                    initialTipJar,
+                    newTipJars[i]
+                );
+            } else {
+                emit IConfigurationManagerEvents.TipJarUpdated(
+                    newTipJars[i - 1],
+                    newTipJars[i]
+                );
+            }
             configurationManager.setTipJar(newTipJars[i]);
             assertEq(
                 configurationManager.tipJar(),
@@ -176,7 +199,10 @@ contract ConfigurationManagerTest is Test {
         address newTreasury = address(13);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IConfigurationManagerEvents.TreasuryUpdated(newTreasury);
+        emit IConfigurationManagerEvents.TreasuryUpdated(
+            initialTreasury,
+            newTreasury
+        );
         configurationManager.setTreasury(newTreasury);
         assertEq(
             configurationManager.treasury(),
