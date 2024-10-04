@@ -9,7 +9,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 /**
  * @title ConfigurationManager
  * @notice Manages system-wide configuration parameters for the protocol
- * @dev Implements the IConfigurationManager interface and inherits from ProtocolAccessManaged
+ * @custom:see IConfigurationManager
  */
 contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     bool public initialized;

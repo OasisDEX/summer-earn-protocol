@@ -3,7 +3,6 @@ pragma solidity 0.8.27;
 
 import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
 
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
@@ -13,8 +12,8 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 
 /**
  * @title BuyAndBurn
- * @notice This contract manages auctions for tokens, accepting SUMMER tokens as payment and burning them.
- * @dev Inherits from IBuyAndBurn, ProtocolAccessManaged, and AuctionManagerBase to handle auctions and access control.
+ * @author SummerFi
+ * @custom:see IBuyAndBurn
  */
 contract BuyAndBurn is
     IBuyAndBurn,

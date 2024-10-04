@@ -6,15 +6,13 @@ import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 
-import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-
-import {ArkConfigProvider} from "./ArkConfigProvider.sol";
-
 import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
+ * @title Ark
+ * @author SummerFi
  * @custom:see IArk
  */
 abstract contract Ark is IArk, ArkConfigProvider {

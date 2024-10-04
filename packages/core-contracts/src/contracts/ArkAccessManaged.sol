@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import {IArk} from "../interfaces/IArk.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 
 import {IConfigurationManaged} from "../interfaces/IConfigurationManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
-import {LimitedAccessControl} from "./LimitedAccessControl.sol";
+
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
 /**
+ * @title ArkAccessManaged
+ * @author SummerFi
  * @custom:see IArkAccessManaged
  */
 contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {

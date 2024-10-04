@@ -9,14 +9,14 @@ import {Test, console} from "forge-std/Test.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {TipJar} from "../../src/contracts/TipJar.sol";
 
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import "../../src/errors/IAccessControlErrors.sol";
 import "../../src/errors/ITipJarErrors.sol";
 import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ConfigurationManagerMock, ConfigurationManagerImplMock} from "../mocks/ConfigurationManagerMock.sol";
+import {ConfigurationManagerImplMock, ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
 contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;

@@ -46,7 +46,8 @@ contract BufferArk is Ark {
     /**
      * @notice No-op for disembark function
      * @dev This function is intentionally left empty because the BufferArk doesn't need to perform any
-     * additional actions when disembarking tokens. The actual token transfer is handled by the Ark.disembark() function,
+     * additional actions when disembarking tokens. The actual token transfer is handled by the Ark.disembark()
+     * function,
      * and the BufferArk simply releases these tokens without any complex withdrawal process.
      * @param amount The amount of tokens being disembarked (unused in this implementation)
      * @param data Additional data for disembarking (unused in this implementation)

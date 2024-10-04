@@ -15,10 +15,10 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Test, console} from "forge-std/Test.sol";
 
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
-import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
 contract ArkTestBase is TestHelpers {
     address public governor = address(1);

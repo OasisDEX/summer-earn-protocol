@@ -9,12 +9,13 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 
 import {Tipper} from "../../src/contracts/Tipper.sol";
 
-import {ConfigurationManagerMock, ConfigurationManagerImplMock} from "../mocks/ConfigurationManagerMock.sol";
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {ConfigurationManagerImplMock, ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+
 contract TipperTest is Test, ITipperEvents {
     using PercentageUtils for uint256;
 

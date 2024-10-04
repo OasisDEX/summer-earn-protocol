@@ -7,9 +7,7 @@ import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 /**
  * @title ConfigurationManaged
  * @notice Base contract for contracts that need to read from the ConfigurationManager
- * @dev This contract provides a standardized way for other contracts to access
- *      configuration values from the ConfigurationManager. It should be inherited
- *      by contracts that need to read these configurations.
+ * @custom:see IConfigurationManaged
  */
 abstract contract ConfigurationManaged is IConfigurationManaged {
     IConfigurationManager public immutable configurationManager;
