@@ -35,9 +35,24 @@ contract SummerToken is
     /**
      * @dev Creates a new vesting wallet for a beneficiary
      * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
-     * @param timeBasedAmount Amount of tokens to be vested
-     * @param goalAmounts Array of amounts to be vested
-     * @param vestingType Type of vesting schedule. See VestingType for options.
+     * @param timeBasedAmount Amount of tokens to be vested based on time
+     * @param goalAmounts Array of token amounts to be vested based on performance goals
+     * @param vestingType Type of vesting schedule (TeamVesting or InvestorExTeamVesting)
+     * @custom:requirements
+     * - The beneficiary must not already have a vesting wallet
+     * - The caller must have sufficient balance to transfer the total vesting amount
+     * @custom:effects
+     * - Creates a new SummerVestingWallet contract
+     * - Stores the new vesting wallet address in the vestingWallets mapping
+     * - Transfers the total vesting amount from the caller to the new vesting wallet
+     * @custom:emits No events are directly emitted, but a token transfer occurs
+     * @custom:security-considerations
+     * - Ensure that only authorized addresses can call this function
+     * - Verify that the vestingType is valid before creating the wallet
+     * - Consider implementing a maximum limit for goalAmounts to prevent excessive gas costs
+     * @custom:gas-considerations
+     * - The gas cost increases with the number of goal amounts
+     * - Creating a new contract (SummerVestingWallet) is a relatively expensive operation
      */
     function createVestingWallet(
         address beneficiary,
