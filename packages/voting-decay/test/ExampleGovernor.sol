@@ -39,7 +39,8 @@ contract ExampleGovernor is
         VotingDecayManager(
             uint40(initialDecayFreeWindow),
             initialDecayRate,
-            initialDecayFunction
+            initialDecayFunction,
+            msg.sender
         )
     {}
 

@@ -9,7 +9,6 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
-
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 
 contract SummerToken is
@@ -83,10 +82,6 @@ contract SummerToken is
 
         // @dev In NON-default OFT, amountSentLD could be 100, with a 10% fee, the amountReceivedLD amount is 90,
         // therefore amountSentLD CAN differ from amountReceivedLD.
-
-        // @dev See Votes.sol::_transferVotingUnits
-        // We burn the account holders voting units on teleport
-        _transferVotingUnits(_from, address(0), _amountLD);
 
         // @dev Default OFT burns on src.
         _burn(_from, amountSentLD);
