@@ -79,6 +79,7 @@ contract FleetCommander is
     }
 
     /* PUBLIC - USER */
+    /// @inheritdoc IFleetCommander
     function withdrawFromBuffer(
         uint256 assets,
         address receiver,
