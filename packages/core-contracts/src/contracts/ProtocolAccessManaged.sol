@@ -61,6 +61,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     /**
      * @dev Modifier to check that the caller has the Governor role
+     * @custom:internal-logic
+     * - Checks if the caller has the GOVERNOR_ROLE in the access manager
+     * @custom:effects
+     * - Reverts if the caller doesn't have the GOVERNOR_ROLE
+     * - Allows the function to proceed if the caller has the role
+     * @custom:security-considerations
+     * - Ensures that only authorized governors can access critical functions
+     * - Relies on the correct setup of the access manager
      */
     modifier onlyGovernor() {
         if (
@@ -73,6 +81,16 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     /**
      * @dev Modifier to check that the caller has the Keeper role
+     * @custom:internal-logic
+     * - Checks if the caller has either the contract-specific KEEPER_ROLE or the SUPER_KEEPER_ROLE
+     * @custom:effects
+     * - Reverts if the caller doesn't have either of the required roles
+     * - Allows the function to proceed if the caller has one of the roles
+     * @custom:security-considerations
+     * - Ensures that only authorized keepers can access maintenance functions
+     * - Allows for both contract-specific and super keepers
+     * @custom:gas-considerations
+     * - Performs two role checks, which may impact gas usage
      */
     modifier onlyKeeper() {
         if (
@@ -92,6 +110,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     /**
      * @dev Modifier to check that the caller has the Super Keeper role
+     * @custom:internal-logic
+     * - Checks if the caller has the SUPER_KEEPER_ROLE in the access manager
+     * @custom:effects
+     * - Reverts if the caller doesn't have the SUPER_KEEPER_ROLE
+     * - Allows the function to proceed if the caller has the role
+     * @custom:security-considerations
+     * - Ensures that only authorized super keepers can access advanced maintenance functions
+     * - Relies on the correct setup of the access manager
      */
     modifier onlySuperKeeper() {
         if (
@@ -120,6 +146,17 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @dev Modifier to check that the caller has the Guardian role
+     * @custom:internal-logic
+     * - Checks if the caller has the GUARDIAN_ROLE in the access manager
+     * @custom:effects
+     * - Reverts if the caller doesn't have the GUARDIAN_ROLE
+     * - Allows the function to proceed if the caller has the role
+     * @custom:security-considerations
+     * - Ensures that only authorized guardians can access emergency functions
+     * - Relies on the correct setup of the access manager
+     */
     modifier onlyGuardian() {
         if (
             !_accessManager.hasRole(_accessManager.GUARDIAN_ROLE(), msg.sender)
@@ -129,6 +166,19 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @dev Modifier to check that the caller has either the Guardian or Governor role
+     * @custom:internal-logic
+     * - Checks if the caller has either the GUARDIAN_ROLE or the GOVERNOR_ROLE
+     * @custom:effects
+     * - Reverts if the caller doesn't have either of the required roles
+     * - Allows the function to proceed if the caller has one of the roles
+     * @custom:security-considerations
+     * - Ensures that only authorized guardians or governors can access certain functions
+     * - Provides flexibility for functions that can be accessed by either role
+     * @custom:gas-considerations
+     * - Performs two role checks, which may impact gas usage
+     */
     modifier onlyGuardianOrGovernor() {
         if (
             !_accessManager.hasRole(

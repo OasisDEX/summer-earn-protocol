@@ -11,16 +11,7 @@ import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
 /**
- * @title ArkAccessControl
- * @notice Extends the ProtocolAccessManaged contract with Ark specific AccessControl
- *         Used to specifically tie one FleetCommander to each Ark
- *
- * @dev One Ark specific role is defined:
- *   - Commander: is the fleet commander contract itself and couples an
- *        Ark to specific Fleet Commander
- *
- *   The Commander role is still declared on the access manager to centralise
- *   role definitions.
+ * @custom:see IArkAccessManaged
  */
 contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     /**
@@ -30,10 +21,20 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
 
     /**
      * @dev Modifier to check that the caller has the appropriate role to board
-     *      Options being: Commander, another Ark or the RAFT contract
+     * @param commander The address of the FleetCommander
+     * @custom:internal-logic
+     * - Checks if the caller has the Commander role
+     * - If not, checks if the caller is the RAFT contract
+     * - If not, checks if the caller is an active Ark in the FleetCommander
+     * @custom:effects
+     * - Reverts if the caller doesn't have the necessary permissions
+     * - Allows the function to proceed if the caller is authorized
+     * @custom:security-considerations
+     * - Ensures that only authorized entities can board funds
+     * - Relies on the correct setup of the FleetCommander and RAFT contracts
      */
     modifier onlyAuthorizedToBoard(address commander) {
-        if (!hasCommanderRole()) {
+        if (!_hasCommanderRole()) {
             address msgSender = _msgSender();
             bool isRaft = msgSender ==
                 IConfigurationManaged(address(this)).raft();
@@ -48,6 +49,18 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
         _;
     }
 
+    /**
+     * @dev Modifier to check that the caller is the RAFT contract
+     * @custom:internal-logic
+     * - Retrieves the RAFT address from the ConfigurationManaged contract
+     * - Compares the caller's address with the RAFT address
+     * @custom:effects
+     * - Reverts if the caller is not the RAFT contract
+     * - Allows the function to proceed if the caller is the RAFT contract
+     * @custom:security-considerations
+     * - Ensures that only the RAFT contract can call certain functions
+     * - Relies on the correct setup of the ConfigurationManaged contract
+     */
     modifier onlyRaft() {
         if (_msgSender() != IConfigurationManaged(address(this)).raft()) {
             revert CallerIsNotRaft(_msgSender());
@@ -55,14 +68,37 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
         _;
     }
 
+    /**
+     * @dev Modifier to check that the caller has the Commander role
+     * @custom:internal-logic
+     * - Calls the internal _hasCommanderRole function to check the caller's role
+     * @custom:effects
+     * - Reverts if the caller doesn't have the Commander role
+     * - Allows the function to proceed if the caller has the Commander role
+     * @custom:security-considerations
+     * - Ensures that only the designated Commander can call certain functions
+     * - Relies on the correct setup of the access control system
+     */
     modifier onlyCommander() {
-        if (!hasCommanderRole()) {
+        if (!_hasCommanderRole()) {
             revert CallerIsNotCommander(_msgSender());
         }
         _;
     }
 
-    function hasCommanderRole() internal view returns (bool) {
+    /**
+     * @dev Internal function to check if the caller has the Commander role
+     * @return bool True if the caller has the Commander role, false otherwise
+     * @custom:internal-logic
+     * - Generates the Commander role identifier for this contract
+     * - Checks if the caller has the generated role in the access manager
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Relies on the correct setup of the access manager
+     * - Assumes that the Commander role is properly assigned
+     */
+    function _hasCommanderRole() internal view returns (bool) {
         return
             _accessManager.hasRole(
                 generateRole(

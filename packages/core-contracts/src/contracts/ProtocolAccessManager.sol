@@ -21,12 +21,6 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 
     /**
-     * @dev The Commander role is assigned to a FleetCommander and is used to restrict
-     *          with whom associated arks can interact
-     */
-    bytes32 public constant COMMANDER_ROLE = keccak256("COMMANDER_ROLE");
-
-    /**
      * @notice The Guardian role is in charge of managing the protocol's state in case of emergency
      */
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");

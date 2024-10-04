@@ -62,10 +62,18 @@ interface IProtocolAccessManager {
     function revokeSuperKeeperRole(address account) external;
 
     /**
-     * @notice Generates a role hash for a given role name and contract address
-     * @param roleName The name of the role to generate
-     * @param roleTargetContract The address of the contract to generate the role for
-     * @return The generated role hash
+     * @dev Generates a unique role identifier based on the role name and target contract address
+     * @param roleName The name of the role (from ContractSpecificRoles enum)
+     * @param roleTargetContract The address of the contract the role is for
+     * @return bytes32 The generated role identifier
+     * @custom:internal-logic
+     * - Combines the roleName and roleTargetContract using abi.encodePacked
+     * - Applies keccak256 hash function to generate a unique bytes32 identifier
+     * @custom:effects
+     * - Does not modify any state, pure function
+     * @custom:security-considerations
+     * - Ensures unique role identifiers for different contracts
+     * - Relies on the uniqueness of contract addresses and role names
      */
     function generateRole(
         ContractSpecificRoles roleName,
