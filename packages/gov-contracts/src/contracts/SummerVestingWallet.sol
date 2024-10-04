@@ -21,7 +21,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  */
 contract SummerVestingWallet is VestingWallet, AccessControl {
     /// @dev Duration of a quarter in seconds
-    uint256 private constant QUARTER = 91 days;
+    uint256 private constant QUARTER = 90 days;
     /// @dev Duration of the cliff period in seconds
     uint256 private constant CLIFF = 180 days;
 
@@ -120,7 +120,10 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
         if (timestamp < start() + CLIFF) {
             return 0;
         }
-        uint256 elapsedQuarters = (timestamp - start() - CLIFF) / QUARTER + 2; // Add 2 for the two quarters during the cliff
+        uint256 quartersDuringCliff = (CLIFF ) / QUARTER;
+        uint256 elapsedQuarters = (timestamp - start() - CLIFF) /
+            QUARTER +
+            quartersDuringCliff;
         return (timeBasedVestingAmount * elapsedQuarters) / 8;
     }
 
