@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.27;
+
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
