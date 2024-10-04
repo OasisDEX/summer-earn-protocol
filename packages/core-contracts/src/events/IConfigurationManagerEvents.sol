@@ -10,23 +10,23 @@ interface IConfigurationManagerEvents {
      * @notice Emitted when the Raft address is updated
      * @param newRaft The address of the new Raft
      */
-    event RaftUpdated(address newRaft);
+    event RaftUpdated(address oldRaft, address newRaft);
 
     /**
      * @notice Emitted when the tip jar address is updated
      * @param newTipJar The address of the new tip jar
      */
-    event TipJarUpdated(address newTipJar);
+    event TipJarUpdated(address oldTipJar, address newTipJar);
 
     /**
      * @notice Emitted when the tip rate is updated
      * @param newTipRate The new tip rate value
      */
-    event TipRateUpdated(uint8 newTipRate);
+    event TipRateUpdated(uint8 oldTipRate, uint8 newTipRate);
 
     /**
      * @notice Emitted when the Treasury address is updated
      * @param newTreasury The address of the new Treasury
      */
-    event TreasuryUpdated(address newTreasury);
+    event TreasuryUpdated(address oldTreasury, address newTreasury);
 }

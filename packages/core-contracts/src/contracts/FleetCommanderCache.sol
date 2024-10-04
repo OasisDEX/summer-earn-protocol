@@ -7,6 +7,42 @@ import {IArk} from "../interfaces/IArk.sol";
 import {ArkData} from "../types/FleetCommanderTypes.sol";
 import {StorageSlots} from "./libraries/StorageSlots.sol";
 
+/**
+ * @title FleetCommanderCache - Caching System
+ * @dev This contract implements a caching mechanism
+ *      for efficient asset tracking and operations.
+ *
+ * Caching System:
+ * 1. Purpose: The caching system is designed to optimize gas costs and improve performance
+ *    for operations that require frequent access to total assets and ark data.
+ *
+ * 2. Key Components:
+ *    - FleetCommanderCache: A contract that this FleetCommander inherits from, providing
+ *      caching functionality.
+ *    - Cache Modifiers: 'useDepositCache' and 'useWithdrawCache' are used to manage the
+ *      caching lifecycle for deposit and withdrawal operations.
+ *
+ * 3. Caching Mechanism:
+ *    - Before Operation: The cache is populated with current ark data.
+ *    - During Operation: The contract uses cached data instead of making repeated calls to arks.
+ *    - After Operation: The cache is flushed to ensure data freshness for subsequent operations.
+ *
+ * 4. Benefits:
+ *    - Gas Optimization: Reduces the number of external calls to arks, saving gas.
+ *    - Consistency: Ensures that a single operation uses consistent data throughout its execution.
+ *
+ * 5. Cache Usage:
+ *    - Deposit Operations: Uses 'useDepositCache' modifier to cache all ark data.
+ *    - Withdrawal Operations: Uses 'useWithdrawCache' modifier to cache data for withdrawable arks.
+ *    - Rebalance Operations: Does not use cache as it directly interacts with arks.
+ *
+ * 6. Cache Management:
+ *    - Cache population: Performed by '_getArksData' and '_getWithdrawableArksData' functions.
+ *    - Cache flushing: Done by '_flushCache' function after each operation.
+ *
+ * This caching system is crucial for maintaining efficient operations in the FleetCommander,
+ * especially when dealing with multiple arks and frequent asset calculations.
+ */
 contract FleetCommanderCache {
     using StorageSlot for *;
 

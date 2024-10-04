@@ -35,39 +35,25 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         manager = IConfigurationManager(_configurationManager);
     }
 
-    /**
-     * @notice Adds a new tip stream
-     * @param recipient The address of the tip stream recipient
-     * @param allocation The percentage of tips allocated to this stream
-     * @param lockedUntilEpoch The epoch until which this tip stream is locked
-     */
+    /// @inheritdoc ITipJar
     function addTipStream(
-        address recipient,
-        Percentage allocation,
-        uint256 lockedUntilEpoch
-    ) external onlyGovernor {
-        if (tipStreams[recipient].recipient != address(0)) {
-            revert TipStreamAlreadyExists(recipient);
+        TipStream memory tipStream
+    ) external onlyGovernor returns (uint256 lockedUntilEpoch) {
+        if (tipStreams[tipStream.recipient].recipient != address(0)) {
+            revert TipStreamAlreadyExists(tipStream.recipient);
         }
         _validateTipStreamAllocation(
-            allocation,
-            tipStreams[recipient].allocation
+            tipStream.allocation,
+            tipStreams[tipStream.recipient].allocation
         );
 
-        tipStreams[recipient] = TipStream({
-            recipient: recipient,
-            allocation: allocation,
-            lockedUntilEpoch: lockedUntilEpoch
-        });
-        tipStreamRecipients.push(recipient);
+        tipStreams[tipStream.recipient] = tipStream;
+        tipStreamRecipients.push(tipStream.recipient);
 
-        emit TipStreamAdded(recipient, allocation, lockedUntilEpoch);
+        emit TipStreamAdded(tipStream);
     }
 
-    /**
-     * @notice Removes an existing tip stream
-     * @param recipient The address of the tip stream recipient to remove
-     */
+    /// @inheritdoc ITipJar
     function removeTipStream(address recipient) external onlyGovernor {
         _validateTipStream(recipient);
 
@@ -85,42 +71,28 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         emit TipStreamRemoved(recipient);
     }
 
-    /**
-     * @notice Updates an existing tip stream
-     * @param recipient The address of the tip stream recipient to update
-     * @param newAllocation The new percentage allocation for the tip stream
-     * @param newLockedUntilEpoch The new epoch until which this tip stream is locked
-     */
-    function updateTipStream(
-        address recipient,
-        Percentage newAllocation,
-        uint256 newLockedUntilEpoch
-    ) external onlyGovernor {
-        _validateTipStream(recipient);
-        Percentage currentAllocation = tipStreams[recipient].allocation;
-        _validateTipStreamAllocation(newAllocation, currentAllocation);
+    /// @inheritdoc ITipJar
+    function updateTipStream(TipStream memory tipStream) external onlyGovernor {
+        _validateTipStream(tipStream.recipient);
+        TipStream memory oldTipStream = tipStreams[tipStream.recipient];
+        Percentage currentAllocation = oldTipStream.allocation;
+        _validateTipStreamAllocation(tipStream.allocation, currentAllocation);
 
-        tipStreams[recipient].allocation = newAllocation;
-        tipStreams[recipient].lockedUntilEpoch = newLockedUntilEpoch;
+        tipStreams[tipStream.recipient].allocation = tipStream.allocation;
+        tipStreams[tipStream.recipient].lockedUntilEpoch = tipStream
+            .lockedUntilEpoch;
 
-        emit TipStreamUpdated(recipient, newAllocation, newLockedUntilEpoch);
+        emit TipStreamUpdated(oldTipStream, tipStream);
     }
 
-    /**
-     * @notice Retrieves information about a specific tip stream
-     * @param recipient The address of the tip stream recipient
-     * @return TipStream struct containing the tip stream information
-     */
+    /// @inheritdoc ITipJar
     function getTipStream(
         address recipient
     ) external view returns (TipStream memory) {
         return tipStreams[recipient];
     }
 
-    /**
-     * @notice Retrieves information about all tip streams
-     * @return allStreams An array of TipStream structs containing all tip stream information
-     */
+    /// @inheritdoc ITipJar
     function getAllTipStreams() external view returns (TipStream[] memory) {
         TipStream[] memory allStreams = new TipStream[](
             tipStreamRecipients.length
@@ -131,28 +103,19 @@ contract TipJar is ITipJar, ProtocolAccessManaged {
         return allStreams;
     }
 
-    /**
-     * @notice Distributes accumulated tips from a single FleetCommander
-     * @param fleetCommander_ The address of the FleetCommander contract to distribute tips from
-     */
+    /// @inheritdoc ITipJar
     function shake(address fleetCommander_) public {
         _shake(fleetCommander_);
     }
 
-    /**
-     * @notice Distributes accumulated tips from multiple FleetCommanders
-     * @param fleetCommanders An array of FleetCommander contract addresses to distribute tips from
-     */
+    /// @inheritdoc ITipJar
     function shakeMultiple(address[] calldata fleetCommanders) external {
         for (uint256 i = 0; i < fleetCommanders.length; i++) {
             _shake(fleetCommanders[i]);
         }
     }
 
-    /**
-     * @notice Calculates the total allocation percentage across all tip streams
-     * @return total The total allocation as a Percentage
-     */
+    /// @inheritdoc ITipJar
     function getTotalAllocation() public view returns (Percentage total) {
         total = toPercentage(0);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {

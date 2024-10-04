@@ -76,6 +76,9 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         _raft = params.raft;
         _tipJar = params.tipJar;
         _treasury = params.treasury;
+        emit RaftUpdated(address(0), params.raft);
+        emit TipJarUpdated(address(0), params.tipJar);
+        emit TreasuryUpdated(address(0), params.treasury);
         initialized = true;
     }
     /**
@@ -86,8 +89,8 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      */
 
     function setRaft(address newRaft) external onlyGovernor {
+        emit RaftUpdated(_raft, newRaft);
         _raft = newRaft;
-        emit RaftUpdated(newRaft);
     }
 
     /**
@@ -97,8 +100,8 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      * @dev Emits a TipJarUpdated event
      */
     function setTipJar(address newTipJar) external onlyGovernor {
+        emit TipJarUpdated(_tipJar, newTipJar);
         _tipJar = newTipJar;
-        emit TipJarUpdated(newTipJar);
     }
 
     /**
@@ -108,7 +111,7 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      * @dev Emits a TreasuryUpdated event
      */
     function setTreasury(address newTreasury) external onlyGovernor {
+        emit TreasuryUpdated(_treasury, newTreasury);
         _treasury = newTreasury;
-        emit TreasuryUpdated(newTreasury);
     }
 }

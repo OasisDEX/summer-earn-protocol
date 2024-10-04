@@ -67,9 +67,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
         new ArkMock(params);
 
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "CannotDeployArkWithoutConfigurationManager()"
-            )
+            abi.encodeWithSignature("ConfigurationManagerZeroAddress()")
         );
         params.accessManager = address(accessManager);
         new ArkMock(params);

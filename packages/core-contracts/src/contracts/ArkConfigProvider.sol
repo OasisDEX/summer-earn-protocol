@@ -10,17 +10,23 @@ import {IArkConfigProvider} from "../interfaces/IArkConfigProvider.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 /**
  * @custom:see IArkConfigProvider
  */
-abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
+abstract contract ArkConfigProvider is
+    IArkConfigProvider,
+    ArkAccessManaged,
+    ConfigurationManaged
+{
     ArkConfig public config;
-    IConfigurationManager public manager;
 
     constructor(
         ArkParams memory _params
-    ) ArkAccessManaged(_params.accessManager) {
+    )
+        ArkAccessManaged(_params.accessManager)
+        ConfigurationManaged(_params.configurationManager)
+    {
         if (_params.configurationManager == address(0)) {
             revert CannotDeployArkWithoutConfigurationManager();
         }
@@ -30,15 +36,14 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
         if (bytes(_params.name).length == 0) {
             revert CannotDeployArkWithEmptyName();
         }
-        manager = IConfigurationManager(_params.configurationManager);
-        if (manager.raft() == address(0)) {
+        if (configurationManager.raft() == address(0)) {
             revert CannotDeployArkWithoutRaft();
         }
 
         config = ArkConfig({
             token: IERC20(_params.token),
-            commander: address(0), // FleetCommanders self register
-            raft: manager.raft(),
+            commander: address(0), // Will be set later
+            raft: configurationManager.raft(),
             depositCap: _params.depositCap,
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
             maxRebalanceInflow: _params.maxRebalanceInflow,
@@ -50,11 +55,6 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
     /* EXTERNAL */
     function name() external view returns (string memory) {
         return config.name;
-    }
-
-    /* @inheritdoc IArk */
-    function raft() public view returns (address) {
-        return manager.raft();
     }
 
     /* @inheritdoc IArk */

@@ -4,7 +4,10 @@ pragma solidity 0.8.27;
 import {IArk} from "../interfaces/IArk.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {ContractSpecificRoles, ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {LimitedAccessControl} from "./LimitedAccessControl.sol";
+import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
 
 /**
  * @title ArkAccessControl
@@ -30,8 +33,10 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
      */
     modifier onlyAuthorizedToBoard(address commander) {
         if (!hasCommanderRole()) {
-            address msgSender = msg.sender;
-            bool isRaft = msgSender == IArk(address(this)).raft();
+            address msgSender = _msgSender();
+            bool isRaft = msgSender ==
+                ConfigurationManaged(address(this)).raft();
+
             if (!isRaft) {
                 bool isArk = IFleetCommander(commander).isArkActive(msgSender);
                 if (!isArk) {
@@ -43,15 +48,15 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     }
 
     modifier onlyRaft() {
-        if (msg.sender != IArk(address(this)).raft()) {
-            revert CallerIsNotRaft(msg.sender);
+        if (_msgSender() != ConfigurationManaged(address(this)).raft()) {
+            revert CallerIsNotRaft(_msgSender());
         }
         _;
     }
 
     modifier onlyCommander() {
         if (!hasCommanderRole()) {
-            revert CallerIsNotCommander(msg.sender);
+            revert CallerIsNotCommander(_msgSender());
         }
         _;
     }
@@ -63,7 +68,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
                     ContractSpecificRoles.COMMANDER_ROLE,
                     address(this)
                 ),
-                msg.sender
+                _msgSender()
             );
     }
 }

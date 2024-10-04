@@ -10,11 +10,20 @@ import {Constants} from "./libraries/Constants.sol";
 import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
 /**
  * @title Tipper
  * @notice Contract implementing tip accrual functionality
+ * @dev This contract is designed to be inherited by ERC20-compliant contracts.
+ *      It relies on the inheriting contract to implement ERC20 functionality,
+ *      particularly the totalSupply() function.
+ *
+ * Important:
+ * 1. The inheriting contract MUST be ERC20-compliant.
+ * 2. The inheriting contract MUST implement the _mintTip function.
+ * 3. The contract uses its own address as the token for calculations,
+ *    assuming it represents shares in the system.
  */
-
 abstract contract Tipper is ITipper {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;
@@ -53,7 +62,15 @@ abstract contract Tipper is ITipper {
         lastTipTimestamp = block.timestamp;
     }
 
-    // Internal function that must be implemented by the inheriting contract
+    /**
+     * @notice Abstract function to mint new shares as tips
+     * @dev This function is meant to be overridden by inheriting contracts.
+     *      It is called internally by the _accrueTip function to mint new shares as tips.
+     *      The implementation should create new shares for the specified account
+     *      without requiring additional underlying assets.
+     * @param account The address to receive the minted tip shares
+     * @param amount The amount of shares to mint as a tip
+     */
     function _mintTip(address account, uint256 amount) internal virtual;
 
     /**
@@ -99,6 +116,7 @@ abstract contract Tipper is ITipper {
 
         if (timeElapsed == 0) return 0;
 
+        // Note: This line assumes the contract itself is an ERC20 token
         uint256 totalShares = IERC20(address(this)).totalSupply();
 
         tippedShares = _calculateTip(totalShares, timeElapsed);

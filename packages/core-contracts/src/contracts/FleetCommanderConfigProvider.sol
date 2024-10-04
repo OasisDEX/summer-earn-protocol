@@ -16,8 +16,8 @@ import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
  */
 
 contract FleetCommanderConfigProvider is
-    IFleetCommanderConfigProvider,
-    ProtocolAccessManaged
+    ProtocolAccessManaged,
+    IFleetCommanderConfigProvider
 {
     FleetConfig public config;
     address[] public arks;

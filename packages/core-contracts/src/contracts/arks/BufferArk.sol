@@ -5,16 +5,11 @@ import "../Ark.sol";
 
 /**
  * @title BufferArk
- * @notice Specialized Ark for Buffer operations. Funds in buffer are not deployed and are not subject to any
- * yield-generating strategies.
+ * @notice Specialized Ark for Fleet Commander Buffer operations. Funds in buffer are not deployed and are not subject to any
+ * yield-generating strategies. We keep a ceratin percentage of the total assets in the buffer to ensure that there are always
+ * enough assets to quickly disembark ( see {IFleetCommanderConfigProvider-config-minimumBufferBalance}).
  */
 contract BufferArk is Ark {
-    /*//////////////////////////////////////////////////////////////
-                            STATE VARIABLES
-    //////////////////////////////////////////////////////////////*/
-    /// @notice The Buffer pool address
-    address public bufferPool;
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/

@@ -30,12 +30,6 @@ interface IArkConfigProvider is
     function name() external view returns (string memory);
 
     /**
-     * @notice Returns the address of the associated Raft contract
-     * @return The address of the Raft contract
-     */
-    function raft() external view returns (address);
-
-    /**
      * @notice Returns the deposit cap for this Ark
      * @return The maximum amount of tokens that can be deposited into the Ark
      */
