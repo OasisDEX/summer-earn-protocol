@@ -1,3 +1,5 @@
+pragma solidity ^0.8.20;
+
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";

@@ -44,4 +44,20 @@ interface ISummerGovernorErrors {
      * @param whitelistGuardian The address of the whitelist guardian
      */
     error SummerGovernorInvalidWhitelistGuardian(address whitelistGuardian);
+
+    /* @notice Error thrown when the sender is invalid
+     * @param originSender The invalid sender
+     */
+    error SummerGovernorInvalidSender(address originSender);
+
+    /* @notice Error thrown when the trusted remote is invalid
+     * @param trustedRemote The invalid trusted remote
+     */
+    error SummerGovernorInvalidTrustedRemote(address trustedRemote);
+
+    /* @notice Error thrown when the chain id is invalid
+     * @param chainId The invalid chain id
+     * @param proposalChainId The proposal chain id
+     */
+    error SummerGovernorInvalidChain(uint256 chainId, uint256 proposalChainId);
 }
