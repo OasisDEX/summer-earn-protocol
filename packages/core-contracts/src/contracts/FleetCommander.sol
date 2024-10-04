@@ -83,7 +83,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public returns (uint256 shares) {
+    ) public whenNotPaused returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -109,6 +109,7 @@ contract FleetCommander is
         override(ERC4626, IFleetCommander)
         collectTip
         useWithdrawCache
+        whenNotPaused
         returns (uint256 assets)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -130,7 +131,13 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip useWithdrawCache returns (uint256 assets) {
+    )
+        public
+        collectTip
+        useWithdrawCache
+        whenNotPaused
+        returns (uint256 assets)
+    {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -156,6 +163,7 @@ contract FleetCommander is
         override(ERC4626, IFleetCommander)
         collectTip
         useWithdrawCache
+        whenNotPaused
         returns (uint256 shares)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -182,6 +190,7 @@ contract FleetCommander is
         override(IFleetCommander)
         collectTip
         useWithdrawCache
+        whenNotPaused
         returns (uint256 totalSharesToRedeem)
     {
         totalSharesToRedeem = previewWithdraw(assets);
@@ -205,6 +214,7 @@ contract FleetCommander is
         override(IFleetCommander)
         collectTip
         useWithdrawCache
+        whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
         _validateForceRedeem(shares, owner);
@@ -225,6 +235,7 @@ contract FleetCommander is
         override(ERC4626, IERC4626)
         collectTip
         useDepositCache
+        whenNotPaused
         returns (uint256 shares)
     {
         _validateDeposit(assets, _msgSender());
@@ -247,7 +258,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         bytes memory referralCode
-    ) public returns (uint256) {
+    ) public whenNotPaused returns (uint256) {
         emit FleetCommanderReferral(receiver, referralCode);
         return deposit(assets, receiver);
     }
@@ -261,6 +272,7 @@ contract FleetCommander is
         override(ERC4626, IERC4626)
         collectTip
         useDepositCache
+        whenNotPaused
         returns (uint256 assets)
     {
         _validateMint(shares, _msgSender());
@@ -279,7 +291,7 @@ contract FleetCommander is
     }
 
     /// @inheritdoc IFleetCommander
-    function tip() public returns (uint256) {
+    function tip() public whenNotPaused returns (uint256) {
         return _accrueTip();
     }
 
@@ -367,7 +379,7 @@ contract FleetCommander is
     /// @inheritdoc IFleetCommander
     function rebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown collectTip {
+    ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
         // Validate that no operations are moving to or from the bufferArk
         _validateReallocateAllAssets(rebalanceData);
         _validateRebalance(rebalanceData);
@@ -377,7 +389,7 @@ contract FleetCommander is
     /// @inheritdoc IFleetCommander
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown collectTip {
+    ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
         _validateReallocateAllAssets(rebalanceData);
         _validateAdjustBuffer(rebalanceData);
 
@@ -387,29 +399,35 @@ contract FleetCommander is
     }
 
     /// @inheritdoc IFleetCommander
-    function setTipRate(Percentage newTipRate) external onlyGovernor {
+    function setTipRate(
+        Percentage newTipRate
+    ) external onlyGovernor whenNotPaused {
         _setTipRate(newTipRate);
+    }
+
+    /// @inheritdoc IFleetCommander
+    function setMinimumPauseTime(
+        uint256 _newMinimumPauseTime
+    ) public onlyGovernor whenNotPaused {
+        _setMinimumPauseTime(_newMinimumPauseTime);
     }
 
     /// @inheritdoc IFleetCommander
     function updateRebalanceCooldown(
         uint256 newCooldown
-    ) external onlyGovernor {
+    ) external onlyGovernor whenNotPaused {
         _updateCooldown(newCooldown);
     }
 
     /// @inheritdoc IFleetCommander
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyGovernor collectTip {
+    ) external onlyGovernor collectTip whenNotPaused {
         // Validate that no operations are moving to or from the bufferArk
         _validateReallocateAllAssets(rebalanceData);
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
-
-    // todo: do we need this ? do we make the contract pausable ?
-    function emergencyShutdown() external onlyGovernor {}
 
     /* PUBLIC - ERC20 */
     /// @inheritdoc IERC20
@@ -856,5 +874,13 @@ contract FleetCommander is
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
         }
+    }
+
+    function pause() public onlyGuardianOrGovernor whenNotPaused {
+        _pause();
+    }
+
+    function unpause() public onlyGuardianOrGovernor whenPaused {
+        _unpause();
     }
 }

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "@openzeppelin/contracts/governance/IGovernor.sol";
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
+import "@openzeppelin/contracts/governance/IGovernor.sol";
 /* @title ISummerGovernor Interface
  * @notice Interface for the SummerGovernor contract, extending OpenZeppelin's IGovernor
  */
+
 interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
     /* @notice Emitted when a whitelisted account's expiration is set
      * @param account The address of the whitelisted account

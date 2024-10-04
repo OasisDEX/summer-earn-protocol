@@ -147,4 +147,18 @@ interface IProtocolAccessManager {
         ContractSpecificRoles roleName,
         address roleTargetContract
     ) external;
+
+    /**
+     * @notice Grants the Guardian role to a given account
+     *
+     * @param account The account to which the Guardian role will be granted
+     */
+    function grantGuardianRole(address account) external;
+
+    /**
+     * @notice Revokes the Guardian role from a given account
+     *
+     * @param account The account from which the Guardian role will be revoked
+     */
+    function revokeGuardianRole(address account) external;
 }

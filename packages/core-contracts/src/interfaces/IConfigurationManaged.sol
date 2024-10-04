@@ -38,5 +38,11 @@ interface IConfigurationManaged {
      */
     function treasury() external view returns (address);
 
+    /**
+     * @notice Gets the address of the HarborCommand contract
+     * @return The address of the HarborCommand contract
+     */
+    function harborCommand() external view returns (address);
+
     error ConfigurationManagerZeroAddress();
 }

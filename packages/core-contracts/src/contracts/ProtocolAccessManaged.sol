@@ -120,6 +120,28 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    modifier onlyGuardian() {
+        if (
+            !_accessManager.hasRole(_accessManager.GUARDIAN_ROLE(), msg.sender)
+        ) {
+            revert CallerIsNotGuardian(msg.sender);
+        }
+        _;
+    }
+
+    modifier onlyGuardianOrGovernor() {
+        if (
+            !_accessManager.hasRole(
+                _accessManager.GUARDIAN_ROLE(),
+                msg.sender
+            ) &&
+            !_accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), msg.sender)
+        ) {
+            revert CallerIsNotGuardianOrGovernor(msg.sender);
+        }
+        _;
+    }
+
     /* @inheritdoc IProtocolAccessControl */
     function generateRole(
         ContractSpecificRoles roleName,

@@ -54,6 +54,16 @@ interface IAccessControlErrors {
     error CallerIsNotAdmin(address caller);
 
     /**
+     * @notice Thrown when a caller is not the guardian.
+     */
+    error CallerIsNotGuardian(address caller);
+
+    /**
+     * @notice Thrown when a caller is not the guardian or governor.
+     */
+    error CallerIsNotGuardianOrGovernor(address caller);
+
+    /**
      * @notice Thrown when a caller is not authorized to board.
      */
     error CallerIsNotAuthorizedToBoard(address caller);

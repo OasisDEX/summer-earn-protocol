@@ -26,9 +26,15 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      */
     bytes32 public constant COMMANDER_ROLE = keccak256("COMMANDER_ROLE");
 
+    /**
+     * @notice The Guardian role is in charge of managing the protocol's state in case of emergency
+     */
+    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+
     constructor(address governor) {
         _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
+        _grantRole(GUARDIAN_ROLE, governor);
     }
 
     /**
@@ -83,6 +89,16 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /* @inheritdoc IProtocolAccessManager */
     function grantSuperKeeperRole(address account) external onlyGovernor {
         _grantRole(SUPER_KEEPER_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessManager */
+    function grantGuardianRole(address account) external onlyGovernor {
+        _grantRole(GUARDIAN_ROLE, account);
+    }
+
+    /* @inheritdoc IProtocolAccessManager */
+    function revokeGuardianRole(address account) external onlyGovernor {
+        _revokeRole(GUARDIAN_ROLE, account);
     }
 
     /* @inheritdoc IProtocolAccessManager */

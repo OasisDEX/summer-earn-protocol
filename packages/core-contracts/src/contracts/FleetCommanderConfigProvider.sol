@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
+import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 
@@ -17,6 +18,7 @@ import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
  */
 contract FleetCommanderConfigProvider is
     ProtocolAccessManaged,
+    FleetCommanderPausable,
     IFleetCommanderConfigProvider
 {
     FleetConfig public config;
@@ -25,10 +27,14 @@ contract FleetCommanderConfigProvider is
     mapping(address => bool) public isArkWithdrawable;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
+    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
 
     constructor(
         FleetCommanderParams memory params
-    ) ProtocolAccessManaged(params.accessManager) {
+    )
+        ProtocolAccessManaged(params.accessManager)
+        FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
+    {
         BufferArk _bufferArk = new BufferArk(
             ArkParams({
                 name: "BufferArk",
@@ -68,24 +74,26 @@ contract FleetCommanderConfigProvider is
 
     // ARK MANAGEMENT
 
-    function addArk(address ark) external onlyGovernor {
+    function addArk(address ark) external onlyGovernor whenNotPaused {
         _addArk(ark);
     }
 
-    function addArks(address[] calldata _arkAddresses) external onlyGovernor {
+    function addArks(
+        address[] calldata _arkAddresses
+    ) external onlyGovernor whenNotPaused {
         for (uint256 i = 0; i < _arkAddresses.length; i++) {
             _addArk(_arkAddresses[i]);
         }
     }
 
-    function removeArk(address ark) external onlyGovernor {
+    function removeArk(address ark) external onlyGovernor whenNotPaused {
         _removeArk(ark);
     }
 
     function setArkDepositCap(
         address ark,
         uint256 newDepositCap
-    ) external onlyCurator {
+    ) external onlyCurator whenNotPaused {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -95,7 +103,7 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceOutflow(
         address ark,
         uint256 newMaxRebalanceOutflow
-    ) external onlyCurator {
+    ) external onlyCurator whenNotPaused {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
@@ -105,29 +113,30 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceInflow(
         address ark,
         uint256 newMaxRebalanceInflow
-    ) external onlyCurator {
+    ) external onlyCurator whenNotPaused {
         if (!isArkActive[ark]) {
             revert FleetCommanderArkNotFound(ark);
         }
         IArk(ark).setMaxRebalanceInflow(newMaxRebalanceInflow);
     }
 
-    // FLEET MANAGEMENT
     function setMinimumBufferBalance(
         uint256 newMinimumBalance
-    ) external onlyCurator {
+    ) external onlyCurator whenNotPaused {
         config.minimumBufferBalance = newMinimumBalance;
         emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
 
-    function setFleetDepositCap(uint256 newCap) external onlyCurator {
+    function setFleetDepositCap(
+        uint256 newCap
+    ) external onlyCurator whenNotPaused {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
     }
 
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
-    ) external onlyCurator {
+    ) external onlyCurator whenNotPaused {
         config.maxRebalanceOperations = newMaxRebalanceOperations;
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations

@@ -3,74 +3,46 @@ pragma solidity 0.8.27;
 
 import {SummerToken} from "../src/contracts/SummerToken.sol";
 import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
-import {Test, console} from "forge-std/Test.sol";
-import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
-import {IOAppOptionsType3, EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
-import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {IOFT, SendParam, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
-import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
-import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 
-contract SummerTokenTest is TestHelperOz5 {
+import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+
+import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
+import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
+import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
+import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import {Test, console} from "forge-std/Test.sol";
+
+import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+
+import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
+import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
+import {OFTComposerMock, SummerTokenTestBase} from "./SummerTokenTestBase.sol";
+import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
+import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
+import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import {Test, console} from "forge-std/Test.sol";
+
+contract SummerTokenTest is SummerTokenTestBase {
     using OptionsBuilder for bytes;
 
-    uint32 private aEid = 1;
-    uint32 private bEid = 2;
+    address public user1 = address(0x1);
+    address public user2 = address(0x2);
 
-    SummerToken public aSummerToken;
-    SummerToken public bSummerToken;
-
-    address public user1;
-    address public user2;
-
-    address public owner = address(this);
-    address public summerGovernor = address(this);
-
-    uint256 constant INITIAL_SUPPLY = 1000000000;
-
-    function setUp() public override {
+    function setUp() public virtual override {
         super.setUp();
-        vm.label(summerGovernor, "Summer Governor");
+        mintTokens();
+    }
 
-        setUpEndpoints(2, LibraryType.UltraLightNode);
-
-        user1 = address(0x1);
-        user2 = address(0x2);
-
+    function mintTokens() public {
         vm.deal(user1, 1000 ether);
         vm.deal(user2, 1000 ether);
-
-        address lzEndpointA = address(endpoints[aEid]);
-        address lzEndpointB = address(endpoints[bEid]);
-        vm.label(lzEndpointA, "LayerZero Endpoint A");
-        vm.label(lzEndpointB, "LayerZero Endpoint B");
-
-        ISummerToken.TokenParams memory tokenParamsA = ISummerToken
-            .TokenParams({
-                name: "SummerToken A",
-                symbol: "SUMMERA",
-                lzEndpoint: lzEndpointA,
-                governor: summerGovernor
-            });
-
-        ISummerToken.TokenParams memory tokenParamsB = ISummerToken
-            .TokenParams({
-                name: "SummerToken B",
-                symbol: "SUMMERB",
-                lzEndpoint: lzEndpointB,
-                governor: summerGovernor
-            });
-
-        aSummerToken = new SummerToken(tokenParamsA);
-        bSummerToken = new SummerToken(tokenParamsB);
-
-        // Config and wire the tokens
-        address[] memory tokens = new address[](2);
-        tokens[0] = address(aSummerToken);
-        tokens[1] = address(bSummerToken);
-
-        this.wireOApps(tokens);
+        aSummerToken.mint(address(this), INITIAL_SUPPLY * 10 ** 18);
+        bSummerToken.mint(address(this), INITIAL_SUPPLY * 10 ** 18);
     }
 
     // ===============================================
@@ -375,28 +347,5 @@ contract SummerTokenTest is TestHelperOz5 {
 
         vm.prank(user1);
         bSummerToken.burnFrom(owner, amount);
-    }
-}
-
-// Mock contract for OFT compose testing
-contract OFTComposerMock {
-    address public from;
-    bytes32 public guid;
-    bytes public message;
-    address public executor;
-    bytes public extraData;
-
-    function lzCompose(
-        address _from,
-        bytes32 _guid,
-        bytes calldata _message,
-        address _executor,
-        bytes calldata
-    ) external payable {
-        from = _from;
-        guid = _guid;
-        message = _message;
-        executor = _executor;
-        extraData = _message; // We set extraData to the message for testing
     }
 }

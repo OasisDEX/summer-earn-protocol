@@ -33,26 +33,11 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      */
     address public _treasury;
 
-    function raft() external view override returns (address) {
-        if (_raft == address(0)) {
-            revert RaftNotSet();
-        }
-        return _raft;
-    }
-
-    function tipJar() external view override returns (address) {
-        if (_tipJar == address(0)) {
-            revert TipJarNotSet();
-        }
-        return _tipJar;
-    }
-
-    function treasury() external view override returns (address) {
-        if (_treasury == address(0)) {
-            revert TreasuryNotSet();
-        }
-        return _treasury;
-    }
+    /**
+     * @notice The address of theHarbor command
+     * @dev This is the contract that's the registry of all Fleet Commanders
+     */
+    address public _harborCommand;
 
     /**
      * @notice Constructs the ConfigurationManager contract
@@ -69,7 +54,8 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         if (
             params.raft == address(0) ||
             params.tipJar == address(0) ||
-            params.treasury == address(0)
+            params.treasury == address(0) ||
+            params.harborCommand == address(0)
         ) {
             revert AddressZero();
         }
@@ -81,37 +67,60 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         emit TreasuryUpdated(address(0), params.treasury);
         initialized = true;
     }
-    /**
-     * @notice Sets a new address for the Raft contract
-     * @param newRaft The new address for the Raft contract
-     * @dev Can only be called by the governor
-     * @dev Emits a RaftUpdated event
-     */
 
+    /// @inheritdoc IConfigurationManager
+    function raft() external view override returns (address) {
+        if (_raft == address(0)) {
+            revert RaftNotSet();
+        }
+        return _raft;
+    }
+
+    /// @inheritdoc IConfigurationManager
+    function tipJar() external view override returns (address) {
+        if (_tipJar == address(0)) {
+            revert TipJarNotSet();
+        }
+        return _tipJar;
+    }
+
+    /// @inheritdoc IConfigurationManager
+    function treasury() external view override returns (address) {
+        if (_treasury == address(0)) {
+            revert TreasuryNotSet();
+        }
+        return _treasury;
+    }
+
+    /// @inheritdoc IConfigurationManager
+    function harborCommand() external view override returns (address) {
+        if (_harborCommand == address(0)) {
+            revert HarborCommandNotSet();
+        }
+        return _harborCommand;
+    }
+
+    /// @inheritdoc IConfigurationManager
     function setRaft(address newRaft) external onlyGovernor {
         emit RaftUpdated(_raft, newRaft);
         _raft = newRaft;
     }
 
-    /**
-     * @notice Sets a new address for the TipJar contract
-     * @param newTipJar The new address for the TipJar contract
-     * @dev Can only be called by the governor
-     * @dev Emits a TipJarUpdated event
-     */
+    /// @inheritdoc IConfigurationManager
     function setTipJar(address newTipJar) external onlyGovernor {
         emit TipJarUpdated(_tipJar, newTipJar);
         _tipJar = newTipJar;
     }
 
-    /**
-     * @notice Sets a new address for the Treasury contract
-     * @param newTreasury The new address for the Treasury contract
-     * @dev Can only be called by the governor
-     * @dev Emits a TreasuryUpdated event
-     */
+    /// @inheritdoc IConfigurationManager
     function setTreasury(address newTreasury) external onlyGovernor {
         emit TreasuryUpdated(_treasury, newTreasury);
         _treasury = newTreasury;
+    }
+
+    /// @inheritdoc IConfigurationManager
+    function setHarborCommand(address newHarborCommand) external onlyGovernor {
+        _harborCommand = newHarborCommand;
+        emit HarborCommandUpdated(newHarborCommand);
     }
 }

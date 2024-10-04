@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import {IFleetCommanderErrors} from "../errors/IFleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
-import {FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {RebalanceData} from "../types/FleetCommanderTypes.sol";
 
 import {IFleetCommanderConfigProvider} from "./IFleetCommanderConfigProvider.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -199,6 +199,13 @@ interface IFleetCommander is
     function setTipRate(Percentage newTipRate) external;
 
     /**
+     * @notice Sets a new minimum pause time for the FleetCommander
+     * @dev Only callable by the governor
+     * @param newMinimumPauseTime The new minimum pause time in seconds
+     */
+    function setMinimumPauseTime(uint256 newMinimumPauseTime) external;
+
+    /**
      * @notice Updates the rebalance cooldown period
      * @param newCooldown The new cooldown period in seconds
      */
@@ -212,9 +219,15 @@ interface IFleetCommander is
     function forceRebalance(RebalanceData[] calldata data) external;
 
     /**
-     * @notice Initiates an emergency shutdown of the FleetCommander
-     * @dev This action can only be performed under critical circumstances and typically by governance or a privileged
-     * role.
+     * @notice Pauses the FleetCommander
+     * @dev This function is used to pause the FleetCommander in case of critical issues or emergencies
+     * @dev Only callable by the governor or a privileged role
      */
-    function emergencyShutdown() external;
+    function pause() external;
+
+    /**
+     * @notice Unpauses the FleetCommander
+     * @dev This function is used to resume normal operations after a pause
+     */
+    function unpause() external;
 }

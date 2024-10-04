@@ -1,66 +1,92 @@
+# Summer Governance Contracts
+
+This package contains the core governance contracts for the Summer protocol.
+
+## Main Contracts
+
+### SummerGovernor.sol
+
+`SummerGovernor` is the main governance contract for the Summer protocol. It extends various OpenZeppelin governance modules and includes custom functionality such as whitelisting and voting decay.
+
+Key features:
+- Cross-chain proposal execution
+- Whitelisting system for proposers
+- Integration with LayerZero for cross-chain messaging
+- Custom voting power calculation with decay
+
+### SummerToken.sol
+
+`SummerToken` is the governance token for the Summer protocol. It extends OpenZeppelin's ERC20 implementation and includes additional features.
+
+Key features:
+- ERC20 with voting capabilities
+- Integration with LayerZero's OFT (Omnichain Fungible Token)
+- Built-in vesting wallet creation
+
+### SummerVestingWallet.sol
+
+`SummerVestingWallet` is a custom vesting wallet implementation for the Summer protocol.
+
+Key features:
+- Two vesting schedules: 6-month cliff and 2-year quarterly vesting
+- Built on top of OpenZeppelin's VestingWallet
+
 ## Foundry
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This project uses Foundry, a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.
 
-Foundry consists of:
+### Usage
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
+#### Build
 
 ```shell
 $ forge build
 ```
 
-### Test
+#### Test
 
 ```shell
 $ forge test
 ```
 
-### Format
+#### Format
 
 ```shell
 $ forge fmt
 ```
 
-### Gas Snapshots
+#### Gas Snapshots
 
 ```shell
 $ forge snapshot
 ```
 
-### Anvil
+#### Anvil (Local Ethereum node)
 
 ```shell
 $ anvil
 ```
 
-### Deploy
+#### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script script/DeployGovernance.s.sol:DeployGovernanceScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
-### Cast
+#### Cast (Contract interaction)
 
 ```shell
 $ cast <subcommand>
 ```
 
-### Help
+#### Help
 
 ```shell
 $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+## Documentation
+
+For more detailed information about Foundry, visit: https://book.getfoundry.sh/

@@ -21,7 +21,7 @@ import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.so
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
 
@@ -50,7 +50,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     ArkMock public mockArk3;
     RestictedWithdrawalArkMock public mockArk4;
     BufferArk public bufferArk;
-
+    HarborCommand public harborCommand;
     // Addresses
     address public governor = address(1);
     address public raft = address(2);
@@ -117,6 +117,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         if (address(accessManager) == address(0)) {
             accessManager = new ProtocolAccessManager(governor);
         }
+        if (address(harborCommand) == address(0)) {
+            harborCommand = new HarborCommand(address(accessManager));
+        }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
                 address(accessManager)
@@ -126,7 +129,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 ConfigurationManagerParams({
                     raft: address(raft),
                     tipJar: address(tipJar),
-                    treasury: treasury
+                    treasury: treasury,
+                    harborCommand: address(harborCommand)
                 })
             );
         }

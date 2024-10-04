@@ -3,7 +3,8 @@ pragma solidity 0.8.27;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
-import {ArkConfig, ArkParams, IArk} from "../interfaces/IArk.sol";
+import {IArk} from "../interfaces/IArk.sol";
+import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 
 import {IArkConfigProvider} from "../interfaces/IArkConfigProvider.sol";
 

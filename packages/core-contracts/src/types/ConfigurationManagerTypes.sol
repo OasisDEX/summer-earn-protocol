@@ -8,4 +8,5 @@ struct ConfigurationManagerParams {
     address raft;
     address tipJar;
     address treasury;
+    address harborCommand;
 }

@@ -5,7 +5,7 @@ import {IFleetCommanderConfigProviderErrors} from "../errors/IFleetCommanderConf
 
 import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
-import {FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 
 /**
  * @title IFleetCommander Interface

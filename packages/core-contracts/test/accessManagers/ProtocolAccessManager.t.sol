@@ -293,9 +293,4 @@ contract ProtocolAccessManagerTest is Test {
 
 contract TestProtocolAccessManager is ProtocolAccessManager {
     constructor(address governor) ProtocolAccessManager(governor) {}
-
-    // // Add this dummy function for testing purposes
-    // function dummyKeeperFunction() external onlyKeeper {
-    //     // This function doesn't need to do anything
-    // }
 }

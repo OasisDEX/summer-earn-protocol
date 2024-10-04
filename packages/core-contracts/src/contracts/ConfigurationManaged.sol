@@ -39,4 +39,9 @@ abstract contract ConfigurationManaged is IConfigurationManaged {
     function treasury() public view virtual returns (address) {
         return configurationManager.treasury();
     }
+
+    /// @inheritdoc IConfigurationManaged
+    function harborCommand() public view virtual returns (address) {
+        return configurationManager.harborCommand();
+    }
 }

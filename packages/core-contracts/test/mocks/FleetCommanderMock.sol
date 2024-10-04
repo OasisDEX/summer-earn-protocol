@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {ERC20, ERC4626, ERC4626Mock} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
+import {ERC4626, ERC4626Mock} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
 
 import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -168,4 +168,10 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
     ) external {}
+
+    function pause() external {}
+
+    function unpause() external {}
+
+    function setMinimumPauseTime(uint256 newMinimumPauseTime) external {}
 }

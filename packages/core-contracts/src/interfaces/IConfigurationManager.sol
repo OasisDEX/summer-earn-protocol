@@ -20,23 +20,36 @@ interface IConfigurationManager is
      * @dev Can only be called by the governor
      */
     function initialize(ConfigurationManagerParams memory params) external;
+
     /**
      * @notice Get the address of the Raft contract
      * @return The address of the Raft contract
+     * @dev This is where rewards and farmed tokens are sent for processing
      */
     function raft() external view returns (address);
 
     /**
      * @notice Get the current tip jar address
      * @return The current tip jar address
+     * @dev This is the contract that owns tips and is responsible for
+     *     dispensing them to claimants
      */
     function tipJar() external view returns (address);
 
     /**
      * @notice Get the current treasury address
      * @return The current treasury address
+     *       @dev This is the contract that owns the treasury and is responsible for
+     *      dispensing funds to the protocol's operations
      */
     function treasury() external view returns (address);
+
+    /**
+     * @notice Get the address of theHarbor command
+     * @return The address of theHarbor command
+     * @dev This is the contract that's the registry of all Fleet Commanders
+     */
+    function harborCommand() external view returns (address);
 
     /**
      * @notice Set a new address for the Raft contract
@@ -58,4 +71,11 @@ interface IConfigurationManager is
      * @dev Can only be called by the governor
      */
     function setTreasury(address newTreasury) external;
+
+    /**
+     * @notice Set a new harbor command address
+     * @param newHarborCommand The address of the new harbor command
+     * @dev Can only be called by the governor
+     */
+    function setHarborCommand(address newHarborCommand) external;
 }

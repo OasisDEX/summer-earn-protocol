@@ -12,10 +12,11 @@ import {TipJar} from "../../src/contracts/TipJar.sol";
 import "../../src/errors/IAccessControlErrors.sol";
 import "../../src/errors/ITipJarErrors.sol";
 import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
+import {ConfigurationManagerMock, ConfigurationManagerImplMock} from "../mocks/ConfigurationManagerMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
 contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;
@@ -30,6 +31,7 @@ contract TipJarTest is Test, ITipJarEvents {
     ERC20Mock public underlyingToken;
     TipJar public tipJar;
     ProtocolAccessManager public accessManager;
+    HarborCommand public harborCommand;
 
     function setUp() public {
         accessManager = new ProtocolAccessManager(governor);
@@ -39,11 +41,14 @@ contract TipJarTest is Test, ITipJarEvents {
             address(0),
             keeper
         );
+        harborCommand = new HarborCommand(address(accessManager));
 
         underlyingToken = new ERC20Mock();
         configManager = new ConfigurationManagerImplMock(
             address(tipJar),
-            treasury
+            treasury,
+            address(0),
+            address(harborCommand)
         );
 
         Percentage initialTipRate = PercentageUtils.fromIntegerPercentage(1); // 1%
@@ -58,6 +63,9 @@ contract TipJarTest is Test, ITipJarEvents {
 
         vm.prank(address(fleetCommander));
         underlyingToken.approve(address(fleetCommander), type(uint256).max);
+
+        vm.prank(governor);
+        harborCommand.enlistFleetCommander(address(fleetCommander));
     }
 
     function test_AddTipStream() public {
@@ -290,6 +298,8 @@ contract TipJarTest is Test, ITipJarEvents {
             address(configManager),
             PercentageUtils.fromIntegerPercentage(1)
         );
+        vm.prank(governor);
+        harborCommand.enlistFleetCommander(address(fleetCommander2));
 
         // Setup mock fleet commanders with some balance
         uint256 initialBalance = 1000 ether;
@@ -612,13 +622,4 @@ contract TipJarTest is Test, ITipJarEvents {
             })
         );
     }
-}
-
-contract ConfigurationManagerImplMock is ConfigurationManagerMock {
-    constructor(
-        address _tipJar,
-        address _treasury
-    ) ConfigurationManagerMock(_tipJar, _treasury) {}
-
-    function setTipJar(address newTipJar) external override {}
 }

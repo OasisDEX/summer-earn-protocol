@@ -29,4 +29,10 @@ interface IConfigurationManagerEvents {
      * @param newTreasury The address of the new Treasury
      */
     event TreasuryUpdated(address oldTreasury, address newTreasury);
+
+    /**
+     * @notice Emitted when the Harbor Command address is updated
+     * @param newHarborCommand The address of the new Harbor Command
+     */
+    event HarborCommandUpdated(address newHarborCommand);
 }
