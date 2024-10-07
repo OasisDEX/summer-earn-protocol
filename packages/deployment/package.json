@@ -24,6 +24,7 @@
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",
     "deploy:core": "hardhat run scripts/deploy-core.ts --network $NETWORK",
     "deploy:gov": "hardhat run scripts/deploy-gov.ts --network $NETWORK",
+    "deploy:buy-and-burn": "hardhat run scripts/deploy-buy-and-burn.ts --network $NETWORK",
     "deploy:fleet": "hardhat run scripts/deploy-fleet.ts --network $NETWORK",
     "deploy:aavev3-ark": "hardhat run scripts/deploy-aavev3-ark.ts --network $NETWORK",
     "deploy:compoundv3-ark": "hardhat run scripts/deploy-compoundv3-ark.ts --network $NETWORK",
