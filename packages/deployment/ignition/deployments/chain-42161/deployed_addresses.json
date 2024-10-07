@@ -1,0 +1,14 @@
+{
+  "CoreModule#AdmiralsQuarters": "0xf7D6fBD250EF3EB083c7Bca2998AD82E1946E479",
+  "CoreModule#DutchAuctionLibrary": "0x25B97896A1d731875B3aec785977E421029Fc90A",
+  "CoreModule#ProtocolAccessManager": "0x244D9AffCCA2EaFD689b0393Bf15F26f79364c25",
+  "CoreModule#HarborCommand": "0x424aA31D64cabd39ea8B133BE844d935d666f40e",
+  "CoreModule#Raft": "0x2aA6DFDB53517243B5abB97FDAF2d6003b7FeB0d",
+  "CoreModule#ConfigurationManager": "0xc5cAB79A195497ec19495a7ffa8E263557c41AAC",
+  "CoreModule#TipJar": "0x394C95eC48B36C458335435C6a3E74BbD0B35237",
+  "GovModule#SummerToken": "0xd2b0Cf66B26c3198FAf92983d1A0CD5d0ba1e6a9",
+  "GovModule#TimelockController": "0x49f1541C43cF7039d47a09Ce3BFaee3c554326d8",
+  "GovModule#SummerGovernor": "0x3fA7E5D6515fD06Cfe5a393bB07f04cEC6f9Da77",
+  "BuyAndBurnModule#DutchAuctionLibrary": "0x7160287dA4c544907011C0548c0818F7a9DbA7D1",
+  "BuyAndBurnModule#BuyAndBurn": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57"
+}

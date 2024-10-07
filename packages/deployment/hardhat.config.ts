@@ -10,11 +10,15 @@ import type { HardhatUserConfig } from 'hardhat/config'
 if (!process.env.API_KEY_ARBISCAN) {
   throw new Error('Please set your process.env.API_KEY_ARBISCAN in a .env file')
 }
+if (!process.env.API_KEY_BASESCAN) {
+  throw new Error('Please set your process.env.API_KEY_BASESCAN in a .env file')
+}
 
 const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       arbitrumOne: process.env.API_KEY_ARBISCAN,
+      base: process.env.API_KEY_BASESCAN,
     },
   },
   ignition: {
