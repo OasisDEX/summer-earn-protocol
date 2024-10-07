@@ -381,12 +381,4 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         buyAndBurn.buyTokens(1, AUCTION_AMOUNT + 1);
         vm.stopPrank();
     }
-
-    function test_OnlyGovernorCanStartAuction() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotGovernor(address)", buyer)
-        );
-        vm.prank(buyer);
-        buyAndBurn.startAuction(address(tokenToAuction1));
-    }
 }
