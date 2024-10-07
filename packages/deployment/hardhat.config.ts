@@ -1,6 +1,6 @@
 import { default as dotenv } from 'dotenv'
 import { resolve } from 'path'
-
+import './plugins/multiSourceCompile'
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
 import '@nomicfoundation/hardhat-foundry'
@@ -35,7 +35,7 @@ const config: HardhatUserConfig = {
   networks: {
     local: {
       url: `http://127.0.0.1:8545`,
-      chainId: 8453,
+      chainId: 31337,
     },
     hardhat: {
       accounts: [

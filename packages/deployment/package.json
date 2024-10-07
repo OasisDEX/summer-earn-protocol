@@ -1,5 +1,5 @@
 {
-  "name": "@summerfi/earn-protocol-contracts",
+  "name": "@summerfi/deployment",
   "version": "0.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -55,6 +55,7 @@
     "ts-node": "^10.9.2"
   },
   "dependencies": {
+    "@summerfi/earn-protocol-contracts": "workspace:*",
     "solhint-plugin-prettier": "^0.1.0",
     "solidity-bytes-utils": "^0.8.2"
   }

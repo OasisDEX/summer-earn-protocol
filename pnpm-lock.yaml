@@ -146,6 +146,67 @@ importers:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.16.1)(typescript@5.5.4)
 
+  packages/deployment:
+    dependencies:
+      '@summerfi/earn-protocol-contracts':
+        specifier: workspace:*
+        version: link:../core-contracts
+      solhint-plugin-prettier:
+        specifier: ^0.1.0
+        version: 0.1.0(prettier-plugin-solidity@1.4.1)(prettier@3.3.3)
+      solidity-bytes-utils:
+        specifier: ^0.8.2
+        version: 0.8.2
+    devDependencies:
+      '@nomicfoundation/hardhat-foundry':
+        specifier: ^1.1.2
+        version: 1.1.2(hardhat@2.22.10)
+      '@nomicfoundation/hardhat-ignition':
+        specifier: ^0.15.5
+        version: 0.15.5(@nomicfoundation/hardhat-verify@2.0.9)(hardhat@2.22.10)
+      '@nomicfoundation/hardhat-ignition-viem':
+        specifier: ^0.15.5
+        version: 0.15.5(@nomicfoundation/hardhat-ignition@0.15.5)(@nomicfoundation/hardhat-viem@2.0.3)(@nomicfoundation/ignition-core@0.15.5)(hardhat@2.22.10)(viem@2.9.19)
+      '@summerfi/dutch-auction':
+        specifier: workspace:*
+        version: link:../dutch-auction
+      '@summerfi/earn-gov-contracts':
+        specifier: workspace:*
+        version: link:../gov-contracts
+      '@summerfi/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@summerfi/jest-config':
+        specifier: workspace:*
+        version: link:../jest-config
+      '@summerfi/math-utils':
+        specifier: workspace:*
+        version: link:../math-utils
+      '@summerfi/percentage-solidity':
+        specifier: workspace:*
+        version: link:../percentage
+      '@summerfi/tenderly-utils':
+        specifier: workspace:*
+        version: link:../tenderly-utils
+      '@summerfi/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/prompts':
+        specifier: ^2.4.9
+        version: 2.4.9
+      hardhat:
+        specifier: ^2.22.8
+        version: 2.22.10(ts-node@10.9.2)(typescript@5.5.4)
+      kleur:
+        specifier: ^4.1.5
+        version: 4.1.5
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@20.16.1)(typescript@5.5.4)
+
   packages/dutch-auction:
     dependencies:
       '@openzeppelin/contracts':
@@ -6202,7 +6263,7 @@ packages:
       resolve: 1.17.0
       semver: 6.3.1
       solc: 0.8.26(debug@4.3.6)
-      source-map-support: 0.5.13
+      source-map-support: 0.5.21
       stacktrace-parser: 0.1.10
       ts-node: 10.9.2(@types/node@20.16.1)(typescript@5.5.4)
       tsort: 0.0.1

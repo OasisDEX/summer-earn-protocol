@@ -1,0 +1,13 @@
+forge-std/=lib/forge-std/src/
+morpho-blue/=lib/metamorpho/lib/morpho-blue/src/
+metamorpho/=lib/metamorpho/src/
+@summerfi/dutch-auction/src/=node_modules/@summerfi/dutch-auction/src/
+@summerfi/voting-decay/src/=node_modules/@summerfi/voting-decay/src/
+@prb/math/=lib/prb-math/
+@summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/
+@summerfi/math-utils/contracts/=node_modules/@summerfi/math-utils/contracts/
+@summerfi/earn-gov-contracts/=node_modules/@summerfi/earn-gov-contracts/src/
+@pendle/core-v2/contracts/=lib/pendle-core-v2-public/contracts/
+@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@layerzerolabs/=node_modules/@layerzerolabs/
