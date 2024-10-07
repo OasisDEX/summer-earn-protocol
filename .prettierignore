@@ -26,3 +26,4 @@ apps/**/types/generated/*
 **/*.min.js
 **/searchindex.js
 **/book/**
+**/deployments/**

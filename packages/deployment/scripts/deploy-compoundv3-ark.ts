@@ -50,7 +50,7 @@ export async function deployCompoundV3Ark() {
 async function getUserInput(config: BaseConfig) {
   // Extract Compound V3 pools from the configuration
   const compoundV3Pools = []
-  for (const pool in config.compoundV3.pools) {
+  for (const pool in config.protocolSpecific.compoundV3.pools) {
     compoundV3Pools.push({
       title: pool.toUpperCase(),
       value: pool,
@@ -91,8 +91,8 @@ async function getUserInput(config: BaseConfig) {
   return {
     ...responses,
     token: tokenAddress,
-    compoundV3Pool: config.compoundV3.pools[selectedPool].cToken,
-    compoundV3Rewards: config.compoundV3.rewards,
+    compoundV3Pool: config.protocolSpecific.compoundV3.pools[selectedPool].cToken,
+    compoundV3Rewards: config.protocolSpecific.compoundV3.rewards,
   }
 }
 
@@ -133,8 +133,8 @@ async function deployCompoundV3ArkContract(
         compoundV3Rewards: userInput.compoundV3Rewards,
         arkParams: {
           name: `CompoundV3-${userInput.token}-${userInput.compoundV3Pools}-${chainId}`,
-          accessManager: config.core.protocolAccessManager,
-          configurationManager: config.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager,
+          configurationManager: config.deployedContracts.core.configurationManager,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,

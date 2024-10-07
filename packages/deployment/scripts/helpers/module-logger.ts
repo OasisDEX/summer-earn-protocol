@@ -5,8 +5,10 @@ import { MetaMorphoArkContracts } from '../../ignition/modules/arks/metamorpho-a
 import { MorphoArkContracts } from '../../ignition/modules/arks/morpho-ark'
 import { PendleLPArkContracts } from '../../ignition/modules/arks/pendle-lp-ark'
 import { PendlePTArkContracts } from '../../ignition/modules/arks/pendle-pt-ark'
+import { BuyAndBurnContracts } from '../../ignition/modules/buy-and-burn'
 import { CoreContracts } from '../../ignition/modules/core'
 import { FleetContracts } from '../../ignition/modules/fleet'
+import { GovContracts } from '../../ignition/modules/gov'
 
 export class ModuleLogger {
   private moduleName: string
@@ -30,14 +32,29 @@ export class ModuleLogger {
 
   static logCore(contracts: CoreContracts): void {
     const logger = new ModuleLogger('CoreModule', {
-      'Protocol Access Manager': contracts.protocolAccessManager,
-      'Tip Jar': contracts.tipJar,
-      Raft: contracts.raft,
-      'Configuration Manager': contracts.configurationManager,
+      'Protocol Access Manager   ': contracts.protocolAccessManager,
+      'Tip Jar                   ': contracts.tipJar,
+      'Raft                      ': contracts.raft,
+      'Configuration Manager     ': contracts.configurationManager,
+      'Harbor Commander          ': contracts.harborCommand,
+      'Admiral Quarters          ': contracts.admiralsQuarters,
     })
     logger.logAddresses()
   }
-
+  static logGov(contracts: GovContracts): void {
+    const logger = new ModuleLogger('GovModule', {
+      'Summer Governor': contracts.summerGovernor,
+      'Timelock Controller': contracts.timelock,
+      'Summer Token': contracts.summerToken,
+    })
+    logger.logAddresses()
+  }
+  static logBuyAndBurn(contracts: BuyAndBurnContracts): void {
+    const logger = new ModuleLogger('BuyAndBurnModule', {
+      'Buy and Burn': contracts.buyAndBurn,
+    })
+    logger.logAddresses()
+  }
   static logAaveV3Ark(contracts: AaveV3ArkContracts): void {
     const logger = new ModuleLogger('AaveV3ArkModule', {
       'Aave V3 Ark': contracts.aaveV3Ark,

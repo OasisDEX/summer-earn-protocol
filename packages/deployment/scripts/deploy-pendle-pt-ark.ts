@@ -34,12 +34,12 @@ export async function deployPendlePTArk() {
 async function getUserInput(config: BaseConfig) {
   // Extract Pendle markets from the configuration
   const pendleMarkets = []
-  if (!config.pendle || !config.pendle.markets) {
+  if (!config.protocolSpecific.pendle || !config.protocolSpecific.pendle.markets) {
     throw new Error('No Pendle markets found in the configuration.')
   }
-  for (const token in config.pendle.markets) {
-    for (const marketName in config.pendle.markets[token as Tokens]) {
-      const marketId = config.pendle.markets[token as TokenType][marketName]
+  for (const token in config.protocolSpecific.pendle.markets) {
+    for (const marketName in config.protocolSpecific.pendle.markets[token as Tokens]) {
+      const marketId = config.protocolSpecific.pendle.markets[token as TokenType][marketName]
       pendleMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
         value: { token, marketId },
@@ -77,8 +77,8 @@ async function getUserInput(config: BaseConfig) {
   // Set the token address based on the selected market
   const selectedMarket = responses.marketSelection
   const tokenAddress = config.tokens[selectedMarket.token as TokenType]
-  const routerAddress = config.pendle.router
-  const oracleAddress = config.pendle['lp-oracle']
+  const routerAddress = config.protocolSpecific.pendle.router
+  const oracleAddress = config.protocolSpecific.pendle['lp-oracle']
 
   const aggregatedData = {
     ...responses,
@@ -119,8 +119,8 @@ async function deployPendlePTArkContract(
         router: userInput.router,
         arkParams: {
           name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
-          accessManager: config.core.protocolAccessManager,
-          configurationManager: config.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager,
+          configurationManager: config.deployedContracts.core.configurationManager,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,

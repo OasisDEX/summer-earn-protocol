@@ -48,9 +48,9 @@ export async function deployMorphoArk() {
 async function getUserInput(config: BaseConfig) {
   // Extract Morpho markets from the configuration
   const morphoMarkets = []
-  for (const token in config.morpho.markets) {
-    for (const marketName in config.morpho.markets[token as TokenType]) {
-      const marketId = config.morpho.markets[token as TokenType][marketName]
+  for (const token in config.protocolSpecific.morpho.markets) {
+    for (const marketName in config.protocolSpecific.morpho.markets[token as TokenType]) {
+      const marketId = config.protocolSpecific.morpho.markets[token as TokenType][marketName]
       morphoMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
         value: { token, marketId },
@@ -128,12 +128,12 @@ async function deployMorphoArkContract(
   return (await hre.ignition.deploy(MorphoArkModule, {
     parameters: {
       MorphoArkModule: {
-        morphoBlue: config.morpho.blue,
+        morphoBlue: config.protocolSpecific.morpho.blue,
         marketId: userInput.marketId,
         arkParams: {
           name: `Morpho-${userInput.token}-${userInput.marketId}-${chainId}`,
-          accessManager: config.core.protocolAccessManager,
-          configurationManager: config.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager,
+          configurationManager: config.deployedContracts.core.configurationManager,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,

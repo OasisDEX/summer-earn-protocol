@@ -4,6 +4,7 @@ import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { BaseConfig } from '../ignition/config/config-types'
+import { CoreContracts } from '../ignition/modules/core'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -32,10 +33,10 @@ async function deployFleet() {
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
 
-  const coreContracts: BaseConfig['core'] = config['core']
+  const coreContracts = config.deployedContracts.core
   const asset = getAssetAddress(fleetDefinition.assetSymbol, config)
 
-  const bufferArkParams = await getBufferArkParams(coreContracts, asset, fleetDefinition.fleetName)
+  const bufferArkParams = await getBufferArkParams(fleetDefinition.fleetName)
 
   if (await confirmDeployment(fleetDefinition, bufferArkParams)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
@@ -101,11 +102,7 @@ function getAssetAddress(assetSymbol: string, config: BaseConfig): string {
  * @param {string} asset - The address of the asset.
  * @returns {Promise<any>} An object containing the BufferArk parameters.
  */
-async function getBufferArkParams(
-  coreContracts: BaseConfig['core'],
-  asset: string,
-  fleetName: string,
-) {
+async function getBufferArkParams(fleetName: string) {
   const results = await prompts([
     {
       type: 'text',
@@ -159,14 +156,14 @@ async function confirmDeployment(fleetDefinition: any, bufferArkParams: any): Pr
 /**
  * Deploys the Fleet and BufferArk contracts using Hardhat Ignition.
  * @param {any} fleetDefinition - The fleet definition object.
- * @param {BaseConfig['core']} coreContracts - The core contract addresses.
+ * @param {CoreContracts} coreContracts - The core contract addresses.
  * @param {string} asset - The address of the asset.
  * @param {any} bufferArkParams - The BufferArk parameters.
  * @returns {Promise<FleetContracts>} The deployed fleet contracts.
  */
 async function deployFleetContracts(
   fleetDefinition: any,
-  coreContracts: BaseConfig['core'],
+  coreContracts: CoreContracts,
   asset: string,
   bufferArkParams: any,
 ): Promise<FleetContracts> {
@@ -178,8 +175,8 @@ async function deployFleetContracts(
   return (await hre.ignition.deploy(fleetModule, {
     parameters: {
       [`FleetModule_${name}`]: {
-        configurationManager: coreContracts.configurationManager,
-        protocolAccessManager: coreContracts.protocolAccessManager,
+        configurationManager: coreContracts.configurationManager.address,
+        protocolAccessManager: coreContracts.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
         asset,
@@ -190,8 +187,8 @@ async function deployFleetContracts(
         initialTipRate: fleetDefinition.initialTipRate,
         bufferArkParams: {
           ...bufferArkParams,
-          accessManager: coreContracts.protocolAccessManager,
-          configurationManager: coreContracts.configurationManager,
+          accessManager: coreContracts.protocolAccessManager.address,
+          configurationManager: coreContracts.configurationManager.address,
           token: asset,
         },
       },

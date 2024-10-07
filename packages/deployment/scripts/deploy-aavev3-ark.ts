@@ -114,12 +114,12 @@ async function deployAaveV3ArkContract(
   return (await hre.ignition.deploy(AaveV3ArkModule, {
     parameters: {
       AaveV3ArkModule: {
-        aaveV3Pool: config.aaveV3.pool,
-        rewardsController: config.aaveV3.rewards,
+        aaveV3Pool: config.protocolSpecific.aaveV3.pool,
+        rewardsController: config.protocolSpecific.aaveV3.rewards,
         arkParams: {
-          name: `AaveV3-${userInput.token}-${config.aaveV3.pool}-${chainId}`,
-          accessManager: config.core.protocolAccessManager,
-          configurationManager: config.core.configurationManager,
+          name: `AaveV3-${userInput.token}-${config.protocolSpecific.aaveV3.pool}-${chainId}`,
+          accessManager: config.deployedContracts.core.protocolAccessManager,
+          configurationManager: config.deployedContracts.core.configurationManager,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,

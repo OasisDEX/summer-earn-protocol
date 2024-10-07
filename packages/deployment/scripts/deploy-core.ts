@@ -1,11 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { BaseConfig } from '../ignition/config/config-types'
-import { CoreModule } from '../ignition/modules/core'
+import { CoreContracts, CoreModule } from '../ignition/modules/core'
+import { checkExistingContracts } from './helpers/check-existing-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
+import { updateIndexJson } from './helpers/update-json'
 
 export async function deployCore() {
   const config = getConfigByNetwork(hre.network.name)
@@ -20,21 +20,23 @@ export async function deployCore() {
  * @returns {Promise<CoreContracts>} The deployed core contracts.
  */
 async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
-  const chainId = getChainId()
-  const deploymentId = await handleDeploymentId(chainId)
-
   console.log(kleur.cyan().bold('Deploying Core Contracts...'))
+
+  checkExistingContracts(config, 'core')
 
   const core = await hre.ignition.deploy(CoreModule, {
     parameters: {
       CoreModule: {
-        swapProvider: config.core.swapProvider,
-        treasury: config.core.treasury,
+        swapProvider: config.common.swapProvider,
+        treasury: config.common.treasury,
+        lzEndpoint: config.common.lzEndpoint,
       },
     },
   })
 
   console.log(kleur.green().bold('All Core Contracts Deployed Successfully!'))
+
+  updateIndexJson('core', hre.network.name, core)
 
   return core
 }
@@ -43,14 +45,3 @@ deployCore().catch((error) => {
   console.error(kleur.red().bold('An error occurred:'), error)
   process.exit(1)
 })
-
-export type CoreContracts = {
-  protocolAccessManager: { address: string }
-  tipJar: { address: string }
-  raft: { address: string }
-  configurationManager: { address: string }
-  harborCommander: { address: string }
-  buyAndBurn: { address: string }
-  summerGovernor: { address: string }
-  admiralsQuarters: { address: string }
-}

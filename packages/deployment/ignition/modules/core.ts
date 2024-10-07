@@ -1,5 +1,4 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { ADDRESS_ZERO } from '../../scripts/common/constants'
 
 enum DecayType {
   Linear,
@@ -13,9 +12,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
 
   // Deploy DutchAuctionLibrary contract
   const dutchAuctionLibrary = m.contract('DutchAuctionLibrary', [])
-
-  // Deploy SummerToken contract
-  const summerToken = m.contract('SummerToken', [])
 
   // Deploy ProtocolAccessManager contract
   const protocolAccessManager = m.contract('ProtocolAccessManager', [deployer])
@@ -34,72 +30,42 @@ export const CoreModule = buildModule('CoreModule', (m) => {
     decayType: DecayType.Linear,
   }
 
+  // Deploy HarborCommand contract
+  const harborCommand = m.contract('HarborCommand', [protocolAccessManager])
+
   // Deploy Raft contract with DutchAuctionLibrary as a library
   const raft = m.contract('Raft', [protocolAccessManager, raftAuctionDefaultParams], {
     libraries: { DutchAuctionLibrary: dutchAuctionLibrary },
   })
 
-  // Initialize the ConfigurationManager contract after all contracts have been deployed
-  m.call(configurationManager, 'initialize', [treasury, raft, tipJar])
+  const configurationManagerParams = {
+    raft: raft,
+    tipJar: tipJar,
+    treasury: treasury,
+    harborCommand: harborCommand,
+  }
 
-  // Deploy HarborCommand contract
-  const harborCommander = m.contract('HarborCommand', [protocolAccessManager])
+  // Initialize the ConfigurationManager contract after all contracts have been deployed
+  m.call(configurationManager, 'initializeConfiguration', [configurationManagerParams])
 
   // Deploy AdmiralsQuarters contract
   const admiralsQuarters = m.contract('AdmiralsQuarters', [swapProvider])
-
-  /*
-   * Deploy TimelockController contract
-   * - `minDelay`: initial minimum delay in seconds for operations
-   * - `proposers`: accounts to be granted proposer and canceller roles
-   * - `executors`: accounts to be granted executor role
-   * - `admin`: optional account to be granted admin role; disable with zero address
-   */
-  const timelock = m.contract('TimelockController', [
-    86400,
-    [deployer],
-    [ADDRESS_ZERO],
-    ADDRESS_ZERO,
-  ])
-
-  const summerGovernorDeployParams = {
-    token: summerToken,
-    timelock: timelock,
-    votingDelay: 1,
-    votingPeriod: 50400,
-    proposalThreshold: 10000n * 10n ** 18n,
-    quorumFraction: 4,
-    initialWhitelistGuardian: deployer,
-  }
-
-  // Deploy SummerGovernor contract
-  const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
-
-  const auctionDefaultParams = {
-    duration: 7n * 86400n,
-    startPrice: 100n ** 18n,
-    endPrice: 10n ** 18n,
-    kickerRewardPercentage: 5n * 10n ** 18n,
-    decayType: DecayType.Linear,
-  }
-
-  // Deploy BuyAndBurn contract with DutchAuctionLibrary as a library
-  const buyAndBurn = m.contract(
-    'BuyAndBurn',
-    [summerToken, treasury, protocolAccessManager, auctionDefaultParams],
-    {
-      libraries: { DutchAuctionLibrary: dutchAuctionLibrary },
-    },
-  )
 
   return {
     protocolAccessManager,
     tipJar,
     raft,
     configurationManager,
-    harborCommander,
+    harborCommand,
     admiralsQuarters,
-    summerGovernor,
-    buyAndBurn,
   }
 })
+
+export type CoreContracts = {
+  protocolAccessManager: { address: string }
+  tipJar: { address: string }
+  raft: { address: string }
+  configurationManager: { address: string }
+  harborCommand: { address: string }
+  admiralsQuarters: { address: string }
+}

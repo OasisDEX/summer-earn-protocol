@@ -28,7 +28,7 @@ export function getConfigByNetwork(network: string): BaseConfig {
 }
 
 function validateConfig(config: BaseConfig): void {
-  const requiredFields: (keyof BaseConfig)[] = ['tokens', 'core', 'aaveV3', 'morpho']
+  const requiredFields: (keyof BaseConfig)[] = ['tokens', 'deployedContracts', 'protocolSpecific']
 
   for (const field of requiredFields) {
     if (!(field in config)) {
@@ -45,22 +45,28 @@ function validateConfig(config: BaseConfig): void {
 
   validateAddress(config.tokens.usdc, 'tokens.usdc')
   validateAddress(config.tokens.dai, 'tokens.dai')
-  validateAddress(config.core.treasury, 'core.treasury')
-  validateAddress(config.core.governor, 'core.governor')
-  validateAddress(config.core.tipJar, 'core.tipJar')
-  validateAddress(config.core.raft, 'core.raft')
-  validateAddress(config.core.protocolAccessManager, 'core.protocolAccessManager')
-  validateAddress(config.core.configurationManager, 'core.configurationManager')
-  validateAddress(config.core.harborCommand, 'core.harborCommand')
+  validateAddress(config.common.treasury, 'core.treasury')
+  validateAddress(config.deployedContracts.gov.summerToken.address, 'core.governor')
+  validateAddress(config.deployedContracts.core.tipJar.address, 'core.tipJar')
+  validateAddress(config.deployedContracts.core.raft.address, 'core.raft')
+  validateAddress(
+    config.deployedContracts.core.protocolAccessManager.address,
+    'core.protocolAccessManager',
+  )
+  validateAddress(
+    config.deployedContracts.core.configurationManager.address,
+    'core.configurationManager',
+  )
+  validateAddress(config.deployedContracts.core.harborCommand.address, 'core.harborCommand')
 
   // Validate tip rate
   if (
-    isNaN(Number(config.core.tipRate)) ||
-    Number(config.core.tipRate) < 0 ||
-    Number(config.core.tipRate) > 10000
+    isNaN(Number(config.common.tipRate)) ||
+    Number(config.common.tipRate) < 0 ||
+    Number(config.common.tipRate) > 10000
   ) {
     throw new Error(
-      `Invalid tipRate: ${config.core.tipRate}. Should be a number between 0 and 10000.`,
+      `Invalid tipRate: ${config.common.tipRate}. Should be a number between 0 and 10000.`,
     )
   }
 }

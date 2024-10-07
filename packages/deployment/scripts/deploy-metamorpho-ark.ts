@@ -50,9 +50,9 @@ export async function deployMetaMorphoArk() {
 async function getUserInput(config: BaseConfig) {
   // Extract Morpho vaults from the configuration
   const morphoVaults = []
-  for (const token in config.morpho.vaults) {
-    for (const vaultName in config.morpho.vaults[token as Tokens]) {
-      const vaultId = config.morpho.vaults[token as TokenType][vaultName]
+  for (const token in config.protocolSpecific.morpho.vaults) {
+    for (const vaultName in config.protocolSpecific.morpho.vaults[token as Tokens]) {
+      const vaultId = config.protocolSpecific.morpho.vaults[token as TokenType][vaultName]
       morphoVaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, vaultId },
@@ -135,8 +135,8 @@ async function deployMetaMorphoArkContract(
         strategyVault: userInput.vaultId,
         arkParams: {
           name: `MetaMorpho-${userInput.token}-${userInput.vaultId}-${chainId}`,
-          accessManager: config.core.protocolAccessManager,
-          configurationManager: config.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager,
+          configurationManager: config.deployedContracts.core.configurationManager,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
