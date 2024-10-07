@@ -22,27 +22,23 @@ export function createFleetModule(moduleName: string) {
     const depositCap = m.getParameter<string>('depositCap')
     const initialTipRate = m.getParameter<string>('initialTipRate')
 
-    // Deploy BufferArk
-    const bufferArkParams = m.getParameter<any>('bufferArkParams')
-    const bufferArk = m.contract('BufferArk', [bufferArkParams])
-
     const fleetCommander = m.contract('FleetCommander', [
       {
         name: fleetName,
         symbol: fleetSymbol,
-        initialArks: initialArks,
         configurationManager: configurationManager,
         accessManager: protocolAccessManager,
         asset: asset,
-        bufferArk: bufferArk,
         initialMinimumBufferBalance: initialMinimumBufferBalance,
         initialRebalanceCooldown: initialRebalanceCooldown,
         depositCap: depositCap,
         initialTipRate: initialTipRate,
       },
     ])
-
-    return { fleetCommander, bufferArk }
+    // Read the name from the deployed FleetCommander contract
+    const bufferArk = m.call(fleetCommander, 'bufferArk')
+    const name = bufferArk.value
+    return { fleetCommander }
   })
 }
 
@@ -51,5 +47,4 @@ export function createFleetModule(moduleName: string) {
  */
 export type FleetContracts = {
   fleetCommander: { address: string }
-  bufferArk: { address: string }
 }

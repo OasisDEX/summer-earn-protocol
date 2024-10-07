@@ -4,7 +4,7 @@ import path from 'path'
 import { BaseConfig, Config } from '../../ignition/config/config-types'
 
 export function getConfigByNetwork(network: string): BaseConfig {
-  const configPath = path.resolve(__dirname, '../../ignition/config/index.json')
+  const configPath = path.resolve(__dirname, '..', '..', 'config', 'index.json')
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`)
   }

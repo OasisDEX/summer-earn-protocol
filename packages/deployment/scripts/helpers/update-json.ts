@@ -9,7 +9,7 @@ export async function updateIndexJson<T extends Record<string, any>>(
 ) {
   console.log(kleur.cyan().bold(`Updating index.json with deployed ${moduleType} addresses...`))
 
-  const indexPath = path.join(__dirname, '..', '..', 'ignition', 'config', 'index.json')
+  const indexPath = path.join(__dirname, '..', '..', 'config', 'index.json')
   let indexJson = JSON.parse(fs.readFileSync(indexPath, 'utf8'))
 
   if (!indexJson[network]) {

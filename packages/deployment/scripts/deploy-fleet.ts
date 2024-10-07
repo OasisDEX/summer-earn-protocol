@@ -6,7 +6,6 @@ import prompts from 'prompts'
 import { BaseConfig } from '../ignition/config/config-types'
 import { CoreContracts } from '../ignition/modules/core'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
-import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { loadFleetDefinition } from './helpers/fleet-definition-handler'
@@ -25,6 +24,7 @@ import { continueDeploymentCheck } from './helpers/prompt-helpers'
  */
 async function deployFleet() {
   const network = hre.network.name
+  console.log(kleur.blue('Network:'), kleur.cyan(network))
   const config = getConfigByNetwork(network)
 
   console.log(kleur.green().bold('Starting Fleet deployment process...'))
@@ -36,17 +36,10 @@ async function deployFleet() {
   const coreContracts = config.deployedContracts.core
   const asset = getAssetAddress(fleetDefinition.assetSymbol, config)
 
-  const bufferArkParams = await getBufferArkParams(fleetDefinition.fleetName)
-
-  if (await confirmDeployment(fleetDefinition, bufferArkParams)) {
+  if (await confirmDeployment(fleetDefinition)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
-    const deployedFleet = await deployFleetContracts(
-      fleetDefinition,
-      coreContracts,
-      asset,
-      bufferArkParams,
-    )
+    const deployedFleet = await deployFleetContracts(fleetDefinition, coreContracts, asset)
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
@@ -61,7 +54,7 @@ async function deployFleet() {
  * @returns {Promise<any>} The loaded fleet definition object.
  */
 async function getFleetDefinition() {
-  const fleetsDir = path.resolve(__dirname, 'fleets')
+  const fleetsDir = path.resolve(__dirname, '..', 'config', 'fleets')
   const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
 
   if (fleetFiles.length === 0) {
@@ -97,58 +90,14 @@ function getAssetAddress(assetSymbol: string, config: BaseConfig): string {
 }
 
 /**
- * Prompts the user for BufferArk parameters.
- * @param {BaseConfig['core']} coreContracts - The core contract addresses.
- * @param {string} asset - The address of the asset.
- * @returns {Promise<any>} An object containing the BufferArk parameters.
- */
-async function getBufferArkParams(fleetName: string) {
-  const results = await prompts([
-    {
-      type: 'text',
-      name: 'name',
-      message: 'Enter the name for the BufferArk:',
-      initial: `BufferArk - ${fleetName}`,
-    },
-    {
-      type: 'text',
-      name: 'depositCap',
-      message: 'Enter the deposit cap for the BufferArk:',
-      initial: MAX_UINT256_STRING,
-      validate: (value) => (parseInt(value) > 0 ? true : 'Deposit cap must be greater than 0'),
-    },
-    {
-      type: 'text',
-      name: 'maxRebalanceOutflow',
-      message: 'Enter the max rebalance outflow for the BufferArk:',
-      initial: MAX_UINT256_STRING,
-      validate: (value) =>
-        parseInt(value) > 0 ? true : 'Max rebalance outflow must be greater than 0',
-    },
-    {
-      type: 'text',
-      name: 'maxRebalanceInflow',
-      message: 'Enter the max rebalance inflow for the BufferArk:',
-      initial: MAX_UINT256_STRING,
-      validate: (value) =>
-        parseInt(value) > 0 ? true : 'Max rebalance inflow must be greater than 0',
-    },
-  ])
-  return { ...results, requiresKeeperData: 'false' }
-}
-
-/**
  * Displays a summary of the deployment parameters and asks for user confirmation.
  * @param {any} fleetDefinition - The fleet definition object.
- * @param {any} bufferArkParams - The BufferArk parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(fleetDefinition: any, bufferArkParams: any): Promise<boolean> {
+async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
-  console.log(kleur.yellow('Buffer Ark Parameters:'))
-  console.log(kleur.yellow(JSON.stringify(bufferArkParams, null, 2)))
 
   return await continueDeploymentCheck()
 }
@@ -158,14 +107,12 @@ async function confirmDeployment(fleetDefinition: any, bufferArkParams: any): Pr
  * @param {any} fleetDefinition - The fleet definition object.
  * @param {CoreContracts} coreContracts - The core contract addresses.
  * @param {string} asset - The address of the asset.
- * @param {any} bufferArkParams - The BufferArk parameters.
  * @returns {Promise<FleetContracts>} The deployed fleet contracts.
  */
 async function deployFleetContracts(
   fleetDefinition: any,
   coreContracts: CoreContracts,
   asset: string,
-  bufferArkParams: any,
 ): Promise<FleetContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
@@ -185,12 +132,6 @@ async function deployFleetContracts(
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
-        bufferArkParams: {
-          ...bufferArkParams,
-          accessManager: coreContracts.protocolAccessManager.address,
-          configurationManager: coreContracts.configurationManager.address,
-          token: asset,
-        },
       },
     },
     deploymentId,
@@ -206,10 +147,11 @@ function logDeploymentResults(deployedFleet: FleetContracts) {
 
   console.log(kleur.yellow().bold('\nIMPORTANT: Commander roles need to be granted via governance'))
   console.log(kleur.yellow('For each initial Ark, the buffer Ark, and the Fleet Commander, call:'))
-  console.log(kleur.cyan(`ark.grantCommanderRole(${deployedFleet.fleetCommander.address})`))
-
-  console.log(kleur.yellow('\nBuffer Ark:'))
-  console.log(kleur.cyan(deployedFleet.bufferArk.address))
+  console.log(
+    kleur.cyan(
+      `protocolAccessManager.grantCommanderRole(<address of the ark>, ${deployedFleet.fleetCommander.address})`,
+    ),
+  )
 
   console.log(
     kleur
