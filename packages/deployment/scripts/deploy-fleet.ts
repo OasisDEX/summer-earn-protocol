@@ -1,11 +1,13 @@
-import fs from 'fs'
+import fs, { writeFileSync } from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
+import { Address } from 'viem'
 import { BaseConfig } from '../ignition/config/config-types'
 import { CoreContracts } from '../ignition/modules/core'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
+import { grantCommanderRole } from './common/grant-commander-role'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { loadFleetDefinition } from './helpers/fleet-definition-handler'
@@ -43,7 +45,17 @@ async function deployFleet() {
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
+    const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
+
+    await grantCommanderRole(
+      coreContracts.protocolAccessManager.address as Address,
+      bufferArkAddress,
+      deployedFleet.fleetCommander.address,
+      hre,
+    )
+
     logDeploymentResults(deployedFleet)
+    saveDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -171,6 +183,38 @@ function logDeploymentResults(deployedFleet: FleetContracts) {
     kleur.yellow('Fleet Commander Address:'),
     kleur.cyan(deployedFleet.fleetCommander.address),
   )
+}
+
+/**
+ * Creates and saves a deployment JSON file with fleet information.
+ * @param {any} fleetDefinition - The fleet definition object.
+ * @param {FleetContracts} deployedFleet - The deployed fleet contracts.
+ */
+function saveDeploymentJson(
+  fleetDefinition: any,
+  deployedFleet: FleetContracts,
+  bufferArkAddress: string,
+) {
+  const deploymentInfo = {
+    fleetName: fleetDefinition.fleetName,
+    fleetSymbol: fleetDefinition.symbol,
+    assetSymbol: fleetDefinition.assetSymbol,
+    fleetAddress: deployedFleet.fleetCommander.address,
+    bufferArkAddress: bufferArkAddress,
+    configFile: fleetDefinition.configFile,
+  }
+
+  const deploymentDir = path.resolve(__dirname, '..', 'deployments')
+  if (!fs.existsSync(deploymentDir)) {
+    fs.mkdirSync(deploymentDir, { recursive: true })
+  }
+
+  const fileName = `${fleetDefinition.fleetName.replace(/\W/g, '')}_deployment.json`
+  const filePath = path.join(deploymentDir, fileName)
+
+  writeFileSync(filePath, JSON.stringify(deploymentInfo, null, 2))
+
+  console.log(kleur.green().bold(`Deployment information saved to: ${filePath}`))
 }
 
 // Execute the deployFleet function and handle any errors
