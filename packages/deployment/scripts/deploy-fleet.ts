@@ -113,13 +113,13 @@ async function deployFleetContracts(
   fleetDefinition: any,
   coreContracts: CoreContracts,
   asset: string,
-): Promise<FleetContracts> {
+) {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
 
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
   const fleetModule = createFleetModule(`FleetModule_${name}`)
-  return (await hre.ignition.deploy(fleetModule, {
+  const deployedModule = await hre.ignition.deploy(fleetModule, {
     parameters: {
       [`FleetModule_${name}`]: {
         configurationManager: coreContracts.configurationManager.address,
@@ -135,7 +135,8 @@ async function deployFleetContracts(
       },
     },
     deploymentId,
-  })) as FleetContracts
+  })
+  return deployedModule
 }
 
 /**

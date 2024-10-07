@@ -44,6 +44,7 @@
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/math-utils": "workspace:*",
+    "@summerfi/dependencies": "workspace:*",
     "@summerfi/earn-gov-contracts": "workspace:*",
     "@summerfi/percentage-solidity": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",

@@ -18,6 +18,7 @@ packages/core-contracts/lib/**
 packages/voting-decay/lib/**
 packages/dutch-auction/lib/**
 packages/gov-contracts/lib/**
+packages/external-dependencies/lib/**
 **/.sst/**
 **/.turbo/**
 packages/**/src/generated

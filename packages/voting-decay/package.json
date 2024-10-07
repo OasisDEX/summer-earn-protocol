@@ -6,6 +6,7 @@
     "@openzeppelin/contracts": "^5.0.1"
   },
   "devDependencies": {
+    "@summerfi/dependencies": "workspace:*",
     "prettier": "^3.0.0",
     "solhint": "^3.6.2"
   },

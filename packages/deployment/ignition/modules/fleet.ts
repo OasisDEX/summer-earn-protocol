@@ -1,4 +1,10 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+/**
+ * Type definition for the returned contract addresses
+ */
+export type FleetContracts = {
+  fleetCommander: { address: string }
+}
 
 /**
  * Factory function to create a FleetModule for deploying a FleetCommander and its associated BufferArk
@@ -16,7 +22,6 @@ export function createFleetModule(moduleName: string) {
     const fleetName = m.getParameter<string>('fleetName')
     const fleetSymbol = m.getParameter<string>('fleetSymbol')
     const asset = m.getParameter<string>('asset')
-    const initialArks = m.getParameter<string[]>('initialArks')
     const initialMinimumBufferBalance = m.getParameter<string>('initialMinimumBufferBalance')
     const initialRebalanceCooldown = m.getParameter<string>('initialRebalanceCooldown')
     const depositCap = m.getParameter<string>('depositCap')
@@ -35,16 +40,6 @@ export function createFleetModule(moduleName: string) {
         initialTipRate: initialTipRate,
       },
     ])
-    // Read the name from the deployed FleetCommander contract
-    const bufferArk = m.call(fleetCommander, 'bufferArk')
-    const name = bufferArk.value
     return { fleetCommander }
   })
-}
-
-/**
- * Type definition for the returned contract addresses
- */
-export type FleetContracts = {
-  fleetCommander: { address: string }
 }
