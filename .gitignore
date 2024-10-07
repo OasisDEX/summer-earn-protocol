@@ -42,6 +42,7 @@ yarn-error.log*
 # all dist & artifacts folders
 dist
 artifacts
+!**/chain-*/artifacts
 
 # tsbuildinfo
 *.tsbuildinfo
@@ -96,3 +97,5 @@ broadcast
 cache_forge/
 **/cache_forge/
 .cursorignore
+
+**/build-info
