@@ -97,5 +97,3 @@ broadcast
 cache_forge/
 **/cache_forge/
 .cursorignore
-
-**/build-info
