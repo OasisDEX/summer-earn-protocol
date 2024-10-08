@@ -17,7 +17,8 @@ error InvalidMarketId();
 
 /**
  * @title MorphoArk
- * @notice This contract manages a Morpho token strategy within the Ark system
+ * @notice Ark contract for managing token supply and yield generation through the Morpho protocol.
+ * @dev Implements strategy for supplying tokens, withdrawing tokens, and claiming rewards on Morpho markets.
  */
 contract MorphoArk is Ark {
     using SafeERC20 for IERC20;
@@ -27,6 +28,13 @@ contract MorphoArk is Ark {
     using MorphoLib for IMorpho;
     using MorphoBalancesLib for IMorpho;
 
+    /**
+     * @notice Struct to hold data for claiming rewards
+     * @param urd Array of Universal Rewards Distributor addresses
+     * @param rewards Array of reward token addresses
+     * @param claimable Array of claimable reward amounts
+     * @param proofs Array of Merkle proofs for claiming rewards
+     */
     struct RewardsData {
         address[] urd;
         address[] rewards;
@@ -37,11 +45,11 @@ contract MorphoArk is Ark {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    /// @notice The Morpho Vault address
+    /// @notice The Morpho protocol contract
     IMorpho public immutable MORPHO;
-    /// @notice The market ID
+    /// @notice The market ID for the Morpho market this Ark interacts with
     Id public marketId;
-    /// @notice The market parameters
+    /// @notice The market parameters for the Morpho market
     MarketParams public marketParams;
 
     /*//////////////////////////////////////////////////////////////
@@ -50,8 +58,9 @@ contract MorphoArk is Ark {
 
     /**
      * @notice Constructor for MorphoArk
-     * @param _morpho The Morpho Vault address
-     * @param _marketId The market ID
+     * @param _morpho The Morpho protocol address
+     * @param _marketId The market ID for the Morpho market
+     * @param _arkParams ArkParams struct containing initialization parameters
      */
     constructor(
         address _morpho,
@@ -75,6 +84,8 @@ contract MorphoArk is Ark {
 
     /**
      * @inheritdoc IArk
+     * @notice Returns the total assets managed by this Ark in the Morpho market
+     * @return The total balance of assets supplied to the Morpho market
      */
     function totalAssets() public view override returns (uint256) {
         Position memory position = MORPHO.position(marketId, address(this));
@@ -92,8 +103,9 @@ contract MorphoArk is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Boards tokens into the Morpho Vault
-     * @param amount The amount of tokens to board
+     * @notice Supplies tokens to the Morpho market
+     * @param amount The amount of tokens to supply
+     * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
         MORPHO.accrueInterest(marketParams);
@@ -102,8 +114,9 @@ contract MorphoArk is Ark {
     }
 
     /**
-     * @notice Disembarks tokens from the Morpho Vault
-     * @param amount The amount of tokens to disembark
+     * @notice Withdraws tokens from the Morpho market
+     * @param amount The amount of tokens to withdraw
+     * @param /// data Additional data (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
         MORPHO.accrueInterest(marketParams);
@@ -111,24 +124,10 @@ contract MorphoArk is Ark {
     }
 
     /**
-     * @dev Internal function to harvest rewards based on the provided claim data.
-     *
-     * This function decodes the claim data, iterates through the rewards, and claims them
-     * from the respective rewards distributors. The claimed rewards are then transferred
-     * to the configured raft address.
-     *
-     * @param _claimData The encoded claim data containing information about the rewards to be claimed.
-     *
-     * @return rewardTokens An array of addresses of the reward tokens that were claimed.
-     * @return rewardAmounts An array of amounts of the reward tokens that were claimed.
-     *
-     * The claim data is expected to be in the following format:
-     * - claimData.urd: An array of addresses of the rewards distributors.
-     * - claimData.rewards: An array of addresses of the rewards tokens.
-     * - claimData.claimable: An array of amounts of the rewards to be claimed.
-     * - claimData.proofs: An array of Merkle proofs to claim the rewards.
-     *
-     * Emits an {ArkHarvested} event upon successful harvesting of rewards.
+     * @notice Internal function to harvest rewards based on the provided claim data
+     * @param _claimData Encoded RewardsData struct containing information about the rewards to be claimed
+     * @return rewardTokens An array of addresses of the reward tokens that were claimed
+     * @return rewardAmounts An array of amounts of the reward tokens that were claimed
      */
     function _harvest(
         bytes calldata _claimData
@@ -141,14 +140,6 @@ contract MorphoArk is Ark {
         rewardTokens = new address[](claimData.rewards.length);
         rewardAmounts = new uint256[](claimData.rewards.length);
         for (uint256 i = 0; i < claimData.rewards.length; i++) {
-            /**
-             * @dev Calls the `claim` function of the `IUniversalRewardsDistributorBase` contract to claim rewards.
-             * @param claimData.urd[i] The address of the rewards distributor to claim from.
-             * @param claimData.rewards[i] The address of the rewards token to claim.
-             * @param claimData.claimable[i] The amount of rewards to claim.
-             * @param claimData.proofs[i] The Merkle proof to claim the rewards.
-             * @param address(this) The address of the contract claiming the rewards - DPM proxy.
-             */
             IUniversalRewardsDistributor(claimData.urd[i]).claim(
                 address(this),
                 claimData.rewards[i],
@@ -164,14 +155,16 @@ contract MorphoArk is Ark {
     }
 
     /**
-     * @notice No-op for validateBoardData function
-     * @dev MorphoArk does not require any validation for board data
+     * @notice Validates the board data
+     * @dev This Ark does not require any validation for board data
+     * @param /// data Additional data to validate (unused in this implementation)
      */
-    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateBoardData(bytes calldata) internal override {}
 
     /**
-     * @notice No-op for validateDisembarkData function
-     * @dev MorphoArk does not require any validation for disembark data
+     * @notice Validates the disembark data
+     * @dev This Ark does not require any validation for disembark data
+     * @param /// data Additional data to validate (unused in this implementation)
      */
-    function _validateDisembarkData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata) internal override {}
 }

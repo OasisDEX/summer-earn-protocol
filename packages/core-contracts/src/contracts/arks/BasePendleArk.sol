@@ -40,7 +40,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
     /// @notice Address of the current Pendle market
     address public market;
     /// @notice Address of the Pendle router
-    address public router;
+    address public immutable router;
     /// @notice Address of the Pendle oracle
     address public immutable oracle;
     /// @notice Duration for the oracle to use when fetching rates
@@ -239,7 +239,10 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @return Equivalent amount of Ark-specific tokens
      */
     function _assetToArkTokens(uint256 amount) internal view returns (uint256) {
-        return (amount * Constants.WAD) / _fetchArkTokenToAssetRate();
+        uint256 rate = _fetchArkTokenToAssetRate();
+        if (rate == 0) revert ZeroExchangeRate();
+
+        return (amount * Constants.WAD) / rate;
     }
 
     /**
@@ -248,7 +251,10 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @return Equivalent amount of asset
      */
     function _arkTokensToAsset(uint256 amount) internal view returns (uint256) {
-        return (amount * _fetchArkTokenToAssetRate()) / Constants.WAD;
+        uint256 rate = _fetchArkTokenToAssetRate();
+        if (rate == 0) revert ZeroExchangeRate();
+
+        return (amount * rate) / Constants.WAD;
     }
 
     /**

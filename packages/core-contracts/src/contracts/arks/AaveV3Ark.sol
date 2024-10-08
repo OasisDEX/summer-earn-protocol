@@ -12,7 +12,8 @@ import "../Ark.sol";
 
 /**
  * @title AaveV3Ark
- * @notice This contract manages a Aave V3 token strategy within the Ark system
+ * @notice Ark contract for managing token supply and yield generation through the Aave V3.
+ * @dev Implements strategy for supplying tokens, withdrawing tokens, and claiming rewards on Aave V3.
  */
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
@@ -21,13 +22,13 @@ contract AaveV3Ark is Ark {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     /// @notice The Aave V3 aToken address
-    address public aToken;
+    address public immutable aToken;
     /// @notice The Aave V3 pool address
-    IPoolV3 public aaveV3Pool;
+    IPoolV3 public immutable aaveV3Pool;
     /// @notice The Aave V3 data provider address
-    IPoolDataProvider public aaveV3DataProvider;
+    IPoolDataProvider public immutable aaveV3DataProvider;
     /// @notice The Aave V3 rewards controller address
-    IRewardsController public rewardsController;
+    IRewardsController public immutable rewardsController;
 
     /**
      * @notice Struct to hold reward token information

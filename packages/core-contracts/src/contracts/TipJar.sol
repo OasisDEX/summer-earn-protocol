@@ -50,6 +50,8 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         tipStreamRecipients.push(tipStream.recipient);
 
         emit TipStreamAdded(tipStream);
+
+        return tipStream.lockedUntilEpoch;
     }
 
     /// @inheritdoc ITipJar
