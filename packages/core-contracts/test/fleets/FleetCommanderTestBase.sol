@@ -115,7 +115,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
 
     function setupBaseContracts(address underlyingToken) internal {
         if (address(accessManager) == address(0)) {
-            accessManager = new ProtocolAccessManager(governor, guardian);
+            accessManager = new ProtocolAccessManager(governor);
         }
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));

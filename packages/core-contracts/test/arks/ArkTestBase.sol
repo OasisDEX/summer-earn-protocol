@@ -36,7 +36,7 @@ contract ArkTestBase is TestHelpers {
     function initializeCoreContracts() internal {
         mockToken = new ERC20Mock();
         if (address(accessManager) == address(0)) {
-            accessManager = new ProtocolAccessManager(governor, guardian);
+            accessManager = new ProtocolAccessManager(governor);
         }
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));

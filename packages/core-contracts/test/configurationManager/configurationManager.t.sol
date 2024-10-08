@@ -28,7 +28,7 @@ contract ConfigurationManagerTest is Test {
         initialHarborCommand = address(6);
 
         // Setup AccessManager
-        accessManager = new ProtocolAccessManager(governor, guardian);
+        accessManager = new ProtocolAccessManager(governor);
 
         // Setup ConfigurationManager
         ConfigurationManagerParams memory params = ConfigurationManagerParams({

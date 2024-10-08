@@ -25,9 +25,8 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      */
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
-    constructor(address governor, address guardian) {
+    constructor(address governor) {
         _grantRole(GOVERNOR_ROLE, governor);
-        _grantRole(GUARDIAN_ROLE, guardian);
     }
 
     /**

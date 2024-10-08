@@ -19,7 +19,7 @@ contract HarborCommandTest is Test {
     function setUp() public {
         // Deploy ProtocolAccessManager
         vm.prank(governor);
-        accessManager = new ProtocolAccessManager(governor, guardian);
+        accessManager = new ProtocolAccessManager(governor);
 
         // Deploy HarborCommand
         vm.prank(governor);

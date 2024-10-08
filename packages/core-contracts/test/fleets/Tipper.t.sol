@@ -33,7 +33,7 @@ contract TipperTest is Test, ITipperEvents {
     HarborCommand public harborCommand;
 
     function setUp() public {
-        accessManager = new ProtocolAccessManager(governor, guardian);
+        accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
         accessManager.grantKeeperRole(address(fleetCommander), keeper);
         harborCommand = new HarborCommand(address(accessManager));

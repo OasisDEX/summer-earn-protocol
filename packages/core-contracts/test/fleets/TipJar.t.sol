@@ -35,7 +35,7 @@ contract TipJarTest is Test, ITipJarEvents {
     HarborCommand public harborCommand;
 
     function setUp() public {
-        accessManager = new ProtocolAccessManager(governor, guardian);
+        accessManager = new ProtocolAccessManager(governor);
         vm.prank(governor);
         accessManager.grantContractSpecificRole(
             ContractSpecificRoles.KEEPER_ROLE,

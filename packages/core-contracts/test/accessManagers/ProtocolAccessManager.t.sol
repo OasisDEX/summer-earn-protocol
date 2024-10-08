@@ -26,13 +26,10 @@ contract ProtocolAccessManagerTest is Test {
         commander = address(0x6);
 
         vm.prank(governor);
-        accessManager = new TestProtocolAccessManager(governor, guardian);
+        accessManager = new TestProtocolAccessManager(governor);
     }
 
     function test_Constructor() public view {
-        assertTrue(
-            accessManager.hasRole(accessManager.GUARDIAN_ROLE(), guardian)
-        );
         assertTrue(
             accessManager.hasRole(accessManager.GOVERNOR_ROLE(), governor)
         );
@@ -268,8 +265,5 @@ contract ProtocolAccessManagerTest is Test {
 }
 
 contract TestProtocolAccessManager is ProtocolAccessManager {
-    constructor(
-        address governor,
-        address guardian
-    ) ProtocolAccessManager(governor, guardian) {}
+    constructor(address governor) ProtocolAccessManager(governor) {}
 }
