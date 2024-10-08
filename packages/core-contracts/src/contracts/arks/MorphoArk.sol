@@ -125,9 +125,22 @@ contract MorphoArk is Ark {
 
     /**
      * @notice Internal function to harvest rewards based on the provided claim data
+     * @dev This function decodes the claim data, iterates through the rewards, and claims them
+     *      from the respective Universal Rewards Distributors. The claimed rewards are then
+     *      transferred to the configured raft address.
+     *
      * @param _claimData Encoded RewardsData struct containing information about the rewards to be claimed
+     *
      * @return rewardTokens An array of addresses of the reward tokens that were claimed
      * @return rewardAmounts An array of amounts of the reward tokens that were claimed
+     *
+     * The RewardsData struct is expected to contain:
+     * - urd: An array of Universal Rewards Distributor addresses
+     * - rewards: An array of reward token addresses
+     * - claimable: An array of claimable reward amounts
+     * - proofs: An array of Merkle proofs for claiming rewards
+     *
+     * Emits an {ArkHarvested} event upon successful harvesting of rewards.
      */
     function _harvest(
         bytes calldata _claimData
@@ -140,6 +153,13 @@ contract MorphoArk is Ark {
         rewardTokens = new address[](claimData.rewards.length);
         rewardAmounts = new uint256[](claimData.rewards.length);
         for (uint256 i = 0; i < claimData.rewards.length; i++) {
+            /**
+             * @dev Claims rewards from the Universal Rewards Distributor
+             * @param address(this) The address of the contract claiming the rewards (this MorphoArk)
+             * @param claimData.rewards[i] The address of the reward token to claim
+             * @param claimData.claimable[i] The amount of rewards to claim
+             * @param claimData.proofs[i] The Merkle proof required to claim the rewards
+             */
             IUniversalRewardsDistributor(claimData.urd[i]).claim(
                 address(this),
                 claimData.rewards[i],
