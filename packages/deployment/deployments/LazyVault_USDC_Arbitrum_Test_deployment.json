@@ -6,6 +6,7 @@
   "bufferArkAddress": "0x1b4aDA9Fac83f9777813e0Faf65530A39dcf9F87",
   "network": "arbitrum",
   "arks": [
-    "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
+    "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515",
+    "0x085b4f913e7832C4BC83F6633a561d18732aF08a"
   ]
 }

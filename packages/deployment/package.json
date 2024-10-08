@@ -26,6 +26,7 @@
     "deploy:gov": "hardhat run scripts/deploy-gov.ts --network $NETWORK",
     "deploy:buy-and-burn": "hardhat run scripts/deploy-buy-and-burn.ts --network $NETWORK",
     "deploy:fleet": "hardhat run scripts/deploy-fleet.ts --network $NETWORK",
+    "deploy:ark": "hardhat run scripts/deploy-ark.ts --network $NETWORK",
     "deploy:aavev3-ark": "hardhat run scripts/deploy-aavev3-ark.ts --network $NETWORK",
     "deploy:compoundv3-ark": "hardhat run scripts/deploy-compoundv3-ark.ts --network $NETWORK",
     "deploy:metamorpho-ark": "hardhat run scripts/deploy-metamorpho-ark.ts --network $NETWORK",

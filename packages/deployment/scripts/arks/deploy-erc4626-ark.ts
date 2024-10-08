@@ -2,14 +2,17 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { createERC4626ArkModule, ERC4626ArkContracts } from '../ignition/modules/arks/erc4626-ark'
-import { BaseConfig, Tokens, TokenType } from '../types/config-types'
-import { MAX_UINT256_STRING } from './common/constants'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainId } from './helpers/get-chainid'
-import { ModuleLogger } from './helpers/module-logger'
-import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import {
+  createERC4626ArkModule,
+  ERC4626ArkContracts,
+} from '../../ignition/modules/arks/erc4626-ark'
+import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { MAX_UINT256_STRING } from '../common/constants'
+import { getConfigByNetwork } from '../helpers/config-handler'
+import { handleDeploymentId } from '../helpers/deployment-id-handler'
+import { getChainId } from '../helpers/get-chainid'
+import { ModuleLogger } from '../helpers/module-logger'
+import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 export async function deployERC4626Ark() {
   const config = getConfigByNetwork(hre.network.name)
@@ -27,6 +30,8 @@ export async function deployERC4626Ark() {
 
     // Logging
     ModuleLogger.logERC4626Ark(deployedERC4626Ark)
+
+    return { ark: deployedERC4626Ark.erc4626Ark }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -128,8 +133,3 @@ async function deployERC4626ArkContract(
     deploymentId,
   })) as ERC4626ArkContracts
 }
-
-deployERC4626Ark().catch((error) => {
-  console.error(kleur.red().bold('An error occurred:'), error)
-  process.exit(1)
-})

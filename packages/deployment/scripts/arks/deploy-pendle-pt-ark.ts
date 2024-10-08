@@ -2,14 +2,14 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import PendlePTArkModule, { PendlePTArkContracts } from '../ignition/modules/arks/pendle-pt-ark'
-import { BaseConfig, Tokens, TokenType } from '../types/config-types'
-import { MAX_UINT256_STRING } from './common/constants'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainId } from './helpers/get-chainid'
-import { ModuleLogger } from './helpers/module-logger'
-import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import PendlePTArkModule, { PendlePTArkContracts } from '../../ignition/modules/arks/pendle-pt-ark'
+import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { MAX_UINT256_STRING } from '../common/constants'
+import { getConfigByNetwork } from '../helpers/config-handler'
+import { handleDeploymentId } from '../helpers/deployment-id-handler'
+import { getChainId } from '../helpers/get-chainid'
+import { ModuleLogger } from '../helpers/module-logger'
+import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 export async function deployPendlePTArk() {
   const config = getConfigByNetwork(hre.network.name)
@@ -27,6 +27,8 @@ export async function deployPendlePTArk() {
 
     // Logging
     ModuleLogger.logPendlePTArk(deployedPendlePTArk)
+
+    return { ark: deployedPendlePTArk.pendlePTArk }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -134,8 +136,3 @@ async function deployPendlePTArkContract(
     deploymentId,
   })) as PendlePTArkContracts
 }
-
-deployPendlePTArk().catch((error) => {
-  console.error(kleur.red().bold('An error occurred:'), error)
-  process.exit(1)
-})

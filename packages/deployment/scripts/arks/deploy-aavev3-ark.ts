@@ -2,15 +2,14 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import AaveV3ArkModule, { AaveV3ArkContracts } from '../ignition/modules/arks/aavev3-ark'
-import { BaseConfig, TokenType } from '../types/config-types'
-import { addArkToFleet } from './common/add-ark-to-fleet'
-import { MAX_UINT256_STRING } from './common/constants'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainId } from './helpers/get-chainid'
-import { ModuleLogger } from './helpers/module-logger'
-import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import AaveV3ArkModule, { AaveV3ArkContracts } from '../../ignition/modules/arks/aavev3-ark'
+import { BaseConfig, TokenType } from '../../types/config-types'
+import { MAX_UINT256_STRING } from '../common/constants'
+import { getConfigByNetwork } from '../helpers/config-handler'
+import { handleDeploymentId } from '../helpers/deployment-id-handler'
+import { getChainId } from '../helpers/get-chainid'
+import { ModuleLogger } from '../helpers/module-logger'
+import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 /**
  * Main function to deploy an AaveV3Ark.
@@ -38,7 +37,7 @@ export async function deployAaveV3Ark() {
     // Logging
     ModuleLogger.logAaveV3Ark(deployedAaveV3Ark)
 
-    await addArkToFleet(deployedAaveV3Ark.aaveV3Ark.address as Address, config, hre)
+    return { ark: deployedAaveV3Ark.aaveV3Ark }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -135,9 +134,3 @@ async function deployAaveV3ArkContract(
     deploymentId,
   })) as AaveV3ArkContracts
 }
-
-// Execute the deployAaveV3Ark function and handle any errors
-deployAaveV3Ark().catch((error) => {
-  console.error(kleur.red().bold('An error occurred:'), error)
-  process.exit(1)
-})

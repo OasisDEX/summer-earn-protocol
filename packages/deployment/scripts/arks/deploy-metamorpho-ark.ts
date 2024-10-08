@@ -2,59 +2,63 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import MorphoArkModule, { MorphoArkContracts } from '../ignition/modules/arks/morpho-ark'
-import { BaseConfig, TokenType } from '../types/config-types'
-import { MAX_UINT256_STRING } from './common/constants'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainId } from './helpers/get-chainid'
-import { ModuleLogger } from './helpers/module-logger'
-import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import MetaMorphoArkModule, {
+  MetaMorphoArkContracts,
+} from '../../ignition/modules/arks/metamorpho-ark'
+import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { MAX_UINT256_STRING } from '../common/constants'
+import { getConfigByNetwork } from '../helpers/config-handler'
+import { handleDeploymentId } from '../helpers/deployment-id-handler'
+import { getChainId } from '../helpers/get-chainid'
+import { ModuleLogger } from '../helpers/module-logger'
+import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 /**
- * Main function to deploy a MorphoArk.
+ * Main function to deploy a MetaMorphoArk.
  * This function orchestrates the entire deployment process, including:
  * - Getting configuration for the current network
  * - Collecting user input for deployment parameters
  * - Confirming deployment with the user
- * - Deploying the MorphoArk contract
+ * - Deploying the MetaMorphoArk contract
  * - Logging deployment results
  */
-export async function deployMorphoArk() {
+export async function deployMetaMorphoArk() {
   const config = getConfigByNetwork(hre.network.name)
 
-  console.log(kleur.green().bold('Starting MorphoArk deployment process...'))
+  console.log(kleur.green().bold('Starting MetaMorphoArk deployment process...'))
 
   const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
-    const deployedMorphoArk = await deployMorphoArkContract(config, userInput)
+    const deployedMetaMorphoArk = await deployMetaMorphoArkContract(config, userInput)
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
     // Logging
-    ModuleLogger.logMorphoArk(deployedMorphoArk)
+    ModuleLogger.logMetaMorphoArk(deployedMetaMorphoArk)
+
+    return { ark: deployedMetaMorphoArk.metaMorphoArk }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
 }
 
 /**
- * Prompts the user for MorphoArk deployment parameters.
+ * Prompts the user for MetaMorphoArk deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig) {
-  // Extract Morpho markets from the configuration
-  const morphoMarkets = []
-  for (const token in config.protocolSpecific.morpho.markets) {
-    for (const marketName in config.protocolSpecific.morpho.markets[token as TokenType]) {
-      const marketId = config.protocolSpecific.morpho.markets[token as TokenType][marketName]
-      morphoMarkets.push({
-        title: `${token.toUpperCase()} - ${marketName}`,
-        value: { token, marketId },
+  // Extract Morpho vaults from the configuration
+  const morphoVaults = []
+  for (const token in config.protocolSpecific.morpho.vaults) {
+    for (const vaultName in config.protocolSpecific.morpho.vaults[token as Tokens]) {
+      const vaultId = config.protocolSpecific.morpho.vaults[token as TokenType][vaultName]
+      morphoVaults.push({
+        title: `${token.toUpperCase()} - ${vaultName}`,
+        value: { token, vaultId },
       })
     }
   }
@@ -62,9 +66,9 @@ async function getUserInput(config: BaseConfig) {
   const responses = await prompts([
     {
       type: 'select',
-      name: 'marketSelection',
-      message: 'Select a Morpho market:',
-      choices: morphoMarkets,
+      name: 'vaultSelection',
+      message: 'Select a Morpho vault:',
+      choices: morphoVaults,
     },
     {
       type: 'text',
@@ -86,15 +90,17 @@ async function getUserInput(config: BaseConfig) {
     },
   ])
 
-  // Set the token address based on the selected market
-  const selectedMarket = responses.marketSelection
-  const tokenAddress = config.tokens[selectedMarket.token as TokenType]
+  // Set the token address based on the selected vault
+  const selectedVault = responses.vaultSelection
+  const tokenAddress = config.tokens[selectedVault.token as TokenType]
 
-  return {
+  const aggregatedData = {
     ...responses,
     token: tokenAddress,
-    marketId: selectedMarket.marketId,
+    vaultId: selectedVault.vaultId,
   }
+
+  return aggregatedData
 }
 
 /**
@@ -104,35 +110,34 @@ async function getUserInput(config: BaseConfig) {
  */
 async function confirmDeployment(userInput: any) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Token                  : ${userInput.token}`))
-  console.log(kleur.yellow(`Market ID              : ${userInput.marketId}`))
-  console.log(kleur.yellow(`Deposit Cap            : ${userInput.depositCap}`))
-  console.log(kleur.yellow(`Max Rebalance Outflow  : ${userInput.maxRebalanceOutflow}`))
-  console.log(kleur.yellow(`Max Rebalance Inflow   : ${userInput.maxRebalanceInflow}`))
+  console.log(kleur.yellow(`Token: ${userInput.token}`))
+  console.log(kleur.yellow(`Vault ID: ${userInput.vaultId}`))
+  console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
+  console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
+  console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
   return await continueDeploymentCheck()
 }
 
 /**
- * Deploys the MorphoArk contract using Hardhat Ignition.
+ * Deploys the MetaMorphoArk contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
  * @param {any} userInput - The user's input for deployment parameters.
- * @returns {Promise<MorphoArkContracts>} The deployed MorphoArk contract.
+ * @returns {Promise<MetaMorphoArkContracts>} The deployed MetaMorphoArk contract.
  */
-async function deployMorphoArkContract(
+async function deployMetaMorphoArkContract(
   config: BaseConfig,
   userInput: any,
-): Promise<MorphoArkContracts> {
+): Promise<MetaMorphoArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
 
-  return (await hre.ignition.deploy(MorphoArkModule, {
+  return (await hre.ignition.deploy(MetaMorphoArkModule, {
     parameters: {
-      MorphoArkModule: {
-        morphoBlue: config.protocolSpecific.morpho.blue,
-        marketId: userInput.marketId,
+      MetaMorphoArkModule: {
+        strategyVault: userInput.vaultId,
         arkParams: {
-          name: `Morpho-${userInput.token}-${userInput.marketId}-${chainId}`,
+          name: `MetaMorpho-${userInput.token}-${userInput.vaultId}-${chainId}`,
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -145,11 +150,5 @@ async function deployMorphoArkContract(
       },
     },
     deploymentId,
-  })) as MorphoArkContracts
+  })) as MetaMorphoArkContracts
 }
-
-// Execute the deployMorphoArk function and handle any errors
-deployMorphoArk().catch((error) => {
-  console.error(kleur.red().bold('An error occurred:'), error)
-  process.exit(1)
-})

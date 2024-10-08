@@ -12,5 +12,6 @@
   "BuyAndBurnModule#DutchAuctionLibrary": "0x7160287dA4c544907011C0548c0818F7a9DbA7D1",
   "BuyAndBurnModule#BuyAndBurn": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57",
   "FleetModule_LazyVault_USDC_Arbitrum_Test#FleetCommander": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE",
-  "AaveV3ArkModule#AaveV3Ark": "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
+  "AaveV3ArkModule#AaveV3Ark": "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515",
+  "CompoundV3ArkModule#CompoundV3Ark": "0x085b4f913e7832C4BC83F6633a561d18732aF08a"
 }

@@ -2,71 +2,70 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import MetaMorphoArkModule, {
-  MetaMorphoArkContracts,
-} from '../ignition/modules/arks/metamorpho-ark'
-import { BaseConfig, Tokens, TokenType } from '../types/config-types'
-import { MAX_UINT256_STRING } from './common/constants'
-import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { getChainId } from './helpers/get-chainid'
-import { ModuleLogger } from './helpers/module-logger'
-import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import CompoundV3ArkModule, {
+  CompoundV3ArkContracts,
+} from '../../ignition/modules/arks/compoundv3-ark'
+import { BaseConfig, TokenType } from '../../types/config-types'
+import { MAX_UINT256_STRING } from '../common/constants'
+import { getConfigByNetwork } from '../helpers/config-handler'
+import { handleDeploymentId } from '../helpers/deployment-id-handler'
+import { getChainId } from '../helpers/get-chainid'
+import { ModuleLogger } from '../helpers/module-logger'
+import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 /**
- * Main function to deploy a MetaMorphoArk.
+ * Main function to deploy a CompoundV3Ark.
  * This function orchestrates the entire deployment process, including:
  * - Getting configuration for the current network
  * - Collecting user input for deployment parameters
  * - Confirming deployment with the user
- * - Deploying the MetaMorphoArk contract
+ * - Deploying the CompoundV3Ark contract
  * - Logging deployment results
  */
-export async function deployMetaMorphoArk() {
+export async function deployCompoundV3Ark() {
   const config = getConfigByNetwork(hre.network.name)
 
-  console.log(kleur.green().bold('Starting MetaMorphoArk deployment process...'))
+  console.log(kleur.green().bold('Starting CompoundV3Ark deployment process...'))
 
   const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
-    const deployedMetaMorphoArk = await deployMetaMorphoArkContract(config, userInput)
+    const deployedCompoundV3Ark = await deployCompoundV3ArkContract(config, userInput)
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
     // Logging
-    ModuleLogger.logMetaMorphoArk(deployedMetaMorphoArk)
+    ModuleLogger.logCompoundV3Ark(deployedCompoundV3Ark)
+
+    return { ark: deployedCompoundV3Ark.compoundV3Ark }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
 }
 
 /**
- * Prompts the user for MetaMorphoArk deployment parameters.
+ * Prompts the user for CompoundV3Ark deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
 async function getUserInput(config: BaseConfig) {
-  // Extract Morpho vaults from the configuration
-  const morphoVaults = []
-  for (const token in config.protocolSpecific.morpho.vaults) {
-    for (const vaultName in config.protocolSpecific.morpho.vaults[token as Tokens]) {
-      const vaultId = config.protocolSpecific.morpho.vaults[token as TokenType][vaultName]
-      morphoVaults.push({
-        title: `${token.toUpperCase()} - ${vaultName}`,
-        value: { token, vaultId },
-      })
-    }
+  // Extract Compound V3 pools from the configuration
+  const compoundV3Pools = []
+  for (const pool in config.protocolSpecific.compoundV3.pools) {
+    compoundV3Pools.push({
+      title: pool.toUpperCase(),
+      value: pool,
+    })
   }
 
   const responses = await prompts([
     {
       type: 'select',
-      name: 'vaultSelection',
-      message: 'Select a Morpho vault:',
-      choices: morphoVaults,
+      name: 'compoundV3Pool',
+      message: 'Select Compound V3 pools:',
+      choices: compoundV3Pools,
     },
     {
       type: 'text',
@@ -88,17 +87,16 @@ async function getUserInput(config: BaseConfig) {
     },
   ])
 
-  // Set the token address based on the selected vault
-  const selectedVault = responses.vaultSelection
-  const tokenAddress = config.tokens[selectedVault.token as TokenType]
+  // Set the token address based on the selected pool
+  const selectedPool = responses.compoundV3Pool as TokenType
+  const tokenAddress = config.tokens[selectedPool]
 
-  const aggregatedData = {
+  return {
     ...responses,
     token: tokenAddress,
-    vaultId: selectedVault.vaultId,
+    compoundV3Pool: config.protocolSpecific.compoundV3.pools[selectedPool].cToken,
+    compoundV3Rewards: config.protocolSpecific.compoundV3.rewards,
   }
-
-  return aggregatedData
 }
 
 /**
@@ -108,8 +106,9 @@ async function getUserInput(config: BaseConfig) {
  */
 async function confirmDeployment(userInput: any) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
+  console.log(kleur.yellow(`Compound V3 Pool: ${userInput.compoundV3Pool}`))
+  console.log(kleur.yellow(`Compound V3 Rewards: ${userInput.compoundV3Rewards}`))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
-  console.log(kleur.yellow(`Vault ID: ${userInput.vaultId}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
@@ -118,24 +117,25 @@ async function confirmDeployment(userInput: any) {
 }
 
 /**
- * Deploys the MetaMorphoArk contract using Hardhat Ignition.
+ * Deploys the CompoundV3Ark contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
  * @param {any} userInput - The user's input for deployment parameters.
- * @returns {Promise<MetaMorphoArkContracts>} The deployed MetaMorphoArk contract.
+ * @returns {Promise<CompoundV3ArkContracts>} The deployed CompoundV3Ark contract.
  */
-async function deployMetaMorphoArkContract(
+async function deployCompoundV3ArkContract(
   config: BaseConfig,
   userInput: any,
-): Promise<MetaMorphoArkContracts> {
+): Promise<CompoundV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
 
-  return (await hre.ignition.deploy(MetaMorphoArkModule, {
+  return (await hre.ignition.deploy(CompoundV3ArkModule, {
     parameters: {
-      MetaMorphoArkModule: {
-        strategyVault: userInput.vaultId,
+      CompoundV3ArkModule: {
+        compoundV3Pool: userInput.compoundV3Pool,
+        compoundV3Rewards: userInput.compoundV3Rewards,
         arkParams: {
-          name: `MetaMorpho-${userInput.token}-${userInput.vaultId}-${chainId}`,
+          name: `CompoundV3-${userInput.token}-${userInput.compoundV3Pools}-${chainId}`,
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
@@ -148,11 +148,5 @@ async function deployMetaMorphoArkContract(
       },
     },
     deploymentId,
-  })) as MetaMorphoArkContracts
+  })) as CompoundV3ArkContracts
 }
-
-// Execute the deployMetaMorphoArk function and handle any errors
-deployMetaMorphoArk().catch((error) => {
-  console.error(kleur.red().bold('An error occurred:'), error)
-  process.exit(1)
-})
