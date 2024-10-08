@@ -8,7 +8,6 @@ import { MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
-import { ModuleLogger } from '../helpers/module-logger'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 export async function deployPendlePTArk() {
@@ -19,15 +18,7 @@ export async function deployPendlePTArk() {
   const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
-    console.log(kleur.green().bold('Proceeding with deployment...'))
-
     const deployedPendlePTArk = await deployPendlePTArkContract(config, userInput)
-
-    console.log(kleur.green().bold('Deployment completed successfully!'))
-
-    // Logging
-    ModuleLogger.logPendlePTArk(deployedPendlePTArk)
-
     return { ark: deployedPendlePTArk.pendlePTArk }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))

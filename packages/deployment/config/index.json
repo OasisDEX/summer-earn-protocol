@@ -142,7 +142,7 @@
     "protocolSpecific": {
       "erc4626": {
         "usdc": {
-          "gearbox": "0x890a69ef363c9c7bdd5e36eb95ceb569f63acbf6"
+          "gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
         }
       },
       "pendle": {

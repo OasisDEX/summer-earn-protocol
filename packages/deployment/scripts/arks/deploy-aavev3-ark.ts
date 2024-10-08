@@ -8,7 +8,6 @@ import { MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
-import { ModuleLogger } from '../helpers/module-logger'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 /**
@@ -28,15 +27,7 @@ export async function deployAaveV3Ark() {
   const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
-    console.log(kleur.green().bold('Proceeding with deployment...'))
-
     const deployedAaveV3Ark = await deployAaveV3ArkContract(config, userInput)
-
-    console.log(kleur.green().bold('Deployment completed successfully!'))
-
-    // Logging
-    ModuleLogger.logAaveV3Ark(deployedAaveV3Ark)
-
     return { ark: deployedAaveV3Ark.aaveV3Ark }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))

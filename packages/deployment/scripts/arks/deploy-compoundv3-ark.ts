@@ -10,7 +10,6 @@ import { MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
-import { ModuleLogger } from '../helpers/module-logger'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 /**
@@ -30,15 +29,7 @@ export async function deployCompoundV3Ark() {
   const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
-    console.log(kleur.green().bold('Proceeding with deployment...'))
-
     const deployedCompoundV3Ark = await deployCompoundV3ArkContract(config, userInput)
-
-    console.log(kleur.green().bold('Deployment completed successfully!'))
-
-    // Logging
-    ModuleLogger.logCompoundV3Ark(deployedCompoundV3Ark)
-
     return { ark: deployedCompoundV3Ark.compoundV3Ark }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
