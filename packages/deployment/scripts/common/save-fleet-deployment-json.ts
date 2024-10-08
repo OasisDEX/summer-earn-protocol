@@ -23,7 +23,7 @@ export function saveFleetDeploymentJson(
     network: fleetDefinition.network,
   }
 
-  const deploymentDir = path.resolve(__dirname, '..','..', 'deployments')
+  const deploymentDir = path.resolve(__dirname, '..', '..', 'deployments')
   if (!fs.existsSync(deploymentDir)) {
     fs.mkdirSync(deploymentDir, { recursive: true })
   }
