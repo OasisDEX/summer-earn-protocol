@@ -20,20 +20,6 @@ enum ContractSpecificRoles {
  */
 interface IProtocolAccessManager {
     /**
-     * @notice Grants the Admin role to a given account
-     *
-     * @param account The account to which the Admin role will be granted
-     */
-    function grantAdminRole(address account) external;
-
-    /**
-     * @notice Revokes the Admin role from a given account
-     *
-     * @param account The account from which the Admin role will be revoked
-     */
-    function revokeAdminRole(address account) external;
-
-    /**
      * @notice Grants the Governor role to a given account
      *
      * @param account The account to which the Governor role will be granted

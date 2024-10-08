@@ -66,7 +66,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     address public invalidArk = address(999);
     address public treasury = address(777);
     address public nonOwner = address(0xdeadbeef);
-
+    address public guardian = address(1);
     // Other variables
     string public fleetName = "OK_Fleet";
     FleetCommanderParams public fleetCommanderParams;
@@ -115,7 +115,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
 
     function setupBaseContracts(address underlyingToken) internal {
         if (address(accessManager) == address(0)) {
-            accessManager = new ProtocolAccessManager(governor);
+            accessManager = new ProtocolAccessManager(governor, guardian);
         }
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));

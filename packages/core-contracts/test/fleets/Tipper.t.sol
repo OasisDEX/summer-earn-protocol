@@ -21,6 +21,7 @@ contract TipperTest is Test, ITipperEvents {
 
     address public mockUser = address(1);
     address public governor = address(2);
+    address public guardian = address(2);
     address public keeper = address(3);
     FleetCommanderMock public fleetCommander;
     ConfigurationManagerMock public configManager;
@@ -32,7 +33,7 @@ contract TipperTest is Test, ITipperEvents {
     HarborCommand public harborCommand;
 
     function setUp() public {
-        accessManager = new ProtocolAccessManager(governor);
+        accessManager = new ProtocolAccessManager(governor, guardian);
         vm.prank(governor);
         accessManager.grantKeeperRole(address(fleetCommander), keeper);
         harborCommand = new HarborCommand(address(accessManager));

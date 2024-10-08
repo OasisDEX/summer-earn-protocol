@@ -14,9 +14,11 @@ contract ProtocolAccessManagerTest is Test {
     address public user;
     address public commander;
     address public curator;
+    address public guardian;
 
     function setUp() public {
         governor = address(0x1);
+        guardian = address(0x1);
         admin = address(0x2);
         keeper = address(0x3);
         user = address(0x4);
@@ -24,12 +26,12 @@ contract ProtocolAccessManagerTest is Test {
         commander = address(0x6);
 
         vm.prank(governor);
-        accessManager = new TestProtocolAccessManager(governor);
+        accessManager = new TestProtocolAccessManager(governor, guardian);
     }
 
     function test_Constructor() public view {
         assertTrue(
-            accessManager.hasRole(accessManager.DEFAULT_ADMIN_ROLE(), governor)
+            accessManager.hasRole(accessManager.GUARDIAN_ROLE(), guardian)
         );
         assertTrue(
             accessManager.hasRole(accessManager.GOVERNOR_ROLE(), governor)
@@ -41,24 +43,6 @@ contract ProtocolAccessManagerTest is Test {
             accessManager.supportsInterface(
                 type(IProtocolAccessManager).interfaceId
             )
-        );
-    }
-
-    function test_GrantAdminRole() public {
-        vm.prank(governor);
-        accessManager.grantAdminRole(admin);
-        assertTrue(
-            accessManager.hasRole(accessManager.DEFAULT_ADMIN_ROLE(), admin)
-        );
-    }
-
-    function test_RevokeAdminRole() public {
-        vm.startPrank(governor);
-        accessManager.grantAdminRole(admin);
-        accessManager.revokeAdminRole(admin);
-        vm.stopPrank();
-        assertFalse(
-            accessManager.hasRole(accessManager.DEFAULT_ADMIN_ROLE(), admin)
         );
     }
 
@@ -232,14 +216,6 @@ contract ProtocolAccessManagerTest is Test {
         );
     }
 
-    function test_OnlyAdminModifier() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotAdmin(address)", user)
-        );
-        vm.prank(user);
-        accessManager.grantAdminRole(user);
-    }
-
     function test_OnlyGovernorModifier() public {
         vm.expectRevert(
             abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
@@ -292,5 +268,8 @@ contract ProtocolAccessManagerTest is Test {
 }
 
 contract TestProtocolAccessManager is ProtocolAccessManager {
-    constructor(address governor) ProtocolAccessManager(governor) {}
+    constructor(
+        address governor,
+        address guardian
+    ) ProtocolAccessManager(governor, guardian) {}
 }

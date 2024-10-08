@@ -179,9 +179,11 @@ interface IFleetCommander is
      *      - boardData: Additional optional data for the board operation
      *      - disembarkData: Additional optional data for the disembark operation
      * @dev Unlike rebalance, adjustBuffer operations must involve the buffer Ark
-     * @dev All operations in a single adjustBuffer call must be in the same direction (either all to buffer or all from buffer)
+     * @dev All operations in a single adjustBuffer call must be in the same direction (either all to buffer or all from
+     * buffer)
      * @dev type(uint256).max is not allowed as an amount for buffer adjustments
-     * @dev When withdrawing from the buffer, the total amount moved cannot reduce the buffer balance below minFundsBufferBalance
+     * @dev When withdrawing from the buffer, the total amount moved cannot reduce the buffer balance below
+     * minFundsBufferBalance
      * @dev The number of operations in a single adjustBuffer call is limited to DEFAULT_MAX_REBALANCE_OPERATIONS
      * @dev AdjustBuffer is subject to a cooldown period between calls
      * @dev Only callable by accounts with the Keeper role

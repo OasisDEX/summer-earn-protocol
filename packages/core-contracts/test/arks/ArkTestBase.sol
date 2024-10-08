@@ -22,6 +22,7 @@ import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.so
 
 contract ArkTestBase is TestHelpers {
     address public governor = address(1);
+    address public guardian = address(1);
     address public commander = address(4);
     address public raft = address(2);
     address public tipJar = address(3);
@@ -35,7 +36,7 @@ contract ArkTestBase is TestHelpers {
     function initializeCoreContracts() internal {
         mockToken = new ERC20Mock();
         if (address(accessManager) == address(0)) {
-            accessManager = new ProtocolAccessManager(governor);
+            accessManager = new ProtocolAccessManager(governor, guardian);
         }
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));
