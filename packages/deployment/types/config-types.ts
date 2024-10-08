@@ -1,6 +1,6 @@
-import { BuyAndBurnContracts } from '../modules/buy-and-burn'
-import { CoreContracts } from '../modules/core'
-import { GovContracts } from '../modules/gov'
+import { BuyAndBurnContracts } from '../ignition/modules/buy-and-burn'
+import { CoreContracts } from '../ignition/modules/core'
+import { GovContracts } from '../ignition/modules/gov'
 
 export enum Tokens {
   USDC = 'usdc',
@@ -66,6 +66,16 @@ export interface BaseConfig {
       rewards: string
     }
   }
+}
+export interface FleetConfig {
+  fleetName: string
+  symbol: string
+  assetSymbol: string
+  initialMinimumBufferBalance: string
+  initialRebalanceCooldown: string
+  depositCap: string
+  initialTipRate: string
+  network: string
 }
 
 export interface Config {

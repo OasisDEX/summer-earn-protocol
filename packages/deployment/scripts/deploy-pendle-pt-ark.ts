@@ -1,8 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig, Tokens, TokenType } from '../ignition/config/config-types'
+import { Address } from 'viem'
 import PendlePTArkModule, { PendlePTArkContracts } from '../ignition/modules/arks/pendle-pt-ark'
+import { BaseConfig, Tokens, TokenType } from '../types/config-types'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -119,8 +120,9 @@ async function deployPendlePTArkContract(
         router: userInput.router,
         arkParams: {
           name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
-          accessManager: config.deployedContracts.core.protocolAccessManager,
-          configurationManager: config.deployedContracts.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
+          configurationManager: config.deployedContracts.core.configurationManager
+            .address as Address,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,

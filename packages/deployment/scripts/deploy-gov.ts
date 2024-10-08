@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { BaseConfig } from '../ignition/config/config-types'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
+import { BaseConfig } from '../types/config-types'
 import { checkExistingContracts } from './helpers/check-existing-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'

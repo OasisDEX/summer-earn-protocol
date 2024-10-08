@@ -1,7 +1,7 @@
 import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
-import { BaseConfig, Config } from '../../ignition/config/config-types'
+import { BaseConfig, Config } from '../../types/config-types'
 
 export function getConfigByNetwork(network: string): BaseConfig {
   const configPath = path.resolve(__dirname, '..', '..', 'config', 'index.json')

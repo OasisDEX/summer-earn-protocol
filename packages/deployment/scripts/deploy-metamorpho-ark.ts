@@ -1,10 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig, Tokens, TokenType } from '../ignition/config/config-types'
+import { Address } from 'viem'
 import MetaMorphoArkModule, {
   MetaMorphoArkContracts,
 } from '../ignition/modules/arks/metamorpho-ark'
+import { BaseConfig, Tokens, TokenType } from '../types/config-types'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -135,8 +136,9 @@ async function deployMetaMorphoArkContract(
         strategyVault: userInput.vaultId,
         arkParams: {
           name: `MetaMorpho-${userInput.token}-${userInput.vaultId}-${chainId}`,
-          accessManager: config.deployedContracts.core.protocolAccessManager,
-          configurationManager: config.deployedContracts.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
+          configurationManager: config.deployedContracts.core.configurationManager
+            .address as Address,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,

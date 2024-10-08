@@ -1,8 +1,10 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig, TokenType } from '../ignition/config/config-types'
+import { Address } from 'viem'
 import AaveV3ArkModule, { AaveV3ArkContracts } from '../ignition/modules/arks/aavev3-ark'
+import { BaseConfig, TokenType } from '../types/config-types'
+import { addArkToFleet } from './common/add-ark-to-fleet'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -35,11 +37,12 @@ export async function deployAaveV3Ark() {
 
     // Logging
     ModuleLogger.logAaveV3Ark(deployedAaveV3Ark)
+
+    await addArkToFleet(deployedAaveV3Ark.aaveV3Ark.address as Address, config, hre)
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
 }
-
 /**
  * Prompts the user for CompoundV3Ark deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
@@ -118,8 +121,9 @@ async function deployAaveV3ArkContract(
         rewardsController: config.protocolSpecific.aaveV3.rewards,
         arkParams: {
           name: `AaveV3-${userInput.token}-${config.protocolSpecific.aaveV3.pool}-${chainId}`,
-          accessManager: config.deployedContracts.core.protocolAccessManager,
-          configurationManager: config.deployedContracts.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
+          configurationManager: config.deployedContracts.core.configurationManager
+            .address as Address,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,

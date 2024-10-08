@@ -1,8 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig, Tokens, TokenType } from '../ignition/config/config-types'
+import { Address } from 'viem'
 import { createERC4626ArkModule, ERC4626ArkContracts } from '../ignition/modules/arks/erc4626-ark'
+import { BaseConfig, Tokens, TokenType } from '../types/config-types'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -34,12 +35,12 @@ export async function deployERC4626Ark() {
 async function getUserInput(config: BaseConfig) {
   // Extract ERC4626 vaults from the configuration
   const erc4626Vaults = []
-  if (!config.erc4626) {
+  if (!config.protocolSpecific.erc4626) {
     throw new Error('No ERC4626 vaults found in the configuration.')
   }
-  for (const token in config.erc4626) {
-    for (const vaultName in config.erc4626[token as Tokens]) {
-      const vaultId = config.erc4626[token as TokenType][vaultName]
+  for (const token in config.protocolSpecific.erc4626) {
+    for (const vaultName in config.protocolSpecific.erc4626[token as Tokens]) {
+      const vaultId = config.protocolSpecific.erc4626[token as TokenType][vaultName]
       erc4626Vaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, vaultId, vaultName },
@@ -113,8 +114,9 @@ async function deployERC4626ArkContract(
         vault: userInput.vaultId,
         arkParams: {
           name: `ERC4626-${userInput.token}-${userInput.vaultId}-${chainId}`,
-          accessManager: config.core.protocolAccessManager,
-          configurationManager: config.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
+          configurationManager: config.deployedContracts.core.configurationManager
+            .address as Address,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,

@@ -1,13 +1,14 @@
-import fs, { writeFileSync } from 'fs'
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { BaseConfig } from '../ignition/config/config-types'
 import { CoreContracts } from '../ignition/modules/core'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
+import { BaseConfig, FleetConfig } from '../types/config-types'
 import { grantCommanderRole } from './common/grant-commander-role'
+import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { loadFleetDefinition } from './helpers/fleet-definition-handler'
@@ -55,7 +56,7 @@ async function deployFleet() {
     )
 
     logDeploymentResults(deployedFleet)
-    saveDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
+    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -63,9 +64,9 @@ async function deployFleet() {
 
 /**
  * Prompts the user for the fleet definition file and loads it.
- * @returns {Promise<any>} The loaded fleet definition object.
+ * @returns The loaded fleet definition object.
  */
-async function getFleetDefinition() {
+async function getFleetDefinition(): Promise<FleetConfig> {
   const fleetsDir = path.resolve(__dirname, '..', 'config', 'fleets')
   const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
 
@@ -183,38 +184,6 @@ function logDeploymentResults(deployedFleet: FleetContracts) {
     kleur.yellow('Fleet Commander Address:'),
     kleur.cyan(deployedFleet.fleetCommander.address),
   )
-}
-
-/**
- * Creates and saves a deployment JSON file with fleet information.
- * @param {any} fleetDefinition - The fleet definition object.
- * @param {FleetContracts} deployedFleet - The deployed fleet contracts.
- */
-function saveDeploymentJson(
-  fleetDefinition: any,
-  deployedFleet: FleetContracts,
-  bufferArkAddress: string,
-) {
-  const deploymentInfo = {
-    fleetName: fleetDefinition.fleetName,
-    fleetSymbol: fleetDefinition.symbol,
-    assetSymbol: fleetDefinition.assetSymbol,
-    fleetAddress: deployedFleet.fleetCommander.address,
-    bufferArkAddress: bufferArkAddress,
-    configFile: fleetDefinition.configFile,
-  }
-
-  const deploymentDir = path.resolve(__dirname, '..', 'deployments')
-  if (!fs.existsSync(deploymentDir)) {
-    fs.mkdirSync(deploymentDir, { recursive: true })
-  }
-
-  const fileName = `${fleetDefinition.fleetName.replace(/\W/g, '')}_deployment.json`
-  const filePath = path.join(deploymentDir, fileName)
-
-  writeFileSync(filePath, JSON.stringify(deploymentInfo, null, 2))
-
-  console.log(kleur.green().bold(`Deployment information saved to: ${filePath}`))
 }
 
 // Execute the deployFleet function and handle any errors

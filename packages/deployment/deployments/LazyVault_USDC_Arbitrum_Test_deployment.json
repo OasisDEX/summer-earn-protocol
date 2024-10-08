@@ -3,5 +3,9 @@
   "fleetSymbol": "FUSDC",
   "assetSymbol": "USDC",
   "fleetAddress": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE",
-  "bufferArkAddress": "0x1b4aDA9Fac83f9777813e0Faf65530A39dcf9F87"
+  "bufferArkAddress": "0x1b4aDA9Fac83f9777813e0Faf65530A39dcf9F87",
+  "network": "arbitrum",
+  "arks": [
+    "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
+  ]
 }

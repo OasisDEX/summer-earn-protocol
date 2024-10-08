@@ -11,5 +11,6 @@
   "GovModule#SummerGovernor": "0x3fA7E5D6515fD06Cfe5a393bB07f04cEC6f9Da77",
   "BuyAndBurnModule#DutchAuctionLibrary": "0x7160287dA4c544907011C0548c0818F7a9DbA7D1",
   "BuyAndBurnModule#BuyAndBurn": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57",
-  "FleetModule_LazyVault_USDC_Arbitrum_Test#FleetCommander": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE"
+  "FleetModule_LazyVault_USDC_Arbitrum_Test#FleetCommander": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE",
+  "AaveV3ArkModule#AaveV3Ark": "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
 }

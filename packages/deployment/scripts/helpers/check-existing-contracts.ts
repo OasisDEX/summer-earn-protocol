@@ -1,4 +1,4 @@
-import { BaseConfig } from '../../ignition/config/config-types'
+import { BaseConfig } from '../../types/config-types'
 
 export function checkExistingContracts<T extends { [key: string]: { address: string } }>(
   config: BaseConfig,

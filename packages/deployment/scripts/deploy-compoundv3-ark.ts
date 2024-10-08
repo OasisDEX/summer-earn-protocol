@@ -1,10 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { BaseConfig, TokenType } from '../ignition/config/config-types'
+import { Address } from 'viem'
 import CompoundV3ArkModule, {
   CompoundV3ArkContracts,
 } from '../ignition/modules/arks/compoundv3-ark'
+import { BaseConfig, TokenType } from '../types/config-types'
 import { MAX_UINT256_STRING } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
@@ -133,8 +134,9 @@ async function deployCompoundV3ArkContract(
         compoundV3Rewards: userInput.compoundV3Rewards,
         arkParams: {
           name: `CompoundV3-${userInput.token}-${userInput.compoundV3Pools}-${chainId}`,
-          accessManager: config.deployedContracts.core.protocolAccessManager,
-          configurationManager: config.deployedContracts.core.configurationManager,
+          accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
+          configurationManager: config.deployedContracts.core.configurationManager
+            .address as Address,
           token: userInput.token,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
