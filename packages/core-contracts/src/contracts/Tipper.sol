@@ -75,17 +75,19 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
     /**
      * @notice Sets a new tip rate
      * @dev Only callable by the FleetCommander. Accrues tips before changing the rate.
-     * @param newTipRate The new tip rate to set
+     * @param newTipRate The new tip rate to set, as a Percentage type (defined in @Percentage.sol)
      * @custom:internal-logic
-     * - Validates that the new tip rate is within the valid percentage range
+     * - Validates that the new tip rate is within the valid percentage range using @PercentageUtils.sol
      * - Accrues tips based on the current rate before updating
      * - Updates the tip rate to the new value
      * @custom:effects
      * - May mint new tip shares (via _accrueTip)
      * - Updates the tipRate state variable
      * @custom:security-considerations
-     * - Ensures the new tip rate is within valid bounds (0-100%)
+     * - Ensures the new tip rate is within valid bounds (0-100%) using @PercentageUtils.isPercentageInRange
      * - Accrues tips before changing the rate to prevent loss of accrued tips
+     * @custom:note The newTipRate should be sized according to the PERCENTAGE_FACTOR in @Percentage.sol.
+     *              For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18).
      */
     function _setTipRate(Percentage newTipRate) internal {
         if (!PercentageUtils.isPercentageInRange(newTipRate)) {

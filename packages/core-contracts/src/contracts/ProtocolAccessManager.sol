@@ -8,28 +8,19 @@ import {LimitedAccessControl} from "./LimitedAccessControl.sol";
  * @title ProtocolAccessManager
  * @notice Central contract for managing access control across the protocol
  * @dev Implements IProtocolAccessManager interface and extends LimitedAccessControl
- * @custom:see IProtocolAccessManager
  */
 contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev The Governor role is in charge of setting the parameters of the system
-     *      and also has the power to manage the different Fleet Commander roles.
-     */
+    /// @inheritdoc IProtocolAccessManager
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
-    /**
-     * @dev The Super Keeper role is in charge of rebalancing the funds between the different
-     *      Arks through the Fleet Commander - global role for all fleet commanders
-     */
+    /// @inheritdoc IProtocolAccessManager
     bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 
-    /**
-     * @notice The Guardian role is in charge of managing the protocol's state in case of emergency
-     */
+    /// @inheritdoc IProtocolAccessManager
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
     /*//////////////////////////////////////////////////////////////
@@ -77,9 +68,13 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
 
     /**
      * @notice Checks if the contract supports a given interface
+     * @dev Overrides the supportsInterface function from AccessControl
      * @param interfaceId The interface identifier, as specified in ERC-165
      * @return bool True if the contract supports the interface, false otherwise
-     * @dev Overrides supportsInterface to include IProtocolAccessManager
+     *
+     * This function supports:
+     * - IProtocolAccessManager interface
+     * - All interfaces supported by the parent AccessControl contract
      */
     function supportsInterface(
         bytes4 interfaceId
@@ -157,11 +152,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         _revokeRole(role, roleOwner);
     }
 
-    /**
-     * @notice Grants the Curator role for a specific Fleet Commander
-     * @param fleetAddress Address of the Fleet Commander contract
-     * @param account Address to grant the Curator role to
-     */
+    /// @inheritdoc IProtocolAccessManager
     function grantCuratorRole(
         address fleetAddress,
         address account
@@ -173,11 +164,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
-    /**
-     * @notice Revokes the Curator role for a specific Fleet Commander
-     * @param fleetAddress Address of the Fleet Commander contract
-     * @param account Address to revoke the Curator role from
-     */
+    /// @inheritdoc IProtocolAccessManager
     function revokeCuratorRole(
         address fleetAddress,
         address account
@@ -189,11 +176,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
-    /**
-     * @notice Grants the Keeper role for a specific Fleet Commander
-     * @param fleetAddress Address of the Fleet Commander contract
-     * @param account Address to grant the Keeper role to
-     */
+    /// @inheritdoc IProtocolAccessManager
     function grantKeeperRole(
         address fleetAddress,
         address account
@@ -205,11 +188,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
-    /**
-     * @notice Revokes the Keeper role for a specific Fleet Commander
-     * @param fleetAddress Address of the Fleet Commander contract
-     * @param account Address to revoke the Keeper role from
-     */
+    /// @inheritdoc IProtocolAccessManager
     function revokeKeeperRole(
         address fleetAddress,
         address account
@@ -221,11 +200,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
-    /**
-     * @notice Grants the Commander role for a specific Ark
-     * @param arkAddress Address of the Ark contract
-     * @param account Address to grant the Commander role to
-     */
+    /// @inheritdoc IProtocolAccessManager
     function grantCommanderRole(
         address arkAddress,
         address account
@@ -237,11 +212,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
-    /**
-     * @notice Revokes the Commander role for a specific Ark
-     * @param arkAddress Address of the Ark contract
-     * @param account Address to revoke the Commander role from
-     */
+    /// @inheritdoc IProtocolAccessManager
     function revokeCommanderRole(
         address arkAddress,
         address account

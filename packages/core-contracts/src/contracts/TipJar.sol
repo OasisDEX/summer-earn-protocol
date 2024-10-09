@@ -64,6 +64,9 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
             tipStreams[tipStream.recipient].allocation
         );
 
+        // The allocation in TipStream uses the Percentage type from @summerfi/percentage-solidity
+        // Percentages have 18 decimals of precision
+        // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
         tipStreams[tipStream.recipient] = tipStream;
         tipStreamRecipients.push(tipStream.recipient);
 

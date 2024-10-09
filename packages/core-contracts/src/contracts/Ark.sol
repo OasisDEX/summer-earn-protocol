@@ -2,14 +2,12 @@
 pragma solidity 0.8.27;
 
 import {IArk} from "../interfaces/IArk.sol";
-
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
-
 import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuardTransient} from "../../lib/openzeppelin-next/ReentrancyGuardTransient.sol";
 
 /**
  * @title Ark
@@ -18,12 +16,19 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  *         handling asset boarding, disembarking, and harvesting operations.
  * @dev This is an abstract contract that should be inherited by specific Ark implementations.
  *      Inheriting contracts must implement the abstract functions defined here.
- * @custom:see IArk
  */
-abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuard {
+abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
+    /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     constructor(ArkParams memory _params) ArkConfigProvider(_params) {}
+
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Modifier to validate board data.
@@ -51,28 +56,33 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuard {
         _;
     }
 
-    /* @inheritdoc IArk */
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IArk
     function totalAssets() external view virtual returns (uint256) {}
 
-    /* EXTERNAL - RAFT */
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function harvest(
         bytes calldata additionalData
     )
         external
         onlyRaft
+        nonReentrant
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
         (rewardTokens, rewardAmounts) = _harvest(additionalData);
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function sweep(
         address[] memory tokens
     )
         external
         onlyRaft
+        nonReentrant
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
         sweptTokens = new address[](tokens.length);
@@ -99,16 +109,7 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuard {
         emit ArkSwept(sweptTokens, sweptAmounts);
     }
 
-    /* EXTERNAL - COMMANDER */
-    /* @inheritdoc IArk */
-    /**
-     * @notice Boards (deposits) assets into the Ark
-     * @dev This function is called by the Fleet Commander to deposit assets into the Ark.
-     *      It transfers tokens from the caller to this contract and then calls the internal _board function.
-     * @param amount The amount of assets to board
-     * @param boardData Additional data required for boarding, specific to the Ark implementation
-     * @custom:security-note This function is only callable by authorized entities
-     */
+    /// @inheritdoc IArk
     function board(
         uint256 amount,
         bytes calldata boardData
@@ -125,11 +126,11 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuard {
         emit Boarded(msgSender, address(config.token), amount);
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function disembark(
         uint256 amount,
         bytes calldata disembarkData
-    ) external onlyCommander validateDisembarkData(disembarkData) {
+    ) external onlyCommander nonReentrant validateDisembarkData(disembarkData) {
         address msgSender = msg.sender;
         _disembark(amount, disembarkData);
         config.token.safeTransfer(msgSender, amount);
@@ -137,7 +138,7 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuard {
         emit Disembarked(msgSender, address(config.token), amount);
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function move(
         uint256 amount,
         address receiverArk,
@@ -152,9 +153,10 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuard {
         emit Moved(address(this), receiverArk, address(config.token), amount);
     }
 
-    /* EXTERNAL - GOVERNANCE */
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
-    /* INTERNAL */
     /**
      * @notice Internal function to handle the boarding (depositing) of assets
      * @dev This function should be implemented by derived contracts to define specific boarding logic

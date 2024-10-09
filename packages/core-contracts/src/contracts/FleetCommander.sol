@@ -438,6 +438,9 @@ contract FleetCommander is
     function setTipRate(
         Percentage newTipRate
     ) external onlyGovernor whenNotPaused {
+        // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
+        // Percentages have 18 decimals of precision
+        // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
         _setTipRate(newTipRate);
     }
 
