@@ -50,7 +50,7 @@ contract TokenLibraryTest is Test {
         assertEq(TokenLibrary.getDecimals(IERC20(address(0x1))), 18);
     }
 
-    function testToWei() public {
+    function testToWei() public pure {
         // 0 decimals to 18 decimals
         assertEq(TokenLibrary.toWei(1, 0), 1e18);
 
@@ -74,7 +74,7 @@ contract TokenLibraryTest is Test {
         assertEq(TokenLibrary.toWei(1e20, 20), 1e18);
     }
 
-    function testFromWei() public {
+    function testFromWei() public pure {
         // 18 decimals to 0 decimals
         assertEq(TokenLibrary.fromWei(1e18, 0), 1);
 
@@ -98,7 +98,7 @@ contract TokenLibraryTest is Test {
         assertEq(TokenLibrary.fromWei(1e18, 20), 1e20);
     }
 
-    function testConvertDecimals() public {
+    function testConvertDecimals() public pure {
         // 6 decimals to 8 decimals
         assertEq(TokenLibrary.convertDecimals(1e6, 6, 8), 1e8);
 
@@ -124,7 +124,7 @@ contract TokenLibraryTest is Test {
         assertEq(TokenLibrary.convertDecimals(1e18, 18, 30), 1e30);
     }
 
-    function testEdgeCases() public {
+    function testEdgeCases() public pure {
         // Very large numbers
         assertEq(TokenLibrary.toWei(1e30, 30), 1e18);
         assertEq(TokenLibrary.fromWei(1e18, 30), 1e30);
@@ -141,7 +141,7 @@ contract TokenLibraryTest is Test {
         console.log(TokenLibrary.fromWei(28_580_161, 0));
     }
 
-    function testFuzzToWei(uint256 amount, uint8 decimals) public {
+    function testFuzzToWei(uint256 amount, uint8 decimals) public pure {
         vm.assume(decimals <= 18);
         vm.assume(amount <= type(uint256).max / 10 ** 18); // Prevent overflow
 
@@ -149,7 +149,7 @@ contract TokenLibraryTest is Test {
         assertEq(result / 10 ** (18 - decimals), amount);
     }
 
-    function testFuzzFromWei(uint256 amount, uint8 decimals) public {
+    function testFuzzFromWei(uint256 amount, uint8 decimals) public pure {
         vm.assume(decimals <= 18);
 
         uint256 result = TokenLibrary.fromWei(amount, decimals);
@@ -166,7 +166,7 @@ contract TokenLibraryTest is Test {
         uint256 amount,
         uint8 fromDecimals,
         uint8 toDecimals
-    ) public {
+    ) public pure {
         vm.assume(fromDecimals <= 77 && toDecimals <= 77);
         vm.assume(amount <= type(uint256).max / 10 ** 77); // Prevent overflow
 
