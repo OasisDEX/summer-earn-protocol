@@ -1,0 +1,191 @@
+{
+  "base": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0x668b528AE5A515aB711aB7487B0A678D74135317"
+        },
+        "summerToken": {
+          "address": "0x42133783AF47261d077d4111115F93F1cB4d3e8A"
+        },
+        "timelock": {
+          "address": "0x8E72b2D81bD6978d4268089fE25868986136C701"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x5dCbbc28ABA37594106D686B18ced1df25C170EF"
+        }
+      },
+      "core": {
+        "protocolAccessManager": {
+          "address": "0xd236Cc900d35601C99950A7933158C3d2f0Dc46b"
+        },
+        "tipJar": {
+          "address": "0x62C8419A4375599C7D2261f389BF1ED920975Cb5"
+        },
+        "raft": {
+          "address": "0xf05e9f88f120185266eC0f813E9Bc7145fb2E854"
+        },
+        "configurationManager": {
+          "address": "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
+        },
+        "harborCommand": {
+          "address": "0x8AB0a8E95A43633E7C424eE67F6E3fe66D4898B2"
+        },
+        "admiralsQuarters": {
+          "address": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+      "usde": "0x0000000000000000000000000000000000000000",
+      "usdt": "0x0000000000000000000000000000000000000000"
+    },
+    "common": {
+      "treasury": "0xAb1a4Ae0F851700CC42442c588f458B553cB2620",
+      "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+      "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "tipRate": "100"
+    },
+    "protocolSpecific": {
+      "aaveV3": {
+        "pool": "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
+        "rewards": "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44"
+      },
+      "morpho": {
+        "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+        "vaults": {
+          "usdc": {
+            "Moonwell Flagship USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
+            "Gauntlet USDC Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12"
+          }
+        },
+        "markets": {
+          "usdc": {
+            "wstETH-USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
+          },
+          "dai": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usde": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usdt": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          }
+        }
+      },
+      "compoundV3": {
+        "pools": {
+          "usdc": {
+            "cToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
+          }
+        },
+        "rewards": "0x1B0e765F6224C21223AeA2af16c1C46E38885a40"
+      }
+    }
+  },
+  "arbitrum": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0xd4DD34Dd91B09377EcdBB6DD22d930b825a4aA27"
+        },
+        "summerToken": {
+          "address": "0xceDBFEF8A10c20a96E2309E4Fd31F7D3834eFaF7"
+        },
+        "timelock": {
+          "address": "0x0381b9D857bccC043bE9FCa2717F02B7486780D4"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x1f221B5C47BcB4B5fA5E9ae31a9A35963cde67dd"
+        }
+      },
+      "core": {
+        "protocolAccessManager": {
+          "address": "0x830a84c1125f7b2d4eE229B372A2f156F358a6CF"
+        },
+        "tipJar": {
+          "address": "0x07060E282bd0FB99607c8915f1E538F8CebF5FC4"
+        },
+        "raft": {
+          "address": "0xA2e47Bb397f908aba018276a3CC683608404123f"
+        },
+        "configurationManager": {
+          "address": "0xbB906Aae2dB6366B7141Aee2E5B9D57BC177807B"
+        },
+        "harborCommand": {
+          "address": "0x72B3128bc1D0f0E1e3D03B6d1c974C0C08724C90"
+        },
+        "admiralsQuarters": {
+          "address": "0xd555F7D124a58617f49894b623b97Bf295674f14"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+      "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+      "usdt": "0x0000000000000000000000000000000000000000"
+    },
+    "common": {
+      "treasury": "0x13371f8Cf79706907a5A18939b77b426636C3BA0",
+      "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+      "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "tipRate": "100"
+    },
+    "protocolSpecific": {
+      "erc4626": {
+        "usdc": {
+          "gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
+        }
+      },
+      "pendle": {
+        "router": "0x888888888889758F76e7103c6CbF23ABbF58F946",
+        "lp-oracle": "0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2",
+        "markets": {
+          "usde": {
+            "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+          }
+        }
+      },
+      "aaveV3": {
+        "pool": "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
+        "rewards": "0x929EC64c34a17401F460460D4B9390518E5B473e"
+      },
+      "morpho": {
+        "blue": "0x0000000000000000000000000000000000000000",
+        "markets": {
+          "usdc": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "dai": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usde": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usdt": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          }
+        }
+      },
+      "compoundV3": {
+        "pools": {
+          "usdc": {
+            "cToken": "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"
+          },
+          "usdt": {
+            "cToken": "0xd98Be00b5D27fc98112BdE293e487f8D4cA57d07"
+          }
+        },
+        "rewards": "0x88730d254A2f7e6AC8388c3198aFd694bA9f7fae"
+      }
+    }
+  }
+}
