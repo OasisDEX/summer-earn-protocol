@@ -57,7 +57,7 @@ contract HarborCommand is
     /// @inheritdoc IHarborCommand
     function enlistFleetCommander(
         address _fleetCommander
-    ) external override onlyGovernor {
+    ) external onlyGovernor {
         if (activeFleetCommanders[_fleetCommander]) {
             revert FleetCommanderAlreadyEnlisted(_fleetCommander);
         }
@@ -69,7 +69,7 @@ contract HarborCommand is
     /// @inheritdoc IHarborCommand
     function decommissionFleetCommander(
         address _fleetCommander
-    ) external override onlyGovernor {
+    ) external onlyGovernor {
         if (!activeFleetCommanders[_fleetCommander]) {
             revert FleetCommanderNotEnlisted(_fleetCommander);
         }

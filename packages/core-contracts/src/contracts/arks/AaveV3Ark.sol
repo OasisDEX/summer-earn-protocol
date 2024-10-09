@@ -26,7 +26,7 @@ contract AaveV3Ark is Ark {
     /// @notice The Aave V3 pool address
     IPoolV3 public immutable aaveV3Pool;
     /// @notice The Aave V3 data provider address
-    IPoolDataProvider public immutable aaveV3DataProvider;
+    IPoolDataProvider public aaveV3DataProvider;
     /// @notice The Aave V3 rewards controller address
     IRewardsController public immutable rewardsController;
 

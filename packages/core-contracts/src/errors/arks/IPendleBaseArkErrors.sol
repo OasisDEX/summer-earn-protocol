@@ -9,7 +9,7 @@ interface IPendleBaseArkErrors {
     /// @notice Thrown when the oracle is not ready to provide a price
     error OracleNotReady();
 
-    /// @notice Thrown when an invalid asset is provided for the SY (Synthetic Asset)
+    /// @notice Thrown when an invalid asset is provided for the SY (Standardized Asset)
     error InvalidAssetForSY();
 
     /// @notice Thrown when an invalid next market is provided
@@ -33,7 +33,4 @@ interface IPendleBaseArkErrors {
 
     /// @notice Thrown when attempting to interact with an expired market
     error MarketExpired();
-
-    /// @notice Thrown when the exchange rate is zero
-    error ZeroExchangeRate();
 }

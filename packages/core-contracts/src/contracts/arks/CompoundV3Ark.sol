@@ -9,12 +9,6 @@ import "../Ark.sol";
  * @title CompoundV3Ark
  * @notice Ark contract for managing token supply and yield generation for Compound V3.
  * @dev Implements strategy for supplying tokens, withdrawing tokens, and claiming rewards on Compound V3.
- *
- * Key features:
- * - Deposits assets into Compound V3's Comet contract
- * - Withdraws assets from Compound V3
- * - Harvests and transfers rewards to the Raft contract
- * - Tracks total assets supplied to Compound V3
  */
 contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;

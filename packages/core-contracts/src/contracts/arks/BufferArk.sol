@@ -105,7 +105,7 @@ contract BufferArk is Ark {
      * @notice Returns the current balance of the buffer
      * @return The current token balance held in the buffer
      */
-    function currentBufferBalance() public view returns (uint256) {
+    function bufferBalance() public view returns (uint256) {
         return config.token.balanceOf(address(this));
     }
 }

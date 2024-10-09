@@ -98,9 +98,9 @@ contract ERC4626Ark is Ark {
     /**
      * @notice Validates the board data
      * @dev This Ark does not require any validation for board data
-     * @param data Additional data to validate (unused in this implementation)
+     * @param /// data Additional data to validate (unused in this implementation)
      */
-    function _validateBoardData(bytes calldata data) internal override {}
+    function _validateBoardData(bytes calldata) internal override {}
 
     /**
      * @notice Validates the disembark data
