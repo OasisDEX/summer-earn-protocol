@@ -178,7 +178,7 @@
       "compoundV3": {
         "pools": {
           "usdc": {
-            "cToken": "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"
+            "cToken": "0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA"
           },
           "usdt": {
             "cToken": "0xd98Be00b5D27fc98112BdE293e487f8D4cA57d07"
