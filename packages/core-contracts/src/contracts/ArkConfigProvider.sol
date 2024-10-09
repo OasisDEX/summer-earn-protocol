@@ -68,40 +68,37 @@ abstract contract ArkConfigProvider is
         // See the `registerFleetCommander()` function for the actual registration process.
     }
 
-    /**
-     * @notice Returns the name of the Ark.
-     * @return string The name of the Ark.
-     */
+    /// @inheritdoc IArk
     function name() external view returns (string memory) {
         return config.name;
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function depositCap() external view returns (uint256) {
         return config.depositCap;
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function token() external view returns (IERC20) {
         return config.token;
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function commander() public view returns (address) {
         return config.commander;
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function maxRebalanceOutflow() external view returns (uint256) {
         return config.maxRebalanceOutflow;
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function maxRebalanceInflow() external view returns (uint256) {
         return config.maxRebalanceInflow;
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function requiresKeeperData() external view returns (bool) {
         return config.requiresKeeperData;
     }
@@ -110,13 +107,13 @@ abstract contract ArkConfigProvider is
         return config;
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function setDepositCap(uint256 newDepositCap) external onlyCommander {
         config.depositCap = newDepositCap;
         emit DepositCapUpdated(newDepositCap);
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function setMaxRebalanceOutflow(
         uint256 newMaxRebalanceOutflow
     ) external onlyCommander {
@@ -124,7 +121,7 @@ abstract contract ArkConfigProvider is
         emit MaxRebalanceOutflowUpdated(newMaxRebalanceOutflow);
     }
 
-    /* @inheritdoc IArk */
+    /// @inheritdoc IArk
     function setMaxRebalanceInflow(
         uint256 newMaxRebalanceInflow
     ) external onlyCommander {
