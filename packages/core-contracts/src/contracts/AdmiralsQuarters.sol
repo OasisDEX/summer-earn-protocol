@@ -97,6 +97,8 @@ contract AdmiralsQuarters is
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetToken = IERC20(fleet.asset());
 
+        if (address(inputToken) != address(fleetToken)) revert TokenMismatch();
+
         uint256 balance = inputToken.balanceOf(address(this));
         uint256 depositAmount = amount == 0 ? balance : amount;
         if (depositAmount > balance) revert InsufficientOutputAmount();

@@ -18,6 +18,9 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
+ * @title FleetCommander
+ * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
+ * @dev Implements IFleetCommander interface and inherits from various utility contracts
  * @custom:see IFleetCommander
  */
 contract FleetCommander is
@@ -32,8 +35,21 @@ contract FleetCommander is
     using PercentageUtils for uint256;
     using Math for uint256;
 
+    /*//////////////////////////////////////////////////////////////
+                            CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Default maximum number of rebalance operations allowed in a single transaction
     uint256 public constant DEFAULT_MAX_REBALANCE_OPERATIONS = 10;
 
+    /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes the FleetCommander contract
+     * @param params FleetCommanderParams struct containing initialization parameters
+     */
     constructor(
         FleetCommanderParams memory params
     )
@@ -43,6 +59,10 @@ contract FleetCommander is
         Tipper(params.configurationManager, params.initialTipRate)
         CooldownEnforcer(params.initialRebalanceCooldown, false)
     {}
+
+    /*//////////////////////////////////////////////////////////////
+                            MODIFIERS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @dev Modifier to collect the tip before any other action is taken
@@ -78,7 +98,10 @@ contract FleetCommander is
         _flushCache();
     }
 
-    /* PUBLIC - USER */
+    /*//////////////////////////////////////////////////////////////
+                        PUBLIC USER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /// @inheritdoc IFleetCommander
     function withdrawFromBuffer(
         uint256 assets,
@@ -296,6 +319,10 @@ contract FleetCommander is
         return _accrueTip();
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        PUBLIC VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /// @inheritdoc IFleetCommander
     function totalAssets()
         public
@@ -377,6 +404,10 @@ contract FleetCommander is
         );
     }
 
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL KEEPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /// @inheritdoc IFleetCommander
     function rebalance(
         RebalanceData[] calldata rebalanceData
@@ -398,6 +429,10 @@ contract FleetCommander is
 
         emit FleetCommanderBufferAdjusted(_msgSender(), totalMoved);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IFleetCommander
     function setTipRate(
@@ -430,7 +465,10 @@ contract FleetCommander is
         _reallocateAllAssets(rebalanceData);
     }
 
-    /* PUBLIC - ERC20 */
+    /*//////////////////////////////////////////////////////////////
+                        PUBLIC ERC20 FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /// @inheritdoc IERC20
     function transfer(
         address,
@@ -447,6 +485,10 @@ contract FleetCommander is
     ) public pure override(IERC20, ERC20) returns (bool) {
         revert FleetCommanderTransfersDisabled();
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Mints new shares as tips to the specified account
@@ -465,7 +507,6 @@ contract FleetCommander is
         _mint(account, amount);
     }
 
-    /* INTERNAL - REBALANCE */
     /**
      * @notice Reallocates all assets based on the provided rebalance data
      * @param rebalanceData Array of RebalanceData structs containing information about the reallocation

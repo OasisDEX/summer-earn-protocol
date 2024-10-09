@@ -13,16 +13,30 @@ import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerf
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
+ * @title TipJar
+ * @notice Manages tip streams for distributing rewards from FleetCommanders
+ * @dev Implements ITipJar interface and inherits from ProtocolAccessManaged and ConfigurationManaged
  * @custom:see ITipJar
  */
 contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     using PercentageUtils for uint256;
 
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Mapping of recipient addresses to their TipStream structs
     mapping(address recipient => TipStream tipStream) public tipStreams;
+
+    /// @notice List of all tip stream recipient addresses
     address[] public tipStreamRecipients;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     /**
-     * @notice Constructs a new TipJar contract
+     * @notice Initializes the TipJar contract
      * @param _accessManager The address of the access manager contract
      * @param _configurationManager The address of the configuration manager contract
      */
@@ -33,6 +47,10 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         ProtocolAccessManaged(_accessManager)
         ConfigurationManaged(_configurationManager)
     {}
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
     function addTipStream(
@@ -86,6 +104,26 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         emit TipStreamUpdated(oldTipStream, tipStream);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ITipJar
+    function shake(address fleetCommander_) public {
+        _shake(fleetCommander_);
+    }
+
+    /// @inheritdoc ITipJar
+    function shakeMultiple(address[] calldata fleetCommanders) external {
+        for (uint256 i = 0; i < fleetCommanders.length; i++) {
+            _shake(fleetCommanders[i]);
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /// @inheritdoc ITipJar
     function getTipStream(
         address recipient
@@ -105,24 +143,16 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     }
 
     /// @inheritdoc ITipJar
-    function shake(address fleetCommander_) public {
-        _shake(fleetCommander_);
-    }
-
-    /// @inheritdoc ITipJar
-    function shakeMultiple(address[] calldata fleetCommanders) external {
-        for (uint256 i = 0; i < fleetCommanders.length; i++) {
-            _shake(fleetCommanders[i]);
-        }
-    }
-
-    /// @inheritdoc ITipJar
     function getTotalAllocation() public view returns (Percentage total) {
         total = toPercentage(0);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
             total = total + tipStreams[tipStreamRecipients[i]].allocation;
         }
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Distributes accumulated tips from a single FleetCommander

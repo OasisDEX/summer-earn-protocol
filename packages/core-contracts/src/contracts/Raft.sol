@@ -8,28 +8,51 @@ import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
+ * @title Raft
+ * @notice Manages auctions for harvested rewards from Arks and handles the buy-and-burn mechanism
+ * @dev Implements IRaft interface and inherits from ArkAccessManaged and AuctionManagerBase
  * @custom:see IRaft
  */
 contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
-    /// @notice Mapping of harvested rewards for each Ark and reward token
 
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Mapping of harvested rewards for each Ark and reward token
     mapping(address ark => mapping(address rewardToken => uint256 harvestedAmount))
         public obtainedTokens;
+
     /// @notice Mapping of ongoing auctions for each Ark and reward token
     mapping(address ark => mapping(address rewardToken => DutchAuctionLibrary.Auction))
         public auctions;
+
     /// @notice Mapping of unsold tokens for each Ark and reward token
     mapping(address ark => mapping(address rewardToken => uint256 remainingTokens))
         public unsoldTokens;
+
     /// @notice Mapping of payment tokens boarded to each Ark and reward token
     mapping(address ark => mapping(address rewardToken => uint256 paymentTokensToBoard))
         public paymentTokensToBoard;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes the Raft contract
+     * @param _accessManager Address of the access manager contract
+     * @param defaultParameters Default parameters for auctions
+     */
     constructor(
         address _accessManager,
         AuctionDefaultParameters memory defaultParameters
     ) ArkAccessManaged(_accessManager) AuctionManagerBase(defaultParameters) {}
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IRaft
     function harvestAndStartAuction(
@@ -80,7 +103,111 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         (sweptTokens, sweptAmounts) = _sweep(ark, tokens);
     }
 
+    /// @inheritdoc IRaft
+    function buyTokens(
+        address ark,
+        address rewardToken,
+        uint256 amount
+    ) external returns (uint256 paymentAmount) {
+        DutchAuctionLibrary.Auction storage auction = auctions[ark][
+            rewardToken
+        ];
+        paymentAmount = auction.buyTokens(amount);
+
+        paymentTokensToBoard[ark][rewardToken] += paymentAmount;
+
+        if (auction.state.remainingTokens == 0) {
+            _settleAuction(ark, rewardToken, auction);
+        }
+    }
+
+    /// @inheritdoc IRaft
+    function finalizeAuction(address ark, address rewardToken) external {
+        DutchAuctionLibrary.Auction storage auction = auctions[ark][
+            rewardToken
+        ];
+        auction.finalizeAuction();
+        _settleAuction(ark, rewardToken, auction);
+    }
+
+    /// @inheritdoc IRaft
+    function updateAuctionDefaultParameters(
+        AuctionDefaultParameters calldata newConfig
+    ) external onlyGovernor {
+        _updateAuctionDefaultParameters(newConfig);
+    }
+
+    /// @inheritdoc IRaft
+    function board(
+        address ark,
+        address rewardToken,
+        bytes calldata data
+    ) external onlyGovernor {
+        if (!IArk(ark).requiresKeeperData()) {
+            revert RaftArkDoesntRequireKeeperData(ark);
+        }
+        _board(rewardToken, ark, data);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IRaft
+    function getAuctionInfo(
+        address ark,
+        address rewardToken
+    ) external view returns (DutchAuctionLibrary.Auction memory) {
+        return auctions[ark][rewardToken];
+    }
+
+    /// @inheritdoc IRaft
+    function getCurrentPrice(
+        address ark,
+        address rewardToken
+    ) external view returns (uint256) {
+        return _getCurrentPrice(auctions[ark][rewardToken]);
+    }
+
+    /// @inheritdoc IRaft
+    function getObtainedTokens(
+        address ark,
+        address rewardToken
+    ) external view returns (uint256) {
+        return obtainedTokens[ark][rewardToken];
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
+     * @notice Harvests rewards from the specified Ark
+     * @param ark The address of the Ark to harvest from
+     * @param rewardData Additional data required for harvesting
+     * @return harvestedTokens Array of harvested token addresses
+     * @return harvestedAmounts Array of harvested token amounts
+     */
+    function _harvest(
+        address ark,
+        bytes calldata rewardData
+    )
+        internal
+        returns (
+            address[] memory harvestedTokens,
+            uint256[] memory harvestedAmounts
+        )
+    {
+        (harvestedTokens, harvestedAmounts) = IArk(ark).harvest(rewardData);
+        for (uint256 i = 0; i < harvestedTokens.length; i++) {
+            obtainedTokens[ark][harvestedTokens[i]] += harvestedAmounts[i];
+        }
+
+        emit ArkHarvested(ark, harvestedTokens, harvestedAmounts);
+    }
+
+    /**
+     * @notice Sweeps tokens from the specified Ark
      * @dev Sweeps tokens from the specified Ark and updates the obtainedTokens mapping
      * @param ark The address of the Ark contract to sweep tokens from
      * @param tokens The addresses of the tokens to sweep
@@ -112,97 +239,8 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         }
     }
 
-    /// @inheritdoc IRaft
-    function buyTokens(
-        address ark,
-        address rewardToken,
-        uint256 amount
-    ) external returns (uint256 paymentAmount) {
-        DutchAuctionLibrary.Auction storage auction = auctions[ark][
-            rewardToken
-        ];
-        paymentAmount = auction.buyTokens(amount);
-
-        paymentTokensToBoard[ark][rewardToken] += paymentAmount;
-
-        if (auction.state.remainingTokens == 0) {
-            _settleAuction(ark, rewardToken, auction);
-        }
-    }
-
-    /// @inheritdoc IRaft
-    function finalizeAuction(address ark, address rewardToken) external {
-        DutchAuctionLibrary.Auction storage auction = auctions[ark][
-            rewardToken
-        ];
-        auction.finalizeAuction();
-        _settleAuction(ark, rewardToken, auction);
-    }
-
-    /// @inheritdoc IRaft
-    function getAuctionInfo(
-        address ark,
-        address rewardToken
-    ) external view returns (DutchAuctionLibrary.Auction memory) {
-        return auctions[ark][rewardToken];
-    }
-
-    /// @inheritdoc IRaft
-    function getCurrentPrice(
-        address ark,
-        address rewardToken
-    ) external view returns (uint256) {
-        return _getCurrentPrice(auctions[ark][rewardToken]);
-    }
-
-    /// @inheritdoc IRaft
-
-    function updateAuctionDefaultParameters(
-        AuctionDefaultParameters calldata newConfig
-    ) external onlyGovernor {
-        _updateAuctionDefaultParameters(newConfig);
-    }
-
-    /// @inheritdoc IRaft
-    function board(
-        address ark,
-        address rewardToken,
-        bytes calldata data
-    ) external onlyGovernor {
-        if (!IArk(ark).requiresKeeperData()) {
-            revert RaftArkDoesntRequireKeeperData(ark);
-        }
-        _board(rewardToken, ark, data);
-    }
-
-    /// @inheritdoc IRaft
-    function getObtainedTokens(
-        address ark,
-        address rewardToken
-    ) external view returns (uint256) {
-        return obtainedTokens[ark][rewardToken];
-    }
-
-    function _harvest(
-        address ark,
-        bytes calldata rewardData
-    )
-        internal
-        returns (
-            address[] memory harvestedTokens,
-            uint256[] memory harvestedAmounts
-        )
-    {
-        (harvestedTokens, harvestedAmounts) = IArk(ark).harvest(rewardData);
-        for (uint256 i = 0; i < harvestedTokens.length; i++) {
-            obtainedTokens[ark][harvestedTokens[i]] += harvestedAmounts[i];
-        }
-
-        emit ArkHarvested(ark, harvestedTokens, harvestedAmounts);
-    }
-
     /**
-     * @dev Starts a new auction for a specific Ark and reward token
+     * @notice Starts a new auction for a specific Ark and reward token
      * @param ark The address of the Ark
      * @param rewardToken The address of the reward token to be auctioned
      * @param paymentToken The address of the token used for payment in the auction
@@ -257,7 +295,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /**
-     * @dev Settles the auction by handling unsold tokens
+     * @notice Settles an auction by handling unsold tokens and initiating boarding process
      * @param ark The address of the Ark
      * @param rewardToken The address of the reward token
      * @param auction The auction to be settled
@@ -283,7 +321,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /**
-     * @dev Boards the payment tokens to the Ark
+     * @notice Boards the payment tokens to the Ark
      * @param rewardToken The address of the reward token
      * @param ark The address of the Ark
      * @param data The data to be passed to the Ark

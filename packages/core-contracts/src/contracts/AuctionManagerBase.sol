@@ -19,7 +19,8 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
     /// @notice Default parameters for all auctions
     AuctionDefaultParameters public auctionDefaultParameters;
 
-    /// @notice Counter for generating unique auction IDs - starts with 1
+    /// @notice Counter for generating unique auction IDs
+    /// @dev Initialized to 0. The first auction will have ID 1 due to pre-increment in _createAuction
     uint256 public nextAuctionId;
 
     /**
@@ -28,6 +29,7 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
      */
     constructor(AuctionDefaultParameters memory _defaultParameters) {
         auctionDefaultParameters = _defaultParameters;
+        // nextAuctionId is implicitly initialized to 0
     }
 
     /**
@@ -38,9 +40,9 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
      * @param unsoldTokensRecipient The address to receive any unsold tokens after the auction
      * @return A new Auction struct
      * @custom:internal-logic
-     * - Increments the nextAuctionId
-     * - Creates an AuctionParams struct with default and provided parameters
-     * - Calls the createAuction function of the DutchAuctionLibrary
+     * - Pre-increments nextAuctionId to generate a unique ID (first auction will have ID 1)
+     * - Creates an AuctionParams struct using default parameters and provided inputs
+     * - Calls the createAuction function of the DutchAuctionLibrary to initialize the auction
      * @custom:effects
      * - Increments nextAuctionId
      * - Creates and returns a new Auction struct
@@ -83,8 +85,8 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
      * - Emits an AuctionDefaultParametersUpdated event
      * @custom:security-considerations
      * - Validate the new parameters to ensure they are within acceptable ranges
-     * - Consider the impact on future auctions
-     * - Properly guard access to this function
+     * - Consider the impact on future auctions (e.g., duration, price ranges)
+     * - Implement proper access control to restrict who can call this function
      */
     function _updateAuctionDefaultParameters(
         AuctionDefaultParameters calldata newParameters

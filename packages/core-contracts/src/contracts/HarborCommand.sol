@@ -23,21 +23,41 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
  *
  * This contract plays a crucial role in maintaining the integrity and security of the fleet management system
  * by providing a reliable source of truth for official fleet verification.
+ * @custom:see IHarborCommand
  */
 contract HarborCommand is
     ProtocolAccessManaged,
     IHarborCommandEvents,
     IHarborCommand
 {
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Mapping of addresses to their active status as Fleet Commanders
     mapping(address => bool) public activeFleetCommanders;
+
+    /// @notice List of all Fleet Commander addresses
     address[] public fleetCommandersList;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes the HarborCommand contract
+     * @param _accessManager Address of the access manager contract
+     */
     constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
 
-    /* @inheritdoc IHarborCommand */
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IHarborCommand
     function enlistFleetCommander(
         address _fleetCommander
-    ) external onlyGovernor {
+    ) external override onlyGovernor {
         if (activeFleetCommanders[_fleetCommander]) {
             revert FleetCommanderAlreadyEnlisted(_fleetCommander);
         }
@@ -46,34 +66,52 @@ contract HarborCommand is
         emit FleetCommanderEnlisted(_fleetCommander);
     }
 
-    /* @inheritdoc IHarborCommand */
+    /// @inheritdoc IHarborCommand
     function decommissionFleetCommander(
         address _fleetCommander
-    ) external onlyGovernor {
+    ) external override onlyGovernor {
         if (!activeFleetCommanders[_fleetCommander]) {
             revert FleetCommanderNotEnlisted(_fleetCommander);
         }
         activeFleetCommanders[_fleetCommander] = false;
 
-        // Remove from list
-        for (uint256 i = 0; i < fleetCommandersList.length; i++) {
-            if (fleetCommandersList[i] == _fleetCommander) {
-                fleetCommandersList[i] = fleetCommandersList[
-                    fleetCommandersList.length - 1
-                ];
-                fleetCommandersList.pop();
-                break;
-            }
-        }
+        _removeFromList(_fleetCommander);
 
         emit FleetCommanderDecommissioned(_fleetCommander);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IHarborCommand
     function getActiveFleetCommanders()
         external
         view
+        override
         returns (address[] memory)
     {
         return fleetCommandersList;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Removes a Fleet Commander from the list
+     * @dev This function uses the 'swap and pop' method for efficient removal
+     * @param _fleetCommander Address of the Fleet Commander to remove
+     */
+    function _removeFromList(address _fleetCommander) internal {
+        uint256 length = fleetCommandersList.length;
+        for (uint256 i = 0; i < length; i++) {
+            if (fleetCommandersList[i] == _fleetCommander) {
+                // Swap with the last element and pop
+                fleetCommandersList[i] = fleetCommandersList[length - 1];
+                fleetCommandersList.pop();
+                break;
+            }
+        }
     }
 }

@@ -9,13 +9,18 @@ import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title Ark
  * @author SummerFi
+ * @notice This contract implements the core functionality for the Ark system,
+ *         handling asset boarding, disembarking, and harvesting operations.
+ * @dev This is an abstract contract that should be inherited by specific Ark implementations.
+ *      Inheriting contracts must implement the abstract functions defined here.
  * @custom:see IArk
  */
-abstract contract Ark is IArk, ArkConfigProvider {
+abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     constructor(ArkParams memory _params) ArkConfigProvider(_params) {}
@@ -96,11 +101,20 @@ abstract contract Ark is IArk, ArkConfigProvider {
 
     /* EXTERNAL - COMMANDER */
     /* @inheritdoc IArk */
+    /**
+     * @notice Boards (deposits) assets into the Ark
+     * @dev This function is called by the Fleet Commander to deposit assets into the Ark.
+     *      It transfers tokens from the caller to this contract and then calls the internal _board function.
+     * @param amount The amount of assets to board
+     * @param boardData Additional data required for boarding, specific to the Ark implementation
+     * @custom:security-note This function is only callable by authorized entities
+     */
     function board(
         uint256 amount,
         bytes calldata boardData
     )
         external
+        nonReentrant
         onlyAuthorizedToBoard(this.commander())
         validateBoardData(boardData)
     {

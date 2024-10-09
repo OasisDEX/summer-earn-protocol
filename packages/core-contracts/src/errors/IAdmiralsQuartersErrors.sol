@@ -57,4 +57,9 @@ interface IAdmiralsQuartersErrors {
      * @notice Thrown when an invalid router address is provided or used.
      */
     error InvalidRouterAddress();
+
+    /**
+     * @notice Thrown when the provided token does not match the expected token.
+     */
+    error TokenMismatch();
 }

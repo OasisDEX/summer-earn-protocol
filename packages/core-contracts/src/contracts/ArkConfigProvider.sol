@@ -13,6 +13,8 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 /**
  * @title ArkConfigProvider
  * @author SummerFi
+ * @notice This contract manages the configuration for Ark contracts.
+ * @dev Inherits from IArkConfigProvider, ArkAccessManaged, and ConfigurationManaged.
  * @custom:see IArkConfigProvider
  */
 abstract contract ArkConfigProvider is
@@ -22,6 +24,11 @@ abstract contract ArkConfigProvider is
 {
     ArkConfig public config;
 
+    /**
+     * @notice Initializes the ArkConfigProvider contract.
+     * @param _params The initial parameters for the Ark configuration.
+     * @dev Validates input parameters and sets up the initial configuration.
+     */
     constructor(
         ArkParams memory _params
     )
@@ -43,7 +50,7 @@ abstract contract ArkConfigProvider is
 
         config = ArkConfig({
             token: IERC20(_params.token),
-            commander: address(0), // Will be set later
+            commander: address(0), // Commander is initially set to address(0)
             raft: raft(),
             depositCap: _params.depositCap,
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
@@ -51,9 +58,20 @@ abstract contract ArkConfigProvider is
             name: _params.name,
             requiresKeeperData: _params.requiresKeeperData
         });
+
+        // The commander address is initially set to address(0).
+        // This allows the FleetCommander contract to self-register with the Ark later,
+        // using the `registerFleetCommander()` function. This approach ensures that:
+        // 1. The FleetCommander's address is not hardcoded during deployment.
+        // 2. Only the authorized FleetCommander can register itself.
+        // 3. The Ark remains flexible for potential commander changes in the future.
+        // See the `registerFleetCommander()` function for the actual registration process.
     }
 
-    /* EXTERNAL */
+    /**
+     * @notice Returns the name of the Ark.
+     * @return string The name of the Ark.
+     */
     function name() external view returns (string memory) {
         return config.name;
     }
