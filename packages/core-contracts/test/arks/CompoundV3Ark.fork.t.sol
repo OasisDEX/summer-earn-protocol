@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ArkParams, CompoundV3Ark} from "../../src/contracts/arks/CompoundV3Ark.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -49,7 +49,10 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.prank(governor);
-        ark.grantCommanderRole(commander);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
     }
 
     function test_Board_CompoundV3_fork() public {

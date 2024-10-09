@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
@@ -11,17 +11,19 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
@@ -48,7 +50,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     ArkMock public mockArk3;
     RestictedWithdrawalArkMock public mockArk4;
     BufferArk public bufferArk;
-
+    HarborCommand public harborCommand;
     // Addresses
     address public governor = address(1);
     address public raft = address(2);
@@ -75,19 +77,25 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         uint256 initialTipRate
     ) internal {
         mockToken = new ERC20Mock();
+        // first setup the contracts
         setupBaseContracts(address(mockToken));
+        // then setup the mock arks - they are not initilaized with fleet commander address
         setupMockArks(address(mockToken));
-        address[] memory initialArks = new address[](4);
-        initialArks[0] = ark1;
-        initialArks[1] = ark2;
-        initialArks[2] = ark3;
-        initialArks[3] = ark4;
-        setupFleetCommander(
+        address[] memory mockArks = new address[](4);
+        mockArks[0] = ark1;
+        mockArks[1] = ark2;
+        mockArks[2] = ark3;
+        mockArks[3] = ark4;
+        // setup the fleet commander - fleetcommander deploys buffer ark
+        setupFleetCommanderWithBufferArk(
             address(mockToken),
-            initialArks,
             PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
-        grantRoles(initialArks, address(bufferArk), keeper);
+        // grant roles to the fleet commander - Dyanmic `COMMANDER_ROLE` to manage arks
+        // grants governor keepr, curator roles
+        grantRoles(mockArks, address(bufferArk), keeper);
+        vm.prank(governor);
+        fleetCommander.addArks(mockArks);
         vm.label(address(mockArk1), "Ark1");
         vm.label(address(mockArk2), "Ark2");
         vm.label(address(mockArk3), "Ark3");
@@ -99,9 +107,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         uint256 initialTipRate
     ) internal {
         setupBaseContracts(underlyingToken);
-        setupFleetCommander(
+        setupFleetCommanderWithBufferArk(
             underlyingToken,
-            new address[](0),
             PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
     }
@@ -110,53 +117,43 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         if (address(accessManager) == address(0)) {
             accessManager = new ProtocolAccessManager(governor);
         }
+        if (address(harborCommand) == address(0)) {
+            harborCommand = new HarborCommand(address(accessManager));
+        }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
                 address(accessManager)
             );
             vm.prank(governor);
-            configurationManager.initialize(
+            configurationManager.initializeConfiguration(
                 ConfigurationManagerParams({
                     raft: address(raft),
                     tipJar: address(tipJar),
-                    treasury: treasury
+                    treasury: treasury,
+                    harborCommand: address(harborCommand)
                 })
             );
         }
-        bufferArk = new BufferArk(
-            ArkParams({
-                name: "TestArk",
-                accessManager: address(accessManager),
-                token: underlyingToken,
-                configurationManager: address(configurationManager),
-                depositCap: type(uint256).max,
-                maxRebalanceOutflow: type(uint256).max,
-                maxRebalanceInflow: type(uint256).max,
-                requiresKeeperData: false
-            })
-        );
-        bufferArkAddress = address(bufferArk);
     }
 
-    function setupFleetCommander(
+    function setupFleetCommanderWithBufferArk(
         address underlyingToken,
-        address[] memory initialArks,
         Percentage initialTipRate
     ) internal {
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            initialArks: initialArks,
             initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             asset: underlyingToken,
             name: fleetName,
             symbol: "TEST-SUM",
             initialTipRate: initialTipRate,
-            depositCap: type(uint256).max,
-            bufferArk: bufferArkAddress
+            depositCap: type(uint256).max
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
+        bufferArkAddress = fleetCommander.bufferArk();
+        bufferArk = BufferArk(bufferArkAddress);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );
@@ -183,12 +180,14 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         address _keeper
     ) internal {
         vm.startPrank(governor);
-        accessManager.grantKeeperRole(_keeper);
-        BufferArk(_bufferArkAddress).grantCommanderRole(
+        accessManager.grantKeeperRole(address(fleetCommander), _keeper);
+        accessManager.grantCuratorRole(address(fleetCommander), governor);
+        accessManager.grantCommanderRole(
+            address(_bufferArkAddress),
             address(fleetCommander)
         );
         for (uint256 i = 0; i < arks.length; i++) {
-            ArkMock(arks[i]).grantCommanderRole(address(fleetCommander));
+            accessManager.grantCommanderRole(arks[i], address(fleetCommander));
         }
         vm.stopPrank();
     }

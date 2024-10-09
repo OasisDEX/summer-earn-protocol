@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 /**
  * @title IFleetCommanderConfigProviderErrors
@@ -36,4 +36,9 @@ interface IFleetCommanderConfigProviderErrors {
      * @notice Thrown when an invalid Ark address is provided (e.g., zero address)
      */
     error FleetCommanderInvalidArkAddress();
+
+    /**
+     * @notice Thrown when trying to add a commander to an Ark that already has a commander
+     */
+    error FleetCommanderArkAlreadyHasCommander();
 }

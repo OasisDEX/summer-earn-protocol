@@ -22,7 +22,7 @@ const config: HardhatUserConfig = {
     requiredConfirmations: 1,
   },
   solidity: {
-    version: '0.8.26',
+    version: '0.8.27',
     settings: {
       optimizer: {
         enabled: true,
@@ -31,9 +31,6 @@ const config: HardhatUserConfig = {
       evmVersion: 'cancun',
       viaIR: true,
     },
-  },
-  paths: {
-    sources: './src',
   },
   networks: {
     local: {
@@ -47,6 +44,10 @@ const config: HardhatUserConfig = {
           balance: '1000000000000000000000', // 1000 ETH in wei
         },
       ],
+      chainId: 8453,
+      forking: {
+        url: `${process.env.BASE_RPC_URL}`,
+      },
     },
     // mainnets
     mainnet: {

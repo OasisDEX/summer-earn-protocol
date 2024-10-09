@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
@@ -51,7 +51,10 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.startPrank(governor);
-        ark.grantCommanderRole(commander);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
         vm.stopPrank();
     }
 

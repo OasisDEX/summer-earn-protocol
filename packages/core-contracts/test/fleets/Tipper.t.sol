@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -9,7 +9,9 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 
 import {Tipper} from "../../src/contracts/Tipper.sol";
 
-import {ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
+import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {ConfigurationManagerImplMock, ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -18,20 +20,36 @@ contract TipperTest is Test, ITipperEvents {
     using PercentageUtils for uint256;
 
     address public mockUser = address(1);
+    address public governor = address(2);
+    address public keeper = address(3);
     FleetCommanderMock public fleetCommander;
     ConfigurationManagerMock public configManager;
-
+    ProtocolAccessManager public accessManager;
     ERC20Mock public underlyingToken;
     address public tipJar;
     Percentage public initialTipRate;
     TipperHarness public tipper;
+    HarborCommand public harborCommand;
 
     function setUp() public {
+        accessManager = new ProtocolAccessManager(governor);
+        vm.prank(governor);
+        accessManager.grantKeeperRole(address(fleetCommander), keeper);
+        harborCommand = new HarborCommand(address(accessManager));
+
         underlyingToken = new ERC20Mock();
         tipJar = address(0x123);
+
         initialTipRate = PercentageUtils.fromIntegerPercentage(1);
         configManager = ConfigurationManagerMock(
-            address(new ConfigurationManagerImplMock(tipJar, address(0)))
+            address(
+                new ConfigurationManagerImplMock(
+                    tipJar,
+                    address(0),
+                    address(0),
+                    address(harborCommand)
+                )
+            )
         );
         fleetCommander = new FleetCommanderMock(
             address(underlyingToken),
@@ -44,7 +62,10 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_InitialState() public view {
-        assertEq(address(fleetCommander.manager()), address(configManager));
+        assertEq(
+            address(fleetCommander.configurationManager()),
+            address(configManager)
+        );
         assertTrue(fleetCommander.tipRate() == initialTipRate);
         assertEq(fleetCommander.tipJar(), tipJar);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
@@ -56,20 +77,6 @@ contract TipperTest is Test, ITipperEvents {
         emit TipRateUpdated(newTipRate);
         fleetCommander.setTipRate(newTipRate);
         assertTrue(fleetCommander.tipRate() == newTipRate);
-    }
-
-    function test_SetTipJar() public {
-        address newTipJar = address(0x456);
-        vm.mockCall(
-            address(configManager),
-            abi.encodeWithSelector(IConfigurationManager.tipJar.selector),
-            abi.encode(newTipJar)
-        );
-
-        vm.expectEmit(true, true, false, true);
-        emit TipJarUpdated(newTipJar);
-        fleetCommander.setTipJar();
-        assertEq(fleetCommander.tipJar(), newTipJar);
     }
 
     function test_AccrueTip() public {
@@ -115,19 +122,6 @@ contract TipperTest is Test, ITipperEvents {
             abi.encodeWithSignature("TipRateCannotExceedOneHundredPercent()")
         );
         fleetCommander.setTipRate(PercentageUtils.fromIntegerPercentage(101));
-    }
-
-    function test_SetTipJarCannotBeZeroAddress() public {
-        ConfigurationManagerMock _configManager = ConfigurationManagerMock(
-            address(new ConfigurationManagerImplMock(address(0), address(0)))
-        );
-        FleetCommanderMock _fleetCommander = new FleetCommanderMock(
-            address(underlyingToken),
-            address(_configManager),
-            initialTipRate
-        );
-        vm.expectRevert(abi.encodeWithSignature("InvalidTipJarAddress()"));
-        _fleetCommander.setTipJar();
     }
 
     function test_CompoundingEffect() public {
@@ -215,19 +209,6 @@ contract TipperTest is Test, ITipperEvents {
             "Estimated tip should be greater than zero"
         );
     }
-}
-
-contract ConfigurationManagerImplMock is ConfigurationManagerMock {
-    constructor(
-        address _tipJar,
-        address _treasury
-    ) ConfigurationManagerMock(_tipJar, _treasury) {}
-
-    function setTipJar(address newTipJar) external override {
-        tipJar = newTipJar;
-    }
-
-    function test_() public {}
 }
 
 contract TipperHarness is Tipper {

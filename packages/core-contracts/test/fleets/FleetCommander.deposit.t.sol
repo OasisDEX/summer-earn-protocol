@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {Test, console} from "forge-std/Test.sol";
 
@@ -40,8 +40,8 @@ contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
 
         vm.prank(mockUser);
         mockToken.approve(address(fleetCommander), amount);
-        mockArkTotalAssets(ark1, 0);
-        mockArkTotalAssets(ark2, 0);
+        _mockArkTotalAssets(ark1, 0);
+        _mockArkTotalAssets(ark2, 0);
 
         vm.prank(mockUser);
         fleetCommander.deposit(amount, mockUser);
@@ -65,8 +65,8 @@ contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
 
         vm.prank(mockUser);
         mockToken.approve(address(fleetCommander), amount);
-        mockArkTotalAssets(ark1, 0);
-        mockArkTotalAssets(ark2, 0);
+        _mockArkTotalAssets(ark1, 0);
+        _mockArkTotalAssets(ark2, 0);
 
         vm.prank(mockUser);
         vm.expectEmit();

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
@@ -11,6 +11,8 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 
 import "../../src/contracts/arks/MetaMorphoArk.sol";
 import "../../src/events/IArkEvents.sol";
+
+import {IArk} from "../../src/interfaces/IArk.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 
 contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
@@ -47,7 +49,10 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.startPrank(governor);
-        ark.grantCommanderRole(commander);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
         vm.stopPrank();
     }
 

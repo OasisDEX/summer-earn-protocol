@@ -1,26 +1,33 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
-
-import {ArkConfig, ArkParams, IArk} from "../interfaces/IArk.sol";
+import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 
 import {IArkConfigProvider} from "../interfaces/IArkConfigProvider.sol";
 
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
+ * @title ArkConfigProvider
+ * @author SummerFi
  * @custom:see IArkConfigProvider
  */
-abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
+abstract contract ArkConfigProvider is
+    IArkConfigProvider,
+    ArkAccessManaged,
+    ConfigurationManaged
+{
     ArkConfig public config;
-    IConfigurationManager public manager;
 
     constructor(
         ArkParams memory _params
-    ) ArkAccessManaged(_params.accessManager) {
+    )
+        ArkAccessManaged(_params.accessManager)
+        ConfigurationManaged(_params.configurationManager)
+    {
         if (_params.configurationManager == address(0)) {
             revert CannotDeployArkWithoutConfigurationManager();
         }
@@ -30,15 +37,14 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
         if (bytes(_params.name).length == 0) {
             revert CannotDeployArkWithEmptyName();
         }
-        manager = IConfigurationManager(_params.configurationManager);
-        if (manager.raft() == address(0)) {
+        if (raft() == address(0)) {
             revert CannotDeployArkWithoutRaft();
         }
 
         config = ArkConfig({
             token: IERC20(_params.token),
             commander: address(0), // Will be set later
-            raft: manager.raft(),
+            raft: raft(),
             depositCap: _params.depositCap,
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
             maxRebalanceInflow: _params.maxRebalanceInflow,
@@ -53,11 +59,6 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
     }
 
     /* @inheritdoc IArk */
-    function raft() public view returns (address) {
-        return manager.raft();
-    }
-
-    /* @inheritdoc IArk */
     function depositCap() external view returns (uint256) {
         return config.depositCap;
     }
@@ -68,7 +69,7 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
     }
 
     /* @inheritdoc IArk */
-    function commander() external view returns (address) {
+    function commander() public view returns (address) {
         return config.commander;
     }
 
@@ -85,6 +86,10 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
     /* @inheritdoc IArk */
     function requiresKeeperData() external view returns (bool) {
         return config.requiresKeeperData;
+    }
+
+    function getConfig() external view returns (ArkConfig memory) {
+        return config;
     }
 
     /* @inheritdoc IArk */
@@ -107,5 +112,15 @@ abstract contract ArkConfigProvider is IArkConfigProvider, ArkAccessManaged {
     ) external onlyCommander {
         config.maxRebalanceInflow = newMaxRebalanceInflow;
         emit MaxRebalanceInflowUpdated(newMaxRebalanceInflow);
+    }
+
+    function registerFleetCommander() external onlyCommander {
+        config.commander = msg.sender;
+        emit FleetCommanderRegistered(msg.sender);
+    }
+
+    function unregisterFleetCommander() external onlyCommander {
+        config.commander = address(0);
+        emit FleetCommanderUnregistered(msg.sender);
     }
 }

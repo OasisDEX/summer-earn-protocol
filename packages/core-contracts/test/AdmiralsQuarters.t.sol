@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity 0.8.27;
 
 import {AdmiralsQuarters} from "../src/contracts/AdmiralsQuarters.sol";
 
 import {FleetCommander} from "../src/contracts/FleetCommander.sol";
 import {IAggregationRouterV6} from "../src/interfaces/1inch/IAggregationRouterV6.sol";
+
+import {ContractSpecificRoles} from "../src/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderTestBase} from "./fleets/FleetCommanderTestBase.sol";
 import {OneInchTestHelpers} from "./helpers/OneInchTestHelpers.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -36,18 +38,31 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithoutArks(USDC_ADDRESS, initialTipRate);
         usdcFleet = fleetCommander;
+        console.log("usdcFleet", address(usdcFleet));
+        console.log("bufferArk", address(bufferArk));
         vm.startPrank(governor);
-        bufferArk.grantCommanderRole(address(fleetCommander));
+        accessManager.grantCommanderRole(
+            address(address(bufferArk)),
+            address(fleetCommander)
+        );
 
         initializeFleetCommanderWithoutArks(DAI_ADDRESS, initialTipRate);
         daiFleet = fleetCommander;
-
-        bufferArk.grantCommanderRole(address(fleetCommander));
+        console.log("daiFleet", address(daiFleet));
+        console.log("bufferArk", address(bufferArk));
+        accessManager.grantCommanderRole(
+            address(address(bufferArk)),
+            address(fleetCommander)
+        );
 
         admiralsQuarters = new AdmiralsQuarters(ONE_INCH_ROUTER);
 
         // Grant roles
-        accessManager.grantKeeperRole(address(this));
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            address(this)
+        );
         vm.stopPrank();
 
         // Mint tokens for users

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
@@ -22,9 +22,9 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  */
 contract FleetCommander is
     IFleetCommander,
+    FleetCommanderConfigProvider,
     ERC4626,
     Tipper,
-    FleetCommanderConfigProvider,
     FleetCommanderCache,
     CooldownEnforcer
 {
@@ -79,11 +79,12 @@ contract FleetCommander is
     }
 
     /* PUBLIC - USER */
+    /// @inheritdoc IFleetCommander
     function withdrawFromBuffer(
         uint256 assets,
         address receiver,
         address owner
-    ) public returns (uint256 shares) {
+    ) public whenNotPaused returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -99,15 +100,17 @@ contract FleetCommander is
         );
     }
 
+    /// @inheritdoc IFleetCommander
     function redeem(
         uint256 shares,
         address receiver,
         address owner
     )
         public
-        override(ERC4626, IERC4626)
+        override(ERC4626, IFleetCommander)
         collectTip
         useWithdrawCache
+        whenNotPaused
         returns (uint256 assets)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -124,11 +127,18 @@ contract FleetCommander is
         }
     }
 
+    /// @inheritdoc IFleetCommander
     function redeemFromBuffer(
         uint256 shares,
         address receiver,
         address owner
-    ) public collectTip useWithdrawCache returns (uint256 assets) {
+    )
+        public
+        collectTip
+        useWithdrawCache
+        whenNotPaused
+        returns (uint256 assets)
+    {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -144,15 +154,17 @@ contract FleetCommander is
         );
     }
 
+    /// @inheritdoc IFleetCommander
     function withdraw(
         uint256 assets,
         address receiver,
         address owner
     )
         public
-        override(ERC4626, IERC4626)
+        override(ERC4626, IFleetCommander)
         collectTip
         useWithdrawCache
+        whenNotPaused
         returns (uint256 shares)
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
@@ -169,6 +181,7 @@ contract FleetCommander is
         }
     }
 
+    /// @inheritdoc IFleetCommander
     function withdrawFromArks(
         uint256 assets,
         address receiver,
@@ -178,6 +191,7 @@ contract FleetCommander is
         override(IFleetCommander)
         collectTip
         useWithdrawCache
+        whenNotPaused
         returns (uint256 totalSharesToRedeem)
     {
         totalSharesToRedeem = previewWithdraw(assets);
@@ -191,6 +205,7 @@ contract FleetCommander is
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
 
+    /// @inheritdoc IFleetCommander
     function redeemFromArks(
         uint256 shares,
         address receiver,
@@ -200,6 +215,7 @@ contract FleetCommander is
         override(IFleetCommander)
         collectTip
         useWithdrawCache
+        whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
         _validateForceRedeem(shares, owner);
@@ -211,6 +227,7 @@ contract FleetCommander is
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
 
+    /// @inheritdoc IERC4626
     function deposit(
         uint256 assets,
         address receiver
@@ -219,6 +236,7 @@ contract FleetCommander is
         override(ERC4626, IERC4626)
         collectTip
         useDepositCache
+        whenNotPaused
         returns (uint256 shares)
     {
         _validateDeposit(assets, _msgSender());
@@ -236,15 +254,17 @@ contract FleetCommander is
         );
     }
 
+    /// @inheritdoc IFleetCommander
     function deposit(
         uint256 assets,
         address receiver,
         bytes memory referralCode
-    ) public returns (uint256) {
+    ) public whenNotPaused returns (uint256) {
         emit FleetCommanderReferral(receiver, referralCode);
         return deposit(assets, receiver);
     }
 
+    /// @inheritdoc IERC4626
     function mint(
         uint256 shares,
         address receiver
@@ -253,6 +273,7 @@ contract FleetCommander is
         override(ERC4626, IERC4626)
         collectTip
         useDepositCache
+        whenNotPaused
         returns (uint256 assets)
     {
         _validateMint(shares, _msgSender());
@@ -270,24 +291,28 @@ contract FleetCommander is
         );
     }
 
-    function tip() public returns (uint256) {
+    /// @inheritdoc IFleetCommander
+    function tip() public whenNotPaused returns (uint256) {
         return _accrueTip();
     }
 
+    /// @inheritdoc IFleetCommander
     function totalAssets()
         public
         view
-        override(ERC4626, IERC4626)
+        override(IFleetCommander, ERC4626)
         returns (uint256)
     {
         return _totalAssets(arks, config.bufferArk);
     }
 
+    /// @inheritdoc IFleetCommander
     function withdrawableTotalAssets() public view returns (uint256) {
         return
             _withdrawableTotalAssets(arks, config.bufferArk, isArkWithdrawable);
     }
 
+    /// @inheritdoc IERC4626
     function maxDeposit(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxDeposit) {
@@ -299,6 +324,7 @@ contract FleetCommander is
         _maxDeposit = Math.min(maxAssets, IERC20(asset()).balanceOf(owner));
     }
 
+    /// @inheritdoc IERC4626
     function maxMint(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxMint) {
@@ -311,6 +337,7 @@ contract FleetCommander is
         );
     }
 
+    /// @inheritdoc IFleetCommander
     function maxBufferWithdraw(
         address owner
     ) public view returns (uint256 _maxBufferWithdraw) {
@@ -320,6 +347,7 @@ contract FleetCommander is
         );
     }
 
+    /// @inheritdoc IERC4626
     function maxWithdraw(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxWithdraw) {
@@ -329,6 +357,7 @@ contract FleetCommander is
         );
     }
 
+    /// @inheritdoc IERC4626
     function maxRedeem(
         address owner
     ) public view override(ERC4626, IERC4626) returns (uint256 _maxRedeem) {
@@ -338,6 +367,7 @@ contract FleetCommander is
         );
     }
 
+    /// @inheritdoc IFleetCommander
     function maxBufferRedeem(
         address owner
     ) public view returns (uint256 _maxBufferRedeem) {
@@ -347,19 +377,20 @@ contract FleetCommander is
         );
     }
 
-    /* EXTERNAL - KEEPER */
+    /// @inheritdoc IFleetCommander
     function rebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown collectTip {
+    ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
         // Validate that no operations are moving to or from the bufferArk
         _validateReallocateAllAssets(rebalanceData);
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
 
+    /// @inheritdoc IFleetCommander
     function adjustBuffer(
         RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown collectTip {
+    ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
         _validateReallocateAllAssets(rebalanceData);
         _validateAdjustBuffer(rebalanceData);
 
@@ -368,42 +399,39 @@ contract FleetCommander is
         emit FleetCommanderBufferAdjusted(_msgSender(), totalMoved);
     }
 
-    /* EXTERNAL - GOVERNANCE */
-
-    function setTipJar() external onlyGovernor {
-        _setTipJar();
-    }
-
-    /**
-     * @notice Sets a new tip rate for the protocol
-     * @dev Only callable by the governor
-     * @dev The tip rate is set as a Percentage. Percentages use 18 decimals of precision
-     *      For example, for a 5% rate, you'd pass 5 * 1e18 (5 000 000 000 000 000 000)
-     * @param newTipRate The new tip rate as a Percentage
-     */
-    function setTipRate(Percentage newTipRate) external onlyGovernor {
+    /// @inheritdoc IFleetCommander
+    function setTipRate(
+        Percentage newTipRate
+    ) external onlyGovernor whenNotPaused {
         _setTipRate(newTipRate);
     }
 
+    /// @inheritdoc IFleetCommander
+    function setMinimumPauseTime(
+        uint256 _newMinimumPauseTime
+    ) public onlyGovernor whenNotPaused {
+        _setMinimumPauseTime(_newMinimumPauseTime);
+    }
+
+    /// @inheritdoc IFleetCommander
     function updateRebalanceCooldown(
         uint256 newCooldown
-    ) external onlyGovernor {
+    ) external onlyGovernor whenNotPaused {
         _updateCooldown(newCooldown);
     }
 
+    /// @inheritdoc IFleetCommander
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
-    ) external onlyGovernor collectTip {
+    ) external onlyGovernor collectTip whenNotPaused {
         // Validate that no operations are moving to or from the bufferArk
         _validateReallocateAllAssets(rebalanceData);
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
 
-    // todo: do we need this ? do we make the contract pausable ?
-    function emergencyShutdown() external onlyGovernor {}
-
     /* PUBLIC - ERC20 */
+    /// @inheritdoc IERC20
     function transfer(
         address,
         uint256
@@ -411,6 +439,7 @@ contract FleetCommander is
         revert FleetCommanderTransfersDisabled();
     }
 
+    /// @inheritdoc IERC20
     function transferFrom(
         address,
         address,
@@ -419,7 +448,16 @@ contract FleetCommander is
         revert FleetCommanderTransfersDisabled();
     }
 
-    /* INTERNAL - TIPS */
+    /**
+     * @notice Mints new shares as tips to the specified account
+     * @dev This function overrides the abstract _mintTip function from the Tipper contract.
+     *      It is called internally by the _accrueTip function to mint new shares as tips.
+     *      In the context of FleetCommander, this creates new shares without requiring
+     *      additional underlying assets, effectively diluting existing shareholders slightly
+     *      to pay for the protocol's ongoing operations.
+     * @param account The address to receive the minted tip shares
+     * @param amount The amount of shares to mint as a tip
+     */
     function _mintTip(
         address account,
         uint256 amount
@@ -428,6 +466,11 @@ contract FleetCommander is
     }
 
     /* INTERNAL - REBALANCE */
+    /**
+     * @notice Reallocates all assets based on the provided rebalance data
+     * @param rebalanceData Array of RebalanceData structs containing information about the reallocation
+     * @return totalMoved The total amount of assets moved during the reallocation
+     */
     function _reallocateAllAssets(
         RebalanceData[] calldata rebalanceData
     ) internal returns (uint256 totalMoved) {
@@ -439,15 +482,33 @@ contract FleetCommander is
 
     /* INTERNAL - ARK */
 
+    /**
+     * @notice Approves and boards a specified amount of assets to an Ark
+     * @param ark The address of the Ark
+     * @param amount The amount of assets to board
+     */
     function _board(address ark, uint256 amount) internal {
         IERC20(asset()).approve(ark, amount);
         IArk(ark).board(amount, bytes(""));
     }
 
+    /**
+     * @notice Disembarks a specified amount of assets from an Ark
+     * @param ark The address of the Ark
+     * @param amount The amount of assets to disembark
+     */
     function _disembark(address ark, uint256 amount) internal {
         IArk(ark).disembark(amount, bytes(""));
     }
 
+    /**
+     * @notice Moves a specified amount of assets from one Ark to another
+     * @param fromArk The address of the Ark to move assets from
+     * @param toArk The address of the Ark to move assets to
+     * @param amount The amount of assets to move
+     * @param boardData Additional data for the board operation
+     * @param disembarkData Additional data for the disembark operation
+     */
     function _move(
         address fromArk,
         address toArk,
@@ -814,5 +875,13 @@ contract FleetCommander is
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
         }
+    }
+
+    function pause() public onlyGuardianOrGovernor whenNotPaused {
+        _pause();
+    }
+
+    function unpause() public onlyGuardianOrGovernor whenPaused {
+        _unpause();
     }
 }

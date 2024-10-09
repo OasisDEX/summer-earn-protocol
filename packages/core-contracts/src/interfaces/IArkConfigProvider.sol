@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {IArkConfigProviderErrors} from "../errors/IArkConfigProviderErrors.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 
 import {IArkConfigProviderEvents} from "../events/IArkConfigProviderEvents.sol";
-import "../types/ArkTypes.sol";
-
+import {ArkConfig} from "../types/ArkTypes.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @title IArkConfigProvider
  * @notice Interface for configuration of Ark contracts
@@ -18,16 +18,15 @@ interface IArkConfigProvider is
     IArkConfigProviderEvents
 {
     /**
+     * @notice Retrieves the current fleet config
+     */
+    function getConfig() external view returns (ArkConfig memory);
+
+    /**
      * @dev Returns the name of the Ark.
      * @return The name of the Ark as a string.
      */
     function name() external view returns (string memory);
-
-    /**
-     * @notice Returns the address of the associated Raft contract
-     * @return The address of the Raft contract
-     */
-    function raft() external view returns (address);
 
     /**
      * @notice Returns the deposit cap for this Ark
@@ -82,4 +81,19 @@ interface IArkConfigProvider is
      * @param newMaxRebalanceInflow The new maximum amount that can be moved to the Ark
      */
     function setMaxRebalanceInflow(uint256 newMaxRebalanceInflow) external;
+
+    /**
+     * @notice Registers the Fleet commander for the Ark
+     * @dev This function is used to register the Fleet commander for the Ark
+     * it's called by the FleetCommander when ark is added to the fleet
+     */
+    function registerFleetCommander() external;
+
+    /**
+     * @notice Unregisters the Fleet commander for the Ark
+     * @dev This function is used to unregister the Fleet commander for the Ark
+     * it's called by the FleetCommander when ark is removed from the fleet
+     * all balance checks are done within the FleetCommander
+     */
+    function unregisterFleetCommander() external;
 }

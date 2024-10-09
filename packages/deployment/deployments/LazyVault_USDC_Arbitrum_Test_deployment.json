@@ -1,0 +1,14 @@
+{
+  "fleetName": "LazyVault_USDC_Arbitrum_Test",
+  "fleetSymbol": "FUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x4774d1cD62D20c288dFAdEfDEDF79d5B4cae1856",
+  "bufferArkAddress": "0x70EAb9437E303D1aD2edD69619fa5C6aC9d31209",
+  "network": "arbitrum",
+  "arks": [
+    "0x85AA5809f3ce928b658Dd17876DC414962456563",
+    "0x72f0D737169DC9dFB9C17cFD624Efe9082F5C6A6",
+    "0x1003aaeB64B9fc1BB8BB4dcEb7c65A59BA61a0f8",
+    "0x363139edCB1994E6f9f928CEB33b431E9Db53ac5"
+  ]
+}

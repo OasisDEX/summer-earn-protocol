@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
 import {Test} from "forge-std/Test.sol";
 
@@ -12,12 +12,16 @@ contract ProtocolAccessManagerTest is Test {
     address public admin;
     address public keeper;
     address public user;
+    address public commander;
+    address public curator;
 
     function setUp() public {
         governor = address(0x1);
         admin = address(0x2);
         keeper = address(0x3);
         user = address(0x4);
+        curator = address(0x5);
+        commander = address(0x6);
 
         vm.prank(governor);
         accessManager = new TestProtocolAccessManager(governor);
@@ -92,16 +96,140 @@ contract ProtocolAccessManagerTest is Test {
 
     function test_GrantKeeperRole() public {
         vm.prank(governor);
-        accessManager.grantKeeperRole(keeper);
-        assertTrue(accessManager.hasRole(accessManager.KEEPER_ROLE(), keeper));
+        accessManager.grantKeeperRole(address(0), keeper);
+        assertTrue(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.KEEPER_ROLE,
+                    address(0)
+                ),
+                keeper
+            )
+        );
     }
 
     function test_RevokeKeeperRole() public {
         vm.startPrank(governor);
-        accessManager.grantKeeperRole(keeper);
-        accessManager.revokeKeeperRole(keeper);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            keeper
+        );
+        accessManager.revokeKeeperRole(address(0), keeper);
         vm.stopPrank();
-        assertFalse(accessManager.hasRole(accessManager.KEEPER_ROLE(), keeper));
+        assertFalse(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.KEEPER_ROLE,
+                    address(0)
+                ),
+                keeper
+            )
+        );
+    }
+
+    function test_GrantCommanderRole() public {
+        vm.prank(governor);
+        accessManager.grantCommanderRole(address(0), commander);
+    }
+
+    function test_RevokeCommanderRole() public {
+        vm.startPrank(governor);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.COMMANDER_ROLE,
+            address(0),
+            commander
+        );
+        accessManager.revokeContractSpecificRole(
+            ContractSpecificRoles.COMMANDER_ROLE,
+            address(0),
+            commander
+        );
+        vm.stopPrank();
+        assertFalse(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(0)
+                ),
+                commander
+            )
+        );
+    }
+
+    function test_GrantCuratorRole() public {
+        vm.prank(governor);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.CURATOR_ROLE,
+            address(0),
+            curator
+        );
+        assertTrue(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.CURATOR_ROLE,
+                    address(0)
+                ),
+                curator
+            )
+        );
+    }
+
+    function test_RevokeCuratorRole() public {
+        vm.startPrank(governor);
+        accessManager.grantCuratorRole(address(0), curator);
+        accessManager.revokeCuratorRole(address(0), curator);
+        vm.stopPrank();
+        assertFalse(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.CURATOR_ROLE,
+                    address(0)
+                ),
+                curator
+            )
+        );
+    }
+
+    function test_selfRevokeCommanderRole() public {
+        vm.prank(governor);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.COMMANDER_ROLE,
+            address(0),
+            commander
+        );
+        vm.prank(commander);
+        accessManager.selfRevokeContractSpecificRole(
+            ContractSpecificRoles.COMMANDER_ROLE,
+            address(0)
+        );
+        assertFalse(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(0)
+                ),
+                commander
+            )
+        );
+    }
+
+    function test_selfRevokeContractSpecificRole_shouldFail() public {
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotContractSpecificRole(address,bytes32)",
+                commander,
+                accessManager.generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(0)
+                )
+            )
+        );
+        vm.prank(commander);
+        accessManager.selfRevokeContractSpecificRole(
+            ContractSpecificRoles.COMMANDER_ROLE,
+            address(0)
+        );
     }
 
     function test_OnlyAdminModifier() public {
@@ -117,7 +245,11 @@ contract ProtocolAccessManagerTest is Test {
             abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
         );
         vm.prank(user);
-        accessManager.grantKeeperRole(user);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            user
+        );
     }
 
     function test_OnlyGovernorModifier_Fail() public {
@@ -125,15 +257,11 @@ contract ProtocolAccessManagerTest is Test {
             abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
         );
         vm.prank(user);
-        accessManager.grantKeeperRole(user);
-    }
-
-    function test_OnlyKeeperModifier_Fail() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotKeeper(address)", user)
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            user
         );
-        vm.prank(user);
-        accessManager.dummyKeeperFunction();
     }
 
     function test_GrantRoleDirectly_ShouldFail() public {
@@ -148,7 +276,11 @@ contract ProtocolAccessManagerTest is Test {
     function test_RevokeRoleDirectly_ShouldFail() public {
         // Arrange
         vm.prank(governor);
-        accessManager.grantKeeperRole(keeper);
+        accessManager.grantContractSpecificRole(
+            ContractSpecificRoles.KEEPER_ROLE,
+            address(0),
+            keeper
+        );
 
         // Act
         vm.expectRevert(
@@ -161,9 +293,4 @@ contract ProtocolAccessManagerTest is Test {
 
 contract TestProtocolAccessManager is ProtocolAccessManager {
     constructor(address governor) ProtocolAccessManager(governor) {}
-
-    // Add this dummy function for testing purposes
-    function dummyKeeperFunction() external onlyKeeper {
-        // This function doesn't need to do anything
-    }
 }

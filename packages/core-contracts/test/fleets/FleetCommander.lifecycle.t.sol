@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";

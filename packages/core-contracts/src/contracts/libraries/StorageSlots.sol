@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
+/**
+ * @dev This library defines storage slots using the technique described in EIP-1967.
+ * @notice The subtraction of 1 from the keccak256 hash is used to avoid potential conflicts
+ * with Solidity's default storage slot allocation for state variables.
+ * @dev For more information, see: https://eips.ethereum.org/EIPS/eip-1967
+ */
 library StorageSlots {
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ReentrancyGuard")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 public constant TOTAL_ASSETS_STORAGE =

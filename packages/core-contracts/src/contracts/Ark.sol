@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
-import {ArkConfig, ArkParams, IArk} from "../interfaces/IArk.sol";
+import {IArk} from "../interfaces/IArk.sol";
+
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-
-import {ArkAccessManaged} from "./ArkAccessManaged.sol";
+import {ArkConfig, ArkParams} from "../types/ArkTypes.sol";
 
 import {ArkConfigProvider} from "./ArkConfigProvider.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
+ * @title Ark
+ * @author SummerFi
  * @custom:see IArk
  */
 abstract contract Ark is IArk, ArkConfigProvider {
@@ -60,6 +62,7 @@ abstract contract Ark is IArk, ArkConfigProvider {
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }
 
+    /* @inheritdoc IArk */
     function sweep(
         address[] memory tokens
     )
@@ -98,10 +101,10 @@ abstract contract Ark is IArk, ArkConfigProvider {
         bytes calldata boardData
     )
         external
-        onlyAuthorizedToBoard(config.commander)
+        onlyAuthorizedToBoard(this.commander())
         validateBoardData(boardData)
     {
-        address msgSender = _msgSender();
+        address msgSender = msg.sender;
         config.token.safeTransferFrom(msgSender, address(this), amount);
         _board(amount, boardData);
 
@@ -113,7 +116,7 @@ abstract contract Ark is IArk, ArkConfigProvider {
         uint256 amount,
         bytes calldata disembarkData
     ) external onlyCommander validateDisembarkData(disembarkData) {
-        address msgSender = _msgSender();
+        address msgSender = msg.sender;
         _disembark(amount, disembarkData);
         config.token.safeTransfer(msgSender, amount);
 
@@ -136,32 +139,6 @@ abstract contract Ark is IArk, ArkConfigProvider {
     }
 
     /* EXTERNAL - GOVERNANCE */
-
-    /**
-     * @notice Hook executed before the Commander role is revoked
-     * @dev Overrides the base implementation to prevent removal when assets are present
-     */
-    function _beforeGrantRoleHook(
-        address newCommander
-    ) internal virtual override(ArkAccessManaged) onlyGovernor {
-        if (config.commander != address(0)) {
-            revert CannotAddCommanderToArkWithCommander();
-        }
-        config.commander = newCommander;
-    }
-
-    /**
-     * @notice Hook executed before the Commander role is granted
-     * @dev Overrides the base implementation to enforce single Commander constraint
-     */
-    function _beforeRevokeRoleHook(
-        address
-    ) internal virtual override(ArkAccessManaged) {
-        if (this.totalAssets() > 0) {
-            revert CannotRemoveCommanderFromArkWithAssets();
-        }
-        config.commander = address(0);
-    }
 
     /* INTERNAL */
     /**

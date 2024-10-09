@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 /**
  * @title IAccessControlErrors
@@ -8,6 +8,16 @@ pragma solidity 0.8.26;
  * compared to traditional require statements with string messages.
  */
 interface IAccessControlErrors {
+    /**
+     * @notice Thrown when a caller does not have the required role.
+     */
+    error CallerIsNotContractSpecificRole(address caller, bytes32 role);
+
+    /**
+     * @notice Thrown when a caller is not the curator.
+     */
+    error CallerIsNotCurator(address caller);
+
     /**
      * @notice Thrown when a caller is not the governor.
      */
@@ -42,6 +52,16 @@ interface IAccessControlErrors {
      * @notice Thrown when a caller is not an admin.
      */
     error CallerIsNotAdmin(address caller);
+
+    /**
+     * @notice Thrown when a caller is not the guardian.
+     */
+    error CallerIsNotGuardian(address caller);
+
+    /**
+     * @notice Thrown when a caller is not the guardian or governor.
+     */
+    error CallerIsNotGuardianOrGovernor(address caller);
 
     /**
      * @notice Thrown when a caller is not authorized to board.

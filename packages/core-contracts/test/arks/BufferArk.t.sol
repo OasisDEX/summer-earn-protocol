@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ArkParams, BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -30,11 +30,14 @@ contract BufferArkTest is Test, IArkEvents, ArkTestBase {
             maxRebalanceInflow: type(uint256).max,
             requiresKeeperData: false
         });
-        ark = new BufferArk(params);
+        ark = new BufferArk(params, address(commander));
 
         // Permissioning
         vm.prank(governor);
-        ark.grantCommanderRole(commander);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
     }
 
     function test_Constructor() public {
@@ -48,7 +51,7 @@ contract BufferArkTest is Test, IArkEvents, ArkTestBase {
             maxRebalanceInflow: type(uint256).max,
             requiresKeeperData: false
         });
-        ark = new BufferArk(params);
+        ark = new BufferArk(params, address(commander));
         assertEq(address(ark.token()), address(mockToken));
         assertEq(ark.depositCap(), type(uint256).max);
     }

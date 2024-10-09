@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "../../src/contracts/ConfigurationManager.sol";
 import "../../src/contracts/ProtocolAccessManager.sol";
@@ -15,6 +15,7 @@ contract ConfigurationManagerTest is Test {
     address public initialRaft;
     address public initialTipJar;
     address public initialTreasury;
+    address public initialHarborCommand;
 
     function setUp() public {
         governor = address(1);
@@ -22,6 +23,7 @@ contract ConfigurationManagerTest is Test {
         initialRaft = address(3);
         initialTipJar = address(4);
         initialTreasury = address(5);
+        initialHarborCommand = address(6);
 
         // Setup AccessManager
         accessManager = new ProtocolAccessManager(governor);
@@ -30,22 +32,24 @@ contract ConfigurationManagerTest is Test {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             raft: initialRaft,
             tipJar: initialTipJar,
-            treasury: initialTreasury
+            treasury: initialTreasury,
+            harborCommand: initialHarborCommand
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
-        configurationManager.initialize(params);
+        configurationManager.initializeConfiguration(params);
     }
 
     function test_Constructor() public {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             raft: initialRaft,
             tipJar: initialTipJar,
-            treasury: initialTreasury
+            treasury: initialTreasury,
+            harborCommand: initialHarborCommand
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
-        configurationManager.initialize(params);
+        configurationManager.initializeConfiguration(params);
         assertEq(
             configurationManager.raft(),
             initialRaft,
@@ -67,20 +71,21 @@ contract ConfigurationManagerTest is Test {
         ConfigurationManagerParams memory params = ConfigurationManagerParams({
             raft: initialRaft,
             tipJar: initialTipJar,
-            treasury: initialTreasury
+            treasury: initialTreasury,
+            harborCommand: address(0)
         });
         vm.prank(governor);
         vm.expectRevert(
             abi.encodeWithSignature("ConfigurationManagerAlreadyInitialized()")
         );
-        configurationManager.initialize(params);
+        configurationManager.initializeConfiguration(params);
     }
 
     function test_SetRaftByGovernor() public {
         address newRaft = address(5);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IConfigurationManagerEvents.RaftUpdated(newRaft);
+        emit IConfigurationManagerEvents.RaftUpdated(initialRaft, newRaft);
         configurationManager.setRaft(newRaft);
         assertEq(
             configurationManager.raft(),
@@ -102,7 +107,10 @@ contract ConfigurationManagerTest is Test {
         address newTipJar = address(6);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IConfigurationManagerEvents.TipJarUpdated(newTipJar);
+        emit IConfigurationManagerEvents.TipJarUpdated(
+            initialTipJar,
+            newTipJar
+        );
         configurationManager.setTipJar(newTipJar);
         assertEq(
             configurationManager.tipJar(),
@@ -129,7 +137,17 @@ contract ConfigurationManagerTest is Test {
         for (uint256 i = 0; i < newRafts.length; i++) {
             vm.prank(governor);
             vm.expectEmit(true, true, true, true);
-            emit IConfigurationManagerEvents.RaftUpdated(newRafts[i]);
+            if (i == 0) {
+                emit IConfigurationManagerEvents.RaftUpdated(
+                    initialRaft,
+                    newRafts[i]
+                );
+            } else {
+                emit IConfigurationManagerEvents.RaftUpdated(
+                    newRafts[i - 1],
+                    newRafts[i]
+                );
+            }
             configurationManager.setRaft(newRafts[i]);
             assertEq(
                 configurationManager.raft(),
@@ -148,7 +166,17 @@ contract ConfigurationManagerTest is Test {
         for (uint256 i = 0; i < newTipJars.length; i++) {
             vm.prank(governor);
             vm.expectEmit(true, true, true, true);
-            emit IConfigurationManagerEvents.TipJarUpdated(newTipJars[i]);
+            if (i == 0) {
+                emit IConfigurationManagerEvents.TipJarUpdated(
+                    initialTipJar,
+                    newTipJars[i]
+                );
+            } else {
+                emit IConfigurationManagerEvents.TipJarUpdated(
+                    newTipJars[i - 1],
+                    newTipJars[i]
+                );
+            }
             configurationManager.setTipJar(newTipJars[i]);
             assertEq(
                 configurationManager.tipJar(),
@@ -160,23 +188,36 @@ contract ConfigurationManagerTest is Test {
 
     function test_SetRaftToZeroAddress() public {
         vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         configurationManager.setRaft(address(0));
-        vm.expectRevert(abi.encodeWithSignature("RaftNotSet()"));
-        configurationManager.raft();
     }
 
     function test_SetTipJarToZeroAddress() public {
         vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         configurationManager.setTipJar(address(0));
-        vm.expectRevert(abi.encodeWithSignature("TipJarNotSet()"));
-        configurationManager.tipJar();
+    }
+
+    function test_SetTreasuryToZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
+        configurationManager.setTreasury(address(0));
+    }
+
+    function test_SetHarborCommandToZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
+        configurationManager.setHarborCommand(address(0));
     }
 
     function test_SetTreasuryByGovernor() public {
         address newTreasury = address(13);
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IConfigurationManagerEvents.TreasuryUpdated(newTreasury);
+        emit IConfigurationManagerEvents.TreasuryUpdated(
+            initialTreasury,
+            newTreasury
+        );
         configurationManager.setTreasury(newTreasury);
         assertEq(
             configurationManager.treasury(),
@@ -192,12 +233,5 @@ contract ConfigurationManagerTest is Test {
             abi.encodeWithSignature("CallerIsNotGovernor(address)", nonGovernor)
         );
         configurationManager.setTreasury(newTreasury);
-    }
-
-    function test_SetTreasuryToZeroAddress() public {
-        vm.prank(governor);
-        configurationManager.setTreasury(address(0));
-        vm.expectRevert(abi.encodeWithSignature("TreasuryNotSet()"));
-        configurationManager.treasury();
     }
 }

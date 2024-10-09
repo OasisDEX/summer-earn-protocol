@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {TokenLibrary} from "./lib/TokenLibrary.sol";
 import {UD60x18, convert, ud, unwrap} from "@prb/math/src/UD60x18.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @title Dutch Auction Math Library

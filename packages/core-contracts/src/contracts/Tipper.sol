@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 
 import {Constants} from "./libraries/Constants.sol";
 import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
@@ -13,9 +13,17 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 /**
  * @title Tipper
  * @notice Contract implementing tip accrual functionality
+ * @dev This contract is designed to be inherited by ERC20-compliant contracts.
+ *      It relies on the inheriting contract to implement ERC20 functionality,
+ *      particularly the totalSupply() function.
+ *
+ * Important:
+ * 1. The inheriting contract MUST be ERC20-compliant.
+ * 2. The inheriting contract MUST implement the _mintTip function.
+ * 3. The contract uses its own address as the token for calculations,
+ *    assuming it represents shares in the system.
  */
-
-abstract contract Tipper is ITipper {
+abstract contract Tipper is ITipper, ConfigurationManaged {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;
 
@@ -31,29 +39,27 @@ abstract contract Tipper is ITipper {
     uint256 public lastTipTimestamp;
 
     /**
-     * @notice The address where accrued tips are sent
-     */
-    address public tipJar;
-
-    /**
-     * @notice The protocol configuration manager
-     */
-    IConfigurationManager public manager;
-
-    /**
      * @notice Initializes the TipAccruer contract
      * @param configurationManager The address of the ConfigurationManager contract
      * @param initialTipRate The initialTipRate for the Fleet
      */
-    constructor(address configurationManager, Percentage initialTipRate) {
-        manager = IConfigurationManager(configurationManager);
-
+    constructor(
+        address configurationManager,
+        Percentage initialTipRate
+    ) ConfigurationManaged(configurationManager) {
         tipRate = initialTipRate;
-        tipJar = manager.tipJar();
         lastTipTimestamp = block.timestamp;
     }
 
-    // Internal function that must be implemented by the inheriting contract
+    /**
+     * @notice Abstract function to mint new shares as tips
+     * @dev This function is meant to be overridden by inheriting contracts.
+     *      It is called internally by the _accrueTip function to mint new shares as tips.
+     *      The implementation should create new shares for the specified account
+     *      without requiring additional underlying assets.
+     * @param account The address to receive the minted tip shares
+     * @param amount The amount of shares to mint as a tip
+     */
     function _mintTip(address account, uint256 amount) internal virtual;
 
     /**
@@ -71,20 +77,6 @@ abstract contract Tipper is ITipper {
     }
 
     /**
-     * @notice Sets a new tip jar address
-     * @dev Only callable by the FleetCommander
-     */
-    function _setTipJar() internal {
-        tipJar = manager.tipJar();
-
-        if (tipJar == address(0)) {
-            revert InvalidTipJarAddress();
-        }
-
-        emit TipJarUpdated(manager.tipJar());
-    }
-
-    /**
      * @notice Accrues tips based on the current tip rate and time elapsed
      * @dev Only callable by the FleetCommander
      * @return tippedShares The amount of tips accrued in shares
@@ -99,12 +91,13 @@ abstract contract Tipper is ITipper {
 
         if (timeElapsed == 0) return 0;
 
+        // Note: This line assumes the contract itself is an ERC20 token
         uint256 totalShares = IERC20(address(this)).totalSupply();
 
         tippedShares = _calculateTip(totalShares, timeElapsed);
 
         if (tippedShares > 0) {
-            _mintTip(tipJar, tippedShares);
+            _mintTip(tipJar(), tippedShares);
             lastTipTimestamp = block.timestamp;
             emit TipAccrued(tippedShares);
         }

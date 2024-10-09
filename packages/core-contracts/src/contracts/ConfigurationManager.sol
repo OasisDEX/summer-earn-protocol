@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
@@ -9,50 +9,22 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 /**
  * @title ConfigurationManager
  * @notice Manages system-wide configuration parameters for the protocol
- * @dev Implements the IConfigurationManager interface and inherits from ProtocolAccessManaged
+ * @custom:see IConfigurationManager
  */
 contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     bool public initialized;
-    /**
-     * @notice The address of the Raft contract
-     * @dev This is where rewards and farmed tokens are sent for processing
-     */
-    address public _raft;
 
-    /**
-     * @notice The address of the TipJar contract
-     * @dev This is the contract that owns tips and is responsible for
-     *      dispensing them to claimants
-     */
-    address public _tipJar;
+    /// @inheritdoc IConfigurationManager
+    address public raft;
 
-    /**
-     * @notice The address of the Treasury contract
-     * @dev This is the contract that owns the treasury and is responsible for
-     *      dispensing funds to the protocol's operations
-     */
-    address public _treasury;
+    /// @inheritdoc IConfigurationManager
+    address public tipJar;
 
-    function raft() external view override returns (address) {
-        if (_raft == address(0)) {
-            revert RaftNotSet();
-        }
-        return _raft;
-    }
+    /// @inheritdoc IConfigurationManager
+    address public treasury;
 
-    function tipJar() external view override returns (address) {
-        if (_tipJar == address(0)) {
-            revert TipJarNotSet();
-        }
-        return _tipJar;
-    }
-
-    function treasury() external view override returns (address) {
-        if (_treasury == address(0)) {
-            revert TreasuryNotSet();
-        }
-        return _treasury;
-    }
+    /// @inheritdoc IConfigurationManager
+    address public harborCommand;
 
     /**
      * @notice Constructs the ConfigurationManager contract
@@ -60,7 +32,8 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
      */
     constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
 
-    function initialize(
+    /// @inheritdoc IConfigurationManager
+    function initializeConfiguration(
         ConfigurationManagerParams memory params
     ) external onlyGovernor {
         if (initialized) {
@@ -69,46 +42,55 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         if (
             params.raft == address(0) ||
             params.tipJar == address(0) ||
-            params.treasury == address(0)
+            params.treasury == address(0) ||
+            params.harborCommand == address(0)
         ) {
             revert AddressZero();
         }
-        _raft = params.raft;
-        _tipJar = params.tipJar;
-        _treasury = params.treasury;
+        raft = params.raft;
+        tipJar = params.tipJar;
+        treasury = params.treasury;
+        harborCommand = params.harborCommand;
+        emit RaftUpdated(address(0), params.raft);
+        emit TipJarUpdated(address(0), params.tipJar);
+        emit TreasuryUpdated(address(0), params.treasury);
+        emit HarborCommandUpdated(address(0), params.harborCommand);
         initialized = true;
     }
-    /**
-     * @notice Sets a new address for the Raft contract
-     * @param newRaft The new address for the Raft contract
-     * @dev Can only be called by the governor
-     * @dev Emits a RaftUpdated event
-     */
 
+    /// @inheritdoc IConfigurationManager
     function setRaft(address newRaft) external onlyGovernor {
-        _raft = newRaft;
-        emit RaftUpdated(newRaft);
+        if (newRaft == address(0)) {
+            revert AddressZero();
+        }
+        emit RaftUpdated(raft, newRaft);
+        raft = newRaft;
     }
 
-    /**
-     * @notice Sets a new address for the TipJar contract
-     * @param newTipJar The new address for the TipJar contract
-     * @dev Can only be called by the governor
-     * @dev Emits a TipJarUpdated event
-     */
+    /// @inheritdoc IConfigurationManager
     function setTipJar(address newTipJar) external onlyGovernor {
-        _tipJar = newTipJar;
-        emit TipJarUpdated(newTipJar);
+        if (newTipJar == address(0)) {
+            revert AddressZero();
+        }
+        emit TipJarUpdated(tipJar, newTipJar);
+        tipJar = newTipJar;
     }
 
-    /**
-     * @notice Sets a new address for the Treasury contract
-     * @param newTreasury The new address for the Treasury contract
-     * @dev Can only be called by the governor
-     * @dev Emits a TreasuryUpdated event
-     */
+    /// @inheritdoc IConfigurationManager
     function setTreasury(address newTreasury) external onlyGovernor {
-        _treasury = newTreasury;
-        emit TreasuryUpdated(newTreasury);
+        if (newTreasury == address(0)) {
+            revert AddressZero();
+        }
+        emit TreasuryUpdated(treasury, newTreasury);
+        treasury = newTreasury;
+    }
+
+    /// @inheritdoc IConfigurationManager
+    function setHarborCommand(address newHarborCommand) external onlyGovernor {
+        if (newHarborCommand == address(0)) {
+            revert AddressZero();
+        }
+        emit HarborCommandUpdated(harborCommand, newHarborCommand);
+        harborCommand = newHarborCommand;
     }
 }

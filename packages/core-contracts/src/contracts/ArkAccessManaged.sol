@@ -1,56 +1,44 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
-import {IArk} from "../interfaces/IArk.sol";
 import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
+
+import {IConfigurationManaged} from "../interfaces/IConfigurationManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {LimitedAccessControl} from "./LimitedAccessControl.sol";
+import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
+
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
 /**
- * @title ArkAccessControl
- * @notice Extends the ProtocolAccessManaged contract with Ark specific AccessControl
- *         Used to specifically tie one FleetCommander to each Ark
- *
- * @dev One Ark specific role is defined:
- *   - Commander: is the fleet commander contract itself and couples an
- *        Ark to specific Fleet Commander
- *
- *   The Commander role is still declared on the access manager to centralise
- *   role definitions.
+ * @title ArkAccessManaged
+ * @author SummerFi
+ * @custom:see IArkAccessManaged
  */
-contract ArkAccessManaged is
-    IArkAccessManaged,
-    ProtocolAccessManaged,
-    LimitedAccessControl
-{
+contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     /**
      * @param accessManager The access manager address
      */
     constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
 
     /**
-     * @dev Modifier to check that the caller has the Commander role
-     */
-    modifier onlyCommander() {
-        if (!hasCommanderRole()) {
-            revert CallerIsNotCommander(msg.sender);
-        }
-        _;
-    }
-
-    function hasCommanderRole() internal view returns (bool) {
-        return hasRole(_accessManager.COMMANDER_ROLE(), msg.sender);
-    }
-
-    /**
      * @dev Modifier to check that the caller has the appropriate role to board
-     *      Options being: Commander, another Ark or the RAFT contract
+     * @param commander The address of the FleetCommander
+     * @custom:internal-logic
+     * - Checks if the caller has the Commander role
+     * - If not, checks if the caller is the RAFT contract
+     * - If not, checks if the caller is an active Ark in the FleetCommander
+     * @custom:effects
+     * - Reverts if the caller doesn't have the necessary permissions
+     * - Allows the function to proceed if the caller is authorized
+     * @custom:security-considerations
+     * - Ensures that only authorized entities can board funds
+     * - Relies on the correct setup of the FleetCommander and RAFT contracts
      */
     modifier onlyAuthorizedToBoard(address commander) {
-        if (!hasCommanderRole()) {
+        if (!_hasCommanderRole()) {
             address msgSender = _msgSender();
-            bool isRaft = msgSender == IArk(address(this)).raft();
+            bool isRaft = msgSender ==
+                IConfigurationManaged(address(this)).raft();
 
             if (!isRaft) {
                 bool isArk = IFleetCommander(commander).isArkActive(msgSender);
@@ -62,40 +50,63 @@ contract ArkAccessManaged is
         _;
     }
 
+    /**
+     * @dev Modifier to check that the caller is the RAFT contract
+     * @custom:internal-logic
+     * - Retrieves the RAFT address from the ConfigurationManaged contract
+     * - Compares the caller's address with the RAFT address
+     * @custom:effects
+     * - Reverts if the caller is not the RAFT contract
+     * - Allows the function to proceed if the caller is the RAFT contract
+     * @custom:security-considerations
+     * - Ensures that only the RAFT contract can call certain functions
+     * - Relies on the correct setup of the ConfigurationManaged contract
+     */
     modifier onlyRaft() {
-        if (_msgSender() != IArk(address(this)).raft()) {
-            revert CallerIsNotRaft(msg.sender);
+        if (_msgSender() != IConfigurationManaged(address(this)).raft()) {
+            revert CallerIsNotRaft(_msgSender());
         }
         _;
     }
 
     /**
-     * @notice Hook executed before the Commander role is granted
-     * @dev This function is called internally before granting the Commander role.
-     *      It allows derived contracts to add custom logic or checks before the role is granted.
-     *      Remember to always call the parent hook using `super._beforeGrantRoleHook(account)` in derived contracts.
-     * @param account The address to which the Commander role will be granted
+     * @dev Modifier to check that the caller has the Commander role
+     * @custom:internal-logic
+     * - Calls the internal _hasCommanderRole function to check the caller's role
+     * @custom:effects
+     * - Reverts if the caller doesn't have the Commander role
+     * - Allows the function to proceed if the caller has the Commander role
+     * @custom:security-considerations
+     * - Ensures that only the designated Commander can call certain functions
+     * - Relies on the correct setup of the access control system
      */
-    function _beforeGrantRoleHook(address account) internal virtual {}
-
-    /**
-     * @notice Hook executed before the Commander role is revoked
-     * @dev This function is called internally before revoking the Commander role.
-     *      It allows derived contracts to add custom logic or checks before the role is revoked.
-     *      Remember to always call the parent hook using `super._beforeRevokeRoleHook(account)` in derived contracts.
-     * @param account The address from which the Commander role will be revoked
-     */
-    function _beforeRevokeRoleHook(address account) internal virtual {}
-
-    /* @inheritdoc IArkAccessControl */
-    function grantCommanderRole(address account) external onlyGovernor {
-        _beforeGrantRoleHook(account);
-        _grantRole(_accessManager.COMMANDER_ROLE(), account);
+    modifier onlyCommander() {
+        if (!_hasCommanderRole()) {
+            revert CallerIsNotCommander(_msgSender());
+        }
+        _;
     }
 
-    /* @inheritdoc IArkAccessControl */
-    function revokeCommanderRole(address account) external onlyGovernor {
-        _beforeRevokeRoleHook(account);
-        _revokeRole(_accessManager.COMMANDER_ROLE(), account);
+    /**
+     * @dev Internal function to check if the caller has the Commander role
+     * @return bool True if the caller has the Commander role, false otherwise
+     * @custom:internal-logic
+     * - Generates the Commander role identifier for this contract
+     * - Checks if the caller has the generated role in the access manager
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Relies on the correct setup of the access manager
+     * - Assumes that the Commander role is properly assigned
+     */
+    function _hasCommanderRole() internal view returns (bool) {
+        return
+            _accessManager.hasRole(
+                generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(this)
+                ),
+                _msgSender()
+            );
     }
 }

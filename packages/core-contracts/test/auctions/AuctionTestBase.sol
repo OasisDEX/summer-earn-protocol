@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ConfigurationManager, ConfigurationManagerParams} from "../../src/contracts/ConfigurationManager.sol";
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/types/CommonAuctionTypes.sol";
 
 import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";

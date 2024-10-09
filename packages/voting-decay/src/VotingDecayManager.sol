@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {VotingDecayLibrary} from "./VotingDecayLibrary.sol";
 import {IVotingDecayManager} from "./IVotingDecayManager.sol";
@@ -33,8 +33,9 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
     constructor(
         uint40 decayFreeWindow_,
         uint256 decayRatePerSecond_,
-        VotingDecayLibrary.DecayFunction decayFunction_
-    ) Ownable(msg.sender) {
+        VotingDecayLibrary.DecayFunction decayFunction_,
+        address owner_
+    ) Ownable(owner_) {
         decayFreeWindow = decayFreeWindow_;
         decayRatePerSecond = decayRatePerSecond_;
         decayFunction = decayFunction_;

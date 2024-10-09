@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 
@@ -537,7 +537,7 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         mockToken.mint(ark1, 5000 * 10 ** 6);
         mockToken.mint(ark2, 5000 * 10 ** 6);
 
-        mockArkMoveToMax(ark2, maxRebalanceInflow);
+        _mockArkMoveToMax(ark2, maxRebalanceInflow);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({

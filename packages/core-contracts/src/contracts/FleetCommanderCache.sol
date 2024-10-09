@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.26;
+pragma solidity 0.8.27;
 
 import {StorageSlot} from "../../lib/openzeppelin-next/StorageSlot.sol";
 
@@ -7,9 +7,61 @@ import {IArk} from "../interfaces/IArk.sol";
 import {ArkData} from "../types/FleetCommanderTypes.sol";
 import {StorageSlots} from "./libraries/StorageSlots.sol";
 
+/**
+ * @title FleetCommanderCache - Caching System
+ * @dev This contract implements a caching mechanism
+ *      for efficient asset tracking and operations.
+ *
+ * Caching System:
+ * 1. Purpose: The caching system is designed to optimize gas costs and improve performance
+ *    for operations that require frequent access to total assets and ark data.
+ *
+ * 2. Key Components:
+ *    - FleetCommanderCache: A contract that this FleetCommander inherits from, providing
+ *      caching functionality.
+ *    - Cache Modifiers: 'useDepositCache' and 'useWithdrawCache' are used to manage the
+ *      caching lifecycle for deposit and withdrawal operations.
+ *
+ * 3. Caching Mechanism:
+ *    - Before Operation: The cache is populated with current ark data.
+ *    - During Operation: The contract uses cached data instead of making repeated calls to arks.
+ *    - After Operation: The cache is flushed to ensure data freshness for subsequent operations.
+ *
+ * 4. Benefits:
+ *    - Gas Optimization: Reduces the number of external calls to arks, saving gas.
+ *    - Consistency: Ensures that a single operation uses consistent data throughout its execution.
+ *
+ * 5. Cache Usage:
+ *    - Deposit Operations: Uses 'useDepositCache' modifier to cache all ark data.
+ *    - Withdrawal Operations: Uses 'useWithdrawCache' modifier to cache data for withdrawable arks.
+ *    - Rebalance Operations: Does not use cache as it directly interacts with arks.
+ *
+ * 6. Cache Management:
+ *    - Cache population: Performed by '_getArksData' and '_getWithdrawableArksData' functions.
+ *    - Cache flushing: Done by '_flushCache' function after each operation.
+ *
+ * This caching system is crucial for maintaining efficient operations in the FleetCommander,
+ * especially when dealing with multiple arks and frequent asset calculations.
+ */
 contract FleetCommanderCache {
     using StorageSlot for *;
 
+    /**
+     * @dev Calculates the total assets across all arks
+     * @param arks Array of ark addresses
+     * @param bufferArk The buffer ark instance
+     * @return total The sum of total assets across all arks
+     * @custom:internal-logic
+     * - Checks if total assets are cached
+     * - If cached, returns the cached value
+     * - If not cached, calculates the sum of total assets across all arks
+     * @custom:effects
+     * - No state changes
+     * @custom:security-considerations
+     * - Relies on accurate reporting of total assets by individual arks
+     * - Caching mechanism must be properly managed to ensure data freshness
+     * - Assumes no changes in total assets throughout the execution of function that use this cache
+     */
     function _totalAssets(
         address[] memory arks,
         IArk bufferArk
@@ -24,6 +76,23 @@ contract FleetCommanderCache {
         return _sumTotalAssets(_getAllArks(arks, bufferArk));
     }
 
+    /**
+     * @dev Calculates the total assets of withdrawable arks
+     * @param arks Array of ark addresses
+     * @param bufferArk The buffer ark instance
+     * @param isArkWithdrawable Mapping to check if an ark is withdrawable
+     * @return withdrawableTotalAssets The sum of total assets across withdrawable arks
+     *  - arks that don't require additional data to be boarded or disembarked from.
+     * @custom:internal-logic
+     * - Checks if withdrawable total assets are cached
+     * - If cached, returns the cached value
+     * - If not cached, calculates the sum of total assets across withdrawable arks
+     * @custom:effects
+     * - No state changes
+     * @custom:security-considerations
+     * - Relies on accurate reporting of total assets by individual arks
+     * - Depends on the correctness of the isArkWithdrawable mapping
+     */
     function _withdrawableTotalAssets(
         address[] memory arks,
         IArk bufferArk,
@@ -53,9 +122,17 @@ contract FleetCommanderCache {
     }
 
     /**
-     * @notice Retrieves an array of all Arks, including regular Arks and the buffer Ark
-     * @dev This function creates a new array that includes all regular Arks and appends the buffer Ark at the end
+     * @dev Retrieves an array of all Arks, including regular Arks and the buffer Ark
+     * @param arks Array of regular ark addresses
+     * @param bufferArk The buffer ark instance
      * @return An array of IArk interfaces representing all Arks in the system
+     * @custom:internal-logic
+     * - Creates a new array with length of regular arks plus one (for buffer ark)
+     * - Populates the array with regular arks and appends the buffer ark
+     * @custom:effects
+     * - No state changes
+     * @custom:security-considerations
+     * - Ensures the buffer ark is always included at the end of the array
      */
     function _getAllArks(
         address[] memory arks,
@@ -70,10 +147,17 @@ contract FleetCommanderCache {
     }
 
     /**
-     * @notice Calculates the sum of total assets across all provided Arks
-     * @dev This function iterates through the provided array of Arks and accumulates their total assets
+     * @dev Calculates the sum of total assets across all provided Arks
      * @param _arks An array of IArk interfaces representing the Arks to sum assets from
      * @return total The sum of total assets across all provided Arks
+     * @custom:internal-logic
+     * - Iterates through the provided array of Arks
+     * - Accumulates the total assets from each Ark
+     * @custom:effects
+     * - No state changes
+     * @custom:security-considerations
+     * - Relies on accurate reporting of total assets by individual arks
+     * - Vulnerable to integer overflow if total assets become extremely large
      */
     function _sumTotalAssets(
         IArk[] memory _arks
@@ -84,10 +168,19 @@ contract FleetCommanderCache {
     }
 
     /**
-     * @notice Flushes the cache for all arks and related data
-     * @dev This function resets the cached data for all arks and related data
-     *      to ensure that the next call to `totalAssets` or `withdrawableTotalAssets`
-     *      recalculates the values based on the current state of the arks.
+     * @dev Flushes the cache for all arks and related data
+     * @custom:internal-logic
+     * - Resets the cached data for all arks and related data
+     * @custom:effects
+     * - Sets IS_TOTAL_ASSETS_CACHED_STORAGE to false
+     * - Sets IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE to false
+     * - Resets WITHDRAWABLE_ARKS_LENGTH_STORAGE to 0
+     * - Resets ARKS_LENGTH_STORAGE to 0
+     * @custom:security-considerations
+     * - Ensures that the next call to totalAssets or withdrawableTotalAssets recalculates values
+     * - Critical for maintaining data freshness and preventing stale cache issues
+     * - Flushes cache in case of reentrancy
+     * - That also allows efficient testing using Forge (transient storage is persistent during single test)
      */
     function _flushCache() internal {
         StorageSlots.IS_TOTAL_ASSETS_CACHED_STORAGE.asBoolean().tstore(false);
@@ -100,8 +193,21 @@ contract FleetCommanderCache {
     }
 
     /**
-     * @notice Retrieves the data (address, totalAssets) for all arks and the buffer ark
+     * @dev Retrieves the data (address, totalAssets) for all arks and the buffer ark
+     * @param arks Array of regular ark addresses
+     * @param bufferArk The buffer ark instance
      * @return _arksData An array of ArkData structs containing the ark addresses and their total assets
+     * @custom:internal-logic
+     * - Initializes data for all arks including the buffer ark
+     * - Populates data for regular arks and buffer ark
+     * - Sorts the array by total assets
+     * - Caches the total assets and ark data
+     * @custom:effects
+     * - Caches total assets and ark data
+     * - Modifies storage slots related to ark data
+     * @custom:security-considerations
+     * - Relies on accurate reporting of total assets by individual arks
+     * - Sorting mechanism must be efficient and correct
      */
     function _getArksData(
         address[] memory arks,
@@ -222,8 +328,25 @@ contract FleetCommanderCache {
     }
 
     /**
-     * @notice Retrieves data for withdrawable arks, using pre-fetched data for all arks
-     * @dev This function filters and sorts withdrawable arks by total assets
+     * @dev Retrieves and processes data for withdrawable arks
+     * @param arks Array of ark addresses
+     * @param bufferArk The buffer ark instance
+     * @param isArkWithdrawable Mapping to check if an ark is withdrawable
+     * @custom:internal-logic
+     * - Fetches data for all arks using _getArksData
+     * - Filters arks based on withdrawability
+     * - Accumulates total assets of withdrawable arks
+     * - Resizes the array to remove empty slots
+     * - Sorts the withdrawable arks by total assets
+     * - Caches the processed data
+     * @custom:effects
+     * - Modifies storage by caching withdrawable arks data
+     * - Updates the total assets of withdrawable arks in storage
+     * @custom:security-considerations
+     * - Assumes the isArkWithdrawable mapping is correctly maintained
+     * - Uses assembly for array resizing, which bypasses Solidity's safety checks
+     * - Relies on the correctness of _getArksData, _cacheWithdrawableArksTotalAssets,
+     *   _sortArkDataByTotalAssets, and _cacheWithdrawableArksTotalAssetsArray functions
      */
     function _getWithdrawableArksData(
         address[] memory arks,
@@ -286,9 +409,17 @@ contract FleetCommanderCache {
     }
 
     /**
-     * @notice Sorts the ArkData structs based on their total assets in ascending order
-     * @dev This function implements a simple bubble sort algorithm
+     * @dev Sorts the ArkData structs based on their total assets in ascending order
      * @param arkDataArray An array of ArkData structs to be sorted
+     * @custom:internal-logic
+     * - Implements a simple bubble sort algorithm
+     * - Compares adjacent elements and swaps them if they are in the wrong order
+     * - Continues until no more swaps are needed
+     * @custom:effects
+     * - Modifies the input array in-place, sorting it by totalAssets
+     * @custom:security-considerations
+     * - Time complexity is O(n^2), which may be inefficient for large arrays
+     * - Assumes that the totalAssets values fit within uint256 and won't overflow during comparisons
      */
     function _sortArkDataByTotalAssets(
         ArkData[] memory arkDataArray

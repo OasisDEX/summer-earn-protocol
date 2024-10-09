@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {IFleetCommanderConfigProviderErrors} from "../errors/IFleetCommanderConfigProviderErrors.sol";
 
 import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
-import {FleetCommanderParams, FleetConfig, RebalanceData} from "../types/FleetCommanderTypes.sol";
+import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 
 /**
  * @title IFleetCommander Interface
@@ -31,6 +31,11 @@ interface IFleetCommanderConfigProvider is
      * @notice Retrieves the current fleet config
      */
     function getConfig() external view returns (FleetConfig memory);
+
+    /**
+     * @notice Retrieves the buffer ark address
+     */
+    function bufferArk() external view returns (address);
 
     /**
      * @notice Checks if the ark is part of the fleet

@@ -1,24 +1,27 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {FleetCommanderPausable} from "../../src/contracts/FleetCommanderPausable.sol";
 
 import {RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
-import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvents.sol";
-import {IArkEvents} from "../../src/events/IArkEvents.sol";
-import {IArk} from "../../src/interfaces/IArk.sol";
 
+import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvents.sol";
+
+import {ArkParams, BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
@@ -31,14 +34,12 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         FleetCommanderParams memory params = FleetCommanderParams({
             configurationManager: address(configurationManager),
             accessManager: address(accessManager),
-            initialArks: new address[](0),
             initialMinimumBufferBalance: 1000,
             initialRebalanceCooldown: 1 hours,
             asset: address(mockToken),
             name: "Fleet Commander",
             symbol: "FC",
             depositCap: 10000,
-            bufferArk: bufferArkAddress,
             initialTipRate: Percentage.wrap(0)
         });
 
@@ -48,8 +49,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertEq(config.minimumBufferBalance, 1000);
         assertEq(config.depositCap, 10000);
         assertEq(config.maxRebalanceOperations, 10);
-        assertEq(address(config.bufferArk), bufferArkAddress);
-        assertTrue(newFleetCommander.isArkActive(bufferArkAddress));
+        assertTrue(newFleetCommander.isArkActive(address(config.bufferArk)));
     }
 
     function test_GetArks() public view {
@@ -116,8 +116,17 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(governor);
         fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
+        vm.expectEmit();
+        emit IAccessControl.RoleRevoked(
+            accessManager.generateRole(
+                ContractSpecificRoles.COMMANDER_ROLE,
+                address(mockArk1)
+            ),
+            address(fleetCommander),
+            address(fleetCommander)
+        );
         vm.prank(governor);
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit();
         emit IFleetCommanderConfigProviderEvents.ArkRemoved(address(mockArk1));
         fleetCommander.removeArk(address(mockArk1));
         assertEq(fleetCommander.getArks().length, initialArksCount - 1);
@@ -254,6 +263,16 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertEq(mockArk2.maxRebalanceInflow(), maxMoveTo);
     }
 
+    function test_SetArkMoveToMax_FailNotCurator() public {
+        uint256 maxMoveTo = 1000;
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotCurator(address)", keeper)
+        );
+
+        fleetCommander.setArkMaxRebalanceInflow(address(mockArk2), maxMoveTo);
+    }
+
     function test_SetArkMoveToMaxInvalidArk_ShouldFail() public {
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -323,5 +342,126 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         vm.prank(governor);
         fleetCommander.removeArk(address(0x123));
+    }
+
+    function test_AddArkWithExistingCommander() public {
+        // Create a new mock Ark with a commander already set
+        BufferArk mockArkWithCommander = new BufferArk(
+            ArkParams({
+                name: "MockArkWithCommander",
+                accessManager: address(accessManager),
+                token: address(mockToken),
+                configurationManager: address(configurationManager),
+                depositCap: 1000,
+                maxRebalanceOutflow: 500,
+                maxRebalanceInflow: 500,
+                requiresKeeperData: false
+            }),
+            address(fleetCommander)
+        );
+
+        // Try to add the Ark with an existing commander
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature("FleetCommanderArkAlreadyHasCommander()")
+        );
+        fleetCommander.addArk(address(mockArkWithCommander));
+    }
+
+    function test_PauseAndUnpause() public {
+        vm.prank(governor);
+        fleetCommander.pause();
+        assertTrue(fleetCommander.paused());
+
+        // Try to unpause immediately (should fail)
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderPausableMinimumPauseTimeNotElapsed()"
+            )
+        );
+        fleetCommander.unpause();
+
+        // Wait for minimum pause time
+        vm.warp(block.timestamp + fleetCommander.minimumPauseTime());
+
+        // Now unpause should succeed
+        vm.prank(governor);
+        fleetCommander.unpause();
+        assertFalse(fleetCommander.paused());
+    }
+
+    function test_PauseAndUnpauseBeforeTime() public {
+        vm.prank(governor);
+        fleetCommander.pause();
+        assertTrue(fleetCommander.paused());
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderPausableMinimumPauseTimeNotElapsed()"
+            )
+        );
+        fleetCommander.unpause();
+    }
+
+    function test_SetMinimumPauseTime() public {
+        uint256 newMinimumPauseTime = 48 hours;
+
+        vm.prank(governor);
+        vm.expectEmit(false, false, false, true);
+        emit FleetCommanderPausable.MinimumPauseTimeUpdated(
+            newMinimumPauseTime
+        );
+        fleetCommander.setMinimumPauseTime(newMinimumPauseTime);
+
+        assertEq(fleetCommander.minimumPauseTime(), newMinimumPauseTime);
+    }
+
+    function test_PauseNonGovernor() public {
+        vm.prank(address(0x123));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGuardianOrGovernor(address)",
+                address(0x123)
+            )
+        );
+        fleetCommander.pause();
+    }
+
+    function test_UnpauseNonGovernor() public {
+        // First pause the contract
+        vm.prank(governor);
+        fleetCommander.pause();
+
+        // Try to unpause with non-governor address
+        vm.prank(address(0x123));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGuardianOrGovernor(address)",
+                address(0x123)
+            )
+        );
+        fleetCommander.unpause();
+    }
+
+    function test_SetMinimumPauseTimeNonGovernor() public {
+        vm.prank(address(0x123));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGovernor(address)",
+                address(0x123)
+            )
+        );
+        fleetCommander.setMinimumPauseTime(48 hours);
+    }
+
+    function test_setDepositCapWhenPaused() public {
+        vm.prank(governor);
+        fleetCommander.pause();
+
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        fleetCommander.setFleetDepositCap(1000);
     }
 }

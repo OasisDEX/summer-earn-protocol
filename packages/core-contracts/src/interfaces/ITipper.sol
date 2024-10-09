@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {ITipperErrors} from "../errors/ITipperErrors.sol";
 import {ITipperEvents} from "../events/ITipperEvents.sol";
@@ -23,12 +23,6 @@ interface ITipper is ITipperEvents, ITipperErrors {
      * @return The Unix timestamp of when tips were last accrued
      */
     function lastTipTimestamp() external view returns (uint256);
-
-    /**
-     * @notice Get the current tip jar address
-     * @return The address where accrued tips are sent
-     */
-    function tipJar() external view returns (address);
 
     /**
      * @notice Estimate the amount of tips accrued since the last tip accrual

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 interface ICurveSwap {
     function last_price(uint256 i) external view returns (uint256);

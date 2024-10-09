@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 /**
  * @title IConfigurationManagerErrors
@@ -36,4 +36,9 @@ interface IConfigurationManagerErrors {
      * @notice Thrown when constructor address is set to the zero address.
      */
     error AddressZero();
+
+    /**
+     * @notice Thrown when the HarborCommand address is not set.
+     */
+    error HarborCommandNotSet();
 }

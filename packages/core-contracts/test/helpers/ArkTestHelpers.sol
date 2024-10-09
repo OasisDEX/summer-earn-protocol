@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {Constants} from "../../src/contracts/libraries/Constants.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {IArkConfigProvider} from "../../src/interfaces/IArkConfigProvider.sol";
+
+import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 /// @title Ark Test Helpers
@@ -12,7 +14,7 @@ contract ArkTestHelpers is Test {
     /// @notice Mocks the return value of `totalAssets` for a given Ark contract
     /// @param contractAddress The address of the Ark contract whose `totalAssets` function is to be mocked
     /// @param returnValue The value to return when `totalAssets` is called
-    function mockArkTotalAssets(
+    function _mockArkTotalAssets(
         address contractAddress,
         uint256 returnValue
     ) public {
@@ -28,7 +30,7 @@ contract ArkTestHelpers is Test {
      * @param contractAddress The address of the Ark contract whose `totalAssets` function is to be mocked
      * @param returnValue The value to return when `depositCap` is called
      */
-    function mockArkMaxAllocation(
+    function _mockArkMaxAllocation(
         address contractAddress,
         uint256 returnValue
     ) public {
@@ -62,7 +64,7 @@ contract ArkTestHelpers is Test {
      * @param ark The address of the `IArk` contract.
      * @param maxRebalanceInflow The value to be passed to the `maxRebalanceInflow` function.
      */
-    function mockArkMoveToMax(
+    function _mockArkMoveToMax(
         address ark,
         uint256 maxRebalanceInflow
     ) internal {
@@ -72,6 +74,43 @@ contract ArkTestHelpers is Test {
                 IArkConfigProvider.maxRebalanceInflow.selector
             ),
             abi.encode(maxRebalanceInflow)
+        );
+    }
+
+    /**
+     * @notice Mocks the `isArkActive` function of the `IFleetCommander` contract.
+     * @param commanderAddress The address of the `IFleetCommander` contract.
+     * @param arkAddress The address of the Ark contract.
+     * @param isActive The value to be passed to the `isArkActive` function.
+     */
+    function _mockIsArkActive(
+        address commanderAddress,
+        address arkAddress,
+        bool isActive
+    ) internal {
+        vm.mockCall(
+            commanderAddress,
+            abi.encodeWithSelector(
+                IFleetCommanderConfigProvider.isArkActive.selector,
+                arkAddress
+            ),
+            abi.encode(isActive)
+        );
+    }
+
+    /**
+     * @notice Mocks the `commander` function of the `IArk` contract.
+     * @param arkAddress The address of the `IArk` contract.
+     * @param commanderAddress The address to be returned by the `commander` function.
+     */
+    function _mockArkCommander(
+        address arkAddress,
+        address commanderAddress
+    ) internal {
+        vm.mockCall(
+            arkAddress,
+            abi.encodeWithSelector(IArkConfigProvider.commander.selector),
+            abi.encode(commanderAddress)
         );
     }
 }

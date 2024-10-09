@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "../../src/contracts/arks/MorphoArk.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -66,7 +66,10 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.startPrank(governor);
-        ark.grantCommanderRole(commander);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
         vm.stopPrank();
 
         // Set up the rewards distributor

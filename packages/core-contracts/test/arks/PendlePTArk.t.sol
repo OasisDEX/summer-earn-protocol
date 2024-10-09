@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "../../src/contracts/arks/PendlePTArk.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -19,7 +19,6 @@ import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {PendlePtArkConstructorParams} from "../../src/contracts/arks/PendlePTArk.sol";
 contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
     PendlePTArk public ark;
 
@@ -70,7 +69,10 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.startPrank(governor);
-        ark.grantCommanderRole(commander);
+        accessManager.grantCommanderRole(
+            address(address(ark)),
+            address(commander)
+        );
         vm.stopPrank();
 
         vm.label(USDE, "USDE");

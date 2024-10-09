@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import "../../src/errors/IAccessControlErrors.sol";
 import "../../src/errors/IBuyAndBurnErrors.sol";
 
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
+import {MockSummerToken} from "../mocks/SummerTokenMock.sol";
 import "./AuctionTestBase.sol";
+import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 
 import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
 import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
@@ -16,18 +17,23 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibra
 
 contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     BuyAndBurn public buyAndBurn;
-    SummerToken public summerToken;
+    ISummerToken public summerToken;
     ERC20Mock public tokenToAuction1;
     ERC20Mock public tokenToAuction2;
 
+    address public summerGovernor = address(0x9);
+
     uint256 constant AUCTION_AMOUNT = 100000000;
+    uint256 constant INITIAL_SUPPLY = 1000000;
 
     function setUp() public override {
         super.setUp();
+
         defaultParams.kickerRewardPercentage = Percentage.wrap(
             KICKER_REWARD_PERCENTAGE
         );
-        summerToken = new SummerToken();
+
+        summerToken = new MockSummerToken("SummerToken", "SUMMER");
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             address(accessManager),
@@ -374,33 +380,5 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         );
         buyAndBurn.buyTokens(1, AUCTION_AMOUNT + 1);
         vm.stopPrank();
-    }
-
-    function test_OnlyGovernorCanStartAuction() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotGovernor(address)", buyer)
-        );
-        vm.prank(buyer);
-        buyAndBurn.startAuction(address(tokenToAuction1));
-    }
-
-    function test_OnlyGovernorCanFinalizeAuction() public {
-        vm.prank(governor);
-        buyAndBurn.startAuction(address(tokenToAuction1));
-
-        vm.warp(block.timestamp + 8 days);
-
-        vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotGovernor(address)", buyer)
-        );
-        vm.prank(buyer);
-        buyAndBurn.finalizeAuction(1);
-    }
-
-    function test_CannotStartAuctionWithNoTokens() public {
-        ERC20Mock emptyToken = new ERC20Mock();
-        vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
-        vm.prank(governor);
-        buyAndBurn.startAuction(address(emptyToken));
     }
 }

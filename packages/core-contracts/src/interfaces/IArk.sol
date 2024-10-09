@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {IArkErrors} from "../errors/IArkErrors.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
 
 import {IArkEvents} from "../events/IArkEvents.sol";
 
-import "../types/ArkTypes.sol";
 import {IArkConfigProvider} from "./IArkConfigProvider.sol";
 
 /**

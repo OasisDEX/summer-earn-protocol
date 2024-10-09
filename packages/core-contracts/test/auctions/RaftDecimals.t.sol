@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
-import {SummerToken} from "../../src/contracts/SummerToken.sol";
 
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
@@ -44,11 +43,12 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
-        configurationManager.initialize(
+        configurationManager.initializeConfiguration(
             ConfigurationManagerParams({
                 raft: address(raftContract),
                 tipJar: address(1),
-                treasury: treasury
+                treasury: treasury,
+                harborCommand: address(2)
             })
         );
 

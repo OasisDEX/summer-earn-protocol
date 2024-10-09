@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import {IBuyAndBurnErrors} from "../errors/IBuyAndBurnErrors.sol";
 import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
@@ -12,19 +12,41 @@ import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibra
  */
 interface IBuyAndBurn is IBuyAndBurnEvents, IBuyAndBurnErrors {
     /**
-     * @notice Starts a new auction for a specified token
+     * @dev Starts a new auction for a specified token
      * @param tokenToAuction The address of the token to be auctioned
-     * @dev Only callable by the governor
-     * @dev Emits a BuyAndBurnAuctionStarted event
+     * @custom:override Implements the startAuction function from IBuyAndBurn
+     * @custom:internal-logic
+     * - Checks if there's already an ongoing auction for the token
+     * - Creates a new auction using the current balance of the token
+     * - Stores the auction data and updates the ongoingAuctions mapping
+     * @custom:effects
+     * - Creates a new auction
+     * - Updates the ongoingAuctions mapping
+     * - Emits a BuyAndBurnAuctionStarted event
+     * @custom:security-considerations
+     * - Only callable by the governor
+     * - Ensure the contract has the necessary token balance before starting the auction
      */
     function startAuction(address tokenToAuction) external;
 
     /**
-     * @notice Allows users to buy tokens from an ongoing auction
+     * @dev Allows users to buy tokens from an ongoing auction
      * @param auctionId The ID of the auction
      * @param amount The amount of tokens to buy
      * @return summerAmount The amount of SUMMER tokens required to purchase the specified amount of auction tokens
-     * @dev Emits a TokensPurchased event
+     * @custom:override Implements the buyTokens function from IBuyAndBurn
+     * @custom:internal-logic
+     * - Retrieves the auction data
+     * - Calls the buyTokens function of the DutchAuctionLibrary
+     * - Updates the amount of SUMMER raised in the auction
+     * - Settles the auction if all tokens are sold
+     * @custom:effects
+     * - Transfers tokens between the buyer and the contract
+     * - Updates the auction state
+     * - May settle the auction if all tokens are sold
+     * @custom:security-considerations
+     * - Ensure proper token transfers and balance updates
+     * - Handle potential reentrancy risks
      */
     function buyTokens(
         uint256 auctionId,
@@ -32,10 +54,20 @@ interface IBuyAndBurn is IBuyAndBurnEvents, IBuyAndBurnErrors {
     ) external returns (uint256 summerAmount);
 
     /**
-     * @notice Finalizes an auction after its end time
+     * @dev Finalizes an auction after its end time
      * @param auctionId The ID of the auction to finalize
-     * @dev Only callable by the governor
-     * @dev Emits a SummerBurned event
+     * @custom:override Implements the finalizeAuction function from IBuyAndBurn
+     * @custom:internal-logic
+     * - Retrieves the auction data
+     * - Calls the finalizeAuction function of the DutchAuctionLibrary
+     * - Settles the auction
+     * - if all tokens are sold, the auction is settled automatically
+     * @custom:effects
+     * - Updates the auction state
+     * - Burns SUMMER tokens
+     * - Cleans up auction-related state
+     * @custom:security-considerations
+     * - Ensure proper handling of remaining tokens and raised funds
      */
     function finalizeAuction(uint256 auctionId) external;
 
