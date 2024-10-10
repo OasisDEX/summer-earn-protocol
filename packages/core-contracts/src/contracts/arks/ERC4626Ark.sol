@@ -105,7 +105,7 @@ contract ERC4626Ark is Ark {
     /**
      * @notice Validates the disembark data
      * @dev This Ark does not require any validation for disembark data
-     * @param data Additional data to validate (unused in this implementation)
+     * @param /// data Additional data to validate (unused in this implementation)
      */
-    function _validateDisembarkData(bytes calldata data) internal override {}
+    function _validateDisembarkData(bytes calldata) internal override {}
 }
