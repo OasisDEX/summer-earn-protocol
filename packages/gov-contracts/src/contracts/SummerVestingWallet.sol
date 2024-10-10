@@ -3,39 +3,38 @@ pragma solidity 0.8.27;
 
 import "@openzeppelin/contracts/finance/VestingWallet.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../interfaces/ISummerVestingWallet.sol";
 
 /**
  * @title SummerVestingWallet
- * @dev Extension of OpenZeppelin's VestingWallet with custom vesting schedules and separate admin role.
- * Supports two types of vesting: Team vesting and Investor/Ex-Team vesting, both with a 6-month cliff.
- *
- * Vesting Schedules:
- * 1. Team Vesting:
- *    - Time-based: 8 quarterly releases over 2 years, starting after the 6-month cliff.
- *    - Performance-based: arbitrary amount of additional milestone-based releases, triggered by the guardian.
- * 2. Investor/Ex-Team Vesting:
- *    - Time-based only: 8 quarterly releases over 2 years, starting after the 6-month cliff.
- *
- * The guardian role can mark performance goals as reached for team vesting and recall unvested
- * performance-based tokens if necessary.
+ * @dev Implementation of ISummerVestingWallet
  */
-contract SummerVestingWallet is VestingWallet, AccessControl {
+contract SummerVestingWallet is
+    ISummerVestingWallet,
+    VestingWallet,
+    AccessControl
+{
+    //////////////////////////////////////////////
+    ///                CONSTANTS               ///
+    //////////////////////////////////////////////
+
     /// @dev Duration of a quarter in seconds
     uint256 private constant QUARTER = 90 days;
     /// @dev Duration of the cliff period in seconds
     uint256 private constant CLIFF = 180 days;
 
-    /// @dev Role identifier for the admin role
+    /// @inheritdoc ISummerVestingWallet
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
-    /// @dev Enum representing the types of vesting schedules
-    enum VestingType {
-        TeamVesting,
-        InvestorExTeamVesting
-    }
+    //////////////////////////////////////////////
+    ///             STATE VARIABLES            ///
+    //////////////////////////////////////////////
 
     /// @dev The type of vesting schedule for this wallet
     VestingType private immutable _vestingType;
+
+    /// @inheritdoc ISummerVestingWallet
     address public immutable token;
 
     // Performance-based vesting amounts
@@ -47,9 +46,17 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
     // Time-based vesting amount
     uint256 public timeBasedVestingAmount;
 
+    //////////////////////////////////////////////
+    ///                 ERRORS                 ///
+    //////////////////////////////////////////////
+
     error InvalidGoalNumber();
     error OnlyTeamVesting();
     error InvalidGoalArrayLength();
+
+    //////////////////////////////////////////////
+    ///              CONSTRUCTOR               ///
+    //////////////////////////////////////////////
 
     /**
      * @dev Constructor that sets up the vesting wallet with a specific vesting type
@@ -78,6 +85,54 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
 
         _grantRole(GUARDIAN_ROLE, guardianAddress);
     }
+
+    //////////////////////////////////////////////
+    ///            PUBLIC FUNCTIONS            ///
+    //////////////////////////////////////////////
+
+    /// @inheritdoc ISummerVestingWallet
+    function getVestingType() public view returns (VestingType) {
+        return _vestingType;
+    }
+
+    //////////////////////////////////////////////
+    ///           EXTERNAL FUNCTIONS           ///
+    //////////////////////////////////////////////
+
+    /// @inheritdoc ISummerVestingWallet
+    function addNewGoal(uint256 goalAmount) external onlyRole(GUARDIAN_ROLE) {
+        goalAmounts.push(goalAmount);
+        goalsReached.push(false);
+        SafeERC20.safeTransferFrom(
+            IERC20(token),
+            msg.sender,
+            address(this),
+            goalAmount
+        );
+    }
+
+    /// @inheritdoc ISummerVestingWallet
+    function markGoalReached(
+        uint256 goalNumber
+    ) external onlyRole(GUARDIAN_ROLE) {
+        if (goalNumber < 1 || goalNumber > goalAmounts.length) {
+            revert InvalidGoalNumber();
+        }
+        goalsReached[goalNumber - 1] = true;
+    }
+
+    /// @inheritdoc ISummerVestingWallet
+    function recallUnvestedTokens() external onlyRole(GUARDIAN_ROLE) {
+        if (_vestingType != VestingType.TeamVesting) {
+            revert OnlyTeamVesting();
+        }
+        uint256 unvestedPerformanceTokens = _calculateUnvestedPerformanceTokens();
+        IERC20(token).transfer(msg.sender, unvestedPerformanceTokens);
+    }
+
+    //////////////////////////////////////////////
+    ///           INTERNAL FUNCTIONS           ///
+    //////////////////////////////////////////////
 
     /**
      * @dev Calculates the amount of tokens that has vested at a specific time
@@ -112,6 +167,10 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
         }
     }
 
+    //////////////////////////////////////////////
+    ///           PRIVATE FUNCTIONS            ///
+    //////////////////////////////////////////////
+
     /**
      * @dev Calculates the time-based vesting amount based on the vesting type and timestamp
      * @param timestamp The timestamp to check for vested tokens
@@ -143,81 +202,7 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
     }
 
     /**
-     * @notice Adds a new performance-based vesting goal to the contract
-     * @dev This function can only be called by an address with the GUARDIAN_ROLE
-     * @dev The new goal is appended to the existing goalAmounts array
-     * @dev A corresponding false value is added to the goalsReached array
-     * @dev This function allows for dynamic expansion of performance-based vesting goals
-     * @dev The caller must transfer the goalAmount of tokens to this contract after calling this function
-     * @param goalAmount The amount of tokens associated with the new performance goal
-     * @custom:requirements
-     * - The caller must have the GUARDIAN_ROLE
-     * - The contract must be able to receive the goalAmount of tokens
-     * @custom:effects
-     * - Increases the length of goalAmounts and goalsReached arrays by 1
-     * - Sets the last element of goalAmounts to the provided goalAmount
-     * - Sets the last element of goalsReached to false
-     * @custom:security-considerations
-     * - Ensure that the total of all goal amounts does not exceed the contract's token balance
-     * - Consider any gas limitations when adding multiple goals, as array operations can be costly
-     */
-    function addNewGoal(uint256 goalAmount) external onlyRole(GUARDIAN_ROLE) {
-        goalAmounts.push(goalAmount);
-        goalsReached.push(false);
-        SafeERC20.safeTransferFrom(
-            IERC20(token),
-            msg.sender,
-            address(this),
-            goalAmount
-        );
-    }
-
-    /**
-     * @notice Marks a specific performance goal as reached
-     * @dev This function can only be called by an address with the GUARDIAN_ROLE
-     * @param goalNumber The number of the goal to mark as reached (1-indexed)
-     * @custom:requirements
-     * - The caller must have the GUARDIAN_ROLE
-     * - The goalNumber must be valid (between 1 and the total number of goals)
-     * @custom:effects
-     * - Sets the corresponding element in the goalsReached array to true
-     * @custom:emits No events are emitted
-     * @custom:security-considerations
-     * - Ensure that only trusted guardians have the GUARDIAN_ROLE to prevent unauthorized vesting
-     */
-    function markGoalReached(
-        uint256 goalNumber
-    ) external onlyRole(GUARDIAN_ROLE) {
-        if (goalNumber < 1 || goalNumber > goalAmounts.length) {
-            revert InvalidGoalNumber();
-        }
-        goalsReached[goalNumber - 1] = true;
-    }
-
-    /**
-     * @notice Recalls unvested performance-based tokens
-     * @dev This function can only be called by an address with the GUARDIAN_ROLE
-     * @dev It's only applicable for TeamVesting type
-     * @custom:requirements
-     * - The caller must have the GUARDIAN_ROLE
-     * - The vesting type must be TeamVesting
-     * @custom:effects
-     * - Transfers unvested performance-based tokens to the caller
-     * @custom:emits No events are emitted, but a token transfer occurs
-     * @custom:security-considerations
-     * - Ensure that only trusted guardians have the GUARDIAN_ROLE to prevent unauthorized token withdrawal
-     * - This function allows the guardian to reclaim unvested tokens, which could potentially be used to reduce a beneficiary's expected vesting
-     */
-    function recallUnvestedTokens() external onlyRole(GUARDIAN_ROLE) {
-        if (_vestingType != VestingType.TeamVesting) {
-            revert OnlyTeamVesting();
-        }
-        uint256 unvestedPerformanceTokens = _calculateUnvestedPerformanceTokens();
-        IERC20(token).transfer(msg.sender, unvestedPerformanceTokens);
-    }
-    /**
-     * @notice Calculates the amount of unvested performance-based tokens
-     * @dev This function is used internally to determine the amount of tokens that can be recalled
+     * @dev Calculates the amount of unvested performance-based tokens
      * @return The total amount of unvested performance-based tokens
      * @custom:internal-logic
      * - Calculates the total amount of tokens allocated for all performance goals
@@ -240,9 +225,7 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
     }
 
     /**
-     * @notice Calculates the performance-based vesting amount
-     * @dev This function is used internally to determine the amount of tokens vested based on reached performance goals
-     * @dev It only applies to TeamVesting type; for other types, it returns 0
+     * @dev Calculates the performance-based vesting amount
      * @return The total amount of tokens vested based on reached performance goals
      * @custom:internal-logic
      * - Checks if the vesting type is TeamVesting
@@ -264,16 +247,5 @@ contract SummerVestingWallet is VestingWallet, AccessControl {
             if (goalsReached[i]) vested += goalAmounts[i];
         }
         return vested;
-    }
-
-    /**
-     * @notice Returns the vesting type of this wallet
-     * @dev This function allows external contracts or users to check the vesting type
-     * @return The VestingType enum value representing the vesting type (TeamVesting or InvestorExTeamVesting)
-     * @custom:security-considerations
-     * - This function doesn't modify state and doesn't have any significant security implications
-     */
-    function getVestingType() public view returns (VestingType) {
-        return _vestingType;
     }
 }
