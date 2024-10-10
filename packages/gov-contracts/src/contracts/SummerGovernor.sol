@@ -407,6 +407,21 @@ contract SummerGovernor is
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Internal function to pay the native fee for LayerZero messaging.
+     * @param _nativeFee The amount of native tokens to pay for the fee.
+     * @return nativeFee The amount of native tokens to pay for the fee.
+     */
+
+    function _payNative(
+        uint256 _nativeFee
+    ) internal view override returns (uint256 nativeFee) {
+        if (address(this).balance < _nativeFee) {
+            revert NotEnoughNative(address(this).balance);
+        }
+        return _nativeFee;
+    }
+
     function _setWhitelistGuardian(address _whitelistGuardian) internal {
         if (_whitelistGuardian == address(0)) {
             revert SummerGovernorInvalidWhitelistGuardian(_whitelistGuardian);
