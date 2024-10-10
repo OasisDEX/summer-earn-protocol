@@ -106,6 +106,9 @@ importers:
       '@nomicfoundation/hardhat-ignition-viem':
         specifier: ^0.15.5
         version: 0.15.5(@nomicfoundation/hardhat-ignition@0.15.5)(@nomicfoundation/hardhat-viem@2.0.3)(@nomicfoundation/ignition-core@0.15.5)(hardhat@2.22.8)(viem@2.9.19)
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
       '@summerfi/dutch-auction':
         specifier: workspace:*
         version: link:../dutch-auction
@@ -146,6 +149,73 @@ importers:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.16.1)(typescript@5.5.4)
 
+  packages/deployment:
+    dependencies:
+      '@summerfi/earn-protocol-contracts':
+        specifier: workspace:*
+        version: link:../core-contracts
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
+      solhint-plugin-prettier:
+        specifier: ^0.1.0
+        version: 0.1.0(prettier-plugin-solidity@1.4.1)(prettier@3.3.3)
+      solidity-bytes-utils:
+        specifier: ^0.8.2
+        version: 0.8.2
+    devDependencies:
+      '@nomicfoundation/hardhat-foundry':
+        specifier: ^1.1.2
+        version: 1.1.2(hardhat@2.22.10)
+      '@nomicfoundation/hardhat-ignition':
+        specifier: ^0.15.5
+        version: 0.15.5(@nomicfoundation/hardhat-verify@2.0.9)(hardhat@2.22.10)
+      '@nomicfoundation/hardhat-ignition-viem':
+        specifier: ^0.15.5
+        version: 0.15.5(@nomicfoundation/hardhat-ignition@0.15.5)(@nomicfoundation/hardhat-viem@2.0.3)(@nomicfoundation/ignition-core@0.15.5)(hardhat@2.22.10)(viem@2.9.19)
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
+      '@summerfi/dutch-auction':
+        specifier: workspace:*
+        version: link:../dutch-auction
+      '@summerfi/earn-gov-contracts':
+        specifier: workspace:*
+        version: link:../gov-contracts
+      '@summerfi/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@summerfi/jest-config':
+        specifier: workspace:*
+        version: link:../jest-config
+      '@summerfi/math-utils':
+        specifier: workspace:*
+        version: link:../math-utils
+      '@summerfi/percentage-solidity':
+        specifier: workspace:*
+        version: link:../percentage
+      '@summerfi/tenderly-utils':
+        specifier: workspace:*
+        version: link:../tenderly-utils
+      '@summerfi/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/prompts':
+        specifier: ^2.4.9
+        version: 2.4.9
+      hardhat:
+        specifier: ^2.22.8
+        version: 2.22.10(ts-node@10.9.2)(typescript@5.5.4)
+      kleur:
+        specifier: ^4.1.5
+        version: 4.1.5
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@20.16.1)(typescript@5.5.4)
+
   packages/dutch-auction:
     dependencies:
       '@openzeppelin/contracts':
@@ -155,6 +225,9 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(prettier-plugin-solidity@1.4.1)(prettier@3.3.3)
     devDependencies:
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
       '@summerfi/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -219,6 +292,36 @@ importers:
         specifier: ^5.4.5
         version: 5.5.4
 
+  packages/external-dependencies:
+    dependencies:
+      '@layerzerolabs/lz-definitions':
+        specifier: ^2.3.39
+        version: 2.3.42
+      '@layerzerolabs/lz-evm-messagelib-v2':
+        specifier: ^2.3.39
+        version: 2.3.42(@axelar-network/axelar-gmp-sdk-solidity@5.10.0)(@chainlink/contracts-ccip@0.7.6)(@eth-optimism/contracts@0.6.0)(@layerzerolabs/lz-evm-protocol-v2@2.3.42)(@layerzerolabs/lz-evm-v1-0.7@2.3.42)(@openzeppelin/contracts-upgradeable@5.0.2)(@openzeppelin/contracts@5.0.2)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
+      '@layerzerolabs/lz-evm-protocol-v2':
+        specifier: ^2.3.39
+        version: 2.3.42(@openzeppelin/contracts-upgradeable@5.0.2)(@openzeppelin/contracts@5.0.2)(hardhat-deploy@0.12.4)(solidity-bytes-utils@0.8.2)
+      '@layerzerolabs/lz-evm-v1-0.7':
+        specifier: ^2.3.39
+        version: 2.3.42(@openzeppelin/contracts-upgradeable@5.0.2)(@openzeppelin/contracts@5.0.2)(hardhat-deploy@0.12.4)
+      '@layerzerolabs/lz-v2-utilities':
+        specifier: ^2.3.39
+        version: 2.3.42
+      '@layerzerolabs/oapp-evm':
+        specifier: ^0.0.4
+        version: 0.0.4(@layerzerolabs/lz-evm-messagelib-v2@2.3.42)(@layerzerolabs/lz-evm-protocol-v2@2.3.42)(@layerzerolabs/lz-evm-v1-0.7@2.3.42)(@openzeppelin/contracts-upgradeable@5.0.2)(@openzeppelin/contracts@5.0.2)
+      '@layerzerolabs/oft-evm':
+        specifier: ^0.0.11
+        version: 0.0.11(@layerzerolabs/lz-evm-messagelib-v2@2.3.42)(@layerzerolabs/lz-evm-protocol-v2@2.3.42)(@layerzerolabs/lz-evm-v1-0.7@2.3.42)(@layerzerolabs/oapp-evm@0.0.4)(@openzeppelin/contracts-upgradeable@5.0.2)(@openzeppelin/contracts@5.0.2)
+      '@layerzerolabs/test-devtools-evm-foundry':
+        specifier: ~0.2.12
+        version: 0.2.12(@layerzerolabs/lz-evm-messagelib-v2@2.3.42)(@layerzerolabs/lz-evm-protocol-v2@2.3.42)(@layerzerolabs/lz-evm-v1-0.7@2.3.42)(@layerzerolabs/oapp-evm@0.0.4)(@layerzerolabs/oft-evm@0.0.11)(@openzeppelin/contracts-upgradeable@5.0.2)(@openzeppelin/contracts@5.0.2)
+      '@layerzerolabs/toolbox-foundry':
+        specifier: ~0.1.9
+        version: 0.1.9
+
   packages/gov-contracts:
     dependencies:
       '@layerzerolabs/lz-definitions':
@@ -264,6 +367,9 @@ importers:
       '@nomicfoundation/hardhat-ignition-viem':
         specifier: ^0.15.5
         version: 0.15.5(@nomicfoundation/hardhat-ignition@0.15.5)(@nomicfoundation/hardhat-viem@2.0.3)(@nomicfoundation/ignition-core@0.15.5)(hardhat@2.22.10)(viem@2.9.19)
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
       '@summerfi/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -329,6 +435,9 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(prettier-plugin-solidity@1.4.1)(prettier@3.3.3)
     devDependencies:
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
       '@summerfi/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -363,6 +472,9 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(prettier-plugin-solidity@1.4.1)(prettier@3.3.3)
     devDependencies:
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
       '@summerfi/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -449,6 +561,9 @@ importers:
         specifier: ^5.0.1
         version: 5.0.2
     devDependencies:
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
       prettier:
         specifier: ^3.0.0
         version: 3.3.3
@@ -2078,11 +2193,9 @@ packages:
       '@layerzerolabs/oft-evm': 0.0.11(@layerzerolabs/lz-evm-messagelib-v2@2.3.42)(@layerzerolabs/lz-evm-protocol-v2@2.3.42)(@layerzerolabs/lz-evm-v1-0.7@2.3.42)(@layerzerolabs/oapp-evm@0.0.4)(@openzeppelin/contracts-upgradeable@5.0.2)(@openzeppelin/contracts@5.0.2)
       '@openzeppelin/contracts': 5.0.2
       '@openzeppelin/contracts-upgradeable': 5.0.2(@openzeppelin/contracts@5.0.2)
-    dev: true
 
   /@layerzerolabs/toolbox-foundry@0.1.9:
     resolution: {integrity: sha512-OVOT7Nt3uaX3VaqA3zqKP+ZIfsSo2X7c3jbrBb0I0ewsxNung+pYrYtCUhSoLLHQ1eOteh08C8Pq8A/Tbud/tg==}
-    dev: true
 
   /@metamask/eth-sig-util@4.0.1:
     resolution: {integrity: sha512-tghyZKLHZjcdlDqCA3gNZmLeR0XvOE9U1qoQO9ohyAZT6Pya+H9vkBPcsyXytmYLNgVoin7CKCmweo/R43V+tQ==}
@@ -4828,7 +4941,6 @@ packages:
   /dotenv@16.4.5:
     resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
     engines: {node: '>=12'}
-    dev: true
 
   /ejs@3.1.10:
     resolution: {integrity: sha512-UeJmFfOrAQS8OJWPZ4qtgHyWExa088/MtK5UEyoJGFH67cDEXkZSviOiKRCZ4Xij0zxI3JECgYs3oKx+AizQBA==}
@@ -6202,7 +6314,7 @@ packages:
       resolve: 1.17.0
       semver: 6.3.1
       solc: 0.8.26(debug@4.3.6)
-      source-map-support: 0.5.13
+      source-map-support: 0.5.21
       stacktrace-parser: 0.1.10
       ts-node: 10.9.2(@types/node@20.16.1)(typescript@5.5.4)
       tsort: 0.0.1
