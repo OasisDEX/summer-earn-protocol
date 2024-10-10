@@ -30,7 +30,7 @@ interface ISummerVestingWallet is IAccessControl {
     ///             VIEW FUNCTIONS             ///
     //////////////////////////////////////////////
 
-    /// @dev Role identifier for the admin role
+    /// @dev Role identifier for the guardian role
     function GUARDIAN_ROLE() external view returns (bytes32);
 
     /// @dev The token being vested
