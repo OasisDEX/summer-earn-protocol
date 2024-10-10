@@ -100,12 +100,4 @@ contract BufferArk is Ark {
      * @param data The disembarking data to validate (unused in this implementation)
      */
     function _validateDisembarkData(bytes calldata data) internal override {}
-
-    /**
-     * @notice Returns the current balance of the buffer
-     * @return The current token balance held in the buffer
-     */
-    function bufferBalance() public view returns (uint256) {
-        return config.token.balanceOf(address(this));
-    }
 }
