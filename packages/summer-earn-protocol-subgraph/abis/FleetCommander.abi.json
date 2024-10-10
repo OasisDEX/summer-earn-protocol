@@ -1966,28 +1966,6 @@
   },
   {
     "type": "error",
-    "name": "AddressEmptyCode",
-    "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "AddressInsufficientBalance",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
     "name": "CallerIsNotAdmin",
     "inputs": [
       {
@@ -2353,11 +2331,6 @@
   },
   {
     "type": "error",
-    "name": "FailedInnerCall",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "FleetCommanderArkAlreadyExists",
     "inputs": [
       {
@@ -2619,11 +2592,6 @@
   {
     "type": "error",
     "name": "InvalidTipJarAddress",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MathOverflowedMulDiv",
     "inputs": []
   },
   {
