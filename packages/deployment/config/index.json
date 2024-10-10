@@ -151,6 +151,9 @@
         "markets": {
           "usde": {
             "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+          },
+          "usdc": {
+            "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
           }
         }
       },

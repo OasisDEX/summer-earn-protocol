@@ -1,102 +1,444 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import {BaseSwapArk, ArkParams} from "./BaseSwapArk.sol";
+import {Ark} from "../Ark.sol";
+import {ArkParams} from "./BaseSwapArk.sol";
+import {PendlePtArkConstructorParams} from "./PendlePTArk.sol";
 import {ICurveSwap} from "../../interfaces/curve/ICurveSwap.sol";
-import {PendlePTArk, PendlePtArkConstructorParams} from "./PendlePTArk.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-struct CurveSwapArkConstructorParams {
-    address curvePool;
-    address susde;
-}
-import {console} from "forge-std/console.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {TokenInput, TokenOutput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
+import {LimitOrderData, IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
+import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
+import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
+import {IPPrincipalToken} from "@pendle/core-v2/contracts/interfaces/IPPrincipalToken.sol";
+import {IPYieldToken} from "@pendle/core-v2/contracts/interfaces/IPYieldToken.sol";
+import {IStandardizedYield} from "@pendle/core-v2/contracts/interfaces/IStandardizedYield.sol";
+import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
+import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOracle.sol";
+import {IPActionSwapPTV3} from "@pendle/core-v2/contracts/interfaces/IPActionSwapPTV3.sol";
 
-contract CurveSwapPendlePtArk is PendlePTArk {
-    // 0x02950460e2b9529d0e00284a5fa2d7bdf3fa4d72
+/**
+ * @title CurveSwapPendlePtArk
+ * @notice A contract for managing Curve swaps and Pendle PT (Principal Token) operations
+ * @dev This contract extends the Ark contract and implements specific logic for Curve and Pendle interactions
+ */
+contract CurveSwapPendlePtArk is Ark {
+    using SafeERC20 for IERC20;
+    using PercentageUtils for uint256;
 
-    //     - Only allow to trade when the current EMA value is between 0.99925 and 1.00075 usde/usdc
-    // - Only allow the trade if the quoted price of the trade, with impact and fees taken into account, is between 0.99925 and 1.00075 usde/usdc
-    // - In order to try and compensate for price impact, it should only buy if it can achieve an effective Fixed Yield of at least 10%
-    // - It should not enter markets with less than 20 days remaining
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    Percentage public constant MAX_SLIPPAGE_PERCENTAGE = PERCENTAGE_100;
+    uint256 public constant MIN_ORACLE_DURATION = 15 minutes;
+    int128 public constant USDE_INDEX = 1;
+    int128 public constant USDC_INDEX = 0;
+
+    /*//////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
 
     ICurveSwap public curveSwap;
-    IERC4626 public susde;
+    address public marketAsset;
+    address public market;
+    address public router;
+    address public immutable oracle;
+    uint32 public oracleDuration;
+    IStandardizedYield public SY;
+    IPPrincipalToken public PT;
+    IPYieldToken public YT;
+    Percentage public slippagePercentage;
+    uint256 public marketExpiry;
+    ApproxParams public routerParams;
+    LimitOrderData emptyLimitOrderData;
+    SwapData public emptySwap;
     uint256 public lowerEma = 0.9995 * 1e18;
-     uint256 public upperEma = 1.00099 * 1e18;
+    uint256 public upperEma = 1.00099 * 1e18;
 
-    int128 public constant USDE_INDEX = 0;
-    int128 public constant USDC_INDEX = 1;
+    /*//////////////////////////////////////////////////////////////
+                                STRUCTS
+    //////////////////////////////////////////////////////////////*/
 
+    struct CurveSwapArkConstructorParams {
+        address curvePool;
+        address marketAsset;
+    }
+
+    struct BoardData {
+        bytes swapForPtParams;
+    }
+
+    struct DisembarkData {
+        bytes swapPtForTokenParams;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error MarketExpired();
+    error InvalidSwapType();
+    error InvalidParamsLength();
+    error InvalidFunctionSelector();
+    error InvalidReceiver();
+    error InvalidMarket();
+    error EmaOutOfRange();
+    error MarketExpirationTooClose();
+    error LowerEmaNotLessThanUpperEma();
+    error UpperEmaNotGreaterThanLowerEma();
+    error InsufficientOutputAmount();
+    /*//////////////////////////////////////////////////////////////
+                            CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Contract constructor
+     * @param _params General Ark parameters
+     * @param _pendlePtArkConstructorParams Pendle PT Ark specific parameters
+     * @param _curveSwapArkConstructorParams Curve swap specific parameters
+     */
     constructor(
         ArkParams memory _params,
         PendlePtArkConstructorParams memory _pendlePtArkConstructorParams,
         CurveSwapArkConstructorParams memory _curveSwapArkConstructorParams
-    ) PendlePTArk(_pendlePtArkConstructorParams, _params) {
+    ) Ark(_params) {
+        router = _pendlePtArkConstructorParams.router;
+        oracle = _pendlePtArkConstructorParams.oracle;
+        market = _pendlePtArkConstructorParams.market;
+        oracleDuration = 30 minutes;
+        slippagePercentage = PercentageUtils.fromFraction(5, 1000); // 0.5% default
         curveSwap = ICurveSwap(_curveSwapArkConstructorParams.curvePool);
-        susde = IERC4626(_curveSwapArkConstructorParams.susde);
+        marketAsset = _curveSwapArkConstructorParams.marketAsset;
+        _setupRouterParams();
+        _updateMarketAndTokens(market);
+        _updateMarketData();
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Get the current exchange rate from the Curve pool
+     * @return price The current exchange rate
+     */
     function getExchangeRate() public view returns (uint256 price) {
         price = curveSwap.last_price(0);
+        if (curveSwap.coins(1) != address(config.token)) {
+            price = 1e36 / price;
+        }
     }
 
+    function getEmaPrice() public view returns (uint256 price) {
+        price = curveSwap.ema_price(0);
+        if (curveSwap.coins(1) != address(config.token)) {
+            price = 1e36 / price;
+        }
+    }
+
+    /**
+     * @notice Calculate the total assets held by this contract
+     * @return The total assets in USDC equivalent
+     */
+    function totalAssets() public view override returns (uint256) {
+        uint256 ptToAssetRate = PendlePYLpOracle(oracle).getPtToAssetRate(
+            market,
+            oracleDuration
+        );
+        uint256 assetAmount = (IERC20(PT).balanceOf(address(this)) *
+            ptToAssetRate) / 1e18;
+        uint256 usdeToUsdcExchangeRate = getExchangeRate();
+
+        uint256 usdcAmount = (assetAmount * 1e6) / usdeToUsdcExchangeRate;
+        return usdcAmount;
+    }
+
+    /**
+     * @notice Validate and decode swap for PT parameters
+     * @param params Encoded swap parameters
+     * @return receiver - address of the receiver
+     * @return swapMarket - address of the swap market
+     * @return minPtOut - minimum amount of PT out
+     * @return guessPtOut - guess amount of PT out
+     * @return input - token input
+     * @return limit - limit order data
+     */
+    function validateAndDecodeSwapForPtParams(
+        bytes calldata params
+    )
+        external
+        pure
+        returns (
+            address receiver,
+            address swapMarket,
+            uint256 minPtOut,
+            ApproxParams memory guessPtOut,
+            TokenInput memory input,
+            LimitOrderData memory limit
+        )
+    {
+        if (params.length < 4) revert InvalidParamsLength();
+
+        bytes4 selector = bytes4(params[:4]);
+        if (selector != IPActionSwapPTV3.swapExactTokenForPt.selector)
+            revert InvalidFunctionSelector();
+
+        (receiver, swapMarket, minPtOut, guessPtOut, input, limit) = abi.decode(
+            params[4:],
+            (
+                address,
+                address,
+                uint256,
+                ApproxParams,
+                TokenInput,
+                LimitOrderData
+            )
+        );
+    }
+
+    /**
+     * @notice Validate and decode swap PT for token parameters
+     * @param params Encoded swap parameters
+     * @return receiver - address of the receiver
+     * @return swapMarket - address of the swap market
+     * @return exactPtIn - exact amount of PT in
+     * @return output - token output
+     * @return limit - limit order data
+     */
+    function validateAndDecodeSwapPtForTokenParams(
+        bytes calldata params
+    )
+        external
+        pure
+        returns (
+            address receiver,
+            address swapMarket,
+            uint256 exactPtIn,
+            TokenOutput memory output,
+            LimitOrderData memory limit
+        )
+    {
+        if (params.length < 4) revert InvalidParamsLength();
+
+        bytes4 selector = bytes4(params[:4]);
+        if (selector != IPActionSwapPTV3.swapExactPtForToken.selector)
+            revert InvalidFunctionSelector();
+
+        (receiver, swapMarket, exactPtIn, output, limit) = abi.decode(
+            params[4:],
+            (address, address, uint256, TokenOutput, LimitOrderData)
+        );
+    }
+
+    /**
+     * @notice Rescue tokens stuck in the contract
+     * @param token Address of the token to rescue
+     */
+    function rescueToken(address token) public onlyGovernor {
+        IERC20(token).transfer(
+            msg.sender,
+            IERC20(token).balanceOf(address(this))
+        );
+    }
+
+    /**
+     * @notice Set the lower EMA threshold
+     * @param _lowerEma New lower EMA threshold
+     */
+    function setLowerEma(uint256 _lowerEma) public onlyGovernor {
+        if (_lowerEma >= upperEma) revert LowerEmaNotLessThanUpperEma();
+        lowerEma = _lowerEma;
+    }
+
+    /**
+     * @notice Set the upper EMA threshold
+     * @param _upperEma New upper EMA threshold
+     */
+    function setUpperEma(uint256 _upperEma) public onlyGovernor {
+        if (_upperEma <= lowerEma) revert UpperEmaNotGreaterThanLowerEma();
+        upperEma = _upperEma;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Internal function to deposit tokens for Ark tokens
+     * @param _amount Amount of tokens to deposit
+     * @param data Additional data for the deposit
+     */
+    function _depositTokenForArkToken(
+        uint256 _amount,
+        bytes calldata data
+    ) internal {
+        BoardData memory boardData = abi.decode(data, (BoardData));
+        if (block.timestamp >= marketExpiry) revert MarketExpired();
+
+        (
+            address receiver,
+            address swapMarket,
+            uint256 minPtOut,
+            ApproxParams memory guessPtOut,
+            TokenInput memory input,
+            LimitOrderData memory limit
+        ) = this.validateAndDecodeSwapForPtParams(boardData.swapForPtParams);
+
+        if (receiver != address(this)) revert InvalidReceiver();
+        if (swapMarket != market) revert InvalidMarket();
+
+        IERC20(config.token).approve(address(router), _amount);
+        IPAllActionV3(router).swapExactTokenForPt(
+            receiver,
+            swapMarket,
+            minPtOut,
+            guessPtOut,
+            input,
+            limit
+        );
+    }
+
+    /**
+     * @notice Internal function to withdraw Ark tokens for tokens
+     * @param _amount Amount of Ark tokens to withdraw
+     * @param data Additional data for the withdrawal
+     */
+    function _withdrawArkTokenForToken(
+        uint256 _amount,
+        bytes calldata data
+    ) internal {
+        DisembarkData memory disembarkData = abi.decode(data, (DisembarkData));
+        if (block.timestamp >= marketExpiry) revert MarketExpired();
+
+        (
+            address receiver,
+            address swapMarket,
+            uint256 exactPtIn,
+            TokenOutput memory output,
+            LimitOrderData memory limit
+        ) = this.validateAndDecodeSwapPtForTokenParams(
+                disembarkData.swapPtForTokenParams
+            );
+
+        if (receiver != address(this)) revert InvalidReceiver();
+        if (swapMarket != market) revert InvalidMarket();
+        if (_amount < output.minTokenOut) revert InsufficientOutputAmount();
+
+        IERC20(PT).approve(address(router), exactPtIn);
+        IPAllActionV3(router).swapExactPtForToken(
+            receiver,
+            swapMarket,
+            exactPtIn,
+            output,
+            limit
+        );
+    }
+
+    /**
+     * @notice Internal function to board (deposit) tokens
+     * @param amount Amount of tokens to board
+     * @param data Additional data for boarding
+     */
     function _board(
         uint256 amount,
         bytes calldata data
     ) internal override shouldBuy {
-        uint256 usdcAmount = amount;
-        uint256 perfectOut = (usdcAmount * getExchangeRate()  ) / 1e6;
-        console.log("preview susde amount     : ", susde.previewDeposit(perfectOut));
-        console.log("perfectOut               : ", perfectOut);
-        uint256 minUsdeOut =( ( usdcAmount * getExchangeRate() * lowerEma  ) / 1e18)/ 1e6;
-        IERC20(curveSwap.coins(1)).approve(address(curveSwap), usdcAmount);
-        uint256 usdeAmount = curveSwap.exchange(
-            USDC_INDEX,
-            USDE_INDEX,
-            usdcAmount,
-            minUsdeOut
-        );
-        console.log("usdcAmount               : ", usdcAmount);
-        console.log("minUsdeOut               : ", minUsdeOut );
-        console.log("bought usde              : ", usdeAmount);
-        IERC20(curveSwap.coins(0)).approve(address(susde), usdeAmount);
-        susde.deposit(usdeAmount, address(this));
-        console.log("got    susde             : ", susde.balanceOf(address(this)));
-        super._board(susde.balanceOf(address(this)), data);
+        _depositTokenForArkToken(amount, data);
     }
 
-    function x(uint256 amount, bytes calldata data) public {
-        IERC20(curveSwap.coins(1)).transferFrom(msg.sender, address(this), amount);
-        _board(amount, data);
-    }
-
+    /**
+     * @notice Internal function to disembark (withdraw) tokens
+     * @param amount Amount of tokens to disembark
+     * @param data Additional data for disembarking
+     */
     function _disembark(
         uint256 amount,
         bytes calldata data
     ) internal override shouldTrade {
-        // super._disembark(amount, data);
-        // susde.withdraw(amount, address(this), address(this));
-        // uint256 minUsdcOut = amount;
-        // curveSwap.exchange(USDE_INDEX, USDC_INDEX, amount, 0);
+        _withdrawArkTokenForToken(amount, data);
     }
 
-    modifier shouldBuy() {
-        _shouldTrade();
-        require(
-            marketExpiry > block.timestamp + 20 days,
-            "Market has less than 20 days remaining"
-        );
-        _;
+    /**
+     * @notice Internal function to harvest rewards
+     * @return rewardTokens The addresses of the reward tokens
+     * @return rewardAmounts The amounts of the reward tokens
+     */
+    function _harvest(
+        bytes calldata
+    )
+        internal
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        rewardTokens = IPMarketV3(market).getRewardTokens();
+        rewardAmounts = IPMarketV3(market).redeemRewards(address(this));
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            IERC20(rewardTokens[i]).safeTransfer(raft(), rewardAmounts[i]);
+        }
     }
 
+    /**
+     * @notice Validate board data
+     * @param data Data to validate
+     */
+    function _validateBoardData(bytes calldata data) internal view override {
+        // Implementation left empty intentionally
+    }
+
+    /**
+     * @notice Validate disembark data
+     * @param data Data to validate
+     */
+    function _validateDisembarkData(
+        bytes calldata data
+    ) internal view override {
+        // Implementation left empty intentionally
+    }
+
+    /**
+     * @notice Set up router parameters
+     */
+    function _setupRouterParams() internal {
+        routerParams.guessMax = type(uint256).max;
+        routerParams.maxIteration = 256;
+        routerParams.eps = 1e15; // 0.1% precision
+    }
+
+    /**
+     * @notice Update market data
+     */
+    function _updateMarketData() internal {
+        marketExpiry = IPMarketV3(market).expiry();
+    }
+
+    /**
+     * @notice Update market and token addresses
+     * @param newMarket Address of the new market
+     */
+    function _updateMarketAndTokens(address newMarket) internal {
+        market = newMarket;
+        (SY, PT, YT) = IPMarketV3(newMarket).readTokens();
+        _updateMarketData();
+    }
+
+    /**
+     * @notice Check if trading should be allowed
+     */
     function _shouldTrade() internal view {
-        require(
-            onlyWhenBetween(curveSwap.ema_price(0), lowerEma, upperEma),
-            "EMA is not between 0.99925 and 1.00075"
-        );
+        if (!onlyWhenBetween(getEmaPrice(), lowerEma, upperEma))
+            revert EmaOutOfRange();
     }
 
+    /**
+     * @notice Check if a number is between two values
+     * @param number The number to check
+     * @param lower The lower bound
+     * @param upper The upper bound
+     * @return bool Whether the number is between the bounds
+     */
     function onlyWhenBetween(
         uint256 number,
         uint256 lower,
@@ -105,6 +447,23 @@ contract CurveSwapPendlePtArk is PendlePTArk {
         return number >= lower && number <= upper;
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Modifier to check if buying should be allowed
+     */
+    modifier shouldBuy() {
+        _shouldTrade();
+        if (marketExpiry <= block.timestamp + 20 days)
+            revert MarketExpirationTooClose();
+        _;
+    }
+
+    /**
+     * @notice Modifier to check if trading should be allowed
+     */
     modifier shouldTrade() {
         _shouldTrade();
         _;
