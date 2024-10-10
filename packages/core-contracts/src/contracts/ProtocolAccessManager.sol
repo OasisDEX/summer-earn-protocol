@@ -121,45 +121,45 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     }
 
     function grantCuratorRole(
-        address fleetAddress,
+        address fleetCommanderAddress,
         address account
     ) public onlyGovernor {
         grantContractSpecificRole(
             ContractSpecificRoles.CURATOR_ROLE,
-            fleetAddress,
+            fleetCommanderAddress,
             account
         );
     }
 
     function revokeCuratorRole(
-        address fleetAddress,
+        address fleetCommanderAddress,
         address account
     ) public onlyGovernor {
         revokeContractSpecificRole(
             ContractSpecificRoles.CURATOR_ROLE,
-            fleetAddress,
+            fleetCommanderAddress,
             account
         );
     }
 
     function grantKeeperRole(
-        address fleetAddress,
+        address fleetCommanderAddress,
         address account
     ) public onlyGovernor {
         grantContractSpecificRole(
             ContractSpecificRoles.KEEPER_ROLE,
-            fleetAddress,
+            fleetCommanderAddress,
             account
         );
     }
 
     function revokeKeeperRole(
-        address fleetAddress,
+        address fleetCommanderAddress,
         address account
     ) public onlyGovernor {
         revokeContractSpecificRole(
             ContractSpecificRoles.KEEPER_ROLE,
-            fleetAddress,
+            fleetCommanderAddress,
             account
         );
     }
