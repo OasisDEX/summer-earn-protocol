@@ -31,6 +31,8 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
     IPoolV3 public aaveV3Pool;
 
+    address public mockAToken = address(11);
+
     function setUp() public {
         initializeCoreContracts();
         mockToken = new ERC20Mock();
@@ -56,7 +58,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             currentStableBorrowRate: 1e27, // Example value in ray
             lastUpdateTimestamp: uint40(block.timestamp), // Current timestamp as example
             id: 1, // Example value
-            aTokenAddress: address(0), // Placeholder address
+            aTokenAddress: mockAToken,
             stableDebtTokenAddress: address(0), // Placeholder address
             variableDebtTokenAddress: address(0), // Placeholder address
             interestRateStrategyAddress: address(0), // Placeholder address
@@ -204,7 +206,6 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
 
     function test_Harvest() public {
         address mockRewardToken = address(10);
-        address mockAToken = address(11);
         uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
 
         // Mock the call to claimRewardsToSelf
