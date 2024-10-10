@@ -21,7 +21,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.ref_name }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          key:
+            ${{ runner.os }}-turbo-${{ github.ref_name }}-${{ hashFiles('pnpm-lock.yaml') }}-${{
+            github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-${{ github.ref_name }}-
             ${{ runner.os }}-turbo-
@@ -62,7 +64,7 @@ jobs:
         run: pnpm coverage:lcov
         working-directory: packages/core-contracts
         env:
-          MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}        
+          MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v4
