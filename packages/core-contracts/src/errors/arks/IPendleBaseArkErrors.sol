@@ -9,7 +9,7 @@ interface IPendleBaseArkErrors {
     /// @notice Thrown when the oracle is not ready to provide a price
     error OracleNotReady();
 
-    /// @notice Thrown when an invalid asset is provided for the SY (Standardized Asset)
+    /// @notice Thrown when an invalid asset is provided for the SY (Standardized Yield)
     error InvalidAssetForSY();
 
     /// @notice Thrown when an invalid next market is provided

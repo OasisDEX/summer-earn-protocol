@@ -66,22 +66,6 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         });
         vm.mockCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(
-                IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector
-            ),
-            abi.encode(aaveAddressProvider)
-        );
-        vm.mockCall(
-            address(aaveAddressProvider),
-            abi.encodeWithSelector(
-                IPoolAddressesProvider(aaveAddressProvider)
-                    .getPoolDataProvider
-                    .selector
-            ),
-            abi.encode(aaveV3DataProvider)
-        );
-        vm.mockCall(
-            address(aaveV3Pool),
             abi.encodeWithSelector(IPoolV3(aaveV3Pool).getReserveData.selector),
             abi.encode(reserveData)
         );
@@ -132,28 +116,11 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         });
         vm.mockCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(
-                IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector
-            ),
-            abi.encode(aaveAddressProvider)
-        );
-        vm.mockCall(
-            address(aaveAddressProvider),
-            abi.encodeWithSelector(
-                IPoolAddressesProvider(aaveAddressProvider)
-                    .getPoolDataProvider
-                    .selector
-            ),
-            abi.encode(aaveV3DataProvider)
-        );
-        vm.mockCall(
-            address(aaveV3Pool),
             abi.encodeWithSelector(IPoolV3(aaveV3Pool).getReserveData.selector),
             abi.encode(reserveData)
         );
         ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
         assertEq(address(ark.aaveV3Pool()), address(aaveV3Pool));
-        assertEq(address(ark.aaveV3DataProvider()), aaveV3DataProvider);
 
         assertEq(address(ark.token()), address(mockToken));
         assertEq(ark.depositCap(), type(uint256).max);
@@ -239,17 +206,6 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         address mockRewardToken = address(10);
         address mockAToken = address(11);
         uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
-
-        vm.mockCall(
-            address(aaveV3DataProvider),
-            abi.encodeWithSelector(
-                IPoolDataProvider(aaveV3DataProvider)
-                    .getReserveTokensAddresses
-                    .selector,
-                address(mockToken)
-            ),
-            abi.encode(address(0), mockAToken, address(0))
-        );
 
         // Mock the call to claimRewardsToSelf
         address[] memory incentivizedAssets = new address[](1);
