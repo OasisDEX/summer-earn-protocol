@@ -24,7 +24,7 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
     uint256 public decayRatePerSecond;
     VotingDecayLibrary.DecayFunction public decayFunction;
 
-    uint256 private constant MAX_DELEGATION_DEPTH = 5;
+    uint256 private constant MAX_DELEGATION_DEPTH = 1;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR

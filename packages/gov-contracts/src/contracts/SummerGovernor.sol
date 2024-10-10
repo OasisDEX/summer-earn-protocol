@@ -19,6 +19,9 @@ import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.
  * @dev This contract implements the governance mechanism for the Summer protocol.
  * It extends various OpenZeppelin governance modules and includes custom functionality
  * such as whitelisting and voting decay.
+ *
+ * TODO: Fully integrate voting decay once cross-chain messaging is tested
+ * see https://github.com/OasisDEX/summer-earn-protocol/blob/0b6b338ef4ccb8efa209b9cf6226b3669917f0d2/packages/voting-decay/test/ExampleGovernor.sol#L76
  */
 contract SummerGovernor is
     ISummerGovernor,
@@ -306,7 +309,7 @@ contract SummerGovernor is
                 proposalThreshold()
             );
         }
-
+        _updateDecayFactor(proposer);
         return _propose(targets, values, calldatas, description, proposer);
     }
 
@@ -357,6 +360,7 @@ contract SummerGovernor is
                 proposalThreshold()
             );
         }
+        _updateDecayFactor(proposer);
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
