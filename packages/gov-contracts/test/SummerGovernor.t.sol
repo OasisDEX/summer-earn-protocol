@@ -125,7 +125,7 @@ contract SummerGovernorTest is
         vm.label(address(timelockA), "TimelockController A");
         vm.label(address(timelockB), "TimelockController B");
 
-        SummerGovernor.GovernorParams memory paramsA = SummerGovernor
+        SummerGovernor.GovernorParams memory paramsA = ISummerGovernor
             .GovernorParams({
                 token: IVotes(address(aSummerToken)),
                 timelock: timelockA,
@@ -140,7 +140,7 @@ contract SummerGovernorTest is
                 endpoint: lzEndpointA,
                 proposalChainId: 31337
             });
-        SummerGovernor.GovernorParams memory paramsB = SummerGovernor
+        SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
             .GovernorParams({
                 token: IVotes(address(bSummerToken)),
                 timelock: timelockB,
@@ -399,7 +399,7 @@ contract SummerGovernorTest is
             uint256[] memory srcValues,
             bytes[] memory srcCalldatas,
             string memory srcDescription,
-            uint256 dstProposalId
+
         ) = createCrossChainProposal(bEid, governorA);
 
         // Ensure governorA has insufficient ETH
@@ -428,7 +428,7 @@ contract SummerGovernorTest is
             uint256[] memory srcValues,
             bytes[] memory srcCalldatas,
             string memory srcDescription,
-            uint256 dstProposalId
+
         ) = createCrossChainProposal(bEid, governorA);
 
         // Attempt to send proposal as non-governance address
@@ -556,7 +556,7 @@ contract SummerGovernorTest is
     function test_InitialSetup() public {
         address lzEndpointA = address(endpoints[aEid]);
 
-        SummerGovernor.GovernorParams memory params = SummerGovernor
+        SummerGovernor.GovernorParams memory params = ISummerGovernor
             .GovernorParams({
                 token: IVotes(address(aSummerToken)),
                 timelock: timelockA,
@@ -983,7 +983,7 @@ contract SummerGovernorTest is
         uint256 belowMin = governorA.MIN_PROPOSAL_THRESHOLD() - 1;
         uint256 aboveMax = governorA.MAX_PROPOSAL_THRESHOLD() + 1;
 
-        SummerGovernor.GovernorParams memory params = SummerGovernor
+        SummerGovernor.GovernorParams memory params = ISummerGovernor
             .GovernorParams({
                 token: IVotes(address(aSummerToken)),
                 timelock: timelockA,
@@ -1554,7 +1554,7 @@ contract SummerGovernorTest is
         );
 
         // Deploy the governorA with a different chain ID than the current one
-        SummerGovernor.GovernorParams memory params = SummerGovernor
+        SummerGovernor.GovernorParams memory params = ISummerGovernor
             .GovernorParams({
                 token: IVotes(address(aSummerToken)),
                 timelock: timelockA,
@@ -1604,7 +1604,7 @@ contract SummerGovernorTest is
         wrongChainGovernor.propose(targets, values, calldatas, description);
     }
 
-    function getQuorumThreshold(uint256 supply) public view returns (uint256) {
+    function getQuorumThreshold(uint256 supply) public pure returns (uint256) {
         return (supply * QUORUM_FRACTION) / 100;
     }
 
