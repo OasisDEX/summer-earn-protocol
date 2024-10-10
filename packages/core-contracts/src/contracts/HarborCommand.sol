@@ -35,7 +35,8 @@ contract HarborCommand is
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Mapping of addresses to their active status as Fleet Commanders
-    mapping(address => bool) public activeFleetCommanders;
+    mapping(address fleetCommander => bool isActive)
+        public activeFleetCommanders;
 
     /// @notice List of all Fleet Commander addresses
     address[] public fleetCommandersList;

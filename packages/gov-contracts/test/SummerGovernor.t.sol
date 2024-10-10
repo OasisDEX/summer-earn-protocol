@@ -18,6 +18,7 @@ import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
+import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -1500,7 +1501,7 @@ contract SummerGovernorTest is
             alice,
             vestingAmount,
             new uint256[](0),
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         aSummerToken.mint(alice, directAmount);
         vm.stopPrank();

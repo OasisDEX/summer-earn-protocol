@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import "@openzeppelin/contracts/finance/VestingWallet.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../interfaces/ISummerVestingWallet.sol";
+import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ISummerVestingWallet} from "../interfaces/ISummerVestingWallet.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title SummerVestingWallet
@@ -45,14 +46,6 @@ contract SummerVestingWallet is
 
     // Time-based vesting amount
     uint256 public timeBasedVestingAmount;
-
-    //////////////////////////////////////////////
-    ///                 ERRORS                 ///
-    //////////////////////////////////////////////
-
-    error InvalidGoalNumber();
-    error OnlyTeamVesting();
-    error InvalidGoalArrayLength();
 
     //////////////////////////////////////////////
     ///              CONSTRUCTOR               ///
