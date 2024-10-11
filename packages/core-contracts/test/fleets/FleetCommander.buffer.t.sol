@@ -514,7 +514,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderCantUseMaxUintForBufferAdjustement()"
+                "FleetCommanderCantUseMaxUintMovingFromBuffer()"
             )
         );
         fleetCommander.adjustBuffer(rebalanceData);

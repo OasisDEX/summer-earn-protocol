@@ -593,7 +593,7 @@ contract FleetCommander is
      * to move funds in one direction)
      * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
      * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
-     * @custom:error FleetCommanderCantUseMaxUintForBufferAdjustement Thrown when trying to use MAX_UINT256 amount when
+     * @custom:error FleetCommanderCantUseMaxUintMovingFromBuffer Thrown when trying to use MAX_UINT256 amount when
      * moving from buffer
      */
     function _validateAdjustBuffer(
@@ -613,7 +613,7 @@ contract FleetCommander is
             uint256 amount = rebalanceData[i].amount;
             if (amount == Constants.MAX_UINT256) {
                 if (!isMovingToBuffer) {
-                    revert FleetCommanderCantUseMaxUintForBufferAdjustement();
+                    revert FleetCommanderCantUseMaxUintMovingFromBuffer();
                 }
                 amount = IArk(rebalanceData[i].fromArk).totalAssets();
             }
