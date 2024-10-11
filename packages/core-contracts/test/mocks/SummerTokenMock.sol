@@ -25,6 +25,35 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
+    // Add missing implementations:
+    function DOMAIN_SEPARATOR() external pure override returns (bytes32) {
+        // Implement or revert
+        revert("Not implemented");
+    }
+
+    function nonces(address) external pure override returns (uint256) {
+        // Implement or revert
+        revert("Not implemented");
+    }
+
+    function permit(
+        address,
+        address,
+        uint256,
+        uint256,
+        uint8,
+        bytes32,
+        bytes32
+    ) external pure override {
+        // Implement or revert
+        revert("Not implemented");
+    }
+
+    function vestingWallets(address) external pure override returns (address) {
+        // Implement or revert
+        revert("Not implemented");
+    }
+
     function testSkipper() external pure {
         revert("Not implemented");
     }

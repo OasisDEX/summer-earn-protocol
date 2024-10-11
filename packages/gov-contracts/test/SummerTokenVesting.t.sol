@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import {SummerToken} from "../src/contracts/SummerToken.sol";
 import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
+import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
 import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
@@ -46,7 +47,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
         assertNotEq(
@@ -67,7 +68,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
     }
 
@@ -76,13 +77,13 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         aSummerToken.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
     }
 
@@ -91,8 +92,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType(
-                uint8(type(SummerVestingWallet.VestingType).max) + 1
+            ISummerVestingWallet.VestingType(
+                uint8(type(ISummerVestingWallet.VestingType).max) + 1
             )
         );
     }
@@ -102,7 +103,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
         SummerVestingWallet vestingWallet = SummerVestingWallet(
@@ -158,7 +159,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             new uint256[](0),
-            SummerVestingWallet.VestingType.InvestorExTeamVesting
+            ISummerVestingWallet.VestingType.InvestorExTeamVesting
         );
         address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
         SummerVestingWallet vestingWallet = SummerVestingWallet(
@@ -214,7 +215,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
         SummerVestingWallet vestingWallet = SummerVestingWallet(
@@ -242,7 +243,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
         SummerVestingWallet vestingWallet = SummerVestingWallet(
@@ -267,7 +268,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
         SummerVestingWallet vestingWallet = SummerVestingWallet(
@@ -299,7 +300,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             customGoalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
         SummerVestingWallet vestingWallet = SummerVestingWallet(
@@ -327,7 +328,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
-            SummerVestingWallet.VestingType.TeamVesting
+            ISummerVestingWallet.VestingType.TeamVesting
         );
         address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
         SummerVestingWallet vestingWallet = SummerVestingWallet(

@@ -2,7 +2,6 @@
 pragma solidity 0.8.27;
 
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
-
 import {MessagingFee, OApp, Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
@@ -13,7 +12,6 @@ import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governanc
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
 
 /*
@@ -21,6 +19,9 @@ import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.
  * @dev This contract implements the governance mechanism for the Summer protocol.
  * It extends various OpenZeppelin governance modules and includes custom functionality
  * such as whitelisting and voting decay.
+ *
+ * TODO: Fully integrate voting decay once cross-chain messaging is tested
+ * see https://github.com/OasisDEX/summer-earn-protocol/blob/0b6b338ef4ccb8efa209b9cf6226b3669917f0d2/packages/voting-decay/test/ExampleGovernor.sol#L76
  */
 contract SummerGovernor is
     ISummerGovernor,
@@ -31,15 +32,17 @@ contract SummerGovernor is
     VotingDecayManager,
     OApp
 {
-    // ===============================================
-    // Constants
-    // ===============================================
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
     uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
     uint32 public immutable proposalChainId;
-    // ===============================================
-    // State Variables
-    // ===============================================
+
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
 
     /*
      * @dev Configuration structure for the governor
@@ -53,45 +56,12 @@ contract SummerGovernor is
 
     GovernorConfig public config;
 
-    // Add a mapping for trusted remotes
     mapping(uint32 chainId => address trustedRemote) public trustedRemotes;
 
-    // ===============================================
-    // Constructor
-    // ===============================================
-    /*
-     * @dev Struct for the governor parameters
-     * @param token The token contract address
-     * @param timelock The timelock controller contract address
-     * @param votingDelay The voting delay in seconds
-     * @param votingPeriod The voting period in seconds
-     * @param proposalThreshold The proposal threshold in tokens
-     * @param quorumFraction The quorum fraction in tokens
-     * @param initialWhitelistGuardian The initial whitelist guardian address
-     * @param initialDecayFreeWindow The initial decay free window in seconds
-     * @param initialDecayRate The initial decay rate
-     * @param initialDecayFunction The initial decay function
-     * @param endpoint The LayerZero endpoint address
-     * @param proposalChainId The proposal chain ID
-     */
-    struct GovernorParams {
-        IVotes token;
-        TimelockController timelock;
-        uint48 votingDelay;
-        uint32 votingPeriod;
-        uint256 proposalThreshold;
-        uint256 quorumFraction;
-        address initialWhitelistGuardian;
-        uint40 initialDecayFreeWindow;
-        uint256 initialDecayRate;
-        VotingDecayLibrary.DecayFunction initialDecayFunction;
-        address endpoint;
-        uint32 proposalChainId;
-    }
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Modifier to ensure the function is only called on the proposal chain.
-     */
     modifier onlyProposalChain() {
         if (block.chainid != proposalChainId) {
             revert SummerGovernorInvalidChain(block.chainid, proposalChainId);
@@ -99,10 +69,10 @@ contract SummerGovernor is
         _;
     }
 
-    /**
-     * @dev Constructor for the SummerGovernor contract.
-     * @param params A struct containing all necessary parameters for initializing the governor.
-     */
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     constructor(
         GovernorParams memory params
     )
@@ -134,14 +104,13 @@ contract SummerGovernor is
             );
         }
 
-        // Initialize the whitelistGuardian with the provided address
         _setWhitelistGuardian(params.initialWhitelistGuardian);
         proposalChainId = params.proposalChainId;
     }
 
-    // ===============================================
-    // Cross-Chain Messaging Functions
-    // ===============================================
+    /*//////////////////////////////////////////////////////////////
+                        CROSS-CHAIN MESSAGING FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
     function sendProposalToTargetChain(
@@ -186,7 +155,6 @@ contract SummerGovernor is
             _dstDescriptionHash
         );
 
-        // Encode the full payload
         bytes memory payload = abi.encode(
             dstProposalId,
             _dstTargets,
@@ -207,22 +175,8 @@ contract SummerGovernor is
 
         emit ProposalSentCrossChain(dstProposalId, _dstEid);
     }
-    /**
-     * @dev Internal function to pay the native fee for LayerZero messaging.
-     * @param _nativeFee The amount of native tokens to pay for the fee.
-     * @return nativeFee The amount of native tokens to pay for the fee.
-     */
 
-    function _payNative(
-        uint256 _nativeFee
-    ) internal view override returns (uint256 nativeFee) {
-        if (address(this).balance < _nativeFee) {
-            revert NotEnoughNative(address(this).balance);
-        }
-        return _nativeFee;
-    }
-
-    // Override the receive function to allow the contract to receive ETH from LayerZero
+    // Receive function to allow the contract to receive ETH from LayerZero
     receive() external payable override {}
 
     /**
@@ -253,7 +207,6 @@ contract SummerGovernor is
 
         emit ProposalReceivedCrossChain(proposalId, _origin.srcEid);
 
-        // Verify the message origin using the trustedRemotes mapping
         address trustedRemote = trustedRemotes[_origin.srcEid];
         address originSender = address(uint160(uint256(_origin.sender)));
 
@@ -261,7 +214,6 @@ contract SummerGovernor is
             revert SummerGovernorInvalidSender(originSender);
         }
 
-        // Execute the proposal
         _executeCrossChainProposal(
             proposalId,
             targets,
@@ -328,9 +280,9 @@ contract SummerGovernor is
         );
     }
 
-    // ===============================================
-    // Existing Functions
-    // ===============================================
+    /*//////////////////////////////////////////////////////////////
+                            GOVERNANCE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
     function propose(
@@ -357,7 +309,7 @@ contract SummerGovernor is
                 proposalThreshold()
             );
         }
-
+        _updateDecayFactor(proposer);
         return _propose(targets, values, calldatas, description, proposer);
     }
 
@@ -408,12 +360,13 @@ contract SummerGovernor is
                 proposalThreshold()
             );
         }
+        _updateDecayFactor(proposer);
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
-    // ===============================================
-    // Whitelist Management Functions
-    // ===============================================
+    /*//////////////////////////////////////////////////////////////
+                        WHITELIST MANAGEMENT FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
     function isWhitelisted(
@@ -438,9 +391,10 @@ contract SummerGovernor is
         _setWhitelistGuardian(_whitelistGuardian);
     }
 
-    // ===============================================
-    // Getter Functions
-    // ===============================================
+    /*//////////////////////////////////////////////////////////////
+                            GETTER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /// @inheritdoc ISummerGovernor
     function getWhitelistAccountExpiration(
         address account
@@ -453,16 +407,42 @@ contract SummerGovernor is
         return config.whitelistGuardian;
     }
 
-    // ===============================================
-    // Override Functions
-    // ===============================================
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     /**
-     * @dev This section contains override functions that are necessary to resolve conflicts
-     * between the various OpenZeppelin governance modules we're inheriting from.
-     * These overrides ensure that the correct implementation is used for each function,
-     * considering the specific requirements of our governance model (e.g., timelocking,
-     * dynamic settings, etc.).
+     * @dev Internal function to pay the native fee for LayerZero messaging.
+     * @param _nativeFee The amount of native tokens to pay for the fee.
+     * @return nativeFee The amount of native tokens to pay for the fee.
      */
+
+    function _payNative(
+        uint256 _nativeFee
+    ) internal view override returns (uint256 nativeFee) {
+        if (address(this).balance < _nativeFee) {
+            revert NotEnoughNative(address(this).balance);
+        }
+        return _nativeFee;
+    }
+
+    function _setWhitelistGuardian(address _whitelistGuardian) internal {
+        if (_whitelistGuardian == address(0)) {
+            revert SummerGovernorInvalidWhitelistGuardian(_whitelistGuardian);
+        }
+        config.whitelistGuardian = _whitelistGuardian;
+        emit WhitelistGuardianSet(_whitelistGuardian);
+    }
+
+    function _getDelegateTo(
+        address account
+    ) internal view override returns (address) {
+        return token().delegates(account);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            OVERRIDE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /*
      * @dev Overrides the internal cancellation function to use the timelocked version
@@ -674,34 +654,7 @@ contract SummerGovernor is
         return super.votingPeriod();
     }
 
-    /*
-     * @dev Internal function to set the whitelist guardian
-     * @param _whitelistGuardian The address of the new whitelist guardian
-     */
-    function _setWhitelistGuardian(address _whitelistGuardian) internal {
-        if (_whitelistGuardian == address(0)) {
-            revert SummerGovernorInvalidWhitelistGuardian(_whitelistGuardian);
-        }
-        config.whitelistGuardian = _whitelistGuardian;
-        emit WhitelistGuardianSet(_whitelistGuardian);
-    }
-
-    /*
-     * @dev Internal function to get the delegate of an account
-     * @param account The address of the account to check
-     * @return The address of the delegate for the given account
-     */
-    function _getDelegateTo(
-        address account
-    ) internal view override returns (address) {
-        return token().delegates(account);
-    }
-
-    /**
-     * @dev Sets a trusted remote for a specific chain ID.
-     * @param _chainId The chain ID to set the trusted remote for.
-     * @param _trustedRemote The address of the trusted remote on the specified chain.
-     */
+    /// @inheritdoc ISummerGovernor
     function setTrustedRemote(
         uint32 _chainId,
         address _trustedRemote
@@ -712,7 +665,4 @@ contract SummerGovernor is
         trustedRemotes[_chainId] = _trustedRemote;
         emit TrustedRemoteSet(_chainId, _trustedRemote);
     }
-
-    // Add this event to the ISummerGovernor interface
-    event TrustedRemoteSet(uint32 indexed chainId, address trustedRemote);
 }

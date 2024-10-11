@@ -93,6 +93,9 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         emit TipStreamRemoved(recipient);
     }
 
+    /// @notice It's good practice to call _shake for all fleet commanders
+    /// before updating a tip stream to ensure all accumulated rewards
+    /// are distributed using the current allocation.
     /// @inheritdoc ITipJar
     function updateTipStream(TipStream memory tipStream) external onlyGovernor {
         _validateTipStream(tipStream.recipient);
