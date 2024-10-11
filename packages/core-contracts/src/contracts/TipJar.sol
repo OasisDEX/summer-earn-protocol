@@ -11,11 +11,17 @@ import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @custom:see ITipJar
  */
-contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
+contract TipJar is
+    ITipJar,
+    ProtocolAccessManaged,
+    ConfigurationManaged,
+    Pausable
+{
     using PercentageUtils for uint256;
 
     mapping(address recipient => TipStream tipStream) public tipStreams;
@@ -50,6 +56,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         tipStreamRecipients.push(tipStream.recipient);
 
         emit TipStreamAdded(tipStream);
+        return tipStream.lockedUntilEpoch; // Return the locked until epoch
     }
 
     /// @inheritdoc ITipJar
@@ -103,12 +110,14 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     }
 
     /// @inheritdoc ITipJar
-    function shake(address fleetCommander_) public {
+    function shake(address fleetCommander_) public whenNotPaused {
         _shake(fleetCommander_);
     }
 
     /// @inheritdoc ITipJar
-    function shakeMultiple(address[] calldata fleetCommanders) external {
+    function shakeMultiple(
+        address[] calldata fleetCommanders
+    ) external whenNotPaused {
         for (uint256 i = 0; i < fleetCommanders.length; i++) {
             _shake(fleetCommanders[i]);
         }
@@ -251,5 +260,23 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         ) {
             revert TotalAllocationExceedsOneHundredPercent();
         }
+    }
+
+    /**
+     * @notice Pauses the TipJar, preventing shake operations
+     * @dev Only callable by addresses with the GUARDIAN_ROLE
+     */
+    function pause() external onlyGuardian {
+        _pause();
+        emit TipJarPaused(msg.sender);
+    }
+
+    /**
+     * @notice Unpauses the TipJar, allowing shake operations
+     * @dev Only callable by addresses with the GOVERNOR_ROLE
+     */
+    function unpause() external onlyGovernor {
+        _unpause();
+        emit TipJarUnpaused(msg.sender);
     }
 }
