@@ -11,6 +11,7 @@ contract ConfigurationManagerTest is Test {
     ConfigurationManager public configurationManager;
     ProtocolAccessManager public accessManager;
     address public governor;
+    address public guardian;
     address public nonGovernor;
     address public initialRaft;
     address public initialTipJar;
@@ -19,6 +20,7 @@ contract ConfigurationManagerTest is Test {
 
     function setUp() public {
         governor = address(1);
+        guardian = address(1);
         nonGovernor = address(2);
         initialRaft = address(3);
         initialTipJar = address(4);
