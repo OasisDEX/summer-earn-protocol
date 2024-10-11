@@ -215,7 +215,7 @@
     "name": "arks",
     "inputs": [
       {
-        "name": "",
+        "name": "index",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -588,7 +588,7 @@
     "name": "isArkActive",
     "inputs": [
       {
-        "name": "",
+        "name": "arkAddress",
         "type": "address",
         "internalType": "address"
       }
