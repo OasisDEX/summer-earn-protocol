@@ -813,15 +813,10 @@ contract FleetCommander is
         if (address(fromArk) == address(0)) {
             revert FleetCommanderArkNotFound(fromArk);
         }
-        if (
-            !isArkActive(address(toArk)) && toArk != address(config.bufferArk)
-        ) {
+        if (!isArkActive(address(toArk))) {
             revert FleetCommanderArkNotActive(toArk);
         }
-        if (
-            !isArkActive(address(fromArk)) &&
-            fromArk != address(config.bufferArk)
-        ) {
+        if (!isArkActive(address(fromArk))) {
             revert FleetCommanderArkNotActive(fromArk);
         }
         uint256 maxRebalanceOutflow = IArk(fromArk).maxRebalanceOutflow();
