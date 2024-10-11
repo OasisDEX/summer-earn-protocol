@@ -14,13 +14,10 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IProtocolAccessManager
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
-    /// @inheritdoc IProtocolAccessManager
     bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 
-    /// @inheritdoc IProtocolAccessManager
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
     /*//////////////////////////////////////////////////////////////
