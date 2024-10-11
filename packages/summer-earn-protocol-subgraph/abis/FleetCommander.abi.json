@@ -2413,7 +2413,7 @@
   },
   {
     "type": "error",
-    "name": "FleetCommanderCantUseMaxUintForBufferAdjustement",
+    "name": "FleetCommanderCantUseMaxUintMovingFromBuffer",
     "inputs": []
   },
   {
