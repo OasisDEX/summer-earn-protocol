@@ -32,10 +32,14 @@ interface ITipJar is ITipJarEvents, ITipJarErrors {
     function removeTipStream(address recipient) external;
 
     /**
-     * @notice Updates an existing tip stream's allocation or lock period
-     * @param tipStream The updated tip stream information
+     * @notice Updates an existing tip stream
+     * @param tipStream The updated tip stream data
+     * @param performGlobalShake If true, performs a global shake of all fleet commanders before updating
      */
-    function updateTipStream(TipStream memory tipStream) external;
+    function updateTipStream(
+        TipStream memory tipStream,
+        bool performGlobalShake
+    ) external;
 
     /**
      * @notice Retrieves a specific tip stream's information

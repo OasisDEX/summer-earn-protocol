@@ -96,12 +96,20 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     /// @notice It's good practice to call _shake for all fleet commanders
     /// before updating a tip stream to ensure all accumulated rewards
     /// are distributed using the current allocation.
+    /// @dev Warning: A global shake can be gas expensive if there are many fleet commanders
     /// @inheritdoc ITipJar
-    function updateTipStream(TipStream memory tipStream) external onlyGovernor {
+    function updateTipStream(
+        TipStream memory tipStream,
+        bool performGlobalShake
+    ) external onlyGovernor {
         _validateTipStream(tipStream.recipient);
         TipStream memory oldTipStream = tipStreams[tipStream.recipient];
         Percentage currentAllocation = oldTipStream.allocation;
         _validateTipStreamAllocation(tipStream.allocation, currentAllocation);
+
+        if (performGlobalShake) {
+            _shakeAllFleetCommanders();
+        }
 
         tipStreams[tipStream.recipient].allocation = tipStream.allocation;
         tipStreams[tipStream.recipient].lockedUntilEpoch = tipStream
@@ -235,6 +243,21 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         }
 
         emit TipJarShaken(address(fleetCommander), withdrawnAssets);
+    }
+
+    /**
+     * @notice Shakes all active fleet commanders
+     * @dev This function can be called before updating a tip stream to ensure all accumulated rewards
+     *      are distributed using the current allocation.
+     */
+    function _shakeAllFleetCommanders() internal {
+        IHarborCommand harborCommandContract = IHarborCommand(harborCommand());
+        address[] memory activeFleetCommanders = harborCommandContract
+            .getActiveFleetCommanders();
+
+        for (uint256 i = 0; i < activeFleetCommanders.length; i++) {
+            _shake(activeFleetCommanders[i]);
+        }
     }
 
     /**
