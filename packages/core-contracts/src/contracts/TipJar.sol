@@ -110,7 +110,7 @@ contract TipJar is
     }
 
     /// @inheritdoc ITipJar
-    function shake(address fleetCommander_) public whenNotPaused {
+    function shake(address fleetCommander_) external whenNotPaused {
         _shake(fleetCommander_);
     }
 
