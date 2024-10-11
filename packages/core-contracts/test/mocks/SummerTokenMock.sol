@@ -24,4 +24,8 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     ) external pure {
         revert("Not implemented");
     }
+
+    function testSkipper() external pure {
+        revert("Not implemented");
+    }
 }
