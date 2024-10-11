@@ -46,7 +46,7 @@ jobs:
         run: pnpm prebuild
 
       - name: Build
-        run: pnpm build
+        run: pnpm build --force
 
       - name: Test
         run: pnpm test
