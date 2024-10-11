@@ -14,12 +14,13 @@ import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
+import {Constants} from "./libraries/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {Constants} from "./libraries/Constants.sol";
 /**
  * @custom:see IFleetCommander
  */
+
 contract FleetCommander is
     IFleetCommander,
     FleetCommanderConfigProvider,
@@ -592,7 +593,8 @@ contract FleetCommander is
      * to move funds in one direction)
      * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
      * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
-     * @custom:error FleetCommanderCantUseMaxUintForBufferAdjustement Thrown when trying to use MAX_UINT256 amount when moving from buffer
+     * @custom:error FleetCommanderCantUseMaxUintForBufferAdjustement Thrown when trying to use MAX_UINT256 amount when
+     * moving from buffer
      */
     function _validateAdjustBuffer(
         RebalanceData[] calldata rebalanceData
@@ -651,8 +653,10 @@ contract FleetCommander is
      *      2. The amount to move does not exceed the excess funds in the buffer
      * @param initialBufferBalance The current balance of the buffer before the adjustment
      * @param totalToMove The total amount of assets to be moved from the buffer
-     * @custom:error FleetCommanderNoExcessFunds Thrown when the buffer balance is at or below the minimum required balance
-     * @custom:error FleetCommanderInsufficientBuffer Thrown when the amount to move exceeds the available excess funds in the buffer
+     * @custom:error FleetCommanderNoExcessFunds Thrown when the buffer balance is at or below the minimum required
+     * balance
+     * @custom:error FleetCommanderInsufficientBuffer Thrown when the amount to move exceeds the available excess funds
+     * in the buffer
      */
     function _validateBufferExcessFunds(
         uint256 initialBufferBalance,

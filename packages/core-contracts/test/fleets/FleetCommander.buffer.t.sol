@@ -546,6 +546,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         fleetCommander.adjustBuffer(rebalanceData);
     }
+
     function test_AdjustBufferFromMultipleArksToBufferWithMaxUint() public {
         // Arrange
         uint256 initialBufferBalance = 10000 * 10 ** 6;
@@ -605,6 +606,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
             "Total assets should remain unchanged"
         );
     }
+
     function test_AdjustBufferWithAmountExceedingMaxAllocation() public {
         uint256 rebalanceAmount = 1000 * 10 ** 6;
         // Arrange
