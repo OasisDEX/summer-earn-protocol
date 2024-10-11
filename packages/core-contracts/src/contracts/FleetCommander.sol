@@ -81,7 +81,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useDepositCache() {
-        _getArksData(arks, config.bufferArk);
+        _getArksData(getArks(), config.bufferArk);
         _;
         _flushCache();
     }
@@ -94,7 +94,11 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(arks, config.bufferArk, isArkWithdrawable);
+        _getWithdrawableArksData(
+            getArks(),
+            config.bufferArk,
+            isArkWithdrawable
+        );
         _;
         _flushCache();
     }
@@ -331,13 +335,17 @@ contract FleetCommander is
         override(IFleetCommander, ERC4626)
         returns (uint256)
     {
-        return _totalAssets(arks, config.bufferArk);
+        return _totalAssets(getArks(), config.bufferArk);
     }
 
     /// @inheritdoc IFleetCommander
     function withdrawableTotalAssets() public view returns (uint256) {
         return
-            _withdrawableTotalAssets(arks, config.bufferArk, isArkWithdrawable);
+            _withdrawableTotalAssets(
+                getArks(),
+                config.bufferArk,
+                isArkWithdrawable
+            );
     }
 
     /// @inheritdoc IERC4626
@@ -805,10 +813,10 @@ contract FleetCommander is
         if (address(fromArk) == address(0)) {
             revert FleetCommanderArkNotFound(fromArk);
         }
-        if (!isArkActive[address(toArk)]) {
+        if (!isArkActive(address(toArk))) {
             revert FleetCommanderArkNotActive(toArk);
         }
-        if (!isArkActive[address(fromArk)]) {
+        if (!isArkActive(address(fromArk))) {
             revert FleetCommanderArkNotActive(fromArk);
         }
         uint256 maxRebalanceOutflow = IArk(fromArk).maxRebalanceOutflow();

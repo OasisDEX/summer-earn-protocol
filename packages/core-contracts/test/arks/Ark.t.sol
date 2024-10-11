@@ -211,6 +211,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
         mockToken.mint(nonArk, amount);
         _mockArkCommander(address(ark), address(commander));
         _mockIsArkActive(address(commander), nonArk, false);
+        _mockBufferArk(address(commander), address(otherArk));
         // Act && Assert
         vm.startPrank(nonArk);
         mockToken.approve(address(ark), amount);
