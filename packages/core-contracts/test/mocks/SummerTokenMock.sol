@@ -21,7 +21,11 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         uint256,
         uint256[] memory,
         SummerVestingWallet.VestingType
-    ) external {
+    ) external pure {
+        revert("Not implemented");
+    }
+
+    function testSkipper() external pure {
         revert("Not implemented");
     }
 }

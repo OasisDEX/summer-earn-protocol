@@ -31,6 +31,8 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
     IPoolV3 public aaveV3Pool;
 
+    address public mockAToken = address(11);
+
     function setUp() public {
         initializeCoreContracts();
         mockToken = new ERC20Mock();
@@ -56,7 +58,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             currentStableBorrowRate: 1e27, // Example value in ray
             lastUpdateTimestamp: uint40(block.timestamp), // Current timestamp as example
             id: 1, // Example value
-            aTokenAddress: address(0), // Placeholder address
+            aTokenAddress: mockAToken,
             stableDebtTokenAddress: address(0), // Placeholder address
             variableDebtTokenAddress: address(0), // Placeholder address
             interestRateStrategyAddress: address(0), // Placeholder address
@@ -64,22 +66,6 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             unbacked: 0, // Example value
             isolationModeTotalDebt: 0 // Example value
         });
-        vm.mockCall(
-            address(aaveV3Pool),
-            abi.encodeWithSelector(
-                IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector
-            ),
-            abi.encode(aaveAddressProvider)
-        );
-        vm.mockCall(
-            address(aaveAddressProvider),
-            abi.encodeWithSelector(
-                IPoolAddressesProvider(aaveAddressProvider)
-                    .getPoolDataProvider
-                    .selector
-            ),
-            abi.encode(aaveV3DataProvider)
-        );
         vm.mockCall(
             address(aaveV3Pool),
             abi.encodeWithSelector(IPoolV3(aaveV3Pool).getReserveData.selector),
@@ -132,28 +118,11 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         });
         vm.mockCall(
             address(aaveV3Pool),
-            abi.encodeWithSelector(
-                IPoolV3(aaveV3Pool).ADDRESSES_PROVIDER.selector
-            ),
-            abi.encode(aaveAddressProvider)
-        );
-        vm.mockCall(
-            address(aaveAddressProvider),
-            abi.encodeWithSelector(
-                IPoolAddressesProvider(aaveAddressProvider)
-                    .getPoolDataProvider
-                    .selector
-            ),
-            abi.encode(aaveV3DataProvider)
-        );
-        vm.mockCall(
-            address(aaveV3Pool),
             abi.encodeWithSelector(IPoolV3(aaveV3Pool).getReserveData.selector),
             abi.encode(reserveData)
         );
         ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
         assertEq(address(ark.aaveV3Pool()), address(aaveV3Pool));
-        assertEq(address(ark.aaveV3DataProvider()), aaveV3DataProvider);
 
         assertEq(address(ark.token()), address(mockToken));
         assertEq(ark.depositCap(), type(uint256).max);
@@ -237,19 +206,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
 
     function test_Harvest() public {
         address mockRewardToken = address(10);
-        address mockAToken = address(11);
         uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
-
-        vm.mockCall(
-            address(aaveV3DataProvider),
-            abi.encodeWithSelector(
-                IPoolDataProvider(aaveV3DataProvider)
-                    .getReserveTokensAddresses
-                    .selector,
-                address(mockToken)
-            ),
-            abi.encode(address(0), mockAToken, address(0))
-        );
 
         // Mock the call to claimRewardsToSelf
         address[] memory incentivizedAssets = new address[](1);

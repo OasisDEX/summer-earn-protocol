@@ -5,26 +5,30 @@ import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProt
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 
 /**
- * @custom:see IProtocolAccessManager
+ * @title ProtocolAccessManager
+ * @notice Central contract for managing access control across the protocol
+ * @dev Implements IProtocolAccessManager interface and extends LimitedAccessControl
  */
 contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
-    /**
-     * @dev The Governor role is in charge of setting the parameters of the system
-     *      and also has the power to manage the different Fleet Commander roles.
-     */
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
-    /**
-     * @dev The Super Keeper role is in charge of rebalancing the funds between the different
-     *         Arks through the Fleet Commander - global role for all fleet commanders
-     */
     bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 
-    /**
-     * @notice The Guardian role is in charge of managing the protocol's state in case of emergency
-     */
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes the ProtocolAccessManager contract
+     * @param governor Address of the initial governor
+     * @dev Grants the governor address the DEFAULT_ADMIN_ROLE, GOVERNOR_ROLE, and GUARDIAN_ROLE
+     */
     constructor(address governor) {
         _grantRole(GOVERNOR_ROLE, governor);
     }
@@ -39,7 +43,20 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         _;
     }
 
-    // Override supportsInterface to include IProtocolAccessManager
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Checks if the contract supports a given interface
+     * @dev Overrides the supportsInterface function from AccessControl
+     * @param interfaceId The interface identifier, as specified in ERC-165
+     * @return bool True if the contract supports the interface, false otherwise
+     *
+     * This function supports:
+     * - IProtocolAccessManager interface
+     * - All interfaces supported by the parent AccessControl contract
+     */
     function supportsInterface(
         bytes4 interfaceId
     ) public view override returns (bool) {
@@ -48,37 +65,41 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
             super.supportsInterface(interfaceId);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /// @inheritdoc IProtocolAccessManager
     function grantGovernorRole(address account) external onlyGovernor {
         _grantRole(GOVERNOR_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /// @inheritdoc IProtocolAccessManager
     function revokeGovernorRole(address account) external onlyGovernor {
         _revokeRole(GOVERNOR_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IProtocolAccessManager
     function grantSuperKeeperRole(address account) external onlyGovernor {
         _grantRole(SUPER_KEEPER_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /// @inheritdoc IProtocolAccessManager
     function grantGuardianRole(address account) external onlyGovernor {
         _grantRole(GUARDIAN_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /// @inheritdoc IProtocolAccessManager
     function revokeGuardianRole(address account) external onlyGovernor {
         _revokeRole(GUARDIAN_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /// @inheritdoc IProtocolAccessManager
     function revokeSuperKeeperRole(address account) external onlyGovernor {
         _revokeRole(SUPER_KEEPER_ROLE, account);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /// @inheritdoc IProtocolAccessManager
     function grantContractSpecificRole(
         ContractSpecificRoles roleName,
         address roleTargetContract,
@@ -88,7 +109,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         _grantRole(role, roleOwner);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /// @inheritdoc IProtocolAccessManager
     function revokeContractSpecificRole(
         ContractSpecificRoles roleName,
         address roleTargetContract,
@@ -98,6 +119,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         _revokeRole(role, roleOwner);
     }
 
+    /// @inheritdoc IProtocolAccessManager
     function grantCuratorRole(
         address fleetCommanderAddress,
         address account
@@ -109,6 +131,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
+    /// @inheritdoc IProtocolAccessManager
     function revokeCuratorRole(
         address fleetCommanderAddress,
         address account
@@ -120,6 +143,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
+    /// @inheritdoc IProtocolAccessManager
     function grantKeeperRole(
         address fleetCommanderAddress,
         address account
@@ -131,6 +155,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
+    /// @inheritdoc IProtocolAccessManager
     function revokeKeeperRole(
         address fleetCommanderAddress,
         address account
@@ -142,6 +167,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
+    /// @inheritdoc IProtocolAccessManager
     function grantCommanderRole(
         address arkAddress,
         address account
@@ -153,6 +179,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
+    /// @inheritdoc IProtocolAccessManager
     function revokeCommanderRole(
         address arkAddress,
         address account
@@ -164,7 +191,11 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         );
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IProtocolAccessManager
     function selfRevokeContractSpecificRole(
         ContractSpecificRoles roleName,
         address roleTargetContract
@@ -176,7 +207,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         _revokeRole(role, msg.sender);
     }
 
-    /* @inheritdoc IProtocolAccessManager */
+    /// @inheritdoc IProtocolAccessManager
     function generateRole(
         ContractSpecificRoles roleName,
         address roleTargetContract

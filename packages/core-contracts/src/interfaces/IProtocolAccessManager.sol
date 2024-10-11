@@ -3,9 +3,9 @@ pragma solidity 0.8.27;
 
 /**
  * @dev Dynamic roles are roles that are not hardcoded in the contract but are defined by the protocol
- * Members of this enum are treated as prefixes to the role genrated using prefix and target contract address
+ * Members of this enum are treated as prefixes to the role generated using prefix and target contract address
  * e.g generateRole(ContractSpecificRoles.CURATOR_ROLE, address(this)) for FleetCommander, to generate the CURATOR_ROLE
- * for the curator of the  FleetCommander contract
+ * for the curator of the FleetCommander contract
  */
 enum ContractSpecificRoles {
     CURATOR_ROLE,
@@ -131,16 +131,16 @@ interface IProtocolAccessManager {
     ) external;
 
     /**
-     * @notice Grants the Commander role to a given account
-     * @param arkAddress The address of the ark to grant the role for
-     * @param account The account to which the role will be granted
+     * @notice Grants the Commander role for a specific Ark
+     * @param arkAddress Address of the Ark contract
+     * @param account Address to grant the Commander role to
      */
     function grantCommanderRole(address arkAddress, address account) external;
 
     /**
-     * @notice Revokes the Commander role from a given account
-     * @param arkAddress The address of the ark to revoke the role for
-     * @param account The account from which the role will be revoked
+     * @notice Revokes the Commander role for a specific Ark
+     * @param arkAddress Address of the Ark contract
+     * @param account Address to revoke the Commander role from
      */
     function revokeCommanderRole(address arkAddress, address account) external;
 

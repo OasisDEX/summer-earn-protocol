@@ -2,17 +2,14 @@
 pragma solidity 0.8.27;
 
 import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
-
-import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
-import {IPoolDataProvider} from "../../interfaces/aave-v3/IPoolDataProvider.sol";
 import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";
-
 import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.sol";
 import "../Ark.sol";
 
 /**
  * @title AaveV3Ark
- * @notice This contract manages a Aave V3 token strategy within the Ark system
+ * @notice Ark contract for managing token supply and yield generation through the Aave V3.
+ * @dev Implements strategy for supplying tokens, withdrawing tokens, and claiming rewards on Aave V3.
  */
 contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
@@ -21,13 +18,11 @@ contract AaveV3Ark is Ark {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     /// @notice The Aave V3 aToken address
-    address public aToken;
+    address public immutable aToken;
     /// @notice The Aave V3 pool address
-    IPoolV3 public aaveV3Pool;
-    /// @notice The Aave V3 data provider address
-    IPoolDataProvider public aaveV3DataProvider;
+    IPoolV3 public immutable aaveV3Pool;
     /// @notice The Aave V3 rewards controller address
-    IRewardsController public rewardsController;
+    IRewardsController public immutable rewardsController;
 
     /**
      * @notice Struct to hold reward token information
@@ -53,11 +48,6 @@ contract AaveV3Ark is Ark {
         ArkParams memory _params
     ) Ark(_params) {
         aaveV3Pool = IPoolV3(_aaveV3Pool);
-        IPoolAddressesProvider aaveV3AddressesProvider = aaveV3Pool
-            .ADDRESSES_PROVIDER();
-        aaveV3DataProvider = IPoolDataProvider(
-            aaveV3AddressesProvider.getPoolDataProvider()
-        );
         DataTypes.ReserveData memory reserveData = aaveV3Pool.getReserveData(
             address(config.token)
         );
@@ -99,10 +89,8 @@ contract AaveV3Ark is Ark {
         RewardsData memory rewardsData = abi.decode(data, (RewardsData));
         rewardTokens[0] = rewardsData.rewardToken;
 
-        (, address aTokenAddress, ) = aaveV3DataProvider
-            .getReserveTokensAddresses(address(config.token));
         address[] memory incentivizedAssets = new address[](1);
-        incentivizedAssets[0] = aTokenAddress;
+        incentivizedAssets[0] = aToken;
 
         rewardAmounts[0] = rewardsController.claimRewardsToSelf(
             incentivizedAssets,

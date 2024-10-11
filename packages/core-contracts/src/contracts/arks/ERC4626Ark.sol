@@ -6,8 +6,8 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /**
  * @title ERC4626Ark
- * @dev A generic Ark implementation for any ERC4626-compliant vault
- * @notice This contract allows the Fleet Commander to interact with any ERC4626 vault
+ * @notice Ark contract for managing token supply and yield generation through any ERC4626-compliant vault.
+ * @dev Implements strategy for depositing tokens, withdrawing tokens, and tracking yield from ERC4626 vaults.
  */
 contract ERC4626Ark is Ark {
     using SafeERC20 for IERC20;
@@ -16,14 +16,14 @@ contract ERC4626Ark is Ark {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The ERC4626 vault this Ark interacts with
+    /// @notice The ERC4626-compliant vault this Ark interacts with
     IERC4626 public immutable vault;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
     /**
-     * @dev Constructor to set up the ERC4626Ark
+     * @notice Constructor to set up the ERC4626Ark
      * @param _vault Address of the ERC4626-compliant vault
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
@@ -45,6 +45,8 @@ contract ERC4626Ark is Ark {
 
     /**
      * @inheritdoc IArk
+     * @notice Returns the total assets managed by this Ark in the ERC4626 vault
+     * @return The total balance of underlying assets held in the vault for this Ark
      */
     function totalAssets() public view override returns (uint256) {
         return vault.convertToAssets(vault.balanceOf(address(this)));
@@ -55,16 +57,18 @@ contract ERC4626Ark is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Internal function to deposit assets into the vault
+     * @notice Deposits assets into the ERC4626 vault
      * @param amount The amount of assets to deposit
+     * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
         vault.deposit(amount, address(this));
     }
 
     /**
-     * @notice Internal function to withdraw assets from the vault
+     * @notice Withdraws assets from the ERC4626 vault
      * @param amount The amount of assets to withdraw
+     * @param /// data Additional data (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
         vault.withdraw(amount, address(this), address(this));
@@ -73,8 +77,9 @@ contract ERC4626Ark is Ark {
     /**
      * @notice Internal function for harvesting rewards
      * @dev This function is a no-op for most ERC4626 vaults as they automatically accrue interest
-     * @return rewardTokens The addresses of the reward tokens
-     * @return rewardAmounts The amounts of the reward tokens
+     * @param /// data Additional data (unused in this implementation)
+     * @return rewardTokens The addresses of the reward tokens (empty array in this case)
+     * @return rewardAmounts The amounts of the reward tokens (empty array in this case)
      */
     function _harvest(
         bytes calldata
@@ -91,12 +96,16 @@ contract ERC4626Ark is Ark {
     }
 
     /**
-     * @notice No-op for validateBoardData function
+     * @notice Validates the board data
+     * @dev This Ark does not require any validation for board data
+     * @param /// data Additional data to validate (unused in this implementation)
      */
     function _validateBoardData(bytes calldata) internal override {}
 
     /**
-     * @notice No-op for validateDisembarkData function
+     * @notice Validates the disembark data
+     * @dev This Ark does not require any validation for disembark data
+     * @param /// data Additional data to validate (unused in this implementation)
      */
     function _validateDisembarkData(bytes calldata) internal override {}
 }
