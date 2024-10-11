@@ -34,11 +34,11 @@ interface ITipJar is ITipJarEvents, ITipJarErrors {
     /**
      * @notice Updates an existing tip stream
      * @param tipStream The updated tip stream data
-     * @param performGlobalShake If true, performs a global shake of all fleet commanders before updating
+     * @param shakeAllFleetCommanders If true, performs a global shake of all fleet commanders before updating
      */
     function updateTipStream(
         TipStream memory tipStream,
-        bool performGlobalShake
+        bool shakeAllFleetCommanders
     ) external;
 
     /**

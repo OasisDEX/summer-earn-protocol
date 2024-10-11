@@ -100,15 +100,15 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     /// @inheritdoc ITipJar
     function updateTipStream(
         TipStream memory tipStream,
-        bool performGlobalShake
+        bool shakeAllFleetCommanders
     ) external onlyGovernor {
         _validateTipStream(tipStream.recipient);
         TipStream memory oldTipStream = tipStreams[tipStream.recipient];
         Percentage currentAllocation = oldTipStream.allocation;
         _validateTipStreamAllocation(tipStream.allocation, currentAllocation);
 
-        if (performGlobalShake) {
-            _shakeAllFleetCommanders();
+        if (shakeAllFleetCommanders) {
+            shakeAll();
         }
 
         tipStreams[tipStream.recipient].allocation = tipStream.allocation;
@@ -129,9 +129,16 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
 
     /// @inheritdoc ITipJar
     function shakeMultiple(address[] calldata fleetCommanders) external {
-        for (uint256 i = 0; i < fleetCommanders.length; i++) {
-            _shake(fleetCommanders[i]);
-        }
+        _shakeMultiple(fleetCommanders);
+    }
+
+    /// @notice Shakes all active fleet commanders
+    /// @dev This function can be called to distribute rewards from all active fleet commanders
+    /// @dev Warning: This operation can be gas expensive if there are many fleet commanders
+    function shakeAll() public {
+        address[] memory activeFleetCommanders = IHarborCommand(harborCommand())
+            .getActiveFleetCommanders();
+        _shakeMultiple(activeFleetCommanders);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -246,17 +253,13 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     }
 
     /**
-     * @notice Shakes all active fleet commanders
-     * @dev This function can be called before updating a tip stream to ensure all accumulated rewards
-     *      are distributed using the current allocation.
+     * @notice Shakes multiple fleet commanders
+     * @param fleetCommanders An array of fleet commander addresses to shake
+     * @dev This function is used internally by shakeMultiple and shakeAll
      */
-    function _shakeAllFleetCommanders() internal {
-        IHarborCommand harborCommandContract = IHarborCommand(harborCommand());
-        address[] memory activeFleetCommanders = harborCommandContract
-            .getActiveFleetCommanders();
-
-        for (uint256 i = 0; i < activeFleetCommanders.length; i++) {
-            _shake(activeFleetCommanders[i]);
+    function _shakeMultiple(address[] memory fleetCommanders) internal {
+        for (uint256 i = 0; i < fleetCommanders.length; i++) {
+            _shake(fleetCommanders[i]);
         }
     }
 
