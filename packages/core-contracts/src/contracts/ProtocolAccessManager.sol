@@ -26,19 +26,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
     constructor(address governor) {
-        _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
-        _grantRole(GUARDIAN_ROLE, governor);
-    }
-
-    /**
-     * @dev Modifier to check that the caller has the Admin role
-     */
-    modifier onlyAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
-            revert CallerIsNotAdmin(msg.sender);
-        }
-        _;
     }
 
     /**
@@ -61,22 +49,12 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     }
 
     /* @inheritdoc IProtocolAccessManager */
-    function grantAdminRole(address account) external onlyAdmin {
-        _grantRole(DEFAULT_ADMIN_ROLE, account);
-    }
-
-    /* @inheritdoc IProtocolAccessManager */
-    function revokeAdminRole(address account) external onlyAdmin {
-        _revokeRole(DEFAULT_ADMIN_ROLE, account);
-    }
-
-    /* @inheritdoc IProtocolAccessManager */
-    function grantGovernorRole(address account) external onlyAdmin {
+    function grantGovernorRole(address account) external onlyGovernor {
         _grantRole(GOVERNOR_ROLE, account);
     }
 
     /* @inheritdoc IProtocolAccessManager */
-    function revokeGovernorRole(address account) external onlyAdmin {
+    function revokeGovernorRole(address account) external onlyGovernor {
         _revokeRole(GOVERNOR_ROLE, account);
     }
 
