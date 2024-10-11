@@ -488,7 +488,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.adjustBuffer(rebalanceData);
     }
 
-    function test_AdjustBufferWithMaxUint_ShouldFail() public {
+    function test_AdjustBufferFromBufferWithMaxUint_ShouldFail() public {
         // Arrange
         uint256 initialBufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
@@ -520,6 +520,91 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.adjustBuffer(rebalanceData);
     }
 
+    function test_AdjustBufferToBufferWithMaxUint_ShouldFail() public {
+        // Arrange
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
+        uint256 ark1MaxAllocation = 5000 * 10 ** 6;
+
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
+        mockToken.mint(address(bufferArkAddress), initialBufferBalance);
+
+        _mockArkMaxAllocation(ark1, ark1MaxAllocation);
+        mockToken.mint(address(ark1), ark1MaxAllocation);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: bufferArkAddress,
+            amount: type(uint256).max,
+            boardData: bytes(""),
+            disembarkData: bytes("")
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        fleetCommander.adjustBuffer(rebalanceData);
+    }
+    function test_AdjustBufferFromMultipleArksToBufferWithMaxUint() public {
+        // Arrange
+        uint256 initialBufferBalance = 10000 * 10 ** 6;
+        uint256 ark1Balance = 5000 * 10 ** 6;
+        uint256 ark2Balance = 3000 * 10 ** 6;
+        uint256 minBufferBalance = 5000 * 10 ** 6;
+
+        FleetConfig memory config = fleetCommander.getConfig();
+
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
+        mockToken.mint(address(config.bufferArk), initialBufferBalance);
+        mockToken.mint(ark1, ark1Balance);
+        mockToken.mint(ark2, ark2Balance);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: address(config.bufferArk),
+            amount: type(uint256).max,
+            boardData: bytes(""),
+            disembarkData: bytes("")
+        });
+        rebalanceData[1] = RebalanceData({
+            fromArk: ark2,
+            toArk: address(config.bufferArk),
+            amount: type(uint256).max,
+            boardData: bytes(""),
+            disembarkData: bytes("")
+        });
+
+        uint256 expectedFinalBufferBalance = initialBufferBalance +
+            ark1Balance +
+            ark2Balance;
+
+        // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        // Verify events
+        vm.expectEmit(true, true, true, true);
+        emit IFleetCommanderEvents.FleetCommanderBufferAdjusted(
+            keeper,
+            ark1Balance + ark2Balance
+        );
+        vm.prank(keeper);
+        fleetCommander.adjustBuffer(rebalanceData);
+
+        // Assert
+        assertEq(
+            config.bufferArk.totalAssets(),
+            expectedFinalBufferBalance,
+            "Buffer balance should include all funds from ark1 and ark2"
+        );
+        assertEq(IArk(ark1).totalAssets(), 0, "Ark1 should have no assets");
+        assertEq(IArk(ark2).totalAssets(), 0, "Ark2 should have no assets");
+        assertEq(
+            fleetCommander.totalAssets(),
+            expectedFinalBufferBalance,
+            "Total assets should remain unchanged"
+        );
+    }
     function test_AdjustBufferWithAmountExceedingMaxAllocation() public {
         uint256 rebalanceAmount = 1000 * 10 ** 6;
         // Arrange

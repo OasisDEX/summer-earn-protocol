@@ -16,7 +16,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
+import {Constants} from "./libraries/Constants.sol";
 /**
  * @custom:see IFleetCommander
  */
@@ -116,7 +116,7 @@ contract FleetCommander is
         uint256 bufferBalance = config.bufferArk.totalAssets();
         uint256 bufferBalanceInShares = convertToShares(bufferBalance);
 
-        if (shares == type(uint256).max) {
+        if (shares == Constants.MAX_UINT256) {
             shares = balanceOf(owner);
         }
 
@@ -169,7 +169,7 @@ contract FleetCommander is
     {
         uint256 bufferBalance = config.bufferArk.totalAssets();
 
-        if (assets == type(uint256).max) {
+        if (assets == Constants.MAX_UINT256) {
             uint256 totalUserShares = balanceOf(owner);
             assets = previewRedeem(totalUserShares);
         }
@@ -537,7 +537,7 @@ contract FleetCommander is
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
 
-        if (data.amount == type(uint256).max) {
+        if (data.amount == Constants.MAX_UINT256) {
             amount = fromArk.totalAssets();
         } else {
             amount = data.amount;
@@ -585,12 +585,14 @@ contract FleetCommander is
      * @notice Validates the data for adjusting the buffer
      * @dev This function checks if all operations in the rebalance data are consistent
      *      (either all moving to buffer or all moving from buffer) and ensures that
-     *      the buffer balance remains above the minimum required balance
+     *      the buffer balance remains above the minimum required balance.
+     *      When moving to the buffer, using MAX_UINT256 as the amount will move all funds from the source Ark.
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
      * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when operations are inconsistent (all operations need
      * to move funds in one direction)
      * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
      * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
+     * @custom:error FleetCommanderCantUseMaxUintForBufferAdjustement Thrown when trying to use MAX_UINT256 amount when moving from buffer
      */
     function _validateAdjustBuffer(
         RebalanceData[] calldata rebalanceData
@@ -599,31 +601,70 @@ contract FleetCommander is
             address(config.bufferArk);
         uint256 initialBufferBalance = config.bufferArk.totalAssets();
         uint256 totalToMove;
+
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            if (rebalanceData[i].amount == type(uint256).max) {
-                revert FleetCommanderCantUseMaxUintForBufferAdjustement();
-            }
-            totalToMove += rebalanceData[i].amount;
-            if (isMovingToBuffer) {
-                if (rebalanceData[i].toArk != address(config.bufferArk)) {
-                    revert FleetCommanderInvalidBufferAdjustment();
+            _validateBufferAdjustmentDirection(
+                isMovingToBuffer,
+                rebalanceData[i]
+            );
+
+            uint256 amount = rebalanceData[i].amount;
+            if (amount == Constants.MAX_UINT256) {
+                if (!isMovingToBuffer) {
+                    revert FleetCommanderCantUseMaxUintForBufferAdjustement();
                 }
-            } else {
-                if (rebalanceData[i].fromArk != address(config.bufferArk)) {
-                    revert FleetCommanderInvalidBufferAdjustment();
-                }
+                amount = IArk(rebalanceData[i].fromArk).totalAssets();
             }
+            totalToMove += amount;
         }
 
         if (!isMovingToBuffer) {
-            if (initialBufferBalance <= config.minimumBufferBalance) {
-                revert FleetCommanderNoExcessFunds();
-            }
-            uint256 excessFunds = initialBufferBalance -
-                config.minimumBufferBalance;
-            if (totalToMove > excessFunds) {
-                revert FleetCommanderInsufficientBuffer();
-            }
+            _validateBufferExcessFunds(initialBufferBalance, totalToMove);
+        }
+    }
+
+    /**
+     * @notice Validates the direction of buffer adjustment for a single rebalance operation
+     * @dev This function ensures that the rebalance operation is consistent with the overall
+     *      direction of the buffer adjustment (either moving funds to or from the buffer).
+     * @param isMovingToBuffer A boolean indicating whether the overall operation is moving funds to the buffer
+     * @param data The RebalanceData struct containing information about the specific rebalance operation
+     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when the operation direction is inconsistent
+     *               with the overall buffer adjustment direction
+     */
+    function _validateBufferAdjustmentDirection(
+        bool isMovingToBuffer,
+        RebalanceData memory data
+    ) internal view {
+        if (
+            (isMovingToBuffer && data.toArk != address(config.bufferArk)) ||
+            (!isMovingToBuffer && data.fromArk != address(config.bufferArk))
+        ) {
+            revert FleetCommanderInvalidBufferAdjustment();
+        }
+    }
+
+    /**
+     * @notice Validates that there are sufficient excess funds in the buffer for withdrawal
+     * @dev This function checks two conditions:
+     *      1. The initial buffer balance is greater than the minimum required balance
+     *      2. The amount to move does not exceed the excess funds in the buffer
+     * @param initialBufferBalance The current balance of the buffer before the adjustment
+     * @param totalToMove The total amount of assets to be moved from the buffer
+     * @custom:error FleetCommanderNoExcessFunds Thrown when the buffer balance is at or below the minimum required balance
+     * @custom:error FleetCommanderInsufficientBuffer Thrown when the amount to move exceeds the available excess funds in the buffer
+     */
+    function _validateBufferExcessFunds(
+        uint256 initialBufferBalance,
+        uint256 totalToMove
+    ) internal view {
+        if (initialBufferBalance <= config.minimumBufferBalance) {
+            revert FleetCommanderNoExcessFunds();
+        }
+        uint256 excessFunds = initialBufferBalance -
+            config.minimumBufferBalance;
+        if (totalToMove > excessFunds) {
+            revert FleetCommanderInsufficientBuffer();
         }
     }
 
@@ -680,10 +721,11 @@ contract FleetCommander is
         }
 
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            address fromArk = rebalanceData[i].fromArk;
-            address toArk = rebalanceData[i].toArk;
-            uint256 amount = rebalanceData[i].amount;
-            _validateReallocateAssets(fromArk, toArk, amount);
+            _validateReallocateAssets(
+                rebalanceData[i].fromArk,
+                rebalanceData[i].toArk,
+                rebalanceData[i].amount
+            );
         }
     }
 
