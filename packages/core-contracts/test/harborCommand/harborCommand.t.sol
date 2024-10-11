@@ -11,6 +11,7 @@ contract HarborCommandTest is Test {
     HarborCommand public harborCommand;
     ProtocolAccessManager public accessManager;
     address public governor = address(1);
+    address public guardian = address(1);
     address public user = address(2);
     address public fleetCommander1 = address(3);
     address public fleetCommander2 = address(4);

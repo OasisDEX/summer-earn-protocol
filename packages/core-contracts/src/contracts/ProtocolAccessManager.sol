@@ -33,23 +33,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      * @dev Grants the governor address the DEFAULT_ADMIN_ROLE, GOVERNOR_ROLE, and GUARDIAN_ROLE
      */
     constructor(address governor) {
-        _grantRole(DEFAULT_ADMIN_ROLE, governor);
         _grantRole(GOVERNOR_ROLE, governor);
-        _grantRole(GUARDIAN_ROLE, governor);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev Modifier to check that the caller has the Admin role
-     */
-    modifier onlyAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
-            revert CallerIsNotAdmin(msg.sender);
-        }
-        _;
     }
 
     /**
@@ -84,27 +68,13 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
             super.supportsInterface(interfaceId);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                        EXTERNAL ADMIN FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
     /// @inheritdoc IProtocolAccessManager
-    function grantAdminRole(address account) external onlyAdmin {
-        _grantRole(DEFAULT_ADMIN_ROLE, account);
-    }
-
-    /// @inheritdoc IProtocolAccessManager
-    function revokeAdminRole(address account) external onlyAdmin {
-        _revokeRole(DEFAULT_ADMIN_ROLE, account);
-    }
-
-    /// @inheritdoc IProtocolAccessManager
-    function grantGovernorRole(address account) external onlyAdmin {
+    function grantGovernorRole(address account) external onlyGovernor {
         _grantRole(GOVERNOR_ROLE, account);
     }
 
     /// @inheritdoc IProtocolAccessManager
-    function revokeGovernorRole(address account) external onlyAdmin {
+    function revokeGovernorRole(address account) external onlyGovernor {
         _revokeRole(GOVERNOR_ROLE, account);
     }
 
@@ -154,48 +124,48 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
 
     /// @inheritdoc IProtocolAccessManager
     function grantCuratorRole(
-        address fleetAddress,
+        address fleetCommanderAddress,
         address account
     ) public onlyGovernor {
         grantContractSpecificRole(
             ContractSpecificRoles.CURATOR_ROLE,
-            fleetAddress,
+            fleetCommanderAddress,
             account
         );
     }
 
     /// @inheritdoc IProtocolAccessManager
     function revokeCuratorRole(
-        address fleetAddress,
+        address fleetCommanderAddress,
         address account
     ) public onlyGovernor {
         revokeContractSpecificRole(
             ContractSpecificRoles.CURATOR_ROLE,
-            fleetAddress,
+            fleetCommanderAddress,
             account
         );
     }
 
     /// @inheritdoc IProtocolAccessManager
     function grantKeeperRole(
-        address fleetAddress,
+        address fleetCommanderAddress,
         address account
     ) public onlyGovernor {
         grantContractSpecificRole(
             ContractSpecificRoles.KEEPER_ROLE,
-            fleetAddress,
+            fleetCommanderAddress,
             account
         );
     }
 
     /// @inheritdoc IProtocolAccessManager
     function revokeKeeperRole(
-        address fleetAddress,
+        address fleetCommanderAddress,
         address account
     ) public onlyGovernor {
         revokeContractSpecificRole(
             ContractSpecificRoles.KEEPER_ROLE,
-            fleetAddress,
+            fleetCommanderAddress,
             account
         );
     }

@@ -3,8 +3,9 @@ pragma solidity 0.8.27;
 
 import {IRaftErrors} from "../errors/IRaftErrors.sol";
 import {IRaftEvents} from "../events/IRaftEvents.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+
 import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
 
 /**
  * @title IRaft

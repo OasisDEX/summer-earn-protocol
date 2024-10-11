@@ -22,6 +22,7 @@ contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;
 
     address public governor = address(1);
+    address public guardian = address(1);
     address public keeper = address(2);
     address public treasury = address(3);
     address public mockTipStreamRecipient = address(4);
