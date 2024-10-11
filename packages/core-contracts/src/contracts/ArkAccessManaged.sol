@@ -45,7 +45,9 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
                 IConfigurationManaged(address(this)).raft();
 
             if (!isRaft) {
-                bool isArk = IFleetCommander(commander).isArkActive(msgSender);
+                bool isArk = IFleetCommander(commander).isArkActive(
+                    msgSender
+                ) || IFleetCommander(commander).bufferArk() == msgSender;
                 if (!isArk) {
                     revert CallerIsNotAuthorizedToBoard(msgSender);
                 }

@@ -98,6 +98,19 @@ contract ArkTestHelpers is Test {
         );
     }
 
+    function _mockBufferArk(
+        address commanderAddress,
+        address bufferArk
+    ) internal {
+        vm.mockCall(
+            commanderAddress,
+            abi.encodeWithSelector(
+                IFleetCommanderConfigProvider.bufferArk.selector
+            ),
+            abi.encode(bufferArk)
+        );
+    }
+
     /**
      * @notice Mocks the `commander` function of the `IArk` contract.
      * @param arkAddress The address of the `IArk` contract.

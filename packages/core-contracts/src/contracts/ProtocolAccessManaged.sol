@@ -78,8 +78,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     //////////////////////////////////////////////////////////////*/
 
     /**
-         * @notice Modifier to restrict access to governors only
-
+     * @notice Modifier to restrict access to governors only
+     *
      * @dev Modifier to check that the caller has the Governor role
      * @custom:internal-logic
      * - Checks if the caller has the GOVERNOR_ROLE in the access manager

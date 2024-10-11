@@ -11,6 +11,7 @@ import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProt
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title
@@ -23,9 +24,10 @@ contract FleetCommanderConfigProvider is
     FleetCommanderPausable,
     IFleetCommanderConfigProvider
 {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     FleetConfig public config;
-    address[] public arks;
-    mapping(address => bool) public isArkActive;
+    EnumerableSet.AddressSet private _activeArks;
     mapping(address => bool) public isArkWithdrawable;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
@@ -58,13 +60,44 @@ contract FleetCommanderConfigProvider is
                 maxRebalanceOperations: MAX_REBALANCE_OPERATIONS
             })
         );
-        isArkActive[address(_bufferArk)] = true;
         isArkWithdrawable[address(_bufferArk)] = true;
+    }
+
+    /**
+     * @dev Modifier to restrict function access to only active Arks
+     * @param arkAddress The address of the Ark to check
+     * @custom:internal-logic
+     * - Checks if the provided arkAddress is in the _activeArks set
+     * - If not found, reverts with FleetCommanderArkNotFound error
+     * @custom:effects
+     * - No direct state changes, but may revert the transaction
+     * @custom:security-considerations
+     * - Ensures that only active Arks can perform certain operations
+     * - Prevents unauthorized access from inactive or non-existent Arks
+     * - Critical for maintaining the integrity and security of Ark-specific operations
+     */
+    modifier onlyActiveArk(address arkAddress) {
+        if (!_activeArks.contains(arkAddress)) {
+            revert FleetCommanderArkNotFound(arkAddress);
+        }
+        _;
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function isArkActive(address arkAddress) public view returns (bool) {
+        return
+            _activeArks.contains(arkAddress) ||
+            arkAddress == address(config.bufferArk);
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function arks(uint256 index) public view returns (address) {
+        return _activeArks.at(index);
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
     function getArks() public view returns (address[] memory) {
-        return arks;
+        return _activeArks.values();
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
@@ -102,10 +135,7 @@ contract FleetCommanderConfigProvider is
     function setArkDepositCap(
         address ark,
         uint256 newDepositCap
-    ) external onlyCurator whenNotPaused {
-        if (!isArkActive[ark]) {
-            revert FleetCommanderArkNotFound(ark);
-        }
+    ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
         IArk(ark).setDepositCap(newDepositCap);
     }
 
@@ -113,10 +143,7 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceOutflow(
         address ark,
         uint256 newMaxRebalanceOutflow
-    ) external onlyCurator whenNotPaused {
-        if (!isArkActive[ark]) {
-            revert FleetCommanderArkNotFound(ark);
-        }
+    ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
         IArk(ark).setMaxRebalanceOutflow(newMaxRebalanceOutflow);
     }
 
@@ -124,10 +151,7 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceInflow(
         address ark,
         uint256 newMaxRebalanceInflow
-    ) external onlyCurator whenNotPaused {
-        if (!isArkActive[ark]) {
-            revert FleetCommanderArkNotFound(ark);
-        }
+    ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
         IArk(ark).setMaxRebalanceInflow(newMaxRebalanceInflow);
     }
 
@@ -196,18 +220,17 @@ contract FleetCommanderConfigProvider is
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();
         }
-        if (isArkActive[ark]) {
+        if (isArkActive(ark)) {
             revert FleetCommanderArkAlreadyExists(ark);
         }
 
-        isArkActive[ark] = true;
         // Ark can be withdrawn by anyone if it doesnt' require keeper data
         isArkWithdrawable[ark] = !IArk(ark).requiresKeeperData();
         if (IArk(ark).getConfig().commander != address(0)) {
             revert FleetCommanderArkAlreadyHasCommander();
         }
         IArk(ark).registerFleetCommander();
-        arks.push(ark);
+        _activeArks.add(ark);
         emit ArkAdded(ark);
     }
 
@@ -233,20 +256,12 @@ contract FleetCommanderConfigProvider is
      * - Only callable internally, typically by privileged roles
      */
     function _removeArk(address ark) internal {
-        if (!isArkActive[ark]) {
+        if (!isArkActive(ark)) {
             revert FleetCommanderArkNotFound(ark);
         }
+        _validateArkRemoval(ark);
+        _activeArks.remove(ark);
 
-        for (uint256 i = 0; i < arks.length; i++) {
-            if (arks[i] == ark) {
-                _validateArkRemoval(ark);
-                arks[i] = arks[arks.length - 1];
-                arks.pop();
-                break;
-            }
-        }
-
-        isArkActive[ark] = false;
         IArk(ark).unregisterFleetCommander();
         _accessManager.selfRevokeContractSpecificRole(
             ContractSpecificRoles.COMMANDER_ROLE,
