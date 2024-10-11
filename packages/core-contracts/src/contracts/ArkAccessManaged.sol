@@ -12,17 +12,21 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 /**
  * @title ArkAccessManaged
  * @author SummerFi
+ * @notice This contract manages access control for Ark-related operations.
+ * @dev Inherits from ProtocolAccessManaged and implements IArkAccessManaged.
  * @custom:see IArkAccessManaged
  */
 contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     /**
-     * @param accessManager The access manager address
+     * @notice Initializes the ArkAccessManaged contract.
+     * @param accessManager The address of the access manager contract.
      */
     constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
 
     /**
-     * @dev Modifier to check that the caller has the appropriate role to board
-     * @param commander The address of the FleetCommander
+     * @notice Checks if the caller is authorized to board funds.
+     * @dev This modifier allows the Commander, RAFT contract, or active Arks to proceed.
+     * @param commander The address of the FleetCommander contract.
      * @custom:internal-logic
      * - Checks if the caller has the Commander role
      * - If not, checks if the caller is the RAFT contract
@@ -51,6 +55,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     }
 
     /**
+     * @notice Restricts access to only the RAFT contract.
      * @dev Modifier to check that the caller is the RAFT contract
      * @custom:internal-logic
      * - Retrieves the RAFT address from the ConfigurationManaged contract
@@ -70,6 +75,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     }
 
     /**
+     * @notice Restricts access to only the Commander role.
      * @dev Modifier to check that the caller has the Commander role
      * @custom:internal-logic
      * - Calls the internal _hasCommanderRole function to check the caller's role
@@ -88,6 +94,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     }
 
     /**
+     * @notice Checks if the caller has the Commander role.
      * @dev Internal function to check if the caller has the Commander role
      * @return bool True if the caller has the Commander role, false otherwise
      * @custom:internal-logic

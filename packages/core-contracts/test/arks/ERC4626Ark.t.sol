@@ -169,8 +169,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
         vm.warp(block.timestamp + 365 days); // Fast forward 1 year
 
         vm.prank(address(raft));
-        (address[] memory rewardTokens, uint256[] memory rewardAmounts) = ark
-            .harvest("");
+        (, uint256[] memory rewardAmounts) = ark.harvest("");
         assertEq(
             rewardAmounts[0],
             0,

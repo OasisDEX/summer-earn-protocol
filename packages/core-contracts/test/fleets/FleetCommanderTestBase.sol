@@ -66,7 +66,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     address public invalidArk = address(999);
     address public treasury = address(777);
     address public nonOwner = address(0xdeadbeef);
-
+    address public guardian = address(1);
     // Other variables
     string public fleetName = "OK_Fleet";
     FleetCommanderParams public fleetCommanderParams;
@@ -78,7 +78,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     ) internal {
         mockToken = new ERC20Mock();
         // first setup the contracts
-        setupBaseContracts(address(mockToken));
+        setupBaseContracts();
         // then setup the mock arks - they are not initilaized with fleet commander address
         setupMockArks(address(mockToken));
         address[] memory mockArks = new address[](4);
@@ -106,14 +106,14 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         address underlyingToken,
         uint256 initialTipRate
     ) internal {
-        setupBaseContracts(underlyingToken);
+        setupBaseContracts();
         setupFleetCommanderWithBufferArk(
             underlyingToken,
             PercentageUtils.fromIntegerPercentage(initialTipRate)
         );
     }
 
-    function setupBaseContracts(address underlyingToken) internal {
+    function setupBaseContracts() internal {
         if (address(accessManager) == address(0)) {
             accessManager = new ProtocolAccessManager(governor);
         }

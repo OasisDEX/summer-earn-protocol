@@ -3,9 +3,9 @@ pragma solidity 0.8.27;
 
 /**
  * @dev Dynamic roles are roles that are not hardcoded in the contract but are defined by the protocol
- * Members of this enum are treated as prefixes to the role genrated using prefix and target contract address
+ * Members of this enum are treated as prefixes to the role generated using prefix and target contract address
  * e.g generateRole(ContractSpecificRoles.CURATOR_ROLE, address(this)) for FleetCommander, to generate the CURATOR_ROLE
- * for the curator of the  FleetCommander contract
+ * for the curator of the FleetCommander contract
  */
 enum ContractSpecificRoles {
     CURATOR_ROLE,
@@ -19,20 +19,6 @@ enum ContractSpecificRoles {
  *         contracts that inherit from ProtocolAccessManaged contract
  */
 interface IProtocolAccessManager {
-    /**
-     * @notice Grants the Admin role to a given account
-     *
-     * @param account The account to which the Admin role will be granted
-     */
-    function grantAdminRole(address account) external;
-
-    /**
-     * @notice Revokes the Admin role from a given account
-     *
-     * @param account The account from which the Admin role will be revoked
-     */
-    function revokeAdminRole(address account) external;
-
     /**
      * @notice Grants the Governor role to a given account
      *
@@ -106,43 +92,55 @@ interface IProtocolAccessManager {
 
     /**
      * @notice Grants the Curator role to a given account
-     * @param fleetAddress The address of the fleet to grant the role for
+     * @param fleetCommanderAddress The address of the fleet commander to grant the role for
      * @param account The account to which the role will be granted
      */
-    function grantCuratorRole(address fleetAddress, address account) external;
+    function grantCuratorRole(
+        address fleetCommanderAddress,
+        address account
+    ) external;
 
     /**
      * @notice Revokes the Curator role from a given account
-     * @param fleetAddress The address of the fleet to revoke the role for
+     * @param fleetCommanderAddress The address of the fleet commander to revoke the role for
      * @param account The account from which the role will be revoked
      */
-    function revokeCuratorRole(address fleetAddress, address account) external;
+    function revokeCuratorRole(
+        address fleetCommanderAddress,
+        address account
+    ) external;
 
     /**
      * @notice Grants the Keeper role to a given account
-     * @param fleetAddress The address of the fleet to grant the role for
+     * @param fleetCommanderAddress The address of the fleet commander to grant the role for
      * @param account The account to which the role will be granted
      */
-    function grantKeeperRole(address fleetAddress, address account) external;
+    function grantKeeperRole(
+        address fleetCommanderAddress,
+        address account
+    ) external;
 
     /**
      * @notice Revokes the Keeper role from a given account
-     * @param fleetAddress The address of the fleet to revoke the role for
+     * @param fleetCommanderAddress The address of the fleet commander to revoke the role for
      * @param account The account from which the role will be revoked
      */
-    function revokeKeeperRole(address fleetAddress, address account) external;
+    function revokeKeeperRole(
+        address fleetCommanderAddress,
+        address account
+    ) external;
 
     /**
-     * @notice Grants the Commander role to a given account
-     * @param arkAddress The address of the ark to grant the role for
-     * @param account The account to which the role will be granted
+     * @notice Grants the Commander role for a specific Ark
+     * @param arkAddress Address of the Ark contract
+     * @param account Address to grant the Commander role to
      */
     function grantCommanderRole(address arkAddress, address account) external;
 
     /**
-     * @notice Revokes the Commander role from a given account
-     * @param arkAddress The address of the ark to revoke the role for
-     * @param account The account from which the role will be revoked
+     * @notice Revokes the Commander role for a specific Ark
+     * @param arkAddress Address of the Ark contract
+     * @param account Address to revoke the Commander role from
      */
     function revokeCommanderRole(address arkAddress, address account) external;
 

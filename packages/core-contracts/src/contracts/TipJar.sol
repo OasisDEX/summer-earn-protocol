@@ -14,6 +14,9 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
+ * @title TipJar
+ * @notice Manages tip streams for distributing rewards from FleetCommanders
+ * @dev Implements ITipJar interface and inherits from ProtocolAccessManaged and ConfigurationManaged
  * @custom:see ITipJar
  */
 contract TipJar is
@@ -24,11 +27,22 @@ contract TipJar is
 {
     using PercentageUtils for uint256;
 
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Mapping of recipient addresses to their TipStream structs
     mapping(address recipient => TipStream tipStream) public tipStreams;
+
+    /// @notice List of all tip stream recipient addresses
     address[] public tipStreamRecipients;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     /**
-     * @notice Constructs a new TipJar contract
+     * @notice Initializes the TipJar contract
      * @param _accessManager The address of the access manager contract
      * @param _configurationManager The address of the configuration manager contract
      */
@@ -39,6 +53,10 @@ contract TipJar is
         ProtocolAccessManaged(_accessManager)
         ConfigurationManaged(_configurationManager)
     {}
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
     function addTipStream(
@@ -52,11 +70,15 @@ contract TipJar is
             tipStreams[tipStream.recipient].allocation
         );
 
+        // The allocation in TipStream uses the Percentage type from @summerfi/percentage-solidity
+        // Percentages have 18 decimals of precision
+        // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
         tipStreams[tipStream.recipient] = tipStream;
         tipStreamRecipients.push(tipStream.recipient);
 
         emit TipStreamAdded(tipStream);
-        return tipStream.lockedUntilEpoch; // Return the locked until epoch
+
+        return tipStream.lockedUntilEpoch;
     }
 
     /// @inheritdoc ITipJar
@@ -77,6 +99,9 @@ contract TipJar is
         emit TipStreamRemoved(recipient);
     }
 
+    /// @notice It's good practice to call _shake for all fleet commanders
+    /// before updating a tip stream to ensure all accumulated rewards
+    /// are distributed using the current allocation.
     /// @inheritdoc ITipJar
     function updateTipStream(TipStream memory tipStream) external onlyGovernor {
         _validateTipStream(tipStream.recipient);
@@ -90,6 +115,26 @@ contract TipJar is
 
         emit TipStreamUpdated(oldTipStream, tipStream);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ITipJar
+    function shake(address fleetCommander_) public {
+        _shake(fleetCommander_);
+    }
+
+    /// @inheritdoc ITipJar
+    function shakeMultiple(address[] calldata fleetCommanders) external {
+        for (uint256 i = 0; i < fleetCommanders.length; i++) {
+            _shake(fleetCommanders[i]);
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
     function getTipStream(
@@ -130,6 +175,10 @@ contract TipJar is
             total = total + tipStreams[tipStreamRecipients[i]].allocation;
         }
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Distributes accumulated tips from a single FleetCommander

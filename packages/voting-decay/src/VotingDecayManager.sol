@@ -13,22 +13,29 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
     using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
 
-    /* @notice Stores decay information for each account */
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
     mapping(address account => VotingDecayLibrary.DecayInfo info)
         internal decayInfoByAccount;
 
-    /* @notice Duration of the decay-free window in seconds */
     uint40 public decayFreeWindow;
-    /* @notice Rate of decay per second (in WAD format) */
     uint256 public decayRatePerSecond;
-    /* @notice Type of decay function used (Linear or Exponential) */
     VotingDecayLibrary.DecayFunction public decayFunction;
+
+    uint256 private constant MAX_DELEGATION_DEPTH = 1;
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Constructor to initialize the VotingDecayManager
      * @param decayFreeWindow_ Initial decay-free window duration
      * @param decayRatePerSecond_ Initial decay rate per second
      * @param decayFunction_ Initial decay function type
+     * @param owner_ Initial owner of the contract
      */
     constructor(
         uint40 decayFreeWindow_,
@@ -41,10 +48,11 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
         decayFunction = decayFunction_;
     }
 
-    /**
-     * @notice Sets a new decay rate per second
-     * @param newRatePerSecond New decay rate (in WAD format)
-     */
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IVotingDecayManager
     function setDecayRatePerSecond(
         uint256 newRatePerSecond
     ) external onlyOwner {
@@ -52,52 +60,51 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
             revert InvalidDecayRate();
         }
         decayRatePerSecond = newRatePerSecond;
-        emit IVotingDecayManager.DecayRateSet(newRatePerSecond);
+        emit DecayRateSet(newRatePerSecond);
     }
 
-    /**
-     * @notice Sets a new decay-free window duration
-     * @param newWindow New decay-free window duration in seconds
-     */
+    /// @inheritdoc IVotingDecayManager
     function setDecayFreeWindow(uint40 newWindow) external onlyOwner {
         decayFreeWindow = newWindow;
-        emit IVotingDecayManager.DecayFreeWindowSet(newWindow);
+        emit DecayFreeWindowSet(newWindow);
     }
 
-    /**
-     * @notice Sets a new decay function type
-     * @param newFunction New decay function (Linear or Exponential)
-     */
+    /// @inheritdoc IVotingDecayManager
     function setDecayFunction(
         VotingDecayLibrary.DecayFunction newFunction
     ) external onlyOwner {
         decayFunction = newFunction;
-        emit IVotingDecayManager.DecayFunctionSet(uint8(newFunction));
+        emit DecayFunctionSet(uint8(newFunction));
     }
 
-    /**
-     * @notice Calculates the current voting power for an account
-     * @param accountAddress Address to calculate voting power for
-     * @param originalValue Original voting power value
-     * @return Current voting power after applying decay
-     */
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IVotingDecayManager
     function getVotingPower(
         address accountAddress,
         uint256 originalValue
     ) public view returns (uint256) {
         uint256 decayFactor = getDecayFactor(accountAddress);
-
         return VotingDecayLibrary.applyDecay(originalValue, decayFactor);
     }
 
-    /**
-     * @notice Calculates the decay factor for an account
-     * @param accountAddress Address to calculate retention factor for
-     * @return Current retention factor
-     */
+    /// @inheritdoc IVotingDecayManager
     function getDecayFactor(
         address accountAddress
     ) public view returns (uint256) {
+        return _getDecayFactorWithDepth(accountAddress, 0);
+    }
+
+    function _getDecayFactorWithDepth(
+        address accountAddress,
+        uint256 depth
+    ) private view returns (uint256) {
+        if (depth >= MAX_DELEGATION_DEPTH) {
+            revert MaxDelegationDepthExceeded();
+        }
+
         address delegateTo = _getDelegateTo(accountAddress);
 
         // Has Delegate + Delegate has Decay Info
@@ -106,7 +113,7 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
             delegateTo != accountAddress &&
             _hasDecayInfo(delegateTo)
         ) {
-            return getDecayFactor(delegateTo);
+            return _getDecayFactorWithDepth(delegateTo, depth + 1);
         }
 
         // Has Delegate + Delegate does not have Decay Info
@@ -132,21 +139,17 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
             );
     }
 
-    /**
-     * @notice Gets the decay information for an account
-     * @param accountAddress Address to get decay info for
-     * @return DecayInfo struct containing decay information
-     */
+    /// @inheritdoc IVotingDecayManager
     function getDecayInfo(
         address accountAddress
     ) public view returns (VotingDecayLibrary.DecayInfo memory) {
         return decayInfoByAccount[accountAddress];
     }
 
-    /**
-     * @notice Internal function to initialize an account if it's new
-     * @param accountAddress Address of the account to initialize
-     */
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     function _initializeAccountIfNew(address accountAddress) internal {
         if (decayInfoByAccount[accountAddress].lastUpdateTimestamp == 0) {
             decayInfoByAccount[accountAddress] = VotingDecayLibrary.DecayInfo({
@@ -156,21 +159,12 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
         }
     }
 
-    /**
-     * @notice Internal function to check if an account has decay info
-     * @param accountAddress Address of the account to check
-     * @return bool indicating whether the account has decay info
-     */
     function _hasDecayInfo(
         address accountAddress
     ) internal view returns (bool) {
         return decayInfoByAccount[accountAddress].lastUpdateTimestamp != 0;
     }
 
-    /**
-     * @notice Internal function to update the decay factor for an account
-     * @param accountAddress Address of the account to update
-     */
     function _updateDecayFactor(address accountAddress) internal {
         _initializeAccountIfNew(accountAddress);
         VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
@@ -184,16 +178,9 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
         }
         account.lastUpdateTimestamp = uint40(block.timestamp);
 
-        emit IVotingDecayManager.DecayUpdated(
-            accountAddress,
-            account.decayFactor
-        );
+        emit DecayUpdated(accountAddress, account.decayFactor);
     }
 
-    /**
-     * @notice Internal function to reset the decay for an account
-     * @param accountAddress Address of the account to reset
-     */
     function _resetDecay(address accountAddress) internal {
         _initializeAccountIfNew(accountAddress);
         VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
@@ -201,14 +188,9 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
         ];
         account.lastUpdateTimestamp = uint40(block.timestamp);
         account.decayFactor = VotingDecayLibrary.WAD;
-        emit IVotingDecayManager.DecayReset(accountAddress);
+        emit DecayReset(accountAddress);
     }
 
-    /**
-     * @notice Internal function to get the delegate address for an account
-     * @param accountAddress Address of the account to get the delegate for
-     * @return Address of the delegate
-     */
     function _getDelegateTo(
         address accountAddress
     ) internal view virtual returns (address);

@@ -5,8 +5,8 @@ import "./BasePendleArk.sol";
 
 /**
  * @title PendleLPArk
- * @notice This contract manages a Pendle LP token strategy within the Ark system
- * @dev Inherits from BasePendleArk and implements LP-specific logic
+ * @notice Ark contract for managing token supply and yield generation through Pendle LP tokens.
+ * @dev Implements strategy for supplying tokens, withdrawing tokens, and managing Pendle LP positions.
  */
 contract PendleLPArk is BasePendleArk {
     using SafeERC20 for IERC20;
@@ -45,9 +45,11 @@ contract PendleLPArk is BasePendleArk {
     }
 
     /**
-     * @notice Deposits tokens for LP
+     * @notice Deposits tokens for LP tokens
      * @param _amount Amount of tokens to deposit
      * @dev Checks for market expiry, calculates minimum LP output with slippage, and adds liquidity
+     *
+     * The function performs the following steps:
      * 1. Check if the market has expired. If so, revert the transaction.
      * 2. Calculate the minimum LP tokens to receive based on the input amount and slippage:
      *    - We use the Pendle LP oracle to get the current LP to asset rate.
@@ -179,6 +181,17 @@ contract PendleLPArk is BasePendleArk {
         return IERC20(market).balanceOf(address(this));
     }
 
-    function _validateBoardData(bytes calldata data) internal override {}
-    function _validateDisembarkData(bytes calldata data) internal override {}
+    /**
+     * @notice Validates the board data
+     * @dev This Ark does not require any validation for board data
+     * @param /// data Additional data to validate (unused in this implementation)
+     */
+    function _validateBoardData(bytes calldata) internal override {}
+
+    /**
+     * @notice Validates the disembark data
+     * @dev This Ark does not require any validation for disembark data
+     * @param /// data Additional data to validate (unused in this implementation)
+     */
+    function _validateDisembarkData(bytes calldata) internal override {}
 }

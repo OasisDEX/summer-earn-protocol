@@ -23,26 +23,31 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * 2. The inheriting contract MUST implement the _mintTip function.
  * 3. The contract uses its own address as the token for calculations,
  *    assuming it represents shares in the system.
+ * @custom:see ITipper
  */
 abstract contract Tipper is ITipper, ConfigurationManaged {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;
 
-    /**
-     * @notice The current tip rate (as Percentage)
-     * @dev Percentages have 18 decimals of precision
-     */
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The current tip rate (as Percentage)
+    /// @dev Percentages have 18 decimals of precision
     Percentage public tipRate;
 
-    /**
-     * @notice The timestamp of the last tip accrual
-     */
+    /// @notice The timestamp of the last tip accrual
     uint256 public lastTipTimestamp;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     /**
-     * @notice Initializes the TipAccruer contract
+     * @notice Initializes the Tipper contract
      * @param configurationManager The address of the ConfigurationManager contract
-     * @param initialTipRate The initialTipRate for the Fleet
+     * @param initialTipRate The initial tip rate for the Fleet
      */
     constructor(
         address configurationManager,
@@ -51,6 +56,10 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
         tipRate = initialTipRate;
         lastTipTimestamp = block.timestamp;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Abstract function to mint new shares as tips
@@ -66,7 +75,19 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
     /**
      * @notice Sets a new tip rate
      * @dev Only callable by the FleetCommander. Accrues tips before changing the rate.
-     * @param newTipRate The new tip rate to set (in basis points)
+     * @param newTipRate The new tip rate to set, as a Percentage type (defined in @Percentage.sol)
+     * @custom:internal-logic
+     * - Validates that the new tip rate is within the valid percentage range using @PercentageUtils.sol
+     * - Accrues tips based on the current rate before updating
+     * - Updates the tip rate to the new value
+     * @custom:effects
+     * - May mint new tip shares (via _accrueTip)
+     * - Updates the tipRate state variable
+     * @custom:security-considerations
+     * - Ensures the new tip rate is within valid bounds (0-100%) using @PercentageUtils.isPercentageInRange
+     * - Accrues tips before changing the rate to prevent loss of accrued tips
+     * @custom:note The newTipRate should be sized according to the PERCENTAGE_FACTOR in @Percentage.sol.
+     *              For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18).
      */
     function _setTipRate(Percentage newTipRate) internal {
         if (!PercentageUtils.isPercentageInRange(newTipRate)) {
@@ -81,6 +102,17 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
      * @notice Accrues tips based on the current tip rate and time elapsed
      * @dev Only callable by the FleetCommander
      * @return tippedShares The amount of tips accrued in shares
+     * @custom:internal-logic
+     * - Calculates the time elapsed since the last tip accrual
+     * - Computes the amount of new shares to mint based on the tip rate and time elapsed
+     * - Mints new shares to the tip jar if the calculated amount is greater than zero
+     * - Updates the lastTipTimestamp to the current block timestamp
+     * @custom:effects
+     * - May mint new tip shares (via _mintTip)
+     * - Updates the lastTipTimestamp state variable
+     * @custom:security-considerations
+     * - Handles the case where tipRate is zero to prevent unnecessary computations
+     * - Uses a custom power function for precise calculations
      */
     function _accrueTip() internal returns (uint256 tippedShares) {
         if (tipRate == toPercentage(0)) {
@@ -104,6 +136,22 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
         }
     }
 
+    /**
+     * @notice Calculates the amount of tip to be accrued
+     * @param totalShares The total number of shares in the system
+     * @param timeElapsed The time elapsed since the last tip accrual
+     * @return The amount of new shares to be minted as tip
+     * @custom:internal-logic
+     * - Calculates the rate per second based on the annual tip rate
+     * - Computes the compound interest factor using a custom power function
+     * - Applies the compound interest factor to the total shares
+     * - Returns the difference between the final and initial share amounts
+     * @custom:effects
+     * - Does not modify any state, pure function
+     * @custom:security-considerations
+     * - Uses high-precision calculations to minimize rounding errors
+     * - Relies on a custom power function for accurate compound interest calculation
+     */
     function _calculateTip(
         uint256 totalShares,
         uint256 timeElapsed
@@ -124,13 +172,25 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
 
         // Return the difference (S - P)
         // This represents the total interest (tip) earned
-
         return finalShares - totalShares;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Estimates the amount of tips accrued since the last tip accrual
      * @return The estimated amount of accrued tips
+     * @custom:internal-logic
+     * - Calculates the time elapsed since the last tip accrual
+     * - Retrieves the current total supply of shares
+     * - Calls _calculateTip to estimate the accrued tip amount
+     * @custom:effects
+     * - Does not modify any state, view function
+     * @custom:security-considerations
+     * - This is an estimate and may slightly differ from the actual accrued amount
+     *   due to potential changes in totalSupply between estimation and actual accrual
      */
     function estimateAccruedTip() public view returns (uint256) {
         uint256 timeElapsed = block.timestamp - lastTipTimestamp;

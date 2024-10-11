@@ -3,9 +3,7 @@ pragma solidity 0.8.27;
 
 import {IArkErrors} from "../errors/IArkErrors.sol";
 import {IArkAccessManaged} from "./IArkAccessManaged.sol";
-
 import {IArkEvents} from "../events/IArkEvents.sol";
-
 import {IArkConfigProvider} from "./IArkConfigProvider.sol";
 
 /**
@@ -49,12 +47,13 @@ interface IArk is
         external
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts);
 
-    /* FUNCTIONS - EXTERNAL - COMMANDER */
-
     /**
      * @notice Deposits (boards) tokens into the Ark
-     * @param amount The amount of tokens to deposit
-     * @param boardData Additional data that might be required by a specific protocol to deposit funds
+     * @dev This function is called by the Fleet Commander to deposit assets into the Ark.
+     *      It transfers tokens from the caller to this contract and then calls the internal _board function.
+     * @param amount The amount of assets to board
+     * @param boardData Additional data required for boarding, specific to the Ark implementation
+     * @custom:security-note This function is only callable by authorized entities
      */
     function board(uint256 amount, bytes calldata boardData) external;
 
@@ -67,7 +66,7 @@ interface IArk is
 
     /**
      * @notice Moves tokens from one ark to another
-     * @param amount  The amount of tokens to move
+     * @param amount The amount of tokens to move
      * @param receiver The address of the Ark the funds will be boarded to
      * @param boardData Additional data that might be required by a specific protocol to board funds
      * @param disembarkData Additional data that might be required by a specific protocol to disembark funds

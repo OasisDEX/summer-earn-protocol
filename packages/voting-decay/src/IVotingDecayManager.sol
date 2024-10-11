@@ -9,89 +9,34 @@ import {VotingDecayLibrary} from "./VotingDecayLibrary.sol";
  * @dev This interface defines the core functionality for a voting decay management system
  */
 interface IVotingDecayManager {
-    /* Errors */
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Thrown when an invalid decay rate is set
-     */
     error InvalidDecayRate();
-
-    /**
-     * @notice Thrown when trying to delegate voting power that's already delegated
-     */
     error AlreadyDelegated();
-
-    /**
-     * @notice Thrown when attempting to delegate voting power to oneself
-     */
     error CannotDelegateToSelf();
-
-    /**
-     * @notice Thrown when trying to undelegate voting power that isn't delegated
-     */
     error NotDelegated();
-
-    /**
-     * @notice Thrown when an unauthorized address attempts to reset decay
-     */
     error NotAuthorizedToReset();
-
-    /**
-     * @notice Thrown when trying to perform an operation on an uninitialized account
-     */
     error AccountNotInitialized();
+    error MaxDelegationDepthExceeded();
 
-    /* Events */
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Emitted when an account's decay factor is updated
-     * @param account The address of the account whose decay factor was updated
-     * @param newRetentionFactor The new retention factor after the update
-     */
     event DecayUpdated(address indexed account, uint256 newRetentionFactor);
-
-    /**
-     * @notice Emitted when the global decay rate is changed
-     * @param newRate The new decay rate
-     */
     event DecayRateSet(uint256 newRate);
-
-    /**
-     * @notice Emitted when an account's decay is reset to its initial state
-     * @param account The address of the account whose decay was reset
-     */
     event DecayReset(address indexed account);
-
-    /**
-     * @notice Emitted when the decay-free window duration is changed
-     * @param window The new duration of the decay-free window
-     */
     event DecayFreeWindowSet(uint256 window);
-
-    /**
-     * @notice Emitted when the decay function type is changed
-     * @param newFunction The new decay function type (0 for Linear, 1 for Exponential)
-     */
     event DecayFunctionSet(uint8 newFunction);
 
-    /* Function Declarations */
+    /*//////////////////////////////////////////////////////////////
+                                FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Returns the current decay-free window duration
-     * @return The decay-free window duration in seconds
-     */
     function decayFreeWindow() external view returns (uint40);
-
-    /**
-     * @notice Returns the current decay rate per second
-     * @return The decay rate per second
-     */
     function decayRatePerSecond() external view returns (uint256);
-
-    /**
-     * @notice Returns the current decay function type
-     * @return The current decay function (Linear or Exponential)
-     */
     function decayFunction()
         external
         view
@@ -108,4 +53,42 @@ interface IVotingDecayManager {
         address accountAddress,
         uint256 originalValue
     ) external view returns (uint256);
+
+    /**
+     * @notice Sets a new decay rate per second
+     * @param newRatePerSecond New decay rate (in WAD format)
+     */
+    function setDecayRatePerSecond(uint256 newRatePerSecond) external;
+
+    /**
+     * @notice Sets a new decay-free window duration
+     * @param newWindow New decay-free window duration in seconds
+     */
+    function setDecayFreeWindow(uint40 newWindow) external;
+
+    /**
+     * @notice Sets a new decay function type
+     * @param newFunction New decay function (Linear or Exponential)
+     */
+    function setDecayFunction(
+        VotingDecayLibrary.DecayFunction newFunction
+    ) external;
+
+    /**
+     * @notice Calculates the decay factor for an account
+     * @param accountAddress Address to calculate retention factor for
+     * @return Current retention factor
+     */
+    function getDecayFactor(
+        address accountAddress
+    ) external view returns (uint256);
+
+    /**
+     * @notice Gets the decay information for an account
+     * @param accountAddress Address to get decay info for
+     * @return DecayInfo struct containing decay information
+     */
+    function getDecayInfo(
+        address accountAddress
+    ) external view returns (VotingDecayLibrary.DecayInfo memory);
 }
