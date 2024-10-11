@@ -56,8 +56,4 @@ Learn more about the power of Turborepo:
 - [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
 - [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
 
-<<<<<<< HEAD
 [![codecov](https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/jt/feat/docs/graph/badge.svg?token=ZDPGVH2NVG)](https://codecov.io/gh/OasisDEX/summer-earn-protocol)
-=======
-[![codecov](https://codecov.io/gh/OasisDEX/summer-earn-protocol/branch/kk/remove-default-admin-role/graph/badge.svg?token=ZDPGVH2NVG)](https://codecov.io/gh/OasisDEX/summer-earn-protocol)
->>>>>>> main
