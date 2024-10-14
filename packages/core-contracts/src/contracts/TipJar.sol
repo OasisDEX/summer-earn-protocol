@@ -102,12 +102,20 @@ contract TipJar is
     /// @notice It's good practice to call _shake for all fleet commanders
     /// before updating a tip stream to ensure all accumulated rewards
     /// are distributed using the current allocation.
+    /// @dev Warning: A global shake can be gas expensive if there are many fleet commanders
     /// @inheritdoc ITipJar
-    function updateTipStream(TipStream memory tipStream) external onlyGovernor {
+    function updateTipStream(
+        TipStream memory tipStream,
+        bool shakeAllFleetCommanders
+    ) external onlyGovernor {
         _validateTipStream(tipStream.recipient);
         TipStream memory oldTipStream = tipStreams[tipStream.recipient];
         Percentage currentAllocation = oldTipStream.allocation;
         _validateTipStreamAllocation(tipStream.allocation, currentAllocation);
+
+        if (shakeAllFleetCommanders) {
+            shakeAll();
+        }
 
         tipStreams[tipStream.recipient].allocation = tipStream.allocation;
         tipStreams[tipStream.recipient].lockedUntilEpoch = tipStream
@@ -126,12 +134,17 @@ contract TipJar is
     }
 
     /// @inheritdoc ITipJar
-    function shakeMultiple(
-        address[] calldata fleetCommanders
-    ) external whenNotPaused {
-        for (uint256 i = 0; i < fleetCommanders.length; i++) {
-            _shake(fleetCommanders[i]);
-        }
+    function shakeMultiple(address[] calldata fleetCommanders) external {
+        _shakeMultiple(fleetCommanders);
+    }
+
+    /// @notice Shakes all active fleet commanders
+    /// @dev This function can be called to distribute rewards from all active fleet commanders
+    /// @dev Warning: This operation can be gas expensive if there are many fleet commanders
+    function shakeAll() public {
+        address[] memory activeFleetCommanders = IHarborCommand(harborCommand())
+            .getActiveFleetCommanders();
+        _shakeMultiple(activeFleetCommanders);
     }
 
     /**
@@ -164,14 +177,15 @@ contract TipJar is
     }
 
     /// @inheritdoc ITipJar
-    function getAllTipStreams() external view returns (TipStream[] memory) {
-        TipStream[] memory allStreams = new TipStream[](
-            tipStreamRecipients.length
-        );
+    function getAllTipStreams()
+        external
+        view
+        returns (TipStream[] memory allStreams)
+    {
+        allStreams = new TipStream[](tipStreamRecipients.length);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
             allStreams[i] = tipStreams[tipStreamRecipients[i]];
         }
-        return allStreams;
     }
 
     /// @inheritdoc ITipJar
@@ -261,6 +275,17 @@ contract TipJar is
         }
 
         emit TipJarShaken(address(fleetCommander), withdrawnAssets);
+    }
+
+    /**
+     * @notice Shakes multiple fleet commanders
+     * @param fleetCommanders An array of fleet commander addresses to shake
+     * @dev This function is used internally by shakeMultiple and shakeAll
+     */
+    function _shakeMultiple(address[] memory fleetCommanders) internal {
+        for (uint256 i = 0; i < fleetCommanders.length; i++) {
+            _shake(fleetCommanders[i]);
+        }
     }
 
     /**
