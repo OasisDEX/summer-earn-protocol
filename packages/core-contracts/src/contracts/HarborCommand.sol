@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import {IHarborCommandEvents} from "../events/IHarborCommandEvents.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title HarborCommand - Fleet Commander Management System
@@ -30,16 +31,14 @@ contract HarborCommand is
     IHarborCommandEvents,
     IHarborCommand
 {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mapping of addresses to their active status as Fleet Commanders
-    mapping(address fleetCommander => bool isActive)
-        public activeFleetCommanders;
-
-    /// @notice List of all Fleet Commander addresses
-    address[] public fleetCommandersList;
+    /// @notice Set of active Fleet Commander addresses
+    EnumerableSet.AddressSet private _activeFleetCommanders;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -59,11 +58,9 @@ contract HarborCommand is
     function enlistFleetCommander(
         address _fleetCommander
     ) external onlyGovernor {
-        if (activeFleetCommanders[_fleetCommander]) {
+        if (!_activeFleetCommanders.add(_fleetCommander)) {
             revert FleetCommanderAlreadyEnlisted(_fleetCommander);
         }
-        activeFleetCommanders[_fleetCommander] = true;
-        fleetCommandersList.push(_fleetCommander);
         emit FleetCommanderEnlisted(_fleetCommander);
     }
 
@@ -71,13 +68,9 @@ contract HarborCommand is
     function decommissionFleetCommander(
         address _fleetCommander
     ) external onlyGovernor {
-        if (!activeFleetCommanders[_fleetCommander]) {
+        if (!_activeFleetCommanders.remove(_fleetCommander)) {
             revert FleetCommanderNotEnlisted(_fleetCommander);
         }
-        activeFleetCommanders[_fleetCommander] = false;
-
-        _removeFromList(_fleetCommander);
-
         emit FleetCommanderDecommissioned(_fleetCommander);
     }
 
@@ -92,27 +85,20 @@ contract HarborCommand is
         override
         returns (address[] memory)
     {
-        return fleetCommandersList;
+        return _activeFleetCommanders.values();
     }
 
-    /*//////////////////////////////////////////////////////////////
-                        INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
+    /// @inheritdoc IHarborCommand
+    function activeFleetCommanders(
+        address _fleetCommander
+    ) external view returns (bool) {
+        return _activeFleetCommanders.contains(_fleetCommander);
+    }
 
-    /**
-     * @notice Removes a Fleet Commander from the list
-     * @dev This function uses the 'swap and pop' method for efficient removal
-     * @param _fleetCommander Address of the Fleet Commander to remove
-     */
-    function _removeFromList(address _fleetCommander) internal {
-        uint256 length = fleetCommandersList.length;
-        for (uint256 i = 0; i < length; i++) {
-            if (fleetCommandersList[i] == _fleetCommander) {
-                // Swap with the last element and pop
-                fleetCommandersList[i] = fleetCommandersList[length - 1];
-                fleetCommandersList.pop();
-                break;
-            }
-        }
+    /// @inheritdoc IHarborCommand
+    function fleetCommandersList(
+        uint256 index
+    ) external view returns (address) {
+        return _activeFleetCommanders.at(index);
     }
 }

@@ -101,6 +101,7 @@ contract BuyAndBurn is
         _settleAuction(auction);
     }
     /* @inheritdoc IBuyAndBurn */
+
     function getAuctionInfo(
         uint256 auctionId
     ) external view override returns (DutchAuctionLibrary.Auction memory) {

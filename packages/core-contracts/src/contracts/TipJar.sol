@@ -11,6 +11,7 @@ import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title TipJar
@@ -18,7 +19,12 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * @dev Implements ITipJar interface and inherits from ProtocolAccessManaged and ConfigurationManaged
  * @custom:see ITipJar
  */
-contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
+contract TipJar is
+    ITipJar,
+    ProtocolAccessManaged,
+    ConfigurationManaged,
+    Pausable
+{
     using PercentageUtils for uint256;
 
     /*//////////////////////////////////////////////////////////////
@@ -123,7 +129,7 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
-    function shake(address fleetCommander_) public {
+    function shake(address fleetCommander_) external whenNotPaused {
         _shake(fleetCommander_);
     }
 
@@ -139,6 +145,24 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         address[] memory activeFleetCommanders = IHarborCommand(harborCommand())
             .getActiveFleetCommanders();
         _shakeMultiple(activeFleetCommanders);
+    }
+
+    /**
+     * @inheritdoc ITipJar
+     * @dev Only callable by addresses with the GUARDIAN_ROLE
+     */
+    function pause() external onlyGuardian {
+        _pause();
+        emit TipJarPaused(msg.sender);
+    }
+
+    /**
+     * @inheritdoc ITipJar
+     * @dev Only callable by addresses with the GOVERNOR_ROLE
+     */
+    function unpause() external onlyGovernor {
+        _unpause();
+        emit TipJarUnpaused(msg.sender);
     }
 
     /*//////////////////////////////////////////////////////////////

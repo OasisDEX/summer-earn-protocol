@@ -39,4 +39,16 @@ interface ITipJarEvents {
         address indexed fleetCommander,
         uint256 totalDistributed
     );
+
+    /**
+     * @notice Emitted when the TipJar is paused
+     * @param account The address that triggered the pause
+     */
+    event TipJarPaused(address indexed account);
+
+    /**
+     * @notice Emitted when the TipJar is unpaused
+     * @param account The address that triggered the unpause
+     */
+    event TipJarUnpaused(address indexed account);
 }
