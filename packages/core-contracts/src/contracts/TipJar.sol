@@ -153,14 +153,15 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     }
 
     /// @inheritdoc ITipJar
-    function getAllTipStreams() external view returns (TipStream[] memory) {
-        TipStream[] memory allStreams = new TipStream[](
-            tipStreamRecipients.length
-        );
+    function getAllTipStreams()
+        external
+        view
+        returns (TipStream[] memory allStreams)
+    {
+        allStreams = new TipStream[](tipStreamRecipients.length);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
             allStreams[i] = tipStreams[tipStreamRecipients[i]];
         }
-        return allStreams;
     }
 
     /// @inheritdoc ITipJar
