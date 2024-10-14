@@ -121,15 +121,35 @@ contract TipJar is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
-    function shake(address fleetCommander_) public {
+    function shake(address fleetCommander_) external whenNotPaused {
         _shake(fleetCommander_);
     }
 
     /// @inheritdoc ITipJar
-    function shakeMultiple(address[] calldata fleetCommanders) external {
+    function shakeMultiple(
+        address[] calldata fleetCommanders
+    ) external whenNotPaused {
         for (uint256 i = 0; i < fleetCommanders.length; i++) {
             _shake(fleetCommanders[i]);
         }
+    }
+
+    /**
+     * @inheritdoc ITipJar
+     * @dev Only callable by addresses with the GUARDIAN_ROLE
+     */
+    function pause() external onlyGuardian {
+        _pause();
+        emit TipJarPaused(msg.sender);
+    }
+
+    /**
+     * @inheritdoc ITipJar
+     * @dev Only callable by addresses with the GOVERNOR_ROLE
+     */
+    function unpause() external onlyGovernor {
+        _unpause();
+        emit TipJarUnpaused(msg.sender);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -152,20 +172,6 @@ contract TipJar is
             allStreams[i] = tipStreams[tipStreamRecipients[i]];
         }
         return allStreams;
-    }
-
-    /// @inheritdoc ITipJar
-    function shake(address fleetCommander_) external whenNotPaused {
-        _shake(fleetCommander_);
-    }
-
-    /// @inheritdoc ITipJar
-    function shakeMultiple(
-        address[] calldata fleetCommanders
-    ) external whenNotPaused {
-        for (uint256 i = 0; i < fleetCommanders.length; i++) {
-            _shake(fleetCommanders[i]);
-        }
     }
 
     /// @inheritdoc ITipJar
@@ -309,23 +315,5 @@ contract TipJar is
         ) {
             revert TotalAllocationExceedsOneHundredPercent();
         }
-    }
-
-    /**
-     * @notice Pauses the TipJar, preventing shake operations
-     * @dev Only callable by addresses with the GUARDIAN_ROLE
-     */
-    function pause() external onlyGuardian {
-        _pause();
-        emit TipJarPaused(msg.sender);
-    }
-
-    /**
-     * @notice Unpauses the TipJar, allowing shake operations
-     * @dev Only callable by addresses with the GOVERNOR_ROLE
-     */
-    function unpause() external onlyGovernor {
-        _unpause();
-        emit TipJarUnpaused(msg.sender);
     }
 }
