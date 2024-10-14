@@ -88,7 +88,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /// @inheritdoc IRaft
-    function harvest(address ark, bytes calldata rewardData) public {
+    function harvest(address ark, bytes calldata rewardData) external {
         _harvest(ark, rewardData);
     }
 

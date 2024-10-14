@@ -287,7 +287,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         bytes memory referralCode
-    ) public whenNotPaused returns (uint256) {
+    ) external whenNotPaused returns (uint256) {
         emit FleetCommanderReferral(receiver, referralCode);
         return deposit(assets, receiver);
     }
