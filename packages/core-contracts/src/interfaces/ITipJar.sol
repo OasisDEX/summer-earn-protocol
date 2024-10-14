@@ -71,4 +71,14 @@ interface ITipJar is ITipJarEvents, ITipJarErrors {
      * @dev Calls shake() for each FleetCommander in the array
      */
     function shakeMultiple(address[] calldata fleetCommanders) external;
+
+    /**
+     * @notice Pauses the TipJar, preventing shake operations
+     */
+    function pause() external;
+
+    /**
+     * @notice Unpauses the TipJar, allowing shake operations
+     */
+    function unpause() external;
 }
