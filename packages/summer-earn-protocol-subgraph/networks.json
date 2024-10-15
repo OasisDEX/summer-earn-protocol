@@ -1,14 +1,14 @@
 {
   "base": {
     "HarborCommand": {
-      "address": "0xf9c71B49De6cA90d6369B2898664b3f2d2fF8a90",
+      "address": "0x8AB0a8E95A43633E7C424eE67F6E3fe66D4898B2",
       "startBlock": 17728659
     }
   },
-  "mainnet": {
+  "arbitrum-one": {
     "HarborCommand": {
-      "address": "0xf9c71B49De6cA90d6369B2898664b3f2d2fF8a90",
-      "startBlock": 123456
+      "address": "0x72B3128bc1D0f0E1e3D03B6d1c974C0C08724C90",
+      "startBlock": 261643345
     }
   }
 }
