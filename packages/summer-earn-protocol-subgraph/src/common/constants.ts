@@ -57,13 +57,13 @@ export namespace NULL {
 export namespace Protocol {
   export const NAME = 'Summer Earn Protocol'
   export const SLUG = 'summer-earn-protocol'
-  export const NETWORK = dataSource.network().toUpperCase()
+  export const NETWORK = 'ARBITRUM_ONE'
 }
 
 export namespace ArkVersions {
   export const V_1_0_0 = '1.0.0'
 }
-
+export const ADDRESS_ZERO = Address.fromString('0x0000000000000000000000000000000000000000')
 export const DEFAULT_MANAGEMENT_FEE = BigInt.fromI32(200)
 export const DEFAULT_PERFORMANCE_FEE = BigInt.fromI32(2000)
 export const DEFAULT_WITHDRAWAL_FEE = BigInt.fromI32(50)
@@ -136,6 +136,7 @@ export class BigIntConstants {
   static HOUR_IN_SECONDS: BigInt = BigInt.fromI32(3600)
   static DAY_IN_SECONDS: BigInt = BigInt.fromI32(86400)
   static WEEK_IN_SECONDS: BigInt = BigInt.fromI32(86400).times(BigInt.fromI32(7))
+  static YEAR_IN_SECONDS: BigInt = BigInt.fromI32(31536000)
   static CHAIN_LINK_PRECISION: BigInt = BigInt.fromString(`${10 ** 8}`)
   static USDC_PRECISION: BigInt = BigInt.fromString(`${10 ** 6}`)
   static USDT_PRECISION: BigInt = BigInt.fromString(`${10 ** 6}`)

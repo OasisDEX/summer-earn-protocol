@@ -1,58 +1,42 @@
-import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
-import { Account } from '../../generated/schema'
+import { Address, BigInt } from '@graphprotocol/graph-ts'
 import {
   ArkAdded,
+  ArkRemoved,
   Deposit as DepositEvent,
+  FleetCommanderWithdrawnFromArks,
   Rebalanced,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import {
-  getOrCreateAccount,
-  getOrCreateArk,
-  getOrCreateArksPostActionSnapshots,
-  getOrCreateVault,
-  getOrCreateVaultsPostActionSnapshots,
-} from '../common/initializers'
+import { ADDRESS_ZERO } from '../common/constants'
+import { getOrCreateAccount, getOrCreateArk, getOrCreateVault } from '../common/initializers'
 import { formatAmount } from '../common/utils'
-import { VaultAndPositionDetails } from '../types'
-import { getArkDetails } from '../utils/ark'
-import { getPositionDetails } from '../utils/position'
-import { getVaultDetails } from '../utils/vault'
-import { updateArk } from './entities/ark'
 import { createDepositEventEntity } from './entities/deposit'
-import { updatePosition } from './entities/position'
 import { createRebalanceEventEntity } from './entities/rebalance'
-import { updateVault } from './entities/vault'
+import { getAndUpdateVaultAndPositionDetails, updateVaultAndArks } from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
 
 export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
-  const vaultDetails = getVaultDetails(event.address, event.block)
-
-  updateVault(vaultDetails, event.block)
-  getOrCreateVaultsPostActionSnapshots(event.address, event.block)
-
-  const arks = vault.arksArray
-
-  for (let i = 0; i < arks.length; i++) {
-    const arkDetails = getArkDetails(
-      Address.fromString(vault.id),
-      Address.fromString(arks[i]),
-      event.block,
-    )
-    updateArk(arkDetails, event.block)
-    getOrCreateArksPostActionSnapshots(
-      Address.fromString(vault.id),
-      Address.fromString(arks[i]),
-      event.block,
-    )
-  }
-
+  updateVaultAndArks(event, vault)
   createRebalanceEventEntity(event, vault, event.block)
 }
 
 export function handleArkAdded(event: ArkAdded): void {
   getOrCreateArk(event.address, event.params.ark, event.block)
+}
+
+let _arkAddress: string
+export function handleArkRemoved(event: ArkRemoved): void {
+  const vaultAddress = event.address
+  const vault = getOrCreateVault(vaultAddress, event.block)
+  _arkAddress = event.params.ark.toHexString()
+  let previousArrayOfArks = vault.arksArray
+  vault.arksArray = previousArrayOfArks.filter((ark) => ark !== _arkAddress)
+  vault.save()
+  // remove relation to vault
+  const ark = getOrCreateArk(vaultAddress, Address.fromString(_arkAddress), event.block)
+  ark.vault = ADDRESS_ZERO.toHexString()
+  ark.save()
 }
 
 export function handleDeposit(event: DepositEvent): void {
@@ -83,25 +67,10 @@ export function handleWithdraw(event: WithdrawEvent): void {
   createWithdrawEventEntity(event, normalizedAmountUSD, result.positionDetails)
 }
 
-function getVaultAndPositionDetails(
-  event: ethereum.Event,
-  account: Account,
-  block: ethereum.Block,
-): VaultAndPositionDetails {
-  const vaultDetails = getVaultDetails(event.address, block)
-  const positionDetails = getPositionDetails(event, account, vaultDetails)
-  return { vaultDetails: vaultDetails, positionDetails: positionDetails }
-}
-
-function getAndUpdateVaultAndPositionDetails(
-  event: ethereum.Event,
-  account: Account,
-  block: ethereum.Block,
-): VaultAndPositionDetails {
-  const result = getVaultAndPositionDetails(event, account, block)
-
-  updateVault(result.vaultDetails, event.block)
-  updatePosition(result.positionDetails, event.block)
-
-  return { vaultDetails: result.vaultDetails, positionDetails: result.positionDetails }
+// withdaraw already handled in handleWithdraw
+export function handleFleetCommanderWithdrawnFromArks(
+  event: FleetCommanderWithdrawnFromArks,
+): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  updateVaultAndArks(event, vault)
 }
