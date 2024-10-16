@@ -277,6 +277,8 @@ class ProtocolConfig {
         this.configs.set(network, this.initArbitrum())
       } else if (network == 'optimism') {
         this.configs.set(network, this.initOptimism())
+      } else if (network == 'base') {
+        this.configs.set(network, this.initBase())
       } else {
         this.configs.set(network, [])
       }
