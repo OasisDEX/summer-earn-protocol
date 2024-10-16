@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.27;
+
+/* @title IStakingRewardsManagerErrors
+ * @notice Interface defining custom errors for the Staking Rewards Manager
+ */
+interface IStakingRewardsManagerErrors {
+    /* @notice Thrown when attempting to stake zero tokens */
+    error CannotStakeZero();
+
+    /* @notice Thrown when attempting to withdraw zero tokens */
+    error CannotWithdrawZero();
+
+    /* @notice Thrown when the provided reward amount is too high */
+    error ProvidedRewardTooHigh();
+
+    /* @notice Thrown when trying to set rewards before the current period is complete */
+    error RewardPeriodNotComplete();
+
+    /* @notice Thrown when there are no reward tokens set */
+    error NoRewardTokens();
+
+    /* @notice Thrown when trying to add a reward token that already exists */
+    error RewardTokenAlreadyExists();
+
+    /* @notice Thrown when setting an invalid rewards duration */
+    error InvalidRewardsDuration();
+
+    /* @notice Thrown when trying to interact with a reward token that hasn't been initialized */
+    error RewardTokenNotInitialized();
+
+    /* @notice Thrown when the reward amount is invalid for the given duration
+     * @param rewardToken The address of the reward token
+     * @param rewardsDuration The duration for which the reward is invalid
+     */
+    error InvalidRewardAmount(address rewardToken, uint256 rewardsDuration);
+
+    /* @notice Thrown when trying to initialize the staking token that has already been set */
+    error StakingTokenAlreadyInitialized();
+
+    /* @notice Thrown when trying to interact with the staking token before it's initialized */
+    error StakingTokenNotInitialized();
+}

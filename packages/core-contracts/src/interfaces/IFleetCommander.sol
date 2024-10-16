@@ -63,6 +63,30 @@ interface IFleetCommander is
     ) external returns (uint256);
 
     /**
+     * @notice Deposits a specified amount of assets into the contract for a given receiver and stakes the shares.
+     * @param assets The amount of assets to be deposited.
+     * @param receiver The address of the receiver who will receive the deposited assets.
+     * @return shares The amount of shares minted for the deposited assets
+     */
+    function depositAndStake(
+        uint256 assets,
+        address receiver
+    ) external returns (uint256 shares);
+
+    /**
+     * @notice Deposits a specified amount of assets into the contract for a given receiver and stakes the shares.
+     * @param assets The amount of assets to be deposited.
+     * @param receiver The address of the receiver who will receive the deposited assets.
+     * @param referralCode An optional referral code that can be used for tracking or rewards.
+     * @return shares The amount of shares minted for the deposited assets
+     */
+    function depositAndStake(
+        uint256 assets,
+        address receiver,
+        bytes memory referralCode
+    ) external returns (uint256 shares);
+
+    /**
      * @notice Forces a withdrawal of assets from the FleetCommander
      * @param assets The amount of assets to forcefully withdraw
      * @param receiver The address that will receive the withdrawn assets

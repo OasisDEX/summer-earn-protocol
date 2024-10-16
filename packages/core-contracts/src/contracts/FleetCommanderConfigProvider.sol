@@ -57,7 +57,8 @@ contract FleetCommanderConfigProvider is
                 bufferArk: IArk(address(_bufferArk)),
                 minimumBufferBalance: params.initialMinimumBufferBalance,
                 depositCap: params.depositCap,
-                maxRebalanceOperations: MAX_REBALANCE_OPERATIONS
+                maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
+                stakingRewardsManager: params.stakingRewardsManager
             })
         );
         isArkWithdrawable[address(_bufferArk)] = true;
@@ -169,6 +170,14 @@ contract FleetCommanderConfigProvider is
     ) external onlyCurator whenNotPaused {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function setStakingRewardsManager(
+        address newStakingRewardsManager
+    ) external onlyCurator whenNotPaused {
+        config.stakingRewardsManager = newStakingRewardsManager;
+        emit FleetCommanderStakingRewardsUpdated(newStakingRewardsManager);
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider

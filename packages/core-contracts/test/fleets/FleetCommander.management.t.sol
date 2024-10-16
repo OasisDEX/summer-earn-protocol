@@ -34,6 +34,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         FleetCommanderParams memory params = FleetCommanderParams({
             configurationManager: address(configurationManager),
             accessManager: address(accessManager),
+            stakingRewardsManager: address(0),
             initialMinimumBufferBalance: 1000,
             initialRebalanceCooldown: 1 hours,
             asset: address(mockToken),

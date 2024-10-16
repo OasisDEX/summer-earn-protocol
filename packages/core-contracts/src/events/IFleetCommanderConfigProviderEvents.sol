@@ -31,4 +31,10 @@ interface IFleetCommanderConfigProviderEvents {
     event FleetCommanderMaxRebalanceOperationsUpdated(
         uint256 newMaxRebalanceOperations
     );
+
+    /**
+     * @notice Emitted when the staking rewards contract address is updated
+     * @param newStakingRewards The address of the new staking rewards contract
+     */
+    event FleetCommanderStakingRewardsUpdated(address newStakingRewards);
 }

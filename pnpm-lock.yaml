@@ -133,6 +133,9 @@ importers:
       '@summerfi/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      '@summerfi/voting-decay':
+        specifier: workspace:*
+        version: link:../voting-decay
       '@types/prompts':
         specifier: ^2.4.9
         version: 2.4.9

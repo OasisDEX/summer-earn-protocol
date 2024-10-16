@@ -112,4 +112,12 @@ interface IFleetCommanderConfigProvider is
         address ark,
         uint256 newMaxRebalanceInflow
     ) external;
+
+    /**
+     * @notice Sets the staking rewards manager contract address
+     * @param newStakingRewardsManager The address  of the new staking rewards manager contract
+     */
+    function setStakingRewardsManager(
+        address newStakingRewardsManager
+    ) external;
 }

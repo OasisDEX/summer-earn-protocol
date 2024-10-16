@@ -24,6 +24,9 @@ import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.so
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
+import {StakingRewardsManager} from "../../src/contracts/StakingRewardsManager.sol";
+import {IStakingRewardsManager} from "../../src/interfaces/IStakingRewardsManager.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
@@ -70,6 +73,11 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     // Other variables
     string public fleetName = "OK_Fleet";
     FleetCommanderParams public fleetCommanderParams;
+
+    // New variables
+    StakingRewardsManager public stakingRewardsManager;
+    MockSummerGovernor public mockGovernor;
+    ERC20Mock[] public rewardTokens;
 
     constructor() {}
 
@@ -140,9 +148,41 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         address underlyingToken,
         Percentage initialTipRate
     ) internal {
+        vm.startPrank(governor);
+        // Setup StakingRewardsManager
+        // Deploy mock governor if not already deployed
+        if (address(mockGovernor) == address(0)) {
+            mockGovernor = new MockSummerGovernor();
+        }
+
+        // Deploy reward tokens
+        for (uint i = 0; i < 3; i++) {
+            rewardTokens.push(new ERC20Mock());
+        }
+
+        // Prepare reward token addresses
+        address[] memory rewardTokenAddresses = new address[](
+            rewardTokens.length
+        );
+        for (uint i = 0; i < rewardTokens.length; i++) {
+            rewardTokenAddresses[i] = address(rewardTokens[i]);
+        }
+
+        // Deploy StakingRewardsManager
+        stakingRewardsManager = new StakingRewardsManager(
+            IStakingRewardsManager.StakingRewardsParams({
+                rewardsTokens: rewardTokenAddresses,
+                accessManager: address(accessManager),
+                governor: address(mockGovernor)
+            })
+        );
+
+        vm.stopPrank();
+
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
+            stakingRewardsManager: address(stakingRewardsManager),
             initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             asset: underlyingToken,
@@ -152,6 +192,10 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             depositCap: type(uint256).max
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
+
+        vm.prank(governor);
+        stakingRewardsManager.initializeStakingToken(fleetCommander);
+
         bufferArkAddress = fleetCommander.bufferArk();
         bufferArk = BufferArk(bufferArkAddress);
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(

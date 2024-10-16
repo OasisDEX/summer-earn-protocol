@@ -11,3 +11,4 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho/src/
 @openzeppelin/contracts/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts-upgradeable/contracts/
 @layerzerolabs/=node_modules/@summerfi/dependencies/node_modules/@layerzerolabs/
+@openzeppelin-next/=node_modules/@summerfi/dependencies/lib/openzeppelin-next/

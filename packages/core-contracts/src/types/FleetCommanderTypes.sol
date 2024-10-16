@@ -12,6 +12,7 @@ struct FleetCommanderParams {
     string symbol;
     address configurationManager;
     address accessManager;
+    address stakingRewardsManager;
     address asset;
     uint256 initialMinimumBufferBalance;
     uint256 initialRebalanceCooldown;
@@ -50,6 +51,10 @@ struct FleetConfig {
      * @notice The maximum number of rebalance operations in a single rebalance
      */
     uint256 maxRebalanceOperations;
+    /**
+     * @notice The address of the staking rewards contract
+     */
+    address stakingRewardsManager;
 }
 
 /**

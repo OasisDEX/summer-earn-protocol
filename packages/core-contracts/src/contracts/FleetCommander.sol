@@ -17,13 +17,13 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IStakingRewardsManager} from "../interfaces/IStakingRewardsManager.sol";
+
 /**
  * @title FleetCommander
  * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
  * @dev Implements IFleetCommander interface and inherits from various utility contracts
- * @custom:see IFleetCommander
  */
-
 contract FleetCommander is
     IFleetCommander,
     FleetCommanderConfigProvider,
@@ -259,27 +259,8 @@ contract FleetCommander is
     function deposit(
         uint256 assets,
         address receiver
-    )
-        public
-        override(ERC4626, IERC4626)
-        collectTip
-        useDepositCache
-        whenNotPaused
-        returns (uint256 shares)
-    {
-        _validateDeposit(assets, _msgSender());
-
-        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
-
-        shares = previewDeposit(assets);
-        _deposit(_msgSender(), receiver, assets, shares);
-        _board(address(config.bufferArk), assets);
-
-        emit FundsBufferBalanceUpdated(
-            _msgSender(),
-            previousFundsBufferBalance,
-            config.bufferArk.totalAssets()
-        );
+    ) public override(ERC4626, IERC4626) returns (uint256 shares) {
+        return _depositInternal(assets, receiver, "");
     }
 
     /// @inheritdoc IFleetCommander
@@ -287,9 +268,29 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         bytes memory referralCode
-    ) external whenNotPaused returns (uint256) {
-        emit FleetCommanderReferral(receiver, referralCode);
-        return deposit(assets, receiver);
+    ) external returns (uint256) {
+        return _depositInternal(assets, receiver, referralCode);
+    }
+
+    /// @inheritdoc IFleetCommander
+    function depositAndStake(
+        uint256 assets,
+        address receiver
+    ) public whenNotPaused returns (uint256 shares) {
+        shares = _depositInternal(assets, receiver, "");
+        _stake(receiver, shares);
+        return shares;
+    }
+
+    /// @inheritdoc IFleetCommander
+    function depositAndStake(
+        uint256 assets,
+        address receiver,
+        bytes memory referralCode
+    ) external whenNotPaused returns (uint256 shares) {
+        shares = _depositInternal(assets, receiver, referralCode);
+        _stake(receiver, shares);
+        return shares;
     }
 
     /// @inheritdoc IERC4626
@@ -477,24 +478,43 @@ contract FleetCommander is
         _reallocateAllAssets(rebalanceData);
     }
 
+    /// @inheritdoc IFleetCommander
+    function pause() external onlyGuardianOrGovernor whenNotPaused {
+        _pause();
+    }
+
+    /// @inheritdoc IFleetCommander
+    function unpause() external onlyGuardianOrGovernor whenPaused {
+        _unpause();
+    }
+
     /*//////////////////////////////////////////////////////////////
                         PUBLIC ERC20 FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IERC20
     function transfer(
-        address,
-        uint256
-    ) public pure override(IERC20, ERC20) returns (bool) {
+        address to,
+        uint256 amount
+    ) public override(IERC20, ERC20) returns (bool) {
+        FleetConfig memory config = this.getConfig();
+        if (_msgSender() == address(config.stakingRewardsManager)) {
+            return super.transfer(to, amount);
+        }
+
         revert FleetCommanderTransfersDisabled();
     }
 
     /// @inheritdoc IERC20
     function transferFrom(
-        address,
-        address,
-        uint256
-    ) public pure override(IERC20, ERC20) returns (bool) {
+        address from,
+        address to,
+        uint256 amount
+    ) public override(IERC20, ERC20) returns (bool) {
+        FleetConfig memory config = this.getConfig();
+        if (_msgSender() == address(config.stakingRewardsManager)) {
+            return super.transferFrom(from, to, amount);
+        }
         revert FleetCommanderTransfersDisabled();
     }
 
@@ -975,11 +995,44 @@ contract FleetCommander is
         }
     }
 
-    function pause() public onlyGuardianOrGovernor whenNotPaused {
-        _pause();
+    function _depositInternal(
+        uint256 assets,
+        address receiver,
+        bytes memory referralCode
+    )
+        internal
+        collectTip
+        useDepositCache
+        whenNotPaused
+        returns (uint256 shares)
+    {
+        _validateDeposit(assets, _msgSender());
+
+        uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
+
+        shares = previewDeposit(assets);
+        _deposit(_msgSender(), receiver, assets, shares);
+        _board(address(config.bufferArk), assets);
+
+        emit FundsBufferBalanceUpdated(
+            _msgSender(),
+            previousFundsBufferBalance,
+            config.bufferArk.totalAssets()
+        );
+
+        if (referralCode.length > 0) {
+            emit FleetCommanderReferral(receiver, referralCode);
+        }
+
+        return shares;
     }
 
-    function unpause() public onlyGuardianOrGovernor whenPaused {
-        _unpause();
+    function _stake(address account, uint256 amount) internal {
+        if (config.stakingRewardsManager != address(0)) {
+            IStakingRewardsManager(config.stakingRewardsManager).stake(
+                account,
+                amount
+            );
+        }
     }
 }
