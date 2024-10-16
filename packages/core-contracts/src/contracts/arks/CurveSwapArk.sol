@@ -127,13 +127,17 @@ contract CurveSwapPendlePtArk is Ark {
      */
     function getExchangeRate() public view returns (uint256 price) {
         price = curveSwap.last_price(0);
+        if (price > upperEma) {price = upperEma;}
+        if (price < lowerEma) {price = lowerEma;}
         if (curveSwap.coins(1) != address(config.token)) {
             price = 1e36 / price;
         }
     }
 
-    function getEmaPrice() public view returns (uint256 price) {
+    function getExchangeRateEma() public view returns (uint256 price) {
         price = curveSwap.ema_price(0);
+        if (price > upperEma) {price = upperEma;}
+        if (price < lowerEma) {price = lowerEma;}
         if (curveSwap.coins(1) != address(config.token)) {
             price = 1e36 / price;
         }
@@ -428,7 +432,7 @@ contract CurveSwapPendlePtArk is Ark {
      * @notice Check if trading should be allowed
      */
     function _shouldTrade() internal view {
-        if (!onlyWhenBetween(getEmaPrice(), lowerEma, upperEma))
+        if (!onlyWhenBetween(getExchangeRateEma(), lowerEma, upperEma))
             revert EmaOutOfRange();
     }
 
