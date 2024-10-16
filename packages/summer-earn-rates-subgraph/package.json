@@ -1,7 +1,7 @@
 {
   "name": "@summerfi/summer-earn-rates-subgraph",
   "license": "UNLICENSED",
-  "version": "1.1.9",
+  "version": "1.1.14",
   "scripts": {
     "codegen": "graph codegen",
     "build:mainnet": "pnpm run prepare:mainnet && graph codegen && graph build",
@@ -9,17 +9,11 @@
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:optimism": "mustache config/optimism.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
-    "create:local:mainnet": "pnpm run prepare:mainnet && pnpm run codegen && pnpm run build && graph create --node http://127.0.0.1:8020 summer/rates",
-    "create:local:arbitrum": "pnpm run prepare:arbitrum && pnpm run codegen && pnpm run build && graph create --node http://127.0.0.1:8020 summer/rates",
-    "deploy:staging": "graph create  --node https://graph-rpc.staging.summer.fi/ summer/rates && pnpm run codegen && graph deploy --node https://graph-rpc.staging.summer.fi/ --ipfs https://api.thegraph.com/ipfs/ --version-label $(git rev-parse HEAD) summer/rates",
-    "deploy:hosted:mainnet": "pnpm run prepare:mainnet && pnpm run codegen && graph deploy --debug --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ summer/rates",
-    "deploy:local:mainnet": "pnpm run prepare:mainnet && pnpm run codegen && graph deploy --debug ---ipfs http://127.0.0.1:5001 --node http://127.0.0.1:8020 --version-label $(git rev-parse HEAD) summer/rates",
-    "deploy:mainnet:prod": "pnpm run prepare:mainnet && pnpm run codegen && graph deploy --debug --node https://graph-rpc.summer.fi/ --ipfs https://api.thegraph.com/ipfs/ --version-label $(git rev-parse HEAD) summer/rates",
-    "deploy:arbitrum:alchemy": "bash -c 'source ../../.env && pnpm run prepare:arbitrum && graph deploy rates-arbitrum --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
-    "deploy:mainnet:alchemy": "bash -c 'source ../../.env && pnpm run prepare:mainnet && graph deploy rates --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy  --ipfs https://ipfs.satsuma.xyz --deploy-key $DEPLOY_KEY'",
-    "deploy:base:alchemy": "bash -c 'source ../../.env && pnpm run prepare:base && graph deploy rates-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
-    "deploy:optimism:alchemy": "bash -c 'source ../../.env && pnpm run prepare:optimism && graph deploy rates-optimism --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
-    "deploy:alchemy:all": "pnpm run deploy:mainnet:alchemy && pnpm run deploy:arbitrum:alchemy && pnpm run deploy:base:alchemy && pnpm run deploy:optimism:alchemy"
+    "deploy:arbitrum": "bash -c 'source ../../.env && pnpm run prepare:arbitrum && graph deploy summer-earn-protocol-rates-arbitrum --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
+    "deploy:mainnet": "bash -c 'source ../../.env && pnpm run prepare:mainnet && graph deploy summer-earn-protocol-rates --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy  --ipfs https://ipfs.satsuma.xyz --deploy-key $DEPLOY_KEY'",
+    "deploy:base": "bash -c 'source ../../.env && pnpm run prepare:base && graph deploy summer-earn-protocol-rates-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
+    "deploy:optimism": "bash -c 'source ../../.env && pnpm run prepare:optimism && graph deploy summer-earn-protocol-rates-optimism --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
+    "deploy:all": "pnpm run deploy:mainnet && pnpm run deploy:arbitrum && pnpm run deploy:base && pnpm run deploy:optimism"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.82.0",
