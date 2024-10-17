@@ -6,6 +6,7 @@ export class ServiceAddresses {
   WETH: Address
   WBTC: Address
   USDC: Address
+  USDCE: Address
   USDT: Address
   SDAI: Address
   DAI: Address
@@ -73,6 +74,7 @@ export function getAddressesProvider(): ServiceAddresses {
       WETH: Address.fromString('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'),
       WBTC: Address.fromString('0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'),
       USDC: Address.fromString('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'),
+      USDCE: Address.fromString('0x0000000000000000000000000000000000000000'),
       DAI: Address.fromString('0x6B175474E89094C44Da98b954EedeAC495271d0F'),
       SDAI: Address.fromString('0x83F20F44975D03b1b09e64809B757c47f942BEeA'),
       AAVE_LENDING_POOL: Address.fromString('0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9'),
@@ -108,6 +110,7 @@ export function getAddressesProvider(): ServiceAddresses {
       WETH: Address.fromString('0x4200000000000000000000000000000000000006'),
       WBTC: Address.fromString('0x68f180fcce6836688e9084f035309e29bf0a2095'),
       USDC: Address.fromString('0x7F5c764cBc14f9669B88837ca1490cCa17c31607'),
+      USDCE: Address.fromString('0x0000000000000000000000000000000000000000'),
       DAI: Address.fromString('0x0000000000000000000000000000000000000000'),
       SDAI: Address.fromString('0x0000000000000000000000000000000000000000'),
       USDT: Address.fromString('0x94b008aa00579c1307b0ef2c499ad98a8ce58e58'),
@@ -143,6 +146,7 @@ export function getAddressesProvider(): ServiceAddresses {
       WETH: Address.fromString('0x4200000000000000000000000000000000000006'),
       WBTC: Address.fromString('0x0000000000000000000000000000000000000000'),
       USDC: Address.fromString('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'),
+      USDCE: Address.fromString('0x0000000000000000000000000000000000000000'),
       DAI: Address.fromString('0x0000000000000000000000000000000000000000'),
       SDAI: Address.fromString('0x0000000000000000000000000000000000000000'),
       AAVE_LENDING_POOL: Address.fromString('0x0000000000000000000000000000000000000000'),
@@ -178,6 +182,7 @@ export function getAddressesProvider(): ServiceAddresses {
       WETH: Address.fromString('0x82af49447d8a07e3bd95bd0d56f35241523fbab1'),
       WBTC: Address.fromString('0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f'),
       USDC: Address.fromString('0xaf88d065e77c8cC2239327C5EDb3A432268e5831'),
+      USDCE: Address.fromString('0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'),
       DAI: Address.fromString('0x0000000000000000000000000000000000000000'),
       SDAI: Address.fromString('0x0000000000000000000000000000000000000000'),
       AAVE_LENDING_POOL: Address.fromString('0x0000000000000000000000000000000000000000'),
