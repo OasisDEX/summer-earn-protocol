@@ -1,3 +1,4 @@
+import { Address } from 'viem'
 import { BuyAndBurnContracts } from '../ignition/modules/buy-and-burn'
 import { CoreContracts } from '../ignition/modules/core'
 import { GovContracts } from '../ignition/modules/gov'
@@ -17,53 +18,53 @@ export interface BaseConfig {
     buyAndBurn: BuyAndBurnContracts
   }
   common: {
-    treasury: string
-    lzEndpoint: string
-    swapProvider: string
+    treasury: Address
+    lzEndpoint: Address
+    swapProvider: Address
     tipRate: string
   }
   tokens: {
-    [key in Tokens]: string
+    [key in Tokens]: Address
   }
   protocolSpecific: {
     erc4626: {
       [key in Tokens]: {
-        [key: string]: string
+        [key: string]: Address
       }
     }
     pendle: {
-      router: string
-      'lp-oracle': string
+      router: Address
+      'lp-oracle': Address
       markets: {
         [key in Tokens]: {
-          [key: string]: string
+          [key: string]: Address
         }
       }
     }
     aaveV3: {
-      pool: string
-      rewards: string
+      pool: Address
+      rewards: Address
     }
     morpho: {
-      blue: string
+      blue: Address
       vaults: {
         [key in Tokens]: {
-          [key: string]: string
+          [key: string]: Address
         }
       }
       markets: {
         [key in Tokens]: {
-          [key: string]: string
+          [key: string]: Address
         }
       }
     }
     compoundV3: {
       pools: {
         [key in Tokens]: {
-          cToken: string
+          cToken: Address
         }
       }
-      rewards: string
+      rewards: Address
     }
   }
 }
