@@ -102,13 +102,8 @@ contract StakingRewardsManager is
     function earned(
         address account,
         IERC20 rewardToken
-    ) public view returns (uint256) {
-        return
-            (_balances[account] *
-                (rewardPerToken(rewardToken) -
-                    userRewardPerTokenPaid[rewardToken][account])) /
-            1e18 +
-            rewards[rewardToken][account];
+    ) public view virtual returns (uint256) {
+        return _earned(account, rewardToken);
     }
 
     /// @inheritdoc IStakingRewardsManager
@@ -224,6 +219,18 @@ contract StakingRewardsManager is
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function _earned(
+        address account,
+        IERC20 rewardToken
+    ) internal view returns (uint256) {
+        return
+            (_balances[account] *
+                (rewardPerToken(rewardToken) -
+                    userRewardPerTokenPaid[rewardToken][account])) /
+            1e18 +
+            rewards[rewardToken][account];
+    }
+
     function _stake(address account, uint256 amount) internal {
         if (amount == 0) revert CannotStakeZero();
         if (address(stakingToken) == address(0))
@@ -247,7 +254,7 @@ contract StakingRewardsManager is
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    modifier updateReward(address account) {
+    modifier updateReward(address account) virtual {
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             IERC20 rewardToken = rewardsTokens[i];
             RewardData storage data = rewardData[rewardToken];

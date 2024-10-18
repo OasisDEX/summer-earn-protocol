@@ -27,6 +27,7 @@ import {console} from "forge-std/console.sol";
 import {StakingRewardsManager} from "../../src/contracts/StakingRewardsManager.sol";
 import {IStakingRewardsManager} from "../../src/interfaces/IStakingRewardsManager.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
@@ -152,7 +153,11 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         // Setup StakingRewardsManager
         // Deploy mock governor if not already deployed
         if (address(mockGovernor) == address(0)) {
-            mockGovernor = new MockSummerGovernor();
+            mockGovernor = new MockSummerGovernor(
+                7 days, // initialDecayFreeWindow
+                1e16, // initialDecayRate (1% per day)
+                VotingDecayLibrary.DecayFunction.Linear
+            );
         }
 
         // Deploy reward tokens

@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import {StakingRewardsManager} from "../src/contracts/StakingRewardsManager.sol";
-import {IStakingRewardsManager} from "../src/interfaces/IStakingRewardsManager.sol";
-import {IStakingRewardsManagerErrors} from "../src/errors/IStakingRewardsManagerErrors.sol";
-import {MockSummerGovernor} from "./mocks/MockSummerGovernor.sol";
+import {StakingRewardsManager} from "../../src/contracts/StakingRewardsManager.sol";
+import {IStakingRewardsManager} from "../../src/interfaces/IStakingRewardsManager.sol";
+import {IStakingRewardsManagerErrors} from "../../src/errors/IStakingRewardsManagerErrors.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
-import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 
 contract StakingRewardsManagerTest is Test {
     StakingRewardsManager public stakingRewardsManager;
@@ -44,7 +45,11 @@ contract StakingRewardsManagerTest is Test {
 
         // Deploy mock governor
         console.log("Deploying mock governor");
-        mockGovernor = new MockSummerGovernor();
+        mockGovernor = new MockSummerGovernor(
+            7 days, // initialDecayFreeWindow
+            1e16, // initialDecayRate (1% per day)
+            VotingDecayLibrary.DecayFunction.Linear
+        );
 
         // Deploy StakingRewardsManager
         console.log("Deploying staking rewards manager");
