@@ -12,6 +12,15 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
+interface CompoundV3ArkUserInput {
+  compoundV3Pool: string
+  compoundV3Rewards: string
+  token: Address
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+}
+
 /**
  * Main function to deploy a CompoundV3Ark.
  * This function orchestrates the entire deployment process, including:
@@ -39,9 +48,9 @@ export async function deployCompoundV3Ark() {
 /**
  * Prompts the user for CompoundV3Ark deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @returns {Promise<any>} An object containing the user's input for deployment parameters.
+ * @returns {Promise<CompoundV3ArkUserInput>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig) {
+async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput> {
   // Extract Compound V3 pools from the configuration
   const compoundV3Pools = []
   for (const pool in config.protocolSpecific.compoundV3.pools) {
@@ -92,10 +101,10 @@ async function getUserInput(config: BaseConfig) {
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {any} userInput - The user's input for deployment parameters.
+ * @param {CompoundV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: any) {
+async function confirmDeployment(userInput: CompoundV3ArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Compound V3 Pool: ${userInput.compoundV3Pool}`))
   console.log(kleur.yellow(`Compound V3 Rewards: ${userInput.compoundV3Rewards}`))
@@ -110,12 +119,12 @@ async function confirmDeployment(userInput: any) {
 /**
  * Deploys the CompoundV3Ark contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @param {any} userInput - The user's input for deployment parameters.
+ * @param {CompoundV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<CompoundV3ArkContracts>} The deployed CompoundV3Ark contract.
  */
 async function deployCompoundV3ArkContract(
   config: BaseConfig,
-  userInput: any,
+  userInput: CompoundV3ArkUserInput,
 ): Promise<CompoundV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
