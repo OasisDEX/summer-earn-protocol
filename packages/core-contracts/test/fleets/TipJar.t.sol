@@ -22,6 +22,7 @@ contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;
 
     address public governor = address(1);
+    address public guardian = address(1);
     address public keeper = address(2);
     address public treasury = address(3);
     address public mockTipStreamRecipient = address(4);
@@ -129,7 +130,8 @@ contract TipJarTest is Test, ITipJarEvents {
                 recipient: mockTipStreamRecipient,
                 allocation: PercentageUtils.fromIntegerPercentage(60),
                 lockedUntilEpoch: block.timestamp + 3 days
-            })
+            }),
+            false
         );
 
         vm.stopPrank();
@@ -596,7 +598,8 @@ contract TipJarTest is Test, ITipJarEvents {
                 recipient: mockTipStreamRecipient,
                 allocation: PercentageUtils.fromIntegerPercentage(30),
                 lockedUntilEpoch: block.timestamp + 2 days
-            })
+            }),
+            false
         );
     }
 
@@ -621,5 +624,91 @@ contract TipJarTest is Test, ITipJarEvents {
                 lockedUntilEpoch: block.timestamp
             })
         );
+    }
+
+    function test_UpdateTipStreamWithGlobalShake() public {
+        address anotherMockTipStreamParticipant = address(5);
+
+        // Setup initial tip streams
+        vm.startPrank(governor);
+        tipJar.addTipStream(
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(60),
+                lockedUntilEpoch: block.timestamp
+            })
+        );
+        tipJar.addTipStream(
+            ITipJar.TipStream({
+                recipient: anotherMockTipStreamParticipant,
+                allocation: PercentageUtils.fromIntegerPercentage(30),
+                lockedUntilEpoch: block.timestamp
+            })
+        );
+        vm.stopPrank();
+
+        // Create a second FleetCommander
+        FleetCommanderMock fleetCommander2 = new FleetCommanderMock(
+            address(underlyingToken),
+            address(configManager),
+            PercentageUtils.fromIntegerPercentage(1)
+        );
+        vm.prank(governor);
+        harborCommand.enlistFleetCommander(address(fleetCommander2));
+
+        // Setup mock fleet commanders with some balance
+        uint256 initialBalance = 1000 ether;
+        underlyingToken.mint(address(tipJar), initialBalance * 2);
+
+        vm.startPrank(address(tipJar));
+        underlyingToken.approve(address(fleetCommander), type(uint256).max);
+        underlyingToken.approve(address(fleetCommander2), type(uint256).max);
+        fleetCommander.deposit(initialBalance, address(tipJar));
+        fleetCommander2.deposit(initialBalance, address(tipJar));
+        vm.stopPrank();
+
+        // Update tip stream with global shake
+        vm.prank(governor);
+        tipJar.updateTipStream(
+            ITipJar.TipStream({
+                recipient: mockTipStreamRecipient,
+                allocation: PercentageUtils.fromIntegerPercentage(70),
+                lockedUntilEpoch: block.timestamp + 1 days
+            }),
+            true // Perform global shake
+        );
+
+        // Check balances after global shake and update
+        assertEq(underlyingToken.balanceOf(mockTipStreamRecipient), 1200 ether); // 60% of 2000 ether
+        assertEq(
+            underlyingToken.balanceOf(anotherMockTipStreamParticipant),
+            600 ether
+        ); // 30% of 2000 ether
+        assertEq(underlyingToken.balanceOf(treasury), 200 ether); // 10% of 2000 ether
+
+        // Verify the tip stream was updated
+        ITipJar.TipStream memory updatedStream = tipJar.getTipStream(
+            mockTipStreamRecipient
+        );
+        assertEq(fromPercentage(updatedStream.allocation), 70);
+        assertEq(updatedStream.lockedUntilEpoch, block.timestamp + 1 days);
+
+        // Setup another balance to test the new allocation
+        underlyingToken.mint(address(tipJar), initialBalance);
+        vm.startPrank(address(tipJar));
+        underlyingToken.approve(address(fleetCommander), initialBalance);
+        fleetCommander.deposit(initialBalance, address(tipJar));
+        vm.stopPrank();
+
+        // Shake again to test new allocation
+        tipJar.shake(address(fleetCommander));
+
+        // Check final balances
+        assertEq(underlyingToken.balanceOf(mockTipStreamRecipient), 1900 ether); // 1200 + (70% of 1000)
+        assertEq(
+            underlyingToken.balanceOf(anotherMockTipStreamParticipant),
+            900 ether
+        ); // 600 + (30% of 1000)
+        assertEq(underlyingToken.balanceOf(treasury), 200 ether); // Unchanged as 100% allocated to streams
     }
 }

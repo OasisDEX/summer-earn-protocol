@@ -21,6 +21,7 @@ contract TipperTest is Test, ITipperEvents {
 
     address public mockUser = address(1);
     address public governor = address(2);
+    address public guardian = address(2);
     address public keeper = address(3);
     FleetCommanderMock public fleetCommander;
     ConfigurationManagerMock public configManager;

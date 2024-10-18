@@ -104,9 +104,9 @@ interface IFleetCommanderErrors {
     error FleetCommanderCantUseRebalanceOnBufferArk();
 
     /**
-     * @notice Thrown when attempting to use the maximum uint value for buffer adjustment.
+     * @notice Thrown when attempting to use the maximum uint value for buffer adjustment from buffer.
      */
-    error FleetCommanderCantUseMaxUintForBufferAdjustement();
+    error FleetCommanderCantUseMaxUintMovingFromBuffer();
 
     /**
      * @notice Thrown when a rebalance operation exceeds the maximum outflow for an Ark.

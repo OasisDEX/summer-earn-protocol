@@ -4,14 +4,12 @@ pragma solidity 0.8.27;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 
 contract SummerToken is
@@ -21,8 +19,21 @@ contract SummerToken is
     ERC20Permit,
     ISummerToken
 {
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
     uint256 private constant INITIAL_SUPPLY = 1e9;
+
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
     mapping(address owner => address vestingWallet) public vestingWallets;
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
 
     constructor(
         TokenParams memory params
@@ -32,28 +43,11 @@ contract SummerToken is
         Ownable(params.governor)
     {}
 
-    /**
-     * @dev Creates a new vesting wallet for a beneficiary
-     * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
-     * @param timeBasedAmount Amount of tokens to be vested based on time
-     * @param goalAmounts Array of token amounts to be vested based on performance goals
-     * @param vestingType Type of vesting schedule (TeamVesting or InvestorExTeamVesting)
-     * @custom:requirements
-     * - The beneficiary must not already have a vesting wallet
-     * - The caller must have sufficient balance to transfer the total vesting amount
-     * @custom:effects
-     * - Creates a new SummerVestingWallet contract
-     * - Stores the new vesting wallet address in the vestingWallets mapping
-     * - Transfers the total vesting amount from the caller to the new vesting wallet
-     * @custom:emits No events are directly emitted, but a token transfer occurs
-     * @custom:security-considerations
-     * - Ensure that only authorized addresses can call this function
-     * - Verify that the vestingType is valid before creating the wallet
-     * - Consider implementing a maximum limit for goalAmounts to prevent excessive gas costs
-     * @custom:gas-considerations
-     * - The gas cost increases with the number of goal amounts
-     * - Creating a new contract (SummerVestingWallet) is a relatively expensive operation
-     */
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ISummerToken
     function createVestingWallet(
         address beneficiary,
         uint256 timeBasedAmount,
@@ -87,20 +81,41 @@ contract SummerToken is
         vestingWallets[beneficiary] = newVestingWallet;
 
         _transfer(msg.sender, newVestingWallet, totalAmount);
+
+        emit VestingWalletCreated(
+            beneficiary,
+            newVestingWallet,
+            timeBasedAmount,
+            goalAmounts,
+            vestingType
+        );
     }
 
-    /*
-     * @dev Overrides the nonces function to resolve conflicts between ERC20Permit and Nonces.
-     * @param owner The address to check nonces for.
-     * @return The current nonce for the given address.
-     */
+    /// @inheritdoc ISummerToken
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     function nonces(
         address owner
-    ) public view override(ERC20Permit, Nonces) returns (uint256) {
+    )
+        public
+        view
+        override(IERC20Permit, ERC20Permit, Nonces)
+        returns (uint256)
+    {
         return super.nonces(owner);
     }
 
-    /*
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
      * @dev Internal function to update token balances.
      * @param from The address to transfer tokens from.
      * @param to The address to transfer tokens to.
@@ -178,26 +193,9 @@ contract SummerToken is
         return directBalance;
     }
 
-    /**
-     * @notice Mints new tokens and assigns them to the specified address
-     * @dev This function can only be called by the contract owner
-     * @param to The address to receive the minted tokens
-     * @param amount The amount of tokens to mint
-     * @custom:requirements
-     * - The caller must be the contract owner
-     * @custom:effects
-     * - Increases the total supply of tokens
-     * - Increases the balance of the recipient address
-     * @custom:emits A Transfer event from the zero address to the recipient
-     * @custom:security-considerations
-     * - This function allows the owner to arbitrarily increase the token supply
-     * - Ensure that the owner address is properly secured and trusted
-     * - Consider implementing additional checks or limits on minting to prevent abuse
-     * - there is no cap on the minting of tokens
-     */
-    function mint(address to, uint256 amount) external onlyOwner {
-        _mint(to, amount);
-    }
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @dev Error thrown when attempting to create a vesting wallet for an address that already has one

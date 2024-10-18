@@ -22,6 +22,7 @@ import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.so
 
 contract ArkTestBase is TestHelpers {
     address public governor = address(1);
+    address public guardian = address(1);
     address public commander = address(4);
     address public raft = address(2);
     address public tipJar = address(3);

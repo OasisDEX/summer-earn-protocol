@@ -32,10 +32,14 @@ interface ITipJar is ITipJarEvents, ITipJarErrors {
     function removeTipStream(address recipient) external;
 
     /**
-     * @notice Updates an existing tip stream's allocation or lock period
-     * @param tipStream The updated tip stream information
+     * @notice Updates an existing tip stream
+     * @param tipStream The updated tip stream data
+     * @param shakeAllFleetCommanders If true, performs a global shake of all fleet commanders before updating
      */
-    function updateTipStream(TipStream memory tipStream) external;
+    function updateTipStream(
+        TipStream memory tipStream,
+        bool shakeAllFleetCommanders
+    ) external;
 
     /**
      * @notice Retrieves a specific tip stream's information
@@ -71,4 +75,14 @@ interface ITipJar is ITipJarEvents, ITipJarErrors {
      * @dev Calls shake() for each FleetCommander in the array
      */
     function shakeMultiple(address[] calldata fleetCommanders) external;
+
+    /**
+     * @notice Pauses the TipJar, preventing shake operations
+     */
+    function pause() external;
+
+    /**
+     * @notice Unpauses the TipJar, allowing shake operations
+     */
+    function unpause() external;
 }

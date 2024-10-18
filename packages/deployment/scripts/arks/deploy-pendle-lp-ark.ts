@@ -10,6 +10,23 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
+interface PendleMarketInfo {
+  token: TokenType
+  marketId: string
+  marketName: string
+}
+
+interface PendleLPArkUserInput {
+  marketSelection: PendleMarketInfo
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  token: Address
+  marketId: string
+  router: Address
+  oracle: Address
+}
+
 export async function deployPendleLPArk() {
   const config = getConfigByNetwork(hre.network.name)
 
@@ -25,7 +42,7 @@ export async function deployPendleLPArk() {
   }
 }
 
-async function getUserInput(config: BaseConfig) {
+async function getUserInput(config: BaseConfig): Promise<PendleLPArkUserInput> {
   // Extract Pendle markets from the configuration
   const pendleMarkets = []
   if (!config.protocolSpecific.pendle || !config.protocolSpecific.pendle.markets) {
@@ -85,7 +102,7 @@ async function getUserInput(config: BaseConfig) {
   return aggregatedData
 }
 
-async function confirmDeployment(userInput: any) {
+async function confirmDeployment(userInput: PendleLPArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
   console.log(kleur.yellow(`Oracle: ${userInput.oracle}`))
@@ -100,7 +117,7 @@ async function confirmDeployment(userInput: any) {
 
 async function deployPendleLPArkContract(
   config: BaseConfig,
-  userInput: any,
+  userInput: PendleLPArkUserInput,
 ): Promise<PendleLPArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)

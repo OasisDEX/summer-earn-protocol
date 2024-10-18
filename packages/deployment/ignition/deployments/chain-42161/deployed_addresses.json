@@ -13,8 +13,6 @@
   "BuyAndBurnModule#BuyAndBurn": "0x1f221B5C47BcB4B5fA5E9ae31a9A35963cde67dd",
   "FleetModule_LazyVault_USDC_Arbitrum_Test#FleetCommander": "0x4774d1cD62D20c288dFAdEfDEDF79d5B4cae1856",
   "AaveV3ArkModule#AaveV3Ark": "0x85AA5809f3ce928b658Dd17876DC414962456563",
-  "CompoundV3ArkModule#CompoundV3Ark": "0x363139edCB1994E6f9f928CEB33b431E9Db53ac5",
-  "ERC4626Ark_gearbox_usdc#ERC4626Ark": "0x1003aaeB64B9fc1BB8BB4dcEb7c65A59BA61a0f8",
-  "CurveModule#CurveSwapPendlePtArk": "0x703d6C3a6137b3C3200700208095ff377958c223",
-  "PendleSwapPtModule#CurveSwapPendlePtArk": "0xAaB08AB98c93696665454b8C0a6eF8C2cd0206eF"
+  "CompoundV3ArkModule#CompoundV3Ark": "0x8e3293b9052437D3A5aad5e829D8EE8B05bC391e",
+  "ERC4626Ark_gearbox_usdc#ERC4626Ark": "0x1003aaeB64B9fc1BB8BB4dcEb7c65A59BA61a0f8"
 }

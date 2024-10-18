@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import {IHarborCommandEvents} from "../events/IHarborCommandEvents.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title HarborCommand - Fleet Commander Management System
@@ -23,57 +24,81 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
  *
  * This contract plays a crucial role in maintaining the integrity and security of the fleet management system
  * by providing a reliable source of truth for official fleet verification.
+ * @custom:see IHarborCommand
  */
 contract HarborCommand is
     ProtocolAccessManaged,
     IHarborCommandEvents,
     IHarborCommand
 {
-    mapping(address => bool) public activeFleetCommanders;
-    address[] public fleetCommandersList;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Set of active Fleet Commander addresses
+    EnumerableSet.AddressSet private _activeFleetCommanders;
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes the HarborCommand contract
+     * @param _accessManager Address of the access manager contract
+     */
     constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
 
-    /* @inheritdoc IHarborCommand */
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IHarborCommand
     function enlistFleetCommander(
         address _fleetCommander
     ) external onlyGovernor {
-        if (activeFleetCommanders[_fleetCommander]) {
+        if (!_activeFleetCommanders.add(_fleetCommander)) {
             revert FleetCommanderAlreadyEnlisted(_fleetCommander);
         }
-        activeFleetCommanders[_fleetCommander] = true;
-        fleetCommandersList.push(_fleetCommander);
         emit FleetCommanderEnlisted(_fleetCommander);
     }
 
-    /* @inheritdoc IHarborCommand */
+    /// @inheritdoc IHarborCommand
     function decommissionFleetCommander(
         address _fleetCommander
     ) external onlyGovernor {
-        if (!activeFleetCommanders[_fleetCommander]) {
+        if (!_activeFleetCommanders.remove(_fleetCommander)) {
             revert FleetCommanderNotEnlisted(_fleetCommander);
         }
-        activeFleetCommanders[_fleetCommander] = false;
-
-        // Remove from list
-        for (uint256 i = 0; i < fleetCommandersList.length; i++) {
-            if (fleetCommandersList[i] == _fleetCommander) {
-                fleetCommandersList[i] = fleetCommandersList[
-                    fleetCommandersList.length - 1
-                ];
-                fleetCommandersList.pop();
-                break;
-            }
-        }
-
         emit FleetCommanderDecommissioned(_fleetCommander);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IHarborCommand
     function getActiveFleetCommanders()
         external
         view
+        override
         returns (address[] memory)
     {
-        return fleetCommandersList;
+        return _activeFleetCommanders.values();
+    }
+
+    /// @inheritdoc IHarborCommand
+    function activeFleetCommanders(
+        address _fleetCommander
+    ) external view returns (bool) {
+        return _activeFleetCommanders.contains(_fleetCommander);
+    }
+
+    /// @inheritdoc IHarborCommand
+    function fleetCommandersList(
+        uint256 index
+    ) external view returns (address) {
+        return _activeFleetCommanders.at(index);
     }
 }

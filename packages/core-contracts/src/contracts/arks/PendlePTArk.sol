@@ -11,8 +11,8 @@ import "./BasePendleArk.sol";
 
 /**
  * @title PendlePTArk
- * @notice This contract manages a Pendle Principal Token (PT) strategy within the Ark system
- * @dev Inherits from BasePendleArk and implements PT-specific logic
+ * @notice Ark contract for managing token supply and yield generation through Pendle Principal Tokens (PT).
+ * @dev Implements strategy for supplying tokens, withdrawing tokens, and managing Pendle PT positions.
  */
 contract PendlePTArk is BasePendleArk {
     using SafeERC20 for IERC20;
@@ -220,7 +220,17 @@ contract PendlePTArk is BasePendleArk {
         return IERC20(PT).balanceOf(address(this));
     }
 
-    function _validateBoardData(bytes calldata data) internal override {}
+    /**
+     * @notice Validates the board data
+     * @dev This Ark does not require any validation for board data
+     * @param /// data Additional data to validate (unused in this implementation)
+     */
+    function _validateBoardData(bytes calldata) internal override {}
 
-    function _validateDisembarkData(bytes calldata data) internal override {}
+    /**
+     * @notice Validates the disembark data
+     * @dev This Ark does not require any validation for disembark data
+     * @param /// data Additional data to validate (unused in this implementation)
+     */
+    function _validateDisembarkData(bytes calldata) internal override {}
 }

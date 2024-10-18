@@ -41,8 +41,22 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  *   in other parts of the system for specific access control.
  */
 contract ProtocolAccessManaged is IAccessControlErrors, Context {
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The ProtocolAccessManager instance used for access control
     ProtocolAccessManager internal _accessManager;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes the ProtocolAccessManaged contract
+     * @param accessManager Address of the ProtocolAccessManager contract
+     * @dev Validates the provided accessManager address and initializes the _accessManager
+     */
     constructor(address accessManager) {
         if (accessManager == address(0)) {
             revert InvalidAccessManagerAddress(address(0));
@@ -59,7 +73,13 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _accessManager = ProtocolAccessManager(accessManager);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
     /**
+     * @notice Modifier to restrict access to governors only
+     *
      * @dev Modifier to check that the caller has the Governor role
      * @custom:internal-logic
      * - Checks if the caller has the GOVERNOR_ROLE in the access manager
@@ -80,6 +100,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     /**
+     * @notice Modifier to restrict access to keepers only
      * @dev Modifier to check that the caller has the Keeper role
      * @custom:internal-logic
      * - Checks if the caller has either the contract-specific KEEPER_ROLE or the SUPER_KEEPER_ROLE
@@ -109,6 +130,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     /**
+     * @notice Modifier to restrict access to super keepers only
      * @dev Modifier to check that the caller has the Super Keeper role
      * @custom:internal-logic
      * - Checks if the caller has the SUPER_KEEPER_ROLE in the access manager
@@ -132,7 +154,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     /**
-     * @dev Modifier to check that the caller has the Curator role
+     * @notice Modifier to restrict access to curators only
+     * @dev Checks if the caller has the contract-specific CURATOR_ROLE
      */
     modifier onlyCurator() {
         if (
@@ -147,6 +170,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     /**
+     * @notice Modifier to restrict access to guardians only
      * @dev Modifier to check that the caller has the Guardian role
      * @custom:internal-logic
      * - Checks if the caller has the GUARDIAN_ROLE in the access manager
@@ -167,6 +191,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     }
 
     /**
+     * @notice Modifier to restrict access to either guardians or governors
      * @dev Modifier to check that the caller has either the Guardian or Governor role
      * @custom:internal-logic
      * - Checks if the caller has either the GUARDIAN_ROLE or the GOVERNOR_ROLE
@@ -192,7 +217,17 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
-    /* @inheritdoc IProtocolAccessControl */
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Generates a role identifier for a specific contract and role
+     * @param roleName The name of the role
+     * @param roleTargetContract The address of the contract the role is for
+     * @return The generated role identifier
+     * @dev This function is used to create unique role identifiers for contract-specific roles
+     */
     function generateRole(
         ContractSpecificRoles roleName,
         address roleTargetContract

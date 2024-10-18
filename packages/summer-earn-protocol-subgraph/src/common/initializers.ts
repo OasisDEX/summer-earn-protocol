@@ -224,7 +224,7 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
-    vaultSnapshots.apr = !previousSnapshot
+    vaultSnapshots.calculatedApr = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
           previousSnapshot.pricePerShare!,
@@ -285,27 +285,13 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
-    vaultSnapshots.aprLast1h = !previousSnapshot
+    vaultSnapshots.calculatedApr = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
           previousSnapshot.pricePerShare!,
           vault.pricePerShare!,
           constants.BigDecimalConstants.HOUR_IN_SECONDS,
         )
-    const totalAssets = vault.inputTokenBalance
-    const arks = vault.arksArray
-
-    // get weighted apr for all arks
-    let weightedApr = constants.BigDecimalConstants.ZERO
-    for (let j = 0; j < arks.length; j++) {
-      const arkAddress = Address.fromString(arks[j])
-      const arkContract = ArkContract.bind(arkAddress)
-      const arkApr = arkContract.rate().toBigDecimal().div(constants.BigDecimalConstants.RAY)
-      const arkTotalAssets = arkContract.totalAssets().toBigDecimal()
-      const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal())
-      weightedApr = weightedApr.plus(arkApr.times(arkWeight))
-    }
-    vaultSnapshots.apr = weightedApr.times(constants.BigDecimalConstants.HUNDRED)
 
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
@@ -353,7 +339,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vault.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     vault.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
-    vault.apr = constants.BigDecimalConstants.ZERO
+    vault.calculatedApr = constants.BigDecimalConstants.ZERO
 
     vault.createdBlockNumber = block.number
     vault.createdTimestamp = block.timestamp
@@ -401,10 +387,11 @@ export function getOrCreateArk(
 
   if (!ark) {
     ark = new Ark(arkAddress.toHexString())
-    const vault = getOrCreateVault(vaultAddress, block)
+
     const arkContract = ArkContract.bind(arkAddress)
-    ark.name = 'Ark'
-    ark.symbol = ''
+    const vault = getOrCreateVault(vaultAddress, block)
+
+    ark.name = arkContract.name()
     ark.vault = vaultAddress.toHexString()
     ark.depositLimit = utils.readValue<BigInt>(
       arkContract.try_depositCap(),
@@ -417,7 +404,11 @@ export function getOrCreateArk(
     ark.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     ark.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     ark.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
-    ark.apr = constants.BigDecimalConstants.ZERO
+    ark.calculatedApr = constants.BigDecimalConstants.ZERO
+
+    ark.cumulativeEarnings = constants.BigIntConstants.ZERO
+    ark.cumulativeDeposits = constants.BigIntConstants.ZERO
+    ark.cumulativeWithdrawals = constants.BigIntConstants.ZERO
 
     ark.createdBlockNumber = block.number
     ark.createdTimestamp = block.timestamp
@@ -488,15 +479,7 @@ export function getOrCreateArksHourlySnapshots(
     arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
     arkSnapshots.inputTokenBalance = ark.inputTokenBalance
 
-    arkSnapshots.apr = arkContract
-      .rate()
-      .toBigDecimal()
-      .div(constants.BigDecimalConstants.RAY)
-      .times(constants.BigDecimalConstants.HUNDRED)
-
-    arkSnapshots.aprLast1h = !previousSnapshot
-      ? constants.BigDecimalConstants.ZERO
-      : previousSnapshot.apr.plus(arkSnapshots.apr).div(constants.BigDecimalConstants.TWO)
+    arkSnapshots.calculatedApr = ark.calculatedApr
 
     arkSnapshots.blockNumber = block.number
     arkSnapshots.timestamp = block.timestamp
@@ -527,11 +510,7 @@ export function getOrCreateArksDailySnapshots(
     arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
     arkSnapshots.inputTokenBalance = ark.inputTokenBalance
 
-    arkSnapshots.apr = arkContract
-      .rate()
-      .toBigDecimal()
-      .div(constants.BigDecimalConstants.RAY)
-      .times(constants.BigDecimalConstants.HUNDRED)
+    arkSnapshots.apr = ark.calculatedApr
 
     arkSnapshots.blockNumber = block.number
     arkSnapshots.timestamp = block.timestamp
@@ -562,11 +541,7 @@ export function getOrCreateArksPostActionSnapshots(
     arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
     arkSnapshots.inputTokenBalance = ark.inputTokenBalance
 
-    arkSnapshots.apr = arkContract
-      .rate()
-      .toBigDecimal()
-      .div(constants.BigDecimalConstants.RAY)
-      .times(constants.BigDecimalConstants.HUNDRED)
+    arkSnapshots.apr = ark.calculatedApr
 
     arkSnapshots.blockNumber = block.number
     arkSnapshots.timestamp = block.timestamp
@@ -608,9 +583,9 @@ export function getOrCreateVaultsPostActionSnapshots(
     let weightedApr = constants.BigDecimalConstants.ZERO
     for (let j = 0; j < arks.length; j++) {
       const arkAddress = Address.fromString(arks[j])
-      const arkContract = ArkContract.bind(arkAddress)
-      const arkApr = arkContract.rate().toBigDecimal().div(constants.BigDecimalConstants.RAY)
-      const arkTotalAssets = arkContract.totalAssets().toBigDecimal()
+      const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+      const arkApr = ark.calculatedApr
+      const arkTotalAssets = ark.inputTokenBalance.toBigDecimal()
       const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal())
       weightedApr = weightedApr.plus(arkApr.times(arkWeight))
     }

@@ -176,8 +176,7 @@ contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
         uint256 totalAssetsBefore = ark.totalAssets();
 
         vm.prank(raft);
-        (address[] memory rewardTokens, uint256[] memory rewardAmounts) = ark
-            .harvest("");
+        (, uint256[] memory rewardAmounts) = ark.harvest("");
 
         uint256 totalAssetsAfter = ark.totalAssets();
 

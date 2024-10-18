@@ -40,7 +40,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
     /// @notice Address of the current Pendle market
     address public market;
     /// @notice Address of the Pendle router
-    address public router;
+    address public immutable router;
     /// @notice Address of the Pendle oracle
     address public immutable oracle;
     /// @notice Duration for the oracle to use when fetching rates

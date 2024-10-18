@@ -1,4 +1,4 @@
-import { BigDecimal, BigInt, log } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { VaultState } from '../../generated/schema'
 import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
@@ -48,17 +48,7 @@ export abstract class BaseVaultProduct extends Product {
       .times(BigDecimalConstants.SECONDS_PER_YEAR)
       .div(timeDiff.toBigDecimal())
       .times(BigDecimalConstants.HUNDRED)
-    log.error(
-      'annualizedRate: {}, previousSharePrice: {}, sharePrice: {}, priceChange: {}, timeDiff: {}, result: {}',
-      [
-        annualizedRate.toString(),
-        previousSharePrice.toString(),
-        sharePrice.toString(),
-        priceChange.toString(),
-        timeDiff.toString(),
-        annualizedRate.toString(),
-      ],
-    )
+
     return annualizedRate
   }
 

@@ -11,18 +11,38 @@ import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
+ * @title TipJar
+ * @notice Manages tip streams for distributing rewards from FleetCommanders
+ * @dev Implements ITipJar interface and inherits from ProtocolAccessManaged and ConfigurationManaged
  * @custom:see ITipJar
  */
-contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
+contract TipJar is
+    ITipJar,
+    ProtocolAccessManaged,
+    ConfigurationManaged,
+    Pausable
+{
     using PercentageUtils for uint256;
 
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Mapping of recipient addresses to their TipStream structs
     mapping(address recipient => TipStream tipStream) public tipStreams;
+
+    /// @notice List of all tip stream recipient addresses
     address[] public tipStreamRecipients;
 
+    /*//////////////////////////////////////////////////////////////
+                                CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
     /**
-     * @notice Constructs a new TipJar contract
+     * @notice Initializes the TipJar contract
      * @param _accessManager The address of the access manager contract
      * @param _configurationManager The address of the configuration manager contract
      */
@@ -33,6 +53,10 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         ProtocolAccessManaged(_accessManager)
         ConfigurationManaged(_configurationManager)
     {}
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL GOVERNOR FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
     function addTipStream(
@@ -46,6 +70,9 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
             tipStreams[tipStream.recipient].allocation
         );
 
+        // The allocation in TipStream uses the Percentage type from @summerfi/percentage-solidity
+        // Percentages have 18 decimals of precision
+        // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
         tipStreams[tipStream.recipient] = tipStream;
         tipStreamRecipients.push(tipStream.recipient);
 
@@ -72,12 +99,23 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         emit TipStreamRemoved(recipient);
     }
 
+    /// @notice It's good practice to call _shake for all fleet commanders
+    /// before updating a tip stream to ensure all accumulated rewards
+    /// are distributed using the current allocation.
+    /// @dev Warning: A global shake can be gas expensive if there are many fleet commanders
     /// @inheritdoc ITipJar
-    function updateTipStream(TipStream memory tipStream) external onlyGovernor {
+    function updateTipStream(
+        TipStream memory tipStream,
+        bool shakeAllFleetCommanders
+    ) external onlyGovernor {
         _validateTipStream(tipStream.recipient);
         TipStream memory oldTipStream = tipStreams[tipStream.recipient];
         Percentage currentAllocation = oldTipStream.allocation;
         _validateTipStreamAllocation(tipStream.allocation, currentAllocation);
+
+        if (shakeAllFleetCommanders) {
+            shakeAll();
+        }
 
         tipStreams[tipStream.recipient].allocation = tipStream.allocation;
         tipStreams[tipStream.recipient].lockedUntilEpoch = tipStream
@@ -85,6 +123,51 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
 
         emit TipStreamUpdated(oldTipStream, tipStream);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ITipJar
+    function shake(address fleetCommander_) external whenNotPaused {
+        _shake(fleetCommander_);
+    }
+
+    /// @inheritdoc ITipJar
+    function shakeMultiple(address[] calldata fleetCommanders) external {
+        _shakeMultiple(fleetCommanders);
+    }
+
+    /// @notice Shakes all active fleet commanders
+    /// @dev This function can be called to distribute rewards from all active fleet commanders
+    /// @dev Warning: This operation can be gas expensive if there are many fleet commanders
+    function shakeAll() public {
+        address[] memory activeFleetCommanders = IHarborCommand(harborCommand())
+            .getActiveFleetCommanders();
+        _shakeMultiple(activeFleetCommanders);
+    }
+
+    /**
+     * @inheritdoc ITipJar
+     * @dev Only callable by addresses with the GUARDIAN_ROLE
+     */
+    function pause() external onlyGuardian {
+        _pause();
+        emit TipJarPaused(msg.sender);
+    }
+
+    /**
+     * @inheritdoc ITipJar
+     * @dev Only callable by addresses with the GOVERNOR_ROLE
+     */
+    function unpause() external onlyGovernor {
+        _unpause();
+        emit TipJarUnpaused(msg.sender);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ITipJar
     function getTipStream(
@@ -94,25 +177,14 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
     }
 
     /// @inheritdoc ITipJar
-    function getAllTipStreams() external view returns (TipStream[] memory) {
-        TipStream[] memory allStreams = new TipStream[](
-            tipStreamRecipients.length
-        );
+    function getAllTipStreams()
+        external
+        view
+        returns (TipStream[] memory allStreams)
+    {
+        allStreams = new TipStream[](tipStreamRecipients.length);
         for (uint256 i = 0; i < tipStreamRecipients.length; i++) {
             allStreams[i] = tipStreams[tipStreamRecipients[i]];
-        }
-        return allStreams;
-    }
-
-    /// @inheritdoc ITipJar
-    function shake(address fleetCommander_) public {
-        _shake(fleetCommander_);
-    }
-
-    /// @inheritdoc ITipJar
-    function shakeMultiple(address[] calldata fleetCommanders) external {
-        for (uint256 i = 0; i < fleetCommanders.length; i++) {
-            _shake(fleetCommanders[i]);
         }
     }
 
@@ -123,6 +195,10 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
             total = total + tipStreams[tipStreamRecipients[i]].allocation;
         }
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Distributes accumulated tips from a single FleetCommander
@@ -199,6 +275,17 @@ contract TipJar is ITipJar, ProtocolAccessManaged, ConfigurationManaged {
         }
 
         emit TipJarShaken(address(fleetCommander), withdrawnAssets);
+    }
+
+    /**
+     * @notice Shakes multiple fleet commanders
+     * @param fleetCommanders An array of fleet commander addresses to shake
+     * @dev This function is used internally by shakeMultiple and shakeAll
+     */
+    function _shakeMultiple(address[] memory fleetCommanders) internal {
+        for (uint256 i = 0; i < fleetCommanders.length; i++) {
+            _shake(fleetCommanders[i]);
+        }
     }
 
     /**

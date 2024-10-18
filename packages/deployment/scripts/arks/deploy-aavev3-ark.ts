@@ -10,6 +10,13 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
+interface AaveV3ArkUserInput {
+  token: Address
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+}
+
 /**
  * Main function to deploy an AaveV3Ark.
  * This function orchestrates the entire deployment process, including:
@@ -38,7 +45,7 @@ export async function deployAaveV3Ark() {
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<any>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig) {
+async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as TokenType]
@@ -78,10 +85,10 @@ async function getUserInput(config: BaseConfig) {
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {any} userInput - The user's input for deployment parameters.
+ * @param {AaveV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: any) {
+async function confirmDeployment(userInput: AaveV3ArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
@@ -94,12 +101,12 @@ async function confirmDeployment(userInput: any) {
 /**
  * Deploys the AaveV3Ark contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @param {any} userInput - The user's input for deployment parameters.
+ * @param {AaveV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<AaveV3ArkContracts>} The deployed AaveV3Ark contract.
  */
 async function deployAaveV3ArkContract(
   config: BaseConfig,
-  userInput: any,
+  userInput: AaveV3ArkUserInput,
 ): Promise<AaveV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
