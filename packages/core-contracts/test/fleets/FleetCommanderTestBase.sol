@@ -22,6 +22,7 @@ import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.so
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
 import {StakingRewardsManager} from "../../src/contracts/StakingRewardsManager.sol";
@@ -171,12 +172,11 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         // Deploy StakingRewardsManager
         stakingRewardsManager = new StakingRewardsManager(
             IStakingRewardsManager.StakingRewardsParams({
-                rewardsTokens: rewardTokenAddresses,
+                rewardTokens: rewardTokenAddresses,
                 accessManager: address(accessManager),
                 governor: address(mockGovernor)
             })
         );
-
         vm.stopPrank();
 
         fleetCommanderParams = FleetCommanderParams({
@@ -194,7 +194,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         fleetCommander = new FleetCommander(fleetCommanderParams);
 
         vm.prank(governor);
-        stakingRewardsManager.initializeStakingToken(fleetCommander);
+        stakingRewardsManager.initialize(IERC20(fleetCommander));
 
         bufferArkAddress = fleetCommander.bufferArk();
         bufferArk = BufferArk(bufferArkAddress);

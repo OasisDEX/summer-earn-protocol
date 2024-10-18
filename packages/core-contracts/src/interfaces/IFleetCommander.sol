@@ -74,6 +74,12 @@ interface IFleetCommander is
     ) external returns (uint256 shares);
 
     /**
+     * @notice Stakes a specified amount of shares with the Fleet's StakingRewardsManager.
+     * @param shares The amount of shares to stake.
+     */
+    function stake(uint256 shares) external;
+
+    /**
      * @notice Deposits a specified amount of assets into the contract for a given receiver and stakes the shares.
      * @param assets The amount of assets to be deposited.
      * @param receiver The address of the receiver who will receive the deposited assets.

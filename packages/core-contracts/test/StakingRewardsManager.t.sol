@@ -7,14 +7,14 @@ import {IStakingRewardsManagerErrors} from "../src/errors/IStakingRewardsManager
 import {MockSummerGovernor} from "./mocks/MockSummerGovernor.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 
 contract StakingRewardsManagerTest is Test {
     StakingRewardsManager public stakingRewardsManager;
-    MockERC20 public stakingToken;
-    MockERC20[] public rewardTokens;
+    ERC20Mock public stakingToken;
+    ERC20Mock[] public rewardTokens;
     MockSummerGovernor public mockGovernor;
 
     address public owner;
@@ -31,15 +31,9 @@ contract StakingRewardsManagerTest is Test {
 
         // Deploy mock tokens
         console.log("Deploying mock tokens");
-        stakingToken = new MockERC20("Staking Token", "STK", 18);
+        stakingToken = new ERC20Mock();
         for (uint i = 0; i < 3; i++) {
-            rewardTokens.push(
-                new MockERC20(
-                    string(abi.encodePacked("Reward Token ", i)),
-                    string(abi.encodePacked("RT", i)),
-                    18
-                )
-            );
+            rewardTokens.push(new ERC20Mock());
         }
 
         // Deploy mock governor
@@ -59,14 +53,14 @@ contract StakingRewardsManagerTest is Test {
         );
         stakingRewardsManager = new StakingRewardsManager(
             IStakingRewardsManager.StakingRewardsParams({
-                rewardsTokens: rewardTokenAddresses,
+                rewardTokens: rewardTokenAddresses,
                 accessManager: address(accessManager),
                 governor: address(mockGovernor)
             })
         );
 
         vm.prank(address(mockGovernor));
-        stakingRewardsManager.initializeStakingToken(stakingToken);
+        stakingRewardsManager.initialize(IERC20(address(stakingToken)));
 
         // Mint initial tokens
         console.log("Minting initial tokens");
@@ -140,7 +134,7 @@ contract StakingRewardsManagerTest is Test {
     }
 
     function test_AddRewardToken() public {
-        MockERC20 newRewardToken = new MockERC20("New Reward Token", "NRT", 18);
+        ERC20Mock newRewardToken = new ERC20Mock();
         uint256 newRewardsDuration = 30 days;
 
         vm.prank(address(mockGovernor));
@@ -178,7 +172,7 @@ contract StakingRewardsManagerTest is Test {
     function test_Stake() public {
         uint256 stakeAmount = 1000 * 1e18;
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
 
         assertEq(
             stakingRewardsManager.balanceOf(alice),
@@ -195,7 +189,7 @@ contract StakingRewardsManagerTest is Test {
     function test_Withdraw() public {
         uint256 stakeAmount = 1000 * 1e18;
         vm.startPrank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
         stakingRewardsManager.withdraw(stakeAmount);
         vm.stopPrank();
 
@@ -216,7 +210,7 @@ contract StakingRewardsManagerTest is Test {
         uint256 rewardAmount = 100 * 1e18;
 
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
 
         vm.prank(address(mockGovernor));
         stakingRewardsManager.notifyRewardAmount(
@@ -245,7 +239,7 @@ contract StakingRewardsManagerTest is Test {
         uint256 rewardAmount = 100 * 1e18;
 
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
 
         vm.prank(address(mockGovernor));
         stakingRewardsManager.notifyRewardAmount(
@@ -264,7 +258,8 @@ contract StakingRewardsManagerTest is Test {
 
         uint256 stakingTokenBalanceAfter = stakingToken.balanceOf(alice);
         uint256 rewardTokenBalanceAfter = rewardTokens[0].balanceOf(alice);
-
+        console.log("Reward token balance before", rewardTokenBalanceBefore);
+        console.log("Reward token balance after", rewardTokenBalanceAfter);
         assertEq(
             stakingTokenBalanceAfter,
             stakingTokenBalanceBefore + stakeAmount,
@@ -291,7 +286,7 @@ contract StakingRewardsManagerTest is Test {
 
         // Stake tokens
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
 
         // Notify rewards for all three tokens
         vm.startPrank(address(mockGovernor));

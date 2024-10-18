@@ -23,7 +23,37 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setDepositCap(MAX_DEPOSIT_CAP);
     }
 
-    function test_DepositWithStake() public {
+    function test_Stake() public {
+        uint256 amount = DEPOSIT_AMOUNT;
+        mockToken.mint(mockUser, amount);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+
+        // First, deposit the tokens
+        fleetCommander.deposit(amount, mockUser);
+
+        // Then, approve StakingRewardsManager to spend the shares
+        fleetCommander.approve(address(fleetCommander), amount);
+
+        // Finally, stake the deposited amount
+        fleetCommander.stake(amount);
+        vm.stopPrank();
+
+        // Assert the results
+        assertEq(
+            fleetCommander.balanceOf(mockUser),
+            0,
+            "FleetCommander balance should be zero"
+        );
+        assertEq(
+            stakingRewardsManager.balanceOf(mockUser),
+            amount,
+            "StakingRewardsManager balance should match deposit amount"
+        );
+    }
+
+    function test_DepositAndStake() public {
         uint256 amount = DEPOSIT_AMOUNT;
         mockToken.mint(mockUser, amount);
 
@@ -33,14 +63,14 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
         _mockArkTotalAssets(ark2, 0);
         vm.stopPrank();
 
-        vm.startPrank(mockUser);
-        fleetCommander.approve(
-            address(stakingRewardsManager),
-            fleetCommander.convertToShares(amount)
-        );
-        vm.stopPrank();
+        // vm.startPrank(mockUser);
+        // fleetCommander.approve(
+        //     address(stakingRewardsManager),
+        //     fleetCommander.convertToShares(amount)
+        // );
+        // vm.stopPrank();
 
-        vm.startPrank(mockUser);
+        vm.prank(mockUser);
         fleetCommander.depositAndStake(amount, mockUser);
         vm.stopPrank();
 
@@ -245,8 +275,13 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
 
         vm.startPrank(mockUser);
         vm.expectEmit(true, true, true, true);
-        emit IERC4626.Deposit(mockUser, mockUser, amount, amount);
-        vm.expectEmit(true, true, true, true);
+        emit IERC4626.Deposit(
+            mockUser,
+            address(fleetCommander),
+            amount,
+            amount
+        );
+        vm.expectEmit();
         emit IStakingRewardsManager.Staked(mockUser, amount);
         fleetCommander.depositAndStake(amount, mockUser);
 
