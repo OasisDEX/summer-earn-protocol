@@ -71,7 +71,7 @@ contract StakingRewardsManager is
     }
 
     /// @inheritdoc IStakingRewardsManager
-    function balanceOf(address account) public view override returns (uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
 
@@ -128,17 +128,17 @@ contract StakingRewardsManager is
     function stake(
         address account,
         uint256 amount
-    ) external override updateReward(account) {
+    ) external virtual updateReward(account) {
         _stake(account, amount);
     }
 
     /// @inheritdoc IStakingRewardsManager
-    function withdraw(uint256 amount) public override updateReward(msg.sender) {
+    function withdraw(uint256 amount) public virtual updateReward(msg.sender) {
         _withdraw(amount);
     }
 
     /// @inheritdoc IStakingRewardsManager
-    function getReward() public override nonReentrant updateReward(msg.sender) {
+    function getReward() public virtual nonReentrant updateReward(msg.sender) {
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             IERC20 rewardToken = rewardsTokens[i];
             uint256 reward = rewards[rewardToken][msg.sender];
@@ -151,7 +151,7 @@ contract StakingRewardsManager is
     }
 
     /// @inheritdoc IStakingRewardsManager
-    function exit() external override {
+    function exit() external virtual {
         withdraw(_balances[msg.sender]);
         getReward();
     }
