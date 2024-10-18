@@ -9,7 +9,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 /**
  * @title StakingRewards
  * @notice Contract for managing staking rewards with multiple reward tokens in the Summer protocol
- * @dev Implements IStakingRewards interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
+ * @dev Implements IStakingRewardsManager interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
  */
 contract StakingRewardsManager is
     IStakingRewardsManager,
@@ -128,12 +128,14 @@ contract StakingRewardsManager is
     function stake(
         address account,
         uint256 amount
-    ) external override updateReward(account) {
+    ) public override updateReward(account) {
         _stake(account, amount);
     }
 
     /// @inheritdoc IStakingRewardsManager
-    function withdraw(uint256 amount) public override updateReward(msg.sender) {
+    function withdraw(
+        uint256 amount
+    ) public virtual override updateReward(msg.sender) {
         _withdraw(amount);
     }
 
