@@ -61,8 +61,7 @@ contract DecayableStakingRewardsManagerTest is Test {
         stakingRewardsManager = new DecayableStakingRewardsManager(
             IStakingRewardsManager.StakingRewardsParams({
                 rewardTokens: rewardTokenAddresses,
-                accessManager: address(accessManager),
-                governor: address(mockGovernor)
+                accessManager: address(accessManager)
             }),
             address(mockGovernor)
         );

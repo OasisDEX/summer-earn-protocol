@@ -12,7 +12,6 @@ interface IStakingRewardsManager is IStakingRewardsManagerErrors {
     /* @notice Parameters for initializing the Staking Rewards Manager */
     struct StakingRewardsParams {
         address[] rewardTokens;
-        address governor;
         address accessManager;
     }
 

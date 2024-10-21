@@ -59,8 +59,7 @@ contract StakingRewardsManagerTest is Test {
         stakingRewardsManager = new StakingRewardsManager(
             IStakingRewardsManager.StakingRewardsParams({
                 rewardTokens: rewardTokenAddresses,
-                accessManager: address(accessManager),
-                governor: address(mockGovernor)
+                accessManager: address(accessManager)
             })
         );
 
