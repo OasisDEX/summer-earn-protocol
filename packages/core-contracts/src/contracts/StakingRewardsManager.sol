@@ -173,7 +173,13 @@ contract StakingRewardsManager is
         uint256 reward
     ) external onlyGovernor updateReward(address(0)) {
         RewardData storage data = rewardData[rewardToken];
-        if (data.rewardsDuration == 0) revert RewardTokenNotInitialized();
+
+        // If the reward token doesn't exist, add it
+        if (data.rewardsDuration == 0) {
+            rewardTokens.push(rewardToken);
+            data.rewardsDuration = 7 days; // Default duration
+            emit RewardTokenAdded(address(rewardToken), data.rewardsDuration);
+        }
 
         if (block.timestamp >= data.periodFinish) {
             data.rewardRate = reward / data.rewardsDuration;
@@ -202,19 +208,6 @@ contract StakingRewardsManager is
             revert RewardPeriodNotComplete();
         data.rewardsDuration = _rewardsDuration;
         emit RewardsDurationUpdated(address(rewardToken), _rewardsDuration);
-    }
-
-    /// @inheritdoc IStakingRewardsManager
-    function addRewardToken(
-        IERC20 rewardToken,
-        uint256 rewardsDuration
-    ) external onlyGovernor {
-        if (rewardData[rewardToken].rewardsDuration != 0)
-            revert RewardTokenAlreadyExists();
-        if (rewardsDuration == 0) revert InvalidRewardsDuration();
-        rewardTokens.push(rewardToken);
-        rewardData[rewardToken].rewardsDuration = rewardsDuration;
-        emit RewardTokenAdded(address(rewardToken), rewardsDuration);
     }
 
     /// @inheritdoc IStakingRewardsManager
