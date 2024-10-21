@@ -117,8 +117,10 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
             0,
             "FleetCommander: Receiver shares should be with StakingRewardsManager"
         );
+
+        uint256 stakedShares = stakingRewardsManager.balanceOf(receiver);
         assertEq(
-            stakingRewardsManager.balanceOf(receiver),
+            stakedShares,
             amount,
             "StakingRewardsManager: Receiver should have received the staked amount"
         );

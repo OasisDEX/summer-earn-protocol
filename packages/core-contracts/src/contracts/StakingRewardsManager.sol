@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
+/**
+ * @title StakingRewardsManager
+ * @notice Contract for managing staking rewards with multiple reward tokens in the Summer protocol
+ * @dev Implements IStakingRewards interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
+ * @dev Inspired by Synthetix's StakingRewards contract: https://github.com/Synthetixio/synthetix/blob/v2.101.3/contracts/StakingRewards.sol
+ */
 import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
 import {IStakingRewardsManager} from "../interfaces/IStakingRewardsManager.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";

@@ -41,4 +41,9 @@ interface IFleetCommanderConfigProviderErrors {
      * @notice Thrown when trying to add a commander to an Ark that already has a commander
      */
     error FleetCommanderArkAlreadyHasCommander();
+
+    /**
+     * @notice Thrown when trying to set a StakingRewardsManager to the zero address
+     */
+    error FleetCommanderInvalidStakingRewardsManager();
 }
