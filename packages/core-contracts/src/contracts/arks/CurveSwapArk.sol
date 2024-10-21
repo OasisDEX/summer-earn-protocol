@@ -1,24 +1,25 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
+import {ICurveSwap} from "../../interfaces/curve/ICurveSwap.sol";
 import {Ark} from "../Ark.sol";
+
+import {Constants} from "../libraries/Constants.sol";
 import {ArkParams} from "./BaseSwapArk.sol";
 import {PendlePtArkConstructorParams} from "./PendlePTArk.sol";
-import {ICurveSwap} from "../../interfaces/curve/ICurveSwap.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IPActionSwapPTV3} from "@pendle/core-v2/contracts/interfaces/IPActionSwapPTV3.sol";
 import {TokenInput, TokenOutput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
-import {LimitOrderData, IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
-import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
-import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
+import {IPAllActionV3, LimitOrderData} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
+import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {IPPrincipalToken} from "@pendle/core-v2/contracts/interfaces/IPPrincipalToken.sol";
 import {IPYieldToken} from "@pendle/core-v2/contracts/interfaces/IPYieldToken.sol";
 import {IStandardizedYield} from "@pendle/core-v2/contracts/interfaces/IStandardizedYield.sol";
-import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOracle.sol";
-import {IPActionSwapPTV3} from "@pendle/core-v2/contracts/interfaces/IPActionSwapPTV3.sol";
-import {Constants} from "../libraries/Constants.sol";
+import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
+import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
+import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title CurveSwapPendlePtArk
@@ -232,8 +233,9 @@ contract CurveSwapPendlePtArk is Ark {
         if (params.length < 4) revert InvalidParamsLength();
 
         bytes4 selector = bytes4(params[:4]);
-        if (selector != IPActionSwapPTV3.swapExactTokenForPt.selector)
+        if (selector != IPActionSwapPTV3.swapExactTokenForPt.selector) {
             revert InvalidFunctionSelector();
+        }
 
         (receiver, swapMarket, minPtOut, guessPtOut, input, limit) = abi.decode(
             params[4:],
@@ -273,8 +275,9 @@ contract CurveSwapPendlePtArk is Ark {
         if (params.length < 4) revert InvalidParamsLength();
 
         bytes4 selector = bytes4(params[:4]);
-        if (selector != IPActionSwapPTV3.swapExactPtForToken.selector)
+        if (selector != IPActionSwapPTV3.swapExactPtForToken.selector) {
             revert InvalidFunctionSelector();
+        }
 
         (receiver, swapMarket, exactPtIn, output, limit) = abi.decode(
             params[4:],
@@ -658,8 +661,9 @@ contract CurveSwapPendlePtArk is Ark {
      * @notice Check if trading should be allowed
      */
     function _shouldTrade() internal view {
-        if (!onlyWhenBetween(getExchangeRateEma(), lowerEma, upperEma))
+        if (!onlyWhenBetween(getExchangeRateEma(), lowerEma, upperEma)) {
             revert EmaOutOfRange();
+        }
     }
 
     /**
@@ -683,12 +687,14 @@ contract CurveSwapPendlePtArk is Ark {
 
     /**
      * @notice Modifier to check if buying should be allowed
-     * @dev This modifier ensures that the market is not expired and that the market expiration is not too close to the current block timestamp.
+     * @dev This modifier ensures that the market is not expired and that the market expiration is not too close to the
+     * current block timestamp.
      */
     modifier shouldBuy() {
         _shouldTrade();
-        if (marketExpiry <= block.timestamp + 20 days)
+        if (marketExpiry <= block.timestamp + 20 days) {
             revert MarketExpirationTooClose();
+        }
         _;
     }
 

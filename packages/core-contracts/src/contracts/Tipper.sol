@@ -24,6 +24,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    assuming it represents shares in the system.
  * @custom:see ITipper
  */
+
 abstract contract Tipper is ITipper, ConfigurationManaged {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;

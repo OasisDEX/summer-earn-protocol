@@ -12,6 +12,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @notice Interface for configuration of Ark contracts
  * @dev Inherits from IArkAccessManaged for access control and IArkConfigProviderEvents for event definitions
  */
+
 interface IArkConfigProvider is
     IArkAccessManaged,
     IArkConfigProviderErrors,

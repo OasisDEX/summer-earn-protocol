@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import "../Ark.sol";
 import {IBaseSwapArkEvents} from "../../events/arks/IBaseSwapArkEvents.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {PercentageUtils, Percentage, PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
 import {IBaseSwapArk} from "../../interfaces/arks/IBaseSwapArk.sol";
+import "../Ark.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 /**
  * @title BaseSwapArk
  * @notice Base contract for swap-based Ark strategies
  * @dev This contract contains common functionality for Arks that use token swaps
  */
+
 abstract contract BaseSwapArk is Ark, IBaseSwapArk {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -165,8 +167,9 @@ abstract contract BaseSwapArk is Ark, IBaseSwapArk {
         uint256 balanceAfter = toToken.balanceOf(address(this));
         swappedAmount = balanceAfter - balanceBefore;
 
-        if (swappedAmount < minTokensReceived)
+        if (swappedAmount < minTokensReceived) {
             revert InsufficientOutputAmount();
+        }
     }
 
     /**
