@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {StakingRewardsManager} from "../src/contracts/StakingRewardsManager.sol";
 import {IStakingRewardsManager} from "../src/interfaces/IStakingRewardsManager.sol";

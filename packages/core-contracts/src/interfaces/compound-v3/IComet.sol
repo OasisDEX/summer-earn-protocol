@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 interface IComet {
     event Supply(address indexed from, address indexed dst, uint256 amount);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {SummerToken} from "../src/contracts/SummerToken.sol";
 import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";

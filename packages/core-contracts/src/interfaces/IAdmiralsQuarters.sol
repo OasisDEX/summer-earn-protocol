@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {IAdmiralsQuartersErrors} from "../errors/IAdmiralsQuartersErrors.sol";
 import {IAdmiralsQuartersEvents} from "../events/IAdmiralsQuartersEvents.sol";

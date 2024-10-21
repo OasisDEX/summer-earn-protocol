@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 /* @title IStakingRewardsManagerErrors
  * @notice Interface defining custom errors for the Staking Rewards Manager
