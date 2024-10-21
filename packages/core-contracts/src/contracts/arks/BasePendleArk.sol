@@ -203,12 +203,12 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
     function _updateMarketAndTokens(address newMarket) internal {
         market = newMarket;
         (SY, PT, YT) = IPMarketV3(newMarket).readTokens();
-        // if (
-        //     !IStandardizedYield(SY).isValidTokenIn(address(config.token)) ||
-        //     !IStandardizedYield(SY).isValidTokenOut(address(config.token))
-        // ) {
-        //     revert InvalidAssetForSY();
-        // }
+        if (
+            !IStandardizedYield(SY).isValidTokenIn(address(config.token)) ||
+            !IStandardizedYield(SY).isValidTokenOut(address(config.token))
+        ) {
+            revert InvalidAssetForSY();
+        }
         _setupApprovals();
         _updateMarketData();
     }
