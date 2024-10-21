@@ -2,10 +2,9 @@
 pragma solidity 0.8.27;
 
 import {ICurveSwap} from "../../interfaces/curve/ICurveSwap.sol";
-import {Ark} from "../Ark.sol";
+import {Ark, ArkParams} from "../Ark.sol";
 
 import {Constants} from "../libraries/Constants.sol";
-import {ArkParams} from "./BaseSwapArk.sol";
 import {PendlePtArkConstructorParams} from "./PendlePTArk.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -21,11 +20,15 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
+interface IERC20Extended is IERC20 {
+    function decimals() external view returns (uint8);
+}
 /**
  * @title CurveSwapPendlePtArk
  * @notice A contract for managing Curve swaps and Pendle PT (Principal Token) operations
  * @dev This contract extends the Ark contract and implements specific logic for Curve and Pendle interactions
  */
+
 contract CurveSwapPendlePtArk is Ark {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -49,6 +52,9 @@ contract CurveSwapPendlePtArk is Ark {
     address public router;
     address public nextMarket;
     address public immutable oracle;
+    uint8 public configTokenDecimals;
+    uint8 public marketAssetDecimals;
+    uint8 public ptDecimals;
     uint32 public oracleDuration;
     IStandardizedYield public SY;
     IPPrincipalToken public PT;
@@ -202,7 +208,8 @@ contract CurveSwapPendlePtArk is Ark {
         uint256 assetAmount = (IERC20(PT).balanceOf(address(this)) *
             _ptToAssetRate()) / Constants.WAD;
         uint256 usdeToUsdcExchangeRate = getExchangeRate();
-        uint256 usdcAmount = (assetAmount * 1e6) / usdeToUsdcExchangeRate;
+        uint256 usdcAmount = (assetAmount * 10 ** configTokenDecimals) /
+            usdeToUsdcExchangeRate;
         return usdcAmount;
     }
 
@@ -531,12 +538,16 @@ contract CurveSwapPendlePtArk is Ark {
     function _updateMarketAndTokens(address newMarket) internal {
         market = newMarket;
         (SY, PT, YT) = IPMarketV3(newMarket).readTokens();
+
         if (
             !IStandardizedYield(SY).isValidTokenIn(address(marketAsset)) ||
             !IStandardizedYield(SY).isValidTokenOut(address(marketAsset))
         ) {
             revert InvalidAssetForSY();
         }
+        configTokenDecimals = IERC20Extended(address(config.token)).decimals();
+        marketAssetDecimals = IERC20Extended(marketAsset).decimals();
+        ptDecimals = PT.decimals();
         _updateMarketData();
     }
 
@@ -555,7 +566,8 @@ contract CurveSwapPendlePtArk is Ark {
      * @return The equivalent amount of Ark tokens
      */
     function _assetToArkTokens(uint256 amount) internal view returns (uint256) {
-        return (amount * Constants.WAD) / _ptToAssetRate();
+        uint256 scaleFactor = 10 ** (18 + ptDecimals - marketAssetDecimals);
+        return (amount * scaleFactor) / _ptToAssetRate();
     }
 
     /**
