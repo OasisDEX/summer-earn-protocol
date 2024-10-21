@@ -23,12 +23,13 @@ import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-
 interface IERC20Extended is IERC20 {
     function decimals() external view returns (uint8);
 }
+
 /**
  * @title CurveSwapPendlePtArk
  * @notice A contract for managing Curve swaps and Pendle PT (Principal Token) operations
  * @dev This contract extends the Ark contract and implements specific logic for Curve and Pendle interactions
+ * It combines functionality from BasePendleArk and PendlePTArk, adapting it for Curve swap operations
  */
-
 contract CurveSwapPendlePtArk is Ark {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -194,8 +195,8 @@ contract CurveSwapPendlePtArk is Ark {
     function totalAssets() public view override returns (uint256) {
         return
             (this.isMarketExpired())
-                ? totalAssetsNoSplippage()
-                : totalAssetsNoSplippage().subtractPercentage(
+                ? totalAssetsNoSlippage()
+                : totalAssetsNoSlippage().subtractPercentage(
                     slippagePercentage
                 );
     }
@@ -204,13 +205,13 @@ contract CurveSwapPendlePtArk is Ark {
      * @notice Calculates the total assets held by the Ark without considering slippage
      * @return The total assets in underlying token without slippage
      */
-    function totalAssetsNoSplippage() public view returns (uint256) {
+    function totalAssetsNoSlippage() public view returns (uint256) {
         uint256 assetAmount = (IERC20(PT).balanceOf(address(this)) *
             _ptToAssetRate()) / Constants.WAD;
-        uint256 usdeToUsdcExchangeRate = getExchangeRate();
-        uint256 usdcAmount = (assetAmount * 10 ** configTokenDecimals) /
-            usdeToUsdcExchangeRate;
-        return usdcAmount;
+        uint256 marketAssetToArkTokenExchangeRate = getExchangeRate();
+        uint256 arkTokenAmount = (assetAmount * 10 ** configTokenDecimals) /
+            marketAssetToArkTokenExchangeRate;
+        return arkTokenAmount;
     }
 
     /**
@@ -381,6 +382,7 @@ contract CurveSwapPendlePtArk is Ark {
      * @notice Internal function to deposit tokens for Ark tokens
      * @param _amount Amount of tokens to deposit
      * @param data Additional data for the deposit
+     * @dev This function is called during the boarding process
      */
     function _depositFleetTokenForArkToken(
         uint256 _amount,
@@ -417,6 +419,7 @@ contract CurveSwapPendlePtArk is Ark {
      * @notice Internal function to withdraw Ark tokens for tokens
      * @param _amount Amount of Ark tokens to withdraw
      * @param data Additional data for the withdrawal
+     * @dev This function is called during the disembarking process
      */
     function _withdrawArkTokenForToken(
         uint256 _amount,
