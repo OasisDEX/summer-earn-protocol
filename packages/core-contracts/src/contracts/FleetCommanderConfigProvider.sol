@@ -176,6 +176,9 @@ contract FleetCommanderConfigProvider is
     function setStakingRewardsManager(
         address newStakingRewardsManager
     ) external onlyCurator whenNotPaused {
+        if (newStakingRewardsManager == address(0)) {
+            revert FleetCommanderInvalidStakingRewardsManager();
+        }
         config.stakingRewardsManager = newStakingRewardsManager;
         emit FleetCommanderStakingRewardsUpdated(newStakingRewardsManager);
     }
