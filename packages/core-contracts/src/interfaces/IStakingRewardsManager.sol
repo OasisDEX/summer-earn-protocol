@@ -11,7 +11,7 @@ import {IStakingRewardsManagerErrors} from "../errors/IStakingRewardsManagerErro
 interface IStakingRewardsManager is IStakingRewardsManagerErrors {
     /* @notice Parameters for initializing the Staking Rewards Manager */
     struct StakingRewardsParams {
-        address[] rewardsTokens;
+        address[] rewardTokens;
         address governor;
         address accessManager;
     }
@@ -70,15 +70,20 @@ interface IStakingRewardsManager is IStakingRewardsManagerErrors {
      * @param index The index of the reward token
      * @return The IERC20 interface of the reward token
      */
-    function rewardsTokens(uint256 index) external view returns (IERC20);
+    function rewardTokens(uint256 index) external view returns (IERC20);
 
     // Mutative functions
 
     /* @notice Stake tokens for an account
+     * @param amount The amount of tokens to stake
+     */
+    function stake(uint256 amount) external;
+
+    /* @notice Stake tokens for an account on behalf of another account
      * @param account The address of the account to stake for
      * @param amount The amount of tokens to stake
      */
-    function stake(address account, uint256 amount) external;
+    function stakeOnBehalf(address account, uint256 amount) external;
 
     /* @notice Withdraw staked tokens
      * @param amount The amount of tokens to withdraw
@@ -120,7 +125,7 @@ interface IStakingRewardsManager is IStakingRewardsManagerErrors {
     /* @notice Initialize the staking token
      * @param _stakingToken The address of the staking token
      */
-    function initializeStakingToken(IERC20 _stakingToken) external;
+    function initialize(IERC20 _stakingToken) external;
 
     // Events
 
@@ -172,4 +177,9 @@ interface IStakingRewardsManager is IStakingRewardsManagerErrors {
      * @param stakingToken The address of the staking token
      */
     event StakingTokenInitialized(address stakingToken);
+
+    /* @notice Emitted when a reward token is removed
+     * @param rewardToken The address of the reward token
+     */
+    event RewardTokenRemoved(address rewardToken);
 }

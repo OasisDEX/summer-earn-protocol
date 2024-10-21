@@ -40,4 +40,7 @@ interface IStakingRewardsManagerErrors {
 
     /* @notice Thrown when trying to interact with the staking token before it's initialized */
     error StakingTokenNotInitialized();
+
+    /* @notice Thrown when trying to remove a reward token that doesn't exist */
+    error RewardTokenDoesNotExist();
 }
