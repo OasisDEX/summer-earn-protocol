@@ -253,7 +253,7 @@ contract StakingRewardsManager is
             rewards[rewardToken][account];
     }
 
-    function _stake(address account, uint256 amount) internal {
+    function _stake(uint256 amount) internal {
         if (amount == 0) revert CannotStakeZero();
         if (address(stakingToken) == address(0))
             revert StakingTokenNotInitialized();
@@ -292,15 +292,7 @@ contract StakingRewardsManager is
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-<<<<<<< HEAD
     modifier updateReward(address account) virtual {
-        for (uint256 i = 0; i < rewardsTokens.length; i++) {
-            IERC20 rewardToken = rewardsTokens[i];
-            RewardData storage data = rewardData[rewardToken];
-            data.rewardPerTokenStored = rewardPerToken(rewardToken);
-            data.lastUpdateTime = lastTimeRewardApplicable(rewardToken);
-=======
-    modifier updateReward(address account) {
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             IERC20 rewardToken = rewardTokens[i];
             RewardData storage rewardTokenData = rewardData[rewardToken];
@@ -308,7 +300,6 @@ contract StakingRewardsManager is
             rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
                 rewardToken
             );
->>>>>>> jt/feat/staking-rewards
             if (account != address(0)) {
                 rewards[rewardToken][account] = earned(account, rewardToken);
                 userRewardPerTokenPaid[rewardToken][account] = rewardTokenData

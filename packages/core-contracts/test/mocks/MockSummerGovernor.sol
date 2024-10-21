@@ -63,4 +63,8 @@ contract MockSummerGovernor is ERC165, VotingDecayManager {
     ) internal pure override returns (address) {
         return account;
     }
+
+    function updateDecayFactor(address account) external {
+        _updateDecayFactor(account);
+    }
 }

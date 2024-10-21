@@ -6,7 +6,7 @@ import {IStakingRewardsManagerErrors} from "../../src/errors/IStakingRewardsMana
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {DecayableStakingRewardsManager} from "../../src/contracts/DecayableStakingRewardsManager.sol";
@@ -14,8 +14,8 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.
 
 contract DecayableStakingRewardsManagerTest is Test {
     DecayableStakingRewardsManager public stakingRewardsManager;
-    MockERC20 public stakingToken;
-    MockERC20[] public rewardTokens;
+    ERC20Mock public stakingToken;
+    ERC20Mock[] public rewardTokens;
     MockSummerGovernor public mockGovernor;
 
     address public owner;
@@ -24,6 +24,9 @@ contract DecayableStakingRewardsManagerTest is Test {
 
     uint256 constant INITIAL_REWARD_AMOUNT = 1000000 * 1e18;
     uint256 constant INITIAL_STAKE_AMOUNT = 100000 * 1e18;
+    // 0.1e18 per year is approximately 3.168808781402895e9 per second
+    // (0.1e18 / (365 * 24 * 60 * 60))
+    uint256 internal constant INITIAL_DECAY_RATE = 3.1709792e9; // ~10% per year
 
     function setUp() public {
         owner = address(this);
@@ -31,21 +34,15 @@ contract DecayableStakingRewardsManagerTest is Test {
         bob = address(0x2);
 
         // Deploy mock tokens
-        stakingToken = new MockERC20("Staking Token", "STK", 18);
+        stakingToken = new ERC20Mock();
         for (uint i = 0; i < 3; i++) {
-            rewardTokens.push(
-                new MockERC20(
-                    string(abi.encodePacked("Reward Token ", i)),
-                    string(abi.encodePacked("RT", i)),
-                    18
-                )
-            );
+            rewardTokens.push(new ERC20Mock());
         }
 
         // Deploy mock governor with initial decay settings
         mockGovernor = new MockSummerGovernor(
-            7 days, // initialDecayFreeWindow
-            1e16, // initialDecayRate (1% per day)
+            7 days,
+            INITIAL_DECAY_RATE,
             VotingDecayLibrary.DecayFunction.Linear
         );
 
@@ -63,7 +60,7 @@ contract DecayableStakingRewardsManagerTest is Test {
         );
         stakingRewardsManager = new DecayableStakingRewardsManager(
             IStakingRewardsManager.StakingRewardsParams({
-                rewardsTokens: rewardTokenAddresses,
+                rewardTokens: rewardTokenAddresses,
                 accessManager: address(accessManager),
                 governor: address(mockGovernor)
             }),
@@ -71,7 +68,7 @@ contract DecayableStakingRewardsManagerTest is Test {
         );
 
         vm.prank(address(mockGovernor));
-        stakingRewardsManager.initializeStakingToken(stakingToken);
+        stakingRewardsManager.initialize(stakingToken);
 
         // Mint initial tokens
         stakingToken.mint(alice, INITIAL_STAKE_AMOUNT);
@@ -95,7 +92,7 @@ contract DecayableStakingRewardsManagerTest is Test {
 
         // Alice stakes
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
 
         // Check if the decay factor is initialized correctly
         uint256 decayFactor = mockGovernor.getDecayFactor(alice);
@@ -111,14 +108,14 @@ contract DecayableStakingRewardsManagerTest is Test {
 
         // Alice stakes
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
 
         // Fast forward time beyond decay-free window
         vm.warp(block.timestamp + 8 days);
 
         // Alice stakes again, triggering decay factor update
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
 
         // Check updated decay factor
         uint256 decayFactor = mockGovernor.getDecayFactor(alice);
@@ -136,7 +133,11 @@ contract DecayableStakingRewardsManagerTest is Test {
 
         // Alice stakes
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Simulate decay factor update on mock governor
+        MockSummerGovernor(address(stakingRewardsManager.governor()))
+            .updateDecayFactor(alice);
 
         // Notify reward
         vm.prank(address(mockGovernor));
@@ -146,7 +147,8 @@ contract DecayableStakingRewardsManagerTest is Test {
         );
 
         // Fast forward time beyond decay-free window
-        vm.warp(block.timestamp + 8 days);
+        // 7 days is the decay-free window, 36 days is the decay period (where 1% decay is applied)
+        vm.warp(block.timestamp + 7 days + 36 days);
 
         // Calculate earned amount
         uint256 earnedAmount = stakingRewardsManager.earned(
@@ -174,7 +176,11 @@ contract DecayableStakingRewardsManagerTest is Test {
 
         // Alice stakes
         vm.prank(alice);
-        stakingRewardsManager.stake(alice, stakeAmount);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Simulate decay factor update on mock governor
+        MockSummerGovernor(address(stakingRewardsManager.governor()))
+            .updateDecayFactor(alice);
 
         // Notify rewards for all three tokens
         vm.startPrank(address(mockGovernor));
@@ -187,7 +193,8 @@ contract DecayableStakingRewardsManagerTest is Test {
         vm.stopPrank();
 
         // Fast forward time beyond decay-free window
-        vm.warp(block.timestamp + 8 days);
+        // 7 days is the decay-free window, 36 days is the decay period (where 1% decay is applied)
+        vm.warp(block.timestamp + 7 days + 36 days);
 
         // Check earned amounts
         for (uint i = 0; i < rewardTokens.length; i++) {

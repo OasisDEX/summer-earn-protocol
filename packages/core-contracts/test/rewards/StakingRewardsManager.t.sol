@@ -9,8 +9,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
 contract StakingRewardsManagerTest is Test {
     StakingRewardsManager public stakingRewardsManager;

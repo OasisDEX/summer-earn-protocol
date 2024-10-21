@@ -25,7 +25,7 @@ interface IVotingDecayManager {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event DecayUpdated(address indexed account, uint256 newRetentionFactor);
+    event DecayUpdated(address indexed account, uint256 newDecayFactor);
     event DecayRateSet(uint256 newRate);
     event DecayReset(address indexed account);
     event DecayFreeWindowSet(uint256 window);

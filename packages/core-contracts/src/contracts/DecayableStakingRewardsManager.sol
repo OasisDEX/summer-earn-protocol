@@ -49,17 +49,18 @@ contract DecayableStakingRewardsManager is StakingRewardsManager {
 
     /// @inheritdoc IStakingRewardsManager
     function stake(
-        address account,
         uint256 amount
-    ) external override updateReward(account) {
-        _stake(account, amount);
-        _updateSmoothedDecayFactor(account);
+    ) external override updateReward(_msgSender()) {
+        _stake(amount);
+        _updateSmoothedDecayFactor(_msgSender());
     }
 
     /// @inheritdoc IStakingRewardsManager
-    function withdraw(uint256 amount) public override updateReward(msg.sender) {
+    function withdraw(
+        uint256 amount
+    ) public override updateReward(_msgSender()) {
         _withdraw(amount);
-        _updateSmoothedDecayFactor(msg.sender);
+        _updateSmoothedDecayFactor(_msgSender());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -72,7 +73,11 @@ contract DecayableStakingRewardsManager is StakingRewardsManager {
         IERC20 rewardToken
     ) public view override returns (uint256) {
         uint256 rawEarned = _earned(account, rewardToken);
-        return (rawEarned * userSmoothedDecayFactor[account]) / 1e18;
+        uint256 latestSmoothedDecayFactor = _calculateSmoothedDecayFactor(
+            account
+        );
+
+        return (rawEarned * latestSmoothedDecayFactor) / 1e18;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -80,14 +85,16 @@ contract DecayableStakingRewardsManager is StakingRewardsManager {
     //////////////////////////////////////////////////////////////*/
 
     modifier updateReward(address account) override {
-        for (uint256 i = 0; i < rewardsTokens.length; i++) {
-            IERC20 rewardToken = rewardsTokens[i];
-            RewardData storage data = rewardData[rewardToken];
-            data.rewardPerTokenStored = rewardPerToken(rewardToken);
-            data.lastUpdateTime = lastTimeRewardApplicable(rewardToken);
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            IERC20 rewardToken = rewardTokens[i];
+            RewardData storage rewardTokenData = rewardData[rewardToken];
+            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
+            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
+                rewardToken
+            );
             if (account != address(0)) {
                 rewards[rewardToken][account] = earned(account, rewardToken);
-                userRewardPerTokenPaid[rewardToken][account] = data
+                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
                     .rewardPerTokenStored;
             }
         }
@@ -106,21 +113,30 @@ contract DecayableStakingRewardsManager is StakingRewardsManager {
      * @param account The address of the account to update
      */
     function _updateSmoothedDecayFactor(address account) internal {
-        // Get the current decay factor (voting power) for the account
+        userSmoothedDecayFactor[account] = _calculateSmoothedDecayFactor(
+            account
+        );
+    }
+
+    /**
+     * @notice Calculates the smoothed decay factor for a given account without modifying state
+     * @param account The address of the account to calculate for
+     * @return The calculated smoothed decay factor
+     */
+    function _calculateSmoothedDecayFactor(
+        address account
+    ) internal view returns (uint256) {
         uint256 currentDecayFactor = governor.getDecayFactor(account);
 
-        // If this is the first update for the account, set the smoothed factor to the current factor
+        // If there's no existing smoothed factor, return the current factor
         if (userSmoothedDecayFactor[account] == 0) {
-            userSmoothedDecayFactor[account] = currentDecayFactor;
-        } else {
-            // Apply exponential moving average (EMA) smoothing
-            // Formula: newSmoothedFactor = (currentFactor * smoothingWeight) + (oldSmoothedFactor * (1 - smoothingWeight))
-            // Where smoothingWeight = DECAY_SMOOTHING_FACTOR / 1000000 (0.2 or 20%)
-            userSmoothedDecayFactor[account] =
-                ((currentDecayFactor * DECAY_SMOOTHING_FACTOR) +
-                    (userSmoothedDecayFactor[account] *
-                        (1000000 - DECAY_SMOOTHING_FACTOR))) /
-                1000000;
+            return currentDecayFactor;
         }
+
+        // Apply exponential moving average (EMA) smoothing
+        return
+            ((currentDecayFactor * DECAY_SMOOTHING_FACTOR) +
+                (userSmoothedDecayFactor[account] *
+                    (1000000 - DECAY_SMOOTHING_FACTOR))) / 1000000;
     }
 }
