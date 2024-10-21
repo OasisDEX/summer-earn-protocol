@@ -59,11 +59,12 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
             requiresKeeperData: false
         });
 
-        PendlePtArkConstructorParams memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
-            market: MARKET,
-            oracle: ORACLE,
-            router: ROUTER
-        });
+        PendlePtArkConstructorParams
+            memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
+                market: MARKET,
+                oracle: ORACLE,
+                router: ROUTER
+            });
 
         ark = new PendlePTArk(pendlePtArkConstructorParams, params);
 
@@ -381,11 +382,12 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
         });
 
         vm.expectRevert(abi.encodeWithSignature("InvalidAssetForSY()"));
-        PendlePtArkConstructorParams memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
-            market: MARKET,
-            oracle: ORACLE,
-            router: ROUTER
-        });
+        PendlePtArkConstructorParams
+            memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
+                market: MARKET,
+                oracle: ORACLE,
+                router: ROUTER
+            });
         new PendlePTArk(pendlePtArkConstructorParams, params);
     }
 

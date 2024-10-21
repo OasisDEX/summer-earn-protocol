@@ -13,29 +13,33 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  * @returns  An object containing the address of the deployed PendlePTArk contract
  */
 export default buildModule('PendleSwapPtModule', (m) => {
-    const market = m.getParameter('market')
-    const oracle = m.getParameter('oracle')
-    const router = m.getParameter('router')
-    const arkParams = m.getParameter('arkParams')
+  const market = m.getParameter('market')
+  const oracle = m.getParameter('oracle')
+  const router = m.getParameter('router')
+  const arkParams = m.getParameter('arkParams')
 
-    const pendleArkParams = {
-        router: router,
-        oracle: oracle,
-        market: market
-    }
-    const curveSwapArkParams = {
-        curvePool: '0x1c34204FCFE5314Dcf53BE2671C02c35DB58B4e3',
-        marketAsset: '0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34',
-    }
+  const pendleArkParams = {
+    router: router,
+    oracle: oracle,
+    market: market,
+  }
+  const curveSwapArkParams = {
+    curvePool: '0x1c34204FCFE5314Dcf53BE2671C02c35DB58B4e3',
+    marketAsset: '0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34',
+  }
 
-    const pendlePTArk = m.contract('CurveSwapPendlePtArk', [arkParams, pendleArkParams, curveSwapArkParams])
+  const pendlePTArk = m.contract('CurveSwapPendlePtArk', [
+    arkParams,
+    pendleArkParams,
+    curveSwapArkParams,
+  ])
 
-    return { pendlePTArk }
+  return { pendlePTArk }
 })
 
 /**
  * Type definition for the returned contract address
  */
 export type PendlePTArkContracts = {
-    pendlePTArk: { address: string }
+  pendlePTArk: { address: string }
 }

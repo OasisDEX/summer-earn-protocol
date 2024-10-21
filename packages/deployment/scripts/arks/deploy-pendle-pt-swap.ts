@@ -2,7 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import PendleSwapPtModule, { PendlePTArkContracts } from '../../ignition/modules/arks/pendle-swap-pt-ark'
+import PendleSwapPtModule, {
+  PendlePTArkContracts,
+} from '../../ignition/modules/arks/pendle-swap-pt-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -104,22 +106,21 @@ async function deployPendlePTArkContract(
 ): Promise<PendlePTArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-console.log({
-  market: userInput.marketId,
-  oracle: userInput.oracle,
-  router: userInput.router,
-  arkParams: {
-    name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
-    accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
-    configurationManager: config.deployedContracts.core.configurationManager
-      .address as Address,
-    token: userInput.token,
-    depositCap: userInput.depositCap,
-    maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-    maxRebalanceInflow: userInput.maxRebalanceInflow,
-    requiresKeeperData: true,
-  },
-})
+  console.log({
+    market: userInput.marketId,
+    oracle: userInput.oracle,
+    router: userInput.router,
+    arkParams: {
+      name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
+      accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
+      configurationManager: config.deployedContracts.core.configurationManager.address as Address,
+      token: userInput.token,
+      depositCap: userInput.depositCap,
+      maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+      maxRebalanceInflow: userInput.maxRebalanceInflow,
+      requiresKeeperData: true,
+    },
+  })
   return (await hre.ignition.deploy(PendleSwapPtModule, {
     parameters: {
       PendleSwapPtModule: {

@@ -166,6 +166,10 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         accessManager.grantCommanderRole(address(usdcArk), commander);
         vm.stopPrank();
 
+        vm.startPrank(governor);
+        usdceArk.setNextMarket(NEXT_MARKET);
+        usdcArk.setNextMarket(NEXT_MARKET);
+        vm.stopPrank();
         vm.label(USDE, "USDE");
         vm.label(MARKET, "MARKET");
         vm.label(NEXT_MARKET, "NEXT_MARKET");
@@ -284,7 +288,9 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             pendlePtArkConstructorParams,
             curveSwapArkConstructorParams
         );
-        console.log("ark address", address(rolloverTestArk));
+        vm.startPrank(governor);
+        rolloverTestArk.setNextMarket(MARKET);
+        vm.stopPrank();
         vm.makePersistent(address(rolloverTestArk));
         // Mint some PT tokens to the Ark
         uint256 initialPtBalance = 1000 * 1e18;
@@ -380,8 +386,6 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         console.log("usdcBalanceCommanderAfter   ", usdcBalanceCommanderAfter);
         console.log("usdcBalanceArkBefore        ", usdcBalanceArkBefore);
         console.log("usdcBalanceArkAfter         ", usdcBalanceArkAfter);
-
-        
     }
 
     function test_Board_PendlePTArk_fork() public {
@@ -428,8 +432,6 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         );
     }
 
-
-
     function test_DepositToExpireMarket_PendlePTArk_fork() public {
         // Arrange
         uint256 amount = 1000 * 10 ** 6;
@@ -439,7 +441,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             swapForPtParams: swapDataBuy1000USDCE
         });
         bytes memory encodedBoardData = abi.encode(boardData);
-   
+
         vm.mockCall(
             address(usdceArk),
             abi.encodeWithSignature("isMarketExpired()"),
@@ -447,10 +449,9 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         );
         vm.startPrank(commander);
         usdce.approve(address(usdceArk), amount);
-                vm.expectRevert(abi.encodeWithSignature("MarketExpired()"));
+        vm.expectRevert(abi.encodeWithSignature("MarketExpired()"));
         usdceArk.board(amount, encodedBoardData);
         vm.stopPrank();
-
     }
     // function test_WithdrawFromExpireMarket_PendlePTArk_fork() public {
     //     // Create a new Ark with the previous market
@@ -531,7 +532,6 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
     //         "Commander should have received USDC back"
     //     );
     // }
-
 
     function test_SetSlippagePercentage() public {
         Percentage newSlippagePercentage = PercentageUtils.fromFraction(1, 100);

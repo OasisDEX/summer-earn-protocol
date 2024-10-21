@@ -3,11 +3,11 @@ pragma solidity 0.8.27;
 
 import "./BasePendleArk.sol";
 
-    struct PendlePtArkConstructorParams {
-        address market;
-        address oracle;
-        address router;
-    }
+struct PendlePtArkConstructorParams {
+    address market;
+    address oracle;
+    address router;
+}
 
 /**
  * @title PendlePTArk
@@ -22,7 +22,6 @@ contract PendlePTArk is BasePendleArk {
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-
     /**
      * @notice Constructor for PendlePTArk
      * @param _pendlePtArkConstructorParams PendlePtArkConstructorParams struct containing initialization parameters
@@ -31,7 +30,14 @@ contract PendlePTArk is BasePendleArk {
     constructor(
         PendlePtArkConstructorParams memory _pendlePtArkConstructorParams,
         ArkParams memory _params
-    ) BasePendleArk(_pendlePtArkConstructorParams.market, _pendlePtArkConstructorParams.oracle, _pendlePtArkConstructorParams.router, _params) {}
+    )
+        BasePendleArk(
+            _pendlePtArkConstructorParams.market,
+            _pendlePtArkConstructorParams.oracle,
+            _pendlePtArkConstructorParams.router,
+            _params
+        )
+    {}
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS

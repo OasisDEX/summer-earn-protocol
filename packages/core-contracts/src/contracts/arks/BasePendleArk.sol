@@ -146,7 +146,10 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      *
      * The slippage is applied differently in each case to protect the user from unfavorable price movements.
      */
-    function _disembark(uint256 amount, bytes calldata) internal virtual override {
+    function _disembark(
+        uint256 amount,
+        bytes calldata
+    ) internal virtual override {
         _rolloverIfNeeded();
         if (block.timestamp >= marketExpiry) {
             _redeemTokensPostExpiry(amount, amount);

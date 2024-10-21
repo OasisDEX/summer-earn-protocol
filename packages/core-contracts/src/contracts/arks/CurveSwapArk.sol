@@ -46,6 +46,7 @@ contract CurveSwapPendlePtArk is Ark {
     address public marketAsset;
     address public market;
     address public router;
+    address public nextMarket;
     address public immutable oracle;
     uint32 public oracleDuration;
     IStandardizedYield public SY;
@@ -75,6 +76,10 @@ contract CurveSwapPendlePtArk is Ark {
     struct DisembarkData {
         bytes swapPtForTokenParams;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
 
     event MarketRolledOver(address newMarket);
     event SlippageUpdated(Percentage slippagePercentage);
@@ -106,6 +111,7 @@ contract CurveSwapPendlePtArk is Ark {
         uint256 minOracleDuration
     );
     error InvalidAssetForSY();
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -154,6 +160,10 @@ contract CurveSwapPendlePtArk is Ark {
         }
     }
 
+    /**
+     * @notice Get the EMA exchange rate from the Curve pool
+     * @return price The EMA exchange rate
+     */
     function getExchangeRateEma() public view returns (uint256 price) {
         price = curveSwap.ema_price(0);
         if (price > upperEma) {
@@ -173,11 +183,6 @@ contract CurveSwapPendlePtArk is Ark {
      * @dev We handle this differently based on whether the market has expired:
      * 1. If the market has expired: return the exact PT / LP balance (1:1 ratio)
      * 2. If the market has not expired: subtract slippage from the calculated asset amount
-     *
-     * By subtracting slippage from total assets when the market is active, we ensure that:
-     * a) We provide a conservative estimate of the Ark's value
-     * b) We can always fulfill withdrawal requests, even in volatile market conditions
-     * c) Users might receive slightly more than expected, which is beneficial for them
      */
     function totalAssets() public view override returns (uint256) {
         return
@@ -188,6 +193,10 @@ contract CurveSwapPendlePtArk is Ark {
                 );
     }
 
+    /**
+     * @notice Calculates the total assets held by the Ark without considering slippage
+     * @return The total assets in underlying token without slippage
+     */
     function totalAssetsNoSplippage() public view returns (uint256) {
         uint256 assetAmount = (IERC20(PT).balanceOf(address(this)) *
             _ptToAssetRate()) / Constants.WAD;
@@ -195,15 +204,16 @@ contract CurveSwapPendlePtArk is Ark {
         uint256 usdcAmount = (assetAmount * 1e6) / usdeToUsdcExchangeRate;
         return usdcAmount;
     }
+
     /**
      * @notice Validate and decode swap for PT parameters
      * @param params Encoded swap parameters
-     * @return receiver - address of the receiver
-     * @return swapMarket - address of the swap market
-     * @return minPtOut - minimum amount of PT out
-     * @return guessPtOut - guess amount of PT out
-     * @return input - token input
-     * @return limit - limit order data
+     * @return receiver Address of the receiver
+     * @return swapMarket Address of the swap market
+     * @return minPtOut Minimum amount of PT out
+     * @return guessPtOut Guess amount of PT out
+     * @return input Token input
+     * @return limit Limit order data
      */
     function validateAndDecodeSwapForPtParams(
         bytes calldata params
@@ -241,11 +251,11 @@ contract CurveSwapPendlePtArk is Ark {
     /**
      * @notice Validate and decode swap PT for token parameters
      * @param params Encoded swap parameters
-     * @return receiver - address of the receiver
-     * @return swapMarket - address of the swap market
-     * @return exactPtIn - exact amount of PT in
-     * @return output - token output
-     * @return limit - limit order data
+     * @return receiver Address of the receiver
+     * @return swapMarket Address of the swap market
+     * @return exactPtIn Exact amount of PT in
+     * @return output Token output
+     * @return limit Limit order data
      */
     function validateAndDecodeSwapPtForTokenParams(
         bytes calldata params
@@ -271,9 +281,15 @@ contract CurveSwapPendlePtArk is Ark {
             (address, address, uint256, TokenOutput, LimitOrderData)
         );
     }
+
+    /**
+     * @notice Check if the current market has expired
+     * @return bool True if the market has expired, false otherwise
+     */
     function isMarketExpired() public view returns (bool) {
         return block.timestamp >= marketExpiry;
     }
+
     /**
      * @notice Rescue tokens stuck in the contract
      * @param token Address of the token to rescue
@@ -286,6 +302,13 @@ contract CurveSwapPendlePtArk is Ark {
     }
 
     /**
+     * @notice Rollover to a new market if needed
+     */
+    function rolloverIfNeeded() public {
+        _rolloverIfNeeded();
+    }
+
+    /**
      * @notice Set the lower EMA threshold
      * @param _lowerEma New lower EMA threshold
      */
@@ -293,9 +316,15 @@ contract CurveSwapPendlePtArk is Ark {
         if (_lowerEma >= upperEma) revert LowerEmaNotLessThanUpperEma();
         lowerEma = _lowerEma;
     }
-    function nextMarket() public pure returns (address) {
-        return 0x281fE15fd3E08A282f52D5cf09a4d13c3709E66D;
+
+    /**
+     * @notice Set the next market
+     * @param _nextMarket Address of the next market
+     */
+    function setNextMarket(address _nextMarket) public onlyGovernor {
+        nextMarket = _nextMarket;
     }
+
     /**
      * @notice Set the upper EMA threshold
      * @param _upperEma New upper EMA threshold
@@ -303,6 +332,35 @@ contract CurveSwapPendlePtArk is Ark {
     function setUpperEma(uint256 _upperEma) public onlyGovernor {
         if (_upperEma <= lowerEma) revert UpperEmaNotGreaterThanLowerEma();
         upperEma = _upperEma;
+    }
+
+    /**
+     * @notice Sets the slippage tolerance
+     * @param _slippagePercentage New slippage tolerance
+     */
+    function setSlippagePercentage(
+        Percentage _slippagePercentage
+    ) external onlyGovernor {
+        if (_slippagePercentage > MAX_SLIPPAGE_PERCENTAGE) {
+            revert SlippagePercentageTooHigh(
+                _slippagePercentage,
+                MAX_SLIPPAGE_PERCENTAGE
+            );
+        }
+        slippagePercentage = _slippagePercentage;
+        emit SlippageUpdated(_slippagePercentage);
+    }
+
+    /**
+     * @notice Sets the oracle duration
+     * @param _oracleDuration New oracle duration
+     */
+    function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
+        if (_oracleDuration < MIN_ORACLE_DURATION) {
+            revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
+        }
+        oracleDuration = _oracleDuration;
+        emit OracleDurationUpdated(_oracleDuration);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -387,7 +445,6 @@ contract CurveSwapPendlePtArk is Ark {
      * @param data Additional data for boarding
      */
     function _board(uint256 amount, bytes calldata data) internal override {
-        // todo: if market expired then revert - we need to allow this fucntion to execture - to rollover
         _rolloverIfNeeded();
         _depositFleetTokenForArkToken(amount, data);
     }
@@ -405,7 +462,7 @@ contract CurveSwapPendlePtArk is Ark {
 
         if (this.isMarketExpired()) {
             _redeemTokenFromPtPostExpiry(amount, amount);
-            // todo : swap for usdc or new method to withdraw market asset (usde)
+            // TODO: swap for USDC or new method to withdraw market asset (USDE)
         } else {
             _withdrawArkTokenForToken(amount, data);
         }
@@ -479,10 +536,21 @@ contract CurveSwapPendlePtArk is Ark {
         }
         _updateMarketData();
     }
+
+    /**
+     * @notice Get the PT to asset rate
+     * @return The PT to asset rate
+     */
     function _ptToAssetRate() internal view returns (uint256) {
         return
             PendlePYLpOracle(oracle).getPtToAssetRate(market, oracleDuration);
     }
+
+    /**
+     * @notice Convert asset amount to Ark tokens
+     * @param amount Amount of assets to convert
+     * @return The equivalent amount of Ark tokens
+     */
     function _assetToArkTokens(uint256 amount) internal view returns (uint256) {
         return (amount * Constants.WAD) / _ptToAssetRate();
     }
@@ -490,15 +558,6 @@ contract CurveSwapPendlePtArk is Ark {
     /**
      * @notice Deposits tokens and swaps them for Principal Tokens (PT)
      * @param _amount Amount of tokens to deposit
-     * @dev Checks for market expiry, calculates minimum PT output with slippage, and executes the swap
-     * @dev This function performs the following steps:
-     * 1. Check if the market has expired, revert if it has
-     * 2. Calculate the minimum PT output based on the current exchange rate and slippage
-     * 3. Prepare the input token data for the Pendle router
-     * 4. Execute the swap using Pendle's router
-     *
-     * We use slippage protection here to ensure we receive at least the calculated minimum PT tokens.
-     * This protects against sudden price movements between our calculation and the actual swap execution.
      */
     function _depositMarketAssetForPt(uint256 _amount) internal {
         uint256 minPTout = _assetToArkTokens(_amount).subtractPercentage(
@@ -524,6 +583,9 @@ contract CurveSwapPendlePtArk is Ark {
         );
     }
 
+    /**
+     * @notice Rollover to a new market if needed
+     */
     function _rolloverIfNeeded() internal {
         if (block.timestamp < marketExpiry) return;
 
@@ -557,6 +619,11 @@ contract CurveSwapPendlePtArk is Ark {
         return !increaseCardinalityRequired && oldestObservationSatisfied;
     }
 
+    /**
+     * @notice Redeem tokens from PT post expiry
+     * @param ptAmount Amount of PT to redeem
+     * @param minTokenOut Minimum amount of tokens to receive
+     */
     function _redeemTokenFromPtPostExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
@@ -611,39 +678,6 @@ contract CurveSwapPendlePtArk is Ark {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        EXTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Sets the slippage tolerance
-     * @param _slippagePercentage New slippage tolerance
-     */
-    function setSlippagePercentage(
-        Percentage _slippagePercentage
-    ) external onlyGovernor {
-        if (_slippagePercentage > MAX_SLIPPAGE_PERCENTAGE) {
-            revert SlippagePercentageTooHigh(
-                _slippagePercentage,
-                MAX_SLIPPAGE_PERCENTAGE
-            );
-        }
-        slippagePercentage = _slippagePercentage;
-        emit SlippageUpdated(_slippagePercentage);
-    }
-
-    /**
-     * @notice Sets the oracle duration
-     * @param _oracleDuration New oracle duration
-     */
-    function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
-        if (_oracleDuration < MIN_ORACLE_DURATION) {
-            revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
-        }
-        oracleDuration = _oracleDuration;
-        emit OracleDurationUpdated(_oracleDuration);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
@@ -653,7 +687,7 @@ contract CurveSwapPendlePtArk is Ark {
      */
     modifier shouldBuy() {
         _shouldTrade();
-        if (marketExpiry <= block.timestamp + 1 days)
+        if (marketExpiry <= block.timestamp + 20 days)
             revert MarketExpirationTooClose();
         _;
     }
