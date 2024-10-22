@@ -2,16 +2,16 @@
 pragma solidity 0.8.27;
 
 import "./StakingRewardsManagerBase.sol";
-import {IFleetStakingRewardsManager} from "../interfaces/IFleetStakingRewardsManager.sol";
+import {IFleetRewardsManager} from "../interfaces/IFleetRewardsManager.sol";
 
 /**
- * @title FleetStakingRewardsManager
+ * @title FleetRewardsManager
  * @notice Contract for managing staking rewards specific to the Fleet system
  * @dev Extends StakingRewardsManagerBase with Fleet-specific functionality
  */
-contract FleetStakingRewardsManager is
-    StakingRewardsManagerBase,
-    IFleetStakingRewardsManager
+contract FleetRewardsManager is
+    IFleetRewardsManager,
+    StakingRewardsManagerBase
 {
     address public fleetCommander;
 

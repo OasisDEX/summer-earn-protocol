@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
-import {IFleetStakingRewardsManager} from "../../src/interfaces/IFleetStakingRewardsManager.sol";
+import {IFleetRewardsManager} from "../../src/interfaces/IFleetRewardsManager.sol";
 import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";

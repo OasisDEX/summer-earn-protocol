@@ -2,28 +2,37 @@
 pragma solidity 0.8.27;
 
 import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
-import {StakingRewardsManager} from "./StakingRewardsManager.sol";
-import {IStakingRewardsManager} from "../interfaces/IStakingRewardsManager.sol";
+import {StakingRewardsManagerBase} from "./StakingRewardsManagerBase.sol";
+import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {SummerGovernor} from "@summerfi/earn-gov-contracts/contracts/SummerGovernor.sol";
+import {ISummerGovernor} from "@summerfi/earn-gov-contracts/interfaces/ISummerGovernor.sol";
+import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {Constants} from "./libraries/Constants.sol";
 
 /**
- * @title DecayableStakingRewardsManager
- * @notice Contract for managing decayable staking rewards with multiple reward tokens in the Summer protocol
- * @dev Implements IStakingRewardsManager interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
+ * @title GovernanceStakingRewardsManager
+ * @notice Contract for managing governance staking rewards with multiple reward tokens in the Summer protocol
+ * @dev Implements IGovernanceStakingRewardsManager interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
+ * @dev Implements decayable staking rewards
  */
-contract DecayableStakingRewardsManager is StakingRewardsManager {
+contract GovernanceRewardsManager is
+    IGovernanceRewardsManager,
+    StakingRewardsManagerBase
+{
     using SafeERC20 for IERC20;
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    SummerGovernor public immutable governor;
+    ISummerGovernor public immutable governor;
 
-    // Decay factor smoothing constant (0-1000000)
-    uint256 public constant DECAY_SMOOTHING_FACTOR = 200000; // represents 0.2
+    uint256 public constant DECAY_SMOOTHING_FACTOR_BASE = Constants.RAY;
+    uint256 public constant DECAY_SMOOTHING_FACTOR =
+        DECAY_SMOOTHING_FACTOR_BASE / 5; // represents 0.2
     mapping(address account => uint256 smoothedDecayFactor)
         public userSmoothedDecayFactor;
 
@@ -33,51 +42,70 @@ contract DecayableStakingRewardsManager is StakingRewardsManager {
 
     /**
      * @notice Initializes the DecayableStakingRewardsManager contract
-     * @param params Struct containing initialization parameters
+     * @param _accessManager Address of the ProtocolAccessManager contract
      * @param _governor Address of the SummerGovernor contract
+     * @param _summerToken Address of the SummerToken contract
      */
     constructor(
-        StakingRewardsParams memory params,
-        address _governor
-    ) StakingRewardsManager(params) {
-        governor = SummerGovernor(payable(_governor));
+        address _accessManager,
+        address _governor,
+        address _summerToken
+    ) StakingRewardsManagerBase(_accessManager) {
+        governor = ISummerGovernor(payable(_governor));
+        _initialize(IERC20(_summerToken));
+    }
+
+    function _initialize(IERC20 _stakingToken) internal override {
+        stakingToken = _stakingToken;
+        emit StakingTokenInitialized(address(_stakingToken));
     }
 
     /*//////////////////////////////////////////////////////////////
                             MUTATIVE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function stake(
         uint256 amount
-    ) external override updateReward(_msgSender()) {
-        _stake(amount);
-        _updateSmoothedDecayFactor(_msgSender());
+    )
+        external
+        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
+        updateReward(_msgSender())
+    {
+        _stake(_msgSender(), _msgSender(), amount);
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function withdraw(
         uint256 amount
-    ) public override updateReward(_msgSender()) {
+    )
+        external
+        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
+        updateReward(_msgSender())
+    {
         _withdraw(amount);
-        _updateSmoothedDecayFactor(_msgSender());
     }
 
     /*//////////////////////////////////////////////////////////////
                             VIEWS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function earned(
         address account,
         IERC20 rewardToken
-    ) public view override returns (uint256) {
+    )
+        public
+        view
+        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
+        returns (uint256)
+    {
         uint256 rawEarned = _earned(account, rewardToken);
         uint256 latestSmoothedDecayFactor = _calculateSmoothedDecayFactor(
             account
         );
 
-        return (rawEarned * latestSmoothedDecayFactor) / 1e18;
+        return (rawEarned * latestSmoothedDecayFactor) / Constants.WAD;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -85,8 +113,10 @@ contract DecayableStakingRewardsManager is StakingRewardsManager {
     //////////////////////////////////////////////////////////////*/
 
     modifier updateReward(address account) override {
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
-            IERC20 rewardToken = rewardTokens[i];
+        uint256 rewardTokenCount = _rewardTokens.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            (address rewardTokenAddress, ) = _rewardTokens.at(i);
+            IERC20 rewardToken = IERC20(rewardTokenAddress);
             RewardData storage rewardTokenData = rewardData[rewardToken];
             rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
             rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
@@ -137,6 +167,7 @@ contract DecayableStakingRewardsManager is StakingRewardsManager {
         return
             ((currentDecayFactor * DECAY_SMOOTHING_FACTOR) +
                 (userSmoothedDecayFactor[account] *
-                    (1000000 - DECAY_SMOOTHING_FACTOR))) / 1000000;
+                    (DECAY_SMOOTHING_FACTOR_BASE - DECAY_SMOOTHING_FACTOR))) /
+            DECAY_SMOOTHING_FACTOR_BASE;
     }
 }

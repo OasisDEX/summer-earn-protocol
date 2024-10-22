@@ -12,7 +12,7 @@ import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {FleetStakingRewardsManager} from "./FleetStakingRewardsManager.sol";
+import {FleetRewardsManager} from "./FleetRewardsManager.sol";
 
 /**
  * @title
@@ -59,7 +59,7 @@ contract FleetCommanderConfigProvider is
                 minimumBufferBalance: params.initialMinimumBufferBalance,
                 depositCap: params.depositCap,
                 maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-                stakingRewardsManager: new FleetStakingRewardsManager(
+                stakingRewardsManager: new FleetRewardsManager(
                     address(params.accessManager),
                     address(this)
                 )
@@ -183,7 +183,7 @@ contract FleetCommanderConfigProvider is
         if (newStakingRewardsManager == address(0)) {
             revert FleetCommanderInvalidStakingRewardsManager();
         }
-        config.stakingRewardsManager = new FleetStakingRewardsManager(
+        config.stakingRewardsManager = new FleetRewardsManager(
             address(_accessManager),
             address(this)
         );

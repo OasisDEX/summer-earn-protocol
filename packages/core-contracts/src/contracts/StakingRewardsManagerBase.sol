@@ -38,7 +38,7 @@ abstract contract StakingRewardsManagerBase is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    EnumerableMap.AddressToUintMap private _rewardTokens;
+    EnumerableMap.AddressToUintMap internal _rewardTokens;
     IERC20 public stakingToken;
 
     mapping(IERC20 rewardToken => RewardData) public rewardData;
@@ -137,7 +137,9 @@ abstract contract StakingRewardsManagerBase is
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function withdraw(uint256 amount) public virtual updateReward(msg.sender) {
+    function withdraw(
+        uint256 amount
+    ) external virtual updateReward(msg.sender) {
         _withdraw(amount);
     }
 
@@ -274,11 +276,23 @@ abstract contract StakingRewardsManagerBase is
         emit Withdrawn(msg.sender, amount);
     }
 
+    function _earned(
+        address account,
+        IERC20 rewardToken
+    ) internal view returns (uint256) {
+        return
+            (_balances[account] *
+                (rewardPerToken(rewardToken) -
+                    userRewardPerTokenPaid[rewardToken][account])) /
+            1e18 +
+            rewards[rewardToken][account];
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    modifier updateReward(address account) {
+    modifier updateReward(address account) virtual {
         uint256 rewardTokenCount = _rewardTokens.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {
             (address rewardTokenAddress, ) = _rewardTokens.at(i);

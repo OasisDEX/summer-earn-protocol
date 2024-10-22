@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {IVotingDecayManager} from "@summerfi/voting-decay/src/IVotingDecayManager.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
@@ -11,7 +12,11 @@ import {TimelockController} from "@openzeppelin/contracts/governance/extensions/
  * @title ISummerGovernor Interface
  * @notice Interface for the SummerGovernor contract, extending OpenZeppelin's IGovernor
  */
-interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
+interface ISummerGovernor is
+    IGovernor,
+    IVotingDecayManager,
+    ISummerGovernorErrors
+{
     /*
      * @dev Struct for the governor parameters
      * @param token The token contract address

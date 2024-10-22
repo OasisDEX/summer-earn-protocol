@@ -17,7 +17,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {IFleetStakingRewardsManager} from "../interfaces/IFleetStakingRewardsManager.sol";
+import {IFleetRewardsManager} from "../interfaces/IFleetRewardsManager.sol";
 
 /**
  * @title FleetCommander
@@ -1034,8 +1034,10 @@ contract FleetCommander is
 
     function _stakeOnBehalf(address account, uint256 amount) internal {
         if (address(config.stakingRewardsManager) != address(0)) {
-            IFleetStakingRewardsManager(config.stakingRewardsManager)
-                .stakeOnBehalf(account, amount);
+            IFleetRewardsManager(config.stakingRewardsManager).stakeOnBehalf(
+                account,
+                amount
+            );
         }
     }
 }

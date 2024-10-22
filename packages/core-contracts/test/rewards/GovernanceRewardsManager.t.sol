@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import {IStakingRewardsManager} from "../../src/interfaces/IStakingRewardsManager.sol";
-import {IStakingRewardsManagerErrors} from "../../src/errors/IStakingRewardsManagerErrors.sol";
+import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
+import {IStakingRewardsManagerBaseErrors} from "../../src/errors/IStakingRewardsManagerBaseErrors.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {DecayableStakingRewardsManager} from "../../src/contracts/DecayableStakingRewardsManager.sol";
+import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 
-contract DecayableStakingRewardsManagerTest is Test {
-    DecayableStakingRewardsManager public stakingRewardsManager;
+contract GovernanceRewardsManagerTest is Test {
+    GovernanceRewardsManager public stakingRewardsManager;
     ERC20Mock public stakingToken;
     ERC20Mock[] public rewardTokens;
     MockSummerGovernor public mockGovernor;
@@ -55,19 +55,15 @@ contract DecayableStakingRewardsManagerTest is Test {
         for (uint i = 0; i < rewardTokens.length; i++) {
             rewardTokenAddresses[i] = address(rewardTokens[i]);
         }
+
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
             address(mockGovernor)
         );
-        stakingRewardsManager = new DecayableStakingRewardsManager(
-            IStakingRewardsManager.StakingRewardsParams({
-                rewardTokens: rewardTokenAddresses,
-                accessManager: address(accessManager)
-            }),
-            address(mockGovernor)
+        stakingRewardsManager = new GovernanceRewardsManager(
+            address(accessManager),
+            address(mockGovernor),
+            address(stakingToken)
         );
-
-        vm.prank(address(mockGovernor));
-        stakingRewardsManager.initialize(stakingToken);
 
         // Mint initial tokens
         stakingToken.mint(alice, INITIAL_STAKE_AMOUNT);
@@ -142,7 +138,8 @@ contract DecayableStakingRewardsManagerTest is Test {
         vm.prank(address(mockGovernor));
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
-            rewardAmount
+            rewardAmount,
+            0
         );
 
         // Fast forward time beyond decay-free window
@@ -186,7 +183,8 @@ contract DecayableStakingRewardsManagerTest is Test {
         for (uint i = 0; i < rewardTokens.length; i++) {
             stakingRewardsManager.notifyRewardAmount(
                 IERC20(address(rewardTokens[i])),
-                rewardAmounts[i]
+                rewardAmounts[i],
+                0
             );
         }
         vm.stopPrank();

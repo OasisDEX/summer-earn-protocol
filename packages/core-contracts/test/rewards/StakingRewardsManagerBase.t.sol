@@ -1,17 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-<<<<<<<< HEAD:packages/core-contracts/test/rewards/StakingRewardsManager.t.sol
-import {StakingRewardsManager} from "../../src/contracts/StakingRewardsManager.sol";
-import {IStakingRewardsManager} from "../../src/interfaces/IStakingRewardsManager.sol";
-import {IStakingRewardsManagerErrors} from "../../src/errors/IStakingRewardsManagerErrors.sol";
+import {FleetRewardsManager} from "../../src/contracts/FleetRewardsManager.sol";
+import {IFleetRewardsManager} from "../../src/interfaces/IFleetRewardsManager.sol";
+import {IStakingRewardsManagerBaseErrors} from "../../src/errors/IStakingRewardsManagerBaseErrors.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
-========
-import {FleetStakingRewardsManager} from "../src/contracts/FleetStakingRewardsManager.sol";
-import {IFleetStakingRewardsManager} from "../src/interfaces/IFleetStakingRewardsManager.sol";
-import {IStakingRewardsManagerBaseErrors} from "../src/errors/IStakingRewardsManagerBaseErrors.sol";
-import {MockSummerGovernor} from "./mocks/MockSummerGovernor.sol";
->>>>>>>> jt/feat/staking-rewards:packages/core-contracts/test/StakingRewardsManagerBase.t.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
@@ -20,7 +13,7 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 
 contract StakingRewardsManagerBaseTest is Test {
-    FleetStakingRewardsManager public stakingRewardsManager;
+    FleetRewardsManager public stakingRewardsManager;
     ERC20Mock public stakingToken;
     ERC20Mock[] public rewardTokens;
     MockSummerGovernor public mockGovernor;
@@ -63,17 +56,9 @@ contract StakingRewardsManagerBaseTest is Test {
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
             address(mockGovernor)
         );
-<<<<<<<< HEAD:packages/core-contracts/test/rewards/StakingRewardsManager.t.sol
-        stakingRewardsManager = new StakingRewardsManager(
-            IStakingRewardsManager.StakingRewardsParams({
-                rewardTokens: rewardTokenAddresses,
-                accessManager: address(accessManager)
-            })
-========
-        stakingRewardsManager = new FleetStakingRewardsManager(
+        stakingRewardsManager = new FleetRewardsManager(
             address(accessManager),
             address(mockFleetCommander)
->>>>>>>> jt/feat/staking-rewards:packages/core-contracts/test/StakingRewardsManagerBase.t.sol
         );
 
         // Mint initial tokens
