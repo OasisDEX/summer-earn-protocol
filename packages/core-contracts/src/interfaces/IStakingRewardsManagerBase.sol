@@ -2,20 +2,13 @@
 pragma solidity 0.8.27;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IStakingRewardsManagerErrors} from "../errors/IStakingRewardsManagerErrors.sol";
+import {IStakingRewardsManagerBaseErrors} from "../errors/IStakingRewardsManagerBaseErrors.sol";
 
-/* @title IStakingRewardsManager
+/* @title IStakingRewardsManagerBase
  * @notice Interface for the Staking Rewards Manager contract
  * @dev Manages staking and distribution of multiple reward tokens
  */
-interface IStakingRewardsManager is IStakingRewardsManagerErrors {
-    /* @notice Parameters for initializing the Staking Rewards Manager */
-    struct StakingRewardsParams {
-        address[] rewardTokens;
-        address governor;
-        address accessManager;
-    }
-
+interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
     // Views
 
     /* @notice Get the total amount of staked tokens
@@ -101,8 +94,13 @@ interface IStakingRewardsManager is IStakingRewardsManagerErrors {
     /* @notice Notify the contract about new reward amount
      * @param rewardToken The address of the reward token
      * @param reward The amount of new reward
+     * @param newRewardsDuration The duration for rewards distribution (only used when adding a new reward token)
      */
-    function notifyRewardAmount(IERC20 rewardToken, uint256 reward) external;
+    function notifyRewardAmount(
+        IERC20 rewardToken,
+        uint256 reward,
+        uint256 newRewardsDuration
+    ) external;
 
     /* @notice Set the duration for rewards distribution
      * @param rewardToken The address of the reward token
@@ -112,20 +110,6 @@ interface IStakingRewardsManager is IStakingRewardsManagerErrors {
         IERC20 rewardToken,
         uint256 _rewardsDuration
     ) external;
-
-    /* @notice Add a new reward token
-     * @param rewardToken The address of the new reward token
-     * @param rewardsDuration The duration for the new reward token
-     */
-    function addRewardToken(
-        IERC20 rewardToken,
-        uint256 rewardsDuration
-    ) external;
-
-    /* @notice Initialize the staking token
-     * @param _stakingToken The address of the staking token
-     */
-    function initialize(IERC20 _stakingToken) external;
 
     // Events
 

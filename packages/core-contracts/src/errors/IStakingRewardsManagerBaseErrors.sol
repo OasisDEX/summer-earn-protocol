@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-/* @title IStakingRewardsManagerErrors
+/* @title IStakingRewardsManagerBaseErrors
  * @notice Interface defining custom errors for the Staking Rewards Manager
  */
-interface IStakingRewardsManagerErrors {
+interface IStakingRewardsManagerBaseErrors {
     /* @notice Thrown when attempting to stake zero tokens */
     error CannotStakeZero();
 
@@ -35,12 +35,17 @@ interface IStakingRewardsManagerErrors {
      */
     error InvalidRewardAmount(address rewardToken, uint256 rewardsDuration);
 
-    /* @notice Thrown when trying to initialize the staking token that has already been set */
-    error StakingTokenAlreadyInitialized();
-
     /* @notice Thrown when trying to interact with the staking token before it's initialized */
     error StakingTokenNotInitialized();
 
     /* @notice Thrown when trying to remove a reward token that doesn't exist */
     error RewardTokenDoesNotExist();
+
+    /* @notice Thrown when trying to change the rewards duration of a reward token */
+    error CannotChangeRewardsDuration();
+
+    /* @notice Thrown when a reward token still has a balance */
+    error RewardTokenStillHasBalance(uint256 balance);
+
+    error IndexOutOfBounds();
 }

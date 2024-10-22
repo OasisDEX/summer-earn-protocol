@@ -8,21 +8,23 @@ pragma solidity 0.8.27;
  * @dev Inspired by Synthetix's StakingRewards contract: https://github.com/Synthetixio/synthetix/blob/v2.101.3/contracts/StakingRewards.sol
  */
 import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
-import {IStakingRewardsManager} from "../interfaces/IStakingRewardsManager.sol";
+import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 /**
  * @title StakingRewards
  * @notice Contract for managing staking rewards with multiple reward tokens in the Summer protocol
  * @dev Implements IStakingRewards interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
  */
-contract StakingRewardsManager is
-    IStakingRewardsManager,
+abstract contract StakingRewardsManagerBase is
+    IStakingRewardsManagerBase,
     ReentrancyGuardTransient,
     ProtocolAccessManaged
 {
     using SafeERC20 for IERC20;
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     struct RewardData {
         uint256 periodFinish;
@@ -36,7 +38,7 @@ contract StakingRewardsManager is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    IERC20[] public rewardTokens;
+    EnumerableMap.AddressToUintMap private _rewardTokens;
     IERC20 public stakingToken;
 
     mapping(IERC20 rewardToken => RewardData) public rewardData;
@@ -54,28 +56,28 @@ contract StakingRewardsManager is
 
     /**
      * @notice Initializes the StakingRewards contract
-     * @param params Struct containing initialization parameters
+     * @param _accessManager The address of the access manager
      */
-    constructor(
-        StakingRewardsParams memory params
-    ) ProtocolAccessManaged(params.accessManager) {
-        if (params.rewardTokens.length == 0) revert NoRewardTokens();
-        for (uint256 i = 0; i < params.rewardTokens.length; i++) {
-            rewardTokens.push(IERC20(params.rewardTokens[i]));
-            rewardData[IERC20(params.rewardTokens[i])].rewardsDuration = 7 days;
-        }
-    }
+    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                                 VIEWS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IStakingRewardsManager
+    function rewardTokens(
+        uint256 index
+    ) external view override returns (IERC20) {
+        if (index >= _rewardTokens.length()) revert IndexOutOfBounds();
+        (address rewardTokenAddress, ) = _rewardTokens.at(index);
+        return IERC20(rewardTokenAddress);
+    }
+
+    /// @inheritdoc IStakingRewardsManagerBase
     function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function lastTimeRewardApplicable(
         IERC20 rewardToken
     ) public view returns (uint256) {
@@ -85,7 +87,7 @@ contract StakingRewardsManager is
                 : rewardData[rewardToken].periodFinish;
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function rewardPerToken(IERC20 rewardToken) public view returns (uint256) {
         if (totalSupply == 0) {
             return rewardData[rewardToken].rewardPerTokenStored;
@@ -98,7 +100,7 @@ contract StakingRewardsManager is
                 1e18) / totalSupply);
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function earned(
         address account,
         IERC20 rewardToken
@@ -111,7 +113,7 @@ contract StakingRewardsManager is
             rewards[rewardToken][account];
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function getRewardForDuration(
         IERC20 rewardToken
     ) external view returns (uint256) {
@@ -124,30 +126,32 @@ contract StakingRewardsManager is
                             MUTATIVE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function stake(uint256 amount) external virtual updateReward(_msgSender()) {
-        _stake(amount);
+        _stake(_msgSender(), _msgSender(), amount);
     }
 
-    /// @notice Allows the FleetCommander to stake on behalf of a user
+    /// @notice Allows others to stake on behalf of a user
     /// @param receiver The account to stake for
     /// @param amount The amount of tokens to stake
     function stakeOnBehalf(
         address receiver,
         uint256 amount
     ) external virtual updateReward(receiver) {
-        _stakeFrom(_msgSender(), receiver, amount);
+        _stake(_msgSender(), receiver, amount);
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function withdraw(uint256 amount) public virtual updateReward(msg.sender) {
         _withdraw(amount);
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function getReward() public virtual nonReentrant updateReward(msg.sender) {
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
-            IERC20 rewardToken = rewardTokens[i];
+        uint256 rewardTokenCount = _rewardTokens.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            (address rewardTokenAddress, ) = _rewardTokens.at(i);
+            IERC20 rewardToken = IERC20(rewardTokenAddress);
             uint256 reward = rewards[rewardToken][msg.sender];
             if (reward > 0) {
                 rewards[rewardToken][msg.sender] = 0;
@@ -157,7 +161,7 @@ contract StakingRewardsManager is
         }
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function exit() external virtual {
         getReward();
         _withdraw(_balances[msg.sender]);
@@ -167,38 +171,57 @@ contract StakingRewardsManager is
                             RESTRICTED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function notifyRewardAmount(
         IERC20 rewardToken,
-        uint256 reward
+        uint256 reward,
+        uint256 newRewardsDuration
     ) external onlyGovernor updateReward(address(0)) {
-        RewardData storage data = rewardData[rewardToken];
+        RewardData storage rewardTokenData = rewardData[rewardToken];
 
         // If the reward token doesn't exist, add it
-        if (data.rewardsDuration == 0) {
-            rewardTokens.push(rewardToken);
-            data.rewardsDuration = 7 days; // Default duration
-            emit RewardTokenAdded(address(rewardToken), data.rewardsDuration);
+        if (rewardTokenData.rewardsDuration == 0) {
+            _rewardTokens.set(address(rewardToken), 0);
+            rewardTokenData.rewardsDuration = newRewardsDuration > 0
+                ? newRewardsDuration
+                : 7 days;
+            emit RewardTokenAdded(
+                address(rewardToken),
+                rewardTokenData.rewardsDuration
+            );
+        } else if (
+            newRewardsDuration > 0 &&
+            newRewardsDuration != rewardTokenData.rewardsDuration
+        ) {
+            revert CannotChangeRewardsDuration();
         }
 
-        if (block.timestamp >= data.periodFinish) {
-            data.rewardRate = reward / data.rewardsDuration;
+        if (block.timestamp >= rewardTokenData.periodFinish) {
+            rewardTokenData.rewardRate =
+                reward /
+                rewardTokenData.rewardsDuration;
         } else {
-            uint256 remaining = data.periodFinish - block.timestamp;
-            uint256 leftover = remaining * data.rewardRate;
-            data.rewardRate = (reward + leftover) / data.rewardsDuration;
+            uint256 remaining = rewardTokenData.periodFinish - block.timestamp;
+            uint256 leftover = remaining * rewardTokenData.rewardRate;
+            rewardTokenData.rewardRate =
+                (reward + leftover) /
+                rewardTokenData.rewardsDuration;
         }
 
         uint256 balance = rewardToken.balanceOf(address(this));
-        if (data.rewardRate > balance / data.rewardsDuration)
-            revert ProvidedRewardTooHigh();
+        if (
+            rewardTokenData.rewardRate >
+            balance / rewardTokenData.rewardsDuration
+        ) revert ProvidedRewardTooHigh();
 
-        data.lastUpdateTime = block.timestamp;
-        data.periodFinish = block.timestamp + data.rewardsDuration;
+        rewardTokenData.lastUpdateTime = block.timestamp;
+        rewardTokenData.periodFinish =
+            block.timestamp +
+            rewardTokenData.rewardsDuration;
         emit RewardAdded(address(rewardToken), reward);
     }
 
-    /// @inheritdoc IStakingRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function setRewardsDuration(
         IERC20 rewardToken,
         uint256 _rewardsDuration
@@ -210,13 +233,7 @@ contract StakingRewardsManager is
         emit RewardsDurationUpdated(address(rewardToken), _rewardsDuration);
     }
 
-    /// @inheritdoc IStakingRewardsManager
-    function initialize(IERC20 _stakingToken) external onlyGovernor {
-        if (address(stakingToken) != address(0))
-            revert StakingTokenAlreadyInitialized();
-        stakingToken = _stakingToken;
-        emit StakingTokenInitialized(address(_stakingToken));
-    }
+    function _initialize(IERC20 _stakingToken) internal virtual {}
 
     /// @notice Removes a reward token from the list of reward tokens
     /// @param rewardToken The address of the reward token to remove
@@ -226,14 +243,13 @@ contract StakingRewardsManager is
         if (block.timestamp <= rewardData[rewardToken].periodFinish)
             revert RewardPeriodNotComplete();
 
-        // Find and remove the token from the rewardTokens array
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
-            if (rewardTokens[i] == rewardToken) {
-                rewardTokens[i] = rewardTokens[rewardTokens.length - 1];
-                rewardTokens.pop();
-                break;
-            }
-        }
+        // Check if all tokens have been claimed
+        uint256 remainingBalance = rewardToken.balanceOf(address(this));
+        if (remainingBalance > 0)
+            revert RewardTokenStillHasBalance(remainingBalance);
+
+        // Remove the token from the rewardTokens map
+        _rewardTokens.remove(address(rewardToken));
 
         // Reset the reward data for this token
         delete rewardData[rewardToken];
@@ -245,29 +261,12 @@ contract StakingRewardsManager is
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _stake(uint256 amount) internal {
+    function _stake(address from, address account, uint256 amount) internal {
         if (amount == 0) revert CannotStakeZero();
         if (address(stakingToken) == address(0))
             revert StakingTokenNotInitialized();
-        totalSupply += amount;
-        _balances[_msgSender()] += amount;
-
-        stakingToken.safeTransferFrom(_msgSender(), address(this), amount);
-        emit Staked(_msgSender(), amount);
-    }
-
-    function _stakeFrom(
-        address from,
-        address account,
-        uint256 amount
-    ) internal {
-        if (amount == 0) revert CannotStakeZero();
-        if (address(stakingToken) == address(0))
-            revert StakingTokenNotInitialized();
-
         totalSupply += amount;
         _balances[account] += amount;
-
         stakingToken.safeTransferFrom(from, address(this), amount);
         emit Staked(account, amount);
     }
@@ -285,8 +284,10 @@ contract StakingRewardsManager is
     //////////////////////////////////////////////////////////////*/
 
     modifier updateReward(address account) {
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
-            IERC20 rewardToken = rewardTokens[i];
+        uint256 rewardTokenCount = _rewardTokens.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            (address rewardTokenAddress, ) = _rewardTokens.at(i);
+            IERC20 rewardToken = IERC20(rewardTokenAddress);
             RewardData storage rewardTokenData = rewardData[rewardToken];
             rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
             rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(

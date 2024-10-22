@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import {StakingRewardsManager} from "../src/contracts/StakingRewardsManager.sol";
-import {IStakingRewardsManager} from "../src/interfaces/IStakingRewardsManager.sol";
-import {IStakingRewardsManagerErrors} from "../src/errors/IStakingRewardsManagerErrors.sol";
+import {FleetStakingRewardsManager} from "../src/contracts/FleetStakingRewardsManager.sol";
+import {IFleetStakingRewardsManager} from "../src/interfaces/IFleetStakingRewardsManager.sol";
+import {IStakingRewardsManagerBaseErrors} from "../src/errors/IStakingRewardsManagerBaseErrors.sol";
 import {MockSummerGovernor} from "./mocks/MockSummerGovernor.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -11,8 +11,8 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 
-contract StakingRewardsManagerTest is Test {
-    StakingRewardsManager public stakingRewardsManager;
+contract StakingRewardsManagerBaseTest is Test {
+    FleetStakingRewardsManager public stakingRewardsManager;
     ERC20Mock public stakingToken;
     ERC20Mock[] public rewardTokens;
     MockSummerGovernor public mockGovernor;
@@ -20,6 +20,7 @@ contract StakingRewardsManagerTest is Test {
     address public owner;
     address public alice;
     address public bob;
+    ERC20Mock public mockFleetCommander = new ERC20Mock();
 
     uint256 constant INITIAL_REWARD_AMOUNT = 1000000 * 1e18;
     uint256 constant INITIAL_STAKE_AMOUNT = 100000 * 1e18;
@@ -31,7 +32,6 @@ contract StakingRewardsManagerTest is Test {
 
         // Deploy mock tokens
         console.log("Deploying mock tokens");
-        stakingToken = new ERC20Mock();
         for (uint i = 0; i < 3; i++) {
             rewardTokens.push(new ERC20Mock());
         }
@@ -51,21 +51,15 @@ contract StakingRewardsManagerTest is Test {
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
             address(mockGovernor)
         );
-        stakingRewardsManager = new StakingRewardsManager(
-            IStakingRewardsManager.StakingRewardsParams({
-                rewardTokens: rewardTokenAddresses,
-                accessManager: address(accessManager),
-                governor: address(mockGovernor)
-            })
+        stakingRewardsManager = new FleetStakingRewardsManager(
+            address(accessManager),
+            address(mockFleetCommander)
         );
-
-        vm.prank(address(mockGovernor));
-        stakingRewardsManager.initialize(IERC20(address(stakingToken)));
 
         // Mint initial tokens
         console.log("Minting initial tokens");
-        stakingToken.mint(alice, INITIAL_STAKE_AMOUNT);
-        stakingToken.mint(bob, INITIAL_STAKE_AMOUNT);
+        mockFleetCommander.mint(alice, INITIAL_STAKE_AMOUNT);
+        mockFleetCommander.mint(bob, INITIAL_STAKE_AMOUNT);
         for (uint i = 0; i < rewardTokens.length; i++) {
             rewardTokens[i].mint(
                 address(stakingRewardsManager),
@@ -75,9 +69,15 @@ contract StakingRewardsManagerTest is Test {
 
         // Approve staking
         vm.prank(alice);
-        stakingToken.approve(address(stakingRewardsManager), type(uint256).max);
+        mockFleetCommander.approve(
+            address(stakingRewardsManager),
+            type(uint256).max
+        );
         vm.prank(bob);
-        stakingToken.approve(address(stakingRewardsManager), type(uint256).max);
+        mockFleetCommander.approve(
+            address(stakingRewardsManager),
+            type(uint256).max
+        );
     }
 
     function test_NotifyRewardAmount() public {
@@ -85,7 +85,13 @@ contract StakingRewardsManagerTest is Test {
 
         IERC20 rewardToken = rewardTokens[0];
         uint256 rewardAmount = 100000000000000000000; // 100 tokens
-        stakingRewardsManager.notifyRewardAmount(rewardToken, rewardAmount);
+        uint256 newDuration = 14 days; // New duration for the reward
+
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            newDuration
+        );
 
         (
             uint256 periodFinish,
@@ -105,7 +111,100 @@ contract StakingRewardsManagerTest is Test {
             rewardAmount / duration,
             "Reward rate should be reward amount divided by duration"
         );
-        assertEq(duration, 604800, "Duration should be 7 days in seconds");
+        assertEq(
+            duration,
+            newDuration,
+            "Duration should be the new specified duration"
+        );
+    }
+
+    function test_NotifyRewardAmount_NewToken() public {
+        ERC20Mock newRewardToken = new ERC20Mock();
+        uint256 rewardAmount = 1000 * 1e18; // 1000 tokens
+        uint256 newDuration = 30 days; // New duration for the reward
+
+        // Mint reward tokens to the staking rewards manager
+        newRewardToken.mint(address(stakingRewardsManager), rewardAmount);
+
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(newRewardToken)),
+            rewardAmount,
+            newDuration
+        );
+
+        // Get the reward data
+        (
+            uint256 periodFinish,
+            uint256 rewardRate,
+            uint256 rewardsDuration,
+            uint256 lastUpdateTime,
+            uint256 rewardPerTokenStored
+        ) = stakingRewardsManager.rewardData(newRewardToken);
+
+        // Assert the correct values
+        assertEq(
+            rewardsDuration,
+            newDuration,
+            "Rewards duration should be set to the new specified duration"
+        );
+
+        assertEq(
+            periodFinish,
+            block.timestamp + newDuration,
+            "Period finish should be set correctly"
+        );
+        assertEq(
+            rewardRate,
+            rewardAmount / newDuration,
+            "Reward rate should be set correctly"
+        );
+        assertEq(
+            lastUpdateTime,
+            block.timestamp,
+            "Last update time should be set to current timestamp"
+        );
+        assertEq(
+            rewardPerTokenStored,
+            0,
+            "Reward per token stored should be 0 initially"
+        );
+    }
+
+    function test_NotifyRewardAmount_ExistingToken_CannotChangeDuration()
+        public
+    {
+        IERC20 rewardToken = rewardTokens[0];
+        uint256 initialRewardAmount = 100 * 1e18;
+        uint256 initialDuration = 7 days;
+
+        // First notification to set up the reward token
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            initialRewardAmount,
+            initialDuration
+        );
+
+        // Try to change the duration for an existing token
+        uint256 newRewardAmount = 200 * 1e18;
+        uint256 newDuration = 14 days;
+
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(
+            abi.encodeWithSignature("CannotChangeRewardsDuration()")
+        );
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            newRewardAmount,
+            newDuration
+        );
+
+        // Verify that the original duration is still in place
+        (, , uint256 duration, , ) = stakingRewardsManager.rewardData(
+            rewardToken
+        );
+        assertEq(duration, initialDuration, "Duration should not have changed");
     }
 
     function test_SetRewardsDuration() public {
@@ -119,10 +218,11 @@ contract StakingRewardsManagerTest is Test {
         if (rewardsDuration == 0) {
             // Only add the reward token if it hasn't been added yet
             vm.prank(address(mockGovernor));
-            stakingRewardsManager.addRewardToken(rewardToken1, 604800);
+            stakingRewardsManager.notifyRewardAmount(rewardToken1, 604800, 0);
         }
 
-        // Continue with the rest of your test...
+        vm.warp(block.timestamp + 8 days);
+
         vm.prank(address(mockGovernor));
         stakingRewardsManager.setRewardsDuration(rewardToken1, 1209600);
 
@@ -131,42 +231,6 @@ contract StakingRewardsManagerTest is Test {
             rewardToken1
         );
         assertEq(newRewardsDuration, 1209600);
-    }
-
-    function test_AddRewardToken() public {
-        ERC20Mock newRewardToken = new ERC20Mock();
-        uint256 newRewardsDuration = 30 days;
-
-        vm.prank(address(mockGovernor));
-        stakingRewardsManager.addRewardToken(
-            IERC20(address(newRewardToken)),
-            newRewardsDuration
-        );
-
-        // Get the reward data
-        (
-            uint256 periodFinish,
-            uint256 rewardRate,
-            uint256 rewardsDuration,
-            uint256 lastUpdateTime,
-            uint256 rewardPerTokenStored
-        ) = stakingRewardsManager.rewardData(newRewardToken);
-
-        // Assert the correct value
-        assertEq(
-            rewardsDuration,
-            2592000,
-            "Rewards duration should be set correctly"
-        );
-
-        assertEq(periodFinish, 0, "Period finish should be 0 initially");
-        assertEq(rewardRate, 0, "Reward rate should be 0 initially");
-        assertEq(lastUpdateTime, 0, "Last update time should be 0 initially");
-        assertEq(
-            rewardPerTokenStored,
-            0,
-            "Reward per token stored should be 0 initially"
-        );
     }
 
     function test_Stake() public {
@@ -215,7 +279,8 @@ contract StakingRewardsManagerTest is Test {
         vm.prank(address(mockGovernor));
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
-            rewardAmount
+            rewardAmount,
+            0
         );
 
         // Fast forward time
@@ -244,19 +309,20 @@ contract StakingRewardsManagerTest is Test {
         vm.prank(address(mockGovernor));
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
-            rewardAmount
+            rewardAmount,
+            0
         );
 
         // Fast forward time
         vm.warp(block.timestamp + 7 days);
 
-        uint256 stakingTokenBalanceBefore = stakingToken.balanceOf(alice);
+        uint256 stakingTokenBalanceBefore = mockFleetCommander.balanceOf(alice);
         uint256 rewardTokenBalanceBefore = rewardTokens[0].balanceOf(alice);
 
         vm.prank(alice);
         stakingRewardsManager.exit();
 
-        uint256 stakingTokenBalanceAfter = stakingToken.balanceOf(alice);
+        uint256 stakingTokenBalanceAfter = mockFleetCommander.balanceOf(alice);
         uint256 rewardTokenBalanceAfter = rewardTokens[0].balanceOf(alice);
         console.log("Reward token balance before", rewardTokenBalanceBefore);
         console.log("Reward token balance after", rewardTokenBalanceAfter);
@@ -293,7 +359,8 @@ contract StakingRewardsManagerTest is Test {
         for (uint i = 0; i < rewardTokens.length; i++) {
             stakingRewardsManager.notifyRewardAmount(
                 IERC20(address(rewardTokens[i])),
-                rewardAmounts[i]
+                rewardAmounts[i],
+                0
             );
         }
         vm.stopPrank();
