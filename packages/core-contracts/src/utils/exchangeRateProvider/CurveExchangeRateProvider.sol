@@ -40,15 +40,6 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
             price = 1e36 / price;
         }
     }
-    // function getLowerBound() public view override returns (uint256) {
-    //     uint256 rate = getExchangeRate();
-    //     return rate.subtractPercentage(emaRange);
-    // }
-
-    // function getUpperBound() public view override returns (uint256) {
-    //     uint256 rate = getExchangeRate();
-    //     return rate.addPercentage(emaRange);
-    // }
 
     function _applyEmaRange(
         uint256 price

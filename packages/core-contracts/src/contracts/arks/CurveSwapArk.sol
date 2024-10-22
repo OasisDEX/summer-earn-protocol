@@ -24,12 +24,12 @@ interface IERC20Extended is IERC20 {
 }
 
 /**
- * @title CurveSwapPendlePtArk
+ * @title PendlePtOracleArk
  * @notice A contract for managing Curve swaps and Pendle PT (Principal Token) operations
  * @dev This contract extends the Ark contract and implements specific logic for Curve and Pendle interactions
  * It combines functionality from BasePendleArk and PendlePTArk, adapting it for Curve swap operations
  */
-contract CurveSwapPendlePtArk is Ark, CurveExchangeRateProvider {
+contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
