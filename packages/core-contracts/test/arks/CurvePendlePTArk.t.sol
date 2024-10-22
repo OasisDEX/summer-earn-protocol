@@ -20,7 +20,7 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
-import {PendlePtOracleArk} from "../../src/contracts/arks/CurveSwapArk.sol";
+import {PendlePtOracleArk} from "../../src/contracts/arks/PendlePtOracleArk.sol";
 import {LimitOrderData, TokenInput, TokenOutput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 
