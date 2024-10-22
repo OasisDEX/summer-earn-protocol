@@ -3,8 +3,26 @@ pragma solidity 0.8.27;
 
 import "./ExchangeRateProviderBase.sol";
 import "../../../src/interfaces/curve/ICurveSwap.sol";
-import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
+/**
+ * @title CurveExchangeRateProvider
+ * @dev Exchange rate provider specifically designed for Curve swap pools.
+ *
+ * This contract extends ExchangeRateProviderBase to work with Curve's liquidity pools,
+ * providing exchange rate functionality tailored for Curve's unique pricing mechanism.
+ * It interacts directly with a Curve swap pool to fetch and process price data.
+ *
+ * Key features:
+ * - Fetches and processes price data from Curve swap pools
+ * - Applies EMA range smoothing to Curve prices
+ * - Handles potential rate inversion based on token order in the pool
+ * - Maintains consistency with the base ExchangeRateProvider interface
+ *
+ * By leveraging Curve's popularity and efficiency in stablecoin swaps,
+ * this provider offers reliable and accurate exchange rates. The design
+ * allows it to work with any Curve pool, regardless of token order,
+ * enhancing its flexibility and reusability across different setups.
+ */
 contract CurveExchangeRateProvider is ExchangeRateProvider {
     using PercentageUtils for uint256;
 

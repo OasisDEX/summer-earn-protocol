@@ -25,9 +25,43 @@ interface IERC20Extended is IERC20 {
 
 /**
  * @title PendlePtOracleArk
- * @notice A contract for managing Curve swaps and Pendle PT (Principal Token) operations
- * @dev This contract extends the Ark contract and implements specific logic for Curve and Pendle interactions
- * It combines functionality from BasePendleArk and PendlePTArk, adapting it for Curve swap operations
+ * @dev An Ark implementation for Pendle Principal Tokens with oracle-based pricing.
+ *
+ * This contract combines functionality from Ark, CurveExchangeRateProvider,
+ * and Pendle-specific operations to create a yield-generating vault that
+ * works with Pendle's Principal Tokens (PT). It manages deposits, withdrawals,
+ * and automatic rollovers between different Pendle markets.
+ *
+ * Key features:
+ * - Handles boarding (depositing) and disembarking (withdrawing) of tokens
+ * - Manages conversion between Ark tokens and Pendle's Principal Tokens
+ * - Implements automatic rollover to new markets upon expiry
+ * - Uses an oracle for accurate PT pricing
+ * - Leverages Curve as a price oracle for stablecoins
+ * - Implements slippage protection for trades
+ * - Includes EMA-based price bounds for trade execution
+ * - Supports reward token harvesting from Pendle markets
+ * - Provides emergency withdrawal functionality for expired markets
+ *
+ * Security features:
+ * - Ensures markets aren't too close to expiry when boarding
+ * - Validates receiver addresses and market consistency
+ * - Implements slippage control with configurable tolerances
+ * - Includes oracle duration checks for price reliability
+ * - Enforces market rollover conditions and validation
+ *
+ * The contract is designed to provide yield opportunities by leveraging
+ * Pendle's Principal Tokens while ensuring accurate pricing and efficient
+ * fund management. The rollover mechanism allows for continuous yield
+ * generation across multiple market cycles. By combining multiple
+ * functionalities, it offers a sophisticated and flexible system for
+ * managing yield-generating strategies in the DeFi ecosystem.
+ *
+ * Integration points:
+ * - Pendle Router: For PT swaps and market interactions
+ * - Curve: For stablecoin exchange rates
+ * - Pendle Oracle: For PT pricing
+ * - ERC20: For token transfers and approvals
  */
 contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     using SafeERC20 for IERC20;

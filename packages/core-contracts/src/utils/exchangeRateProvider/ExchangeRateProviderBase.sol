@@ -1,12 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
- * @title ExchangeRateProvider
- * @dev Abstract contract for providing exchange rate functionality with EMA range adjustments
+ * @title ExchangeRateProviderBase
+ * @dev Abstract base contract for exchange rate providers with EMA range adjustment.
+ *
+ * This contract serves as a foundation for implementing exchange rate providers
+ * with built-in price smoothing using an Exponential Moving Average (EMA) range.
+ * It defines a common interface for getting exchange rates and their EMAs,
+ * as well as calculating upper and lower bounds based on the EMA range.
+ *
+ * Key features:
+ * - Maintains an adjustable EMA range for price smoothing
+ * - Provides abstract functions for current rates and EMAs
+ * - Implements bound calculations based on the EMA range
+ * - Includes a mechanism to set and update the EMA range
+ *
+ * The abstraction allows for various implementations while ensuring
+ * consistency across different providers. This design facilitates
+ * easy swapping of providers and promotes code reusability.
  */
 abstract contract ExchangeRateProvider {
     using PercentageUtils for uint256;
