@@ -12,6 +12,7 @@ import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {FleetStakingRewardsManager} from "./FleetStakingRewardsManager.sol";
 
 /**
  * @title
@@ -28,7 +29,7 @@ contract FleetCommanderConfigProvider is
 
     FleetConfig public config;
     EnumerableSet.AddressSet private _activeArks;
-    mapping(address => bool) public isArkWithdrawable;
+    mapping(address ark => bool isWithdrawable) public isArkWithdrawable;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
@@ -58,7 +59,10 @@ contract FleetCommanderConfigProvider is
                 minimumBufferBalance: params.initialMinimumBufferBalance,
                 depositCap: params.depositCap,
                 maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-                stakingRewardsManager: params.stakingRewardsManager
+                stakingRewardsManager: new FleetStakingRewardsManager(
+                    address(params.accessManager),
+                    address(this)
+                )
             })
         );
         isArkWithdrawable[address(_bufferArk)] = true;
@@ -179,7 +183,10 @@ contract FleetCommanderConfigProvider is
         if (newStakingRewardsManager == address(0)) {
             revert FleetCommanderInvalidStakingRewardsManager();
         }
-        config.stakingRewardsManager = newStakingRewardsManager;
+        config.stakingRewardsManager = new FleetStakingRewardsManager(
+            address(_accessManager),
+            address(this)
+        );
         emit FleetCommanderStakingRewardsUpdated(newStakingRewardsManager);
     }
 

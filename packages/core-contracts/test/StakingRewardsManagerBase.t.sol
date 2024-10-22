@@ -1,17 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-<<<<<<<< HEAD:packages/core-contracts/test/rewards/StakingRewardsManager.t.sol
-import {StakingRewardsManager} from "../../src/contracts/StakingRewardsManager.sol";
-import {IStakingRewardsManager} from "../../src/interfaces/IStakingRewardsManager.sol";
-import {IStakingRewardsManagerErrors} from "../../src/errors/IStakingRewardsManagerErrors.sol";
-import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
-========
 import {FleetStakingRewardsManager} from "../src/contracts/FleetStakingRewardsManager.sol";
 import {IFleetStakingRewardsManager} from "../src/interfaces/IFleetStakingRewardsManager.sol";
 import {IStakingRewardsManagerBaseErrors} from "../src/errors/IStakingRewardsManagerBaseErrors.sol";
 import {MockSummerGovernor} from "./mocks/MockSummerGovernor.sol";
->>>>>>>> jt/feat/staking-rewards:packages/core-contracts/test/StakingRewardsManagerBase.t.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
@@ -63,17 +56,9 @@ contract StakingRewardsManagerBaseTest is Test {
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
             address(mockGovernor)
         );
-<<<<<<<< HEAD:packages/core-contracts/test/rewards/StakingRewardsManager.t.sol
-        stakingRewardsManager = new StakingRewardsManager(
-            IStakingRewardsManager.StakingRewardsParams({
-                rewardTokens: rewardTokenAddresses,
-                accessManager: address(accessManager)
-            })
-========
         stakingRewardsManager = new FleetStakingRewardsManager(
             address(accessManager),
             address(mockFleetCommander)
->>>>>>>> jt/feat/staking-rewards:packages/core-contracts/test/StakingRewardsManagerBase.t.sol
         );
 
         // Mint initial tokens

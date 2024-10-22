@@ -19,14 +19,15 @@ import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
-import {StakingRewardsManager} from "../../src/contracts/StakingRewardsManager.sol";
-import {IStakingRewardsManager} from "../../src/interfaces/IStakingRewardsManager.sol";
+import {FleetStakingRewardsManager} from "../../src/contracts/FleetStakingRewardsManager.sol";
+import {IFleetStakingRewardsManager} from "../../src/interfaces/IFleetStakingRewardsManager.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 
@@ -56,6 +57,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     RestictedWithdrawalArkMock public mockArk4;
     BufferArk public bufferArk;
     HarborCommand public harborCommand;
+
     // Addresses
     address public governor = address(1);
     address public raft = address(2);
@@ -72,6 +74,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     address public treasury = address(777);
     address public nonOwner = address(0xdeadbeef);
     address public guardian = address(1);
+
     // Other variables
     string public fleetName = "OK_Fleet";
     FleetCommanderParams public fleetCommanderParams;
@@ -80,7 +83,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     uint256 internal constant INITIAL_DECAY_RATE = 3.1709792e9; // ~10% per year
 
     // New variables
-    StakingRewardsManager public stakingRewardsManager;
+    IFleetStakingRewardsManager public stakingRewardsManager;
     MockSummerGovernor public mockGovernor;
     ERC20Mock[] public rewardTokens;
 
@@ -113,6 +116,11 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         vm.label(address(mockArk2), "Ark2");
         vm.label(address(mockArk3), "Ark3");
         vm.label(address(mockArk4), "Ark4-nonWithdrawable");
+
+        FleetConfig memory config = fleetCommander.getConfig();
+        stakingRewardsManager = IFleetStakingRewardsManager(
+            config.stakingRewardsManager
+        );
     }
 
     function initializeFleetCommanderWithoutArks(
@@ -177,19 +185,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             rewardTokenAddresses[i] = address(rewardTokens[i]);
         }
 
-        // Deploy StakingRewardsManager
-        stakingRewardsManager = new StakingRewardsManager(
-            IStakingRewardsManager.StakingRewardsParams({
-                rewardTokens: rewardTokenAddresses,
-                accessManager: address(accessManager)
-            })
-        );
-        vm.stopPrank();
-
         fleetCommanderParams = FleetCommanderParams({
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            stakingRewardsManager: address(stakingRewardsManager),
             initialMinimumBufferBalance: INITIAL_MINIMUM_FUNDS_BUFFER_BALANCE,
             initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
             asset: underlyingToken,
@@ -199,9 +197,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             depositCap: type(uint256).max
         });
         fleetCommander = new FleetCommander(fleetCommanderParams);
-
-        vm.prank(governor);
-        stakingRewardsManager.initialize(IERC20(fleetCommander));
 
         bufferArkAddress = fleetCommander.bufferArk();
         bufferArk = BufferArk(bufferArkAddress);
