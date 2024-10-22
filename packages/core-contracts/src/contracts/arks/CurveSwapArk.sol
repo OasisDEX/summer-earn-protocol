@@ -5,7 +5,6 @@ import {ICurveSwap} from "../../interfaces/curve/ICurveSwap.sol";
 import {Ark, ArkParams} from "../Ark.sol";
 
 import {Constants} from "../libraries/Constants.sol";
-import {PendlePtArkConstructorParams} from "./PendlePTArk.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPActionSwapPTV3} from "@pendle/core-v2/contracts/interfaces/IPActionSwapPTV3.sol";
@@ -19,7 +18,7 @@ import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOrac
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
+import {CurveExchangeRateProvider} from "../../utils/exchangeRateProvider/CurveExchangeRateProvider.sol";
 interface IERC20Extended is IERC20 {
     function decimals() external view returns (uint8);
 }
@@ -30,7 +29,7 @@ interface IERC20Extended is IERC20 {
  * @dev This contract extends the Ark contract and implements specific logic for Curve and Pendle interactions
  * It combines functionality from BasePendleArk and PendlePTArk, adapting it for Curve swap operations
  */
-contract CurveSwapPendlePtArk is Ark {
+contract CurveSwapPendlePtArk is Ark, CurveExchangeRateProvider {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
@@ -47,7 +46,6 @@ contract CurveSwapPendlePtArk is Ark {
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    ICurveSwap public curveSwap;
     address public marketAsset;
     address public market;
     address public router;
@@ -65,8 +63,6 @@ contract CurveSwapPendlePtArk is Ark {
     ApproxParams public routerParams;
     LimitOrderData emptyLimitOrderData;
     SwapData public emptySwap;
-    uint256 public lowerEma = 0.9995 * 1e18;
-    uint256 public upperEma = 1.00099 * 1e18;
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
@@ -74,9 +70,13 @@ contract CurveSwapPendlePtArk is Ark {
 
     struct CurveSwapArkConstructorParams {
         address curvePool;
+    }
+    struct PendlePtArkConstructorParams {
+        address market;
+        address oracle;
+        address router;
         address marketAsset;
     }
-
     struct BoardData {
         bytes swapForPtParams;
     }
@@ -134,14 +134,21 @@ contract CurveSwapPendlePtArk is Ark {
         ArkParams memory _params,
         PendlePtArkConstructorParams memory _pendlePtArkConstructorParams,
         CurveSwapArkConstructorParams memory _curveSwapArkConstructorParams
-    ) Ark(_params) {
+    )
+        Ark(_params)
+        CurveExchangeRateProvider(
+            _curveSwapArkConstructorParams.curvePool,
+            _pendlePtArkConstructorParams.marketAsset,
+            PercentageUtils.fromFraction(5, 10000)
+        )
+    {
         router = _pendlePtArkConstructorParams.router;
         oracle = _pendlePtArkConstructorParams.oracle;
         market = _pendlePtArkConstructorParams.market;
         oracleDuration = 30 minutes;
-        slippagePercentage = PercentageUtils.fromFraction(15, 10000); // 0.15% default
+        slippagePercentage = PercentageUtils.fromFraction(50, 10000); // 0.5% default
         curveSwap = ICurveSwap(_curveSwapArkConstructorParams.curvePool);
-        marketAsset = _curveSwapArkConstructorParams.marketAsset;
+        marketAsset = _pendlePtArkConstructorParams.marketAsset;
         _setupRouterParams();
         _updateMarketAndTokens(market);
         _updateMarketData();
@@ -150,40 +157,6 @@ contract CurveSwapPendlePtArk is Ark {
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Get the current exchange rate from the Curve pool
-     * @return price The current exchange rate
-     */
-    function getExchangeRate() public view returns (uint256 price) {
-        price = curveSwap.last_price(0);
-        if (price > upperEma) {
-            price = upperEma;
-        }
-        if (price < lowerEma) {
-            price = lowerEma;
-        }
-        if (curveSwap.coins(1) != address(config.token)) {
-            price = 1e36 / price;
-        }
-    }
-
-    /**
-     * @notice Get the EMA exchange rate from the Curve pool
-     * @return price The EMA exchange rate
-     */
-    function getExchangeRateEma() public view returns (uint256 price) {
-        price = curveSwap.ema_price(0);
-        if (price > upperEma) {
-            price = upperEma;
-        }
-        if (price < lowerEma) {
-            price = lowerEma;
-        }
-        if (curveSwap.coins(1) != address(config.token)) {
-            price = 1e36 / price;
-        }
-    }
 
     /**
      * @notice Calculates the total assets held by the Ark
@@ -301,15 +274,15 @@ contract CurveSwapPendlePtArk is Ark {
         return block.timestamp >= marketExpiry;
     }
 
-    /**
-     * @notice Rescue tokens stuck in the contract
-     * @param token Address of the token to rescue
-     */
-    function rescueToken(address token) public onlyGovernor {
-        IERC20(token).transfer(
-            msg.sender,
-            IERC20(token).balanceOf(address(this))
-        );
+    function withdrawExpiredMarket() public onlyGovernor {
+        if (this.isMarketExpired()) {
+            uint256 amount = IERC20(PT).balanceOf(address(this));
+            _redeemTokenFromPtPostExpiry(amount, amount);
+            IERC20(marketAsset).transfer(
+                msg.sender,
+                IERC20(marketAsset).balanceOf(address(this))
+            );
+        }
     }
 
     /**
@@ -320,29 +293,11 @@ contract CurveSwapPendlePtArk is Ark {
     }
 
     /**
-     * @notice Set the lower EMA threshold
-     * @param _lowerEma New lower EMA threshold
-     */
-    function setLowerEma(uint256 _lowerEma) public onlyGovernor {
-        if (_lowerEma >= upperEma) revert LowerEmaNotLessThanUpperEma();
-        lowerEma = _lowerEma;
-    }
-
-    /**
      * @notice Set the next market
      * @param _nextMarket Address of the next market
      */
     function setNextMarket(address _nextMarket) public onlyGovernor {
         nextMarket = _nextMarket;
-    }
-
-    /**
-     * @notice Set the upper EMA threshold
-     * @param _upperEma New upper EMA threshold
-     */
-    function setUpperEma(uint256 _upperEma) public onlyGovernor {
-        if (_upperEma <= lowerEma) revert UpperEmaNotGreaterThanLowerEma();
-        upperEma = _upperEma;
     }
 
     /**
@@ -360,6 +315,10 @@ contract CurveSwapPendlePtArk is Ark {
         }
         slippagePercentage = _slippagePercentage;
         emit SlippageUpdated(_slippagePercentage);
+    }
+
+    function setEmaRange(Percentage newEmaRange) external onlyGovernor {
+        _setEmaRange(newEmaRange);
     }
 
     /**
@@ -472,11 +431,7 @@ contract CurveSwapPendlePtArk is Ark {
         bytes calldata data
     ) internal override shouldTrade {
         _rolloverIfNeeded();
-
-        if (this.isMarketExpired()) {
-            _redeemTokenFromPtPostExpiry(amount, amount);
-            // TODO: swap for USDC or new method to withdraw market asset (USDE)
-        } else {
+        if (!this.isMarketExpired()) {
             _withdrawArkTokenForToken(amount, data);
         }
     }
@@ -676,7 +631,13 @@ contract CurveSwapPendlePtArk is Ark {
      * @notice Check if trading should be allowed
      */
     function _shouldTrade() internal view {
-        if (!onlyWhenBetween(getExchangeRateEma(), lowerEma, upperEma)) {
+        if (
+            !onlyWhenBetween(
+                getExchangeRateEma(),
+                getLowerBound(),
+                getUpperBound()
+            )
+        ) {
             revert EmaOutOfRange();
         }
     }

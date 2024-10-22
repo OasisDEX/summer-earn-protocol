@@ -16,7 +16,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 
-import {PendlePtArkConstructorParams} from "../../src/contracts/arks/PendlePTArk.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IPMarketV3} from "@pendle/core-v2/contracts/interfaces/IPMarketV3.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -28,13 +27,6 @@ import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
 import {SwapData, SwapType} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 
-struct BoardData {
-    bytes swapForPtParams;
-}
-
-struct DisembarkData {
-    bytes swapPtForTokenParams;
-}
 
 contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
     CurveSwapPendlePtArk public usdcArk;
@@ -114,17 +106,17 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         pendleMarket = IPMarketV3(MARKET);
         pendleRouter = IPAllActionV3(ROUTER);
 
-        PendlePtArkConstructorParams
-            memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
+        CurveSwapPendlePtArk.PendlePtArkConstructorParams
+            memory pendlePtArkConstructorParams = CurveSwapPendlePtArk.PendlePtArkConstructorParams({
                 market: MARKET,
                 oracle: ORACLE,
-                router: ROUTER
+                router: ROUTER,
+                                    marketAsset: USDE
             });
         CurveSwapPendlePtArk.CurveSwapArkConstructorParams
             memory curveSwapArkConstructorParams = CurveSwapPendlePtArk
                 .CurveSwapArkConstructorParams({
-                    curvePool: CURVE_POOL,
-                    marketAsset: USDE
+                    curvePool: CURVE_POOL
                 });
         // Create USDC Ark
         ArkParams memory usdcParams = ArkParams({
@@ -252,7 +244,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         bytes
             memory swapDataBuy100USDCRollArk = hex"c81f847a0000000000000000000000001d1499e622D69689cdf9004d05Ec547d650Ff211000000000000000000000000281fe15fd3e08a282f52d5cf09a4d13c3709e66d00000000000000000000000000000000000000000000000570294257f21c1a66000000000000000000000000000000000000000000000002bf1c9874d2326540000000000000000000000000000000000000000000000005c488d9c21fd03b070000000000000000000000000000000000000000000000057e3930e9a464ca81000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000009184e72a000000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000008e0000000000000000000000000af88d065e77c8cc2239327c5edb3a432268e58310000000000000000000000000000000000000000000000000000000005f5e1000000000000000000000000005d3a1ff2b6bab83b63cd9ad0787074081a52ef340000000000000000000000000cc097ac029a7541c4e894c789c7aaa2a9794a2900000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000006131b5fae19ea4f9d964eac0408e4408b66337b5000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000644e21fd0e9000000000000000000000000000000000000000000000000000000000000002000000000000000000000000011ddd59c33c73c44733b4123a86ea5ce57f6e854000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000003c000000000000000000000000000000000000000000000000000000000000000c0010100000029020000001caf100cd74792d4be6c64621c2e21c7830868c400000000000000000000000005f5e100010aaf88d065e77c8cc2239327c5edb3a432268e58315d3a1ff2b6bab83b63cd9ad0787074081a52ef34888888888889758f76e7103c6cbf23abbf58f9460000000000000000000000007fffffff000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000005b2603b6a53500000000000000056ed0ce29b267eba9000000000000000000000000af88d065e77c8cc2239327c5edb3a432268e58310000000000000000000000005d3a1ff2b6bab83b63cd9ad0787074081a52ef34000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000888888888889758f76e7103c6cbf23abbf58f9460000000000000000000000000000000000000000000000000000000005f5e10000000000000000000000000000000000000000000000000560e85138a3d266be00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000220000000000000000000000000000000000000000000000000000000000000000100000000000000000000000011ddd59c33c73c44733b4123a86ea5ce57f6e85400000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000005f5e10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002327b22536f75726365223a2250656e646c65222c22416d6f756e74496e555344223a223130302e3333373939323034393339353931222c22416d6f756e744f7574555344223a223130302e3233313633363531333137363237222c22526566657272616c223a22222c22466c616773223a302c22416d6f756e744f7574223a22313030323138383239313836333537373833343635222c2254696d657374616d70223a313732383536393339342c22496e74656772697479496e666f223a7b224b65794944223a2231222c225369676e6174757265223a224d365345547a4c39387745436659644a4e2f4c514d5a682f434a38416876483564354f4d3377436a6f4b3754735a325664386577616c7a4f6146426d565950455a677a38356b776869324b78447848552f323848744e31324e5951716b637a4e79304677515a344b59546371583248684c2f4e796f30574738564373425841714a2b397453724d2b4f66586e6b6d38435155672b56347265593664457544775644675268505a4a64516b6a797847303945426b666453746135526d4a7941634a716f665534416e3272635647356e774d5a6e4a544c764f496b306730614c31464e4b59737859732f435a333133706b2f6f785246487a58786457435a4b35612b776266654552326e6756553036736b696e4939654f62585161725a4235746b57774d776c3366784157516f6d494561786867434d565054673856687934393837554c4a63434256307165736978516b674c332f7536773d3d227d7d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
-        BoardData memory boardData = BoardData({
+        CurveSwapPendlePtArk.BoardData memory boardData = CurveSwapPendlePtArk.BoardData({
             swapForPtParams: swapDataBuy100USDCRollArk
         });
         bytes memory encodedBoardData = abi.encode(boardData);
@@ -262,17 +254,17 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         vm.makePersistent(PREVIOUS_MARKET);
 
         // Create a new Ark with the previous market
-        PendlePtArkConstructorParams
-            memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
+        CurveSwapPendlePtArk.PendlePtArkConstructorParams
+            memory pendlePtArkConstructorParams = CurveSwapPendlePtArk.PendlePtArkConstructorParams({
                 market: PREVIOUS_MARKET,
                 oracle: ORACLE,
-                router: ROUTER
+                router: ROUTER,
+                    marketAsset: USDE
             });
         CurveSwapPendlePtArk.CurveSwapArkConstructorParams
             memory curveSwapArkConstructorParams = CurveSwapPendlePtArk
                 .CurveSwapArkConstructorParams({
-                    curvePool: CURVE_POOL,
-                    marketAsset: USDE
+                    curvePool: CURVE_POOL
                 });
         ArkParams memory usdcParams = ArkParams({
             name: "Pendle USDC PT Ark for Rollover Test",
@@ -362,7 +354,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
     }
 
     function test_Disembark_PendlePTArk_fork() public {
-        DisembarkData memory disembarkData = DisembarkData({
+        CurveSwapPendlePtArk.DisembarkData memory disembarkData = CurveSwapPendlePtArk.DisembarkData({
             swapPtForTokenParams: swapDataSell100000USDC
         });
         _testBoardForArk(
@@ -394,7 +386,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         uint256 amount = 1000 * 10 ** 6;
         deal(USDCE, commander, amount);
 
-        BoardData memory boardData = BoardData({
+        CurveSwapPendlePtArk.BoardData memory boardData = CurveSwapPendlePtArk.BoardData({
             swapForPtParams: swapDataBuy1000USDCE
         });
         bytes memory encodedBoardData = abi.encode(boardData);
@@ -438,7 +430,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         uint256 amount = 1000 * 10 ** 6;
         deal(USDCE, commander, 10 * amount);
 
-        BoardData memory boardData = BoardData({
+        CurveSwapPendlePtArk.BoardData memory boardData = CurveSwapPendlePtArk.BoardData({
             swapForPtParams: swapDataBuy1000USDCE
         });
         bytes memory encodedBoardData = abi.encode(boardData);
@@ -456,8 +448,8 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
     }
     // function test_WithdrawFromExpireMarket_PendlePTArk_fork() public {
     //     // Create a new Ark with the previous market
-    //     PendlePtArkConstructorParams
-    //         memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
+    //     CurveSwapPendlePtArk.PendlePtArkConstructorParams
+    //         memory pendlePtArkConstructorParams = CurveSwapPendlePtArk.PendlePtArkConstructorParams({
     //             market: PREVIOUS_MARKET,
     //             oracle: ORACLE,
     //             router: ROUTER
@@ -501,7 +493,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
     //         memory swapDataSell100000USDCRolloverArk =
     // hex"594a88cc0000000000000000000000001e1499e622D69689cdf9004d05Ec547d650Ff211000000000000000000000000281fe15fd3e08a282f52d5cf09a4d13c3709e66d00000000000000000000000000000000000000000000156d5fd641e5b3edee0300000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000008e0000000000000000000000000af88d065e77c8cc2239327c5edb3a432268e583100000000000000000000000000000000000000000000000000000017196a09b00000000000000000000000005d3a1ff2b6bab83b63cd9ad0787074081a52ef340000000000000000000000000cc097ac029a7541c4e894c789c7aaa2a9794a2900000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000006131b5fae19ea4f9d964eac0408e4408b66337b50000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000006e4e21fd0e9000000000000000000000000000000000000000000000000000000000000002000000000000000000000000011ddd59c33c73c44733b4123a86ea5ce57f6e854000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000022000000000000000000000000000000000000000000000000000000000000004600000000000000000000000000000000000000000000000000000000000000151030100000029020000003223859e24d5413947761cb79d3094f21be69bfa00000000000009c4108073a4dee53d8e010a010000005c02000000c23f308cf1bfa7efffb592920a619f00990f8d74af88d065e77c8cc2239327c5edb3a432268e58310000000000000737dfacdb0a8e7ceaae0000000000000000000000000000000000000000000000000000000000000000150100000029020000008bb586cc81b60cc8c8102aefe69e9572ab0df3fa000000000000043efc0b53abdb588a0c010a5d3a1ff2b6bab83b63cd9ad0787074081a52ef34af88d065e77c8cc2239327c5edb3a432268e5831888888888889758f76e7103c6cbf23abbf58f9460000000000000000000000007fffffff0000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001877400000000000000000000001755254a6f0000000000000000000000000000000000000000000000000000005d3a1ff2b6bab83b63cd9ad0787074081a52ef34000000000000000000000000af88d065e77c8cc2239327c5edb3a432268e5831000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000888888888889758f76e7103c6cbf23abbf58f94600000000000000000000000000000000000000000000153aec38a25b48bab24800000000000000000000000000000000000000000000000000000017196a09b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000220000000000000000000000000000000000000000000000000000000000000000100000000000000000000000011ddd59c33c73c44733b4123a86ea5ce57f6e854000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000153aec38a25b48bab24800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002297b22536f75726365223a2250656e646c65222c22416d6f756e74496e555344223a223130303033342e3634313737313034343034222c22416d6f756e744f7574555344223a223130303030312e3332353034393530333334222c22526566657272616c223a22222c22466c616773223a302c22416d6f756e744f7574223a22313030323132373535303535222c2254696d657374616d70223a313732393236303537322c22496e74656772697479496e666f223a7b224b65794944223a2231222c225369676e6174757265223a22636b4250394664725037726b334c57354e4c416b4e4337494f317a744c77504a2b4e4c5951346d7362557a4d465a6e475135382f6f47477152683145576a716b3948704635596f646d763372353253776e3567507044437369434c6945696c303650367573376b59766b6d6e574a4d493344533578654f6b43477a4d745145687041333875504e646258412b376741487364696f4439755948486d4b6861454d4d4f497a784b7272343877595378727a7863594f686c667a616465466f38335a4a43597042636f72563431615246776e6f66586d707a703032372f476a314b6d6379396c397257777964496735793852365268374b736a782f396b6f626138707731336577694670446d545a42622f726a704a6b4433794e776153672b5936754a476b585762444d526c4b4958456a474548743673306946767254794133303355486964306c764e6273722f472f6a57446f6e4964413d3d227d7d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
-    //     DisembarkData memory disembarkData = DisembarkData({
+    //     CurveSwapPendlePtArk.DisembarkData memory disembarkData = CurveSwapPendlePtArk.DisembarkData({
     //         swapPtForTokenParams: swapDataSell100000USDCRolloverArk
     //     });
     //     bytes memory encodedDisembarkData = abi.encode(disembarkData);
@@ -596,7 +588,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         uint256 amount = 1000 * 10 ** 6;
         deal(USDCE, commander, 2 * amount);
 
-        BoardData memory boardData = BoardData({
+        CurveSwapPendlePtArk.BoardData memory boardData = CurveSwapPendlePtArk.BoardData({
             swapForPtParams: swapDataBuy1000USDCE
         });
         bytes memory encodedBoardData = abi.encode(boardData);
@@ -627,7 +619,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         uint256 amount = 1000 * 10 ** 6;
         deal(USDCE, commander, amount);
 
-        BoardData memory boardData = BoardData({
+        CurveSwapPendlePtArk.BoardData memory boardData = CurveSwapPendlePtArk.BoardData({
             swapForPtParams: swapDataBuy1000USDCE
         });
         bytes memory encodedBoardData = abi.encode(boardData);
@@ -650,17 +642,17 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         address invalidAsset = address(0x123); // Some random address
 
         vm.expectRevert(abi.encodeWithSignature("InvalidAssetForSY()"));
-        PendlePtArkConstructorParams
-            memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
+        CurveSwapPendlePtArk.PendlePtArkConstructorParams
+            memory pendlePtArkConstructorParams = CurveSwapPendlePtArk.PendlePtArkConstructorParams({
                 market: MARKET,
                 oracle: ORACLE,
-                router: ROUTER
+                router: ROUTER,
+                    marketAsset: invalidAsset
             });
         CurveSwapPendlePtArk.CurveSwapArkConstructorParams
             memory curveSwapArkConstructorParams = CurveSwapPendlePtArk
                 .CurveSwapArkConstructorParams({
-                    curvePool: CURVE_POOL,
-                    marketAsset: invalidAsset
+                    curvePool: CURVE_POOL
                 });
         // Create USDC Ark
         ArkParams memory usdcParams = ArkParams({
@@ -764,7 +756,65 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             "Expected reward amount should match mock reward amount"
         );
     }
+function test_WithdrawFromExpiredMarket_ByGovernance() public {
+    // Setup: Board some assets first
+    uint256 amount = 1000 * 10 ** 6;
+    deal(USDCE, commander, amount);
 
+    CurveSwapPendlePtArk.BoardData memory boardData = CurveSwapPendlePtArk.BoardData({
+        swapForPtParams: swapDataBuy1000USDCE
+    });
+    bytes memory encodedBoardData = abi.encode(boardData);
+
+    vm.startPrank(commander);
+    usdce.approve(address(usdceArk), amount);
+    usdceArk.board(amount, encodedBoardData);
+    vm.stopPrank();
+
+    // Fast forward time past market expiry
+    vm.warp(usdceArk.marketExpiry() + 1);
+
+    // Mock the market as expired
+    vm.mockCall(
+        address(usdceArk),
+        abi.encodeWithSignature("isMarketExpired()"),
+        abi.encode(true)
+    );
+
+      // Get initial balances
+    uint256 initialArkBalance = IERC20(PT).balanceOf(address(usdceArk));
+    uint256 initialGovernorBalance = usde.balanceOf(governor);
+
+    // Attempt to withdraw as non-governor (should fail)
+    vm.prank(commander);
+    vm.expectRevert(abi.encodeWithSignature("CallerIsNotGovernor(address)", commander));
+    usdceArk.withdrawExpiredMarket();
+
+    // Withdraw as governor
+    vm.prank(governor);
+    usdceArk.withdrawExpiredMarket();
+
+    // Get final balances
+    uint256 finalArkBalance = usde.balanceOf(address(usdceArk));
+    uint256 finalGovernorBalance = usde.balanceOf(governor);
+
+    // Assert
+    assertEq(finalArkBalance, 0, "Ark should have no USDCE balance after withdrawal");
+    assertTrue(finalGovernorBalance > initialGovernorBalance, "Governor should have received USDE");
+    console.log("finalGovernorBalance", finalGovernorBalance);
+    console.log("initialGovernorBalance", initialGovernorBalance);
+    console.log("initialArkBalance", initialArkBalance);
+    console.log("pt balance ark", IERC20(PT).balanceOf(address(usdceArk)));
+    assertApproxEqRel(
+        finalGovernorBalance - initialGovernorBalance,
+        initialArkBalance,
+        0.01e18,
+        "Governor should have received close to the initial Ark balance"
+    );
+
+    // Verify that the Ark's total assets are now zero
+    assertEq(usdceArk.totalAssets(), 0, "Ark's total assets should be zero after governance withdrawal");
+}
     function _testBoardForArk(
         CurveSwapPendlePtArk ark,
         address token,
@@ -772,14 +822,14 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         uint256 amount,
         string memory symbol
     ) internal {
-        BoardData memory boardData = BoardData({swapForPtParams: swapDataBuy});
+        CurveSwapPendlePtArk.BoardData memory boardData = CurveSwapPendlePtArk.BoardData({swapForPtParams: swapDataBuy});
         bytes memory encodedBoardData = abi.encode(boardData);
 
         deal(token, commander, amount);
         vm.prank(commander);
         IERC20(token).approve(address(ark), amount);
         vm.prank(governor);
-        ark.setUpperEma(1.1 * 1e18);
+        ark.setEmaRange(PercentageUtils.fromFraction(100, 10000)); // 0.15%
         vm.prank(commander);
         ark.board(amount, encodedBoardData);
 
@@ -810,7 +860,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         string memory symbol
     ) internal {
         _testBoardForArk(ark, token, swapDataBuy, amount, symbol);
-        vm.prank(governor);
-        ark.rescueToken(address(PT));
+        vm.prank(address(ark));
+        IERC20(PT).transfer(governor, IERC20(PT).balanceOf(address(ark)));
     }
 }
