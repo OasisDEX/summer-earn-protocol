@@ -5,7 +5,8 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
-import {IStakingRewardsManager} from "../../src/interfaces/IStakingRewardsManager.sol";
+import {IFleetStakingRewardsManager} from "../../src/interfaces/IFleetStakingRewardsManager.sol";
+import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
@@ -62,13 +63,6 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
         _mockArkTotalAssets(ark1, 0);
         _mockArkTotalAssets(ark2, 0);
         vm.stopPrank();
-
-        // vm.startPrank(mockUser);
-        // fleetCommander.approve(
-        //     address(stakingRewardsManager),
-        //     fleetCommander.convertToShares(amount)
-        // );
-        // vm.stopPrank();
 
         vm.prank(mockUser);
         fleetCommander.depositAndStake(amount, mockUser);
@@ -284,7 +278,7 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
             amount
         );
         vm.expectEmit();
-        emit IStakingRewardsManager.Staked(mockUser, amount);
+        emit IStakingRewardsManagerBase.Staked(mockUser, amount);
         fleetCommander.depositAndStake(amount, mockUser);
 
         vm.stopPrank();
