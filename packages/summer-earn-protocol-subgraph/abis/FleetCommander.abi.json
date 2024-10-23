@@ -28,11 +28,6 @@
             "internalType": "address"
           },
           {
-            "name": "stakingRewardsManager",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
             "name": "asset",
             "type": "address",
             "internalType": "address"
@@ -307,7 +302,7 @@
       {
         "name": "stakingRewardsManager",
         "type": "address",
-        "internalType": "address"
+        "internalType": "contract IFleetStakingRewardsManager"
       }
     ],
     "stateMutability": "view"
@@ -605,7 +600,7 @@
           {
             "name": "stakingRewardsManager",
             "type": "address",
-            "internalType": "address"
+            "internalType": "contract IFleetStakingRewardsManager"
           }
         ]
       }
@@ -675,14 +670,14 @@
     "name": "isArkWithdrawable",
     "inputs": [
       {
-        "name": "",
+        "name": "ark",
         "type": "address",
         "internalType": "address"
       }
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "isWithdrawable",
         "type": "bool",
         "internalType": "bool"
       }
