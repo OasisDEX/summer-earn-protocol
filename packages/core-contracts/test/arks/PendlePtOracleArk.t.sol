@@ -866,7 +866,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         // Attempt to withdraw as non-governor (should fail)
         vm.prank(commander);
         vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotCurator(address)", commander)
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", commander)
         );
         usdceArk.withdrawExpiredMarket();
 

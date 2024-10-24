@@ -314,7 +314,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         return block.timestamp >= marketExpiry;
     }
 
-    function withdrawExpiredMarket() public onlyCurator(config.commander) {
+    function withdrawExpiredMarket() public onlyGovernor {
         if (this.isMarketExpired()) {
             uint256 amount = IERC20(PT).balanceOf(address(this));
             _redeemTokenFromPtPostExpiry(amount, amount);
@@ -336,9 +336,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @notice Set the next market
      * @param _nextMarket Address of the next market
      */
-    function setNextMarket(
-        address _nextMarket
-    ) public onlyCurator(config.commander) {
+    function setNextMarket(address _nextMarket) public onlyGovernor {
         nextMarket = _nextMarket;
     }
 
