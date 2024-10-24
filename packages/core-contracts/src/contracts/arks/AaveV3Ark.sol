@@ -49,7 +49,7 @@ contract AaveV3Ark is Ark {
     ) Ark(_params) {
         aaveV3Pool = IPoolV3(_aaveV3Pool);
         DataTypes.ReserveData memory reserveData = aaveV3Pool.getReserveData(
-            address(config.token)
+            address(config.asset)
         );
         aToken = reserveData.aTokenAddress;
         rewardsController = IRewardsController(_rewardsController);
@@ -107,8 +107,8 @@ contract AaveV3Ark is Ark {
      * @param amount Amount of tokens to supply
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        config.token.approve(address(aaveV3Pool), amount);
-        aaveV3Pool.supply(address(config.token), amount, address(this), 0);
+        config.asset.approve(address(aaveV3Pool), amount);
+        aaveV3Pool.supply(address(config.asset), amount, address(this), 0);
     }
 
     /**
@@ -116,7 +116,7 @@ contract AaveV3Ark is Ark {
      * @param amount Amount of tokens to withdraw
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        aaveV3Pool.withdraw(address(config.token), amount, address(this));
+        aaveV3Pool.withdraw(address(config.asset), amount, address(this));
     }
 
     /**

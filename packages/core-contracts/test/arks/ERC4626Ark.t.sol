@@ -40,7 +40,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             name: "USDC ERC4626 Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: USDC_ADDRESS,
+            asset: USDC_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -82,7 +82,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             "Vault address should match"
         );
         assertEq(
-            address(ark.token()),
+            address(ark.asset()),
             USDC_ADDRESS,
             "Token address should match USDC"
         );

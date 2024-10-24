@@ -207,8 +207,8 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
         market = newMarket;
         (SY, PT, YT) = IPMarketV3(newMarket).readTokens();
         if (
-            !IStandardizedYield(SY).isValidTokenIn(address(config.token)) ||
-            !IStandardizedYield(SY).isValidTokenOut(address(config.token))
+            !IStandardizedYield(SY).isValidTokenIn(address(config.asset)) ||
+            !IStandardizedYield(SY).isValidTokenOut(address(config.asset))
         ) {
             revert InvalidAssetForSY();
         }

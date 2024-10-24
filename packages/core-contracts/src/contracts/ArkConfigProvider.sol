@@ -38,7 +38,7 @@ abstract contract ArkConfigProvider is
         if (_params.configurationManager == address(0)) {
             revert CannotDeployArkWithoutConfigurationManager();
         }
-        if (_params.token == address(0)) {
+        if (_params.asset == address(0)) {
             revert CannotDeployArkWithoutToken();
         }
         if (bytes(_params.name).length == 0) {
@@ -49,7 +49,7 @@ abstract contract ArkConfigProvider is
         }
 
         config = ArkConfig({
-            token: IERC20(_params.token),
+            asset: IERC20(_params.asset),
             commander: address(0), // Commander is initially set to address(0)
             raft: raft(),
             depositCap: _params.depositCap,
@@ -79,8 +79,8 @@ abstract contract ArkConfigProvider is
     }
 
     /// @inheritdoc IArkConfigProvider
-    function token() external view returns (IERC20) {
-        return config.token;
+    function asset() external view returns (IERC20) {
+        return config.asset;
     }
 
     /// @inheritdoc IArkConfigProvider

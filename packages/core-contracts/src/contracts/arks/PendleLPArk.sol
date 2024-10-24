@@ -38,8 +38,8 @@ contract PendleLPArk is BasePendleArk {
      * @notice Set up token approvals for Pendle interactions
      */
     function _setupApprovals() internal override {
-        config.token.forceApprove(address(SY), type(uint256).max);
-        config.token.forceApprove(router, type(uint256).max);
+        config.asset.forceApprove(address(SY), type(uint256).max);
+        config.asset.forceApprove(router, type(uint256).max);
         IERC20(market).forceApprove(router, type(uint256).max);
         IERC20(market).forceApprove(market, type(uint256).max);
     }
@@ -71,9 +71,9 @@ contract PendleLPArk is BasePendleArk {
         );
 
         TokenInput memory tokenInput = TokenInput({
-            tokenIn: address(config.token),
+            tokenIn: address(config.asset),
             netTokenIn: _amount,
-            tokenMintSy: address(config.token),
+            tokenMintSy: address(config.asset),
             pendleSwap: address(0),
             swapData: emptySwap
         });
@@ -119,9 +119,9 @@ contract PendleLPArk is BasePendleArk {
      */
     function _removeLiquidity(uint256 lpAmount, uint256 minTokenOut) internal {
         TokenOutput memory tokenOutput = TokenOutput({
-            tokenOut: address(config.token),
+            tokenOut: address(config.asset),
             minTokenOut: minTokenOut,
-            tokenRedeemSy: address(config.token),
+            tokenRedeemSy: address(config.asset),
             pendleSwap: address(0),
             swapData: emptySwap
         });

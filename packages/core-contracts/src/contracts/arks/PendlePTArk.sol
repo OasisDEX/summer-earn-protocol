@@ -47,7 +47,7 @@ contract PendlePTArk is BasePendleArk {
      * @notice Set up token approvals for Pendle interactions
      */
     function _setupApprovals() internal override {
-        config.token.forceApprove(address(router), type(uint256).max);
+        config.asset.forceApprove(address(router), type(uint256).max);
         IERC20(SY).forceApprove(router, type(uint256).max);
         IERC20(PT).forceApprove(router, type(uint256).max);
     }
@@ -74,9 +74,9 @@ contract PendlePTArk is BasePendleArk {
         );
 
         TokenInput memory tokenInput = TokenInput({
-            tokenIn: address(config.token),
+            tokenIn: address(config.asset),
             netTokenIn: _amount,
-            tokenMintSy: address(config.token),
+            tokenMintSy: address(config.asset),
             pendleSwap: address(0),
             swapData: emptySwap
         });
@@ -140,13 +140,13 @@ contract PendlePTArk is BasePendleArk {
         uint256 syBalance = IERC20(SY).balanceOf(address(this));
         if (syBalance > 0) {
             uint256 tokensToRedeem = IStandardizedYield(SY).previewRedeem(
-                address(config.token),
+                address(config.asset),
                 syBalance
             );
             IStandardizedYield(SY).redeem(
                 address(this),
                 syBalance,
-                address(config.token),
+                address(config.asset),
                 tokensToRedeem,
                 false
             );
@@ -167,9 +167,9 @@ contract PendlePTArk is BasePendleArk {
         uint256 minTokenOut
     ) internal {
         TokenOutput memory tokenOutput = TokenOutput({
-            tokenOut: address(config.token),
+            tokenOut: address(config.asset),
             minTokenOut: minTokenOut,
-            tokenRedeemSy: address(config.token),
+            tokenRedeemSy: address(config.asset),
             pendleSwap: address(0),
             swapData: emptySwap
         });

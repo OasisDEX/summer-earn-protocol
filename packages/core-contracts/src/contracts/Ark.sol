@@ -87,16 +87,16 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     {
         sweptTokens = new address[](tokens.length);
         sweptAmounts = new uint256[](tokens.length);
-        if (config.token.balanceOf(address(this)) > 0) {
+        if (config.asset.balanceOf(address(this)) > 0) {
             address bufferArk = address(
                 IFleetCommander(config.commander).getConfig().bufferArk
             );
-            config.token.forceApprove(
+            config.asset.forceApprove(
                 bufferArk,
-                config.token.balanceOf(address(this))
+                config.asset.balanceOf(address(this))
             );
             IArk(bufferArk).board(
-                config.token.balanceOf(address(this)),
+                config.asset.balanceOf(address(this)),
                 bytes("")
             );
         }
@@ -125,10 +125,10 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
         validateBoardData(boardData)
     {
         address msgSender = msg.sender;
-        config.token.safeTransferFrom(msgSender, address(this), amount);
+        config.asset.safeTransferFrom(msgSender, address(this), amount);
         _board(amount, boardData);
 
-        emit Boarded(msgSender, address(config.token), amount);
+        emit Boarded(msgSender, address(config.asset), amount);
     }
 
     /// @inheritdoc IArk
@@ -138,9 +138,9 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     ) external onlyCommander nonReentrant validateDisembarkData(disembarkData) {
         address msgSender = msg.sender;
         _disembark(amount, disembarkData);
-        config.token.safeTransfer(msgSender, amount);
+        config.asset.safeTransfer(msgSender, amount);
 
-        emit Disembarked(msgSender, address(config.token), amount);
+        emit Disembarked(msgSender, address(config.asset), amount);
     }
 
     /// @inheritdoc IArk
@@ -152,10 +152,10 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     ) external onlyCommander validateDisembarkData(disembarkData) {
         _disembark(amount, disembarkData);
 
-        config.token.approve(receiverArk, amount);
+        config.asset.approve(receiverArk, amount);
         IArk(receiverArk).board(amount, boardData);
 
-        emit Moved(address(this), receiverArk, address(config.token), amount);
+        emit Moved(address(this), receiverArk, address(config.asset), amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -226,6 +226,6 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
      * @return The balance of the Ark's asset
      */
     function _balanceOfAsset() internal view virtual returns (uint256) {
-        return config.token.balanceOf(address(this));
+        return config.asset.balanceOf(address(this));
     }
 }

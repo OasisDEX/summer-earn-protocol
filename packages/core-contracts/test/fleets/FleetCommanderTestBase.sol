@@ -202,7 +202,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 ArkParams({
                     name: "TestArk",
                     accessManager: address(accessManager),
-                    token: tokenAddress,
+                    asset: tokenAddress,
                     configurationManager: address(configurationManager),
                     depositCap: depositCap,
                     maxRebalanceOutflow: type(uint256).max,
@@ -222,7 +222,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                 ArkParams({
                     name: "TestArk",
                     accessManager: address(accessManager),
-                    token: tokenAddress,
+                    asset: tokenAddress,
                     configurationManager: address(configurationManager),
                     depositCap: depositCap,
                     maxRebalanceOutflow: type(uint256).max,

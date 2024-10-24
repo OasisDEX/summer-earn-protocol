@@ -350,7 +350,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             ArkParams({
                 name: "MockArkWithCommander",
                 accessManager: address(accessManager),
-                token: address(mockToken),
+                asset: address(mockToken),
                 configurationManager: address(configurationManager),
                 depositCap: 1000,
                 maxRebalanceOutflow: 500,

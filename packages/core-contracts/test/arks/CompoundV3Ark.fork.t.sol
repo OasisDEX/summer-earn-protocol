@@ -39,7 +39,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
             name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(usdc),
+            asset: address(usdc),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,

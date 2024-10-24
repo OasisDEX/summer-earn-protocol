@@ -43,7 +43,7 @@ contract FleetCommanderConfigProvider is
             ArkParams({
                 name: "BufferArk",
                 accessManager: address(params.accessManager),
-                token: params.asset,
+                asset: params.asset,
                 configurationManager: address(params.configurationManager),
                 depositCap: type(uint256).max,
                 maxRebalanceOutflow: type(uint256).max,

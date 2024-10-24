@@ -32,7 +32,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
             name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken),
+            asset: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -51,7 +51,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
             name: "",
             accessManager: address(0),
             configurationManager: address(0),
-            token: address(0),
+            asset: address(0),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -81,7 +81,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("CannotDeployArkWithEmptyName()")
         );
-        params.token = address(3);
+        params.asset = address(3);
         new ArkMock(params);
 
         vm.expectRevert(

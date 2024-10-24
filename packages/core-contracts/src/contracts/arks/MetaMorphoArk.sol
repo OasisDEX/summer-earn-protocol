@@ -72,7 +72,7 @@ contract MetaMorphoArk is Ark {
      * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        config.token.approve(address(metaMorpho), amount);
+        config.asset.approve(address(metaMorpho), amount);
         metaMorpho.deposit(amount, address(this));
     }
 

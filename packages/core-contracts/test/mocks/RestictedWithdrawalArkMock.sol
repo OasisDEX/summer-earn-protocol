@@ -31,7 +31,7 @@ contract RestictedWithdrawalArkMock is Ark {
      * @return The total token balance of this contract
      */
     function totalAssets() public view override returns (uint256) {
-        return IERC20(config.token).balanceOf(address(this));
+        return IERC20(config.asset).balanceOf(address(this));
     }
 
     /**

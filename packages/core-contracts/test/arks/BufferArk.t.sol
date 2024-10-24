@@ -24,7 +24,7 @@ contract BufferArkTest is Test, IArkEvents, ArkTestBase {
             name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken),
+            asset: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -45,14 +45,14 @@ contract BufferArkTest is Test, IArkEvents, ArkTestBase {
             name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken),
+            asset: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
             requiresKeeperData: false
         });
         ark = new BufferArk(params, address(commander));
-        assertEq(address(ark.token()), address(mockToken));
+        assertEq(address(ark.asset()), address(mockToken));
         assertEq(ark.depositCap(), type(uint256).max);
     }
 

@@ -414,7 +414,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
-        IERC20(config.token).approve(address(router), _amount);
+        IERC20(config.asset).approve(address(router), _amount);
         IPAllActionV3(router).swapExactTokenForPt(
             receiver,
             swapMarket,
@@ -554,7 +554,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         ) {
             revert InvalidAssetForSY();
         }
-        configTokenDecimals = IERC20Extended(address(config.token)).decimals();
+        configTokenDecimals = IERC20Extended(address(config.asset)).decimals();
         marketAssetDecimals = IERC20Extended(marketAsset).decimals();
         ptDecimals = PT.decimals();
         _updateMarketData();
