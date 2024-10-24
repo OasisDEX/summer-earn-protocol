@@ -314,7 +314,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         return block.timestamp >= marketExpiry;
     }
 
-    function withdrawExpiredMarket() public onlyGovernor {
+    function withdrawExpiredMarket() public onlyCurator(config.commander) {
         if (this.isMarketExpired()) {
             uint256 amount = IERC20(PT).balanceOf(address(this));
             _redeemTokenFromPtPostExpiry(amount, amount);
@@ -336,7 +336,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @notice Set the next market
      * @param _nextMarket Address of the next market
      */
-    function setNextMarket(address _nextMarket) public onlyGovernor {
+    function setNextMarket(
+        address _nextMarket
+    ) public onlyCurator(config.commander) {
         nextMarket = _nextMarket;
     }
 
@@ -346,7 +348,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      */
     function setSlippagePercentage(
         Percentage _slippagePercentage
-    ) external onlyGovernor {
+    ) external onlyCurator(config.commander) {
         if (_slippagePercentage > MAX_SLIPPAGE_PERCENTAGE) {
             revert SlippagePercentageTooHigh(
                 _slippagePercentage,
@@ -360,11 +362,13 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     function setEmaRange(
         Percentage _lowerPercentageRange,
         Percentage _upperPercentageRange
-    ) external onlyGovernor {
+    ) external onlyCurator(config.commander) {
         _setEmaRange(_lowerPercentageRange, _upperPercentageRange);
     }
 
-    function setBasePrice(uint256 _basePrice) external onlyGovernor {
+    function setBasePrice(
+        uint256 _basePrice
+    ) external onlyCurator(config.commander) {
         _setBasePrice(_basePrice);
     }
 
@@ -372,7 +376,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @notice Sets the oracle duration
      * @param _oracleDuration New oracle duration
      */
-    function setOracleDuration(uint32 _oracleDuration) external onlyGovernor {
+    function setOracleDuration(
+        uint32 _oracleDuration
+    ) external onlyCurator(config.commander) {
         if (_oracleDuration < MIN_ORACLE_DURATION) {
             revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
         }
