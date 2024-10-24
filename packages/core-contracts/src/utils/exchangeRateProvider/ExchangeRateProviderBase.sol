@@ -26,13 +26,27 @@ abstract contract ExchangeRateProvider {
     using PercentageUtils for uint256;
 
     /// @notice The EMA (Exponential Moving Average) range for price smoothing
-    Percentage public emaRange;
+    Percentage public lowerPercentageRange;
+    Percentage public upperPercentageRange;
+
+    /// @notice The base price for the exchange rate
+    uint256 public basePrice;
 
     /**
      * @notice Emitted when the EMA range is updated
-     * @param newEmaRange The new EMA range value
+     * @param lowerPercentageRange The new lower EMA range value
+     * @param upperPercentageRange The new upper EMA range value
      */
-    event EmaRangeUpdated(Percentage newEmaRange);
+    event EmaRangeUpdated(
+        Percentage lowerPercentageRange,
+        Percentage upperPercentageRange
+    );
+
+    /**
+     * @notice Emitted when the base price is updated
+     * @param basePrice The new base price value
+     */
+    event BasePriceUpdated(uint256 basePrice);
 
     /**
      * @notice Error thrown when the provided EMA range is too high
@@ -42,10 +56,16 @@ abstract contract ExchangeRateProvider {
 
     /**
      * @dev Constructor to initialize the ExchangeRateProvider
-     * @param _initialEmaRange Initial EMA range for price smoothing
+     * @param _lowerPercentageRange Lower EMA range for price smoothing
+     * @param _upperPercentageRange Upper EMA range for price smoothing
      */
-    constructor(Percentage _initialEmaRange) {
-        _setEmaRange(_initialEmaRange);
+    constructor(
+        Percentage _lowerPercentageRange,
+        Percentage _upperPercentageRange,
+        uint256 _basePrice
+    ) {
+        _setEmaRange(_lowerPercentageRange, _upperPercentageRange);
+        basePrice = _basePrice;
     }
 
     /**
@@ -65,7 +85,7 @@ abstract contract ExchangeRateProvider {
      * @return The lower bound of the exchange rate
      */
     function getLowerBound() public view virtual returns (uint256) {
-        return getExchangeRate().subtractPercentage(emaRange);
+        return basePrice.subtractPercentage(lowerPercentageRange);
     }
 
     /**
@@ -73,20 +93,31 @@ abstract contract ExchangeRateProvider {
      * @return The upper bound of the exchange rate
      */
     function getUpperBound() public view virtual returns (uint256) {
-        return getExchangeRate().addPercentage(emaRange);
+        return basePrice.addPercentage(upperPercentageRange);
     }
 
     /**
      * @notice Set a new EMA range
      * @dev Internal function to update the EMA range, ensuring it's not greater than 100%
-     * @param newEmaRange The new EMA range to set
+     * @param _lowerPercentageRange The new lower EMA range to set
+     * @param _upperPercentageRange The new upper EMA range to set
      */
-    function _setEmaRange(Percentage newEmaRange) internal virtual {
-        if (newEmaRange > PERCENTAGE_100) {
-            revert EmaRangeTooHigh(newEmaRange);
-        }
-        emaRange = newEmaRange;
-        emit EmaRangeUpdated(newEmaRange);
+    function _setEmaRange(
+        Percentage _lowerPercentageRange,
+        Percentage _upperPercentageRange
+    ) internal virtual {
+        if (_lowerPercentageRange > PERCENTAGE_100)
+            revert EmaRangeTooHigh(_lowerPercentageRange);
+        if (_upperPercentageRange > PERCENTAGE_100)
+            revert EmaRangeTooHigh(_upperPercentageRange);
+        lowerPercentageRange = _lowerPercentageRange;
+        upperPercentageRange = _upperPercentageRange;
+        emit EmaRangeUpdated(_lowerPercentageRange, _upperPercentageRange);
+    }
+
+    function _setBasePrice(uint256 _basePrice) internal virtual {
+        basePrice = _basePrice;
+        emit BasePriceUpdated(_basePrice);
     }
 
     /**

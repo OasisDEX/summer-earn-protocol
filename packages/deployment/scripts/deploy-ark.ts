@@ -9,7 +9,7 @@ import { deployMetaMorphoArk } from './arks/deploy-metamorpho-ark'
 import { deployMorphoArk } from './arks/deploy-morpho-ark'
 import { deployPendleLPArk } from './arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from './arks/deploy-pendle-pt-ark'
-import { deployCurveSwapArk } from './arks/deploy-pendle-pt-swap'
+import { deployPendlePTOracleArk } from './arks/deploy-pendle-pt-oracle-ark'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
@@ -22,7 +22,7 @@ const arkTypes = [
   { title: 'ERC4626Ark', value: deployERC4626Ark },
   { title: 'PendleLPArk', value: deployPendleLPArk },
   { title: 'PendlePTArk', value: deployPendlePTArk },
-  { title: 'PendleSwapPtArk', value: deployCurveSwapArk },
+  { title: 'PendlePtOracleArkArk', value: deployPendlePTOracleArk },
 ]
 
 async function deployArk() {

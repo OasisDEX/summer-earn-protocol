@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import {ICurveSwap} from "../../interfaces/curve/ICurveSwap.sol";
 import {Ark, ArkParams} from "../Ark.sol";
 
+import {CurveExchangeRateProvider} from "../../utils/exchangeRateProvider/CurveExchangeRateProvider.sol";
 import {Constants} from "../libraries/Constants.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -18,7 +19,7 @@ import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOrac
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {CurveExchangeRateProvider} from "../../utils/exchangeRateProvider/CurveExchangeRateProvider.sol";
+
 interface IERC20Extended is IERC20 {
     function decimals() external view returns (uint8);
 }
@@ -73,8 +74,6 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
     Percentage public constant MAX_SLIPPAGE_PERCENTAGE = PERCENTAGE_100;
     uint256 public constant MIN_ORACLE_DURATION = 15 minutes;
-    int128 public constant USDE_INDEX = 1;
-    int128 public constant USDC_INDEX = 0;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -104,13 +103,18 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
     struct CurveSwapArkConstructorParams {
         address curvePool;
+        uint256 basePrice;
+        Percentage lowerPercentageRange;
+        Percentage upperPercentageRange;
     }
+
     struct PendlePtArkConstructorParams {
         address market;
         address oracle;
         address router;
         address marketAsset;
     }
+
     struct BoardData {
         bytes swapForPtParams;
     }
@@ -173,7 +177,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         CurveExchangeRateProvider(
             _curveSwapArkConstructorParams.curvePool,
             _pendlePtArkConstructorParams.marketAsset,
-            PercentageUtils.fromFraction(5, 10000)
+            _curveSwapArkConstructorParams.lowerPercentageRange,
+            _curveSwapArkConstructorParams.upperPercentageRange,
+            _curveSwapArkConstructorParams.basePrice
         )
     {
         router = _pendlePtArkConstructorParams.router;
@@ -215,7 +221,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     function totalAssetsNoSlippage() public view returns (uint256) {
         uint256 assetAmount = (IERC20(PT).balanceOf(address(this)) *
             _ptToMarketAssetRate()) / Constants.WAD;
-        uint256 marketAssetToArkTokenExchangeRate = getExchangeRate();
+        uint256 marketAssetToArkTokenExchangeRate = getSafeExchangeRateEma();
         uint256 arkTokenAmount = (assetAmount * 10 ** configTokenDecimals) /
             marketAssetToArkTokenExchangeRate;
         return arkTokenAmount;
@@ -351,8 +357,15 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         emit SlippageUpdated(_slippagePercentage);
     }
 
-    function setEmaRange(Percentage newEmaRange) external onlyGovernor {
-        _setEmaRange(newEmaRange);
+    function setEmaRange(
+        Percentage _lowerPercentageRange,
+        Percentage _upperPercentageRange
+    ) external onlyGovernor {
+        _setEmaRange(_lowerPercentageRange, _upperPercentageRange);
+    }
+
+    function setBasePrice(uint256 _basePrice) external onlyGovernor {
+        _setBasePrice(_basePrice);
     }
 
     /**
@@ -372,12 +385,12 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Internal function to deposit tokens for Ark tokens
-     * @param _amount Amount of tokens to deposit
-     * @param data Additional data for the deposit
+     * @notice Internal function to swap market asset for Principal Tokens (PT)
+     * @param _amount Amount of market asset to swap
+     * @param data Additional data for the swap
      * @dev This function is called during the boarding process
      */
-    function _depositFleetTokenForArkToken(
+    function _swapFleetAssetForPt(
         uint256 _amount,
         bytes calldata data
     ) internal shouldBuy {
@@ -409,12 +422,12 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     }
 
     /**
-     * @notice Internal function to withdraw Ark tokens for tokens
-     * @param _amount Amount of Ark tokens to withdraw
-     * @param data Additional data for the withdrawal
+     * @notice Internal function to swap Principal Tokens (PT) for market asset
+     * @param _amount Amount of PT to swap
+     * @param data Additional data for the swap
      * @dev This function is called during the disembarking process
      */
-    function _withdrawArkTokenForToken(
+    function _swapPtForFleetAsset(
         uint256 _amount,
         bytes calldata data
     ) internal {
@@ -452,7 +465,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      */
     function _board(uint256 amount, bytes calldata data) internal override {
         _rolloverIfNeeded();
-        _depositFleetTokenForArkToken(amount, data);
+        _swapFleetAssetForPt(amount, data);
     }
 
     /**
@@ -466,7 +479,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     ) internal override shouldTrade {
         _rolloverIfNeeded();
         if (!this.isMarketExpired()) {
-            _withdrawArkTokenForToken(amount, data);
+            _swapPtForFleetAsset(amount, data);
         }
     }
 
@@ -511,9 +524,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @notice Set up router parameters
      */
     function _setupRouterParams() internal {
-        routerParams.guessMax = type(uint256).max;
+        routerParams.guessMax = Constants.MAX_UINT256;
         routerParams.maxIteration = 256;
-        routerParams.eps = 1e15; // 0.1% precision
+        routerParams.eps = Constants.WAD / 1000; // 0.1% precision
     }
 
     /**
@@ -553,13 +566,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     }
 
     /**
-     * @notice Convert asset amount to Ark tokens
-     * @param amount Amount of assets to convert
-     * @return The equivalent amount of Ark tokens
+     * @notice Convert market asset amount to Principal Tokens (PT)
+     * @param amount Amount of market assets to convert
+     * @return The equivalent amount of Principal Tokens (PT)
      */
-    function _marketAssetToArkTokens(
-        uint256 amount
-    ) internal view returns (uint256) {
+    function _marketAssetToPt(uint256 amount) internal view returns (uint256) {
         uint256 scaleFactor = 10 ** (18 + ptDecimals - marketAssetDecimals);
         return (amount * scaleFactor) / _ptToMarketAssetRate();
     }
@@ -569,7 +580,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @param _amount Amount of tokens to deposit
      */
     function _depositMarketAssetForPt(uint256 _amount) internal {
-        uint256 minPTout = _marketAssetToArkTokens(_amount).subtractPercentage(
+        uint256 minPTout = _marketAssetToPt(_amount).subtractPercentage(
             slippagePercentage
         );
 

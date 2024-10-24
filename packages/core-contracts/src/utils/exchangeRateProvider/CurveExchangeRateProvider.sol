@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.27;
 
-import "./ExchangeRateProviderBase.sol";
 import "../../../src/interfaces/curve/ICurveSwap.sol";
+import "./ExchangeRateProviderBase.sol";
 
 /**
  * @title CurveExchangeRateProvider
@@ -39,8 +39,16 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
     constructor(
         address _curveSwap,
         address _baseToken,
-        Percentage _initialEmaRange
-    ) ExchangeRateProvider(_initialEmaRange) {
+        Percentage _lowerPercentageRange,
+        Percentage _upperPercentageRange,
+        uint256 _basePrice
+    )
+        ExchangeRateProvider(
+            _lowerPercentageRange,
+            _upperPercentageRange,
+            _basePrice
+        )
+    {
         curveSwap = ICurveSwap(_curveSwap);
         if (_baseToken == address(0)) {
             revert InvalidBaseToken(_baseToken);
@@ -49,29 +57,47 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
     }
 
     /**
-     * @notice Get the current exchange rate
-     * @dev Retrieves the last price from the Curve pool, applies EMA range, and inverts if necessary
+     * @notice Get the current exchange rate without applying EMA range
+     * @dev Retrieves the last price from the Curve pool and inverts if necessary
      * @return price The current exchange rate
      */
     function getExchangeRate() public view override returns (uint256 price) {
         price = curveSwap.last_price(0);
-        price = _applyEmaRange(price);
         if (_shouldInvertExchangeRate()) {
             price = 1e36 / price;
         }
     }
 
     /**
-     * @notice Get the EMA (Exponential Moving Average) of the exchange rate
-     * @dev Retrieves the EMA price from the Curve pool, applies EMA range, and inverts if necessary
+     * @notice Get the EMA (Exponential Moving Average) of the exchange rate without applying EMA range
+     * @dev Retrieves the EMA price from the Curve pool and inverts if necessary
      * @return price The EMA of the exchange rate
      */
     function getExchangeRateEma() public view override returns (uint256 price) {
         price = curveSwap.ema_price(0);
-        price = _applyEmaRange(price);
         if (_shouldInvertExchangeRate()) {
             price = 1e36 / price;
         }
+    }
+
+    /**
+     * @notice Get the current exchange rate with EMA range applied
+     * @dev Retrieves the last price from the Curve pool, inverts if necessary, and applies EMA range
+     * @return price The current exchange rate with EMA range applied
+     */
+    function getSafeExchangeRate() public view returns (uint256 price) {
+        price = getExchangeRate();
+        price = _applyEmaRange(price);
+    }
+
+    /**
+     * @notice Get the EMA of the exchange rate with EMA range applied
+     * @dev Retrieves the EMA price from the Curve pool, inverts if necessary, and applies EMA range
+     * @return price The EMA of the exchange rate with EMA range applied
+     */
+    function getSafeExchangeRateEma() public view returns (uint256 price) {
+        price = getExchangeRateEma();
+        price = _applyEmaRange(price);
     }
 
     /**
@@ -83,8 +109,8 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
     function _applyEmaRange(
         uint256 price
     ) internal view override returns (uint256) {
-        uint256 lowerBound = price.subtractPercentage(emaRange);
-        uint256 upperBound = price.addPercentage(emaRange);
+        uint256 lowerBound = getLowerBound();
+        uint256 upperBound = getUpperBound();
         if (price < lowerBound) {
             return lowerBound;
         } else if (price > upperBound) {

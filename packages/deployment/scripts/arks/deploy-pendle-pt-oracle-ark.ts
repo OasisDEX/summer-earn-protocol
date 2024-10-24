@@ -2,9 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import PendleSwapPtModule, {
+import PendlePtOracleArkModule, {
   PendlePTArkContracts,
-} from '../../ignition/modules/arks/pendle-swap-pt-ark'
+} from '../../ignition/modules/arks/pendle-pt-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -12,7 +12,7 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-export async function deployCurveSwapArk() {
+export async function deployPendlePTOracleArk() {
   const config = getConfigByNetwork(hre.network.name)
 
   console.log(kleur.green().bold('Starting PendlePTArk deployment process...'))
@@ -121,9 +121,9 @@ async function deployPendlePTArkContract(
       requiresKeeperData: true,
     },
   })
-  return (await hre.ignition.deploy(PendleSwapPtModule, {
+  return (await hre.ignition.deploy(PendlePtOracleArkModule, {
     parameters: {
-      PendleSwapPtModule: {
+      PendlePtOracleArkModule: {
         market: userInput.marketId,
         oracle: userInput.oracle,
         router: userInput.router,

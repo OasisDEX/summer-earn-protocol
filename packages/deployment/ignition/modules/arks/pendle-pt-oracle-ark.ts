@@ -12,7 +12,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
  *
  * @returns  An object containing the address of the deployed PendlePTArk contract
  */
-export default buildModule('PendleSwapPtModule', (m) => {
+export default buildModule('PendlePtOracleArkModule', (m) => {
   const market = m.getParameter('market')
   const oracle = m.getParameter('oracle')
   const router = m.getParameter('router')
