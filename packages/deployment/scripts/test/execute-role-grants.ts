@@ -24,19 +24,18 @@ const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
 const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
 
-// TimelockController ABI (only the schedule function)
+// TimelockController ABI (only the execute function)
 const timelockAbi = parseAbi([
-  'function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) public',
+  'function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable',
 ])
 
 async function main() {
-  // Setup public client
+  // Setup clients
   const publicClient = createPublicClient({
     chain: base,
     transport: http(process.env.RPC_URL),
   })
 
-  // Setup wallet client
   const account = privateKeyToAccount(`0x${process.env.PRIVATE_KEY as Hex}`)
   const walletClient = createWalletClient({
     account,
@@ -44,7 +43,7 @@ async function main() {
     transport: http(process.env.RPC_URL),
   })
 
-  // Prepare the proposal data
+  // Prepare the execution data
   const calldatas = [
     encodeFunctionData({
       abi: parseAbi(['function grantRole(bytes32 role, address account)']),
@@ -64,24 +63,12 @@ async function main() {
   const values = [0n, 0n, 0n]
   const predecessor = '0x0000000000000000000000000000000000000000000000000000000000000000'
   const salt = keccak256(toBytes('Grant roles to SummerGovernor'))
-  const delay = 86400n
-
-  // Get the current nonce
-  const nonce = await publicClient.getTransactionCount({ address: account.address })
-
-  // Get the current gas price and increase it significantly
-  const currentGasPrice = await publicClient.getGasPrice()
-  const increasedGasPrice = (currentGasPrice * 200n) / 100n // Double the gas price
-
-  console.log(`Using nonce: ${nonce}`)
-  console.log(`Current gas price: ${currentGasPrice}`)
-  console.log(`Increased gas price: ${increasedGasPrice}`)
 
   try {
-    console.log('Preparing to submit proposals to TimelockController...')
+    console.log('Preparing to execute proposals on TimelockController...')
 
     for (let i = 0; i < targets.length; i++) {
-      console.log(`Scheduling proposal ${i + 1}...`)
+      console.log(`Executing proposal ${i + 1}...`)
       console.log('Target:', targets[i])
       console.log('Value:', values[i])
       console.log('Calldata:', calldatas[i])
@@ -89,20 +76,18 @@ async function main() {
       const hash = await walletClient.writeContract({
         address: TIMELOCK_ADDRESS,
         abi: timelockAbi,
-        functionName: 'schedule',
-        args: [targets[i], values[i], calldatas[i], predecessor, salt, delay],
-        // nonce: nonce + BigInt(i), // Uncomment if you want to use nonce
-        // gasPrice: increasedGasPrice,
+        functionName: 'execute',
+        args: [targets[i], values[i], calldatas[i], predecessor, salt],
       })
 
-      console.log(`Proposal ${i + 1} scheduled. Transaction hash:`, hash)
+      console.log(`Proposal ${i + 1} executed. Transaction hash:`, hash)
 
       // Wait for the transaction to be mined
       const receipt = await publicClient.waitForTransactionReceipt({ hash })
       console.log(`Proposal ${i + 1} transaction mined. Block number:`, receipt.blockNumber)
     }
   } catch (error: any) {
-    console.error('Error submitting proposal:', error)
+    console.error('Error executing proposal:', error)
     if (error.cause) {
       console.error('Error cause:', error.cause)
     }
