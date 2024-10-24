@@ -218,7 +218,11 @@ contract StakingRewardsManagerBaseTest is Test {
         if (rewardsDuration == 0) {
             // Only add the reward token if it hasn't been added yet
             vm.prank(address(mockGovernor));
-            stakingRewardsManager.notifyRewardAmount(rewardToken1, 604800, 0);
+            stakingRewardsManager.notifyRewardAmount(
+                rewardToken1,
+                604800,
+                7 days
+            );
         }
 
         vm.warp(block.timestamp + 8 days);
@@ -280,7 +284,7 @@ contract StakingRewardsManagerBaseTest is Test {
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
-            0
+            7 days
         );
 
         // Fast forward time
@@ -310,7 +314,7 @@ contract StakingRewardsManagerBaseTest is Test {
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
-            0
+            7 days
         );
 
         // Fast forward time
@@ -360,7 +364,7 @@ contract StakingRewardsManagerBaseTest is Test {
             stakingRewardsManager.notifyRewardAmount(
                 IERC20(address(rewardTokens[i])),
                 rewardAmounts[i],
-                0
+                7 days
             );
         }
         vm.stopPrank();

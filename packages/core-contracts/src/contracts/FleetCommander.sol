@@ -545,11 +545,10 @@ contract FleetCommander is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        FleetConfig memory config = this.getConfig();
-        if (_msgSender() == address(config.stakingRewardsManager)) {
-            return super.transferFrom(from, to, amount);
-        }
-        if (to == address(this)) {
+        if (
+            _msgSender() == address(config.stakingRewardsManager) ||
+            to == address(this)
+        ) {
             return super.transferFrom(from, to, amount);
         }
         revert FleetCommanderTransfersDisabled();

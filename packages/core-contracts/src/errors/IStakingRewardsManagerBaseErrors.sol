@@ -47,5 +47,9 @@ interface IStakingRewardsManagerBaseErrors {
     /* @notice Thrown when a reward token still has a balance */
     error RewardTokenStillHasBalance(uint256 balance);
 
+    /* @notice Thrown when the index is out of bounds */
     error IndexOutOfBounds();
+
+    /* @notice Thrown when the rewards duration is zero */
+    error RewardsDurationCannotBeZero();
 }
