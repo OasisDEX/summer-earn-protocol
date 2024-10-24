@@ -214,7 +214,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      */
     function totalAssetsNoSlippage() public view returns (uint256) {
         uint256 assetAmount = (IERC20(PT).balanceOf(address(this)) *
-            _ptToAssetRate()) / Constants.WAD;
+            _ptToMarketAssetRate()) / Constants.WAD;
         uint256 marketAssetToArkTokenExchangeRate = getExchangeRate();
         uint256 arkTokenAmount = (assetAmount * 10 ** configTokenDecimals) /
             marketAssetToArkTokenExchangeRate;
@@ -547,7 +547,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @notice Get the PT to asset rate
      * @return The PT to asset rate
      */
-    function _ptToAssetRate() internal view returns (uint256) {
+    function _ptToMarketAssetRate() internal view returns (uint256) {
         return
             PendlePYLpOracle(oracle).getPtToAssetRate(market, oracleDuration);
     }
@@ -557,9 +557,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @param amount Amount of assets to convert
      * @return The equivalent amount of Ark tokens
      */
-    function _assetToArkTokens(uint256 amount) internal view returns (uint256) {
+    function _marketAssetToArkTokens(
+        uint256 amount
+    ) internal view returns (uint256) {
         uint256 scaleFactor = 10 ** (18 + ptDecimals - marketAssetDecimals);
-        return (amount * scaleFactor) / _ptToAssetRate();
+        return (amount * scaleFactor) / _ptToMarketAssetRate();
     }
 
     /**
@@ -567,7 +569,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @param _amount Amount of tokens to deposit
      */
     function _depositMarketAssetForPt(uint256 _amount) internal {
-        uint256 minPTout = _assetToArkTokens(_amount).subtractPercentage(
+        uint256 minPTout = _marketAssetToArkTokens(_amount).subtractPercentage(
             slippagePercentage
         );
 
