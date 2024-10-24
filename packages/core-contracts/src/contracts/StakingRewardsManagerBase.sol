@@ -11,7 +11,7 @@ import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransi
 import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title StakingRewards
@@ -24,7 +24,7 @@ abstract contract StakingRewardsManagerBase is
     ProtocolAccessManaged
 {
     using SafeERC20 for IERC20;
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     struct RewardData {
         uint256 periodFinish;
@@ -38,7 +38,7 @@ abstract contract StakingRewardsManagerBase is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    EnumerableMap.AddressToUintMap internal _rewardTokens;
+    EnumerableSet.AddressSet private _rewardTokensList;
     IERC20 public stakingToken;
 
     mapping(IERC20 rewardToken => RewardData) public rewardData;
@@ -67,8 +67,8 @@ abstract contract StakingRewardsManagerBase is
     function rewardTokens(
         uint256 index
     ) external view override returns (IERC20) {
-        if (index >= _rewardTokens.length()) revert IndexOutOfBounds();
-        (address rewardTokenAddress, ) = _rewardTokens.at(index);
+        if (index >= _rewardTokensList.length()) revert IndexOutOfBounds();
+        address rewardTokenAddress = _rewardTokensList.at(index);
         return IERC20(rewardTokenAddress);
     }
 
@@ -139,21 +139,26 @@ abstract contract StakingRewardsManagerBase is
     /// @inheritdoc IStakingRewardsManagerBase
     function withdraw(
         uint256 amount
-    ) external virtual updateReward(msg.sender) {
+    ) virtual extern updateReward(_msgSender()) {
         _withdraw(amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function getReward() public virtual nonReentrant updateReward(msg.sender) {
-        uint256 rewardTokenCount = _rewardTokens.length();
+    function getReward()
+        public
+        virtual
+        nonReentrant
+        updateReward(_msgSender())
+    {
+        uint256 rewardTokenCount = _rewardTokensList.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {
-            (address rewardTokenAddress, ) = _rewardTokens.at(i);
+            address rewardTokenAddress = _rewardTokensList.at(i);
             IERC20 rewardToken = IERC20(rewardTokenAddress);
-            uint256 reward = rewards[rewardToken][msg.sender];
+            uint256 reward = rewards[rewardToken][_msgSender()];
             if (reward > 0) {
-                rewards[rewardToken][msg.sender] = 0;
-                rewardToken.safeTransfer(msg.sender, reward);
-                emit RewardPaid(msg.sender, address(rewardToken), reward);
+                rewards[rewardToken][_msgSender()] = 0;
+                rewardToken.safeTransfer(_msgSender(), reward);
+                emit RewardPaid(_msgSender(), address(rewardToken), reward);
             }
         }
     }
@@ -161,7 +166,7 @@ abstract contract StakingRewardsManagerBase is
     /// @inheritdoc IStakingRewardsManagerBase
     function exit() external virtual {
         getReward();
-        _withdraw(_balances[msg.sender]);
+        _withdraw(_balances[_msgSender()]);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -178,10 +183,9 @@ abstract contract StakingRewardsManagerBase is
 
         // If the reward token doesn't exist, add it
         if (rewardTokenData.rewardsDuration == 0) {
-            _rewardTokens.set(address(rewardToken), 0);
-            rewardTokenData.rewardsDuration = newRewardsDuration > 0
-                ? newRewardsDuration
-                : 7 days;
+            if (newRewardsDuration == 0) revert RewardsDurationCannotBeZero();
+            _rewardTokensList.add(address(rewardToken));
+            rewardTokenData.rewardsDuration = newRewardsDuration;
             emit RewardTokenAdded(
                 address(rewardToken),
                 rewardTokenData.rewardsDuration
@@ -246,7 +250,7 @@ abstract contract StakingRewardsManagerBase is
             revert RewardTokenStillHasBalance(remainingBalance);
 
         // Remove the token from the rewardTokens map
-        _rewardTokens.remove(address(rewardToken));
+        _rewardTokensList.remove(address(rewardToken));
 
         // Reset the reward data for this token
         delete rewardData[rewardToken];
@@ -271,9 +275,9 @@ abstract contract StakingRewardsManagerBase is
     function _withdraw(uint256 amount) internal {
         if (amount == 0) revert CannotWithdrawZero();
         totalSupply -= amount;
-        _balances[msg.sender] -= amount;
-        stakingToken.safeTransfer(msg.sender, amount);
-        emit Withdrawn(msg.sender, amount);
+        _balances[_msgSender()] -= amount;
+        stakingToken.safeTransfer(_msgSender(), amount);
+        emit Withdrawn(_msgSender(), amount);
     }
 
     function _earned(
@@ -293,9 +297,9 @@ abstract contract StakingRewardsManagerBase is
     //////////////////////////////////////////////////////////////*/
 
     modifier updateReward(address account) virtual {
-        uint256 rewardTokenCount = _rewardTokens.length();
+        uint256 rewardTokenCount = _rewardTokensList.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {
-            (address rewardTokenAddress, ) = _rewardTokens.at(i);
+            address rewardTokenAddress = _rewardTokensList.at(i);
             IERC20 rewardToken = IERC20(rewardTokenAddress);
             RewardData storage rewardTokenData = rewardData[rewardToken];
             rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
