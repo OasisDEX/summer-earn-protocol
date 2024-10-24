@@ -160,7 +160,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      */
     modifier onlyCurator(address fleetAddress) {
         if (
-            fleetAddress != address(0) &&
+            fleetAddress == address(0) ||
             !_accessManager.hasRole(
                 generateRole(ContractSpecificRoles.CURATOR_ROLE, fleetAddress),
                 msg.sender
