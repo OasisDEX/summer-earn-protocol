@@ -60,4 +60,11 @@ interface ISummerGovernorErrors {
      * @param proposalChainId The proposal chain id
      */
     error SummerGovernorInvalidChain(uint256 chainId, uint256 proposalChainId);
+
+    /* @notice Error thrown when the governor is not set
+     */
+    error GovernorNotSet();
+
+    /* @notice Error thrown when the caller is not the rewards manager */
+    error SummerGovernorInvalidCaller();
 }

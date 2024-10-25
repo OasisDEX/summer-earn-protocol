@@ -198,4 +198,10 @@ interface ISummerGovernor is
      * @return The address of the current whitelist guardian
      */
     function getWhitelistGuardian() external view returns (address);
+
+    /**
+     * @notice Updates the decay factor for an account
+     * @param account The address of the account to update the decay factor for
+     */
+    function updateDecayFactor(address account) external;
 }

@@ -131,4 +131,9 @@ interface IFleetCommanderErrors {
         uint256 amount,
         uint256 maxRebalanceInflow
     );
+
+    /**
+     * @notice Thrown when the staking rewards manager is not set.
+     */
+    error FleetCommanderStakingRewardsManagerNotSet();
 }

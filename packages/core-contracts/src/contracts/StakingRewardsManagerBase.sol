@@ -38,7 +38,7 @@ abstract contract StakingRewardsManagerBase is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    EnumerableSet.AddressSet private _rewardTokensList;
+    EnumerableSet.AddressSet internal _rewardTokensList;
     IERC20 public stakingToken;
 
     mapping(IERC20 rewardToken => RewardData) public rewardData;
@@ -137,10 +137,10 @@ abstract contract StakingRewardsManagerBase is
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function withdraw(
+    function unstake(
         uint256 amount
-    ) virtual extern updateReward(_msgSender()) {
-        _withdraw(amount);
+    ) external virtual updateReward(_msgSender()) {
+        _unstake(_msgSender(), amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -166,7 +166,7 @@ abstract contract StakingRewardsManagerBase is
     /// @inheritdoc IStakingRewardsManagerBase
     function exit() external virtual {
         getReward();
-        _withdraw(_balances[_msgSender()]);
+        _unstake(_msgSender(), _balances[_msgSender()]);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -272,12 +272,12 @@ abstract contract StakingRewardsManagerBase is
         emit Staked(account, amount);
     }
 
-    function _withdraw(uint256 amount) internal {
-        if (amount == 0) revert CannotWithdrawZero();
+    function _unstake(address staker, uint256 amount) internal {
+        if (amount == 0) revert CannotUnstakeZero();
         totalSupply -= amount;
-        _balances[_msgSender()] -= amount;
-        stakingToken.safeTransfer(_msgSender(), amount);
-        emit Withdrawn(_msgSender(), amount);
+        _balances[staker] -= amount;
+        stakingToken.safeTransfer(staker, amount);
+        emit Unstaked(staker, amount);
     }
 
     function _earned(

@@ -48,10 +48,12 @@ contract SummerGovernor is
      * @dev Configuration structure for the governor
      * @param whitelistAccountExpirations Mapping of account addresses to their whitelist expiration timestamps
      * @param whitelistGuardian Address of the account with special privileges for managing the whitelist
+     * @param governanceRewardsManager Address of the governance rewards manager contract
      */
     struct GovernorConfig {
         mapping(address => uint256) whitelistAccountExpirations;
         address whitelistGuardian;
+        IGovernanceRewardsManager governanceRewardsManager;
     }
 
     GovernorConfig public config;
@@ -65,6 +67,13 @@ contract SummerGovernor is
     modifier onlyProposalChain() {
         if (block.chainid != proposalChainId) {
             revert SummerGovernorInvalidChain(block.chainid, proposalChainId);
+        }
+        _;
+    }
+
+    modifier onlySummerToken() {
+        if (_msgSender() != address(token())) {
+            revert SummerGovernorInvalidCaller();
         }
         _;
     }
@@ -105,6 +114,12 @@ contract SummerGovernor is
         }
 
         _setWhitelistGuardian(params.initialWhitelistGuardian);
+        config.governanceRewardsManager = new GovernanceRewardsManager(
+            address(params.accessManager),
+            address(this),
+            params.token
+        );
+
         proposalChainId = params.proposalChainId;
     }
 
@@ -405,6 +420,19 @@ contract SummerGovernor is
     /// @inheritdoc ISummerGovernor
     function getWhitelistGuardian() public view returns (address) {
         return config.whitelistGuardian;
+    }
+
+    /// @inheritdoc ISummerGovernor
+    function getGovernanceRewardsManager() public view returns (address) {
+        return address(config.governanceRewardsManager);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            DECAY MANAGEMENT FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function updateDecayFactor(address account) external onlySummerToken {
+        _updateDecayFactor(account);
     }
 
     /*//////////////////////////////////////////////////////////////

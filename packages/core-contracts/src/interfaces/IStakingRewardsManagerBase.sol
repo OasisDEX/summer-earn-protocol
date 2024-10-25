@@ -78,10 +78,10 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      */
     function stakeOnBehalf(address account, uint256 amount) external;
 
-    /* @notice Withdraw staked tokens
-     * @param amount The amount of tokens to withdraw
+    /* @notice Unstake staked tokens
+     * @param amount The amount of tokens to unstake
      */
-    function withdraw(uint256 amount) external;
+    function unstake(uint256 amount) external;
 
     /* @notice Claim accumulated rewards */
     function getReward() external;
@@ -124,6 +124,12 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param amount The amount of tokens staked
      */
     event Staked(address indexed account, uint256 amount);
+
+    /* @notice Emitted when tokens are unstaked
+     * @param account The address of the account that unstaked
+     * @param amount The amount of tokens unstaked
+     */
+    event Unstaked(address indexed account, uint256 amount);
 
     /* @notice Emitted when tokens are withdrawn
      * @param user The address of the user that withdrew

@@ -327,6 +327,16 @@ contract FleetCommander is
         _stakeOnBehalf(_msgSender(), shares);
     }
 
+    /// @inheritdoc IFleetCommander
+    function unstake(uint256 shares) public {
+        if (address(config.stakingRewardsManager) != address(0)) {
+            IFleetRewardsManager(config.stakingRewardsManager).unstake(shares);
+            IERC20(address(this)).transfer(_msgSender(), shares);
+        } else {
+            revert FleetCommanderStakingRewardsManagerNotSet();
+        }
+    }
+
     /// @inheritdoc IERC4626
     function mint(
         uint256 shares,
@@ -1032,11 +1042,13 @@ contract FleetCommander is
     }
 
     function _stakeOnBehalf(address account, uint256 amount) internal {
-        if (address(config.stakingRewardsManager) != address(0)) {
-            IFleetRewardsManager(config.stakingRewardsManager).stakeOnBehalf(
-                account,
-                amount
-            );
+        if (address(config.stakingRewardsManager) == address(0)) {
+            revert FleetCommanderStakingRewardsManagerNotSet();
         }
+
+        IFleetRewardsManager(config.stakingRewardsManager).stakeOnBehalf(
+            account,
+            amount
+        );
     }
 }

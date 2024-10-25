@@ -8,7 +8,7 @@ import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISummerGovernor} from "@summerfi/earn-gov-contracts/interfaces/ISummerGovernor.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
-import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Constants} from "./libraries/Constants.sol";
 
 /**
@@ -22,7 +22,7 @@ contract GovernanceRewardsManager is
     StakingRewardsManagerBase
 {
     using SafeERC20 for IERC20;
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -30,11 +30,22 @@ contract GovernanceRewardsManager is
 
     ISummerGovernor public immutable governor;
 
-    uint256 public constant DECAY_SMOOTHING_FACTOR_BASE = Constants.RAY;
+    uint256 public constant DECAY_SMOOTHING_FACTOR_BASE = Constants.WAD;
     uint256 public constant DECAY_SMOOTHING_FACTOR =
         DECAY_SMOOTHING_FACTOR_BASE / 5; // represents 0.2
     mapping(address account => uint256 smoothedDecayFactor)
         public userSmoothedDecayFactor;
+
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyStakingToken() {
+        if (_msgSender() != address(stakingToken)) {
+            revert InvalidCaller();
+        }
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -64,26 +75,52 @@ contract GovernanceRewardsManager is
                             MUTATIVE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IStakingRewardsManagerBase
-    function stake(
+    function stakeFor(
+        address staker,
         uint256 amount
-    )
-        external
-        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
-        updateReward(_msgSender())
-    {
-        _stake(_msgSender(), _msgSender(), amount);
+    ) external onlyStakingToken updateReward(staker) {
+        _stake(staker, staker, amount);
+    }
+
+    function unstakeFor(
+        address staker,
+        uint256 amount
+    ) external onlyStakingToken updateReward(staker) {
+        _unstake(staker, amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function withdraw(
+    function stake(
+        uint256
+    )
+        external
+        pure
+        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
+    {
+        revert DirectStakingNotAllowed();
+    }
+
+    /// @inheritdoc IStakingRewardsManagerBase
+    function stakeOnBehalf(
+        address,
+        uint256
+    )
+        external
+        pure
+        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
+    {
+        revert DirectStakingNotAllowed();
+    }
+
+    /// @inheritdoc IStakingRewardsManagerBase
+    function unstake(
         uint256 amount
     )
         external
         override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
         updateReward(_msgSender())
     {
-        _withdraw(amount);
+        _unstake(_msgSender(), amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -113,9 +150,9 @@ contract GovernanceRewardsManager is
     //////////////////////////////////////////////////////////////*/
 
     modifier updateReward(address account) override {
-        uint256 rewardTokenCount = _rewardTokens.length();
+        uint256 rewardTokenCount = _rewardTokensList.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {
-            (address rewardTokenAddress, ) = _rewardTokens.at(i);
+            address rewardTokenAddress = _rewardTokensList.at(i);
             IERC20 rewardToken = IERC20(rewardTokenAddress);
             RewardData storage rewardTokenData = rewardData[rewardToken];
             rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
@@ -164,6 +201,8 @@ contract GovernanceRewardsManager is
         }
 
         // Apply exponential moving average (EMA) smoothing
+        // Formula: EMA = α * currentValue + (1 - α) * previousEMA
+        // Where α is the smoothing factor (DECAY_SMOOTHING_FACTOR / DECAY_SMOOTHING_FACTOR_BASE)
         return
             ((currentDecayFactor * DECAY_SMOOTHING_FACTOR) +
                 (userSmoothedDecayFactor[account] *

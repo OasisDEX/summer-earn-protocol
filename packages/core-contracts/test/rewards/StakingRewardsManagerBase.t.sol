@@ -259,22 +259,22 @@ contract StakingRewardsManagerBaseTest is Test {
         );
     }
 
-    function test_Withdraw() public {
+    function test_Unstake() public {
         uint256 stakeAmount = 1000 * 1e18;
         vm.startPrank(alice);
         stakingRewardsManager.stake(stakeAmount);
-        stakingRewardsManager.withdraw(stakeAmount);
+        stakingRewardsManager.unstake(stakeAmount);
         vm.stopPrank();
 
         assertEq(
             stakingRewardsManager.balanceOf(alice),
             0,
-            "Balance should be zero after withdrawal"
+            "Balance should be zero after unstake"
         );
         assertEq(
             stakingRewardsManager.totalSupply(),
             0,
-            "Total supply should be zero after withdrawal"
+            "Total supply should be zero after unstake"
         );
     }
 

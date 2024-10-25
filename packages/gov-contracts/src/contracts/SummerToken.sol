@@ -11,6 +11,10 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
+import {IVotes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 
 contract SummerToken is
     OFT,
@@ -30,6 +34,8 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     mapping(address owner => address vestingWallet) public vestingWallets;
+
+    IGovernor public governor;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -100,6 +106,27 @@ contract SummerToken is
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function delegateAndStake(
+        address delegatee,
+        uint256 amount
+    ) public virtual {
+        delegate(delegatee);
+        _stake(delegatee, amount);
+    }
+
+    function undelegateAndUnstake(
+        address delegatee,
+        uint256 amount
+    ) public virtual {
+        delegate(address(0));
+        _unstake(amount);
+    }
+
+    function delegate(address delegatee) public override(ERC20Votes) {
+        super.delegate(delegatee);
+        governor.updateDecayFactor(_msgSender());
+    }
+
     function nonces(
         address owner
     )
@@ -109,6 +136,15 @@ contract SummerToken is
         returns (uint256)
     {
         return super.nonces(owner);
+    }
+
+    function setGovernor(address _governor) external onlyOwner {
+        require(_governor != address(0), "Invalid governor address");
+        require(
+            IERC165(_governor).supportsInterface(type(IGovernor).interfaceId),
+            "Address does not implement IGovernor"
+        );
+        governor = IGovernor(_governor);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -193,19 +229,57 @@ contract SummerToken is
         return directBalance;
     }
 
-    /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
+    function _stake(address delegatee, uint256 amount) internal {
+        if (address(governor) == address(0)) {
+            revert GovernorNotSet();
+        }
 
-    /**
-     * @dev Error thrown when attempting to create a vesting wallet for an address that already has one
-     * @param beneficiary The address for which a vesting wallet already exists
-     */
-    error VestingWalletAlreadyExists(address beneficiary);
+        IGovernanceRewardsManager rewardsManager = IGovernanceRewardsManager(
+            governor.getGovernanceRewardsManager()
+        );
+        if (address(rewardsManager) != address(0) && delegatee != address(0)) {
+            uint256 currentStake = rewardsManager.getStake(
+                _msgSender(),
+                delegatee
+            );
+            if (amount > currentStake) {
+                uint256 additionalStake = amount - currentStake;
+                _transfer(
+                    _msgSender(),
+                    address(rewardsManager),
+                    additionalStake
+                );
+                rewardsManager.stake(_msgSender(), delegatee, additionalStake);
+            } else if (amount < currentStake) {
+                uint256 unstakeAmount = currentStake - amount;
+                rewardsManager.unstake(_msgSender(), delegatee, unstakeAmount);
+            }
+        }
+    }
 
-    /**
-     * @dev Error thrown when an invalid vesting type is provided
-     * @param invalidType The invalid vesting type that was provided
-     */
-    error InvalidVestingType(SummerVestingWallet.VestingType invalidType);
+    function _unstake(uint256 amount) internal {
+        if (address(governor) == address(0)) {
+            revert GovernorNotSet();
+        }
+
+        IGovernanceRewardsManager rewardsManager = IGovernanceRewardsManager(
+            governor.getGovernanceRewardsManager()
+        );
+        if (address(rewardsManager) != address(0)) {
+            uint256 currentStake = rewardsManager.getStake(
+                _msgSender(),
+                _msgSender()
+            );
+            uint256 unstakeAmount = amount > currentStake
+                ? currentStake
+                : amount;
+            if (unstakeAmount > 0) {
+                rewardsManager.unstake(
+                    _msgSender(),
+                    _msgSender(),
+                    unstakeAmount
+                );
+            }
+        }
+    }
 }

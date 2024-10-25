@@ -194,4 +194,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     }
 
     function stake(uint256 shares) external {}
+
+    function unstake(uint256 shares) external {}
 }

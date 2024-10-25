@@ -66,6 +66,10 @@ export const GovModule = buildModule('GovModule', (m) => {
   // Deploy SummerGovernor contract
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
 
+  // Set the SummerGovernor as the governor of the SummerToken
+  m.call(summerToken, 'setGovernor', [summerGovernor.value])
+  m.call(summerToken, 'transferOwnership', [summerGovernor.value])
+
   return {
     summerGovernor,
     summerToken,

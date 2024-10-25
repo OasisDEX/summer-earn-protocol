@@ -4,8 +4,9 @@ pragma solidity 0.8.27;
 import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
 
-interface ISummerToken is IERC20, IERC20Permit {
+interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
