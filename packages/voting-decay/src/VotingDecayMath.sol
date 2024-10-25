@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {UD60x18, ud, unwrap} from "@prb/math/src/UD60x18.sol";
 

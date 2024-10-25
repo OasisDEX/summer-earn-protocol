@@ -4,7 +4,7 @@
 src = "src"
 out = "out"
 libs = ["node_modules"]
-solc = "0.8.27"
+solc = "0.8.28"
 evm_version = "cancun"
 cbor_metadata = true
 viaIR = false
