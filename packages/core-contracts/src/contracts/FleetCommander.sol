@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
@@ -17,13 +17,13 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IFleetStakingRewardsManager} from "../interfaces/IFleetStakingRewardsManager.sol";
+
 /**
  * @title FleetCommander
  * @notice Manages a fleet of Arks, coordinating deposits, withdrawals, and rebalancing operations
  * @dev Implements IFleetCommander interface and inherits from various utility contracts
- * @custom:see IFleetCommander
  */
-
 contract FleetCommander is
     IFleetCommander,
     FleetCommanderConfigProvider,
@@ -292,6 +292,41 @@ contract FleetCommander is
         return deposit(assets, receiver);
     }
 
+    /// @inheritdoc IFleetCommander
+    function depositAndStake(
+        uint256 assets,
+        address receiver
+    ) public whenNotPaused returns (uint256 shares) {
+        shares = deposit(assets, address(this));
+        IERC20(address(this)).approve(
+            address(config.stakingRewardsManager),
+            shares
+        );
+        _stakeOnBehalf(receiver, shares);
+
+        return shares;
+    }
+
+    /// @inheritdoc IFleetCommander
+    function depositAndStake(
+        uint256 assets,
+        address receiver,
+        bytes memory referralCode
+    ) external whenNotPaused returns (uint256 shares) {
+        emit FleetCommanderReferral(receiver, referralCode);
+        return depositAndStake(assets, receiver);
+    }
+
+    /// @inheritdoc IFleetCommander
+    function stake(uint256 shares) public {
+        IERC20(address(this)).transferFrom(_msgSender(), address(this), shares);
+        IERC20(address(this)).approve(
+            address(config.stakingRewardsManager),
+            shares
+        );
+        _stakeOnBehalf(_msgSender(), shares);
+    }
+
     /// @inheritdoc IERC4626
     function mint(
         uint256 shares,
@@ -477,24 +512,45 @@ contract FleetCommander is
         _reallocateAllAssets(rebalanceData);
     }
 
+    /// @inheritdoc IFleetCommander
+    function pause() external onlyGuardianOrGovernor whenNotPaused {
+        _pause();
+    }
+
+    /// @inheritdoc IFleetCommander
+    function unpause() external onlyGuardianOrGovernor whenPaused {
+        _unpause();
+    }
+
     /*//////////////////////////////////////////////////////////////
                         PUBLIC ERC20 FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IERC20
     function transfer(
-        address,
-        uint256
-    ) public pure override(IERC20, ERC20) returns (bool) {
+        address to,
+        uint256 amount
+    ) public override(IERC20, ERC20) returns (bool) {
+        FleetConfig memory config = this.getConfig();
+        if (_msgSender() == address(config.stakingRewardsManager)) {
+            return super.transfer(to, amount);
+        }
+
         revert FleetCommanderTransfersDisabled();
     }
 
     /// @inheritdoc IERC20
     function transferFrom(
-        address,
-        address,
-        uint256
-    ) public pure override(IERC20, ERC20) returns (bool) {
+        address from,
+        address to,
+        uint256 amount
+    ) public override(IERC20, ERC20) returns (bool) {
+        if (
+            _msgSender() == address(config.stakingRewardsManager) ||
+            to == address(this)
+        ) {
+            return super.transferFrom(from, to, amount);
+        }
         revert FleetCommanderTransfersDisabled();
     }
 
@@ -975,11 +1031,10 @@ contract FleetCommander is
         }
     }
 
-    function pause() public onlyGuardianOrGovernor whenNotPaused {
-        _pause();
-    }
-
-    function unpause() public onlyGuardianOrGovernor whenPaused {
-        _unpause();
+    function _stakeOnBehalf(address account, uint256 amount) internal {
+        if (address(config.stakingRewardsManager) != address(0)) {
+            IFleetStakingRewardsManager(config.stakingRewardsManager)
+                .stakeOnBehalf(account, amount);
+        }
     }
 }

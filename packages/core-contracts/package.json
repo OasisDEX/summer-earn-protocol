@@ -46,6 +46,7 @@
     "@summerfi/math-utils": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
     "@summerfi/earn-gov-contracts": "workspace:*",
+    "@summerfi/voting-decay": "workspace:*",
     "@summerfi/percentage-solidity": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",

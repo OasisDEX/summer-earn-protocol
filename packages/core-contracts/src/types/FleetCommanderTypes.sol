@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-
+import {IFleetStakingRewardsManager} from "../interfaces/IFleetStakingRewardsManager.sol";
 /**
  * @notice Configuration parameters for the FleetCommander contract
  */
@@ -50,6 +50,10 @@ struct FleetConfig {
      * @notice The maximum number of rebalance operations in a single rebalance
      */
     uint256 maxRebalanceOperations;
+    /**
+     * @notice The address of the staking rewards contract
+     */
+    IFleetStakingRewardsManager stakingRewardsManager;
 }
 
 /**

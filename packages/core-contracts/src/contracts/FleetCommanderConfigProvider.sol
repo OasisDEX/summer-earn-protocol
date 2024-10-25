@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {FleetCommanderParams} from "../types/FleetCommanderTypes.sol";
@@ -12,6 +12,7 @@ import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {FleetStakingRewardsManager} from "./FleetStakingRewardsManager.sol";
 
 /**
  * @title
@@ -28,7 +29,7 @@ contract FleetCommanderConfigProvider is
 
     FleetConfig public config;
     EnumerableSet.AddressSet private _activeArks;
-    mapping(address => bool) public isArkWithdrawable;
+    mapping(address ark => bool isWithdrawable) public isArkWithdrawable;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
@@ -57,7 +58,11 @@ contract FleetCommanderConfigProvider is
                 bufferArk: IArk(address(_bufferArk)),
                 minimumBufferBalance: params.initialMinimumBufferBalance,
                 depositCap: params.depositCap,
-                maxRebalanceOperations: MAX_REBALANCE_OPERATIONS
+                maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
+                stakingRewardsManager: new FleetStakingRewardsManager(
+                    address(params.accessManager),
+                    address(this)
+                )
             })
         );
         isArkWithdrawable[address(_bufferArk)] = true;
@@ -169,6 +174,20 @@ contract FleetCommanderConfigProvider is
     ) external onlyCurator whenNotPaused {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function setStakingRewardsManager(
+        address newStakingRewardsManager
+    ) external onlyCurator whenNotPaused {
+        if (newStakingRewardsManager == address(0)) {
+            revert FleetCommanderInvalidStakingRewardsManager();
+        }
+        config.stakingRewardsManager = new FleetStakingRewardsManager(
+            address(_accessManager),
+            address(this)
+        );
+        emit FleetCommanderStakingRewardsUpdated(newStakingRewardsManager);
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider

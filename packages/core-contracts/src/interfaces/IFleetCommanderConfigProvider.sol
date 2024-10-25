@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {IFleetCommanderConfigProviderErrors} from "../errors/IFleetCommanderConfigProviderErrors.sol";
 
@@ -111,5 +111,13 @@ interface IFleetCommanderConfigProvider is
     function setArkMaxRebalanceInflow(
         address ark,
         uint256 newMaxRebalanceInflow
+    ) external;
+
+    /**
+     * @notice Sets the staking rewards manager contract address
+     * @param newStakingRewardsManager The address  of the new staking rewards manager contract
+     */
+    function setStakingRewardsManager(
+        address newStakingRewardsManager
     ) external;
 }

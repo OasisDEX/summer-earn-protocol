@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 /**
  * @title IFleetCommanderConfigProviderErrors
@@ -41,4 +41,9 @@ interface IFleetCommanderConfigProviderErrors {
      * @notice Thrown when trying to add a commander to an Ark that already has a commander
      */
     error FleetCommanderArkAlreadyHasCommander();
+
+    /**
+     * @notice Thrown when trying to set a StakingRewardsManager to the zero address
+     */
+    error FleetCommanderInvalidStakingRewardsManager();
 }
