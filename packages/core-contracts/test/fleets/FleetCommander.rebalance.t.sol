@@ -17,7 +17,7 @@ import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title Rebalance test suite for FleetCommander
  * @dev Test suite for the FleetCommander contract's rebalance functionality
@@ -265,8 +265,10 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderCantRebalanceToArk(address)",
-                ark2
+                "FleetCommanderEffectiveDepositCapExceeded(address,uint256,uint256)",
+                ark2,
+                1000000000,
+                15000000000
             )
         );
         fleetCommander.rebalance(rebalanceData);
@@ -294,8 +296,10 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderCantRebalanceToArk(address)",
-                ark2
+                "FleetCommanderEffectiveDepositCapExceeded(address,uint256,uint256)",
+                ark2,
+                1000000000,
+                15000000000
             )
         );
         fleetCommander.rebalance(rebalanceData);
@@ -571,11 +575,11 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
     function test_GetEffectiveDepositCap() public {
         // Arrange
         uint256 totalAssets = 1000000 * 10 ** 6; // 1,000,000 tokens
-        uint256 arkDepositCap = 300000 * 10 ** 6; // 300,000 tokens
+        uint256 arkDepositCap = 200000 * 10 ** 6; // 200,000 tokens
         Percentage maxDepositPercentageOfTVL = PercentageUtils.fromFraction(
             30,
             100
-        ); // 30%
+        ); // 30% -> 300,000 tokens
 
         // Mock total assets
         vm.mockCall(
@@ -610,17 +614,66 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
             totalAssets.applyPercentage(maxDepositPercentageOfTVL),
             arkDepositCap
         );
+        console.log("expectedCap", expectedCap);
         assertEq(
             effectiveDepositCap,
             expectedCap,
             "Effective deposit cap should be the minimum of percentage-based and absolute caps"
         );
     }
+    function test_GetEffectiveDepositCap_2() public {
+        // Arrange
+        uint256 totalAssets = 1000000 * 10 ** 6; // 1,000,000 tokens
+        uint256 arkDepositCap = 400000 * 10 ** 6; // 400,000 tokens
+        Percentage maxDepositPercentageOfTVL = PercentageUtils.fromFraction(
+            30,
+            100
+        ); // 30% -> 300,000 tokens
 
+        // Mock total assets
+        vm.mockCall(
+            address(fleetCommander),
+            abi.encodeWithSelector(fleetCommander.totalAssets.selector),
+            abi.encode(totalAssets)
+        );
+
+        // Mock ark deposit cap
+        vm.mockCall(
+            ark1,
+            abi.encodeWithSelector(IArkConfigProvider.depositCap.selector),
+            abi.encode(arkDepositCap)
+        );
+
+        // Mock ark max deposit percentage of TVL
+        vm.mockCall(
+            ark1,
+            abi.encodeWithSelector(
+                IArkConfigProvider.maxDepositPercentageOfTVL.selector
+            ),
+            abi.encode(maxDepositPercentageOfTVL)
+        );
+
+        // Act
+        uint256 effectiveDepositCap = fleetCommander.getEffectiveArkDepositCap(
+            IArk(ark1)
+        );
+
+        // Assert
+        uint256 expectedCap = Math.min(
+            totalAssets.applyPercentage(maxDepositPercentageOfTVL),
+            arkDepositCap
+        );
+        console.log("expectedCap", expectedCap);
+        assertEq(
+            effectiveDepositCap,
+            expectedCap,
+            "Effective deposit cap should be the minimum of percentage-based and absolute caps"
+        );
+    }
     function test_RebalanceWithEffectiveDepositCap() public {
         // Arrange
         uint256 totalAssets = 1000000 * 10 ** 6; // 1,000,000 tokens
-        uint256 arkDepositCap = 300000 * 10 ** 6; // 300,000 tokens
+        uint256 arkDepositCap = 500000 * 10 ** 6; // 500,000 tokens
         Percentage maxDepositPercentageOfTVL = PercentageUtils.fromFraction(
             30,
             100
@@ -666,8 +719,10 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderCantRebalanceToArk(address)",
-                ark2
+                "FleetCommanderEffectiveDepositCapExceeded(address,uint256,uint256)",
+                ark2,
+                400000 * 10 ** 6,
+                300000 * 10 ** 6
             )
         );
         fleetCommander.rebalance(rebalanceData);

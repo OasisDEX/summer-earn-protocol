@@ -637,7 +637,7 @@ contract FleetCommander is
      *      2. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
      * @return amount uint256 The actual amount of assets reallocated
-     * @custom:error FleetCommanderCantRebalanceToArk Thrown when the destination Ark is already at or above its maximum
+     * @custom:error FleetCommanderEffectiveDepositCapExceeded Thrown when the destination Ark is already at or above its maximum
      * allocation
      */
     function _reallocateAssets(
@@ -656,7 +656,11 @@ contract FleetCommander is
         uint256 toArkAllocation = toArk.totalAssets();
 
         if (toArkAllocation + amount > toArkDepositCap) {
-            revert FleetCommanderCantRebalanceToArk(address(toArk));
+            revert FleetCommanderEffectiveDepositCapExceeded(
+                address(toArk),
+                amount,
+                toArkDepositCap
+            );
         }
 
         _move(
@@ -676,7 +680,7 @@ contract FleetCommander is
      */
 
     function getEffectiveArkDepositCap(IArk ark) public view returns (uint256) {
-        uint256 tvl = totalAssets();
+        uint256 tvl = this.totalAssets();
         uint256 pctBasedCap = tvl.applyPercentage(
             ark.maxDepositPercentageOfTVL()
         );
