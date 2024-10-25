@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 /**
  * @title IArkConfigProviderEvents
  * @notice Interface for events emitted by ArkConfigProvider contracts
@@ -11,6 +13,14 @@ interface IArkConfigProviderEvents {
      * @param newCap The new deposit cap value
      */
     event DepositCapUpdated(uint256 newCap);
+
+    /**
+     * @notice Emitted when the maximum deposit percentage of TVL is updated
+     * @param newMaxDepositPercentageOfTVL The new maximum deposit percentage of TVL
+     */
+    event MaxDepositPercentageOfTVLUpdated(
+        Percentage newMaxDepositPercentageOfTVL
+    );
 
     /**
      * @notice Emitted when the Raft address associated with the Ark is updated

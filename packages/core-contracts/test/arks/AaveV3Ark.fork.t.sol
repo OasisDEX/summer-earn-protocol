@@ -12,6 +12,7 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
     AaveV3Ark public ark;
@@ -47,7 +48,8 @@ contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);

@@ -5,11 +5,12 @@ pragma solidity 0.8.28;
  * @title StakingRewardsManager
  * @notice Contract for managing staking rewards with multiple reward tokens in the Summer protocol
  * @dev Implements IStakingRewards interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
- * @dev Inspired by Synthetix's StakingRewards contract: https://github.com/Synthetixio/synthetix/blob/v2.101.3/contracts/StakingRewards.sol
+ * @dev Inspired by Synthetix's StakingRewards contract:
+ * https://github.com/Synthetixio/synthetix/blob/v2.101.3/contracts/StakingRewards.sol
  */
-import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
 import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -233,8 +234,9 @@ abstract contract StakingRewardsManagerBase is
         uint256 _rewardsDuration
     ) external onlyGovernor {
         RewardData storage data = rewardData[rewardToken];
-        if (block.timestamp <= data.periodFinish)
+        if (block.timestamp <= data.periodFinish) {
             revert RewardPeriodNotComplete();
+        }
         data.rewardsDuration = _rewardsDuration;
         emit RewardsDurationUpdated(address(rewardToken), _rewardsDuration);
     }
@@ -244,15 +246,18 @@ abstract contract StakingRewardsManagerBase is
     /// @notice Removes a reward token from the list of reward tokens
     /// @param rewardToken The address of the reward token to remove
     function removeRewardToken(IERC20 rewardToken) external onlyGovernor {
-        if (rewardData[rewardToken].rewardsDuration == 0)
+        if (rewardData[rewardToken].rewardsDuration == 0) {
             revert RewardTokenDoesNotExist();
-        if (block.timestamp <= rewardData[rewardToken].periodFinish)
+        }
+        if (block.timestamp <= rewardData[rewardToken].periodFinish) {
             revert RewardPeriodNotComplete();
+        }
 
         // Check if all tokens have been claimed
         uint256 remainingBalance = rewardToken.balanceOf(address(this));
-        if (remainingBalance > 0)
+        if (remainingBalance > 0) {
             revert RewardTokenStillHasBalance(remainingBalance);
+        }
 
         // Remove the token from the rewardTokens map
         _rewardTokensList.remove(address(rewardToken));
@@ -269,8 +274,9 @@ abstract contract StakingRewardsManagerBase is
 
     function _stake(address from, address account, uint256 amount) internal {
         if (amount == 0) revert CannotStakeZero();
-        if (address(stakingToken) == address(0))
+        if (address(stakingToken) == address(0)) {
             revert StakingTokenNotInitialized();
+        }
         totalSupply += amount;
         _balances[account] += amount;
         stakingToken.safeTransferFrom(from, address(this), amount);

@@ -9,10 +9,12 @@ import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfig
 
 import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+
+import {FleetStakingRewardsManager} from "./FleetStakingRewardsManager.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {FleetStakingRewardsManager} from "./FleetStakingRewardsManager.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title
@@ -49,7 +51,8 @@ contract FleetCommanderConfigProvider is
                 depositCap: type(uint256).max,
                 maxRebalanceOutflow: type(uint256).max,
                 maxRebalanceInflow: type(uint256).max,
-                requiresKeeperData: false
+                requiresKeeperData: false,
+                maxDepositPercentageOfTVL: PERCENTAGE_100
             }),
             address(this)
         );

@@ -22,7 +22,7 @@ import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     function setUp() public {
@@ -355,7 +355,8 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
                 depositCap: 1000,
                 maxRebalanceOutflow: 500,
                 maxRebalanceInflow: 500,
-                requiresKeeperData: false
+                requiresKeeperData: false,
+                maxDepositPercentageOfTVL: PERCENTAGE_100
             }),
             address(fleetCommander)
         );
