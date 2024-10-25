@@ -10,10 +10,13 @@ import {CooldownNotElapsed} from "../../src/utils/CooldownEnforcer/ICooldownEnfo
 import "../../src/events/IArkEvents.sol";
 import "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+import {IArkConfigProvider} from "../../src/interfaces/IArkConfigProvider.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
 /**
  * @title Rebalance test suite for FleetCommander
@@ -26,6 +29,9 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * - Error cases and edge scenarios
  */
 contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
+    using Math for uint256;
+    using PercentageUtils for uint256;
+
     function setUp() public {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
@@ -557,6 +563,111 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
                 ark2,
                 rebalanceAmount,
                 maxRebalanceInflow
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
+
+    function test_GetEffectiveDepositCap() public {
+        // Arrange
+        uint256 totalAssets = 1000000 * 10 ** 6; // 1,000,000 tokens
+        uint256 arkDepositCap = 300000 * 10 ** 6; // 300,000 tokens
+        Percentage maxDepositPercentageOfTVL = PercentageUtils.fromFraction(
+            30,
+            100
+        ); // 30%
+
+        // Mock total assets
+        vm.mockCall(
+            address(fleetCommander),
+            abi.encodeWithSelector(fleetCommander.totalAssets.selector),
+            abi.encode(totalAssets)
+        );
+
+        // Mock ark deposit cap
+        vm.mockCall(
+            ark1,
+            abi.encodeWithSelector(IArkConfigProvider.depositCap.selector),
+            abi.encode(arkDepositCap)
+        );
+
+        // Mock ark max deposit percentage of TVL
+        vm.mockCall(
+            ark1,
+            abi.encodeWithSelector(
+                IArkConfigProvider.maxDepositPercentageOfTVL.selector
+            ),
+            abi.encode(maxDepositPercentageOfTVL)
+        );
+
+        // Act
+        uint256 effectiveDepositCap = fleetCommander.getEffectiveArkDepositCap(
+            IArk(ark1)
+        );
+
+        // Assert
+        uint256 expectedCap = Math.min(
+            totalAssets.applyPercentage(maxDepositPercentageOfTVL),
+            arkDepositCap
+        );
+        assertEq(
+            effectiveDepositCap,
+            expectedCap,
+            "Effective deposit cap should be the minimum of percentage-based and absolute caps"
+        );
+    }
+
+    function test_RebalanceWithEffectiveDepositCap() public {
+        // Arrange
+        uint256 totalAssets = 1000000 * 10 ** 6; // 1,000,000 tokens
+        uint256 arkDepositCap = 300000 * 10 ** 6; // 300,000 tokens
+        Percentage maxDepositPercentageOfTVL = PercentageUtils.fromFraction(
+            30,
+            100
+        ); // 30%
+        uint256 rebalanceAmount = 400000 * 10 ** 6; // 400,000 tokens (exceeds effective cap)
+
+        // Mock total assets
+        vm.mockCall(
+            address(fleetCommander),
+            abi.encodeWithSelector(fleetCommander.totalAssets.selector),
+            abi.encode(totalAssets)
+        );
+
+        // Set up ark1 and ark2
+        mockToken.mint(ark1, 500000 * 10 ** 6);
+        mockToken.mint(ark2, 100000 * 10 ** 6);
+
+        // Mock ark deposit cap and max deposit percentage for ark2
+        vm.mockCall(
+            ark2,
+            abi.encodeWithSelector(IArkConfigProvider.depositCap.selector),
+            abi.encode(arkDepositCap)
+        );
+        vm.mockCall(
+            ark2,
+            abi.encodeWithSelector(
+                IArkConfigProvider.maxDepositPercentageOfTVL.selector
+            ),
+            abi.encode(maxDepositPercentageOfTVL)
+        );
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](1);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            amount: rebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderCantRebalanceToArk(address)",
+                ark2
             )
         );
         fleetCommander.rebalance(rebalanceData);
