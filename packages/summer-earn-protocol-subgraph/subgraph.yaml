@@ -158,4 +158,7 @@ templates:
         - event: Disembarked(indexed address,address,uint256)
           handler: handleDisembarked
           receipt: true
+        - event: Moved(indexed address,indexed address,address,uint256)
+          handler: handleMoved
+          receipt: true
       file: ./src/mappings/ark.ts

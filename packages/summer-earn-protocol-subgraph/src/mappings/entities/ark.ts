@@ -1,6 +1,7 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { Ark as ArkContract } from '../../../generated/HarborCommand/Ark'
 import { Ark } from '../../../generated/schema'
+import { BigDecimalConstants } from '../../common/constants'
 import { getOrCreateArk } from '../../common/initializers'
 import { getAprForTimePeriod } from '../../common/utils'
 import { ArkDetails } from '../../types'
@@ -31,6 +32,16 @@ export function updateArk(arkDetails: ArkDetails, block: ethereum.Block): void {
       ark.inputTokenBalance.plus(earnings).toBigDecimal(),
       timeDiff.toBigDecimal(),
     )
+    log.error('ark.inputTokenBalance: {}, earnings: {}, timeDiff: {} calculatedApr: {}', [
+      ark.inputTokenBalance.toString(),
+      earnings.toString(),
+      timeDiff.toString(),
+      ark.calculatedApr.toString(),
+    ])
+  } else if (ark.inputTokenBalance.gt(BigInt.fromI32(0))) {
+    ark.calculatedApr = ark.calculatedApr
+  } else {
+    ark.calculatedApr = BigDecimalConstants.ZERO
   }
 
   // Update other fields
@@ -69,4 +80,9 @@ export function handleDisembark(amount: BigInt, ark: Ark): void {
   ark.cumulativeWithdrawals = ark.cumulativeWithdrawals.plus(amount)
   ark.save()
   log.error('Disembarked TOTAL {}, amount: {}', [ark.name!, ark.cumulativeWithdrawals.toString()])
+}
+
+export function handleMove(amount: BigInt, ark: Ark): void {
+  ark.cumulativeWithdrawals = ark.cumulativeWithdrawals.plus(amount)
+  ark.save()
 }

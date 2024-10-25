@@ -57,7 +57,7 @@ export namespace NULL {
 export namespace Protocol {
   export const NAME = 'Summer Earn Protocol'
   export const SLUG = 'summer-earn-protocol'
-  export const NETWORK = 'ARBITRUM_ONE'
+  export const NETWORK = dataSource.network().replace('-', '_').toUpperCase()
 }
 
 export namespace ArkVersions {

@@ -2,7 +2,7 @@
   "base": {
     "HarborCommand": {
       "address": "0x8AB0a8E95A43633E7C424eE67F6E3fe66D4898B2",
-      "startBlock": 17728659
+      "startBlock": 20798491
     }
   },
   "arbitrum-one": {
