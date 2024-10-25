@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "0.2.2-network-name",
+  "version": "0.2.3-interval-fix",
   "scripts": {
     "build:mainnet": "graph codegen && graph build --network mainnet",
     "build:base": "graph codegen && graph build --network base",
