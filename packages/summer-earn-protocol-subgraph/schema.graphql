@@ -428,6 +428,14 @@ type Vault @entity @regularPolling {
   " APR based on revenue between last two snapshots "
   calculatedApr: BigDecimal!
 
+  aprValues: [BigDecimal!]!
+
+  apr7d: BigDecimal!
+  apr30d: BigDecimal!
+  apr90d: BigDecimal!
+  apr180d: BigDecimal!
+  apr365d: BigDecimal!
+
   lastUpdateTimestamp: BigInt!
 
   arks: [Ark!]! @derivedFrom(field: "vault")
