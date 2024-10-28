@@ -194,14 +194,17 @@ export function getOrCreateVaultsDailySnapshots(
   block: ethereum.Block,
 ): VaultDailySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-  const previousId: string = vault.id
-    .concat('-')
-    .concat(
-      (
-        (block.timestamp.toI64() - constants.SECONDS_PER_DAY) /
-        constants.SECONDS_PER_DAY
-      ).toString(),
-    )
+  const currentDay = block.timestamp.toI64() / constants.SECONDS_PER_DAY
+  // Calculate previous day directly
+  const previousDay = currentDay - 1
+
+  const previousId = vault.id.concat('-').concat(previousDay.toString())
+
+  log.error('Creating daily snapshot - Current: {}, Previous: {}, Timestamp: {}', [
+    currentDay.toString(),
+    previousDay.toString(),
+    block.timestamp.toString(),
+  ])
   const previousSnapshot = VaultDailySnapshot.load(previousId)
 
   const id: string = vault.id
@@ -263,17 +266,13 @@ export function getOrCreateVaultsHourlySnapshots(
   block: ethereum.Block,
 ): VaultHourlySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-  const id: string = vault.id
-    .concat('-')
-    .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
-  const previousId = vault.id
-    .concat('-')
-    .concat(
-      (
-        (block.timestamp.toI64() - constants.SECONDS_PER_HOUR) /
-        constants.SECONDS_PER_HOUR
-      ).toString(),
-    )
+  const currentHour = block.timestamp.toI64() / constants.SECONDS_PER_HOUR
+  // Calculate previous hour directly
+  const previousHour = currentHour - 1
+
+  const id: string = vault.id.concat('-').concat(currentHour.toString())
+  const previousId = vault.id.concat('-').concat(previousHour.toString())
+
   const previousSnapshot = VaultHourlySnapshot.load(previousId)
   let vaultSnapshots = VaultHourlySnapshot.load(id)
 

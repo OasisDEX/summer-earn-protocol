@@ -72,5 +72,5 @@ function hasDayPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigI
   if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
     return true // Create initial snapshot if no previous timestamp or if it's zero
   }
-  return currentTimestamp.minus(lastUpdateTimestamp).gt(BigIntConstants.SECONDS_PER_DAY)
+  return currentTimestamp.minus(lastUpdateTimestamp).ge(BigIntConstants.SECONDS_PER_DAY)
 }
