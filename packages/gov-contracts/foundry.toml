@@ -7,7 +7,7 @@ libs = [
 ]
 test = 'test'
 cache_path  = 'cache_forge'
-solc = "0.8.27"
+solc = "0.8.28"
 viaIR = true
 optimizer_steps = 100
 evm_version = "cancun"
@@ -22,7 +22,7 @@ libs = [
 ]
 test = 'test'
 cache_path  = 'cache_forge'
-solc = "0.8.27"
+solc = "0.8.28"
 evm_version = "cancun"
 cbor_metadata = true
 viaIR = true

@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Token } from '../../generated/schema'
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import * as constants from '../common/constants'
@@ -18,17 +18,8 @@ export function getArkDetails(
     arkContract.try_totalAssets(),
     constants.BigIntConstants.ZERO,
   )
-
   const inputToken = Token.load(ark.inputToken)!
   const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(ark.inputToken), block)
-  log.error('inputTokenPriceUSD: {} total Assets {} xxx {}', [
-    inputTokenPriceUSD.price.toString(),
-    totalAssets.toString(),
-    utils
-      .formatAmount(totalAssets, BigInt.fromI32(inputToken.decimals))
-      .times(inputTokenPriceUSD.price)
-      .toString(),
-  ])
   const arkDetails = new ArkDetails(
     ark.id,
     vaultAddress.toHexString(),

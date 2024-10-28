@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {Test} from "forge-std/Test.sol";
@@ -84,6 +84,11 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
 
     // New variables
     IFleetRewardsManager public stakingRewardsManager;
+    MockSummerGovernor public mockGovernor;
+    ERC20Mock[] public rewardTokens;
+
+    // New variables
+    IFleetStakingRewardsManager public stakingRewardsManager;
     MockSummerGovernor public mockGovernor;
     ERC20Mock[] public rewardTokens;
 

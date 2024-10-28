@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";

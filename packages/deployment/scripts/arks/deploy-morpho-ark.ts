@@ -10,6 +10,19 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
+interface MorphoMarketInfo {
+  token: TokenType
+  marketId: string
+}
+
+interface MorphoArkUserInput {
+  marketSelection: MorphoMarketInfo
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  token: Address
+  marketId: string
+}
 /**
  * Main function to deploy a MorphoArk.
  * This function orchestrates the entire deployment process, including:
@@ -37,9 +50,9 @@ export async function deployMorphoArk() {
 /**
  * Prompts the user for MorphoArk deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @returns {Promise<any>} An object containing the user's input for deployment parameters.
+ * @returns {Promise<MorphoArkUserInput>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig) {
+async function getUserInput(config: BaseConfig): Promise<MorphoArkUserInput> {
   // Extract Morpho markets from the configuration
   const morphoMarkets = []
   for (const token in config.protocolSpecific.morpho.markets) {
@@ -92,10 +105,10 @@ async function getUserInput(config: BaseConfig) {
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {any} userInput - The user's input for deployment parameters.
+ * @param {MorphoArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: any) {
+async function confirmDeployment(userInput: MorphoArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token                  : ${userInput.token}`))
   console.log(kleur.yellow(`Market ID              : ${userInput.marketId}`))
@@ -109,12 +122,12 @@ async function confirmDeployment(userInput: any) {
 /**
  * Deploys the MorphoArk contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @param {any} userInput - The user's input for deployment parameters.
+ * @param {MorphoArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<MorphoArkContracts>} The deployed MorphoArk contract.
  */
 async function deployMorphoArkContract(
   config: BaseConfig,
-  userInput: any,
+  userInput: MorphoArkUserInput,
 ): Promise<MorphoArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)

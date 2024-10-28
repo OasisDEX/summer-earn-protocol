@@ -10,6 +10,23 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
+interface PendleMarketInfo {
+  token: TokenType
+  marketId: string
+  marketName: string
+}
+
+interface PendlePTArkUserInput {
+  marketSelection: PendleMarketInfo
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  token: Address
+  marketId: string
+  router: Address
+  oracle: Address
+}
+
 export async function deployPendlePTArk() {
   const config = getConfigByNetwork(hre.network.name)
 
@@ -85,7 +102,7 @@ async function getUserInput(config: BaseConfig) {
   return aggregatedData
 }
 
-async function confirmDeployment(userInput: any) {
+async function confirmDeployment(userInput: PendlePTArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
   console.log(kleur.yellow(`Oracle: ${userInput.oracle}`))
@@ -100,7 +117,7 @@ async function confirmDeployment(userInput: any) {
 
 async function deployPendlePTArkContract(
   config: BaseConfig,
-  userInput: any,
+  userInput: PendlePTArkUserInput,
 ): Promise<PendlePTArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)

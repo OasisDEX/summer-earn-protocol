@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {Test, console} from "forge-std/Test.sol";

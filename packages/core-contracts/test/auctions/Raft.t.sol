@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
@@ -1005,17 +1005,17 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         assertEq(
             mockToken1.balanceOf(address(raftContract)),
             amount1,
-            "BufferArk should have received all mockToken1"
+            "Raft should have received all mockToken1"
         );
         assertEq(
             mockToken2.balanceOf(address(raftContract)),
             amount2,
-            "BufferArk should have received all mockToken2"
+            "Raft should have received all mockToken2"
         );
         assertEq(
-            mockToken.balanceOf(address(bufferArk)),
+            mockPaymentToken.balanceOf(address(bufferArk)),
             amount1,
-            "Ark should have no mockToken left"
+            "Buffer Ark should have received all mockToken1"
         );
 
         // Verify the Ark's balances are now zero

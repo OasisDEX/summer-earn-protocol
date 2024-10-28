@@ -13,6 +13,23 @@ import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
+interface ERC4626VaultInfo {
+  token: Tokens
+  vaultId: string
+  vaultName: string
+}
+
+interface ERC4626ArkUserInput {
+  vaultSelection: ERC4626VaultInfo
+  depositCap: string
+  maxRebalanceOutflow: string
+  maxRebalanceInflow: string
+  token: Address
+  tokenSymbol: Tokens
+  vaultId: string
+  vaultName: string
+}
+
 export async function deployERC4626Ark() {
   const config = getConfigByNetwork(hre.network.name)
 
@@ -28,7 +45,7 @@ export async function deployERC4626Ark() {
   }
 }
 
-async function getUserInput(config: BaseConfig) {
+async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
   // Extract ERC4626 vaults from the configuration
   const erc4626Vaults = []
   if (!config.protocolSpecific.erc4626) {
@@ -86,7 +103,7 @@ async function getUserInput(config: BaseConfig) {
   return aggregatedData
 }
 
-async function confirmDeployment(userInput: any) {
+async function confirmDeployment(userInput: ERC4626ArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Vault ID               : ${userInput.vaultId}`))
   console.log(kleur.yellow(`Token                  : ${userInput.token}`))
@@ -99,7 +116,7 @@ async function confirmDeployment(userInput: any) {
 
 async function deployERC4626ArkContract(
   config: BaseConfig,
-  userInput: any,
+  userInput: ERC4626ArkUserInput,
 ): Promise<ERC4626ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IFleetRewardsManager} from "../interfaces/IFleetRewardsManager.sol";
+
 /**
  * @notice Configuration parameters for the FleetCommander contract
  */

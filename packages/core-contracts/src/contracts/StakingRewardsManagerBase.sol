@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 /**
  * @title StakingRewardsManager
@@ -16,7 +16,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 /**
  * @title StakingRewards
  * @notice Contract for managing staking rewards with multiple reward tokens in the Summer protocol
- * @dev Implements IStakingRewardsManager interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
+ * @dev Implements IStakingRewards interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
  */
 abstract contract StakingRewardsManagerBase is
     IStakingRewardsManagerBase,
@@ -38,7 +38,7 @@ abstract contract StakingRewardsManagerBase is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    EnumerableSet.AddressSet internal _rewardTokensList;
+    EnumerableSet.AddressSet private _rewardTokensList;
     IERC20 public stakingToken;
 
     mapping(IERC20 rewardToken => RewardData) public rewardData;

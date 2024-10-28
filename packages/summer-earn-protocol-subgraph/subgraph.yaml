@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: mainnet
+    network: arbitrum-one
     source:
       abi: HarborCommand
-      address: "0xf9c71B49De6cA90d6369B2898664b3f2d2fF8a90"
-      startBlock: 123456
+      address: "0x72B3128bc1D0f0E1e3D03B6d1c974C0C08724C90"
+      startBlock: 261643345
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -52,12 +52,12 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 1800
+            every: 14400
       file: ./src/mappings/harborCommand.ts
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: mainnet
+    network: arbitrum-one
     source:
       abi: FleetCommander
     mapping:
@@ -106,10 +106,16 @@ templates:
         - event: ArkAdded(indexed address)
           handler: handleArkAdded
           receipt: true
+        - event: ArkRemoved(indexed address)
+          handler: handleArkRemoved
+          receipt: true
+        - event: FleetCommanderWithdrawnFromArks(indexed address,address,uint256)
+          handler: handleFleetCommanderWithdrawnFromArks
+          receipt: true
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: mainnet
+    network: arbitrum-one
     source:
       abi: Ark
     mapping:
@@ -148,5 +154,8 @@ templates:
       eventHandlers:
         - event: Boarded(indexed address,address,uint256)
           handler: handleBoarded
+          receipt: true
+        - event: Disembarked(indexed address,address,uint256)
+          handler: handleDisembarked
           receipt: true
       file: ./src/mappings/ark.ts
