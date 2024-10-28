@@ -225,6 +225,7 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
+
     vaultSnapshots.calculatedApr = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
@@ -232,6 +233,12 @@ export function getOrCreateVaultsDailySnapshots(
           vault.pricePerShare!,
           constants.BigDecimalConstants.DAY_IN_SECONDS,
         )
+    log.error('vaultSnapshots.pricePerShare {} previous {} day in seconds {} apr {}', [
+      vaultSnapshots.pricePerShare!.toString(),
+      previousSnapshot ? previousSnapshot.pricePerShare!.toString() : 'nope',
+      constants.BigDecimalConstants.DAY_IN_SECONDS.toString(),
+      vaultSnapshots.calculatedApr.toString(),
+    ])
     vaultSnapshots.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 

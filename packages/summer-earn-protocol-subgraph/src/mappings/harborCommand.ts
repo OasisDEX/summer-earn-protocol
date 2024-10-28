@@ -57,18 +57,20 @@ function updateVaultAndArks(
 export function handleInterval(block: ethereum.Block): void {
   const protocol = getOrCreateYieldAggregator()
 
-  protocol.lastUpdateTimestamp = block.timestamp
-  protocol.save()
-
   const vaults = protocol.vaultsArray
   for (let i = 0; i < vaults.length; i++) {
     const vaultAddress = Address.fromString(vaults[i])
     updateVaultAndArks(vaultAddress, block, protocol.lastUpdateTimestamp)
   }
+  if (hasDayPassed(protocol.lastUpdateTimestamp, block.timestamp)) {
+    protocol.lastUpdateTimestamp = block.timestamp
+  }
+  protocol.save()
 }
 
 function hasDayPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigInt): boolean {
-  return lastUpdateTimestamp
-    ? currentTimestamp.minus(lastUpdateTimestamp).gt(BigIntConstants.SECONDS_PER_DAY)
-    : false
+  if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
+    return true // Create initial snapshot if no previous timestamp or if it's zero
+  }
+  return currentTimestamp.minus(lastUpdateTimestamp).gt(BigIntConstants.SECONDS_PER_DAY)
 }
