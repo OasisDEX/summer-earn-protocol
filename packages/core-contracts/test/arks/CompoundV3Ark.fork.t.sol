@@ -8,10 +8,10 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
-import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";

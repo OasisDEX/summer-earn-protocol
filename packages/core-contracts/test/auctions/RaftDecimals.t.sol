@@ -6,7 +6,7 @@ import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import {Raft} from "../../src/contracts/Raft.sol";
 
-import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import "./AuctionTestBase.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -48,8 +48,7 @@ contract RaftDecimalsTest is AuctionTestBase {
                 raft: address(raftContract),
                 tipJar: address(1),
                 treasury: treasury,
-                harborCommand: address(2),
-                governor: governor
+                harborCommand: address(2)
             })
         );
 

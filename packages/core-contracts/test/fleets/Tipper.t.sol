@@ -5,7 +5,7 @@ import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 import {ITipperEvents} from "../../src/events/ITipperEvents.sol";
-import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 
 import {Tipper} from "../../src/contracts/Tipper.sol";
 

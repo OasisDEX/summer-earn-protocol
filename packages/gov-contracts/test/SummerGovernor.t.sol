@@ -148,20 +148,16 @@ contract SummerGovernorTest is
         governorA.setTrustedRemote(bEid, address(governorB));
         governorB.setTrustedRemote(aEid, address(governorA));
 
+        vm.startPrank(owner);
+        aSummerToken.setGovernor(address(governorA));
+        bSummerToken.setGovernor(address(governorB));
+        vm.stopPrank();
+
         vm.label(address(governorA), "SummerGovernor");
         vm.label(address(governorB), "SummerGovernor");
 
         vm.prank(owner);
         changeTokensOwnership(address(timelockA), address(timelockB));
-
-        addGovernorToConfigurationManager(
-            address(governorA),
-            mockConfigurationManagerA
-        );
-        addGovernorToConfigurationManager(
-            address(governorB),
-            mockConfigurationManagerB
-        );
 
         timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));
         timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(governorA));

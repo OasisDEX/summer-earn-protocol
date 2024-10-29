@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import "../../src/contracts/ConfigurationManager.sol";
 import "../../src/contracts/ProtocolAccessManager.sol";
 
-import {IConfigurationManagerEvents} from "@summerfi/protocol-interfaces/IConfigurationManagerEvents.sol";
+import {IConfigurationManagerEvents} from "../../src/events/IConfigurationManagerEvents.sol";
 import "forge-std/Test.sol";
 
 contract ConfigurationManagerTest is Test {
@@ -35,8 +35,7 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: initialHarborCommand,
-            governor: governor
+            harborCommand: initialHarborCommand
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
@@ -48,8 +47,7 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: initialHarborCommand,
-            governor: governor
+            harborCommand: initialHarborCommand
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
@@ -76,8 +74,7 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: address(0),
-            governor: address(0)
+            harborCommand: address(0)
         });
         vm.prank(governor);
         vm.expectRevert(

@@ -39,8 +39,31 @@ contract GovernanceRewardsManager is
     //////////////////////////////////////////////////////////////*/
 
     modifier onlyStakingToken() {
+        _stakingTokenInitialized();
         if (_msgSender() != address(stakingToken)) {
             revert InvalidCaller();
+        }
+        _;
+    }
+
+    modifier updateReward(address account) override {
+        uint256 rewardTokenCount = _rewardTokensList.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            address rewardTokenAddress = _rewardTokensList.at(i);
+            IERC20 rewardToken = IERC20(rewardTokenAddress);
+            RewardData storage rewardTokenData = rewardData[rewardToken];
+            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
+            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
+                rewardToken
+            );
+            if (account != address(0)) {
+                rewards[rewardToken][account] = earned(account, rewardToken);
+                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
+                    .rewardPerTokenStored;
+            }
+        }
+        if (account != address(0)) {
+            _updateSmoothedDecayFactor(account);
         }
         _;
     }
@@ -52,16 +75,17 @@ contract GovernanceRewardsManager is
     /**
      * @notice Initializes the DecayableStakingRewardsManager contract
      * @param _accessManager Address of the ProtocolAccessManager contract
-     * @param _summerToken Address of the SummerToken contract
      */
     constructor(
-        address _accessManager,
-        address _summerToken
-    ) StakingRewardsManagerBase(_accessManager) {
-        _initialize(IERC20(_summerToken));
+        address _accessManager
+    ) StakingRewardsManagerBase(_accessManager) {}
+
+    function initialize(IERC20 _stakingToken) external {
+        _initialize(_stakingToken);
     }
 
     function _initialize(IERC20 _stakingToken) internal override {
+        _stakingTokenAlreadyInitialized();
         stakingToken = _stakingToken;
         emit StakingTokenInitialized(address(_stakingToken));
     }
@@ -98,6 +122,7 @@ contract GovernanceRewardsManager is
     function unstake(
         uint256 amount
     ) external override updateReward(_msgSender()) {
+        _stakingTokenInitialized();
         _unstake(_msgSender(), amount);
     }
 
@@ -130,34 +155,20 @@ contract GovernanceRewardsManager is
     }
 
     /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    modifier updateReward(address account) override {
-        uint256 rewardTokenCount = _rewardTokensList.length();
-        for (uint256 i = 0; i < rewardTokenCount; i++) {
-            address rewardTokenAddress = _rewardTokensList.at(i);
-            IERC20 rewardToken = IERC20(rewardTokenAddress);
-            RewardData storage rewardTokenData = rewardData[rewardToken];
-            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
-            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
-                rewardToken
-            );
-            if (account != address(0)) {
-                rewards[rewardToken][account] = earned(account, rewardToken);
-                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
-                    .rewardPerTokenStored;
-            }
-        }
-        if (account != address(0)) {
-            _updateSmoothedDecayFactor(account);
-        }
-        _;
-    }
-
-    /*//////////////////////////////////////////////////////////////
                                 INTERNAL
     //////////////////////////////////////////////////////////////*/
+
+    function _stakingTokenInitialized() internal view {
+        if (address(stakingToken) == address(0)) {
+            revert StakingTokenNotInitialized();
+        }
+    }
+
+    function _stakingTokenAlreadyInitialized() internal view {
+        if (address(stakingToken) != address(0)) {
+            revert StakingTokenAlreadyInitialized();
+        }
+    }
 
     /**
      * @notice Updates the smoothed decay factor for a given account

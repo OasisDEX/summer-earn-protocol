@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
-import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
 /**

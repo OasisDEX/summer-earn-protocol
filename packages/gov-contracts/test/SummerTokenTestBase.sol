@@ -15,7 +15,7 @@ import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
-import {MockConfigurationManager} from "./MockConfigurationManager.sol";
+
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
@@ -31,8 +31,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
     address public owner = address(this);
     address public rewardsManagerA = address(0xA);
     address public rewardsManagerB = address(0xB);
-    MockConfigurationManager public mockConfigurationManagerA;
-    MockConfigurationManager public mockConfigurationManagerB;
 
     /// @notice Initial decay rate per second (approximately 10% per year)
     /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
@@ -54,9 +52,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
         vm.label(lzEndpointA, "LayerZero Endpoint A");
         vm.label(lzEndpointB, "LayerZero Endpoint B");
 
-        mockConfigurationManagerA = new MockConfigurationManager();
-        mockConfigurationManagerB = new MockConfigurationManager();
-
         ISummerToken.TokenParams memory tokenParamsA = ISummerToken
             .TokenParams({
                 name: "SummerToken A",
@@ -66,7 +61,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 governor: owner,
                 owner: owner,
                 rewardsManager: rewardsManagerB,
-                configurationManager: address(mockConfigurationManagerA),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
@@ -81,7 +75,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 owner: owner,
                 governor: owner,
                 rewardsManager: rewardsManagerB,
-                configurationManager: address(mockConfigurationManagerB),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
@@ -108,13 +101,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
     ) public {
         aSummerToken.transferOwnership(_newOwnerA);
         bSummerToken.transferOwnership(_newOwnerB);
-    }
-
-    function addGovernorToConfigurationManager(
-        address _governor,
-        MockConfigurationManager _configurationManager
-    ) public {
-        _configurationManager.setGovernor(_governor);
     }
 }
 

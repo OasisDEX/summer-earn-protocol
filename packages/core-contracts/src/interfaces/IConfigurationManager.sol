@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IConfigurationManagerErrors} from "./IConfigurationManagerErrors.sol";
-import {IConfigurationManagerEvents} from "./IConfigurationManagerEvents.sol";
-import {ConfigurationManagerParams} from "./ConfigurationManagerTypes.sol";
+import {IConfigurationManagerErrors} from "../errors/IConfigurationManagerErrors.sol";
+import {IConfigurationManagerEvents} from "../events/IConfigurationManagerEvents.sol";
+import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
 /**
  * @title IConfigurationManager
  * @notice Interface for the ConfigurationManager contract, which manages system-wide parameters

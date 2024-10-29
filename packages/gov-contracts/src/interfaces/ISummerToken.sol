@@ -26,7 +26,6 @@ interface ISummerToken is
      * @param owner The owner address
      * @param governor The governor address
      * @param rewardsManager The rewards manager address
-     * @param configurationManager The configuration manager address
      * @param initialDecayFreeWindow The initial decay free window in seconds
      * @param initialDecayRate The initial decay rate
      * @param initialDecayFunction The initial decay function
@@ -39,7 +38,6 @@ interface ISummerToken is
         address owner;
         address governor;
         address rewardsManager;
-        address configurationManager;
         uint40 initialDecayFreeWindow;
         uint256 initialDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
@@ -63,6 +61,11 @@ interface ISummerToken is
         uint256 timeBasedAmount,
         uint256[] goalAmounts,
         SummerVestingWallet.VestingType vestingType
+    );
+
+    event GovernorUpdated(
+        address indexed oldGovernor,
+        address indexed newGovernor
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -91,6 +94,8 @@ interface ISummerToken is
     function mint(address to, uint256 amount) external;
 
     function updateDecayFactor(address account) external;
+
+    function setGovernor(address _governor) external;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

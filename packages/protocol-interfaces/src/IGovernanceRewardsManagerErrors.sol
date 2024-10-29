@@ -10,4 +10,10 @@ interface IGovernanceRewardsManagerErrors {
 
     /* @notice Thrown when direct staking is not allowed */
     error DirectStakingNotAllowed();
+
+    // /* @notice Thrown when the staking token is not initialized */
+    // error StakingTokenNotInitialized();
+
+    /* @notice Thrown when the staking token is already initialized */
+    error StakingTokenAlreadyInitialized();
 }

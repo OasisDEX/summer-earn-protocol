@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
-import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
+import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 abstract contract ConfigurationManagerMock is IConfigurationManager {
     address public tipJar;

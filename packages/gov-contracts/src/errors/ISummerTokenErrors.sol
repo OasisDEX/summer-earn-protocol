@@ -27,7 +27,7 @@ interface ISummerTokenErrors {
     /**
      * @dev Error thrown when the governor is not set on the configuration manager
      */
-    error GovernorNotSetOnConfigurationManager();
+    error GovernorNotSet();
 
     /**
      * @dev Error thrown when the caller is not the governor

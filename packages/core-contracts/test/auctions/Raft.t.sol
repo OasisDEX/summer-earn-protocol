@@ -8,7 +8,7 @@ import "../../src/errors/IRaftErrors.sol";
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IRaftEvents} from "../../src/events/IRaftEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import "./AuctionTestBase.sol";
 

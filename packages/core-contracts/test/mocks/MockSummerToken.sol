@@ -106,4 +106,8 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     function updateDecayFactor(address) external pure {
         revert("Not implemented");
     }
+
+    function setGovernor(address) external pure {
+        revert("Not implemented");
+    }
 }

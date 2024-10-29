@@ -61,9 +61,11 @@ contract GovernanceRewardsManagerTest is Test {
             address(mockGovernor)
         );
         stakingRewardsManager = new GovernanceRewardsManager(
-            address(accessManager),
-            address(stakingToken)
+            address(accessManager)
         );
+
+        // Initialize staking rewards manager
+        stakingRewardsManager.initialize(IERC20(address(stakingToken)));
 
         // Mint initial tokens
         stakingToken.mint(alice, INITIAL_STAKE_AMOUNT);

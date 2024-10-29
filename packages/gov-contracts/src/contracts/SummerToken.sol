@@ -10,11 +10,12 @@ import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 import {IGovernanceRewardsManager} from "@summerfi/protocol-interfaces/IGovernanceRewardsManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
-import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
+
 contract SummerToken is
     OFT,
     ERC20Burnable,
@@ -35,18 +36,18 @@ contract SummerToken is
 
     mapping(address owner => address vestingWallet) public vestingWallets;
     IGovernanceRewardsManager public rewardsManager;
-    IConfigurationManager public configurationManager;
+    ISummerGovernor public governor;
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
     modifier onlyGovernor() {
-        address governor = configurationManager.governor();
-        if (governor == address(0)) {
-            revert GovernorNotSetOnConfigurationManager();
+        if (address(governor) == address(0)) {
+            revert GovernorNotSet();
         }
-        if (_msgSender() != governor) {
+
+        if (_msgSender() != address(governor)) {
             revert SummerGovernorInvalidCaller();
         }
         _;
@@ -72,9 +73,6 @@ contract SummerToken is
             revert RewardsManagerNotSet();
         }
         rewardsManager = IGovernanceRewardsManager(params.rewardsManager);
-        configurationManager = IConfigurationManager(
-            params.configurationManager
-        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -133,6 +131,12 @@ contract SummerToken is
     /// @inheritdoc ISummerToken
     function updateDecayFactor(address account) external onlyGovernor {
         _updateDecayFactor(account);
+    }
+
+    function setGovernor(address _governor) external onlyOwner {
+        address oldGovernor = address(governor);
+        governor = ISummerGovernor(_governor);
+        emit GovernorUpdated(oldGovernor, _governor);
     }
 
     /*//////////////////////////////////////////////////////////////

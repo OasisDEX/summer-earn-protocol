@@ -22,6 +22,11 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   // Deploy TipJar contract
   const tipJar = m.contract('TipJar', [protocolAccessManager, configurationManager])
 
+  // Deploy GovernanceRewardsManager contract
+  // In an uninitialized state
+  // We initialize it in the GovModule with SummerToken
+  const governanceRewardsManager = m.contract('GovernanceRewardsManager', [protocolAccessManager])
+
   const raftAuctionDefaultParams = {
     duration: 7n * 86400n,
     startPrice: 100n ** 18n,
@@ -58,6 +63,7 @@ export const CoreModule = buildModule('CoreModule', (m) => {
     configurationManager,
     harborCommand,
     admiralsQuarters,
+    governanceRewardsManager,
   }
 })
 
