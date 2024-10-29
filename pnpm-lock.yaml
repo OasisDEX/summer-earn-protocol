@@ -127,6 +127,9 @@ importers:
       '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
+      '@summerfi/protocol-interfaces':
+        specifier: workspace:*
+        version: link:../protocol-interfaces
       '@summerfi/tenderly-utils':
         specifier: workspace:*
         version: link:../tenderly-utils
@@ -385,6 +388,9 @@ importers:
       '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
+      '@summerfi/protocol-interfaces':
+        specifier: workspace:*
+        version: link:../protocol-interfaces
       '@summerfi/tenderly-utils':
         specifier: workspace:*
         version: link:../tenderly-utils
@@ -499,6 +505,12 @@ importers:
       solhint:
         specifier: ^3.6.2
         version: 3.6.2(typescript@5.5.4)
+
+  packages/protocol-interfaces:
+    dependencies:
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
 
   packages/summer-earn-protocol-subgraph:
     devDependencies:

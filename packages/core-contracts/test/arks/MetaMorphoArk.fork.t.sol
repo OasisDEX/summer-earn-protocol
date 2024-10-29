@@ -7,7 +7,7 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
 
 import "../../src/contracts/arks/MetaMorphoArk.sol";
 import "../../src/events/IArkEvents.sol";

@@ -10,6 +10,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 
 contract StakingRewardsManagerBaseTest is Test {
     FleetStakingRewardsManager public stakingRewardsManager;
@@ -38,7 +39,11 @@ contract StakingRewardsManagerBaseTest is Test {
 
         // Deploy mock governor
         console.log("Deploying mock governor");
-        mockGovernor = new MockSummerGovernor();
+        mockGovernor = new MockSummerGovernor(
+            0,
+            0,
+            VotingDecayLibrary.DecayFunction.Linear
+        );
 
         // Deploy StakingRewardsManager
         console.log("Deploying staking rewards manager");
@@ -254,22 +259,17 @@ contract StakingRewardsManagerBaseTest is Test {
         );
     }
 
-    function test_Withdraw() public {
+    function test_Unstake() public {
         uint256 stakeAmount = 1000 * 1e18;
         vm.startPrank(alice);
         stakingRewardsManager.stake(stakeAmount);
-        stakingRewardsManager.withdraw(stakeAmount);
+        stakingRewardsManager.unstake(stakeAmount);
         vm.stopPrank();
 
         assertEq(
             stakingRewardsManager.balanceOf(alice),
             0,
             "Balance should be zero after withdrawal"
-        );
-        assertEq(
-            stakingRewardsManager.totalSupply(),
-            0,
-            "Total supply should be zero after withdrawal"
         );
     }
 

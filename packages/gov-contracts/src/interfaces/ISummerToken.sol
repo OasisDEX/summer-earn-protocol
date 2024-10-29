@@ -5,17 +5,44 @@ import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
+import {IVotingDecayManager} from "@summerfi/voting-decay/src/IVotingDecayManager.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 
-interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
+interface ISummerToken is
+    IERC20,
+    IERC20Permit,
+    ISummerTokenErrors,
+    IVotingDecayManager
+{
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
+    /*
+     * @dev Struct for the token parameters
+     * @param name The name of the token
+     * @param symbol The symbol of the token
+     * @param lzEndpoint The LayerZero endpoint address
+     * @param owner The owner address
+     * @param governor The governor address
+     * @param rewardsManager The rewards manager address
+     * @param configurationManager The configuration manager address
+     * @param initialDecayFreeWindow The initial decay free window in seconds
+     * @param initialDecayRate The initial decay rate
+     * @param initialDecayFunction The initial decay function
+     */
     struct TokenParams {
         string name;
         string symbol;
         address lzEndpoint;
+        // Update from deployer address after deployment
+        address owner;
         address governor;
+        address rewardsManager;
+        address configurationManager;
+        uint40 initialDecayFreeWindow;
+        uint256 initialDecayRate;
+        VotingDecayLibrary.DecayFunction initialDecayFunction;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -62,6 +89,8 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
      * @param amount The amount of tokens to mint
      */
     function mint(address to, uint256 amount) external;
+
+    function updateDecayFactor(address account) external;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

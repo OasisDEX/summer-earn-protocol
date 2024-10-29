@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IConfigurationManagerErrors} from "../errors/IConfigurationManagerErrors.sol";
-import {IConfigurationManagerEvents} from "../events/IConfigurationManagerEvents.sol";
-import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
+import {IConfigurationManagerErrors} from "./IConfigurationManagerErrors.sol";
+import {IConfigurationManagerEvents} from "./IConfigurationManagerEvents.sol";
+import {ConfigurationManagerParams} from "./ConfigurationManagerTypes.sol";
 /**
  * @title IConfigurationManager
  * @notice Interface for the ConfigurationManager contract, which manages system-wide parameters
@@ -54,6 +54,12 @@ interface IConfigurationManager is
     function harborCommand() external view returns (address);
 
     /**
+     * @notice Get the address of the governor
+     * @return The address of the governor
+     */
+    function governor() external view returns (address);
+
+    /**
      * @notice Set a new address for the Raft contract
      * @param newRaft The new address for the Raft contract
      * @dev Can only be called by the governor
@@ -80,4 +86,11 @@ interface IConfigurationManager is
      * @dev Can only be called by the governor
      */
     function setHarborCommand(address newHarborCommand) external;
+
+    /**
+     * @notice Set a new governor address
+     * @param newGovernor The address of the new governor
+     * @dev Can only be called by the governor
+     */
+    function setGovernor(address newGovernor) external;
 }

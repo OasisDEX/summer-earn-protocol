@@ -11,16 +11,16 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
-import {IVotes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {IGovernanceRewardsManager} from "@summerfi/protocol-interfaces/IGovernanceRewardsManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-
+import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
+import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
 contract SummerToken is
     OFT,
     ERC20Burnable,
     ERC20Votes,
     ERC20Permit,
+    VotingDecayManager,
     ISummerToken
 {
     /*//////////////////////////////////////////////////////////////
@@ -34,8 +34,23 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     mapping(address owner => address vestingWallet) public vestingWallets;
+    IGovernanceRewardsManager public rewardsManager;
+    IConfigurationManager public configurationManager;
 
-    IGovernor public governor;
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyGovernor() {
+        address governor = configurationManager.governor();
+        if (governor == address(0)) {
+            revert GovernorNotSetOnConfigurationManager();
+        }
+        if (_msgSender() != governor) {
+            revert SummerGovernorInvalidCaller();
+        }
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -46,8 +61,21 @@ contract SummerToken is
     )
         OFT(params.name, params.symbol, params.lzEndpoint, params.governor)
         ERC20Permit(params.name)
-        Ownable(params.governor)
-    {}
+        VotingDecayManager(
+            params.initialDecayFreeWindow,
+            params.initialDecayRate,
+            params.initialDecayFunction
+        )
+        Ownable(params.owner)
+    {
+        if (params.rewardsManager == address(0)) {
+            revert RewardsManagerNotSet();
+        }
+        rewardsManager = IGovernanceRewardsManager(params.rewardsManager);
+        configurationManager = IConfigurationManager(
+            params.configurationManager
+        );
+    }
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -102,6 +130,11 @@ contract SummerToken is
         _mint(to, amount);
     }
 
+    /// @inheritdoc ISummerToken
+    function updateDecayFactor(address account) external onlyGovernor {
+        _updateDecayFactor(account);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -111,20 +144,17 @@ contract SummerToken is
         uint256 amount
     ) public virtual {
         delegate(delegatee);
-        _stake(delegatee, amount);
+        _stake(amount);
     }
 
-    function undelegateAndUnstake(
-        address delegatee,
-        uint256 amount
-    ) public virtual {
+    function undelegateAndUnstake(uint256 amount) public virtual {
         delegate(address(0));
         _unstake(amount);
     }
 
-    function delegate(address delegatee) public override(ERC20Votes) {
+    function delegate(address delegatee) public override {
         super.delegate(delegatee);
-        governor.updateDecayFactor(_msgSender());
+        _updateDecayFactor(_msgSender());
     }
 
     function nonces(
@@ -136,15 +166,6 @@ contract SummerToken is
         returns (uint256)
     {
         return super.nonces(owner);
-    }
-
-    function setGovernor(address _governor) external onlyOwner {
-        require(_governor != address(0), "Invalid governor address");
-        require(
-            IERC165(_governor).supportsInterface(type(IGovernor).interfaceId),
-            "Address does not implement IGovernor"
-        );
-        governor = IGovernor(_governor);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -229,57 +250,28 @@ contract SummerToken is
         return directBalance;
     }
 
-    function _stake(address delegatee, uint256 amount) internal {
-        if (address(governor) == address(0)) {
-            revert GovernorNotSet();
-        }
-
-        IGovernanceRewardsManager rewardsManager = IGovernanceRewardsManager(
-            governor.getGovernanceRewardsManager()
-        );
-        if (address(rewardsManager) != address(0) && delegatee != address(0)) {
-            uint256 currentStake = rewardsManager.getStake(
-                _msgSender(),
-                delegatee
-            );
-            if (amount > currentStake) {
-                uint256 additionalStake = amount - currentStake;
-                _transfer(
-                    _msgSender(),
-                    address(rewardsManager),
-                    additionalStake
-                );
-                rewardsManager.stake(_msgSender(), delegatee, additionalStake);
-            } else if (amount < currentStake) {
-                uint256 unstakeAmount = currentStake - amount;
-                rewardsManager.unstake(_msgSender(), delegatee, unstakeAmount);
-            }
+    function _stake(uint256 amount) internal {
+        uint256 currentStake = rewardsManager.balanceOf(_msgSender());
+        if (amount > currentStake) {
+            uint256 additionalStake = amount - currentStake;
+            rewardsManager.stakeFor(_msgSender(), additionalStake);
+        } else if (amount < currentStake) {
+            uint256 unstakeAmount = currentStake - amount;
+            rewardsManager.unstakeFor(_msgSender(), unstakeAmount);
         }
     }
 
     function _unstake(uint256 amount) internal {
-        if (address(governor) == address(0)) {
-            revert GovernorNotSet();
+        uint256 currentStake = rewardsManager.balanceOf(_msgSender());
+        uint256 unstakeAmount = amount > currentStake ? currentStake : amount;
+        if (unstakeAmount > 0) {
+            rewardsManager.unstakeFor(_msgSender(), unstakeAmount);
         }
+    }
 
-        IGovernanceRewardsManager rewardsManager = IGovernanceRewardsManager(
-            governor.getGovernanceRewardsManager()
-        );
-        if (address(rewardsManager) != address(0)) {
-            uint256 currentStake = rewardsManager.getStake(
-                _msgSender(),
-                _msgSender()
-            );
-            uint256 unstakeAmount = amount > currentStake
-                ? currentStake
-                : amount;
-            if (unstakeAmount > 0) {
-                rewardsManager.unstake(
-                    _msgSender(),
-                    _msgSender(),
-                    unstakeAmount
-                );
-            }
-        }
+    function _getDelegateTo(
+        address account
+    ) internal view override returns (address) {
+        return super.delegates(account);
     }
 }

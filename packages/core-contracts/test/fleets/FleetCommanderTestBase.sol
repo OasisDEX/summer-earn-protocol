@@ -9,11 +9,11 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
@@ -87,11 +87,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     MockSummerGovernor public mockGovernor;
     ERC20Mock[] public rewardTokens;
 
-    // New variables
-    IFleetStakingRewardsManager public stakingRewardsManager;
-    MockSummerGovernor public mockGovernor;
-    ERC20Mock[] public rewardTokens;
-
     constructor() {}
 
     function initializeFleetCommanderWithMockArks(
@@ -156,7 +151,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     raft: address(raft),
                     tipJar: address(tipJar),
                     treasury: treasury,
-                    harborCommand: address(harborCommand)
+                    harborCommand: address(harborCommand),
+                    governor: governor
                 })
             );
         }

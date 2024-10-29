@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
 import {IStakingRewardsManagerBaseErrors} from "../../src/errors/IStakingRewardsManagerBaseErrors.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
+import {MockSummerToken} from "../mocks/MockSummerToken.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -11,11 +12,11 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
-import {IGovernanceRewardsManagerErrors} from "../../src/errors/IGovernanceRewardsManagerErrors.sol";
+import {IGovernanceRewardsManagerErrors} from "@summerfi/protocol-interfaces/IGovernanceRewardsManagerErrors.sol";
 
 contract GovernanceRewardsManagerTest is Test {
     GovernanceRewardsManager public stakingRewardsManager;
-    ERC20Mock public stakingToken;
+    MockSummerToken public stakingToken;
     ERC20Mock[] public rewardTokens;
     MockSummerGovernor public mockGovernor;
 
@@ -36,7 +37,7 @@ contract GovernanceRewardsManagerTest is Test {
         bob = address(0x2);
 
         // Deploy mock tokens
-        stakingToken = new ERC20Mock();
+        stakingToken = new MockSummerToken("Summer Token", "SUMMER");
         for (uint i = 0; i < 3; i++) {
             rewardTokens.push(new ERC20Mock());
         }
@@ -61,7 +62,6 @@ contract GovernanceRewardsManagerTest is Test {
         );
         stakingRewardsManager = new GovernanceRewardsManager(
             address(accessManager),
-            address(mockGovernor),
             address(stakingToken)
         );
 

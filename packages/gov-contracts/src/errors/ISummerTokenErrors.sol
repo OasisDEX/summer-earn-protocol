@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
 
@@ -20,7 +20,17 @@ interface ISummerTokenErrors {
     error InvalidVestingType(SummerVestingWallet.VestingType invalidType);
 
     /**
-     * @dev Error thrown when the Governor is not set
+     * @dev Error thrown when the rewards manager is not set
      */
-    error GovernorNotSet();
+    error RewardsManagerNotSet();
+
+    /**
+     * @dev Error thrown when the governor is not set on the configuration manager
+     */
+    error GovernorNotSetOnConfigurationManager();
+
+    /**
+     * @dev Error thrown when the caller is not the governor
+     */
+    error SummerGovernorInvalidCaller();
 }

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
 
-import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 
 /**
@@ -25,6 +25,9 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
 
     /// @inheritdoc IConfigurationManager
     address public harborCommand;
+
+    /// @inheritdoc IConfigurationManager
+    address public governor;
 
     /**
      * @notice Constructs the ConfigurationManager contract
@@ -92,5 +95,14 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         }
         emit HarborCommandUpdated(harborCommand, newHarborCommand);
         harborCommand = newHarborCommand;
+    }
+
+    /// @inheritdoc IConfigurationManager
+    function setGovernor(address newGovernor) external onlyGovernor {
+        if (newGovernor == address(0)) {
+            revert AddressZero();
+        }
+        emit GovernorUpdated(governor, newGovernor);
+        governor = newGovernor;
     }
 }

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
 import {StakingRewardsManagerBase} from "./StakingRewardsManagerBase.sol";
 import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ISummerGovernor} from "@summerfi/earn-gov-contracts/interfaces/ISummerGovernor.sol";
-import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {IGovernanceRewardsManager} from "@summerfi/protocol-interfaces/IGovernanceRewardsManager.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Constants} from "./libraries/Constants.sol";
+import {IVotingDecayManager} from "@summerfi/voting-decay/src/IVotingDecayManager.sol";
 
 /**
  * @title GovernanceStakingRewardsManager
@@ -27,8 +27,6 @@ contract GovernanceRewardsManager is
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    ISummerGovernor public immutable governor;
 
     uint256 public constant DECAY_SMOOTHING_FACTOR_BASE = Constants.WAD;
     uint256 public constant DECAY_SMOOTHING_FACTOR =
@@ -54,15 +52,12 @@ contract GovernanceRewardsManager is
     /**
      * @notice Initializes the DecayableStakingRewardsManager contract
      * @param _accessManager Address of the ProtocolAccessManager contract
-     * @param _governor Address of the SummerGovernor contract
      * @param _summerToken Address of the SummerToken contract
      */
     constructor(
         address _accessManager,
-        address _governor,
         address _summerToken
     ) StakingRewardsManagerBase(_accessManager) {
-        governor = ISummerGovernor(payable(_governor));
         _initialize(IERC20(_summerToken));
     }
 
@@ -90,36 +85,19 @@ contract GovernanceRewardsManager is
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function stake(
-        uint256
-    )
-        external
-        pure
-        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
-    {
+    function stake(uint256) external pure override {
         revert DirectStakingNotAllowed();
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function stakeOnBehalf(
-        address,
-        uint256
-    )
-        external
-        pure
-        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
-    {
+    function stakeOnBehalf(address, uint256) external pure override {
         revert DirectStakingNotAllowed();
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
     function unstake(
         uint256 amount
-    )
-        external
-        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
-        updateReward(_msgSender())
-    {
+    ) external override updateReward(_msgSender()) {
         _unstake(_msgSender(), amount);
     }
 
@@ -127,16 +105,22 @@ contract GovernanceRewardsManager is
                             VIEWS
     //////////////////////////////////////////////////////////////*/
 
+    function balanceOf(
+        address account
+    )
+        public
+        view
+        override(IGovernanceRewardsManager, StakingRewardsManagerBase)
+        returns (uint256)
+    {
+        return super.balanceOf(account);
+    }
+
     /// @inheritdoc IStakingRewardsManagerBase
     function earned(
         address account,
         IERC20 rewardToken
-    )
-        public
-        view
-        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
-        returns (uint256)
-    {
+    ) public view override returns (uint256) {
         uint256 rawEarned = _earned(account, rewardToken);
         uint256 latestSmoothedDecayFactor = _calculateSmoothedDecayFactor(
             account
@@ -193,7 +177,8 @@ contract GovernanceRewardsManager is
     function _calculateSmoothedDecayFactor(
         address account
     ) internal view returns (uint256) {
-        uint256 currentDecayFactor = governor.getDecayFactor(account);
+        uint256 currentDecayFactor = IVotingDecayManager(address(stakingToken))
+            .getDecayFactor(account);
 
         // If there's no existing smoothed factor, return the current factor
         if (userSmoothedDecayFactor[account] == 0) {

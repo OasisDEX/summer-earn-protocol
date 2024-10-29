@@ -6,9 +6,9 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import "../../src/contracts/arks/ERC4626Ark.sol";
 import "../../src/events/IArkEvents.sol";
-import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";

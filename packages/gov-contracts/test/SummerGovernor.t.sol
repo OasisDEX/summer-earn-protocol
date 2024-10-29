@@ -6,8 +6,6 @@ import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
 
 import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
-import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
 
 import {SummerToken} from "../src/contracts/SummerToken.sol";
 import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
@@ -76,8 +74,6 @@ contract SummerGovernorTest is
     ExposedSummerGovernor public governorB;
     TimelockController public timelockA;
     TimelockController public timelockB;
-    VotingDecayManager public votingDecayManagerA;
-    VotingDecayManager public votingDecayManagerB;
 
     address public alice = address(0x111);
     address public bob = address(0x112);
@@ -89,10 +85,6 @@ contract SummerGovernorTest is
     uint32 public constant VOTING_PERIOD = 50400;
     uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
     uint256 public constant QUORUM_FRACTION = 4;
-    /// @notice Initial decay rate per second (approximately 10% per year)
-    /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
-    uint256 internal constant INITIAL_DECAY_RATE_PER_SECOND = 3.1709792e9;
-    uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
 
     /*
      * @dev Sets up the test environment.
@@ -135,9 +127,6 @@ contract SummerGovernorTest is
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 endpoint: lzEndpointA,
                 proposalChainId: 31337
             });
@@ -150,9 +139,6 @@ contract SummerGovernorTest is
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 endpoint: lzEndpointB,
                 proposalChainId: 31337
             });
@@ -165,7 +151,17 @@ contract SummerGovernorTest is
         vm.label(address(governorA), "SummerGovernor");
         vm.label(address(governorB), "SummerGovernor");
 
+        vm.prank(owner);
         changeTokensOwnership(address(timelockA), address(timelockB));
+
+        addGovernorToConfigurationManager(
+            address(governorA),
+            mockConfigurationManagerA
+        );
+        addGovernorToConfigurationManager(
+            address(governorB),
+            mockConfigurationManagerB
+        );
 
         timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));
         timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(governorA));
@@ -566,9 +562,6 @@ contract SummerGovernorTest is
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0),
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 endpoint: lzEndpointA,
                 proposalChainId: 31337
             });
@@ -993,9 +986,6 @@ contract SummerGovernorTest is
                 proposalThreshold: belowMin,
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0x5),
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 endpoint: lzEndpointA,
                 proposalChainId: 31337
             });
@@ -1564,9 +1554,6 @@ contract SummerGovernorTest is
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 endpoint: address(endpoints[aEid]),
                 proposalChainId: governanceChainId // Set to a different chain ID
             });

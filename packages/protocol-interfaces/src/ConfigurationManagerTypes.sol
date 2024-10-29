@@ -9,4 +9,5 @@ struct ConfigurationManagerParams {
     address tipJar;
     address treasury;
     address harborCommand;
+    address governor;
 }

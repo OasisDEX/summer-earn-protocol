@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IConfigurationManaged} from "../interfaces/IConfigurationManaged.sol";
-import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
+import {IConfigurationManager} from "@summerfi/protocol-interfaces/IConfigurationManager.sol";
 
 /**
  * @title ConfigurationManaged

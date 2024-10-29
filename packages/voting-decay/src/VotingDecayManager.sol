@@ -3,14 +3,13 @@ pragma solidity 0.8.28;
 
 import {VotingDecayLibrary} from "./VotingDecayLibrary.sol";
 import {IVotingDecayManager} from "./IVotingDecayManager.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title VotingDecayManager
  * @notice Manages voting power decay for accounts in a governance system
  * @dev Implements decay calculations, delegation, and administrative functions
  */
-abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
+abstract contract VotingDecayManager is IVotingDecayManager {
     using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
 
     /*//////////////////////////////////////////////////////////////
@@ -35,14 +34,12 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
      * @param decayFreeWindow_ Initial decay-free window duration
      * @param decayRatePerSecond_ Initial decay rate per second
      * @param decayFunction_ Initial decay function type
-     * @param owner_ Initial owner of the contract
      */
     constructor(
         uint40 decayFreeWindow_,
         uint256 decayRatePerSecond_,
-        VotingDecayLibrary.DecayFunction decayFunction_,
-        address owner_
-    ) Ownable(owner_) {
+        VotingDecayLibrary.DecayFunction decayFunction_
+    ) {
         decayFreeWindow = decayFreeWindow_;
         decayRatePerSecond = decayRatePerSecond_;
         decayFunction = decayFunction_;
@@ -53,9 +50,7 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IVotingDecayManager
-    function setDecayRatePerSecond(
-        uint256 newRatePerSecond
-    ) external onlyOwner {
+    function setDecayRatePerSecond(uint256 newRatePerSecond) external {
         if (!VotingDecayLibrary.isValidDecayRate(newRatePerSecond)) {
             revert InvalidDecayRate();
         }
@@ -64,7 +59,7 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
     }
 
     /// @inheritdoc IVotingDecayManager
-    function setDecayFreeWindow(uint40 newWindow) external onlyOwner {
+    function setDecayFreeWindow(uint40 newWindow) external {
         decayFreeWindow = newWindow;
         emit DecayFreeWindowSet(newWindow);
     }
@@ -72,13 +67,13 @@ abstract contract VotingDecayManager is IVotingDecayManager, Ownable {
     /// @inheritdoc IVotingDecayManager
     function setDecayFunction(
         VotingDecayLibrary.DecayFunction newFunction
-    ) external onlyOwner {
+    ) external {
         decayFunction = newFunction;
         emit DecayFunctionSet(uint8(newFunction));
     }
 
     /*//////////////////////////////////////////////////////////////
-                            PUBLIC FUNCTIONS
+                            VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IVotingDecayManager

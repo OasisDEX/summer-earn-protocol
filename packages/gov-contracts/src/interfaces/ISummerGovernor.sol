@@ -4,7 +4,6 @@ pragma solidity 0.8.28;
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
-import {IVotingDecayManager} from "@summerfi/voting-decay/src/IVotingDecayManager.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
@@ -12,11 +11,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/extensions/
  * @title ISummerGovernor Interface
  * @notice Interface for the SummerGovernor contract, extending OpenZeppelin's IGovernor
  */
-interface ISummerGovernor is
-    IGovernor,
-    IVotingDecayManager,
-    ISummerGovernorErrors
-{
+interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
     /*
      * @dev Struct for the governor parameters
      * @param token The token contract address
@@ -40,9 +35,6 @@ interface ISummerGovernor is
         uint256 proposalThreshold;
         uint256 quorumFraction;
         address initialWhitelistGuardian;
-        uint40 initialDecayFreeWindow;
-        uint256 initialDecayRate;
-        VotingDecayLibrary.DecayFunction initialDecayFunction;
         address endpoint;
         uint32 proposalChainId;
     }
@@ -198,10 +190,4 @@ interface ISummerGovernor is
      * @return The address of the current whitelist guardian
      */
     function getWhitelistGuardian() external view returns (address);
-
-    /**
-     * @notice Updates the decay factor for an account
-     * @param account The address of the account to update the decay factor for
-     */
-    function updateDecayFactor(address account) external;
 }

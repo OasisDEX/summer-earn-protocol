@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ISummerToken, SummerVestingWallet} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {Constants} from "../../src/contracts/libraries/Constants.sol";
 
 contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     uint256 private constant INITIAL_SUPPLY = 1e9;
@@ -55,6 +57,53 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     }
 
     function testSkipper() external pure {
+        revert("Not implemented");
+    }
+
+    function decayFreeWindow() external pure returns (uint40) {
+        revert("Not implemented");
+    }
+
+    function decayFunction()
+        external
+        pure
+        returns (VotingDecayLibrary.DecayFunction)
+    {
+        revert("Not implemented");
+    }
+
+    function decayRatePerSecond() external pure returns (uint256) {
+        revert("Not implemented");
+    }
+
+    function getDecayFactor(address) external pure returns (uint256) {
+        return Constants.WAD;
+    }
+
+    function getVotingPower(address, uint256) external pure returns (uint256) {
+        revert("Not implemented");
+    }
+
+    function setDecayRatePerSecond(uint256) external pure {
+        revert("Not implemented");
+    }
+
+    // Fix the parameter type for setDecayFreeWindow
+    function setDecayFreeWindow(uint40) external pure {
+        revert("Not implemented");
+    }
+
+    function getDecayInfo(
+        address
+    ) external pure returns (VotingDecayLibrary.DecayInfo memory) {
+        revert("Not implemented");
+    }
+
+    function setDecayFunction(VotingDecayLibrary.DecayFunction) external pure {
+        revert("Not implemented");
+    }
+
+    function updateDecayFactor(address) external pure {
         revert("Not implemented");
     }
 }

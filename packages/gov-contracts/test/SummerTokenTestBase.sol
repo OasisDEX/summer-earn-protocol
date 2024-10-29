@@ -14,7 +14,8 @@ import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTCompo
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {Test, console} from "forge-std/Test.sol";
-
+import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {MockConfigurationManager} from "./MockConfigurationManager.sol";
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
@@ -28,7 +29,15 @@ contract SummerTokenTestBase is TestHelperOz5 {
     address public lzEndpointB;
 
     address public owner = address(this);
-    address public summerGovernor = address(this);
+    address public rewardsManagerA = address(0xA);
+    address public rewardsManagerB = address(0xB);
+    MockConfigurationManager public mockConfigurationManagerA;
+    MockConfigurationManager public mockConfigurationManagerB;
+
+    /// @notice Initial decay rate per second (approximately 10% per year)
+    /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
+    uint256 internal constant INITIAL_DECAY_RATE_PER_SECOND = 3.1709792e9;
+    uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
 
     uint256 constant INITIAL_SUPPLY = 1000000000;
 
@@ -38,8 +47,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
     }
 
     function initializeTokenTests() public {
-        vm.label(summerGovernor, "Summer Governor");
-
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
         lzEndpointA = address(endpoints[aEid]);
@@ -47,12 +54,22 @@ contract SummerTokenTestBase is TestHelperOz5 {
         vm.label(lzEndpointA, "LayerZero Endpoint A");
         vm.label(lzEndpointB, "LayerZero Endpoint B");
 
+        mockConfigurationManagerA = new MockConfigurationManager();
+        mockConfigurationManagerB = new MockConfigurationManager();
+
         ISummerToken.TokenParams memory tokenParamsA = ISummerToken
             .TokenParams({
                 name: "SummerToken A",
                 symbol: "SUMMERA",
                 lzEndpoint: lzEndpointA,
-                governor: summerGovernor
+                // Changed in inheriting test suites
+                governor: owner,
+                owner: owner,
+                rewardsManager: rewardsManagerB,
+                configurationManager: address(mockConfigurationManagerA),
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
 
         ISummerToken.TokenParams memory tokenParamsB = ISummerToken
@@ -60,11 +77,22 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 name: "SummerToken B",
                 symbol: "SUMMERB",
                 lzEndpoint: lzEndpointB,
-                governor: summerGovernor
+                // Changed in inheriting test suites
+                owner: owner,
+                governor: owner,
+                rewardsManager: rewardsManagerB,
+                configurationManager: address(mockConfigurationManagerB),
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
 
+        vm.label(owner, "Owner");
+
+        vm.startPrank(owner);
         aSummerToken = new SummerToken(tokenParamsA);
         bSummerToken = new SummerToken(tokenParamsB);
+        vm.stopPrank();
 
         // Config and wire the tokens
         address[] memory tokens = new address[](2);
@@ -80,6 +108,13 @@ contract SummerTokenTestBase is TestHelperOz5 {
     ) public {
         aSummerToken.transferOwnership(_newOwnerA);
         bSummerToken.transferOwnership(_newOwnerB);
+    }
+
+    function addGovernorToConfigurationManager(
+        address _governor,
+        MockConfigurationManager _configurationManager
+    ) public {
+        _configurationManager.setGovernor(_governor);
     }
 }
 

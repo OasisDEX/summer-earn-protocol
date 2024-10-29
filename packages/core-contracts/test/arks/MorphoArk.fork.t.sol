@@ -9,7 +9,7 @@ import "../../src/events/IArkEvents.sol";
 
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ConfigurationManagerParams} from "@summerfi/protocol-interfaces/ConfigurationManagerTypes.sol";
 
 import {MockUniversalRewardsDistributor} from "../mocks/MockUniversalRewardsDistributor.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";

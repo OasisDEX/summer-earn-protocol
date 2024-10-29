@@ -38,7 +38,7 @@ abstract contract StakingRewardsManagerBase is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    EnumerableSet.AddressSet private _rewardTokensList;
+    EnumerableSet.AddressSet internal _rewardTokensList;
     IERC20 public stakingToken;
 
     mapping(IERC20 rewardToken => RewardData) public rewardData;
@@ -49,6 +49,29 @@ abstract contract StakingRewardsManagerBase is
 
     uint256 public totalSupply;
     mapping(address account => uint256 balance) private _balances;
+
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier updateReward(address account) virtual {
+        uint256 rewardTokenCount = _rewardTokensList.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            address rewardTokenAddress = _rewardTokensList.at(i);
+            IERC20 rewardToken = IERC20(rewardTokenAddress);
+            RewardData storage rewardTokenData = rewardData[rewardToken];
+            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
+            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
+                rewardToken
+            );
+            if (account != address(0)) {
+                rewards[rewardToken][account] = earned(account, rewardToken);
+                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
+                    .rewardPerTokenStored;
+            }
+        }
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -73,7 +96,7 @@ abstract contract StakingRewardsManagerBase is
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function balanceOf(address account) public view returns (uint256) {
+    function balanceOf(address account) public view virtual returns (uint256) {
         return _balances[account];
     }
 
@@ -234,6 +257,8 @@ abstract contract StakingRewardsManagerBase is
         emit RewardsDurationUpdated(address(rewardToken), _rewardsDuration);
     }
 
+    /// @notice Initializes the StakingRewardsManagerBase contract
+    /// @param _stakingToken The address of the staking token
     function _initialize(IERC20 _stakingToken) internal virtual {}
 
     /// @notice Removes a reward token from the list of reward tokens
@@ -290,28 +315,5 @@ abstract contract StakingRewardsManagerBase is
                     userRewardPerTokenPaid[rewardToken][account])) /
             1e18 +
             rewards[rewardToken][account];
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    modifier updateReward(address account) virtual {
-        uint256 rewardTokenCount = _rewardTokensList.length();
-        for (uint256 i = 0; i < rewardTokenCount; i++) {
-            address rewardTokenAddress = _rewardTokensList.at(i);
-            IERC20 rewardToken = IERC20(rewardTokenAddress);
-            RewardData storage rewardTokenData = rewardData[rewardToken];
-            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
-            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
-                rewardToken
-            );
-            if (account != address(0)) {
-                rewards[rewardToken][account] = earned(account, rewardToken);
-                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
-                    .rewardPerTokenStored;
-            }
-        }
-        _;
     }
 }

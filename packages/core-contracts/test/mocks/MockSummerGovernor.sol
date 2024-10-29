@@ -17,8 +17,7 @@ contract MockSummerGovernor is ERC165, VotingDecayManager {
         VotingDecayManager(
             initialDecayFreeWindow,
             initialDecayRate,
-            initialDecayFunction,
-            address(this)
+            initialDecayFunction
         )
     {}
 

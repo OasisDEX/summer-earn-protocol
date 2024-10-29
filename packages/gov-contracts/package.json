@@ -35,6 +35,7 @@
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/math-utils": "workspace:*",
     "@summerfi/percentage-solidity": "workspace:*",
+    "@summerfi/protocol-interfaces": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
     "@summerfi/voting-decay": "workspace:*",

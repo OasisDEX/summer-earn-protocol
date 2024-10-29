@@ -7,7 +7,7 @@ import "../../src/errors/IBuyAndBurnErrors.sol";
 
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
-import {MockSummerToken} from "../mocks/SummerTokenMock.sol";
+import {MockSummerToken} from "../mocks/MockSummerToken.sol";
 import "./AuctionTestBase.sol";
 import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 

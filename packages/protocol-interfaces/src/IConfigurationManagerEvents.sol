@@ -39,4 +39,11 @@ interface IConfigurationManagerEvents {
         address oldHarborCommand,
         address newHarborCommand
     );
+
+    /**
+     * @notice Emitted when the governor is updated
+     * @param oldGovernor The address of the old governor
+     * @param newGovernor The address of the new governor
+     */
+    event GovernorUpdated(address oldGovernor, address newGovernor);
 }
