@@ -327,16 +327,6 @@ contract FleetCommander is
         _stakeOnBehalf(_msgSender(), shares);
     }
 
-    /// @inheritdoc IFleetCommander
-    function unstake(uint256 shares) public {
-        if (address(config.stakingRewardsManager) != address(0)) {
-            IFleetRewardsManager(config.stakingRewardsManager).unstake(shares);
-            IERC20(address(this)).transfer(_msgSender(), shares);
-        } else {
-            revert FleetCommanderStakingRewardsManagerNotSet();
-        }
-    }
-
     /// @inheritdoc IERC4626
     function mint(
         uint256 shares,
