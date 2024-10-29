@@ -21,6 +21,8 @@ contract MockSummerGovernor is ERC165, VotingDecayManager {
         )
     {}
 
+    function test_() public {}
+
     function initializeAccount(address account) external {
         _initializeAccountIfNew(account);
     }
