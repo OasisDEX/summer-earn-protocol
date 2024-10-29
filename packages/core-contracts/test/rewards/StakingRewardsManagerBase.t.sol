@@ -11,6 +11,7 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
 
 contract StakingRewardsManagerBaseTest is Test {
     FleetRewardsManager public stakingRewardsManager;
@@ -519,5 +520,196 @@ contract StakingRewardsManagerBaseTest is Test {
                 )
             );
         }
+    }
+
+    function test_UpdateReward() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup initial state
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            7 days
+        );
+
+        // Fast forward time to accumulate some rewards
+        vm.warp(block.timestamp + 1 days);
+
+        // Get initial reward data
+        (
+            ,
+            ,
+            ,
+            uint256 lastUpdateTimeBefore,
+            uint256 rewardPerTokenStoredBefore
+        ) = stakingRewardsManager.rewardData(IERC20(address(rewardTokens[0])));
+
+        // Perform action that triggers updateReward modifier
+        vm.prank(alice);
+        stakingRewardsManager.stake(100); // Small stake to trigger update
+
+        // Get updated reward data
+        (
+            ,
+            ,
+            ,
+            uint256 lastUpdateTimeAfter,
+            uint256 rewardPerTokenStoredAfter
+        ) = stakingRewardsManager.rewardData(IERC20(address(rewardTokens[0])));
+
+        // Verify updates occurred
+        assertGt(
+            lastUpdateTimeAfter,
+            lastUpdateTimeBefore,
+            "Last update time should increase"
+        );
+        assertGt(
+            rewardPerTokenStoredAfter,
+            rewardPerTokenStoredBefore,
+            "Reward per token stored should increase"
+        );
+
+        // Verify rewards mapping was updated
+        uint256 rewards = stakingRewardsManager.rewards(
+            IERC20(address(rewardTokens[0])),
+            alice
+        );
+        assertGt(rewards, 0, "Rewards should be updated for alice");
+    }
+
+    function test_RewardTokens() public {
+        // First notify some rewards to ensure tokens are added to the list
+        uint256 rewardAmount = 100 * 1e18;
+        uint256 duration = 7 days;
+
+        vm.startPrank(address(mockGovernor));
+        for (uint i = 0; i < rewardTokens.length; i++) {
+            stakingRewardsManager.notifyRewardAmount(
+                rewardTokens[i],
+                rewardAmount,
+                duration
+            );
+        }
+        vm.stopPrank();
+
+        // Test valid index
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            IERC20 token = stakingRewardsManager.rewardTokens(i);
+            assertEq(
+                address(token),
+                address(rewardTokens[i]),
+                "Reward token address should match"
+            );
+        }
+
+        // Test index out of bounds
+        vm.expectRevert(abi.encodeWithSignature("IndexOutOfBounds()"));
+        stakingRewardsManager.rewardTokens(rewardTokens.length);
+    }
+
+    function test_GetRewardForDuration() public {
+        IERC20 rewardToken = rewardTokens[0];
+        uint256 rewardAmount = 100 * 1e18;
+        uint256 duration = 7 days;
+
+        // Setup reward data by notifying reward amount
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            duration
+        );
+
+        // Get reward for duration
+        uint256 rewardForDuration = stakingRewardsManager.getRewardForDuration(
+            rewardToken
+        );
+
+        // Get reward data for manual calculation verification
+        (
+            ,
+            uint256 rewardRate,
+            uint256 rewardsDuration,
+            ,
+
+        ) = stakingRewardsManager.rewardData(rewardToken);
+
+        // Verify both calculations with a small tolerance for rounding
+        // Allow for 0.0001% difference (1 basis point)
+        assertApproxEqRel(
+            rewardForDuration,
+            rewardAmount,
+            0.0001e16, // 0.0001% in ray units (1e18 based)
+            "Total reward for duration should approximately equal notified amount"
+        );
+
+        assertApproxEqRel(
+            rewardForDuration,
+            rewardRate * rewardsDuration,
+            0.0001e16,
+            "Reward for duration calculation incorrect"
+        );
+    }
+
+    function test_RemoveRewardToken() public {
+        IERC20 rewardToken = rewardTokens[0];
+        uint256 rewardAmount = 1000000 * 1e18; // 1M tokens = 1e24
+        uint256 duration = 7 days;
+
+        // Test 1: Cannot remove non-existent token
+        IERC20 nonExistentToken = IERC20(address(0x123));
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        stakingRewardsManager.removeRewardToken(nonExistentToken);
+
+        // Setup initial state with a reward token
+        vm.startPrank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            duration
+        );
+        vm.stopPrank();
+
+        // Test 2: Cannot remove token while period is active
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(abi.encodeWithSignature("RewardPeriodNotComplete()"));
+        stakingRewardsManager.removeRewardToken(rewardToken);
+
+        // Fast forward past reward period
+        vm.warp(block.timestamp + duration + 1);
+
+        // Test 3: Cannot remove if there's remaining balance
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RewardTokenStillHasBalance(uint256)",
+                rewardAmount
+            )
+        );
+        stakingRewardsManager.removeRewardToken(rewardToken);
+
+        // Simulate all rewards being claimed by transferring tokens out
+        vm.startPrank(address(stakingRewardsManager));
+        rewardToken.transfer(address(1), rewardAmount);
+        vm.stopPrank();
+
+        // Test 4: Successful removal
+        vm.prank(address(mockGovernor));
+        vm.expectEmit(true, false, false, false);
+        emit IStakingRewardsManagerBase.RewardTokenRemoved(
+            address(rewardToken)
+        );
+        stakingRewardsManager.removeRewardToken(rewardToken);
+
+        // Verify token was removed
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        stakingRewardsManager.removeRewardToken(rewardToken);
     }
 }
