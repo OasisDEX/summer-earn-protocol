@@ -11,7 +11,7 @@ def fetch_subgraph_data(version, network):
         raise ValueError("SUBGRAPH_READ_KEY environment variable is not set")
         
     url = f"https://subgraph.satsuma-prod.com/{subgraph_key}/summer-fi/summer-protocol-{network}/version/{version}/api"
-    print(url)
+
     query = """
     {
       vaults {
@@ -23,6 +23,7 @@ def fetch_subgraph_data(version, network):
         hourlySnapshots(first:1000) {
           id
           timestamp
+          calculatedApr
         }
       }
     }
@@ -86,17 +87,69 @@ def plot_snapshot_intervals(snapshots, snapshot_type, target_hours, version, net
     print(f"Max time difference: {max(time_diffs):.2f} hours")
 
 
+def calculate_ema(data, span=20):
+    # Ensure span isn't larger than the data length
+    span = min(span, len(data) - 1)
+    
+    values = np.array(data)
+    weights = np.exp(np.linspace(-1., 0., span))
+    weights /= weights.sum()
+    
+    ema = np.convolve(values, weights, mode='full')[:len(values)]
+    ema[:span] = ema[span]
+    return ema
+
+def plot_apr_over_time(snapshots, snapshot_type, version, network):
+    # Extract timestamps and APR
+    timestamps = [int(snapshot['timestamp']) for snapshot in snapshots]
+    aprs = [float(snapshot['calculatedApr']) for snapshot in snapshots]
+    
+    # Convert timestamps to datetime objects
+    dates = [datetime.fromtimestamp(ts) for ts in timestamps]
+    
+    # Calculate statistics
+    avg_apr = np.mean(aprs)
+    ema = calculate_ema(aprs, span=50)
+    
+    # Create the plot
+    plt.figure(figsize=(12, 6))
+    
+    plt.plot(dates, aprs, marker='.', label='APR', alpha=0.5)
+    plt.plot(dates, ema, label=f'EMA (20 periods)', linewidth=2)
+    plt.axhline(y=avg_apr, color='r', linestyle='--', 
+                label=f'Average APR ({avg_apr:.2f}%)')
+    plt.title(f'{snapshot_type} APR Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('APR (%)')
+    plt.grid(True)
+    
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    
+    plt.savefig(f'apr_over_time_{network}_{version}_{snapshot_type.lower()}.png')
+    plt.close()
+
+    print(f"\n{snapshot_type} APR Statistics:")
+    print(f"Average APR: {avg_apr:.2f}%")
+    print(f"Min APR: {min(aprs):.2f}%")
+    print(f"Max APR: {max(aprs):.2f}%")
+
 def plot_timestamps(version, network):
     # Fetch data from subgraph
     data = fetch_subgraph_data(version, network)
     
     # Plot daily snapshots
     daily_snapshots = data['data']['vaults'][0]['dailySnapshots']
+    print(f"Number of daily snapshots: {len(daily_snapshots)}")
     plot_snapshot_intervals(daily_snapshots, "Daily", 24, version, network)
+    plot_apr_over_time(daily_snapshots, "Daily", version, network)
     
     # Plot hourly snapshots
     hourly_snapshots = data['data']['vaults'][0]['hourlySnapshots']
+    print(f"Number of hourly snapshots: {len(hourly_snapshots)}")
     plot_snapshot_intervals(hourly_snapshots, "Hourly", 1, version, network)
+    plot_apr_over_time(hourly_snapshots, "Hourly", version, network)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
