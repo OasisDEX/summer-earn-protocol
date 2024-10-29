@@ -32,12 +32,6 @@ export function updateArk(arkDetails: ArkDetails, block: ethereum.Block): void {
       ark.inputTokenBalance.plus(earnings).toBigDecimal(),
       timeDiff.toBigDecimal(),
     )
-    log.error('ark.inputTokenBalance: {}, earnings: {}, timeDiff: {} calculatedApr: {}', [
-      ark.inputTokenBalance.toString(),
-      earnings.toString(),
-      timeDiff.toString(),
-      ark.calculatedApr.toString(),
-    ])
   } else if (ark.inputTokenBalance.gt(BigInt.fromI32(0))) {
     ark.calculatedApr = ark.calculatedApr
   } else {

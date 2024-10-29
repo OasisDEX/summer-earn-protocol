@@ -106,6 +106,11 @@ export class BigDecimalConstants {
   static FIVE_BPS: BigDecimal = BigDecimal.fromString('0.0005')
   static ONE: BigDecimal = BigDecimal.fromString('1')
   static TWO: BigDecimal = BigDecimal.fromString('2')
+  static SEVEN: BigDecimal = BigDecimal.fromString('7')
+  static THIRTY: BigDecimal = BigDecimal.fromString('30')
+  static NINETY: BigDecimal = BigDecimal.fromString('90')
+  static ONE_EIGHTY: BigDecimal = BigDecimal.fromString('180')
+  static THREE_SIXTY_FIVE: BigDecimal = BigDecimal.fromString('365')
   static TEN: BigDecimal = BigDecimal.fromString('10')
   static FIFTY_TWO: BigDecimal = BigDecimal.fromString('52')
   static HUNDRED: BigDecimal = BigDecimal.fromString('100')
@@ -142,4 +147,6 @@ export class BigIntConstants {
   static USDT_PRECISION: BigInt = BigInt.fromString(`${10 ** 6}`)
   static VIRTUAL_SHARES: BigInt = BigInt.fromI32(10).pow(6)
   static SECONDS_PER_DAY: BigInt = BigInt.fromI32(86400)
+  static SECONDS_PER_HOUR: BigInt = BigInt.fromI32(3600)
+  static SECONDS_PER_MINUTE: BigInt = BigInt.fromI32(60)
 }
