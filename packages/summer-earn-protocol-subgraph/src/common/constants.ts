@@ -147,4 +147,6 @@ export class BigIntConstants {
   static USDT_PRECISION: BigInt = BigInt.fromString(`${10 ** 6}`)
   static VIRTUAL_SHARES: BigInt = BigInt.fromI32(10).pow(6)
   static SECONDS_PER_DAY: BigInt = BigInt.fromI32(86400)
+  static SECONDS_PER_HOUR: BigInt = BigInt.fromI32(3600)
+  static SECONDS_PER_MINUTE: BigInt = BigInt.fromI32(60)
 }

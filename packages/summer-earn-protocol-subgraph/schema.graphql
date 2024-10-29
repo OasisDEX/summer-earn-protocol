@@ -228,7 +228,8 @@ type YieldAggregator implements Protocol @entity @regularPolling {
   " All vaults that belong to this protocol "
   vaults: [Vault!]! @derivedFrom(field: "protocol")
   vaultsArray: [Vault!]!
-  lastUpdateTimestamp: BigInt
+  lastDailyUpdateTimestamp: BigInt
+  lastHourlyUpdateTimestamp: BigInt
 }
 
 ###############################

@@ -1,5 +1,6 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
+import { YieldAggregator } from '../../generated/schema'
 import { BigIntConstants } from '../common/constants'
 import {
   getOrCreateArksDailySnapshots,
@@ -18,39 +19,64 @@ export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): voi
   getOrCreateVault(event.params.fleetCommander, event.block)
 }
 
-function updateArkAndSnapshots(
+function updateArkData(vaultAddress: Address, arkAddress: Address, block: ethereum.Block): void {
+  const arkDetails = getArkDetails(vaultAddress, arkAddress, block)
+  updateArk(arkDetails, block)
+}
+
+function updateVaultData(vaultAddress: Address, block: ethereum.Block): void {
+  const vaultDetails = getVaultDetails(vaultAddress, block)
+  updateVault(vaultDetails, block)
+}
+
+// Snapshot management functions
+function updateArkSnapshots(
   vaultAddress: Address,
   arkAddress: Address,
   block: ethereum.Block,
-  protocolLastUpdateTimestamp: BigInt | null,
+  shouldUpdateDaily: boolean,
 ): void {
-  const arkDetails = getArkDetails(vaultAddress, arkAddress, block)
-  updateArk(arkDetails, block)
   getOrCreateArksHourlySnapshots(vaultAddress, arkAddress, block)
-
-  if (hasDayPassed(protocolLastUpdateTimestamp, block.timestamp)) {
+  if (shouldUpdateDaily) {
     getOrCreateArksDailySnapshots(vaultAddress, arkAddress, block)
   }
 }
 
-function updateVaultAndArks(
+function updateVaultSnapshots(
   vaultAddress: Address,
   block: ethereum.Block,
-  protocolLastUpdateTimestamp: BigInt | null,
+  shouldUpdateDaily: boolean,
 ): void {
-  const vault = getOrCreateVault(vaultAddress, block)
-  const vaultDetails = getVaultDetails(vaultAddress, block)
-  updateVault(vaultDetails, block)
   getOrCreateVaultsHourlySnapshots(vaultAddress, block)
-
-  const arks = vault.arksArray
-  for (let j = 0; j < arks.length; j++) {
-    const arkAddress = Address.fromString(arks[j])
-    updateArkAndSnapshots(vaultAddress, arkAddress, block, protocolLastUpdateTimestamp)
-  }
-
-  if (hasDayPassed(protocolLastUpdateTimestamp, block.timestamp)) {
+  if (shouldUpdateDaily) {
     getOrCreateVaultsDailySnapshots(vaultAddress, block)
+  }
+}
+
+// Main update orchestration functions
+function processHourlyVaultUpdate(
+  vaultAddress: Address,
+  block: ethereum.Block,
+  protocolLastDailyUpdateTimestamp: BigInt | null,
+  protocolLastHourlyUpdateTimestamp: BigInt | null,
+): void {
+  const dayPassed = hasDayPassed(protocolLastDailyUpdateTimestamp, block.timestamp)
+  const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
+
+  if (hourPassed) {
+    const vault = getOrCreateVault(vaultAddress, block)
+
+    // Update main data
+    updateVaultData(vaultAddress, block)
+    updateVaultSnapshots(vaultAddress, block, dayPassed)
+
+    // Update associated arks
+    const arks = vault.arksArray
+    for (let j = 0; j < arks.length; j++) {
+      const arkAddress = Address.fromString(arks[j])
+      updateArkData(vaultAddress, arkAddress, block)
+      updateArkSnapshots(vaultAddress, arkAddress, block, dayPassed)
+    }
   }
 }
 
@@ -60,12 +86,32 @@ export function handleInterval(block: ethereum.Block): void {
   const vaults = protocol.vaultsArray
   for (let i = 0; i < vaults.length; i++) {
     const vaultAddress = Address.fromString(vaults[i])
-    updateVaultAndArks(vaultAddress, block, protocol.lastUpdateTimestamp)
+    processHourlyVaultUpdate(
+      vaultAddress,
+      block,
+      protocol.lastDailyUpdateTimestamp,
+      protocol.lastHourlyUpdateTimestamp,
+    )
   }
-  if (hasDayPassed(protocol.lastUpdateTimestamp, block.timestamp)) {
-    protocol.lastUpdateTimestamp = block.timestamp
-  }
+
+  updateProtocolTimestamps(protocol, block)
   protocol.save()
+}
+
+function updateProtocolTimestamps(protocol: YieldAggregator, block: ethereum.Block): void {
+  if (hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)) {
+    const firstSecondOfThisHour = block.timestamp
+      .div(BigIntConstants.SECONDS_PER_HOUR)
+      .times(BigIntConstants.SECONDS_PER_HOUR)
+
+    protocol.lastHourlyUpdateTimestamp = firstSecondOfThisHour
+
+    if (hasDayPassed(protocol.lastDailyUpdateTimestamp, block.timestamp)) {
+      protocol.lastDailyUpdateTimestamp = firstSecondOfThisHour
+    }
+
+    protocol.save()
+  }
 }
 
 function hasDayPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigInt): boolean {
@@ -73,4 +119,11 @@ function hasDayPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigI
     return true // Create initial snapshot if no previous timestamp or if it's zero
   }
   return currentTimestamp.minus(lastUpdateTimestamp).ge(BigIntConstants.SECONDS_PER_DAY)
+}
+
+function hasHourPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigInt): boolean {
+  if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
+    return true // Create initial snapshot if no previous timestamp or if it's zero
+  }
+  return currentTimestamp.minus(lastUpdateTimestamp).ge(BigIntConstants.SECONDS_PER_HOUR)
 }
