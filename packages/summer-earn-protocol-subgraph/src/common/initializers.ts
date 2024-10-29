@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { ERC20 as ERC20Contract } from '../../generated/HarborCommand/ERC20'
 import {
   Account,
@@ -12,7 +12,6 @@ import {
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
-  Vault,
   VaultDailySnapshot,
   VaultFee,
   VaultHourlySnapshot,
@@ -22,8 +21,8 @@ import {
 import { ArkTemplate, FleetCommanderTemplate } from '../../generated/templates'
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { updateVaultAPRs } from '../mappings/entities/vault'
 import * as constants from './constants'
-import { BigDecimalConstants } from './constants'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -191,85 +190,14 @@ export function getOrCreateUsageMetricsHourlySnapshot(
   return usageMetrics
 }
 
-export function updateVaultAPRs(vault: Vault, block: ethereum.Block): void {
-  const MAX_APR_VALUES = 365
-  const currentApr = vault.calculatedApr
-  let aprValues = vault.aprValues
-
-  // Add new APR to the array
-  if (aprValues.length >= MAX_APR_VALUES) {
-    // Shift array by removing first element and adding new one at the end
-    const newArray = new Array<BigDecimal>(MAX_APR_VALUES)
-    for (let i = 0; i < MAX_APR_VALUES - 1; i++) {
-      newArray[i] = aprValues[i + 1]
-    }
-    newArray[MAX_APR_VALUES - 1] = currentApr
-    aprValues = newArray
-  } else {
-    aprValues.push(currentApr)
-  }
-
-  // Update vault's APR array
-  vault.aprValues = aprValues
-
-  // Calculate averages for different time windows
-  const length = aprValues.length
-  let sum7d = BigDecimalConstants.ZERO
-  let sum30d = BigDecimalConstants.ZERO
-  let sum90d = BigDecimalConstants.ZERO
-  let sum180d = BigDecimalConstants.ZERO
-  let sum365d = BigDecimalConstants.ZERO
-
-  for (let i = 0; i < length; i++) {
-    const value = aprValues[length - 1 - i] // Start from the most recent
-
-    if (i < 7) sum7d = sum7d.plus(value)
-    if (i < 30) sum30d = sum30d.plus(value)
-    if (i < 90) sum90d = sum90d.plus(value)
-    if (i < 180) sum180d = sum180d.plus(value)
-    if (i < 365) sum365d = sum365d.plus(value)
-  }
-
-  // Update rolling averages
-  vault.apr7d =
-    length >= 7
-      ? sum7d.div(BigDecimal.fromString('7'))
-      : sum7d.div(BigDecimal.fromString(length.toString()))
-  vault.apr30d =
-    length >= 30
-      ? sum30d.div(BigDecimal.fromString('30'))
-      : sum30d.div(BigDecimal.fromString(length.toString()))
-  vault.apr90d =
-    length >= 90
-      ? sum90d.div(BigDecimal.fromString('90'))
-      : sum90d.div(BigDecimal.fromString(length.toString()))
-  vault.apr180d =
-    length >= 180
-      ? sum180d.div(BigDecimal.fromString('180'))
-      : sum180d.div(BigDecimal.fromString(length.toString()))
-  vault.apr365d =
-    length >= 365
-      ? sum365d.div(BigDecimal.fromString('365'))
-      : sum365d.div(BigDecimal.fromString(length.toString()))
-}
-
 export function getOrCreateVaultsDailySnapshots(
   vaultAddress: Address,
   block: ethereum.Block,
 ): VaultDailySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-
   const currentDay = block.timestamp.toI64() / constants.SECONDS_PER_DAY
-  // Calculate previous day directly
   const previousDay = currentDay - 1
-
   const previousId = vault.id.concat('-').concat(previousDay.toString())
-
-  log.error('Creating daily snapshot - Current: {}, Previous: {}, Timestamp: {}', [
-    currentDay.toString(),
-    previousDay.toString(),
-    block.timestamp.toString(),
-  ])
   const previousSnapshot = VaultDailySnapshot.load(previousId)
 
   const id: string = vault.id
@@ -321,7 +249,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
 
-    updateVaultAPRs(vault, block)
+    updateVaultAPRs(vault)
     vault.save()
   }
 
@@ -334,9 +262,7 @@ export function getOrCreateVaultsHourlySnapshots(
 ): VaultHourlySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
   const currentHour = block.timestamp.toI64() / constants.SECONDS_PER_HOUR
-  // Calculate previous hour directly
   const previousHour = currentHour - 1
-
   const id: string = vault.id.concat('-').concat(currentHour.toString())
   const previousId = vault.id.concat('-').concat(previousHour.toString())
 
