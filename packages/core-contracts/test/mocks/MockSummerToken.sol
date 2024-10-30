@@ -60,6 +60,14 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
+    function delegateAndStake(address, uint256) external pure {
+        revert("Not implemented");
+    }
+
+    function undelegateAndUnstake(uint256) external pure {
+        revert("Not implemented");
+    }
+
     function decayFreeWindow() external pure returns (uint40) {
         revert("Not implemented");
     }

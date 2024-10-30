@@ -8,6 +8,11 @@ import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
 import {IVotingDecayManager} from "@summerfi/voting-decay/src/IVotingDecayManager.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 
+/**
+ * @title ISummerToken
+ * @dev Interface for the Summer governance token, combining ERC20, permit functionality,
+ * and voting decay mechanisms
+ */
 interface ISummerToken is
     IERC20,
     IERC20Permit,
@@ -93,9 +98,32 @@ interface ISummerToken is
      */
     function mint(address to, uint256 amount) external;
 
-    function updateDecayFactor(address account) external;
+    /**
+     * @notice Delegates voting power and stakes tokens in a single transaction
+     * @param delegatee The address to delegate voting power to
+     * @param amount The amount of tokens to stake
+     */
+    function delegateAndStake(address delegatee, uint256 amount) external;
 
+    /**
+     * @notice Removes delegation and unstakes tokens in a single transaction
+     * @param amount The amount of tokens to unstake
+     */
+    function undelegateAndUnstake(uint256 amount) external;
+
+    /**
+     * @notice Updates the governor address
+     * @param _governor The address of the new governor
+     * @dev Can only be called by the owner
+     */
     function setGovernor(address _governor) external;
+
+    /**
+     * @notice Updates the decay factor for a specific account
+     * @param account The address of the account to update
+     * @dev Can only be called by the governor
+     */
+    function updateDecayFactor(address account) external;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

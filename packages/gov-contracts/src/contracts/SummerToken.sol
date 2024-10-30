@@ -16,6 +16,11 @@ import {IGovernanceRewardsManager} from "@summerfi/protocol-interfaces/IGovernan
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
 
+/**
+ * @title SummerToken
+ * @dev Implementation of the Summer governance token with vesting, cross-chain, and voting decay capabilities.
+ * @custom:security-contact security@summer.fi
+ */
 contract SummerToken is
     OFT,
     ERC20Burnable,
@@ -133,16 +138,14 @@ contract SummerToken is
         _updateDecayFactor(account);
     }
 
+    /// @inheritdoc ISummerToken
     function setGovernor(address _governor) external onlyOwner {
         address oldGovernor = address(governor);
         governor = ISummerGovernor(_governor);
         emit GovernorUpdated(oldGovernor, _governor);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                            PUBLIC FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
+    /// @inheritdoc ISummerToken
     function delegateAndStake(
         address delegatee,
         uint256 amount
@@ -151,11 +154,20 @@ contract SummerToken is
         _stake(amount);
     }
 
-    function undelegateAndUnstake(uint256 amount) public virtual {
-        delegate(address(0));
+    /// @inheritdoc ISummerToken
+    function undelegateAndUnstake(uint256 amount) external {
+        delegate(address(0)); // Remove delegation
         _unstake(amount);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Delegates voting power to a specified address
+     * @param delegatee The address to delegate voting power to
+     */
     function delegate(address delegatee) public override {
         super.delegate(delegatee);
         _updateDecayFactor(_msgSender());
