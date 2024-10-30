@@ -317,16 +317,6 @@ contract FleetCommander is
         return depositAndStake(assets, receiver);
     }
 
-    /// @inheritdoc IFleetCommander
-    function stake(uint256 shares) public {
-        IERC20(address(this)).transferFrom(_msgSender(), address(this), shares);
-        IERC20(address(this)).approve(
-            address(config.stakingRewardsManager),
-            shares
-        );
-        _stakeFor(_msgSender(), shares);
-    }
-
     /// @inheritdoc IERC4626
     function mint(
         uint256 shares,
@@ -1031,6 +1021,14 @@ contract FleetCommander is
         }
     }
 
+    /**
+     * @notice Stakes tokens on behalf of an account in the staking rewards manager
+     * @dev This internal function is called by depositAndStake to handle the staking portion
+     *      of the operation. It requires that a staking rewards manager is configured.
+     * @param account The address for which tokens will be staked
+     * @param amount The amount of tokens to stake
+     * @custom:error FleetCommanderStakingRewardsManagerNotSet Thrown when the staking rewards manager address is not set
+     */
     function _stakeFor(address account, uint256 amount) internal {
         if (address(config.stakingRewardsManager) == address(0)) {
             revert FleetCommanderStakingRewardsManagerNotSet();
