@@ -242,6 +242,30 @@ contract StakingRewardsManagerBaseTest is Test {
         assertEq(newRewardsDuration, 1209600);
     }
 
+    function test_SetRewardsDuration_RevertIfPeriodNotComplete() public {
+        IERC20 rewardToken = rewardTokens[0];
+        uint256 initialDuration = 7 days;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup initial reward period
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            initialDuration
+        );
+
+        // Try to change duration while period is still active
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(abi.encodeWithSignature("RewardPeriodNotComplete()"));
+        stakingRewardsManager.setRewardsDuration(rewardToken, 14 days);
+
+        // Verify we can set duration after period is complete
+        vm.warp(block.timestamp + initialDuration + 1);
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.setRewardsDuration(rewardToken, 14 days);
+    }
+
     function test_Stake() public {
         uint256 stakeAmount = 1000 * 1e18;
         vm.prank(alice);
@@ -514,5 +538,169 @@ contract StakingRewardsManagerBaseTest is Test {
                 )
             );
         }
+    }
+
+    function test_CannotUnstakeZero() public {
+        // First stake some tokens to ensure we have a valid staking position
+        uint256 stakeAmount = 1000 * 1e18;
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Try to unstake zero tokens
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("CannotUnstakeZero()"));
+        stakingRewardsManager.unstake(0);
+    }
+
+    function test_NotifyRewardAmount_RevertIfRewardTooHigh() public {
+        IERC20 rewardToken = rewardTokens[0];
+        uint256 balance = rewardToken.balanceOf(address(stakingRewardsManager));
+        uint256 duration = 7 days;
+
+        // Calculate a reward that will result in a reward rate higher than balance/duration
+        // We need: reward/duration > balance/duration
+        // Multiply balance by 2 to ensure reward rate will be too high
+        uint256 tooHighReward = balance * 2;
+
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(abi.encodeWithSignature("ProvidedRewardTooHigh()"));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            tooHighReward,
+            duration
+        );
+
+        // Verify that setting a valid reward amount works
+        uint256 validReward = balance;
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            validReward,
+            duration
+        );
+    }
+
+    function test_NotifyRewardAmount_RevertIfDurationZero() public {
+        IERC20 rewardToken = rewardTokens[0];
+        uint256 rewardAmount = 100 * 1e18;
+        uint256 zeroDuration = 0;
+
+        // Try to notify a reward with zero duration
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(
+            abi.encodeWithSignature("RewardsDurationCannotBeZero()")
+        );
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            zeroDuration
+        );
+
+        // Verify that setting a valid duration works
+        uint256 validDuration = 7 days;
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            validDuration
+        );
+    }
+
+    function test_NotifyRewardAmount_WithExistingPeriod() public {
+        IERC20 rewardToken = rewardTokens[0];
+        uint256 initialReward = 100 * 1e18;
+        uint256 duration = 7 days;
+
+        // Set up initial reward period
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            initialReward,
+            duration
+        );
+
+        // Fast forward to middle of reward period
+        vm.warp(block.timestamp + duration / 2);
+
+        // Add more rewards during active period
+        uint256 additionalReward = 50 * 1e18;
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            additionalReward,
+            duration
+        );
+
+        // Get reward data to verify calculations
+        (
+            uint256 periodFinish,
+            uint256 rewardRate,
+            uint256 rewardsDuration,
+            ,
+
+        ) = stakingRewardsManager.rewardData(rewardToken);
+
+        // Verify period was extended correctly
+        assertEq(
+            periodFinish,
+            block.timestamp + duration,
+            "Period finish should be extended"
+        );
+
+        // Verify reward rate includes leftover rewards
+        uint256 expectedRate = (additionalReward +
+            ((initialReward * duration) / 2) /
+            duration) / duration;
+        assertApproxEqAbs(
+            rewardRate,
+            expectedRate,
+            1e9, // Allow for small rounding differences
+            "Reward rate should account for leftover rewards"
+        );
+    }
+
+    function test_UpdateReward_NonZeroAddress() public {
+        // Setup initial reward
+        IERC20 rewardToken = rewardTokens[0];
+        uint256 rewardAmount = 100 * 1e18;
+        uint256 duration = 7 days;
+
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            duration
+        );
+
+        // Have alice stake some tokens
+        uint256 stakeAmount = 1000 * 1e18;
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Fast forward some time
+        vm.warp(block.timestamp + 1 days);
+
+        // Get initial earned amount
+        uint256 initialEarned = stakingRewardsManager.earned(
+            alice,
+            rewardToken
+        );
+
+        // Perform another action that triggers updateReward
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Check that rewards were properly updated
+        uint256 newEarned = stakingRewardsManager.earned(alice, rewardToken);
+        assertGe(newEarned, initialEarned, "Rewards should have been updated");
+
+        // Verify reward per token stored was updated
+        (, , , , uint256 rewardPerTokenStored) = stakingRewardsManager
+            .rewardData(rewardToken);
+        assertGt(
+            rewardPerTokenStored,
+            0,
+            "Reward per token stored should have been updated"
+        );
     }
 }
