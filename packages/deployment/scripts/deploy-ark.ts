@@ -22,7 +22,7 @@ const arkTypes = [
   { title: 'ERC4626Ark', value: deployERC4626Ark },
   { title: 'PendleLPArk', value: deployPendleLPArk },
   { title: 'PendlePTArk', value: deployPendlePTArk },
-  { title: 'PendlePtOracleArkArk', value: deployPendlePTOracleArk },
+  { title: 'PendlePtOracleArk', value: deployPendlePTOracleArk },
 ]
 
 async function deployArk() {

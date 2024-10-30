@@ -23,23 +23,26 @@ export default buildModule('PendlePtOracleArkModule', (m) => {
     oracle: oracle,
     market: market,
   }
+
   const curveSwapArkParams = {
     curvePool: '0x1c34204FCFE5314Dcf53BE2671C02c35DB58B4e3',
-    marketAsset: '0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34',
+    basePrice: 1e18,
+    lowerPercentageRange: 100 * 1e18,
+    upperPercentageRange: 100 * 1e18,
   }
 
-  const pendlePTArk = m.contract('CurveSwapPendlePtArk', [
+  const pendlePtOracleArk = m.contract('PendlePtOracleArk', [
     arkParams,
     pendleArkParams,
     curveSwapArkParams,
   ])
 
-  return { pendlePTArk }
+  return { pendlePtOracleArk }
 })
 
 /**
  * Type definition for the returned contract address
  */
-export type PendlePTArkContracts = {
-  pendlePTArk: { address: string }
+export type PendlePtOracleArkContracts = {
+  pendlePtOracleArk: { address: string }
 }

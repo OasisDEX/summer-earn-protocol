@@ -112,7 +112,6 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         address market;
         address oracle;
         address router;
-        address marketAsset;
     }
 
     struct BoardData {
@@ -176,7 +175,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         Ark(_params)
         CurveExchangeRateProvider(
             _curveSwapArkConstructorParams.curvePool,
-            _pendlePtArkConstructorParams.marketAsset,
+            _getSyAssetAddress(_pendlePtArkConstructorParams.market),
             _curveSwapArkConstructorParams.lowerPercentageRange,
             _curveSwapArkConstructorParams.upperPercentageRange,
             _curveSwapArkConstructorParams.basePrice
@@ -185,13 +184,26 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         router = _pendlePtArkConstructorParams.router;
         oracle = _pendlePtArkConstructorParams.oracle;
         market = _pendlePtArkConstructorParams.market;
+
         oracleDuration = 30 minutes;
         slippagePercentage = PercentageUtils.fromFraction(50, 10000); // 0.5% default
         curveSwap = ICurveSwap(_curveSwapArkConstructorParams.curvePool);
-        marketAsset = _pendlePtArkConstructorParams.marketAsset;
+        marketAsset = _getSyAssetAddress(_pendlePtArkConstructorParams.market);
         _setupRouterParams();
         _updateMarketAndTokens(market);
         _updateMarketData();
+    }
+
+    /**
+     * @notice Helper function to get the SY asset address from a market
+     * @param _market The market address to query
+     * @return assetAddress The asset address from the SY contract
+     */
+    function _getSyAssetAddress(
+        address _market
+    ) internal view returns (address assetAddress) {
+        (IStandardizedYield sy, , ) = IPMarketV3(_market).readTokens();
+        (, assetAddress, ) = sy.assetInfo();
     }
 
     /*//////////////////////////////////////////////////////////////

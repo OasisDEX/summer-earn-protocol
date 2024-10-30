@@ -3,8 +3,8 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import PendlePtOracleArkModule, {
-  PendlePTArkContracts,
-} from '../../ignition/modules/arks/pendle-pt-ark'
+  PendlePtOracleArkContracts,
+} from '../../ignition/modules/arks/pendle-pt-oracle-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -15,13 +15,13 @@ import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 export async function deployPendlePTOracleArk() {
   const config = getConfigByNetwork(hre.network.name)
 
-  console.log(kleur.green().bold('Starting PendlePTArk deployment process...'))
+  console.log(kleur.green().bold('Starting PendlePtOracleArk deployment process...'))
 
   const userInput = await getUserInput(config)
 
   if (await confirmDeployment(userInput)) {
-    const deployedPendlePTArk = await deployPendlePTArkContract(config, userInput)
-    return { ark: deployedPendlePTArk.pendlePTArk }
+    const deployedPendlePtOracleArk = await deployPendlePtOracleArkContract(config, userInput)
+    return { ark: deployedPendlePtOracleArk.pendlePtOracleArk }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -100,10 +100,10 @@ async function confirmDeployment(userInput: any) {
   return await continueDeploymentCheck()
 }
 
-async function deployPendlePTArkContract(
+async function deployPendlePtOracleArkContract(
   config: BaseConfig,
   userInput: any,
-): Promise<PendlePTArkContracts> {
+): Promise<PendlePtOracleArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
   console.log({
@@ -141,5 +141,5 @@ async function deployPendlePTArkContract(
       },
     },
     deploymentId,
-  })) as PendlePTArkContracts
+  })) as PendlePtOracleArkContracts
 }

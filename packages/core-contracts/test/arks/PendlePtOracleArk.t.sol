@@ -114,8 +114,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
                 .PendlePtArkConstructorParams({
                     market: MARKET,
                     oracle: ORACLE,
-                    router: ROUTER,
-                    marketAsset: USDE
+                    router: ROUTER
                 });
         PendlePtOracleArk.CurveSwapArkConstructorParams
             memory curveSwapArkConstructorParams = PendlePtOracleArk
@@ -314,8 +313,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
                 .PendlePtArkConstructorParams({
                     market: PREVIOUS_MARKET,
                     oracle: ORACLE,
-                    router: ROUTER,
-                    marketAsset: USDE
+                    router: ROUTER
                 });
         PendlePtOracleArk.CurveSwapArkConstructorParams
             memory curveSwapArkConstructorParams = PendlePtOracleArk
@@ -703,50 +701,6 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             amount,
             0.01e18,
             "Total assets should be close to deposited amount"
-        );
-    }
-
-    function test_RevertOnInvalidAssetForSY() public {
-        address invalidAsset = address(0x123); // Some random address
-
-        vm.expectRevert(abi.encodeWithSignature("InvalidAssetForSY()"));
-        PendlePtOracleArk.PendlePtArkConstructorParams
-            memory pendlePtArkConstructorParams = PendlePtOracleArk
-                .PendlePtArkConstructorParams({
-                    market: MARKET,
-                    oracle: ORACLE,
-                    router: ROUTER,
-                    marketAsset: invalidAsset
-                });
-        PendlePtOracleArk.CurveSwapArkConstructorParams
-            memory curveSwapArkConstructorParams = PendlePtOracleArk
-                .CurveSwapArkConstructorParams({
-                    curvePool: CURVE_POOL,
-                    basePrice: BASE_PRICE,
-                    lowerPercentageRange: PercentageUtils.fromFraction(
-                        1e18,
-                        1e18
-                    ),
-                    upperPercentageRange: PercentageUtils.fromFraction(
-                        1e18,
-                        1e18
-                    )
-                });
-        // Create USDC Ark
-        ArkParams memory usdcParams = ArkParams({
-            name: "Pendle USDC PT Ark",
-            accessManager: address(accessManager),
-            configurationManager: address(configurationManager),
-            asset: USDC,
-            depositCap: type(uint256).max,
-            maxRebalanceOutflow: type(uint256).max,
-            maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
-        });
-        usdcArk = new PendlePtOracleArk(
-            usdcParams,
-            pendlePtArkConstructorParams,
-            curveSwapArkConstructorParams
         );
     }
 
