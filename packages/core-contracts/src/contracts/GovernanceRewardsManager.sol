@@ -12,10 +12,24 @@ import {Constants} from "./libraries/Constants.sol";
 import {IVotingDecayManager} from "@summerfi/voting-decay/src/IVotingDecayManager.sol";
 
 /**
- * @title GovernanceStakingRewardsManager
- * @notice Contract for managing governance staking rewards with multiple reward tokens in the Summer protocol
- * @dev Implements IGovernanceStakingRewardsManager interface and inherits from ReentrancyGuardTransient and ProtocolAccessManaged
- * @dev Implements decayable staking rewards
+ * @title GovernanceRewardsManager
+ * @notice Contract for managing governance rewards with multiple reward tokens in the Summer protocol
+ * @dev Implements IGovernanceRewardsManager interface and inherits from StakingRewardsManagerBase
+ *
+ * Access Control:
+ * - Protocol Access Control:
+ *   - Reward distribution functions (notifyRewardAmount, etc.) are restricted to protocol admins
+ *   - Protocol configuration can only be modified by authorized addresses
+ *
+ * - SummerToken Integration:
+ *   - Direct staking is disabled (stake function reverts)
+ *   - All staking must occur through stakeFor/unstakeFor, which can only be called by the SummerToken contract
+ *   - This ensures staking is always synchronized with token operations
+ *
+ * - User Operations:
+ *   - Users can directly unstake their tokens
+ *   - Users can claim their earned rewards
+ *   - All user operations automatically update reward calculations
  */
 contract GovernanceRewardsManager is
     IGovernanceRewardsManager,
@@ -28,9 +42,20 @@ contract GovernanceRewardsManager is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Smoothing factor base for decay calculations (1e18)
+     */
     uint256 public constant DECAY_SMOOTHING_FACTOR_BASE = Constants.WAD;
+
+    /**
+     * @notice Smoothing factor for decay calculations (0.2 * 1e18)
+     */
     uint256 public constant DECAY_SMOOTHING_FACTOR =
         DECAY_SMOOTHING_FACTOR_BASE / 5; // represents 0.2
+
+    /**
+     * @notice Mapping of user addresses to their smoothed decay factors
+     */
     mapping(address account => uint256 smoothedDecayFactor)
         public userSmoothedDecayFactor;
 
@@ -38,6 +63,9 @@ contract GovernanceRewardsManager is
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Ensures the caller is the staking token contract
+     */
     modifier onlyStakingToken() {
         _stakingTokenInitialized();
         if (_msgSender() != address(stakingToken)) {
@@ -46,6 +74,11 @@ contract GovernanceRewardsManager is
         _;
     }
 
+    /**
+     * @notice Updates rewards for an account before executing a function
+     * @param account The address of the account to update rewards for
+     * @dev Updates reward data for all reward tokens and the account's smoothed decay factor
+     */
     modifier updateReward(address account) override {
         uint256 rewardTokenCount = _rewardTokensList.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {
@@ -73,17 +106,25 @@ contract GovernanceRewardsManager is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initializes the DecayableStakingRewardsManager contract
+     * @notice Initializes the contract with the protocol access manager
      * @param _accessManager Address of the ProtocolAccessManager contract
      */
     constructor(
         address _accessManager
     ) StakingRewardsManagerBase(_accessManager) {}
 
+    /**
+     * @notice Initializes the staking token for the rewards manager
+     * @param _stakingToken The ERC20 token used for staking
+     */
     function initialize(IERC20 _stakingToken) external {
         _initialize(_stakingToken);
     }
 
+    /**
+     * @notice Internal function to initialize the staking token
+     * @param _stakingToken The ERC20 token used for staking
+     */
     function _initialize(IERC20 _stakingToken) internal override {
         _stakingTokenAlreadyInitialized();
         stakingToken = _stakingToken;
@@ -94,6 +135,7 @@ contract GovernanceRewardsManager is
                             MUTATIVE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IGovernanceRewardsManager
     function stakeFor(
         address staker,
         uint256 amount
@@ -106,6 +148,7 @@ contract GovernanceRewardsManager is
         _stake(staker, staker, amount);
     }
 
+    /// @inheritdoc IGovernanceRewardsManager
     function unstakeFor(
         address staker,
         uint256 amount
@@ -130,6 +173,7 @@ contract GovernanceRewardsManager is
                             VIEWS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IGovernanceRewardsManager
     function balanceOf(
         address account
     )
