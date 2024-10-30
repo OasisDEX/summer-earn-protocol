@@ -18,7 +18,11 @@ export default buildModule('PendlePtOracleArkModule', (m) => {
   const router = m.getParameter('router')
   const marketAssetOracle = m.getParameter('marketAssetOracle')
   const arkParams = m.getParameter('arkParams')
-
+  console.log(marketAssetOracle)
+  console.log(market)
+  console.log(router)
+  console.log(oracle)
+  console.log(arkParams)
   const pendleArkParams = {
     router: router,
     oracle: oracle,
@@ -27,9 +31,9 @@ export default buildModule('PendlePtOracleArkModule', (m) => {
 
   const curveSwapArkParams = {
     curvePool: marketAssetOracle,
-    basePrice: 1e18,
-    lowerPercentageRange: 100 * 1e18,
-    upperPercentageRange: 100 * 1e18,
+    basePrice: 10n ** 18n,
+    lowerPercentageRange: 100n * 10n ** 18n,
+    upperPercentageRange: 100n * 10n ** 18n,
   }
 
   const pendlePtOracleArk = m.contract('PendlePtOracleArk', [
