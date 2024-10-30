@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {AdmiralsQuarters} from "../src/contracts/AdmiralsQuarters.sol";
 
@@ -45,11 +45,13 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             address(address(bufferArk)),
             address(fleetCommander)
         );
+        vm.stopPrank();
 
         initializeFleetCommanderWithoutArks(DAI_ADDRESS, initialTipRate);
         daiFleet = fleetCommander;
         console.log("daiFleet", address(daiFleet));
         console.log("bufferArk", address(bufferArk));
+        vm.startPrank(governor);
         accessManager.grantCommanderRole(
             address(address(bufferArk)),
             address(fleetCommander)

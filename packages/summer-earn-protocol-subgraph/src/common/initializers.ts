@@ -21,6 +21,7 @@ import {
 import { ArkTemplate, FleetCommanderTemplate } from '../../generated/templates'
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { updateVaultAPRs } from '../mappings/entities/vault'
 import * as constants from './constants'
 import * as utils from './utils'
 
@@ -77,6 +78,8 @@ export function getOrCreateYieldAggregator(): YieldAggregator {
     protocol.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeUniqueUsers = 0
+    protocol.lastDailyUpdateTimestamp = constants.BigIntConstants.ZERO
+    protocol.lastHourlyUpdateTimestamp = constants.BigIntConstants.ZERO
     protocol.totalPoolCount = 0
     protocol.vaultsArray = []
     protocol.save()
@@ -193,14 +196,9 @@ export function getOrCreateVaultsDailySnapshots(
   block: ethereum.Block,
 ): VaultDailySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-  const previousId: string = vault.id
-    .concat('-')
-    .concat(
-      (
-        (block.timestamp.toI64() - constants.SECONDS_PER_DAY) /
-        constants.SECONDS_PER_DAY
-      ).toString(),
-    )
+  const currentDay = block.timestamp.toI64() / constants.SECONDS_PER_DAY
+  const previousDay = currentDay - 1
+  const previousId = vault.id.concat('-').concat(previousDay.toString())
   const previousSnapshot = VaultDailySnapshot.load(previousId)
 
   const id: string = vault.id
@@ -224,6 +222,7 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
+
     vaultSnapshots.calculatedApr = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
@@ -231,6 +230,12 @@ export function getOrCreateVaultsDailySnapshots(
           vault.pricePerShare!,
           constants.BigDecimalConstants.DAY_IN_SECONDS,
         )
+    log.error('vaultSnapshots.pricePerShare {} previous {} day in seconds {} apr {}', [
+      vaultSnapshots.pricePerShare!.toString(),
+      previousSnapshot ? previousSnapshot.pricePerShare!.toString() : 'nope',
+      constants.BigDecimalConstants.DAY_IN_SECONDS.toString(),
+      vaultSnapshots.calculatedApr.toString(),
+    ])
     vaultSnapshots.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -244,8 +249,10 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.timestamp = block.timestamp
 
     vaultSnapshots.save()
+
+    updateVaultAPRs(vault)
+    vault.save()
   }
-  ;``
 
   return vaultSnapshots
 }
@@ -255,17 +262,11 @@ export function getOrCreateVaultsHourlySnapshots(
   block: ethereum.Block,
 ): VaultHourlySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-  const id: string = vault.id
-    .concat('-')
-    .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
-  const previousId = vault.id
-    .concat('-')
-    .concat(
-      (
-        (block.timestamp.toI64() - constants.SECONDS_PER_HOUR) /
-        constants.SECONDS_PER_HOUR
-      ).toString(),
-    )
+  const currentHour = block.timestamp.toI64() / constants.SECONDS_PER_HOUR
+  const previousHour = currentHour - 1
+  const id: string = vault.id.concat('-').concat(currentHour.toString())
+  const previousId = vault.id.concat('-').concat(previousHour.toString())
+
   const previousSnapshot = VaultHourlySnapshot.load(previousId)
   let vaultSnapshots = VaultHourlySnapshot.load(id)
 
@@ -363,6 +364,13 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     )
 
     vault.arksArray = initialVaultArks.map<string>((ark: Address) => ark.toHexString())
+    vault.aprValues = []
+    vault.apr7d = constants.BigDecimalConstants.ZERO
+    vault.apr30d = constants.BigDecimalConstants.ZERO
+    vault.apr90d = constants.BigDecimalConstants.ZERO
+    vault.apr180d = constants.BigDecimalConstants.ZERO
+    vault.apr365d = constants.BigDecimalConstants.ZERO
+
     vault.save()
 
     const yeildAggregator = getOrCreateYieldAggregator()

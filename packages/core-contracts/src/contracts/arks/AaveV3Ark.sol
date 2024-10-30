@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {DataTypes} from "../../interfaces/aave-v3/DataTypes.sol";
 import {IPoolV3} from "../../interfaces/aave-v3/IPoolV3.sol";

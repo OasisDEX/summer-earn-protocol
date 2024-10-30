@@ -1,0 +1,6 @@
+{
+  "network": "base",
+  "harbor-command-address": "0x8AB0a8E95A43633E7C424eE67F6E3fe66D4898B2",
+  "harbor-command-start-block": 20798491,
+  "interval-handler-block-interval": 30
+}

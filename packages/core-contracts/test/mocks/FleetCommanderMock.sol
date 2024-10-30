@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {Tipper} from "../../src/contracts/Tipper.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ERC4626, ERC4626Mock} from "@openzeppelin/contracts/mocks/token/ERC4626Mock.sol";
-
 import {FleetConfig, RebalanceData} from "../../src/types/FleetCommanderTypes.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
@@ -122,6 +121,10 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function setMinimumBufferBalance(uint256 newMinimumBalance) external {}
 
+    function setStakingRewardsManager(
+        address newStakingRewardsManager
+    ) external {}
+
     function rebalance(RebalanceData[] calldata data) external {}
 
     function forceRebalance(RebalanceData[] calldata data) external {}
@@ -174,4 +177,21 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function unpause() external {}
 
     function setMinimumPauseTime(uint256 newMinimumPauseTime) external {}
+
+    function depositAndStake(
+        uint256 assets,
+        address receiver
+    ) external returns (uint256) {
+        return super.deposit(assets, receiver);
+    }
+
+    function depositAndStake(
+        uint256 assets,
+        address receiver,
+        bytes memory
+    ) external returns (uint256) {
+        return super.deposit(assets, receiver);
+    }
+
+    function stake(uint256 shares) external {}
 }

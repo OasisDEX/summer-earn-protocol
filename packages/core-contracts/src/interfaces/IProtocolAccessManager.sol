@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 /**
  * @dev Dynamic roles are roles that are not hardcoded in the contract but are defined by the protocol

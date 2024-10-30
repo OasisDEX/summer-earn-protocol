@@ -1,13 +1,14 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "0.2.3-interval-fix",
+  "version": "0.2.15-hourly-and-daily-checks",
   "scripts": {
-    "build:mainnet": "graph codegen && graph build --network mainnet",
-    "build:base": "graph codegen && graph build --network base",
-    "build:arbitrum": "graph codegen && graph build --network arbitrum-one",
-    "deploy:base": "bash -c 'source ../../.env && pnpm build:base && graph deploy summer-protocol-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
-    "deploy:mainnet": "bash -c 'source ../../.env && pnpm build:mainnet && graph deploy summer-protocol-mainnet --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
-    "deploy:arbitrum": "bash -c 'source ../../.env && pnpm build:arbitrum && graph deploy summer-protocol-arbitrum --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'"
+    "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
+    "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
+    "build:base": "pnpm run prepare:base && graph codegen && graph build",
+    "build:arbitrum": "pnpm run prepare:arbitrum && graph codegen && graph build",
+    "deploy:base": "bash -c 'source ../../.env && pnpm prepare:base && graph deploy summer-protocol-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
+    "deploy:arbitrum": "bash -c 'source ../../.env && pnpm prepare:arbitrum && graph deploy summer-protocol-arbitrum --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
+    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "^0.35.1",

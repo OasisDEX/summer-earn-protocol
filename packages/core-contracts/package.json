@@ -46,6 +46,7 @@
     "@summerfi/eslint-config": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/math-utils": "workspace:*",
+    "@summerfi/voting-decay": "workspace:*",
     "@summerfi/percentage-solidity": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",

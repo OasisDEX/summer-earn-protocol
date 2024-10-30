@@ -1,0 +1,164 @@
+specVersion: 0.0.8
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: HarborCommand
+    network: {{network}}
+    source:
+      abi: HarborCommand
+      address: "{{harbor-command-address}}"
+      startBlock: {{harbor-command-start-block}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: HarborCommand
+          file: ./abis/HarborCommand.abi.json
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
+        - name: EnsReverseResolver
+          file: ./abis/ens/reverse-resolver.json
+        - name: EnsRegistry
+          file: ./abis/ens/registry.json
+        - name: DefaultReverseNameResolver
+          file: ./abis/ens/default-resolver.json
+      eventHandlers:
+        - event: FleetCommanderEnlisted(indexed address)
+          handler: handleFleetCommanderEnlisted
+          receipt: true
+      blockHandlers:
+        - handler: handleInterval
+          filter:
+            kind: polling
+            every: {{interval-handler-block-interval }} 
+      file: ./src/mappings/harborCommand.ts
+templates:
+  - kind: ethereum/contract
+    name: FleetCommanderTemplate
+    network: {{network}}
+    source:
+      abi: FleetCommander
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
+        - name: EnsReverseResolver
+          file: ./abis/ens/reverse-resolver.json
+        - name: EnsRegistry
+          file: ./abis/ens/registry.json
+        - name: DefaultReverseNameResolver
+          file: ./abis/ens/default-resolver.json
+      eventHandlers:
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+          receipt: true
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+          receipt: true
+        - event: Rebalanced(indexed address,(address,address,uint256,bytes,bytes)[])
+          handler: handleRebalance
+          receipt: true
+        - event: ArkAdded(indexed address)
+          handler: handleArkAdded
+          receipt: true
+        - event: ArkRemoved(indexed address)
+          handler: handleArkRemoved
+          receipt: true
+        - event: FleetCommanderWithdrawnFromArks(indexed address,address,uint256)
+          handler: handleFleetCommanderWithdrawnFromArks
+          receipt: true
+      file: ./src/mappings/fleetCommander.ts
+  - kind: ethereum/contract
+    name: ArkTemplate
+    network: {{network}}
+    source:
+      abi: Ark
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
+        - name: EnsReverseResolver
+          file: ./abis/ens/reverse-resolver.json
+        - name: EnsRegistry
+          file: ./abis/ens/registry.json
+        - name: DefaultReverseNameResolver
+          file: ./abis/ens/default-resolver.json
+      eventHandlers:
+        - event: Boarded(indexed address,address,uint256)
+          handler: handleBoarded
+          receipt: true
+        - event: Disembarked(indexed address,address,uint256)
+          handler: handleDisembarked
+          receipt: true
+        - event: Moved(indexed address,indexed address,address,uint256)
+          handler: handleMoved
+          receipt: true
+      file: ./src/mappings/ark.ts

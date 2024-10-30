@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {ITipJarEvents} from "../../src/events/ITipJarEvents.sol";
 import {ITipJar} from "../../src/interfaces/ITipJar.sol";

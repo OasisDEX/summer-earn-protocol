@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import {IFleetCommanderErrors} from "../errors/IFleetCommanderErrors.sol";
 import {IFleetCommanderEvents} from "../events/IFleetCommanderEvents.sol";
@@ -61,6 +61,36 @@ interface IFleetCommander is
         address receiver,
         bytes memory referralCode
     ) external returns (uint256);
+
+    /**
+     * @notice Deposits a specified amount of assets into the contract for a given receiver and stakes the shares.
+     * @param assets The amount of assets to be deposited.
+     * @param receiver The address of the receiver who will receive the deposited assets.
+     * @return shares The amount of shares minted for the deposited assets
+     */
+    function depositAndStake(
+        uint256 assets,
+        address receiver
+    ) external returns (uint256 shares);
+
+    /**
+     * @notice Stakes a specified amount of shares with the Fleet's StakingRewardsManager.
+     * @param shares The amount of shares to stake.
+     */
+    function stake(uint256 shares) external;
+
+    /**
+     * @notice Deposits a specified amount of assets into the contract for a given receiver and stakes the shares.
+     * @param assets The amount of assets to be deposited.
+     * @param receiver The address of the receiver who will receive the deposited assets.
+     * @param referralCode An optional referral code that can be used for tracking or rewards.
+     * @return shares The amount of shares minted for the deposited assets
+     */
+    function depositAndStake(
+        uint256 assets,
+        address receiver,
+        bytes memory referralCode
+    ) external returns (uint256 shares);
 
     /**
      * @notice Forces a withdrawal of assets from the FleetCommander
