@@ -13,6 +13,8 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
@@ -44,7 +46,8 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         ark = new ERC4626Ark(VAULT_ADDRESS, params);

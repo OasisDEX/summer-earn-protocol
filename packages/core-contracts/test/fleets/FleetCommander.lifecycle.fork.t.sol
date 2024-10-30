@@ -22,6 +22,7 @@ import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title Lifecycle test suite for FleetCommander
@@ -165,7 +166,8 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         ArkParams memory daiArkParams = ArkParams({
@@ -176,7 +178,8 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         // USDC Arks

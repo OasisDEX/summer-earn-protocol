@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStakingRewardsManagerBaseErrors} from "../errors/IStakingRewardsManagerBaseErrors.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /* @title IStakingRewardsManagerBase
  * @notice Interface for the Staking Rewards Manager contract

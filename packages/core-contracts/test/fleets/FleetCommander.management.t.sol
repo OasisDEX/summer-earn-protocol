@@ -22,7 +22,7 @@ import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     function setUp() public {
@@ -234,6 +234,19 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertEq(mockArk2.depositCap(), newDepositCap);
     }
 
+    function test_SetArkMaxDepositPercentageOfTVL() public {
+        vm.prank(governor);
+        vm.expectEmit();
+        emit IArkConfigProviderEvents.MaxDepositPercentageOfTVLUpdated(
+            PERCENTAGE_100
+        );
+        fleetCommander.setArkMaxDepositPercentageOfTVL(
+            address(mockArk2),
+            PERCENTAGE_100
+        );
+        assertEq(mockArk2.maxDepositPercentageOfTVL(), PERCENTAGE_100);
+    }
+
     function test_updateRebalanceCooldown_ShouldFail() public {
         vm.prank(keeper);
         vm.expectRevert(
@@ -251,6 +264,22 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         vm.prank(governor);
         fleetCommander.setArkDepositCap(address(0x123), 1000);
+    }
+
+    function test_SetArkMaxDepositPercentageOfTVLInvalidArk_ShouldFail()
+        public
+    {
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
+                address(0x123)
+            )
+        );
+        vm.prank(governor);
+        fleetCommander.setArkMaxDepositPercentageOfTVL(
+            address(0x123),
+            PERCENTAGE_100
+        );
     }
 
     function test_SetArkMoveToMax() public {
@@ -355,7 +384,8 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
                 depositCap: 1000,
                 maxRebalanceOutflow: 500,
                 maxRebalanceInflow: 500,
-                requiresKeeperData: false
+                requiresKeeperData: false,
+                maxDepositPercentageOfTVL: PERCENTAGE_100
             }),
             address(fleetCommander)
         );

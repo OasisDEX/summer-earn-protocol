@@ -14,10 +14,10 @@ import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
+import {IFleetStakingRewardsManager} from "../interfaces/IFleetStakingRewardsManager.sol";
 import {Constants} from "./libraries/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {IFleetStakingRewardsManager} from "../interfaces/IFleetStakingRewardsManager.sol";
 
 /**
  * @title FleetCommander
@@ -637,7 +637,8 @@ contract FleetCommander is
      *      2. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
      * @return amount uint256 The actual amount of assets reallocated
-     * @custom:error FleetCommanderCantRebalanceToArk Thrown when the destination Ark is already at or above its maximum
+     * @custom:error FleetCommanderEffectiveDepositCapExceeded Thrown when the destination Ark is already at or above
+     * its maximum
      * allocation
      */
     function _reallocateAssets(
@@ -652,11 +653,15 @@ contract FleetCommander is
             amount = data.amount;
         }
 
-        uint256 toArkDepositCap = toArk.depositCap();
+        uint256 toArkDepositCap = getEffectiveArkDepositCap(toArk);
         uint256 toArkAllocation = toArk.totalAssets();
 
         if (toArkAllocation + amount > toArkDepositCap) {
-            revert FleetCommanderCantRebalanceToArk(address(toArk));
+            revert FleetCommanderEffectiveDepositCapExceeded(
+                address(toArk),
+                amount,
+                toArkDepositCap
+            );
         }
 
         _move(
@@ -667,13 +672,28 @@ contract FleetCommander is
             data.disembarkData
         );
     }
+    /**
+     * @notice Calculates the effective deposit cap for an Ark
+     * @dev This function returns the lower of two caps: a percentage-based cap derived from TVL,
+     *      and the absolute deposit cap set for the Ark
+     * @param ark The address of the Ark
+     * @return The effective deposit cap in token units
+     */
 
+    function getEffectiveArkDepositCap(IArk ark) public view returns (uint256) {
+        uint256 tvl = this.totalAssets();
+        uint256 pctBasedCap = tvl.applyPercentage(
+            ark.maxDepositPercentageOfTVL()
+        );
+        return Math.min(pctBasedCap, ark.depositCap());
+    }
     /**
      * @notice Withdraws assets from multiple arks in a specific order
      * @dev This function attempts to withdraw the requested amount from arks,
      *      that allow such operations, in the order of total assets held
      * @param assets The total amount of assets to withdraw
      */
+
     function _forceDisembarkFromSortedArks(uint256 assets) internal {
         ArkData[] memory withdrawableArks = _getWithdrawableArksDataFromCache();
         for (uint256 i = 0; i < withdrawableArks.length; i++) {

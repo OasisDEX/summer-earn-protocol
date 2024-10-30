@@ -481,8 +481,10 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderCantRebalanceToArk(address)",
-                ark1
+                "FleetCommanderEffectiveDepositCapExceeded(address,uint256,uint256)",
+                ark1,
+                1000000000,
+                5000 * 10 ** 6
             )
         );
         fleetCommander.adjustBuffer(rebalanceData);
@@ -635,8 +637,10 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(keeper);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "FleetCommanderCantRebalanceToArk(address)",
-                ark1
+                "FleetCommanderEffectiveDepositCapExceeded(address,uint256,uint256)",
+                ark1,
+                1000000000,
+                5000 * 10 ** 6
             )
         );
         fleetCommander.adjustBuffer(rebalanceData);
