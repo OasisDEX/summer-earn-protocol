@@ -38,15 +38,21 @@ abstract contract StakingRewardsManagerBase is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /* @notice List of all reward tokens supported by this contract */
     EnumerableSet.AddressSet internal _rewardTokensList;
+    /* @notice The token that users stake to earn rewards */
     IERC20 public stakingToken;
 
+    /* @notice Mapping of reward token to its reward distribution data */
     mapping(IERC20 rewardToken => RewardData) public rewardData;
+    /* @notice Tracks the last reward per token paid to each user for each reward token */
     mapping(IERC20 rewardToken => mapping(address account => uint256 rewardPerTokenPaid))
         public userRewardPerTokenPaid;
+    /* @notice Tracks the unclaimed rewards for each user for each reward token */
     mapping(IERC20 rewardToken => mapping(address account => uint256 rewardAmount))
         public rewards;
 
+    /* @notice Total amount of tokens staked in the contract */
     uint256 public totalSupply;
     mapping(address account => uint256 balance) private _balances;
 
@@ -149,9 +155,12 @@ abstract contract StakingRewardsManagerBase is
         _stake(_msgSender(), _msgSender(), amount);
     }
 
-    /// @notice Allows others to stake on behalf of a user
-    /// @param receiver The account to stake for
-    /// @param amount The amount of tokens to stake
+    /*
+     * @notice Stakes tokens on behalf of another address
+     * @param receiver The address that will receive the staked position
+     * @param amount The amount of tokens to stake
+     * @dev Requires approval of stakingToken
+     */
     function stakeFor(
         address receiver,
         uint256 amount
@@ -305,6 +314,12 @@ abstract contract StakingRewardsManagerBase is
         emit Unstaked(staker, amount);
     }
 
+    /*
+     * @notice Internal function to calculate earned rewards for an account
+     * @param account The address to calculate earnings for
+     * @param rewardToken The reward token to calculate earnings for
+     * @return The amount of reward tokens earned
+     */
     function _earned(
         address account,
         IERC20 rewardToken

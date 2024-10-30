@@ -54,12 +54,6 @@ interface IConfigurationManager is
     function harborCommand() external view returns (address);
 
     /**
-     * @notice Get the address of the governor
-     * @return The address of the governor
-     */
-    function governor() external view returns (address);
-
-    /**
      * @notice Set a new address for the Raft contract
      * @param newRaft The new address for the Raft contract
      * @dev Can only be called by the governor
@@ -86,11 +80,4 @@ interface IConfigurationManager is
      * @dev Can only be called by the governor
      */
     function setHarborCommand(address newHarborCommand) external;
-
-    /**
-     * @notice Set a new governor address
-     * @param newGovernor The address of the new governor
-     * @dev Can only be called by the governor
-     */
-    function setGovernor(address newGovernor) external;
 }

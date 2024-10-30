@@ -26,9 +26,6 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     /// @inheritdoc IConfigurationManager
     address public harborCommand;
 
-    /// @inheritdoc IConfigurationManager
-    address public governor;
-
     /**
      * @notice Constructs the ConfigurationManager contract
      * @param _accessManager The address of the ProtocolAccessManager contract
@@ -95,14 +92,5 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         }
         emit HarborCommandUpdated(harborCommand, newHarborCommand);
         harborCommand = newHarborCommand;
-    }
-
-    /// @inheritdoc IConfigurationManager
-    function setGovernor(address newGovernor) external onlyGovernor {
-        if (newGovernor == address(0)) {
-            revert AddressZero();
-        }
-        emit GovernorUpdated(governor, newGovernor);
-        governor = newGovernor;
     }
 }
