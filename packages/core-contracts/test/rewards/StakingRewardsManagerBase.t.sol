@@ -12,7 +12,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
-
+import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
 contract StakingRewardsManagerBaseTest is Test {
     FleetRewardsManager public stakingRewardsManager;
     ERC20Mock public stakingToken;
@@ -582,6 +582,79 @@ contract StakingRewardsManagerBaseTest is Test {
         assertGt(rewards, 0, "Rewards should be updated for alice");
     }
 
+    function test_UpdateReward_ZeroAddress() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup initial state
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            7 days
+        );
+
+        // Fast forward time to accumulate some rewards
+        vm.warp(block.timestamp + 1 days);
+
+        // Get initial reward data
+        (
+            uint256 periodFinish,
+            uint256 rewardRate,
+            uint256 rewardsDuration,
+            uint256 lastUpdateTimeBefore,
+            uint256 rewardPerTokenStoredBefore
+        ) = stakingRewardsManager.rewardData(IERC20(address(rewardTokens[0])));
+
+        console.log("Before - lastUpdateTime:", lastUpdateTimeBefore);
+        console.log("Before - block.timestamp:", block.timestamp);
+        console.log("Before - periodFinish:", periodFinish);
+        console.log("Before - rewardRate:", rewardRate);
+
+        // Advance time again
+        vm.warp(block.timestamp + 1 hours);
+
+        console.log("After warp - block.timestamp:", block.timestamp);
+
+        // Make a small stake to trigger the updateReward modifier
+        vm.prank(bob);
+        stakingRewardsManager.stake(100);
+
+        // Get updated reward data
+        (
+            ,
+            ,
+            ,
+            uint256 lastUpdateTimeAfter,
+            uint256 rewardPerTokenStoredAfter
+        ) = stakingRewardsManager.rewardData(IERC20(address(rewardTokens[0])));
+
+        console.log("After - lastUpdateTime:", lastUpdateTimeAfter);
+        console.log("After - block.timestamp:", block.timestamp);
+
+        // Verify updates occurred but rewards mapping wasn't updated
+        assertGt(
+            lastUpdateTimeAfter,
+            lastUpdateTimeBefore,
+            "Last update time should increase"
+        );
+        assertGt(
+            rewardPerTokenStoredAfter,
+            rewardPerTokenStoredBefore,
+            "Reward per token stored should increase"
+        );
+
+        // Verify rewards mapping was not updated for zero address
+        uint256 zeroAddressRewards = stakingRewardsManager.rewards(
+            IERC20(address(rewardTokens[0])),
+            address(0)
+        );
+        assertEq(zeroAddressRewards, 0, "Zero address should have no rewards");
+    }
+
     function test_RewardTokens() public {
         // First notify some rewards to ensure tokens are added to the list
         uint256 rewardAmount = 100 * 1e18;
@@ -711,5 +784,25 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(address(mockGovernor));
         vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
         stakingRewardsManager.removeRewardToken(rewardToken);
+    }
+
+    function test_Stake_StakingTokenNotInitialized() public {
+        // Deploy a new access manager first
+        ProtocolAccessManager accessManager = new ProtocolAccessManager(
+            address(mockGovernor)
+        );
+
+        // Deploy a new staking rewards manager without initializing the staking token
+        FleetRewardsManager uninitializedManager = new FleetRewardsManager(
+            address(accessManager), // use the properly initialized access manager
+            address(0) // staking token - set to zero address to test uninitialized case
+        );
+
+        // Try to stake, which should revert because staking token is not initialized
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature("StakingTokenNotInitialized()")
+        );
+        uninitializedManager.stake(100);
     }
 }
