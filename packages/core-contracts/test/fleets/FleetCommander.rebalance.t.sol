@@ -28,6 +28,7 @@ import {console} from "forge-std/console.sol";
  * - Rebalancing operations
  * - Error cases and edge scenarios
  */
+
 contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
     using Math for uint256;
     using PercentageUtils for uint256;
@@ -621,6 +622,7 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
             "Effective deposit cap should be the minimum of percentage-based and absolute caps"
         );
     }
+
     function test_GetEffectiveDepositCap_2() public {
         // Arrange
         uint256 totalAssets = 1000000 * 10 ** 6; // 1,000,000 tokens
@@ -670,6 +672,7 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
             "Effective deposit cap should be the minimum of percentage-based and absolute caps"
         );
     }
+
     function test_RebalanceWithEffectiveDepositCap() public {
         // Arrange
         uint256 totalAssets = 1000000 * 10 ** 6; // 1,000,000 tokens

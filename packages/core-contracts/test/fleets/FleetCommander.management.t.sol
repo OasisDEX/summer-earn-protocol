@@ -234,6 +234,19 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertEq(mockArk2.depositCap(), newDepositCap);
     }
 
+    function test_SetArkMaxDepositPercentageOfTVL() public {
+        vm.prank(governor);
+        vm.expectEmit();
+        emit IArkConfigProviderEvents.MaxDepositPercentageOfTVLUpdated(
+            PERCENTAGE_100
+        );
+        fleetCommander.setArkMaxDepositPercentageOfTVL(
+            address(mockArk2),
+            PERCENTAGE_100
+        );
+        assertEq(mockArk2.maxDepositPercentageOfTVL(), PERCENTAGE_100);
+    }
+
     function test_updateRebalanceCooldown_ShouldFail() public {
         vm.prank(keeper);
         vm.expectRevert(
@@ -251,6 +264,22 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         vm.prank(governor);
         fleetCommander.setArkDepositCap(address(0x123), 1000);
+    }
+
+    function test_SetArkMaxDepositPercentageOfTVLInvalidArk_ShouldFail()
+        public
+    {
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
+                address(0x123)
+            )
+        );
+        vm.prank(governor);
+        fleetCommander.setArkMaxDepositPercentageOfTVL(
+            address(0x123),
+            PERCENTAGE_100
+        );
     }
 
     function test_SetArkMoveToMax() public {

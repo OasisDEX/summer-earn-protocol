@@ -637,7 +637,8 @@ contract FleetCommander is
      *      2. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
      * @return amount uint256 The actual amount of assets reallocated
-     * @custom:error FleetCommanderEffectiveDepositCapExceeded Thrown when the destination Ark is already at or above its maximum
+     * @custom:error FleetCommanderEffectiveDepositCapExceeded Thrown when the destination Ark is already at or above
+     * its maximum
      * allocation
      */
     function _reallocateAssets(

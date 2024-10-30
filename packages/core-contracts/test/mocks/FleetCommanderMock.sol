@@ -120,6 +120,11 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function setDepositCap(address ark, uint256 newDepositCap) external {}
 
+    function setArkMaxDepositPercentageOfTVL(
+        address ark,
+        Percentage newMaxDepositPercentageOfTVL
+    ) external {}
+
     function setMinimumBufferBalance(uint256 newMinimumBalance) external {}
 
     function setStakingRewardsManager(

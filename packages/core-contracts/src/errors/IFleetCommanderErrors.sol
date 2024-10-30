@@ -23,7 +23,8 @@ interface IFleetCommanderErrors {
      * @notice Thrown when attempting to rebalance to an invalid Ark.
      * @param ark The address of the invalid Ark.
      * @param amount Amount of tokens added to target ark
-     * @param effectiveDepositCap Effective deposit cap of the ark (minimum of % of fleet TVL or arbitrary ark deposit cap)
+     * @param effectiveDepositCap Effective deposit cap of the ark (minimum of % of fleet TVL or arbitrary ark deposit
+     * cap)
      */
     error FleetCommanderEffectiveDepositCapExceeded(
         address ark,
