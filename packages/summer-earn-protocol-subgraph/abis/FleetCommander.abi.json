@@ -298,11 +298,6 @@
         "name": "maxRebalanceOperations",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "stakingRewardsManager",
-        "type": "address",
-        "internalType": "contract IFleetStakingRewardsManager"
       }
     ],
     "stateMutability": "view"
@@ -418,59 +413,6 @@
     "outputs": [
       {
         "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "depositAndStake",
-    "inputs": [
-      {
-        "name": "assets",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "referralCode",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "depositAndStake",
-    "inputs": [
-      {
-        "name": "assets",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "shares",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -596,11 +538,6 @@
             "name": "maxRebalanceOperations",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "stakingRewardsManager",
-            "type": "address",
-            "internalType": "contract IFleetStakingRewardsManager"
           }
         ]
       }
@@ -689,14 +626,14 @@
     "name": "isArkWithdrawable",
     "inputs": [
       {
-        "name": "ark",
+        "name": "",
         "type": "address",
         "internalType": "address"
       }
     ],
     "outputs": [
       {
-        "name": "isWithdrawable",
+        "name": "",
         "type": "bool",
         "internalType": "bool"
       }
@@ -1250,38 +1187,12 @@
   },
   {
     "type": "function",
-    "name": "setStakingRewardsManager",
-    "inputs": [
-      {
-        "name": "newStakingRewardsManager",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setTipRate",
     "inputs": [
       {
         "name": "newTipRate",
         "type": "uint256",
         "internalType": "Percentage"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "stake",
-    "inputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -1370,12 +1281,12 @@
     "name": "transfer",
     "inputs": [
       {
-        "name": "to",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1387,24 +1298,24 @@
         "internalType": "bool"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "pure"
   },
   {
     "type": "function",
     "name": "transferFrom",
     "inputs": [
       {
-        "name": "from",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "to",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1416,7 +1327,7 @@
         "internalType": "bool"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "pure"
   },
   {
     "type": "function",
@@ -1750,19 +1661,6 @@
         "type": "bytes",
         "indexed": true,
         "internalType": "bytes"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "FleetCommanderStakingRewardsUpdated",
-    "inputs": [
-      {
-        "name": "newStakingRewards",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -2619,11 +2517,6 @@
         "internalType": "address"
       }
     ]
-  },
-  {
-    "type": "error",
-    "name": "FleetCommanderInvalidStakingRewardsManager",
-    "inputs": []
   },
   {
     "type": "error",
