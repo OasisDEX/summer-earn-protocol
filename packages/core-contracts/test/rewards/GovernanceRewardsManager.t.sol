@@ -265,4 +265,33 @@ contract GovernanceRewardsManagerTest is Test {
         );
         stakingRewardsManager.stake(stakeAmount);
     }
+
+    function test_CannotInitializeStakingTokenTwice() public {
+        // Create a new mock token to attempt re-initialization
+        ERC20Mock newStakingToken = new ERC20Mock();
+
+        // Attempt to initialize with a new staking token
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(
+            abi.encodeWithSignature("StakingTokenAlreadyInitialized()")
+        );
+        stakingRewardsManager.initialize(IERC20(address(newStakingToken)));
+    }
+
+    function test_OnlyStakingTokenModifierRequiresInitialization() public {
+        // Deploy a new GovernanceRewardsManager without initialization
+        IProtocolAccessManager accessManager = new ProtocolAccessManager(
+            address(mockGovernor)
+        );
+        GovernanceRewardsManager newStakingRewardsManager = new GovernanceRewardsManager(
+                address(accessManager)
+            );
+
+        // Try to call stakeFor() which uses the onlyStakingToken modifier
+        vm.prank(address(stakingToken));
+        vm.expectRevert(
+            IStakingRewardsManagerBaseErrors.StakingTokenNotInitialized.selector
+        );
+        newStakingRewardsManager.stakeFor(alice, 100);
+    }
 }
