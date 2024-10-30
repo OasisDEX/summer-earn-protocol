@@ -2,11 +2,13 @@
 pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title ArkParams
  * @notice Constructor parameters for the Ark contract
- * @dev This struct is used to initialize an Ark contract with all necessary parameters
+ *
+ *  @dev This struct is used to initialize an Ark contract with all necessary parameters
  */
 struct ArkParams {
     /**
@@ -49,6 +51,12 @@ struct ArkParams {
      * @dev This flag is used to determine whether Keepr data is required for rebalance transactions
      */
     bool requiresKeeperData;
+    /**
+     * @notice The maximum percentage of Total Value Locked (TVL) that can be deposited into this Ark
+     * @dev This value is represented as a percentage with 18 decimal places (1e18 = 100%)
+     *      For example, 0.5e18 represents 50% of TVL
+     */
+    Percentage maxDepositPercentageOfTVL;
 }
 
 /**
@@ -92,5 +100,15 @@ struct ArkConfig {
      * @dev This is typically set at initialization and not changed
      */
     string name;
+    /**
+     * @notice Whether the Ark requires Keeper data to be passed in with rebalance transactions
+     * @dev This flag is used to determine whether Keeper data is required for rebalance transactions
+     */
     bool requiresKeeperData;
+    /**
+     * @notice The maximum percentage of Total Value Locked (TVL) that can be deposited into this Ark
+     * @dev This value is represented as a percentage with 18 decimal places (1e18 = 100%)
+     *      For example, 0.5e18 represents 50% of TVL
+     */
+    Percentage maxDepositPercentageOfTVL;
 }

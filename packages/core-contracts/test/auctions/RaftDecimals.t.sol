@@ -10,6 +10,7 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import "./AuctionTestBase.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 struct TestParams {
     ERC20Mock rewardToken;
@@ -71,7 +72,8 @@ contract RaftDecimalsTest is AuctionTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         mockArk18Dec = new ArkMock(params);
 

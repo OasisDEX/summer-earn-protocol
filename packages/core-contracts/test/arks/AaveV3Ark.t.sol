@@ -14,6 +14,7 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
     using SafeERC20 for IERC20;
@@ -46,7 +47,8 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined
@@ -96,7 +98,8 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         DataTypes.ReserveData memory reserveData = DataTypes.ReserveData({
             configuration: DataTypes.ReserveConfigurationMap(0), // Assuming ReserveConfigurationMap is already defined

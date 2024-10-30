@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -106,10 +106,12 @@ abstract contract ExchangeRateProvider {
         Percentage _lowerPercentageRange,
         Percentage _upperPercentageRange
     ) internal virtual {
-        if (_lowerPercentageRange > PERCENTAGE_100)
+        if (_lowerPercentageRange > PERCENTAGE_100) {
             revert EmaRangeTooHigh(_lowerPercentageRange);
-        if (_upperPercentageRange > PERCENTAGE_100)
+        }
+        if (_upperPercentageRange > PERCENTAGE_100) {
             revert EmaRangeTooHigh(_upperPercentageRange);
+        }
         lowerPercentageRange = _lowerPercentageRange;
         upperPercentageRange = _upperPercentageRange;
         emit EmaRangeUpdated(_lowerPercentageRange, _upperPercentageRange);

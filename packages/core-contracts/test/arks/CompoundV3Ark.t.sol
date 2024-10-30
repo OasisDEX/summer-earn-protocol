@@ -12,6 +12,7 @@ import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.s
 import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;
@@ -33,7 +34,8 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 
@@ -54,7 +56,8 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
         assertEq(address(ark.comet()), address(comet));

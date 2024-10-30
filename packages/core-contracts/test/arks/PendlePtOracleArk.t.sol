@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.27;
+pragma solidity 0.8.28;
 
 import "../../src/contracts/arks/PendlePTArk.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -24,9 +24,10 @@ import {PendlePtOracleArk} from "../../src/contracts/arks/PendlePtOracleArk.sol"
 import {LimitOrderData, TokenInput, TokenOutput} from "@pendle/core-v2/contracts/interfaces/IPAllActionTypeV3.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
 
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
 import {SwapData, SwapType} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+
 contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
     PendlePtOracleArk public usdcArk;
     PendlePtOracleArk public usdceArk;
@@ -139,7 +140,8 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: true,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         usdcArk = new PendlePtOracleArk(
             usdcParams,
@@ -156,7 +158,8 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: true,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         usdceArk = new PendlePtOracleArk(
             usdceParams,
@@ -337,7 +340,8 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: true
+            requiresKeeperData: true,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         PendlePtOracleArk rolloverTestArk = new PendlePtOracleArk(
             usdcParams,

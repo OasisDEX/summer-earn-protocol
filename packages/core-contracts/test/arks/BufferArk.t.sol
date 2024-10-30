@@ -14,6 +14,7 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract BufferArkTest is Test, IArkEvents, ArkTestBase {
     BufferArk public ark;
@@ -28,7 +29,8 @@ contract BufferArkTest is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         ark = new BufferArk(params, address(commander));
 
@@ -49,7 +51,8 @@ contract BufferArkTest is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         ark = new BufferArk(params, address(commander));
         assertEq(address(ark.asset()), address(mockToken));

@@ -16,19 +16,19 @@ import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
+import {FleetStakingRewardsManager} from "../../src/contracts/FleetStakingRewardsManager.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
+import {IFleetStakingRewardsManager} from "../../src/interfaces/IFleetStakingRewardsManager.sol";
+import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
-import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
-import {FleetStakingRewardsManager} from "../../src/contracts/FleetStakingRewardsManager.sol";
-import {IFleetStakingRewardsManager} from "../../src/interfaces/IFleetStakingRewardsManager.sol";
-import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
@@ -165,7 +165,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         }
 
         // Deploy reward tokens
-        for (uint i = 0; i < 3; i++) {
+        for (uint256 i = 0; i < 3; i++) {
             rewardTokens.push(new ERC20Mock());
         }
 
@@ -173,7 +173,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         address[] memory rewardTokenAddresses = new address[](
             rewardTokens.length
         );
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             rewardTokenAddresses[i] = address(rewardTokens[i]);
         }
 
@@ -245,7 +245,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     depositCap: depositCap,
                     maxRebalanceOutflow: type(uint256).max,
                     maxRebalanceInflow: type(uint256).max,
-                    requiresKeeperData: requiresKeeperData
+                    requiresKeeperData: requiresKeeperData,
+                    maxDepositPercentageOfTVL: PERCENTAGE_100
                 })
             );
     }
@@ -265,7 +266,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     depositCap: depositCap,
                     maxRebalanceOutflow: type(uint256).max,
                     maxRebalanceInflow: type(uint256).max,
-                    requiresKeeperData: requiresKeeperData
+                    requiresKeeperData: requiresKeeperData,
+                    maxDepositPercentageOfTVL: PERCENTAGE_100
                 })
             );
     }

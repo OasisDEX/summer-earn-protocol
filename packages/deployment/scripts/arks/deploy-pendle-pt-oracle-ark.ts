@@ -18,7 +18,6 @@ interface PendleMarketInfo {
   marketName: string
 }
 
-
 interface PendlePtOracleArkUserInput {
   marketSelection: PendleMarketInfo
   marketAssetOracle: Address
@@ -114,7 +113,6 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
   const tokenAddress = config.tokens[swapResponse.swapTokenSelection.token as TokenType]
   const routerAddress = config.protocolSpecific.pendle.router
   const oracleAddress = config.protocolSpecific.pendle['lp-oracle']
-
 
   const aggregatedData = {
     ...responses,
