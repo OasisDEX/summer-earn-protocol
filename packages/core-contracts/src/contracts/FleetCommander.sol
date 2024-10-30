@@ -302,7 +302,7 @@ contract FleetCommander is
             address(config.stakingRewardsManager),
             shares
         );
-        _stakeOnBehalf(receiver, shares);
+        _stakeFor(receiver, shares);
 
         return shares;
     }
@@ -324,7 +324,7 @@ contract FleetCommander is
             address(config.stakingRewardsManager),
             shares
         );
-        _stakeOnBehalf(_msgSender(), shares);
+        _stakeFor(_msgSender(), shares);
     }
 
     /// @inheritdoc IERC4626
@@ -1031,12 +1031,12 @@ contract FleetCommander is
         }
     }
 
-    function _stakeOnBehalf(address account, uint256 amount) internal {
+    function _stakeFor(address account, uint256 amount) internal {
         if (address(config.stakingRewardsManager) == address(0)) {
             revert FleetCommanderStakingRewardsManagerNotSet();
         }
 
-        IFleetRewardsManager(config.stakingRewardsManager).stakeOnBehalf(
+        IFleetRewardsManager(config.stakingRewardsManager).stakeFor(
             account,
             amount
         );

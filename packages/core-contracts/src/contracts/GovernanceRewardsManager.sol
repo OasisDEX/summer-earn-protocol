@@ -97,7 +97,12 @@ contract GovernanceRewardsManager is
     function stakeFor(
         address staker,
         uint256 amount
-    ) external onlyStakingToken updateReward(staker) {
+    )
+        external
+        override(IGovernanceRewardsManager, StakingRewardsManagerBase)
+        onlyStakingToken
+        updateReward(staker)
+    {
         _stake(staker, staker, amount);
     }
 
@@ -110,11 +115,6 @@ contract GovernanceRewardsManager is
 
     /// @inheritdoc IStakingRewardsManagerBase
     function stake(uint256) external pure override {
-        revert DirectStakingNotAllowed();
-    }
-
-    /// @inheritdoc IStakingRewardsManagerBase
-    function stakeOnBehalf(address, uint256) external pure override {
         revert DirectStakingNotAllowed();
     }
 

@@ -76,7 +76,7 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param account The address of the account to stake for
      * @param amount The amount of tokens to stake
      */
-    function stakeOnBehalf(address account, uint256 amount) external;
+    function stakeFor(address account, uint256 amount) external;
 
     /* @notice Unstake staked tokens
      * @param amount The amount of tokens to unstake

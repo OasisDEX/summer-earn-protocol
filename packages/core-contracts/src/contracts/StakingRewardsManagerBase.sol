@@ -152,7 +152,7 @@ abstract contract StakingRewardsManagerBase is
     /// @notice Allows others to stake on behalf of a user
     /// @param receiver The account to stake for
     /// @param amount The amount of tokens to stake
-    function stakeOnBehalf(
+    function stakeFor(
         address receiver,
         uint256 amount
     ) external virtual updateReward(receiver) {
