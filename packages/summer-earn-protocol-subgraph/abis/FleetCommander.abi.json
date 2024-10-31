@@ -1162,6 +1162,24 @@
   },
   {
     "type": "function",
+    "name": "setArkMaxDepositPercentageOfTVL",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "newMaxDepositPercentageOfTVL",
+        "type": "uint256",
+        "internalType": "Percentage"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setArkMaxRebalanceInflow",
     "inputs": [
       {
