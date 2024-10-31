@@ -17,10 +17,4 @@ interface IGovernanceRewardsManagerErrors {
      * @dev Direct staking is disabled - all staking must go through the stakeFor function
      */
     error DirectStakingNotAllowed();
-
-    /**
-     * @notice Thrown when attempting to initialize an already initialized staking token
-     * @dev The staking token can only be initialized once
-     */
-    error StakingTokenAlreadyInitialized();
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {ReentrancyGuardTransient} from "../../lib/openzeppelin-next/ReentrancyGuardTransient.sol";
+import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
 
 import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";

@@ -53,11 +53,11 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
+                            PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IVotingDecayManager
-    function setDecayRatePerSecond(uint256 newRatePerSecond) external {
+    function setDecayRatePerSecond(uint256 newRatePerSecond) public virtual {
         if (!VotingDecayLibrary.isValidDecayRate(newRatePerSecond)) {
             revert InvalidDecayRate();
         }
@@ -66,7 +66,7 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     }
 
     /// @inheritdoc IVotingDecayManager
-    function setDecayFreeWindow(uint40 newWindow) external {
+    function setDecayFreeWindow(uint40 newWindow) public virtual {
         decayFreeWindow = newWindow;
         emit DecayFreeWindowSet(newWindow);
     }
@@ -74,7 +74,7 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     /// @inheritdoc IVotingDecayManager
     function setDecayFunction(
         VotingDecayLibrary.DecayFunction newFunction
-    ) external {
+    ) public virtual {
         decayFunction = newFunction;
         emit DecayFunctionSet(uint8(newFunction));
     }

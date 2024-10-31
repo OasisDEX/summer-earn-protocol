@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import "../../src/errors/IAccessControlErrors.sol";
+import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import "../../src/errors/IBuyAndBurnErrors.sol";
 
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
@@ -11,9 +11,9 @@ import {MockSummerToken} from "../mocks/MockSummerToken.sol";
 import "./AuctionTestBase.sol";
 import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 
-import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
-import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DutchAuctionErrors} from "@summerfi/dutch-auction/DutchAuctionErrors.sol";
+import {DutchAuctionEvents} from "@summerfi/dutch-auction/DutchAuctionEvents.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
 
 contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     BuyAndBurn public buyAndBurn;

@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {ISummerToken, SummerVestingWallet} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
+import {ISummerToken, SummerVestingWallet} from "../src/interfaces/ISummerToken.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 

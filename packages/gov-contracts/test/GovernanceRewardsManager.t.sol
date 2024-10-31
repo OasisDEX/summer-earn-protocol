@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
-import {IStakingRewardsManagerBaseErrors} from "../../src/errors/IStakingRewardsManagerBaseErrors.sol";
-import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
-import {MockSummerToken} from "../mocks/MockSummerToken.sol";
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {IStakingRewardsManagerBaseErrors} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBaseErrors.sol";
+import {MockSummerGovernor} from "./MockSummerGovernor.sol";
+import {MockSummerToken} from "./MockSummerToken.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
-import {IGovernanceRewardsManagerErrors} from "@summerfi/protocol-interfaces/IGovernanceRewardsManagerErrors.sol";
-import {IGovernanceRewardsManager} from "@summerfi/protocol-interfaces/IGovernanceRewardsManager.sol";
-import {IStakingRewardsManagerBaseErrors} from "../../src/errors/IStakingRewardsManagerBaseErrors.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {GovernanceRewardsManager} from "../src/contracts/GovernanceRewardsManager.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {IGovernanceRewardsManagerErrors} from "../src/errors/IGovernanceRewardsManagerErrors.sol";
+import {IGovernanceRewardsManager} from "../src/interfaces/IGovernanceRewardsManager.sol";
+import {IStakingRewardsManagerBaseErrors} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBaseErrors.sol";
 
 contract GovernanceRewardsManagerTest is Test {
     GovernanceRewardsManager public stakingRewardsManager;
@@ -63,11 +63,9 @@ contract GovernanceRewardsManagerTest is Test {
             address(mockGovernor)
         );
         stakingRewardsManager = new GovernanceRewardsManager(
+            address(stakingToken),
             address(accessManager)
         );
-
-        // Initialize staking rewards manager
-        stakingRewardsManager.initialize(IERC20(address(stakingToken)));
 
         // Mint initial tokens
         stakingToken.mint(alice, INITIAL_STAKE_AMOUNT);
@@ -228,34 +226,6 @@ contract GovernanceRewardsManagerTest is Test {
         );
     }
 
-    function test_StakeForFailsWhenStakingTokenNotInitialized() public {
-        uint256 stakeAmount = 1000 * 1e18;
-
-        // Deploy a new uninitialized manager
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            address(mockGovernor)
-        );
-        GovernanceRewardsManager uninitializedManager = new GovernanceRewardsManager(
-                address(accessManager)
-            );
-
-        // Try to stake before initialization
-        vm.prank(address(stakingToken));
-        vm.expectRevert(
-            IStakingRewardsManagerBaseErrors.StakingTokenNotInitialized.selector
-        );
-        uninitializedManager.stakeFor(alice, stakeAmount);
-    }
-
-    function test_InitializeFailsWhenStakingTokenAlreadyInitialized() public {
-        // Try to initialize again (note: stakingToken is already initialized in setUp())
-        vm.expectRevert(
-            IGovernanceRewardsManagerErrors
-                .StakingTokenAlreadyInitialized
-                .selector
-        );
-        stakingRewardsManager.initialize(IERC20(address(stakingToken)));
-    }
     function test_DirectStakingNotAllowed() public {
         uint256 stakeAmount = 1000 * 1e18;
 
@@ -264,34 +234,5 @@ contract GovernanceRewardsManagerTest is Test {
             IGovernanceRewardsManagerErrors.DirectStakingNotAllowed.selector
         );
         stakingRewardsManager.stake(stakeAmount);
-    }
-
-    function test_CannotInitializeStakingTokenTwice() public {
-        // Create a new mock token to attempt re-initialization
-        ERC20Mock newStakingToken = new ERC20Mock();
-
-        // Attempt to initialize with a new staking token
-        vm.prank(address(mockGovernor));
-        vm.expectRevert(
-            abi.encodeWithSignature("StakingTokenAlreadyInitialized()")
-        );
-        stakingRewardsManager.initialize(IERC20(address(newStakingToken)));
-    }
-
-    function test_OnlyStakingTokenModifierRequiresInitialization() public {
-        // Deploy a new GovernanceRewardsManager without initialization
-        IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            address(mockGovernor)
-        );
-        GovernanceRewardsManager newStakingRewardsManager = new GovernanceRewardsManager(
-                address(accessManager)
-            );
-
-        // Try to call stakeFor() which uses the onlyStakingToken modifier
-        vm.prank(address(stakingToken));
-        vm.expectRevert(
-            IStakingRewardsManagerBaseErrors.StakingTokenNotInitialized.selector
-        );
-        newStakingRewardsManager.stakeFor(alice, 100);
     }
 }

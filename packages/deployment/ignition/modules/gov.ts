@@ -42,28 +42,7 @@ const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 export const GovModule = buildModule('GovModule', (m) => {
   const deployer = m.getAccount(0)
   const lzEndpoint = m.getParameter('lzEndpoint')
-  const rewardsManagerAddress = m.getParameter('rewardsManager')
   const protocolAccessManagerAddress = m.getParameter('protocolAccessManager')
-
-  /**
-   * @dev Step 1: Deploy SummerToken
-   * Initially, the deployer is set as both governor and owner
-   * - governor: Controls voting power calculations
-   * - owner: Controls administrative functions (e.g., minting)
-   * These roles will be transferred to appropriate contracts later
-   */
-  const summerTokenParams = {
-    name: 'SummerToken',
-    symbol: 'SUMMER',
-    lzEndpoint: lzEndpoint,
-    governor: deployer,
-    owner: deployer,
-    rewardsManager: rewardsManagerAddress,
-    initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
-    initialDecayRate: 3.1709792e9, // ~10% per year
-    initialDecayFunction: DecayType.Linear,
-  }
-  const summerToken = m.contract('SummerToken', [summerTokenParams])
 
   /**
    * @dev Step 2: Deploy TimelockController
@@ -81,6 +60,26 @@ export const GovModule = buildModule('GovModule', (m) => {
     [ADDRESS_ZERO],
     deployer,
   ])
+
+  /**
+   * @dev Step 1: Deploy SummerToken
+   * Initially, the deployer is set as both governor and owner
+   * - governor: Controls voting power calculations
+   * - owner: Controls administrative functions (e.g., minting)
+   * These roles will be transferred to appropriate contracts later
+   */
+  const summerTokenParams = {
+    name: 'SummerToken',
+    symbol: 'SUMMER',
+    lzEndpoint: lzEndpoint,
+    owner: timelock.value,
+    decayManager: deployer,
+    accessManager: protocolAccessManagerAddress,
+    initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
+    initialDecayRate: 3.1709792e9, // ~10% per year
+    initialDecayFunction: DecayType.Linear,
+  }
+  const summerToken = m.contract('SummerToken', [summerTokenParams])
 
   /**
    * @dev Step 3: Deploy SummerGovernor
@@ -123,8 +122,8 @@ export const GovModule = buildModule('GovModule', (m) => {
    * 6. Initialize the rewards manager
    *    - Connect it with the governance token
    */
-  m.call(summerToken, 'setGovernor', [summerGovernor.value])
   m.call(summerToken, 'transferOwnership', [timelock.value])
+  m.call(summerToken, 'setDecayManager', [summerGovernor.value])
 
   m.call(timelock, 'grantRole', [PROPOSER_ROLE, summerGovernor.value])
   m.call(timelock, 'grantRole', [CANCELLER_ROLE, summerGovernor.value])
@@ -136,9 +135,6 @@ export const GovModule = buildModule('GovModule', (m) => {
   m.call(protocolAccessManager, 'grantRole', [GOVERNOR_ROLE, timelock.value])
 
   m.call(timelock, 'revokeRole', [PROPOSER_ROLE, deployer])
-
-  const governanceRewardsManager = m.contractAt('GovernanceRewardsManager', rewardsManagerAddress)
-  m.call(governanceRewardsManager, 'initialize', [summerToken.value])
 
   return {
     summerGovernor,

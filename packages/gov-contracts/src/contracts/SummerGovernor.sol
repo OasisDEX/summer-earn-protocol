@@ -84,8 +84,9 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
-        OApp(params.endpoint, address(this))
-        Ownable(address(this))
+        OApp(params.endpoint, address(params.timelock))
+        // @dev LayerZero do not directly initialize Ownable, so we do it here
+        Ownable(address(params.timelock))
     {
         if (
             params.proposalThreshold < MIN_PROPOSAL_THRESHOLD ||

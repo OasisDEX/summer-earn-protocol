@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IAccessControlErrors} from "../errors/IAccessControlErrors.sol";
+import {IAccessControlErrors} from "../interfaces/IAccessControlErrors.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**

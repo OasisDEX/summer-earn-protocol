@@ -5,8 +5,8 @@ import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
-import {IVotingDecayManager} from "@summerfi/voting-decay/src/IVotingDecayManager.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 
 /**
  * @title ISummerToken
@@ -29,8 +29,7 @@ interface ISummerToken is
      * @param symbol The symbol of the token
      * @param lzEndpoint The LayerZero endpoint address
      * @param owner The owner address
-     * @param governor The governor address
-     * @param rewardsManager The rewards manager address
+     * @param accessManager The access manager address
      * @param initialDecayFreeWindow The initial decay free window in seconds
      * @param initialDecayRate The initial decay rate
      * @param initialDecayFunction The initial decay function
@@ -41,8 +40,8 @@ interface ISummerToken is
         address lzEndpoint;
         // Update from deployer address after deployment
         address owner;
-        address governor;
-        address rewardsManager;
+        address accessManager;
+        address decayManager;
         uint40 initialDecayFreeWindow;
         uint256 initialDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
@@ -68,10 +67,11 @@ interface ISummerToken is
         SummerVestingWallet.VestingType vestingType
     );
 
-    event GovernorUpdated(
-        address indexed oldGovernor,
-        address indexed newGovernor
-    );
+    /**
+     * @notice Emitted when the decay manager is updated
+     * @param newDecayManager The address of the new decay manager
+     */
+    event DecayManagerUpdated(address newDecayManager);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -110,13 +110,6 @@ interface ISummerToken is
      * @param amount The amount of tokens to unstake
      */
     function undelegateAndUnstake(uint256 amount) external;
-
-    /**
-     * @notice Updates the governor address
-     * @param _governor The address of the new governor
-     * @dev Can only be called by the owner
-     */
-    function setGovernor(address _governor) external;
 
     /**
      * @notice Updates the decay factor for a specific account

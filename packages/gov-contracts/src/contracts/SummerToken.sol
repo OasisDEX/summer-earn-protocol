@@ -12,9 +12,12 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
-import {IGovernanceRewardsManager} from "@summerfi/protocol-interfaces/IGovernanceRewardsManager.sol";
+import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
+import {VotingDecayManager} from "@summerfi/voting-decay/VotingDecayManager.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
 
 /**
  * @title SummerToken
@@ -27,6 +30,7 @@ contract SummerToken is
     ERC20Votes,
     ERC20Permit,
     VotingDecayManager,
+    ProtocolAccessManaged,
     ISummerToken
 {
     /*//////////////////////////////////////////////////////////////
@@ -40,20 +44,23 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     mapping(address owner => address vestingWallet) public vestingWallets;
-    IGovernanceRewardsManager public rewardsManager;
-    ISummerGovernor public governor;
+    GovernanceRewardsManager public rewardsManager;
+    address public decayManager;
 
     /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
+                            MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    modifier onlyGovernor() {
-        if (address(governor) == address(0)) {
-            revert GovernorNotSet();
+    modifier onlyDecayManagerOrGovernor() {
+        if (decayManager != _msgSender() && !_isGovernor(_msgSender())) {
+            revert CallerIsNotAuthorized(_msgSender());
         }
+        _;
+    }
 
-        if (_msgSender() != address(governor)) {
-            revert SummerGovernorInvalidCaller();
+    modifier onlyDecayManager() {
+        if (decayManager != _msgSender()) {
+            revert CallerIsNotDecayManager(_msgSender());
         }
         _;
     }
@@ -65,24 +72,51 @@ contract SummerToken is
     constructor(
         TokenParams memory params
     )
-        OFT(params.name, params.symbol, params.lzEndpoint, params.governor)
+        OFT(params.name, params.symbol, params.lzEndpoint, params.owner)
         ERC20Permit(params.name)
         VotingDecayManager(
             params.initialDecayFreeWindow,
             params.initialDecayRate,
             params.initialDecayFunction
         )
+        ProtocolAccessManaged(params.accessManager)
         Ownable(params.owner)
     {
-        if (params.rewardsManager == address(0)) {
-            revert RewardsManagerNotSet();
-        }
-        rewardsManager = IGovernanceRewardsManager(params.rewardsManager);
+        rewardsManager = new GovernanceRewardsManager(
+            address(this),
+            params.accessManager
+        );
+        decayManager = params.decayManager;
     }
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function setDecayRatePerSecond(
+        uint256 newRatePerSecond
+    ) public override(IVotingDecayManager, VotingDecayManager) onlyGovernor {
+        super.setDecayRatePerSecond(newRatePerSecond);
+    }
+
+    function setDecayFreeWindow(
+        uint40 newWindow
+    ) public override(IVotingDecayManager, VotingDecayManager) onlyGovernor {
+        super.setDecayFreeWindow(newWindow);
+    }
+
+    function setDecayFunction(
+        VotingDecayLibrary.DecayFunction newFunction
+    ) public override(IVotingDecayManager, VotingDecayManager) onlyGovernor {
+        super.setDecayFunction(newFunction);
+    }
+
+    function setDecayManager(
+        address newDecayManager
+    ) public onlyDecayManagerOrGovernor {
+        decayManager = newDecayManager;
+        emit DecayManagerUpdated(newDecayManager);
+    }
 
     /// @inheritdoc ISummerToken
     function createVestingWallet(
@@ -134,15 +168,8 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function updateDecayFactor(address account) external onlyGovernor {
+    function updateDecayFactor(address account) external onlyDecayManager {
         _updateDecayFactor(account);
-    }
-
-    /// @inheritdoc ISummerToken
-    function setGovernor(address _governor) external onlyOwner {
-        address oldGovernor = address(governor);
-        governor = ISummerGovernor(_governor);
-        emit GovernorUpdated(oldGovernor, _governor);
     }
 
     /// @inheritdoc ISummerToken

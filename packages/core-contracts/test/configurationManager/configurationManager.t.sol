@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import "../../src/contracts/ConfigurationManager.sol";
-import "../../src/contracts/ProtocolAccessManager.sol";
+import "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {IConfigurationManagerEvents} from "../../src/events/IConfigurationManagerEvents.sol";
 import "forge-std/Test.sol";

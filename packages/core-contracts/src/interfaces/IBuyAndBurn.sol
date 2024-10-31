@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {IBuyAndBurnErrors} from "../errors/IBuyAndBurnErrors.sol";
 import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
 import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
 
 /**
  * @title IBuyAndBurn

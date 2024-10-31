@@ -7,8 +7,8 @@ import {Test, console} from "forge-std/Test.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import "../../src/events/IArkEvents.sol";
 
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 import {MockUniversalRewardsDistributor} from "../mocks/MockUniversalRewardsDistributor.sol";

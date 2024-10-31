@@ -9,7 +9,7 @@ pragma solidity 0.8.28;
  */
 import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
 import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 

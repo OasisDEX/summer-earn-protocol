@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IGovernanceRewardsManagerErrors} from "./IGovernanceRewardsManagerErrors.sol";
+import {IGovernanceRewardsManagerErrors} from "../errors/IGovernanceRewardsManagerErrors.sol";
 
 /**
  * @title IGovernanceRewardsManager

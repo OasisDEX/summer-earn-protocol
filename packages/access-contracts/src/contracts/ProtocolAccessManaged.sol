@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {IAccessControlErrors} from "../errors/IAccessControlErrors.sol";
+import {IAccessControlErrors} from "../interfaces/IAccessControlErrors.sol";
 import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {ProtocolAccessManager} from "./ProtocolAccessManager.sol";
 
@@ -233,5 +233,18 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         address roleTargetContract
     ) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(roleName, roleTargetContract));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Helper function to check if an address has the Governor role
+     * @param account The address to check
+     * @return bool True if the address has the Governor role
+     */
+    function _isGovernor(address account) internal view returns (bool) {
+        return _accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), account);
     }
 }

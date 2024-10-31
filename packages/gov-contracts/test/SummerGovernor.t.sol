@@ -10,7 +10,6 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {SummerToken} from "../src/contracts/SummerToken.sol";
 import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -72,8 +71,6 @@ contract SummerGovernorTest is
 
     ExposedSummerGovernor public governorA;
     ExposedSummerGovernor public governorB;
-    TimelockController public timelockA;
-    TimelockController public timelockB;
 
     address public alice = address(0x111);
     address public bob = address(0x112);
@@ -98,25 +95,6 @@ contract SummerGovernorTest is
 
         vm.label(address(aSummerToken), "chain a token");
         vm.label(address(bSummerToken), "chain b token");
-
-        address[] memory proposers = new address[](1);
-        proposers[0] = address(this);
-        address[] memory executors = new address[](1);
-        executors[0] = address(0);
-        timelockA = new TimelockController(
-            1 days,
-            proposers,
-            executors,
-            address(this)
-        );
-        timelockB = new TimelockController(
-            1 days,
-            proposers,
-            executors,
-            address(this)
-        );
-        vm.label(address(timelockA), "TimelockController A");
-        vm.label(address(timelockB), "TimelockController B");
 
         SummerGovernor.GovernorParams memory paramsA = ISummerGovernor
             .GovernorParams({
@@ -145,13 +123,13 @@ contract SummerGovernorTest is
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
 
+        vm.startPrank(address(mockGovernor));
+        aSummerToken.setDecayManager(address(governorA));
+        bSummerToken.setDecayManager(address(governorB));
+        vm.stopPrank();
+
         governorA.setTrustedRemote(bEid, address(governorB));
         governorB.setTrustedRemote(aEid, address(governorA));
-
-        vm.startPrank(owner);
-        aSummerToken.setGovernor(address(governorA));
-        bSummerToken.setGovernor(address(governorB));
-        vm.stopPrank();
 
         vm.label(address(governorA), "SummerGovernor");
         vm.label(address(governorB), "SummerGovernor");
@@ -173,17 +151,15 @@ contract SummerGovernorTest is
         IOAppSetPeer bOApp = IOAppSetPeer(address(governorB));
 
         // Connect governorA to governorB
-        vm.prank(address(governorA));
+        // vm.prank(address(governorA));
         uint32 bEid_ = (bOApp.endpoint()).eid();
-
-        vm.prank(address(governorA));
+        vm.prank(address(timelockA));
         aOApp.setPeer(bEid_, addressToBytes32(address(bOApp)));
 
         // Connect governorB to governorA
-        vm.prank(address(governorB));
+        // vm.prank(address(governorB));
         uint32 aEid_ = (aOApp.endpoint()).eid();
-
-        vm.prank(address(governorB));
+        vm.prank(address(timelockB));
         bOApp.setPeer(aEid_, addressToBytes32(address(aOApp)));
     }
     // ===============================================

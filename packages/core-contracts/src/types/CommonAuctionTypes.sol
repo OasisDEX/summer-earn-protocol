@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.28;
 
-import {DecayFunctions} from "@summerfi/dutch-auction/src/DecayFunctions.sol";
+import {DecayFunctions} from "@summerfi/dutch-auction/DecayFunctions.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**

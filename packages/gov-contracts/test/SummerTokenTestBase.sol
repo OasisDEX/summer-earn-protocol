@@ -9,12 +9,15 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
 import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {MockSummerGovernor} from "./MockSummerGovernor.sol";
 
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
@@ -25,12 +28,18 @@ contract SummerTokenTestBase is TestHelperOz5 {
     SummerToken public aSummerToken;
     SummerToken public bSummerToken;
 
+    TimelockController public timelockA;
+    TimelockController public timelockB;
+
     address public lzEndpointA;
     address public lzEndpointB;
 
     address public owner = address(this);
     address public rewardsManagerA = address(0xA);
     address public rewardsManagerB = address(0xB);
+    ProtocolAccessManager public accessManagerA;
+    ProtocolAccessManager public accessManagerB;
+    MockSummerGovernor public mockGovernor;
 
     /// @notice Initial decay rate per second (approximately 10% per year)
     /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
@@ -47,10 +56,38 @@ contract SummerTokenTestBase is TestHelperOz5 {
     function initializeTokenTests() public {
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
+        mockGovernor = new MockSummerGovernor(
+            0,
+            0,
+            VotingDecayLibrary.DecayFunction.Linear
+        );
+
         lzEndpointA = address(endpoints[aEid]);
         lzEndpointB = address(endpoints[bEid]);
         vm.label(lzEndpointA, "LayerZero Endpoint A");
         vm.label(lzEndpointB, "LayerZero Endpoint B");
+
+        address[] memory proposers = new address[](1);
+        proposers[0] = address(this);
+        address[] memory executors = new address[](1);
+        executors[0] = address(0);
+        timelockA = new TimelockController(
+            1 days,
+            proposers,
+            executors,
+            address(this)
+        );
+        timelockB = new TimelockController(
+            1 days,
+            proposers,
+            executors,
+            address(this)
+        );
+
+        accessManagerA = new ProtocolAccessManager(address(timelockA));
+        accessManagerB = new ProtocolAccessManager(address(timelockB));
+        vm.label(address(timelockA), "TimelockController A");
+        vm.label(address(timelockB), "TimelockController B");
 
         ISummerToken.TokenParams memory tokenParamsA = ISummerToken
             .TokenParams({
@@ -58,9 +95,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 symbol: "SUMMERA",
                 lzEndpoint: lzEndpointA,
                 // Changed in inheriting test suites
-                governor: owner,
                 owner: owner,
-                rewardsManager: rewardsManagerB,
+                accessManager: address(accessManagerA),
+                decayManager: address(mockGovernor),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
@@ -73,8 +110,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 lzEndpoint: lzEndpointB,
                 // Changed in inheriting test suites
                 owner: owner,
-                governor: owner,
-                rewardsManager: rewardsManagerB,
+                accessManager: address(accessManagerB),
+                decayManager: address(mockGovernor),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear

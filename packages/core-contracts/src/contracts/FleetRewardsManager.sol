@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import "./StakingRewardsManagerBase.sol";
+import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {IFleetRewardsManager} from "../interfaces/IFleetRewardsManager.sol";
-
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @title FleetRewardsManager
  * @notice Contract for managing staking rewards specific to the Fleet system

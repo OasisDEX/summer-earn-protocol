@@ -6,13 +6,13 @@ import {ITipJar} from "../../src/interfaces/ITipJar.sol";
 import {FleetCommanderMock} from "../mocks/FleetCommanderMock.sol";
 import {Test, console} from "forge-std/Test.sol";
 
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {TipJar} from "../../src/contracts/TipJar.sol";
 
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
-import "../../src/errors/IAccessControlErrors.sol";
+import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import "../../src/errors/ITipJarErrors.sol";
-import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerImplMock, ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";

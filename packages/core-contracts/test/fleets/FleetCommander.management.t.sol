@@ -17,7 +17,7 @@ import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvent
 import {ArkParams, BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
-import {ContractSpecificRoles, IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";

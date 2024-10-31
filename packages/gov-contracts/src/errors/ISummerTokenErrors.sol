@@ -20,17 +20,14 @@ interface ISummerTokenErrors {
     error InvalidVestingType(SummerVestingWallet.VestingType invalidType);
 
     /**
-     * @dev Error thrown when the rewards manager is not set
+     * @dev Error thrown when the caller is not the decay manager or governor
+     * @param caller The address of the caller
      */
-    error RewardsManagerNotSet();
+    error CallerIsNotAuthorized(address caller);
 
     /**
-     * @dev Error thrown when the governor is not set on the configuration manager
+     * @dev Error thrown when the caller is not the decay manager
+     * @param caller The address of the caller
      */
-    error GovernorNotSet();
-
-    /**
-     * @dev Error thrown when the caller is not the governor
-     */
-    error SummerGovernorInvalidCaller();
+    error CallerIsNotDecayManager(address caller);
 }

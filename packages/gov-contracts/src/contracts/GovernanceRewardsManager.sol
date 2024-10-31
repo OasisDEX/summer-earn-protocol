@@ -2,14 +2,14 @@
 pragma solidity 0.8.28;
 
 import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
-import {StakingRewardsManagerBase} from "./StakingRewardsManagerBase.sol";
-import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IGovernanceRewardsManager} from "@summerfi/protocol-interfaces/IGovernanceRewardsManager.sol";
+import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {Constants} from "./libraries/Constants.sol";
-import {IVotingDecayManager} from "@summerfi/voting-decay/src/IVotingDecayManager.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
 
 /**
  * @title GovernanceRewardsManager
@@ -107,18 +107,14 @@ contract GovernanceRewardsManager is
 
     /**
      * @notice Initializes the contract with the protocol access manager
+     * @param _stakingToken Address of the staking token
      * @param _accessManager Address of the ProtocolAccessManager contract
      */
     constructor(
+        address _stakingToken,
         address _accessManager
-    ) StakingRewardsManagerBase(_accessManager) {}
-
-    /**
-     * @notice Initializes the staking token for the rewards manager
-     * @param _stakingToken The ERC20 token used for staking
-     */
-    function initialize(IERC20 _stakingToken) external {
-        _initialize(_stakingToken);
+    ) StakingRewardsManagerBase(_accessManager) {
+        stakingToken = IERC20(_stakingToken);
     }
 
     /**
@@ -126,7 +122,6 @@ contract GovernanceRewardsManager is
      * @param _stakingToken The ERC20 token used for staking
      */
     function _initialize(IERC20 _stakingToken) internal override {
-        _stakingTokenAlreadyInitialized();
         stakingToken = _stakingToken;
         emit StakingTokenInitialized(address(_stakingToken));
     }
@@ -205,12 +200,6 @@ contract GovernanceRewardsManager is
     function _stakingTokenInitialized() internal view {
         if (address(stakingToken) == address(0)) {
             revert StakingTokenNotInitialized();
-        }
-    }
-
-    function _stakingTokenAlreadyInitialized() internal view {
-        if (address(stakingToken) != address(0)) {
-            revert StakingTokenAlreadyInitialized();
         }
     }
 
