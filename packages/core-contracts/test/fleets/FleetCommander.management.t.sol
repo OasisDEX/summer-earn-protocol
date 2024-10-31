@@ -244,7 +244,10 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             address(mockArk2),
             PERCENTAGE_100
         );
-        assertEq(mockArk2.maxDepositPercentageOfTVL(), PERCENTAGE_100);
+        assertEq(
+            Percentage.unwrap(mockArk2.maxDepositPercentageOfTVL()),
+            Percentage.unwrap(PERCENTAGE_100)
+        );
     }
 
     function test_updateRebalanceCooldown_ShouldFail() public {
