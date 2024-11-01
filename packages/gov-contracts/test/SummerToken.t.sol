@@ -337,4 +337,144 @@ contract SummerTokenTest is SummerTokenTestBase {
         vm.prank(user1);
         bSummerToken.burnFrom(owner, amount);
     }
+
+    function test_DelegateAndStake() public {
+        uint256 amount = 100 ether;
+        aSummerToken.transfer(user1, amount);
+
+        // First approve the rewards manager
+        vm.startPrank(user1);
+        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
+
+        // Then delegate and stake
+        aSummerToken.delegateAndStake(user2);
+        vm.stopPrank();
+
+        // Verify delegation
+        assertEq(
+            aSummerToken.delegates(user1),
+            user2,
+            "Delegation should be to user2"
+        );
+
+        // Verify staking
+        assertEq(
+            aSummerToken.rewardsManager().balanceOf(user1),
+            amount,
+            "All tokens should be staked"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            0,
+            "User wallet should be empty after staking"
+        );
+    }
+
+    function test_UndelegateAndUnstake() public {
+        uint256 amount = 100 ether;
+        aSummerToken.transfer(user1, amount);
+
+        // First stake tokens
+        vm.startPrank(user1);
+        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
+        aSummerToken.delegateAndStake(user2);
+
+        // Verify initial state
+        assertEq(
+            aSummerToken.delegates(user1),
+            user2,
+            "Initial delegation should be to user2"
+        );
+        assertEq(
+            aSummerToken.rewardsManager().balanceOf(user1),
+            amount,
+            "Initial stake should be full amount"
+        );
+
+        // Perform undelegateAndUnstake
+        aSummerToken.undelegateAndUnstake();
+        vm.stopPrank();
+
+        // Verify undelegation
+        assertEq(
+            aSummerToken.delegates(user1),
+            address(0),
+            "Delegation should be cleared"
+        );
+
+        // Verify unstaking
+        assertEq(
+            aSummerToken.rewardsManager().balanceOf(user1),
+            0,
+            "Staked balance should be zero"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            amount,
+            "Tokens should be back in user wallet"
+        );
+    }
+
+    function test_VotingUnitsAfterDirectUnstake() public {
+        uint256 amount = 100 ether;
+        uint256 unstakeAmount = 60 ether;
+
+        // Setup: Transfer tokens to user1
+        aSummerToken.transfer(user1, amount);
+
+        // 1. delegateAndStake
+        vm.startPrank(user1);
+        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
+        aSummerToken.delegateAndStake(user2);
+
+        // Verify initial state after stake
+        assertEq(
+            aSummerToken.rewardsManager().balanceOf(user1),
+            amount,
+            "All tokens should be staked initially"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            0,
+            "Wallet should be empty after full stake"
+        );
+
+        // 2. Direct unstake of partial amount
+        aSummerToken.rewardsManager().unstake(unstakeAmount);
+        vm.stopPrank();
+
+        // 3. Verify voting units includes both staked and wallet balance
+        uint256 expectedVotingUnits = amount; // Total voting power should remain the same
+        assertEq(
+            aSummerToken.getVotes(user2),
+            expectedVotingUnits,
+            "Voting units should include both staked and unstaked balances"
+        );
+
+        // Verify individual components
+        assertEq(
+            aSummerToken.rewardsManager().balanceOf(user1),
+            amount - unstakeAmount,
+            "Staked balance should reflect unstaking"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            unstakeAmount,
+            "Wallet balance should contain unstaked amount"
+        );
+        assertEq(
+            aSummerToken.delegates(user1),
+            user2,
+            "Delegation should remain unchanged"
+        );
+    }
+
+    function testFail_DelegateAndStakeWithoutApproval() public {
+        uint256 amount = 100 ether;
+        aSummerToken.transfer(user1, amount);
+
+        // Try to delegateAndStake without approval
+        vm.prank(user1);
+        aSummerToken.delegateAndStake(user2);
+    }
 }
