@@ -15,3 +15,4 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho/src/
 @summerfi/access-contracts/=node_modules/@summerfi/access-contracts/src/
 @summerfi/rewards-contracts/=node_modules/@summerfi/rewards-contracts/src/
 @summerfi/constants/=node_modules/@summerfi/constants/src/
+@summerfi/dependencies/=node_modules/@summerfi/dependencies/lib/

@@ -3,8 +3,12 @@
   "version": "0.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "forge test"
+  },
   "dependencies": {
     "@summerfi/access-contracts": "workspace:*",
-    "@summerfi/dependencies": "workspace:*"
+    "@summerfi/dependencies": "workspace:*",
+    "@summerfi/voting-decay": "workspace:*"
   }
 }

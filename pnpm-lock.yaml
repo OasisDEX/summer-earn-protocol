@@ -534,6 +534,9 @@ importers:
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies
+      '@summerfi/voting-decay':
+        specifier: workspace:*
+        version: link:../voting-decay
 
   packages/summer-earn-protocol-subgraph:
     devDependencies:

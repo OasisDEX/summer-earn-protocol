@@ -1,3 +1,6 @@
 @openzeppelin/contracts/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/
 @summerfi/access-contracts/=node_modules/@summerfi/access-contracts/src/
 @summerfi/dependencies/=node_modules/@summerfi/dependencies/lib/
+forge-std/=node_modules/@summerfi/dependencies/lib/forge-std/src/
+@summerfi/voting-decay/=node_modules/@summerfi/voting-decay/src/
+@prb/math/=node_modules/@summerfi/dependencies/lib/prb-math/

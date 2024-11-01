@@ -1,28 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {FleetRewardsManager} from "../../src/contracts/FleetRewardsManager.sol";
-import {IFleetRewardsManager} from "../../src/interfaces/IFleetRewardsManager.sol";
-import {IStakingRewardsManagerBaseErrors} from "../../src/errors/IStakingRewardsManagerBaseErrors.sol";
-import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
+import {MockStakingRewardsManager} from "./MockStakingRewardsManager.sol";
+import {IStakingRewardsManagerBaseErrors} from "../src/interfaces/IStakingRewardsManagerBaseErrors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/src/interfaces/IProtocolAccessManager.sol";
-import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IStakingRewardsManagerBase} from "../src/interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 contract StakingRewardsManagerBaseTest is Test {
-    FleetRewardsManager public stakingRewardsManager;
+    MockStakingRewardsManager public stakingRewardsManager;
     ERC20Mock public stakingToken;
     ERC20Mock[] public rewardTokens;
-    MockSummerGovernor public mockGovernor;
+    address public mockGovernor;
 
     address public owner;
     address public alice;
     address public bob;
-    ERC20Mock public mockFleetCommander = new ERC20Mock();
+    ERC20Mock public mockStakingToken;
 
     uint256 constant INITIAL_REWARD_AMOUNT = 1000000 * 1e18;
     uint256 constant INITIAL_STAKE_AMOUNT = 100000 * 1e18;
@@ -31,41 +29,29 @@ contract StakingRewardsManagerBaseTest is Test {
         owner = address(this);
         alice = address(0x1);
         bob = address(0x2);
+        mockGovernor = address(0x3);
 
         // Deploy mock tokens
         console.log("Deploying mock tokens");
+        mockStakingToken = new ERC20Mock();
         for (uint256 i = 0; i < 3; i++) {
             rewardTokens.push(new ERC20Mock());
         }
 
-        // Deploy mock governor
-        console.log("Deploying mock governor");
-        mockGovernor = new MockSummerGovernor(
-            7 days, // initialDecayFreeWindow
-            1e16, // initialDecayRate (1% per day)
-            VotingDecayLibrary.DecayFunction.Linear
-        );
-
         // Deploy StakingRewardsManager
         console.log("Deploying staking rewards manager");
-        address[] memory rewardTokenAddresses = new address[](
-            rewardTokens.length
-        );
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
-            rewardTokenAddresses[i] = address(rewardTokens[i]);
-        }
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
-            address(mockGovernor)
+            mockGovernor
         );
-        stakingRewardsManager = new FleetRewardsManager(
+        stakingRewardsManager = new MockStakingRewardsManager(
             address(accessManager),
-            address(mockFleetCommander)
+            address(mockStakingToken)
         );
 
         // Mint initial tokens
         console.log("Minting initial tokens");
-        mockFleetCommander.mint(alice, INITIAL_STAKE_AMOUNT);
-        mockFleetCommander.mint(bob, INITIAL_STAKE_AMOUNT);
+        mockStakingToken.mint(alice, INITIAL_STAKE_AMOUNT);
+        mockStakingToken.mint(bob, INITIAL_STAKE_AMOUNT);
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             rewardTokens[i].mint(
                 address(stakingRewardsManager),
@@ -75,19 +61,19 @@ contract StakingRewardsManagerBaseTest is Test {
 
         // Approve staking
         vm.prank(alice);
-        mockFleetCommander.approve(
+        mockStakingToken.approve(
             address(stakingRewardsManager),
             type(uint256).max
         );
         vm.prank(bob);
-        mockFleetCommander.approve(
+        mockStakingToken.approve(
             address(stakingRewardsManager),
             type(uint256).max
         );
     }
 
     function test_NotifyRewardAmount() public {
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
 
         IERC20 rewardToken = rewardTokens[0];
         uint256 rewardAmount = 100000000000000000000; // 100 tokens
@@ -132,7 +118,7 @@ contract StakingRewardsManagerBaseTest is Test {
         // Mint reward tokens to the staking rewards manager
         newRewardToken.mint(address(stakingRewardsManager), rewardAmount);
 
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(newRewardToken)),
             rewardAmount,
@@ -185,7 +171,7 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 initialDuration = 7 days;
 
         // First notification to set up the reward token
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             initialRewardAmount,
@@ -196,7 +182,7 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 newRewardAmount = 200 * 1e18;
         uint256 newDuration = 14 days;
 
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         vm.expectRevert(
             abi.encodeWithSignature("CannotChangeRewardsDuration()")
         );
@@ -223,7 +209,7 @@ contract StakingRewardsManagerBaseTest is Test {
 
         if (rewardsDuration == 0) {
             // Only add the reward token if it hasn't been added yet
-            vm.prank(address(mockGovernor));
+            vm.prank(mockGovernor);
             stakingRewardsManager.notifyRewardAmount(
                 rewardToken1,
                 604800,
@@ -233,7 +219,7 @@ contract StakingRewardsManagerBaseTest is Test {
 
         vm.warp(block.timestamp + 8 days);
 
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         stakingRewardsManager.setRewardsDuration(rewardToken1, 1209600);
 
         // Assert the new rewards duration
@@ -286,7 +272,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
@@ -316,7 +302,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
@@ -326,13 +312,13 @@ contract StakingRewardsManagerBaseTest is Test {
         // Fast forward time
         vm.warp(block.timestamp + 7 days);
 
-        uint256 stakingTokenBalanceBefore = mockFleetCommander.balanceOf(alice);
+        uint256 stakingTokenBalanceBefore = mockStakingToken.balanceOf(alice);
         uint256 rewardTokenBalanceBefore = rewardTokens[0].balanceOf(alice);
 
         vm.prank(alice);
         stakingRewardsManager.exit();
 
-        uint256 stakingTokenBalanceAfter = mockFleetCommander.balanceOf(alice);
+        uint256 stakingTokenBalanceAfter = mockStakingToken.balanceOf(alice);
         uint256 rewardTokenBalanceAfter = rewardTokens[0].balanceOf(alice);
         console.log("Reward token balance before", rewardTokenBalanceBefore);
         console.log("Reward token balance after", rewardTokenBalanceAfter);
@@ -365,7 +351,7 @@ contract StakingRewardsManagerBaseTest is Test {
         stakingRewardsManager.stake(stakeAmount);
 
         // Notify rewards for all three tokens
-        vm.startPrank(address(mockGovernor));
+        vm.startPrank(mockGovernor);
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             stakingRewardsManager.notifyRewardAmount(
                 IERC20(address(rewardTokens[i])),
@@ -530,7 +516,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
@@ -590,7 +576,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
@@ -660,7 +646,7 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 rewardAmount = 100 * 1e18;
         uint256 duration = 7 days;
 
-        vm.startPrank(address(mockGovernor));
+        vm.startPrank(mockGovernor);
         for (uint i = 0; i < rewardTokens.length; i++) {
             stakingRewardsManager.notifyRewardAmount(
                 rewardTokens[i],
@@ -691,7 +677,7 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 duration = 7 days;
 
         // Setup reward data by notifying reward amount
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             rewardAmount,
@@ -736,12 +722,12 @@ contract StakingRewardsManagerBaseTest is Test {
 
         // Test 1: Cannot remove non-existent token
         IERC20 nonExistentToken = IERC20(address(0x123));
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
         stakingRewardsManager.removeRewardToken(nonExistentToken);
 
         // Setup initial state with a reward token
-        vm.startPrank(address(mockGovernor));
+        vm.startPrank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             rewardAmount,
@@ -750,7 +736,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.stopPrank();
 
         // Test 2: Cannot remove token while period is active
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         vm.expectRevert(abi.encodeWithSignature("RewardPeriodNotComplete()"));
         stakingRewardsManager.removeRewardToken(rewardToken);
 
@@ -758,7 +744,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.warp(block.timestamp + duration + 1);
 
         // Test 3: Cannot remove if there's remaining balance
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         vm.expectRevert(
             abi.encodeWithSignature(
                 "RewardTokenStillHasBalance(uint256)",
@@ -773,7 +759,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.stopPrank();
 
         // Test 4: Successful removal
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         vm.expectEmit(true, false, false, false);
         emit IStakingRewardsManagerBase.RewardTokenRemoved(
             address(rewardToken)
@@ -781,7 +767,7 @@ contract StakingRewardsManagerBaseTest is Test {
         stakingRewardsManager.removeRewardToken(rewardToken);
 
         // Verify token was removed
-        vm.prank(address(mockGovernor));
+        vm.prank(mockGovernor);
         vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
         stakingRewardsManager.removeRewardToken(rewardToken);
     }
@@ -789,14 +775,14 @@ contract StakingRewardsManagerBaseTest is Test {
     function test_Stake_StakingTokenNotInitialized() public {
         // Deploy a new access manager first
         ProtocolAccessManager accessManager = new ProtocolAccessManager(
-            address(mockGovernor)
+            mockGovernor
         );
 
         // Deploy a new staking rewards manager without initializing the staking token
-        FleetRewardsManager uninitializedManager = new FleetRewardsManager(
-            address(accessManager), // use the properly initialized access manager
-            address(0) // staking token - set to zero address to test uninitialized case
-        );
+        MockStakingRewardsManager uninitializedManager = new MockStakingRewardsManager(
+                address(accessManager), // use the properly initialized access manager
+                address(0) // staking token - set to zero address to test uninitialized case
+            );
 
         // Try to stake, which should revert because staking token is not initialized
         vm.prank(alice);
