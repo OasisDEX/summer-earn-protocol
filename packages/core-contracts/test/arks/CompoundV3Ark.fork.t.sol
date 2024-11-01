@@ -15,6 +15,7 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;
@@ -43,7 +44,8 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         ark = new CompoundV3Ark(address(comet), cometRewards, params);
 

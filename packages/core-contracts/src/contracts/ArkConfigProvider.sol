@@ -9,7 +9,7 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 /**
  * @title ArkConfigProvider
  * @author SummerFi
@@ -17,6 +17,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
  * @dev Inherits from IArkConfigProvider, ArkAccessManaged, and ConfigurationManaged.
  * @custom:see IArkConfigProvider
  */
+
 abstract contract ArkConfigProvider is
     IArkConfigProvider,
     ArkAccessManaged,
@@ -56,7 +57,8 @@ abstract contract ArkConfigProvider is
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
             maxRebalanceInflow: _params.maxRebalanceInflow,
             name: _params.name,
-            requiresKeeperData: _params.requiresKeeperData
+            requiresKeeperData: _params.requiresKeeperData,
+            maxDepositPercentageOfTVL: _params.maxDepositPercentageOfTVL
         });
 
         // The commander address is initially set to address(0).
@@ -76,6 +78,11 @@ abstract contract ArkConfigProvider is
     /// @inheritdoc IArkConfigProvider
     function depositCap() external view returns (uint256) {
         return config.depositCap;
+    }
+
+    /// @inheritdoc IArkConfigProvider
+    function maxDepositPercentageOfTVL() external view returns (Percentage) {
+        return config.maxDepositPercentageOfTVL;
     }
 
     /// @inheritdoc IArkConfigProvider
@@ -112,6 +119,14 @@ abstract contract ArkConfigProvider is
     function setDepositCap(uint256 newDepositCap) external onlyCommander {
         config.depositCap = newDepositCap;
         emit DepositCapUpdated(newDepositCap);
+    }
+
+    /// @inheritdoc IArkConfigProvider
+    function setMaxDepositPercentageOfTVL(
+        Percentage newMaxDepositPercentageOfTVL
+    ) external onlyCommander {
+        config.maxDepositPercentageOfTVL = newMaxDepositPercentageOfTVL;
+        emit MaxDepositPercentageOfTVLUpdated(newMaxDepositPercentageOfTVL);
     }
 
     /// @inheritdoc IArkConfigProvider

@@ -6,6 +6,7 @@ import {IFleetCommanderConfigProviderErrors} from "../errors/IFleetCommanderConf
 import {IFleetCommanderConfigProviderEvents} from "../events/IFleetCommanderConfigProviderEvents.sol";
 
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title IFleetCommander Interface
@@ -76,6 +77,16 @@ interface IFleetCommanderConfigProvider is
      * @param newDepositCap The new deposit cap
      */
     function setArkDepositCap(address ark, uint256 newDepositCap) external;
+
+    /**
+     * @notice Sets the max deposit percentage of TVL for an Ark
+     * @param ark The address of the Ark
+     * @param newMaxDepositPercentageOfTVL The new max deposit percentage of TVL
+     */
+    function setArkMaxDepositPercentageOfTVL(
+        address ark,
+        Percentage newMaxDepositPercentageOfTVL
+    ) external;
 
     /**
      * @dev Sets the minimum buffer balance for the fleet commander.

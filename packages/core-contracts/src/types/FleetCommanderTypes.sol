@@ -8,6 +8,7 @@ import {IFleetRewardsManager} from "../interfaces/IFleetRewardsManager.sol";
 /**
  * @notice Configuration parameters for the FleetCommander contract
  */
+
 struct FleetCommanderParams {
     string name;
     string symbol;

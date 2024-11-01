@@ -302,7 +302,7 @@
       {
         "name": "stakingRewardsManager",
         "type": "address",
-        "internalType": "contract IFleetRewardsManager"
+        "internalType": "contract IFleetStakingRewardsManager"
       }
     ],
     "stateMutability": "view"
@@ -600,7 +600,7 @@
           {
             "name": "stakingRewardsManager",
             "type": "address",
-            "internalType": "contract IFleetRewardsManager"
+            "internalType": "contract IFleetStakingRewardsManager"
           }
         ]
       }
@@ -611,6 +611,25 @@
     "type": "function",
     "name": "getCooldown",
     "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEffectiveArkDepositCap",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "contract IArk"
+      }
+    ],
     "outputs": [
       {
         "name": "",
@@ -1143,6 +1162,24 @@
   },
   {
     "type": "function",
+    "name": "setArkMaxDepositPercentageOfTVL",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "newMaxDepositPercentageOfTVL",
+        "type": "uint256",
+        "internalType": "Percentage"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setArkMaxRebalanceInflow",
     "inputs": [
       {
@@ -1250,6 +1287,19 @@
         "name": "newTipRate",
         "type": "uint256",
         "internalType": "Percentage"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "stake",
+    "inputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -2491,17 +2541,6 @@
   },
   {
     "type": "error",
-    "name": "FleetCommanderCantRebalanceToArk",
-    "inputs": [
-      {
-        "name": "ark",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
     "name": "FleetCommanderCantUseMaxUintMovingFromBuffer",
     "inputs": []
   },
@@ -2509,6 +2548,27 @@
     "type": "error",
     "name": "FleetCommanderCantUseRebalanceOnBufferArk",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderEffectiveDepositCapExceeded",
+    "inputs": [
+      {
+        "name": "ark",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "effectiveDepositCap",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",

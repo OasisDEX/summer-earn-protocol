@@ -9,10 +9,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/src/interfaces/IProtocolAccessManager.sol";
 import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+
 contract StakingRewardsManagerBaseTest is Test {
     FleetRewardsManager public stakingRewardsManager;
     ERC20Mock public stakingToken;
@@ -34,7 +34,7 @@ contract StakingRewardsManagerBaseTest is Test {
 
         // Deploy mock tokens
         console.log("Deploying mock tokens");
-        for (uint i = 0; i < 3; i++) {
+        for (uint256 i = 0; i < 3; i++) {
             rewardTokens.push(new ERC20Mock());
         }
 
@@ -51,7 +51,7 @@ contract StakingRewardsManagerBaseTest is Test {
         address[] memory rewardTokenAddresses = new address[](
             rewardTokens.length
         );
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             rewardTokenAddresses[i] = address(rewardTokens[i]);
         }
         IProtocolAccessManager accessManager = new ProtocolAccessManager(
@@ -66,7 +66,7 @@ contract StakingRewardsManagerBaseTest is Test {
         console.log("Minting initial tokens");
         mockFleetCommander.mint(alice, INITIAL_STAKE_AMOUNT);
         mockFleetCommander.mint(bob, INITIAL_STAKE_AMOUNT);
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             rewardTokens[i].mint(
                 address(stakingRewardsManager),
                 INITIAL_REWARD_AMOUNT
@@ -366,7 +366,7 @@ contract StakingRewardsManagerBaseTest is Test {
 
         // Notify rewards for all three tokens
         vm.startPrank(address(mockGovernor));
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             stakingRewardsManager.notifyRewardAmount(
                 IERC20(address(rewardTokens[i])),
                 rewardAmounts[i],
@@ -380,7 +380,7 @@ contract StakingRewardsManagerBaseTest is Test {
 
         // Check earned amounts
         uint256[] memory earnedAmounts = new uint256[](3);
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             earnedAmounts[i] = stakingRewardsManager.earned(
                 alice,
                 IERC20(address(rewardTokens[i]))
@@ -411,14 +411,14 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256[] memory balancesBefore = new uint256[](3);
         uint256[] memory balancesAfter = new uint256[](3);
 
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             balancesBefore[i] = rewardTokens[i].balanceOf(alice);
         }
 
         vm.prank(alice);
         stakingRewardsManager.getReward();
 
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             balancesAfter[i] = rewardTokens[i].balanceOf(alice);
             assertGt(
                 balancesAfter[i],
@@ -446,7 +446,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.warp(block.timestamp + 3.5 days);
 
         // Check final earned amounts
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             uint256 finalEarnedAmount = stakingRewardsManager.earned(
                 alice,
                 IERC20(address(rewardTokens[i]))
@@ -477,7 +477,7 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256[] memory balancesBeforeFinal = new uint256[](
             rewardTokens.length
         );
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             balancesBeforeFinal[i] = rewardTokens[i].balanceOf(alice);
         }
 
@@ -486,7 +486,7 @@ contract StakingRewardsManagerBaseTest is Test {
         stakingRewardsManager.getReward();
 
         // Verify all rewards have been claimed
-        for (uint i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
             uint256 finalBalance = rewardTokens[i].balanceOf(alice);
             uint256 rewardReceived = finalBalance - balancesBeforeFinal[i];
 

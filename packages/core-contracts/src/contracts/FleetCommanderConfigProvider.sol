@@ -13,6 +13,7 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {FleetRewardsManager} from "./FleetRewardsManager.sol";
+import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title
@@ -49,7 +50,8 @@ contract FleetCommanderConfigProvider is
                 depositCap: type(uint256).max,
                 maxRebalanceOutflow: type(uint256).max,
                 maxRebalanceInflow: type(uint256).max,
-                requiresKeeperData: false
+                requiresKeeperData: false,
+                maxDepositPercentageOfTVL: PERCENTAGE_100
             }),
             address(this)
         );
@@ -142,6 +144,14 @@ contract FleetCommanderConfigProvider is
         uint256 newDepositCap
     ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
         IArk(ark).setDepositCap(newDepositCap);
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function setArkMaxDepositPercentageOfTVL(
+        address ark,
+        Percentage newMaxDepositPercentageOfTVL
+    ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
+        IArk(ark).setMaxDepositPercentageOfTVL(newMaxDepositPercentageOfTVL);
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider

@@ -14,6 +14,7 @@ import "../../src/events/IArkEvents.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     MetaMorphoArk public ark;
@@ -42,7 +43,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         ark = new MetaMorphoArk(METAMORPHO_ADDRESS, params);
@@ -168,7 +170,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             depositCap: 1000,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
-            requiresKeeperData: false
+            requiresKeeperData: false,
+            maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
         // Act

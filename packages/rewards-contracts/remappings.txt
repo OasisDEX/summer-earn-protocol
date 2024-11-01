@@ -1,1 +1,3 @@
 @openzeppelin/contracts/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/
+@summerfi/access-contracts/=node_modules/@summerfi/access-contracts/src/
+@summerfi/dependencies/=node_modules/@summerfi/dependencies/lib/
