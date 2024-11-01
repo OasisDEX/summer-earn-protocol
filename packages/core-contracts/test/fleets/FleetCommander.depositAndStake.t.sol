@@ -11,7 +11,7 @@ import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol"
 import {IArk} from "../../src/interfaces/IArk.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
@@ -314,5 +314,16 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
             amount,
             "StakingRewardsManager balance should match deposit amount"
         );
+    }
+
+    function test_RevertWhenSettingZeroAddressStakingManager() public {
+        // Try to set staking rewards manager to zero address
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderInvalidStakingRewardsManager()"
+            )
+        );
+        fleetCommander.setStakingRewardsManager(address(0));
     }
 }
