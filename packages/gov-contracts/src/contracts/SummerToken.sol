@@ -93,24 +93,26 @@ contract SummerToken is
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc ISummerToken
     function setDecayRatePerSecond(
         uint256 newRatePerSecond
-    ) public override(IVotingDecayManager, VotingDecayManager) onlyGovernor {
-        super.setDecayRatePerSecond(newRatePerSecond);
+    ) external onlyGovernor {
+        _setDecayRatePerSecond(newRatePerSecond);
     }
 
-    function setDecayFreeWindow(
-        uint40 newWindow
-    ) public override(IVotingDecayManager, VotingDecayManager) onlyGovernor {
-        super.setDecayFreeWindow(newWindow);
+    /// @inheritdoc ISummerToken
+    function setDecayFreeWindow(uint40 newWindow) external onlyGovernor {
+        _setDecayFreeWindow(newWindow);
     }
 
+    /// @inheritdoc ISummerToken
     function setDecayFunction(
         VotingDecayLibrary.DecayFunction newFunction
-    ) public override(IVotingDecayManager, VotingDecayManager) onlyGovernor {
-        super.setDecayFunction(newFunction);
+    ) external onlyGovernor {
+        _setDecayFunction(newFunction);
     }
 
+    /// @inheritdoc ISummerToken
     function setDecayManager(
         address newDecayManager
     ) public onlyDecayManagerOrGovernor {
@@ -173,18 +175,15 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function delegateAndStake(
-        address delegatee,
-        uint256 amount
-    ) public virtual {
+    function delegateAndStake(address delegatee) public virtual {
         delegate(delegatee);
-        _stake(amount);
+        _stake(balanceOf(_msgSender()));
     }
 
     /// @inheritdoc ISummerToken
-    function undelegateAndUnstake(uint256 amount) external {
-        delegate(address(0)); // Remove delegation
-        _unstake(amount);
+    function undelegateAndUnstake() external {
+        delegate(address(0));
+        _unstake(rewardsManager.balanceOf(_msgSender()));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -283,16 +282,53 @@ contract SummerToken is
         address account
     ) internal view override returns (uint256) {
         uint256 directBalance = balanceOf(account);
+        uint256 stakingBalance = rewardsManager.balanceOf(account);
+
         address vestingWalletAddress = vestingWallets[account];
+        uint256 vestingBalance = vestingWalletAddress != address(0)
+            ? balanceOf(vestingWalletAddress)
+            : 0;
 
-        if (vestingWalletAddress != address(0)) {
-            uint256 vestingWalletBalance = balanceOf(vestingWalletAddress);
-            return directBalance + vestingWalletBalance;
-        }
-
-        return directBalance;
+        return directBalance + stakingBalance + vestingBalance;
     }
 
+    /**
+     * @dev Transfers, mints, or burns voting units while managing delegate votes.
+     * @param from The address transferring voting units (zero address for mints)
+     * @param to The address receiving voting units (zero address for burns)
+     * @param amount The amount of voting units to transfer
+     * @custom:internal-logic
+     * - Skips vote tracking for transfers involving the rewards manager
+     * - Updates total supply checkpoints for mints and burns
+     * - Moves delegate votes between accounts
+     * @custom:security-considerations
+     * - Ensures voting power is correctly tracked when tokens move between accounts
+     * - Special handling for staking/unstaking to prevent double-counting
+     */
+    function _transferVotingUnits(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        // Skip voting unit transfers for internal movements to/from the rewards manager
+        if (from == address(rewardsManager) || to == address(rewardsManager)) {
+            return;
+        }
+
+        super._transferVotingUnits(from, to, amount);
+    }
+
+    /**
+     * @dev Stakes tokens in the rewards manager for the caller
+     * @param amount The target amount to stake
+     * @custom:internal-logic
+     * - Compares current stake with target amount
+     * - Stakes additional tokens if target is higher
+     * - Unstakes excess tokens if target is lower
+     * @custom:security-considerations
+     * - Only modifies stake up to the available balance
+     * - Ensures atomic stake/unstake operations
+     */
     function _stake(uint256 amount) internal {
         uint256 currentStake = rewardsManager.balanceOf(_msgSender());
         if (amount > currentStake) {
@@ -304,6 +340,16 @@ contract SummerToken is
         }
     }
 
+    /**
+     * @dev Unstakes tokens from the rewards manager for the caller
+     * @param amount The amount to unstake
+     * @custom:internal-logic
+     * - Caps unstake amount to current staked balance
+     * - Only executes if there are tokens to unstake
+     * @custom:security-considerations
+     * - Prevents unstaking more than staked balance
+     * - Safely handles zero unstake amounts
+     */
     function _unstake(uint256 amount) internal {
         uint256 currentStake = rewardsManager.balanceOf(_msgSender());
         uint256 unstakeAmount = amount > currentStake ? currentStake : amount;
@@ -312,6 +358,19 @@ contract SummerToken is
         }
     }
 
+    /**
+     * @dev Returns the delegate address for a given account, implementing VotingDecayManager's abstract method
+     * @param account The address to check delegation for
+     * @return The delegate address for the account
+     * @custom:relationship-to-votingdecay
+     * - Required by VotingDecayManager to track delegation chains
+     * - Used in decay factor calculations to follow delegation paths
+     * - Supports VotingDecayManager's MAX_DELEGATION_DEPTH enforcement
+     * @custom:implementation-notes
+     * - Delegates are used both for voting power and decay factor inheritance
+     * - Returns zero address if account has not delegated
+     * - Uses OpenZeppelin's ERC20Votes delegation system via super.delegates()
+     */
     function _getDelegateTo(
         address account
     ) internal view override returns (address) {

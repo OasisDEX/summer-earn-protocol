@@ -101,15 +101,13 @@ interface ISummerToken is
     /**
      * @notice Delegates voting power and stakes tokens in a single transaction
      * @param delegatee The address to delegate voting power to
-     * @param amount The amount of tokens to stake
      */
-    function delegateAndStake(address delegatee, uint256 amount) external;
+    function delegateAndStake(address delegatee) external;
 
     /**
      * @notice Removes delegation and unstakes tokens in a single transaction
-     * @param amount The amount of tokens to unstake
      */
-    function undelegateAndUnstake(uint256 amount) external;
+    function undelegateAndUnstake() external;
 
     /**
      * @notice Updates the decay factor for a specific account
@@ -117,6 +115,36 @@ interface ISummerToken is
      * @dev Can only be called by the governor
      */
     function updateDecayFactor(address account) external;
+
+    /**
+     * @notice Sets the decay rate per second for voting power decay
+     * @param newRatePerSecond The new decay rate per second
+     * @dev Can only be called by the governor
+     */
+    function setDecayRatePerSecond(uint256 newRatePerSecond) external;
+
+    /**
+     * @notice Sets the decay-free window duration
+     * @param newWindow The new decay-free window duration in seconds
+     * @dev Can only be called by the governor
+     */
+    function setDecayFreeWindow(uint40 newWindow) external;
+
+    /**
+     * @notice Sets the decay function type
+     * @param newFunction The new decay function to use
+     * @dev Can only be called by the governor
+     */
+    function setDecayFunction(
+        VotingDecayLibrary.DecayFunction newFunction
+    ) external;
+
+    /**
+     * @notice Sets the decay manager address
+     * @param newDecayManager The new decay manager address
+     * @dev Can only be called by the decay manager or the governor
+     */
+    function setDecayManager(address newDecayManager) external;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

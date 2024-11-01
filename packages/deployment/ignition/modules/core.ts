@@ -13,15 +13,31 @@ enum DecayType {
  * @notice This module handles the deployment and initialization of the core protocol components
  *
  * @dev Deployment and initialization sequence:
- * 1. Deploy core infrastructure (Libraries, Access Control)
- * 2. Deploy protocol components (TipJar, RewardsManager, etc.)
- * 3. Deploy main protocol contracts (Raft, HarborCommand)
- * 4. Configure contract relationships
+ * 1. Deploy Core Infrastructure
+ *    - DutchAuctionLibrary (shared auction functionality)
+ *    - ProtocolAccessManager (central access control)
+ *    - ConfigurationManager (protocol-wide settings)
+ *
+ * 2. Deploy Protocol Components
+ *    - TipJar (fee collection and distribution)
+ *    - GovernanceRewardsManager (governance incentives)
+ *
+ * 3. Deploy Main Protocol Contracts
+ *    - HarborCommand (protocol control center)
+ *    - Raft (auction mechanics implementation)
+ *
+ * 4. Initialize Configuration
+ *    - Link all core contracts in ConfigurationManager
+ *    - Set up contract relationships
+ *
+ * 5. Deploy Supporting Contracts
+ *    - AdmiralsQuarters (fleet token management)
  *
  * Security considerations:
- * - ProtocolAccessManager is deployed first as it controls access across the system
- * - Contracts are deployed in a specific order to satisfy dependencies
- * - Configuration is initialized last after all contracts are deployed
+ * - ProtocolAccessManager deployment first ensures proper access control
+ * - Contracts are deployed in dependency order
+ * - Configuration happens after all core contracts are deployed
+ * - Supporting contracts deployed last to ensure core system is ready
  */
 export const CoreModule = buildModule('CoreModule', (m) => {
   const deployer = m.getAccount(0)
@@ -31,9 +47,10 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   /**
    * @dev Step 1: Deploy Core Infrastructure
    *
-   * DutchAuctionLibrary: Shared library for auction functionality
-   * ProtocolAccessManager: Central access control for the entire protocol
-   * ConfigurationManager: Manages protocol-wide configuration
+   * Order:
+   * 1. DutchAuctionLibrary: Required by Raft for auction calculations
+   * 2. ProtocolAccessManager: Required by all access-controlled contracts
+   * 3. ConfigurationManager: Required for protocol-wide settings
    */
   const dutchAuctionLibrary = m.contract('DutchAuctionLibrary', [])
 
@@ -44,8 +61,9 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   /**
    * @dev Step 2: Deploy Protocol Components
    *
-   * TipJar: Handles protocol fee collection and distribution
-   * GovernanceRewardsManager: Manages governance rewards (initialized later in GovModule)
+   * These contracts handle specific protocol functionalities:
+   * - TipJar: Protocol fee management with access control and configuration
+   * - GovernanceRewardsManager: Reward distribution system (initialized in GovModule)
    */
   const tipJar = m.contract('TipJar', [protocolAccessManager, configurationManager])
 
@@ -54,9 +72,11 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   /**
    * @dev Step 3: Deploy Main Protocol Contracts
    *
-   * Configure default auction parameters for Raft
-   * HarborCommand: Main protocol control center
-   * Raft: Core protocol contract implementing auction mechanics
+   * Order:
+   * 1. HarborCommand: Central control contract
+   * 2. Raft: Core auction contract with DutchAuctionLibrary dependency
+   *
+   * Note: Raft requires auction parameters and library linking
    */
   const raftAuctionDefaultParams = {
     duration: 7n * 86400n, // 7 days
@@ -73,15 +93,12 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   })
 
   /**
-   * @dev Step 4: Configuration and Initialization
+   * @dev Step 4: Configuration Initialization
    *
-   * Initialize ConfigurationManager with all deployed contract addresses
-   * This step must happen after all contracts are deployed
-   *
-   * The configuration links:
-   * - Raft for core protocol operations
-   * - TipJar for fee management
-   * - Treasury for protocol revenue
+   * Links all core components together via ConfigurationManager:
+   * - Raft for auction operations
+   * - TipJar for fee handling
+   * - Treasury for revenue management
    * - HarborCommand for protocol control
    */
   const configurationManagerParams = {
@@ -94,10 +111,11 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   m.call(configurationManager, 'initializeConfiguration', [configurationManagerParams])
 
   /**
-   * @dev Step 5: Deploy Supporting Contracts
+   * @dev Step 5: Supporting Contract Deployment
    *
-   * AdmiralsQuarters: Handles generalised token entry and exit for fleets
-   * Must be deployed after core configuration is complete
+   * AdmiralsQuarters requires:
+   * - Completed core configuration
+   * - Swap provider for token operations
    */
   const admiralsQuarters = m.contract('AdmiralsQuarters', [swapProvider])
 

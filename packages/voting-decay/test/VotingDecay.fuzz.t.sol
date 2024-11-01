@@ -34,6 +34,20 @@ contract TestVotingDecayManager is VotingDecayManager {
             lastUpdateTimestamp: uint40(block.timestamp)
         });
     }
+
+    function setDecayRatePerSecond(uint256 newRatePerSecond) public {
+        _setDecayRatePerSecond(newRatePerSecond);
+    }
+
+    function setDecayFreeWindow(uint40 newWindow) public {
+        _setDecayFreeWindow(newWindow);
+    }
+
+    function setDecayFunction(
+        VotingDecayLibrary.DecayFunction newFunction
+    ) public {
+        _setDecayFunction(newFunction);
+    }
 }
 
 /**

@@ -53,33 +53,6 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            PUBLIC FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc IVotingDecayManager
-    function setDecayRatePerSecond(uint256 newRatePerSecond) public virtual {
-        if (!VotingDecayLibrary.isValidDecayRate(newRatePerSecond)) {
-            revert InvalidDecayRate();
-        }
-        decayRatePerSecond = newRatePerSecond;
-        emit DecayRateSet(newRatePerSecond);
-    }
-
-    /// @inheritdoc IVotingDecayManager
-    function setDecayFreeWindow(uint40 newWindow) public virtual {
-        decayFreeWindow = newWindow;
-        emit DecayFreeWindowSet(newWindow);
-    }
-
-    /// @inheritdoc IVotingDecayManager
-    function setDecayFunction(
-        VotingDecayLibrary.DecayFunction newFunction
-    ) public virtual {
-        decayFunction = newFunction;
-        emit DecayFunctionSet(uint8(newFunction));
-    }
-
-    /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -151,6 +124,38 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Sets a new decay rate per second
+     * @param newRatePerSecond New decay rate (in WAD format)
+     */
+    function _setDecayRatePerSecond(uint256 newRatePerSecond) internal virtual {
+        if (!VotingDecayLibrary.isValidDecayRate(newRatePerSecond)) {
+            revert InvalidDecayRate();
+        }
+        decayRatePerSecond = newRatePerSecond;
+        emit DecayRateSet(newRatePerSecond);
+    }
+
+    /**
+     * @notice Sets a new decay-free window duration
+     * @param newWindow New decay-free window duration in seconds
+     */
+    function _setDecayFreeWindow(uint40 newWindow) internal virtual {
+        decayFreeWindow = newWindow;
+        emit DecayFreeWindowSet(newWindow);
+    }
+
+    /**
+     * @notice Sets a new decay function type
+     * @param newFunction New decay function (Linear or Exponential)
+     */
+    function _setDecayFunction(
+        VotingDecayLibrary.DecayFunction newFunction
+    ) internal virtual {
+        decayFunction = newFunction;
+        emit DecayFunctionSet(uint8(newFunction));
+    }
 
     /**
      * @notice Initializes an account's decay information if it doesn't exist

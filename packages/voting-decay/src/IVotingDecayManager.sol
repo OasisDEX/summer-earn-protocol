@@ -55,26 +55,6 @@ interface IVotingDecayManager {
     ) external view returns (uint256);
 
     /**
-     * @notice Sets a new decay rate per second
-     * @param newRatePerSecond New decay rate (in WAD format)
-     */
-    function setDecayRatePerSecond(uint256 newRatePerSecond) external;
-
-    /**
-     * @notice Sets a new decay-free window duration
-     * @param newWindow New decay-free window duration in seconds
-     */
-    function setDecayFreeWindow(uint40 newWindow) external;
-
-    /**
-     * @notice Sets a new decay function type
-     * @param newFunction New decay function (Linear or Exponential)
-     */
-    function setDecayFunction(
-        VotingDecayLibrary.DecayFunction newFunction
-    ) external;
-
-    /**
      * @notice Calculates the decay factor for an account
      * @param accountAddress Address to calculate retention factor for
      * @return Current retention factor

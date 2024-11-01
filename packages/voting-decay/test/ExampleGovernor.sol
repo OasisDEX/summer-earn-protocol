@@ -166,4 +166,18 @@ contract ExampleGovernor is
 
         return proposalId;
     }
+
+    function setDecayRatePerSecond(uint256 newRatePerSecond) external {
+        _setDecayRatePerSecond(newRatePerSecond);
+    }
+
+    function setDecayFreeWindow(uint40 newWindow) external {
+        _setDecayFreeWindow(newWindow);
+    }
+
+    function setDecayFunction(
+        VotingDecayLibrary.DecayFunction newFunction
+    ) external {
+        _setDecayFunction(newFunction);
+    }
 }

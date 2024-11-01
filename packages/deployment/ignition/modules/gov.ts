@@ -29,15 +29,20 @@ const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
  * @notice This module handles the deployment and initialization of the governance system
  *
  * @dev Deployment and initialization sequence:
- * 1. Deploy SummerToken (governance token)
- * 2. Deploy TimelockController (timelock for governance actions)
+ * 1. Deploy TimelockController (timelock for governance actions)
+ * 2. Deploy SummerToken (governance token)
  * 3. Deploy SummerGovernor (governance logic)
- * 4. Configure contract relationships and permissions
+ * 4. Configure contract relationships and permissions:
+ *    - Transfer SummerToken ownership to TimelockController
+ *    - Set SummerGovernor as decay manager for SummerToken
+ *    - Grant PROPOSER, CANCELLER, and EXECUTOR roles to SummerGovernor in TimelockController
+ *    - Configure ProtocolAccessManager permissions
+ *    - Revoke deployer's temporary permissions
  *
  * Post-deployment security considerations:
- * - The deployer initially has admin rights but transfers them to the TimelockController
  * - The TimelockController becomes the ultimate owner of the system
  * - The SummerGovernor can only execute actions through the TimelockController
+ * - All administrative actions must go through the governance process
  */
 export const GovModule = buildModule('GovModule', (m) => {
   const deployer = m.getAccount(0)
@@ -45,7 +50,7 @@ export const GovModule = buildModule('GovModule', (m) => {
   const protocolAccessManagerAddress = m.getParameter('protocolAccessManager')
 
   /**
-   * @dev Step 2: Deploy TimelockController
+   * @dev Step 1: Deploy TimelockController
    * This contract adds a time delay to governance actions
    * Initially configured with:
    * - deployer as proposer (temporary)
@@ -62,11 +67,11 @@ export const GovModule = buildModule('GovModule', (m) => {
   ])
 
   /**
-   * @dev Step 1: Deploy SummerToken
-   * Initially, the deployer is set as both governor and owner
-   * - governor: Controls voting power calculations
-   * - owner: Controls administrative functions (e.g., minting)
-   * These roles will be transferred to appropriate contracts later
+   * @dev Step 2: Deploy SummerToken
+   * Initially configured with:
+   * - TimelockController as owner (controls administrative functions like minting)
+   * - deployer as decay manager (temporary, will be transferred to governor)
+   * - Configured with initial decay parameters for voting power
    */
   const summerTokenParams = {
     name: 'SummerToken',
@@ -84,7 +89,9 @@ export const GovModule = buildModule('GovModule', (m) => {
   /**
    * @dev Step 3: Deploy SummerGovernor
    * This contract manages the governance process
-   * Links to both SummerToken (for voting power) and TimelockController (for execution)
+   * - Integrates with SummerToken for voting power calculations
+   * - Uses TimelockController for action execution
+   * - Configured with initial voting parameters and cross-chain settings
    */
   const summerGovernorDeployParams = {
     token: summerToken,
@@ -102,25 +109,22 @@ export const GovModule = buildModule('GovModule', (m) => {
   /**
    * @dev Step 4: Post-deployment configuration
    *
-   * Security considerations for the configuration sequence:
-   * 1. Set SummerGovernor as the governor of SummerToken
-   *    - This allows the governance contract to manage voting power
+   * Configuration sequence:
+   * 1. Configure SummerToken
+   *    - Confirm TimelockController ownership
+   *    - Set SummerGovernor as decay manager
    *
-   * 2. Transfer SummerToken ownership to TimelockController
-   *    - This ensures administrative actions (like minting) must go through governance
+   * 2. Configure TimelockController roles
+   *    - Grant PROPOSER_ROLE to SummerGovernor
+   *    - Grant CANCELLER_ROLE to SummerGovernor
+   *    - Grant EXECUTOR_ROLE to SummerGovernor
    *
-   * 3. Grant necessary roles to SummerGovernor in TimelockController
-   *    - Allows the governor to propose, cancel, and execute actions
-   *
-   * 4. Configure ProtocolAccessManager permissions
+   * 3. Configure ProtocolAccessManager
    *    - Revoke deployer's admin rights
    *    - Grant admin and governor roles to TimelockController
    *
-   * 5. Revoke temporary permissions
+   * 4. Cleanup
    *    - Remove deployer's proposer role from TimelockController
-   *
-   * 6. Initialize the rewards manager
-   *    - Connect it with the governance token
    */
   m.call(summerToken, 'transferOwnership', [timelock.value])
   m.call(summerToken, 'setDecayManager', [summerGovernor.value])
