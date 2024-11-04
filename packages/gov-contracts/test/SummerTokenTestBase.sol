@@ -35,8 +35,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
     address public lzEndpointB;
 
     address public owner = address(this);
-    address public rewardsManagerA = address(0xA);
-    address public rewardsManagerB = address(0xB);
+
     ProtocolAccessManager public accessManagerA;
     ProtocolAccessManager public accessManagerB;
     MockSummerGovernor public mockGovernor;

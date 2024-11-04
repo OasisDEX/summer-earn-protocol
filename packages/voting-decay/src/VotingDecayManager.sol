@@ -30,7 +30,7 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     VotingDecayLibrary.DecayFunction public decayFunction;
 
     /// @notice Maximum allowed depth for delegation chains to prevent circular dependencies
-    uint256 private constant MAX_DELEGATION_DEPTH = 1;
+    uint256 private constant MAX_DELEGATION_DEPTH = 2;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -70,15 +70,16 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     function getDecayFactor(
         address accountAddress
     ) public view returns (uint256) {
-        return _getDecayFactorWithDepth(accountAddress, 0);
+        return _getDecayFactorWithDepth(accountAddress, 0, accountAddress);
     }
 
     function _getDecayFactorWithDepth(
         address accountAddress,
-        uint256 depth
+        uint256 depth,
+        address originalAccount
     ) private view returns (uint256) {
         if (depth >= MAX_DELEGATION_DEPTH) {
-            revert MaxDelegationDepthExceeded();
+            return _calculateDecayFactor(originalAccount);
         }
 
         address delegateTo = _getDelegateTo(accountAddress);
@@ -89,7 +90,12 @@ abstract contract VotingDecayManager is IVotingDecayManager {
             delegateTo != accountAddress &&
             _hasDecayInfo(delegateTo)
         ) {
-            return _getDecayFactorWithDepth(delegateTo, depth + 1);
+            return
+                _getDecayFactorWithDepth(
+                    delegateTo,
+                    depth + 1,
+                    originalAccount
+                );
         }
 
         // Has Delegate + Delegate does not have Decay Info
@@ -99,20 +105,7 @@ abstract contract VotingDecayManager is IVotingDecayManager {
         }
 
         // No Delegate + Has Decay Info
-        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
-            accountAddress
-        ];
-
-        uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
-
-        return
-            VotingDecayLibrary.calculateDecayFactor(
-                account.decayFactor,
-                decayPeriod,
-                decayRatePerSecond,
-                decayFreeWindow,
-                decayFunction
-            );
+        return _calculateDecayFactor(accountAddress);
     }
 
     /// @inheritdoc IVotingDecayManager
@@ -125,6 +118,23 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _calculateDecayFactor(
+        address accountAddress
+    ) internal view returns (uint256) {
+        VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
+            accountAddress
+        ];
+        uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
+        return
+            VotingDecayLibrary.calculateDecayFactor(
+                account.decayFactor,
+                decayPeriod,
+                decayRatePerSecond,
+                decayFreeWindow,
+                decayFunction
+            );
+    }
 
     /**
      * @notice Sets a new decay rate per second
@@ -168,6 +178,8 @@ abstract contract VotingDecayManager is IVotingDecayManager {
                 decayFactor: VotingDecayLibrary.WAD,
                 lastUpdateTimestamp: uint40(block.timestamp)
             });
+
+            emit AccountInitialized(accountAddress);
         }
     }
 

@@ -422,6 +422,10 @@ contract SummerTokenTest is SummerTokenTestBase {
         // Setup: Transfer tokens to user1
         aSummerToken.transfer(user1, amount);
 
+        // Initialise voting decay for user2
+        vm.prank(user2);
+        aSummerToken.delegate(address(0));
+
         // 1. delegateAndStake
         vm.startPrank(user1);
         aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);

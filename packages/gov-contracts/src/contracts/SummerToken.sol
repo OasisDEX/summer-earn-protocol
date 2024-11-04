@@ -221,6 +221,44 @@ contract SummerToken is
         return super.nonces(owner);
     }
 
+    /**
+     * @notice Returns the current votes for an account with decay factor applied
+     * @param account The address to get votes for
+     * @return The current voting power after applying the decay factor
+     * @dev This function:
+     * 1. Gets the raw votes using ERC20Votes' _getVotes
+     * 2. Applies the decay factor from VotingDecayManager
+     * @custom:relationship-to-votingdecay
+     * - Uses VotingDecayManager.getVotingPower() to apply decay
+     * - Decay factor is determined by:
+     *   - Time since last update
+     *   - Delegation chain (up to MAX_DELEGATION_DEPTH)
+     *   - Current decayRatePerSecond and decayFreeWindow
+     */
+    function getVotes(address account) public view override returns (uint256) {
+        return getVotingPower(account, super.getVotes(account));
+    }
+
+    /**
+     * @notice Returns the votes for an account at a specific past block, with decay factor applied
+     * @param account The address to get votes for
+     * @param timepoint The block number to get votes at
+     * @return The historical voting power after applying the decay factor
+     * @dev This function:
+     * 1. Gets the historical raw votes using ERC20Votes' _getPastVotes
+     * 2. Applies the current decay factor from VotingDecayManager
+     * @custom:relationship-to-votingdecay
+     * - Uses VotingDecayManager.getVotingPower() to apply decay
+     * - Note: The decay factor is current, not historical
+     * - This means voting power can decrease over time even for past checkpoints
+     */
+    function getPastVotes(
+        address account,
+        uint256 timepoint
+    ) public view override returns (uint256) {
+        return getVotingPower(account, super.getPastVotes(account, timepoint));
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
