@@ -15,7 +15,27 @@ interface ISummerToken is IERC20, IERC20Permit {
         string symbol;
         address lzEndpoint;
         address governor;
+        uint256 transferEnableDate;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Error thrown when transfers are not allowed
+     */
+    error TransfersNotAllowed();
+
+    /**
+     * @notice Error thrown when transfers cannot be enabled yet
+     */
+    error TransfersCannotBeEnabledYet();
+
+    /**
+     * @notice Error thrown when transfers are already enabled
+     */
+    error TransfersAlreadyEnabled();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -36,6 +56,23 @@ interface ISummerToken is IERC20, IERC20Permit {
         uint256[] goalAmounts,
         SummerVestingWallet.VestingType vestingType
     );
+
+    /**
+     * @notice Emitted when transfers are enabled
+     */
+    event TransfersEnabled();
+
+    /**
+     * @notice Emitted when an address is whitelisted
+     * @param account The address of the whitelisted account
+     */
+    event AddressWhitelisted(address indexed account);
+
+    /**
+     * @notice Emitted when an address is removed from the whitelist
+     * @param account The address of the removed account
+     */
+    event AddressRemovedFromWhitelist(address indexed account);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -61,6 +98,23 @@ interface ISummerToken is IERC20, IERC20Permit {
      * @param amount The amount of tokens to mint
      */
     function mint(address to, uint256 amount) external;
+
+    /**
+     * @notice Enables transfers
+     */
+    function enableTransfers() external;
+
+    /**
+     * @notice Adds an address to the whitelist
+     * @param account The address to add to the whitelist
+     */
+    function addToWhitelist(address account) external;
+
+    /**
+     * @notice Removes an address from the whitelist
+     * @param account The address to remove from the whitelist
+     */
+    function removeFromWhitelist(address account) external;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

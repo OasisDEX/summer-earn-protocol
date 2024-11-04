@@ -50,6 +50,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     // ===============================================
 
     function test_OFTSendNoCompose() public {
+        enableTransfers();
         uint256 tokensToSend = 1 ether;
         aSummerToken.transfer(user1, tokensToSend);
         bytes memory options = OptionsBuilder
@@ -86,6 +87,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function test_OFTSendWithCompose() public {
+        enableTransfers();
         uint256 tokensToSend = 1 ether;
         aSummerToken.transfer(user1, tokensToSend);
 
@@ -147,6 +149,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function test_VotingPowerAfterTeleport() public {
+        enableTransfers();
         vm.deal(user1, 100 ether);
 
         // Transfer tokens to user1
@@ -229,6 +232,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function test_Transfer() public {
+        enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.transfer(user1, amount);
         assertEq(aSummerToken.balanceOf(user1), amount);
@@ -245,13 +249,21 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
     }
 
+    function test_TransfersBlockedByDefault() public {
+        uint256 amount = 1000 * 10 ** 18;
+        vm.expectRevert(ISummerToken.TransfersNotAllowed.selector);
+        aSummerToken.transfer(user1, amount);
+    }
+
     function testFail_TransferInsufficientBalance() public {
+        enableTransfers();
         uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
         aSummerToken.transfer(user1, amount);
         bSummerToken.transfer(user2, amount);
     }
 
     function test_ApproveAndTransferFrom() public {
+        enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.approve(user1, amount);
         assertEq(aSummerToken.allowance(owner, user1), amount);
@@ -271,6 +283,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function testFail_TransferFromInsufficientAllowance() public {
+        enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.approve(user1, amount - 1);
 
@@ -284,6 +297,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function test_Burn() public {
+        enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         uint256 initialSupplyA = aSummerToken.totalSupply();
         uint256 initialSupplyB = bSummerToken.totalSupply();
@@ -298,12 +312,14 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function testFail_BurnInsufficientBalance() public {
+        enableTransfers();
         uint256 amount = (INITIAL_SUPPLY + 1) * 10 ** 18;
         aSummerToken.burn(amount);
         bSummerToken.burn(amount);
     }
 
     function test_BurnFrom() public {
+        enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.approve(user1, amount);
 
@@ -337,6 +353,7 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function testFail_BurnFromInsufficientAllowance() public {
+        enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         aSummerToken.approve(user1, amount - 1);
 
@@ -347,5 +364,89 @@ contract SummerTokenTest is SummerTokenTestBase {
 
         vm.prank(user1);
         bSummerToken.burnFrom(owner, amount);
+    }
+
+    function test_WhitelistTransfers() public {
+        uint256 amount = 1000 * 10 ** 18;
+
+        // Add user1 to whitelist
+        aSummerToken.addToWhitelist(user1);
+
+        // Transfer should succeed to whitelisted address
+        aSummerToken.transfer(user1, amount);
+        assertEq(aSummerToken.balanceOf(user1), amount);
+
+        // Transfer from whitelisted address should also succeed
+        vm.prank(user1);
+        aSummerToken.transfer(user2, amount / 2);
+        assertEq(aSummerToken.balanceOf(user2), amount / 2);
+    }
+
+    function test_RemoveFromWhitelist() public {
+        uint256 amount = 1000 * 10 ** 18;
+
+        // Add and then remove user1 from whitelist
+        aSummerToken.addToWhitelist(user1);
+        aSummerToken.removeFromWhitelist(user1);
+
+        // Transfer should fail after removal from whitelist
+        vm.expectRevert(ISummerToken.TransfersNotAllowed.selector);
+        aSummerToken.transfer(user1, amount);
+    }
+
+    function test_OnlyOwnerCanManageWhitelist() public {
+        // Try to add to whitelist as non-owner
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "OwnableUnauthorizedAccount(address)",
+                user1
+            )
+        );
+        aSummerToken.addToWhitelist(user2);
+
+        // Try to remove from whitelist as non-owner
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "OwnableUnauthorizedAccount(address)",
+                user1
+            )
+        );
+        aSummerToken.removeFromWhitelist(user2);
+    }
+
+    function test_WhitelistEvents() public {
+        // Test whitelist addition event
+        vm.expectEmit(true, false, false, false);
+        emit ISummerToken.AddressWhitelisted(user1);
+        aSummerToken.addToWhitelist(user1);
+
+        // Test whitelist removal event
+        vm.expectEmit(true, false, false, false);
+        emit ISummerToken.AddressRemovedFromWhitelist(user1);
+        aSummerToken.removeFromWhitelist(user1);
+    }
+
+    // Update existing transfer tests to use whitelist instead of enableTransfers
+    function test_Transfer_WithWhitelist() public {
+        aSummerToken.addToWhitelist(user1);
+        aSummerToken.addToWhitelist(user2);
+
+        uint256 amount = 1000 * 10 ** 18;
+        aSummerToken.transfer(user1, amount);
+        assertEq(aSummerToken.balanceOf(user1), amount);
+        assertEq(
+            aSummerToken.balanceOf(owner),
+            (INITIAL_SUPPLY * 10 ** 18) - amount
+        );
+
+        bSummerToken.addToWhitelist(user2);
+        bSummerToken.transfer(user2, amount);
+        assertEq(bSummerToken.balanceOf(user2), amount);
+        assertEq(
+            bSummerToken.balanceOf(owner),
+            (INITIAL_SUPPLY * 10 ** 18) - amount
+        );
     }
 }
