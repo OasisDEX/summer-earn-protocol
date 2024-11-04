@@ -1,6 +1,19 @@
 [
   {
     "type": "function",
+    "name": "asset",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IERC20"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "board",
     "inputs": [
       {
@@ -46,7 +59,7 @@
         "internalType": "address"
       },
       {
-        "name": "token",
+        "name": "asset",
         "type": "address",
         "internalType": "contract IERC20"
       },
@@ -172,7 +185,7 @@
             "internalType": "address"
           },
           {
-            "name": "token",
+            "name": "asset",
             "type": "address",
             "internalType": "contract IERC20"
           },
@@ -452,43 +465,6 @@
   },
   {
     "type": "function",
-    "name": "sweep",
-    "inputs": [
-      {
-        "name": "tokens",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "sweptTokens",
-        "type": "address[]",
-        "internalType": "address[]"
-      },
-      {
-        "name": "sweptAmounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "token",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract IERC20"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "totalAssets",
     "inputs": [],
     "outputs": [
@@ -554,25 +530,6 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ArkSwept",
-    "inputs": [
-      {
-        "name": "sweptTokens",
-        "type": "address[]",
-        "indexed": true,
-        "internalType": "address[]"
-      },
-      {
-        "name": "sweptAmounts",
-        "type": "uint256[]",
-        "indexed": true,
-        "internalType": "uint256[]"
       }
     ],
     "anonymous": false
