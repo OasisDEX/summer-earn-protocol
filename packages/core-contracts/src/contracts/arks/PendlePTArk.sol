@@ -65,7 +65,7 @@ contract PendlePTArk is BasePendleArk {
      * We use slippage protection here to ensure we receive at least the calculated minimum PT tokens.
      * This protects against sudden price movements between our calculation and the actual swap execution.
      */
-    function _depositTokenForArkToken(uint256 _amount) internal override {
+    function _depositFleetAssetForArkToken(uint256 _amount) internal override {
         if (block.timestamp >= marketExpiry) {
             revert MarketExpired();
         }
@@ -96,11 +96,11 @@ contract PendlePTArk is BasePendleArk {
      * @param amount Amount of PT to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
      */
-    function _redeemTokens(
+    function _redeemFleetAsset(
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
-        _redeemTokenFromPtBeforeExpiry(amount, minTokenOut);
+        _redeemFleetAssetFromPtBeforeExpiry(amount, minTokenOut);
     }
 
     /**
@@ -108,11 +108,11 @@ contract PendlePTArk is BasePendleArk {
      * @param amount Amount of PT to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
      */
-    function _redeemTokensPostExpiry(
+    function _redeemFleetAssetPostExpiry(
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
-        _redeemTokenFromPtPostExpiry(amount, minTokenOut);
+        _redeemFleetAssetFromPtPostExpiry(amount, minTokenOut);
     }
 
     /**
@@ -124,7 +124,7 @@ contract PendlePTArk is BasePendleArk {
      * 2. Redeem SY to underlying token
      * No slippage is applied as the exchange rate is fixed post-expiry
      */
-    function _redeemTokenFromPtPostExpiry(
+    function _redeemFleetAssetFromPtPostExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
     ) internal {
@@ -162,7 +162,7 @@ contract PendlePTArk is BasePendleArk {
      * 2. Execute the swap using Pendle's router
      * Slippage protection is applied to ensure the minimum token output
      */
-    function _redeemTokenFromPtBeforeExpiry(
+    function _redeemFleetAssetFromPtBeforeExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
     ) internal {
@@ -186,23 +186,14 @@ contract PendlePTArk is BasePendleArk {
     /**
      * @notice Redeems all PT for underlying tokens after market expiry
      */
-    function _redeemAllTokensFromExpiredMarket() internal override {
+    function _redeemAllFleetAssetsFromExpiredMarket() internal override {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        _redeemTokenFromPtPostExpiry(ptBalance, ptBalance);
+        _redeemFleetAssetFromPtPostExpiry(ptBalance, ptBalance);
     }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Finds the next valid market
-     * @return Address of the next market
-     * @dev TODO: Implement logic to find the next valid market
-     */
-    function nextMarket() public pure override returns (address) {
-        return 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
-    }
 
     /**
      * @notice Fetches the PT to Asset rate from the PendlePYLpOracle contract

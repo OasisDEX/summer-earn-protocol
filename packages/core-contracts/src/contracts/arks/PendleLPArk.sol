@@ -62,7 +62,7 @@ contract PendleLPArk is BasePendleArk {
      * This guards against price movements between our calculation and the actual swap execution.
      * The use of a TWAP oracle helps mitigate the risk of short-term price manipulations.
      */
-    function _depositTokenForArkToken(uint256 _amount) internal override {
+    function _depositFleetAssetForArkToken(uint256 _amount) internal override {
         if (block.timestamp >= marketExpiry) {
             revert MarketExpired();
         }
@@ -92,7 +92,7 @@ contract PendleLPArk is BasePendleArk {
      * @param amount Amount of LP tokens to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
      */
-    function _redeemTokens(
+    function _redeemFleetAsset(
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
@@ -104,7 +104,7 @@ contract PendleLPArk is BasePendleArk {
      * @param amount Amount of assets to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
      */
-    function _redeemTokensPostExpiry(
+    function _redeemFleetAssetPostExpiry(
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
@@ -137,7 +137,7 @@ contract PendleLPArk is BasePendleArk {
     /**
      * @notice Redeems all LP tokens to underlying tokens
      */
-    function _redeemAllTokensFromExpiredMarket() internal override {
+    function _redeemAllFleetAssetsFromExpiredMarket() internal override {
         uint256 lpBalance = _balanceOfArkTokens();
         uint256 expectedTokenOut = _arkTokensToAsset(lpBalance);
 
@@ -149,15 +149,6 @@ contract PendleLPArk is BasePendleArk {
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Finds the next valid market
-     * @return Address of the next market
-     * @dev TODO: Implement logic to find the next valid market
-     */
-    function nextMarket() public pure override returns (address) {
-        return 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
-    }
 
     /**
      * @notice Fetches the LP to Asset rate from the PendlePYLpOracle contract

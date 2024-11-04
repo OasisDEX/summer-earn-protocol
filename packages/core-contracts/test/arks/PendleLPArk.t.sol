@@ -63,6 +63,7 @@ contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.startPrank(governor);
+        ark.setNextMarket(NEXT_MARKET);
         accessManager.grantCommanderRole(
             address(address(ark)),
             address(commander)

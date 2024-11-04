@@ -33,9 +33,15 @@ interface IERC20Extended is IERC20 {
  * works with Pendle's Principal Tokens (PT). It manages deposits, withdrawals,
  * and automatic rollovers between different Pendle markets.
  *
+ * Terms:
+
+ * - Ark asset (also Fleet asset eg USDC)
+ * - Market asset (the asset used by a Pendle PT market eg USDe)
+ * - Pendle PT (the Pendle principal token)
+ *
  * Key features:
  * - Handles boarding (depositing) and disembarking (withdrawing) of tokens
- * - Manages conversion between Ark tokens and Pendle's Principal Tokens
+ * - Manages conversion between Ark assets and Pendle's Principal Tokens
  * - Implements automatic rollover to new markets upon expiry
  * - Uses an oracle for accurate PT pricing
  * - Leverages Curve as a price oracle for stablecoins
@@ -329,7 +335,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     function withdrawExpiredMarket() public onlyGovernor {
         if (this.isMarketExpired()) {
             uint256 amount = IERC20(PT).balanceOf(address(this));
-            _redeemTokenFromPtPostExpiry(amount, amount);
+            _redeemFleetAssetFromPtPostExpiry(amount, amount);
             IERC20(marketAsset).transfer(
                 msg.sender,
                 IERC20(marketAsset).balanceOf(address(this))
@@ -634,7 +640,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             return;
         }
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        _redeemTokenFromPtPostExpiry(ptBalance, ptBalance);
+        _redeemFleetAssetFromPtPostExpiry(ptBalance, ptBalance);
         _updateMarketAndTokens(newMarket);
         _depositMarketAssetForPt(ptBalance);
 
@@ -660,7 +666,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @param ptAmount Amount of PT to redeem
      * @param minTokenOut Minimum amount of tokens to receive
      */
-    function _redeemTokenFromPtPostExpiry(
+    function _redeemFleetAssetFromPtPostExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
     ) internal {
