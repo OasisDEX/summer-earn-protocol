@@ -45,11 +45,7 @@ contract GovernanceRewardsManagerTest is Test {
         }
 
         // Deploy mock governor
-        mockGovernor = new MockSummerGovernor(
-            7 days,
-            INITIAL_DECAY_RATE,
-            VotingDecayLibrary.DecayFunction.Linear
-        );
+        mockGovernor = new MockSummerGovernor();
 
         // Deploy GovernanceRewardsManager
         address[] memory rewardTokenAddresses = new address[](
@@ -87,10 +83,6 @@ contract GovernanceRewardsManagerTest is Test {
     function test_StakeForOnlyCallableByStakingToken() public {
         uint256 stakeAmount = 1000 * 1e18;
 
-        // Initialize decay factor
-        vm.prank(address(stakingToken));
-        mockGovernor.updateDecayFactor(alice);
-
         vm.prank(alice);
         vm.expectRevert(IGovernanceRewardsManagerErrors.InvalidCaller.selector);
         stakingRewardsManager.stakeFor(alice, stakeAmount);
@@ -108,10 +100,6 @@ contract GovernanceRewardsManagerTest is Test {
     function test_StakeForUpdatesBalancesCorrectly() public {
         uint256 stakeAmount = 1000 * 1e18;
 
-        // Initialize decay factor
-        vm.prank(address(stakingToken));
-        mockGovernor.updateDecayFactor(alice);
-
         vm.prank(address(stakingToken));
         stakingRewardsManager.stakeFor(alice, stakeAmount);
 
@@ -125,10 +113,6 @@ contract GovernanceRewardsManagerTest is Test {
     function test_UnstakeDirectly() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 unstakeAmount = 500 * 1e18;
-
-        // Initialize decay factor
-        vm.prank(address(stakingToken));
-        mockGovernor.updateDecayFactor(alice);
 
         vm.prank(address(stakingToken));
         stakingRewardsManager.stakeFor(alice, stakeAmount);
@@ -146,10 +130,6 @@ contract GovernanceRewardsManagerTest is Test {
     function test_UnstakeUpdatesBalancesCorrectly() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 unstakeAmount = 500 * 1e18;
-
-        // Initialize decay factor
-        vm.prank(address(stakingToken));
-        mockGovernor.updateDecayFactor(alice);
 
         vm.prank(address(stakingToken));
         stakingRewardsManager.stakeFor(alice, stakeAmount);
@@ -174,10 +154,6 @@ contract GovernanceRewardsManagerTest is Test {
     function test_RewardCalculationAfterStakeAndUnstake() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 rewardAmount = 100 * 1e18;
-
-        // Initialize decay factor
-        vm.prank(address(stakingToken));
-        mockGovernor.updateDecayFactor(alice);
 
         // Alice stakes
         vm.prank(address(stakingToken));

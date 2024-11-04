@@ -56,11 +56,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
     function initializeTokenTests() public {
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
-        mockGovernor = new MockSummerGovernor(
-            0,
-            0,
-            VotingDecayLibrary.DecayFunction.Linear
-        );
+        mockGovernor = new MockSummerGovernor();
 
         lzEndpointA = address(endpoints[aEid]);
         lzEndpointB = address(endpoints[bEid]);

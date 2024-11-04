@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {VotingDecayLibrary} from "./VotingDecayLibrary.sol";
 import {IVotingDecayManager} from "./IVotingDecayManager.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title VotingDecayManager
  * @notice Manages voting power decay for accounts in a governance system
@@ -62,6 +62,7 @@ abstract contract VotingDecayManager is IVotingDecayManager {
         uint256 originalValue
     ) public view returns (uint256) {
         uint256 decayFactor = getDecayFactor(accountAddress);
+
         return VotingDecayLibrary.applyDecay(originalValue, decayFactor);
     }
 
