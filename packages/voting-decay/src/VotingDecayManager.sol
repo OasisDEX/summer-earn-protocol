@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {VotingDecayLibrary} from "./VotingDecayLibrary.sol";
 import {IVotingDecayManager} from "./IVotingDecayManager.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title VotingDecayManager
  * @notice Manages voting power decay for accounts in a governance system
