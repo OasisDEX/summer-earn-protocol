@@ -546,6 +546,11 @@ export function getOrCreateArksPostActionSnapshots(
     arkSnapshots.vault = ark.vault
     arkSnapshots.ark = ark.id
 
+    arkSnapshots.depositLimit = utils.readValue<BigInt>(
+      arkContract.try_depositCap(),
+      constants.BigIntConstants.ZERO,
+    )
+
     arkSnapshots.totalValueLockedUSD = ark.totalValueLockedUSD
     arkSnapshots.inputTokenBalance = ark.inputTokenBalance
 

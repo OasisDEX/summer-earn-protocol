@@ -1,7 +1,11 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Rebalance, Vault } from '../../../generated/schema'
 import { Rebalanced as RebalancedEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { getOrCreateArk, getOrCreateToken } from '../../common/initializers'
+import {
+  getOrCreateArk,
+  getOrCreateArksPostActionSnapshots,
+  getOrCreateToken,
+} from '../../common/initializers'
 import { getTokenPriceInUSD } from '../../common/priceHelpers'
 import { formatAmount } from '../../common/utils'
 
@@ -31,6 +35,16 @@ export function createRebalanceEventEntity(
     rebalanceEntity.amountUSD = normalizedAmountUSD
     rebalanceEntity.from = rebalances[i].fromArk.toHexString()
     rebalanceEntity.to = rebalances[i].toArk.toHexString()
+    rebalanceEntity.fromPostAction = getOrCreateArksPostActionSnapshots(
+      Address.fromString(vault.id),
+      Address.fromString(rebalance.fromArk.toHexString()),
+      event.block,
+    ).id
+    rebalanceEntity.toPostAction = getOrCreateArksPostActionSnapshots(
+      Address.fromString(vault.id),
+      Address.fromString(rebalance.toArk.toHexString()),
+      event.block,
+    ).id
     rebalanceEntity.blockNumber = event.block.number
     rebalanceEntity.timestamp = event.block.timestamp
     rebalanceEntity.vault = vault.id
