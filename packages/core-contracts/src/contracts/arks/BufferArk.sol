@@ -42,7 +42,7 @@ contract BufferArk is Ark {
      *      as no assets are deployed to external strategies.
      */
     function totalAssets() public view override returns (uint256) {
-        return config.token.balanceOf(address(this));
+        return config.asset.balanceOf(address(this));
     }
 
     /**

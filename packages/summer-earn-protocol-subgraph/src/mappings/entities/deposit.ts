@@ -23,5 +23,6 @@ export function createDepositEventEntity(
   deposit.protocol = positionDetails.protocol
   deposit.logIndex = event.logIndex.toI32()
   deposit.hash = event.transaction.hash.toHexString()
+  deposit.position = positionDetails.positionId
   deposit.save()
 }

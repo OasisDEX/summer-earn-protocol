@@ -30,7 +30,7 @@ struct ArkParams {
      * @notice The address of the ERC20 token managed by this Ark
      * @dev This is the underlying asset that the Ark will handle
      */
-    address token;
+    address asset;
     /**
      * @notice The maximum amount of tokens that can be deposited into the Ark
      * @dev This cap helps to manage risk and exposure
@@ -79,7 +79,7 @@ struct ArkConfig {
      * @notice The ERC20 token interface for the asset managed by this Ark
      * @dev This allows direct interaction with the token contract
      */
-    IERC20 token;
+    IERC20 asset;
     /**
      * @notice The current maximum amount of tokens that can be deposited into the Ark
      * @dev This can be adjusted by the commander to manage capacity

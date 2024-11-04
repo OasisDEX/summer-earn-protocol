@@ -43,7 +43,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken),
+            asset: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -94,7 +94,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(mockToken),
+            asset: address(mockToken),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -127,7 +127,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         ark = new AaveV3Ark(address(aaveV3Pool), rewardsController, params);
         assertEq(address(ark.aaveV3Pool()), address(aaveV3Pool));
 
-        assertEq(address(ark.token()), address(mockToken));
+        assertEq(address(ark.asset()), address(mockToken));
         assertEq(ark.depositCap(), type(uint256).max);
         assertEq(ark.aToken(), address(0));
         assertEq(ark.name(), "TestArk");

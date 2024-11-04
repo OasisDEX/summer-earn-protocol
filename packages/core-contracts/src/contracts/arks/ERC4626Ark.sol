@@ -35,12 +35,12 @@ contract ERC4626Ark is Ark {
         vault = IERC4626(_vault);
 
         // Ensure the vault's asset matches the Ark's token
-        if (address(vault.asset()) != address(config.token)) {
+        if (address(vault.asset()) != address(config.asset)) {
             revert ERC4626AssetMismatch();
         }
 
         // Approve the vault to spend the Ark's tokens
-        config.token.approve(_vault, Constants.MAX_UINT256);
+        config.asset.approve(_vault, Constants.MAX_UINT256);
     }
 
     /**

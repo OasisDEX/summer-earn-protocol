@@ -650,6 +650,9 @@ type Deposit implements Event @entity @transaction {
 
   " The vault involving this transaction "
   vault: Vault!
+
+  " Position that this deposit belongs to "
+  position: Position!
 }
 
 type Withdraw implements Event @entity @transaction {
@@ -688,6 +691,9 @@ type Withdraw implements Event @entity @transaction {
 
   " The vault involving this transaction "
   vault: Vault!
+
+  " Position that this withdraw belongs to "
+  position: Position!
 }
 
 # An account is a unique Ethereum address
@@ -726,6 +732,12 @@ type Rebalance @entity @transaction {
 
   " Ark that we reblance from "
   from: Ark!
+
+  " Post action snapshot of the from ark "
+  fromPostAction: PostActionArkSnapshot!
+
+  " Post action snapshot of the to ark "
+  toPostAction: PostActionArkSnapshot!
 
   " Block number of this event "
   blockNumber: BigInt!
@@ -863,6 +875,9 @@ type Position @entity {
 
   " Creation block number "
   createdBlockNumber: BigInt!
+
+  deposits: [Deposit!]! @derivedFrom(field: "position")
+  withdrawals: [Withdraw!]! @derivedFrom(field: "position")
 }
 
 type Ark @entity @regularPolling {
@@ -1071,6 +1086,9 @@ type PostActionArkSnapshot @entity @hourlySnapshot {
 
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
+
+  " Deposit limit of the ark "
+  depositLimit: BigInt!
 
   " Block number of this snapshot "
   blockNumber: BigInt!

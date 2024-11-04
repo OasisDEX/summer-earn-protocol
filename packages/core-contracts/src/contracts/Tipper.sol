@@ -10,7 +10,6 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
 /**
  * @title Tipper
  * @notice Contract implementing tip accrual functionality
@@ -25,6 +24,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    assuming it represents shares in the system.
  * @custom:see ITipper
  */
+
 abstract contract Tipper is ITipper, ConfigurationManaged {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;

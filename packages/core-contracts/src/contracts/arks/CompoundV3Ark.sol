@@ -75,8 +75,8 @@ contract CompoundV3Ark is Ark {
      * @param /// boardData Additional data for boarding (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        config.token.approve(address(comet), amount);
-        comet.supply(address(config.token), amount);
+        config.asset.approve(address(comet), amount);
+        comet.supply(address(config.asset), amount);
     }
 
     /**
@@ -85,7 +85,7 @@ contract CompoundV3Ark is Ark {
      * @param /// disembarkData Additional data for disembarking (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        comet.withdraw(address(config.token), amount);
+        comet.withdraw(address(config.asset), amount);
     }
 
     /**

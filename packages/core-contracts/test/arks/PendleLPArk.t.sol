@@ -51,7 +51,7 @@ contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
             name: "Pendle USDE LP Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: USDE,
+            asset: USDE,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -63,6 +63,7 @@ contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Permissioning
         vm.startPrank(governor);
+        ark.setNextMarket(NEXT_MARKET);
         accessManager.grantCommanderRole(
             address(address(ark)),
             address(commander)
@@ -337,7 +338,7 @@ contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
             name: "Invalid Asset Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: invalidAsset,
+            asset: invalidAsset,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,

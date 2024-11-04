@@ -42,10 +42,10 @@
     "@nomicfoundation/hardhat-ignition-viem": "^0.15.5",
     "@summerfi/access-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
+    "@summerfi/dependencies": "workspace:*",
     "@summerfi/dutch-auction": "workspace:*",
     "@summerfi/earn-gov-contracts": "workspace:*",
     "@summerfi/eslint-config": "workspace:*",
-    "@summerfi/dependencies": "workspace:*",
     "@summerfi/jest-config": "workspace:*",
     "@summerfi/math-utils": "workspace:*",
     "@summerfi/percentage-solidity": "workspace:*",
@@ -60,6 +60,7 @@
     "ts-node": "^10.9.2"
   },
   "dependencies": {
+    "@oasisdex/addresses": "0.1.21-automation",
     "solhint-plugin-prettier": "^0.1.0",
     "solidity-bytes-utils": "^0.8.2"
   }

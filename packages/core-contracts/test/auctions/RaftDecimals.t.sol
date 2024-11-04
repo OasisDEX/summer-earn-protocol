@@ -68,7 +68,7 @@ contract RaftDecimalsTest is AuctionTestBase {
             name: "TestArk",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: address(underlyingToken18Dec),
+            asset: address(underlyingToken18Dec),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -77,10 +77,10 @@ contract RaftDecimalsTest is AuctionTestBase {
         });
         mockArk18Dec = new ArkMock(params);
 
-        params.token = address(underlyingToken6Dec);
+        params.asset = address(underlyingToken6Dec);
         mockArk6Dec = new ArkMock(params);
 
-        params.token = address(underlyingToken8Dec);
+        params.asset = address(underlyingToken8Dec);
         mockArk8Dec = new ArkMock(params);
 
         mintTokens(
