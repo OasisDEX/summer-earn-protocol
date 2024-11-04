@@ -650,6 +650,9 @@ type Deposit implements Event @entity @transaction {
 
   " The vault involving this transaction "
   vault: Vault!
+
+  " Position that this deposit belongs to "
+  position: Position!
 }
 
 type Withdraw implements Event @entity @transaction {
@@ -688,6 +691,9 @@ type Withdraw implements Event @entity @transaction {
 
   " The vault involving this transaction "
   vault: Vault!
+
+  " Position that this withdraw belongs to "
+  position: Position!
 }
 
 # An account is a unique Ethereum address
@@ -869,6 +875,9 @@ type Position @entity {
 
   " Creation block number "
   createdBlockNumber: BigInt!
+
+  deposits: [Deposit!]! @derivedFrom(field: "position")
+  withdrawals: [Withdraw!]! @derivedFrom(field: "position")
 }
 
 type Ark @entity @regularPolling {
