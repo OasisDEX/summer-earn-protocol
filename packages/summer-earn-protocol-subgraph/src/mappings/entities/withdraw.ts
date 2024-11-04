@@ -22,5 +22,6 @@ export function createWithdrawEventEntity(
   withdraw.protocol = positionDetails.protocol
   withdraw.logIndex = event.logIndex.toI32()
   withdraw.hash = event.transaction.hash.toHexString()
+  withdraw.position = positionDetails.positionId
   withdraw.save()
 }
