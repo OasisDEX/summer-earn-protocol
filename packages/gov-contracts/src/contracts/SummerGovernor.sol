@@ -640,7 +640,7 @@ contract SummerGovernor is
 
     /**
      * @dev Returns the current voting delay.
-     * @return The current voting delay in blocks.
+     * @return The current voting delay
      */
     function votingDelay()
         public
@@ -653,7 +653,7 @@ contract SummerGovernor is
 
     /**
      * @dev Returns the current voting period.
-     * @return The current voting period in blocks.
+     * @return The current voting period
      */
     function votingPeriod()
         public

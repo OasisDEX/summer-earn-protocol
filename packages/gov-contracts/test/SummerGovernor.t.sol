@@ -79,8 +79,8 @@ contract SummerGovernorTest is
     address public david = address(0x114);
     address public whitelistGuardian = address(0x115);
 
-    uint48 public constant VOTING_DELAY = 1;
-    uint32 public constant VOTING_PERIOD = 50400;
+    uint48 public constant VOTING_DELAY = 1 days;
+    uint32 public constant VOTING_PERIOD = 1 weeks;
     uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
     uint256 public constant QUORUM_FRACTION = 4;
 
@@ -1092,7 +1092,8 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
 
         vm.prank(alice);
         (uint256 proposalId, bytes32 descriptionHash) = createProposal();
