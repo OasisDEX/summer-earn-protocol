@@ -83,6 +83,17 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
     event TrustedRemoteSet(uint32 indexed chainId, address trustedRemote);
 
     /**
+     * @notice Casts a vote for a proposal
+     * @param proposalId The ID of the proposal to vote on
+     * @param support The support for the proposal (0 = against, 1 = for, 2 = abstain)
+     * @return The proposal ID
+     */
+    function castVote(
+        uint256 proposalId,
+        uint8 support
+    ) external returns (uint256);
+
+    /**
      * @notice Proposes a new governance action
      * @param targets The addresses of the contracts to call
      * @param values The ETH values to send with the calls

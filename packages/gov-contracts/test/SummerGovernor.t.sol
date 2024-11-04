@@ -14,6 +14,7 @@ import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVote
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
+import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
 import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
 import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
@@ -1534,6 +1535,9 @@ contract SummerGovernorTest is
             params
         );
 
+        vm.prank(address(governorA));
+        aSummerToken.setDecayManager(address(wrongChainGovernor));
+
         // Ensure Alice has enough tokens to meet the proposal threshold
         deal(
             address(aSummerToken),
@@ -1562,6 +1566,9 @@ contract SummerGovernorTest is
             )
         );
         wrongChainGovernor.propose(targets, values, calldatas, description);
+
+        vm.prank(address(wrongChainGovernor));
+        aSummerToken.setDecayManager(address(governorA));
     }
 
     function getQuorumThreshold(uint256 supply) public pure returns (uint256) {
@@ -1667,5 +1674,181 @@ contract SummerGovernorTest is
         string memory description
     ) internal pure returns (bytes32) {
         return keccak256(bytes(description));
+    }
+
+    function test_DecayUpdateOnPropose() public {
+        // Setup
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.roll(block.number + 1);
+
+        // Verify decay update is called when proposing
+        vm.expectCall(
+            address(aSummerToken),
+            abi.encodeWithSelector(
+                ISummerToken.updateDecayFactor.selector,
+                alice
+            )
+        );
+
+        vm.prank(alice);
+        createProposal();
+    }
+
+    function test_DecayUpdateOnVote() public {
+        // Setup proposal
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, governorA.proposalThreshold());
+        aSummerToken.mint(bob, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.prank(bob);
+        aSummerToken.delegate(bob);
+        vm.roll(block.number + 1);
+
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+
+        // Move to voting period
+        vm.roll(block.number + governorA.votingDelay() + 1);
+
+        // Verify decay update is called when voting
+        vm.expectCall(
+            address(aSummerToken),
+            abi.encodeWithSelector(ISummerToken.updateDecayFactor.selector, bob)
+        );
+
+        vm.prank(bob);
+        governorA.castVote(proposalId, 1);
+    }
+
+    function test_DecayUpdateOnExecute() public {
+        // Setup with sufficient balance for execution
+        uint256 initialBalance = governorA.proposalThreshold() * 2;
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, initialBalance);
+        aSummerToken.mint(address(timelockA), 1000); // Add balance for transfer
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.roll(block.number + 1);
+
+        vm.prank(alice);
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description
+        ) = createProposalParams(address(aSummerToken));
+
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Vote and move to execution
+        vm.warp(block.timestamp + governorA.votingDelay() + 1);
+        vm.roll(block.number + governorA.votingDelay() + 1);
+
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
+        vm.roll(block.number + governorA.votingPeriod() + 1);
+
+        governorA.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
+
+        // Verify decay update is called when executing
+        vm.expectCall(
+            address(aSummerToken),
+            abi.encodeWithSelector(ISummerToken.updateDecayFactor.selector, bob)
+        );
+
+        vm.prank(bob);
+        governorA.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+    }
+
+    function test_DecayUpdateOnCancel() public {
+        // Setup and create proposal
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.roll(block.number + 1);
+
+        vm.startPrank(alice);
+        (uint256 proposalId, bytes32 descriptionHash) = createProposal();
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+
+        ) = createProposalParams(address(aSummerToken));
+
+        // Verify decay update is called when cancelling
+        vm.expectCall(
+            address(aSummerToken),
+            abi.encodeWithSelector(
+                ISummerToken.updateDecayFactor.selector,
+                alice
+            )
+        );
+
+        governorA.cancel(targets, values, calldatas, descriptionHash);
+        vm.stopPrank();
+    }
+
+    function test_DecayFactorUpdatesCorrectly() public {
+        uint256 initialBalance = governorA.proposalThreshold() * 10;
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, initialBalance);
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.roll(block.number + 1);
+
+        // Get initial decay factor
+        uint256 initialDecayFactor = aSummerToken.getDecayFactor(alice);
+
+        // Create proposal
+        vm.prank(alice);
+        createProposal();
+
+        vm.warp(block.timestamp + aSummerToken.decayFreeWindow() + 30 days);
+
+        // Check decay factor after proposal
+        uint256 decayFactorAfterProposal = aSummerToken.getDecayFactor(alice);
+
+        assertLt(
+            decayFactorAfterProposal,
+            initialDecayFactor,
+            "Decay factor should decrease after proposal creation"
+        );
+
+        console.log("Initial decay factor:", initialDecayFactor);
+        console.log("Decay factor after proposal:", decayFactorAfterProposal);
     }
 }

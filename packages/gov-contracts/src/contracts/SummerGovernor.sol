@@ -68,6 +68,11 @@ contract SummerGovernor is
         _;
     }
 
+    modifier updateDecay() {
+        _updateDecayFactor(_msgSender());
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -280,6 +285,15 @@ contract SummerGovernor is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
+    function castVote(
+        uint256 proposalId,
+        uint8 support
+    ) public override(ISummerGovernor, Governor) updateDecay returns (uint256) {
+        address voter = _msgSender();
+        return _castVote(proposalId, voter, support, "");
+    }
+
+    /// @inheritdoc ISummerGovernor
     function propose(
         address[] memory targets,
         uint256[] memory values,
@@ -288,6 +302,7 @@ contract SummerGovernor is
     )
         public
         override(Governor, ISummerGovernor)
+        updateDecay
         onlyProposalChain
         returns (uint256)
     {
@@ -304,7 +319,7 @@ contract SummerGovernor is
                 proposalThreshold()
             );
         }
-        _updateDecayFactor(proposer);
+
         return _propose(targets, values, calldatas, description, proposer);
     }
 
@@ -319,6 +334,7 @@ contract SummerGovernor is
         payable
         override(Governor, ISummerGovernor)
         onlyProposalChain
+        updateDecay
         returns (uint256)
     {
         return super.execute(targets, values, calldatas, descriptionHash);
@@ -333,6 +349,7 @@ contract SummerGovernor is
     )
         public
         override(Governor, ISummerGovernor)
+        updateDecay
         onlyProposalChain
         returns (uint256)
     {
@@ -355,7 +372,7 @@ contract SummerGovernor is
                 proposalThreshold()
             );
         }
-        _updateDecayFactor(proposer);
+
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 

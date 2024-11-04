@@ -3,29 +3,14 @@ pragma solidity 0.8.28;
 
 import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {VotingDecayManager} from "@summerfi/voting-decay/VotingDecayManager.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 
-contract MockSummerGovernor is ERC165, VotingDecayManager {
+contract MockSummerGovernor is ERC165 {
     mapping(bytes32 => mapping(address => bool)) private roles;
 
-    constructor(
-        uint40 initialDecayFreeWindow,
-        uint256 initialDecayRate,
-        VotingDecayLibrary.DecayFunction initialDecayFunction
-    )
-        VotingDecayManager(
-            initialDecayFreeWindow,
-            initialDecayRate,
-            initialDecayFunction
-        )
-    {}
+    constructor() {}
 
     function test_() public {}
-
-    function initializeAccount(address account) external {
-        _initializeAccountIfNew(account);
-    }
 
     function hasRole(
         bytes32 role,
@@ -57,15 +42,5 @@ contract MockSummerGovernor is ERC165, VotingDecayManager {
         return
             interfaceId == type(ISummerGovernor).interfaceId ||
             super.supportsInterface(interfaceId);
-    }
-
-    function _getDelegateTo(
-        address account
-    ) internal pure override returns (address) {
-        return account;
-    }
-
-    function updateDecayFactor(address account) external {
-        _updateDecayFactor(account);
     }
 }

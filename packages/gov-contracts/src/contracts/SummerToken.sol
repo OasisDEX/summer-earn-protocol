@@ -65,6 +65,11 @@ contract SummerToken is
         _;
     }
 
+    modifier updateDecay() {
+        _updateDecayFactor(_msgSender());
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -193,12 +198,18 @@ contract SummerToken is
     /**
      * @dev Delegates voting power to a specified address
      * @param delegatee The address to delegate voting power to
+     * @dev Updates the decay factor for the caller
      */
-    function delegate(address delegatee) public override {
+    function delegate(address delegatee) public override updateDecay {
         super.delegate(delegatee);
-        _updateDecayFactor(_msgSender());
     }
 
+    /**
+     * @dev Required override to resolve inheritance conflict between IERC20Permit, ERC20Permit, and Nonces contracts.
+     * This implementation simply calls the parent implementation and exists solely to satisfy the compiler.
+     * @param owner The address to get nonces for
+     * @return The current nonce for the specified owner
+     */
     function nonces(
         address owner
     )
@@ -261,32 +272,18 @@ contract SummerToken is
     }
 
     /**
-     * @dev Overrides the default _getVotingUnits function to include all user tokens in voting power, including locked up tokens in vesting wallets
+     * @dev Returns the voting units for an account including direct balance, staking balance, and vesting balance
      * @param account The address to get voting units for
-     * @return uint256 The total number of voting units for the account
-     * @custom:internal-logic
-     * - Retrieves the direct token balance of the account
-     * - Checks if the account has an associated vesting wallet
-     * - If a vesting wallet exists, adds its balance to the account's direct balance
-     * @custom:effects
-     * - Does not modify any state, view function only
-     * @custom:security-considerations
-     * - Ensures that tokens in vesting contracts still contribute to voting power
-     * - May increase the voting power of accounts with vesting wallets compared to standard ERC20Votes implementation
-     * - Consider the implications of this increased voting power on governance decisions
-     * @custom:gas-considerations
-     * - This function performs an additional storage read and potential balance check compared to the standard implementation
-     * - May slightly increase gas costs for voting-related operations
+     * @return Voting units
      */
     function _getVotingUnits(
         address account
     ) internal view override returns (uint256) {
+        // Get raw voting units first
         uint256 directBalance = balanceOf(account);
         uint256 stakingBalance = rewardsManager.balanceOf(account);
-
-        address vestingWalletAddress = vestingWallets[account];
-        uint256 vestingBalance = vestingWalletAddress != address(0)
-            ? balanceOf(vestingWalletAddress)
+        uint256 vestingBalance = vestingWallets[account] != address(0)
+            ? balanceOf(vestingWallets[account])
             : 0;
 
         return directBalance + stakingBalance + vestingBalance;
