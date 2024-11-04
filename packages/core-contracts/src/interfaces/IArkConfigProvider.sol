@@ -64,7 +64,7 @@ interface IArkConfigProvider is
      * @notice Returns the ERC20 token managed by this Ark
      * @return The IERC20 interface of the managed token
      */
-    function token() external view returns (IERC20);
+    function asset() external view returns (IERC20);
 
     /**
      * @notice Returns the address of the Fleet commander managing the ark

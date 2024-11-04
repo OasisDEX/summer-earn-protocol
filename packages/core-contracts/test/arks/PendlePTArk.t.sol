@@ -53,7 +53,7 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
             name: "Pendle USDE PT Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: USDE,
+            asset: USDE,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -61,10 +61,18 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new PendlePTArk(MARKET, ORACLE, ROUTER, params);
+        PendlePtArkConstructorParams
+            memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
+                market: MARKET,
+                oracle: ORACLE,
+                router: ROUTER
+            });
+
+        ark = new PendlePTArk(pendlePtArkConstructorParams, params);
 
         // Permissioning
         vm.startPrank(governor);
+        ark.setNextMarket(NEXT_MARKET);
         accessManager.grantCommanderRole(
             address(address(ark)),
             address(commander)
@@ -369,7 +377,7 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
             name: "Invalid Asset Ark",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            token: invalidAsset,
+            asset: invalidAsset,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -378,7 +386,13 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
         });
 
         vm.expectRevert(abi.encodeWithSignature("InvalidAssetForSY()"));
-        new PendlePTArk(MARKET, ORACLE, ROUTER, params);
+        PendlePtArkConstructorParams
+            memory pendlePtArkConstructorParams = PendlePtArkConstructorParams({
+                market: MARKET,
+                oracle: ORACLE,
+                router: ROUTER
+            });
+        new PendlePTArk(pendlePtArkConstructorParams, params);
     }
 
     function test_SetupRouterParams() public view {

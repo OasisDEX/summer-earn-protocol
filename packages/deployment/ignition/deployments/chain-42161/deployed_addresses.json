@@ -14,5 +14,6 @@
   "FleetModule_LazyVault_USDC_Arbitrum_Test#FleetCommander": "0x4774d1cD62D20c288dFAdEfDEDF79d5B4cae1856",
   "AaveV3ArkModule#AaveV3Ark": "0x85AA5809f3ce928b658Dd17876DC414962456563",
   "CompoundV3ArkModule#CompoundV3Ark": "0x8e3293b9052437D3A5aad5e829D8EE8B05bC391e",
-  "ERC4626Ark_gearbox_usdc#ERC4626Ark": "0x1003aaeB64B9fc1BB8BB4dcEb7c65A59BA61a0f8"
+  "ERC4626Ark_gearbox_usdc#ERC4626Ark": "0x1003aaeB64B9fc1BB8BB4dcEb7c65A59BA61a0f8",
+  "PendlePtOracleArkModule#PendlePtOracleArk": "0xfd3dDE67A2207508334Dd81F10e2Bfe8DD7886dc"
 }

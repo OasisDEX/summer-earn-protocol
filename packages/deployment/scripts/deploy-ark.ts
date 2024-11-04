@@ -9,7 +9,7 @@ import { deployMetaMorphoArk } from './arks/deploy-metamorpho-ark'
 import { deployMorphoArk } from './arks/deploy-morpho-ark'
 import { deployPendleLPArk } from './arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from './arks/deploy-pendle-pt-ark'
-import { addArkToFleet } from './common/add-ark-to-fleet'
+import { deployPendlePTOracleArk } from './arks/deploy-pendle-pt-oracle-ark'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 
@@ -21,6 +21,7 @@ const arkTypes = [
   { title: 'ERC4626Ark', value: deployERC4626Ark },
   { title: 'PendleLPArk', value: deployPendleLPArk },
   { title: 'PendlePTArk', value: deployPendlePTArk },
+  { title: 'PendlePtOracleArk', value: deployPendlePTOracleArk },
 ]
 
 async function deployArk() {
@@ -49,7 +50,7 @@ async function deployArk() {
     ModuleLogger.logArk(deployedArk)
 
     // Add Ark to Fleet
-    await addArkToFleet(deployedArk.ark.address as Address, config, hre)
+    // await addArkToFleet(deployedArk.ark.address as Address, config, hre)
   } else {
     console.log(kleur.red().bold('Ark deployment failed or was cancelled.'))
   }

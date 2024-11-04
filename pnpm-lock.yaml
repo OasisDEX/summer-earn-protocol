@@ -90,6 +90,9 @@ importers:
 
   packages/core-contracts:
     dependencies:
+      '@oasisdex/addresses':
+        specifier: 0.1.21-automation
+        version: 0.1.21-automation
       solhint-plugin-prettier:
         specifier: ^0.1.0
         version: 0.1.0(prettier-plugin-solidity@1.4.1)(prettier@3.3.3)
@@ -2587,6 +2590,10 @@ packages:
       '@nomicfoundation/solidity-analyzer-linux-x64-musl': 0.1.2
       '@nomicfoundation/solidity-analyzer-win32-x64-msvc': 0.1.2
     dev: true
+
+  /@oasisdex/addresses@0.1.21-automation:
+    resolution: {integrity: sha512-04/JGbw5mmVXvIKzqVuNgc64hL7x2mAqc6jCbesUpeCQPqJwI/a2TtU9WIp85j0C0PdZ5qZWcSPXaFXKGeClwQ==}
+    dev: false
 
   /@oclif/core@2.16.0(@types/node@20.16.1)(typescript@5.5.4):
     resolution: {integrity: sha512-dL6atBH0zCZl1A1IXCKJgLPrM/wR7K+Wi401E/IvqsK8m2iCHW+0TEOGrans/cuN3oTW+uxIyJFHJ8Im0k4qBw==}

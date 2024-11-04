@@ -39,6 +39,8 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
 
     /// @notice Address of the current Pendle market
     address public market;
+    /// @notice Address of the next Pendle market
+    address public nextMarket;
     /// @notice Address of the Pendle router
     address public immutable router;
     /// @notice Address of the Pendle oracle
@@ -130,26 +132,29 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @dev Rolls over to a new market if needed, then deposits tokens for Ark-specific tokens
      * @param amount Amount of assets to deposit
      */
-    function _board(uint256 amount, bytes calldata) internal override {
+    function _board(uint256 amount, bytes calldata) internal virtual override {
         _rolloverIfNeeded();
-        _depositTokenForArkToken(amount);
+        _depositFleetAssetForArkToken(amount);
     }
 
     /**
      * @dev This function handles redemption differently based on whether the market has expired:
      * 1. If the market has expired:
      *    - Use a 1:1 exchange ratio between PT / LP and asset (no slippage)
-     *    - Call _redeemTokensPostExpiry
+     *    - Call _redeemFleetAssetPostExpiry
      * 2. If the market has not expired:
      *    - Calculate PT / LP amount needed, accounting for slippage
-     *    - Call _redeemTokens
+     *    - Call _redeemFleetAsset
      *
      * The slippage is applied differently in each case to protect the user from unfavorable price movements.
      */
-    function _disembark(uint256 amount, bytes calldata) internal override {
+    function _disembark(
+        uint256 amount,
+        bytes calldata
+    ) internal virtual override {
         _rolloverIfNeeded();
         if (block.timestamp >= marketExpiry) {
-            _redeemTokensPostExpiry(amount, amount);
+            _redeemFleetAssetPostExpiry(amount, amount);
         } else {
             uint256 arkTokenBalance = _balanceOfArkTokens();
             uint256 withdrawAmountInArkTokens = _assetToArkTokens(amount)
@@ -157,7 +162,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
             uint256 finalAmount = (withdrawAmountInArkTokens > arkTokenBalance)
                 ? arkTokenBalance
                 : withdrawAmountInArkTokens;
-            _redeemTokens(finalAmount, amount);
+            _redeemFleetAsset(finalAmount, amount);
         }
     }
 
@@ -204,8 +209,8 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
         market = newMarket;
         (SY, PT, YT) = IPMarketV3(newMarket).readTokens();
         if (
-            !IStandardizedYield(SY).isValidTokenIn(address(config.token)) ||
-            !IStandardizedYield(SY).isValidTokenOut(address(config.token))
+            !IStandardizedYield(SY).isValidTokenIn(address(config.asset)) ||
+            !IStandardizedYield(SY).isValidTokenOut(address(config.asset))
         ) {
             revert InvalidAssetForSY();
         }
@@ -227,7 +232,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
         if (!_isOracleReady(newMarket)) {
             return;
         }
-        _redeemAllTokensFromExpiredMarket();
+        _redeemAllFleetAssetsFromExpiredMarket();
         _updateMarketAndTokens(newMarket);
 
         emit MarketRolledOver(newMarket);
@@ -274,7 +279,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @param amount Amount of Ark-specific tokens to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
      */
-    function _redeemTokens(
+    function _redeemFleetAsset(
         uint256 amount,
         uint256 minTokenOut
     ) internal virtual;
@@ -284,7 +289,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @param amount Amount of Ark-specific tokens to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
      */
-    function _redeemTokensPostExpiry(
+    function _redeemFleetAssetPostExpiry(
         uint256 amount,
         uint256 minTokenOut
     ) internal virtual;
@@ -293,7 +298,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @notice Abstract method to deposit tokens for Ark-specific tokens
      * @param amount Amount of underlying tokens to deposit
      */
-    function _depositTokenForArkToken(uint256 amount) internal virtual;
+    function _depositFleetAssetForArkToken(uint256 amount) internal virtual;
 
     /**
      * @notice Sets up token approvals
@@ -301,15 +306,17 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
     function _setupApprovals() internal virtual;
 
     /**
-     * @notice Finds the next valid market
-     * @return Address of the next market
+     * @notice Set the next market
+     * @param _nextMarket Address of the next market
      */
-    function nextMarket() public view virtual returns (address);
+    function setNextMarket(address _nextMarket) public onlyGovernor {
+        nextMarket = _nextMarket;
+    }
 
     /**
      * @notice Redeems all tokens from the current position
      */
-    function _redeemAllTokensFromExpiredMarket() internal virtual;
+    function _redeemAllFleetAssetsFromExpiredMarket() internal virtual;
 
     /**
      * @notice Abstract method to get the balance of Ark-specific tokens

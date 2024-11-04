@@ -155,12 +155,14 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     /**
      * @notice Modifier to restrict access to curators only
+     * @param fleetAddress The address of the fleet to check the curator role for
      * @dev Checks if the caller has the contract-specific CURATOR_ROLE
      */
-    modifier onlyCurator() {
+    modifier onlyCurator(address fleetAddress) {
         if (
+            fleetAddress == address(0) ||
             !_accessManager.hasRole(
-                generateRole(ContractSpecificRoles.CURATOR_ROLE, address(this)),
+                generateRole(ContractSpecificRoles.CURATOR_ROLE, fleetAddress),
                 msg.sender
             )
         ) {

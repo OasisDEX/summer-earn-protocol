@@ -49,8 +49,10 @@ async function getUserInput(config: BaseConfig): Promise<PendleLPArkUserInput> {
     throw new Error('No Pendle markets found in the configuration.')
   }
   for (const token in config.protocolSpecific.pendle.markets) {
-    for (const marketName in config.protocolSpecific.pendle.markets[token as Tokens]) {
-      const marketId = config.protocolSpecific.pendle.markets[token as TokenType][marketName]
+    for (const marketName in config.protocolSpecific.pendle.markets[token as Tokens]
+      .marketAddresses) {
+      const marketId =
+        config.protocolSpecific.pendle.markets[token as TokenType].marketAddresses[marketName]
       pendleMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
         value: { token, marketId },

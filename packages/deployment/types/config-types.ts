@@ -37,7 +37,11 @@ export interface BaseConfig {
       'lp-oracle': Address
       markets: {
         [key in Tokens]: {
-          [key: string]: Address
+          swapInTokens: Array<{
+            token: TokenType
+            oracle: Address
+          }>
+          marketAddresses: Record<string, Address>
         }
       }
     }

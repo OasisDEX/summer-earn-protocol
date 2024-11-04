@@ -46,7 +46,7 @@ contract FleetCommanderConfigProvider is
             ArkParams({
                 name: "BufferArk",
                 accessManager: address(params.accessManager),
-                token: params.asset,
+                asset: params.asset,
                 configurationManager: address(params.configurationManager),
                 depositCap: type(uint256).max,
                 maxRebalanceOutflow: type(uint256).max,
@@ -143,7 +143,7 @@ contract FleetCommanderConfigProvider is
     function setArkDepositCap(
         address ark,
         uint256 newDepositCap
-    ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
+    ) external onlyCurator(address(this)) onlyActiveArk(ark) whenNotPaused {
         IArk(ark).setDepositCap(newDepositCap);
     }
 
@@ -151,7 +151,7 @@ contract FleetCommanderConfigProvider is
     function setArkMaxDepositPercentageOfTVL(
         address ark,
         Percentage newMaxDepositPercentageOfTVL
-    ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
+    ) external onlyCurator(address(this)) onlyActiveArk(ark) whenNotPaused {
         IArk(ark).setMaxDepositPercentageOfTVL(newMaxDepositPercentageOfTVL);
     }
 
@@ -159,7 +159,7 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceOutflow(
         address ark,
         uint256 newMaxRebalanceOutflow
-    ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
+    ) external onlyCurator(address(this)) onlyActiveArk(ark) whenNotPaused {
         IArk(ark).setMaxRebalanceOutflow(newMaxRebalanceOutflow);
     }
 
@@ -167,14 +167,14 @@ contract FleetCommanderConfigProvider is
     function setArkMaxRebalanceInflow(
         address ark,
         uint256 newMaxRebalanceInflow
-    ) external onlyCurator onlyActiveArk(ark) whenNotPaused {
+    ) external onlyCurator(address(this)) onlyActiveArk(ark) whenNotPaused {
         IArk(ark).setMaxRebalanceInflow(newMaxRebalanceInflow);
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
     function setMinimumBufferBalance(
         uint256 newMinimumBalance
-    ) external onlyCurator whenNotPaused {
+    ) external onlyCurator(address(this)) whenNotPaused {
         config.minimumBufferBalance = newMinimumBalance;
         emit FleetCommanderminimumBufferBalanceUpdated(newMinimumBalance);
     }
@@ -182,7 +182,7 @@ contract FleetCommanderConfigProvider is
     ///@inheritdoc IFleetCommanderConfigProvider
     function setFleetDepositCap(
         uint256 newCap
-    ) external onlyCurator whenNotPaused {
+    ) external onlyCurator(address(this)) whenNotPaused {
         config.depositCap = newCap;
         emit FleetCommanderDepositCapUpdated(newCap);
     }
@@ -190,7 +190,7 @@ contract FleetCommanderConfigProvider is
     ///@inheritdoc IFleetCommanderConfigProvider
     function setStakingRewardsManager(
         address newStakingRewardsManager
-    ) external onlyCurator whenNotPaused {
+    ) external onlyCurator(address(this)) whenNotPaused {
         if (newStakingRewardsManager == address(0)) {
             revert FleetCommanderInvalidStakingRewardsManager();
         }
@@ -204,7 +204,7 @@ contract FleetCommanderConfigProvider is
     ///@inheritdoc IFleetCommanderConfigProvider
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
-    ) external onlyCurator whenNotPaused {
+    ) external onlyCurator(address(this)) whenNotPaused {
         config.maxRebalanceOperations = newMaxRebalanceOperations;
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations

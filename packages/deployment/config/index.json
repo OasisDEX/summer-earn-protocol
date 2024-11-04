@@ -150,7 +150,15 @@
         "lp-oracle": "0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2",
         "markets": {
           "usde": {
-            "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+            "marketAddresses": {
+              "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+            },
+            "swapInTokens": [
+              {
+                "token": "usdc",
+                "oracle": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+              }
+            ]
           }
         }
       },

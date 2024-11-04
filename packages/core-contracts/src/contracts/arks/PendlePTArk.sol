@@ -3,6 +3,12 @@ pragma solidity 0.8.28;
 
 import "./BasePendleArk.sol";
 
+struct PendlePtArkConstructorParams {
+    address market;
+    address oracle;
+    address router;
+}
+
 /**
  * @title PendlePTArk
  * @notice Ark contract for managing token supply and yield generation through Pendle Principal Tokens (PT).
@@ -18,17 +24,20 @@ contract PendlePTArk is BasePendleArk {
 
     /**
      * @notice Constructor for PendlePTArk
-     * @param _market Address of the Pendle market
-     * @param _oracle Address of the Pendle oracle
-     * @param _router Address of the Pendle router
+     * @param _pendlePtArkConstructorParams PendlePtArkConstructorParams struct containing initialization parameters
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address _market,
-        address _oracle,
-        address _router,
+        PendlePtArkConstructorParams memory _pendlePtArkConstructorParams,
         ArkParams memory _params
-    ) BasePendleArk(_market, _oracle, _router, _params) {}
+    )
+        BasePendleArk(
+            _pendlePtArkConstructorParams.market,
+            _pendlePtArkConstructorParams.oracle,
+            _pendlePtArkConstructorParams.router,
+            _params
+        )
+    {}
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
@@ -38,7 +47,7 @@ contract PendlePTArk is BasePendleArk {
      * @notice Set up token approvals for Pendle interactions
      */
     function _setupApprovals() internal override {
-        config.token.forceApprove(address(router), type(uint256).max);
+        config.asset.forceApprove(address(router), type(uint256).max);
         IERC20(SY).forceApprove(router, type(uint256).max);
         IERC20(PT).forceApprove(router, type(uint256).max);
     }
@@ -56,7 +65,7 @@ contract PendlePTArk is BasePendleArk {
      * We use slippage protection here to ensure we receive at least the calculated minimum PT tokens.
      * This protects against sudden price movements between our calculation and the actual swap execution.
      */
-    function _depositTokenForArkToken(uint256 _amount) internal override {
+    function _depositFleetAssetForArkToken(uint256 _amount) internal override {
         if (block.timestamp >= marketExpiry) {
             revert MarketExpired();
         }
@@ -65,9 +74,9 @@ contract PendlePTArk is BasePendleArk {
         );
 
         TokenInput memory tokenInput = TokenInput({
-            tokenIn: address(config.token),
+            tokenIn: address(config.asset),
             netTokenIn: _amount,
-            tokenMintSy: address(config.token),
+            tokenMintSy: address(config.asset),
             pendleSwap: address(0),
             swapData: emptySwap
         });
@@ -87,11 +96,11 @@ contract PendlePTArk is BasePendleArk {
      * @param amount Amount of PT to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
      */
-    function _redeemTokens(
+    function _redeemFleetAsset(
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
-        _redeemTokenFromPtBeforeExpiry(amount, minTokenOut);
+        _redeemFleetAssetFromPtBeforeExpiry(amount, minTokenOut);
     }
 
     /**
@@ -99,11 +108,11 @@ contract PendlePTArk is BasePendleArk {
      * @param amount Amount of PT to redeem
      * @param minTokenOut Minimum amount of underlying tokens to receive
      */
-    function _redeemTokensPostExpiry(
+    function _redeemFleetAssetPostExpiry(
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
-        _redeemTokenFromPtPostExpiry(amount, minTokenOut);
+        _redeemFleetAssetFromPtPostExpiry(amount, minTokenOut);
     }
 
     /**
@@ -115,7 +124,7 @@ contract PendlePTArk is BasePendleArk {
      * 2. Redeem SY to underlying token
      * No slippage is applied as the exchange rate is fixed post-expiry
      */
-    function _redeemTokenFromPtPostExpiry(
+    function _redeemFleetAssetFromPtPostExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
     ) internal {
@@ -131,13 +140,13 @@ contract PendlePTArk is BasePendleArk {
         uint256 syBalance = IERC20(SY).balanceOf(address(this));
         if (syBalance > 0) {
             uint256 tokensToRedeem = IStandardizedYield(SY).previewRedeem(
-                address(config.token),
+                address(config.asset),
                 syBalance
             );
             IStandardizedYield(SY).redeem(
                 address(this),
                 syBalance,
-                address(config.token),
+                address(config.asset),
                 tokensToRedeem,
                 false
             );
@@ -153,14 +162,14 @@ contract PendlePTArk is BasePendleArk {
      * 2. Execute the swap using Pendle's router
      * Slippage protection is applied to ensure the minimum token output
      */
-    function _redeemTokenFromPtBeforeExpiry(
+    function _redeemFleetAssetFromPtBeforeExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
     ) internal {
         TokenOutput memory tokenOutput = TokenOutput({
-            tokenOut: address(config.token),
+            tokenOut: address(config.asset),
             minTokenOut: minTokenOut,
-            tokenRedeemSy: address(config.token),
+            tokenRedeemSy: address(config.asset),
             pendleSwap: address(0),
             swapData: emptySwap
         });
@@ -177,23 +186,14 @@ contract PendlePTArk is BasePendleArk {
     /**
      * @notice Redeems all PT for underlying tokens after market expiry
      */
-    function _redeemAllTokensFromExpiredMarket() internal override {
+    function _redeemAllFleetAssetsFromExpiredMarket() internal override {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        _redeemTokenFromPtPostExpiry(ptBalance, ptBalance);
+        _redeemFleetAssetFromPtPostExpiry(ptBalance, ptBalance);
     }
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Finds the next valid market
-     * @return Address of the next market
-     * @dev TODO: Implement logic to find the next valid market
-     */
-    function nextMarket() public pure override returns (address) {
-        return 0x3d1E7312dE9b8fC246ddEd971EE7547B0a80592A;
-    }
 
     /**
      * @notice Fetches the PT to Asset rate from the PendlePYLpOracle contract
