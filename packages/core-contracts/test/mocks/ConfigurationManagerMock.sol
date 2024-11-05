@@ -10,7 +10,7 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
     address public raft;
     uint256 public tipRate;
     address public harborCommand;
-    address public governor;
+
     constructor(
         address _tipJar,
         address _treasury,
@@ -34,8 +34,6 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
     function setTreasury(address) external pure {}
 
     function setHarborCommand(address) external pure {}
-
-    function setGovernor(address) external pure {}
 }
 
 contract ConfigurationManagerImplMock is ConfigurationManagerMock {

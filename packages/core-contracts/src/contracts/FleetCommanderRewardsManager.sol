@@ -2,16 +2,17 @@
 pragma solidity 0.8.28;
 
 import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
-import {IFleetRewardsManager} from "../interfaces/IFleetRewardsManager.sol";
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * @title FleetRewardsManager
+ * @title FleetCommanderRewardsManager
  * @notice Contract for managing staking rewards specific to the Fleet system
  * @dev Extends StakingRewardsManagerBase with Fleet-specific functionality
  */
-contract FleetRewardsManager is
-    IFleetRewardsManager,
+contract FleetCommanderRewardsManager is
+    IFleetCommanderRewardsManager,
     StakingRewardsManagerBase
 {
     address public fleetCommander;
@@ -32,5 +33,10 @@ contract FleetRewardsManager is
     function _initialize(IERC20 _stakingToken) internal override {
         stakingToken = _stakingToken;
         emit StakingTokenInitialized(address(_stakingToken));
+    }
+
+    /// @inheritdoc IStakingRewardsManagerBase
+    function stakeFor(address receiver, uint256 amount) external override {
+        _stake(_msgSender(), receiver, amount);
     }
 }

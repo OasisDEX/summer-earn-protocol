@@ -17,7 +17,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {IFleetRewardsManager} from "../interfaces/IFleetRewardsManager.sol";
+import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 
 /**
  * @title FleetCommander
@@ -1054,7 +1054,7 @@ contract FleetCommander is
             revert FleetCommanderStakingRewardsManagerNotSet();
         }
 
-        IFleetRewardsManager(config.stakingRewardsManager).stakeFor(
+        IFleetCommanderRewardsManager(config.stakingRewardsManager).stakeFor(
             account,
             amount
         );

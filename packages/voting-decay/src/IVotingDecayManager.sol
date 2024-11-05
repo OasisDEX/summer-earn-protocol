@@ -30,6 +30,7 @@ interface IVotingDecayManager {
     event DecayReset(address indexed account);
     event DecayFreeWindowSet(uint256 window);
     event DecayFunctionSet(uint8 newFunction);
+    event AccountInitialized(address indexed account);
 
     /*//////////////////////////////////////////////////////////////
                                 FUNCTIONS

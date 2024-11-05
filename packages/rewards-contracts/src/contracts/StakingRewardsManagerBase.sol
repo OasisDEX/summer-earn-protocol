@@ -156,19 +156,6 @@ abstract contract StakingRewardsManagerBase is
         _stake(_msgSender(), _msgSender(), amount);
     }
 
-    /*
-     * @notice Stakes tokens on behalf of another address
-     * @param receiver The address that will receive the staked position
-     * @param amount The amount of tokens to stake
-     * @dev Requires approval of stakingToken
-     */
-    function stakeFor(
-        address receiver,
-        uint256 amount
-    ) external virtual updateReward(receiver) {
-        _stake(_msgSender(), receiver, amount);
-    }
-
     /// @inheritdoc IStakingRewardsManagerBase
     function unstake(
         uint256 amount

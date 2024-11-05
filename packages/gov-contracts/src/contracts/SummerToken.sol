@@ -9,6 +9,7 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
@@ -45,26 +46,41 @@ contract SummerToken is
 
     mapping(address owner => address vestingWallet) public vestingWallets;
     GovernanceRewardsManager public rewardsManager;
-    address public decayManager;
+    mapping(address => bool) public decayManagers;
 
     /*//////////////////////////////////////////////////////////////
                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Restricts function access to decay managers or the governor
+     * @dev Reverts with CallerIsNotAuthorized if caller is neither a decay manager nor governor
+     * @custom:security Ensures critical decay-related functions can only be called by authorized parties
+     */
     modifier onlyDecayManagerOrGovernor() {
-        if (decayManager != _msgSender() && !_isGovernor(_msgSender())) {
+        if (!_isDecayManager(_msgSender()) && !_isGovernor(_msgSender())) {
             revert CallerIsNotAuthorized(_msgSender());
         }
         _;
     }
 
+    /**
+     * @notice Restricts function access to decay managers only
+     * @dev Reverts with CallerIsNotDecayManager if caller is not a registered decay manager
+     * @custom:security Ensures decay-specific functions can only be called by decay managers
+     */
     modifier onlyDecayManager() {
-        if (decayManager != _msgSender()) {
+        if (!_isDecayManager(_msgSender())) {
             revert CallerIsNotDecayManager(_msgSender());
         }
         _;
     }
 
+    /**
+     * @notice Updates the caller's decay factor before executing the function
+     * @dev Calls internal _updateDecayFactor function to recalculate the sender's current decay
+     * @custom:relationship-to-votingdecay Updates voting power decay before state-changing operations
+     */
     modifier updateDecay() {
         _updateDecayFactor(_msgSender());
         _;
@@ -91,7 +107,11 @@ contract SummerToken is
             address(this),
             params.accessManager
         );
-        decayManager = params.decayManager;
+        decayManagers[params.decayManager] = true;
+        decayManagers[address(rewardsManager)] = true;
+
+        emit DecayManagerUpdated(params.decayManager, true);
+        emit DecayManagerUpdated(address(rewardsManager), true);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -119,10 +139,11 @@ contract SummerToken is
 
     /// @inheritdoc ISummerToken
     function setDecayManager(
-        address newDecayManager
+        address manager,
+        bool isEnabled
     ) public onlyDecayManagerOrGovernor {
-        decayManager = newDecayManager;
-        emit DecayManagerUpdated(newDecayManager);
+        decayManagers[manager] = isEnabled;
+        emit DecayManagerUpdated(manager, isEnabled);
     }
 
     /// @inheritdoc ISummerToken
@@ -179,18 +200,6 @@ contract SummerToken is
         _updateDecayFactor(account);
     }
 
-    /// @inheritdoc ISummerToken
-    function delegateAndStake(address delegatee) public virtual {
-        delegate(delegatee);
-        _stake(balanceOf(_msgSender()));
-    }
-
-    /// @inheritdoc ISummerToken
-    function undelegateAndUnstake() external {
-        delegate(address(0));
-        _unstake(rewardsManager.balanceOf(_msgSender()));
-    }
-
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -229,9 +238,40 @@ contract SummerToken is
         return "mode=timestamp";
     }
 
+    /// @inheritdoc ISummerToken
+    function getVotes(
+        address account
+    ) public view override(ISummerToken, Votes) returns (uint256) {
+        return getVotingPower(account, super.getVotes(account));
+    }
+
+    /**
+     * @notice Returns the votes for an account at a specific past block, with decay factor applied
+     * @param account The address to get votes for
+     * @param timepoint The block number to get votes at
+     * @return The historical voting power after applying the decay factor
+     * @dev This function:
+     * 1. Gets the historical raw votes using ERC20Votes' _getPastVotes
+     * 2. Applies the current decay factor from VotingDecayManager
+     * @custom:relationship-to-votingdecay
+     * - Uses VotingDecayManager.getVotingPower() to apply decay
+     * - Note: The decay factor is current, not historical
+     * - This means voting power can decrease over time even for past checkpoints
+     */
+    function getPastVotes(
+        address account,
+        uint256 timepoint
+    ) public view override returns (uint256) {
+        return getVotingPower(account, super.getPastVotes(account, timepoint));
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _isDecayManager(address account) internal view returns (bool) {
+        return decayManagers[account];
+    }
 
     /**
      * @dev Internal function to update token balances.
@@ -321,46 +361,6 @@ contract SummerToken is
         }
 
         super._transferVotingUnits(from, to, amount);
-    }
-
-    /**
-     * @dev Stakes tokens in the rewards manager for the caller
-     * @param amount The target amount to stake
-     * @custom:internal-logic
-     * - Compares current stake with target amount
-     * - Stakes additional tokens if target is higher
-     * - Unstakes excess tokens if target is lower
-     * @custom:security-considerations
-     * - Only modifies stake up to the available balance
-     * - Ensures atomic stake/unstake operations
-     */
-    function _stake(uint256 amount) internal {
-        uint256 currentStake = rewardsManager.balanceOf(_msgSender());
-        if (amount > currentStake) {
-            uint256 additionalStake = amount - currentStake;
-            rewardsManager.stakeFor(_msgSender(), additionalStake);
-        } else if (amount < currentStake) {
-            uint256 unstakeAmount = currentStake - amount;
-            rewardsManager.unstakeFor(_msgSender(), unstakeAmount);
-        }
-    }
-
-    /**
-     * @dev Unstakes tokens from the rewards manager for the caller
-     * @param amount The amount to unstake
-     * @custom:internal-logic
-     * - Caps unstake amount to current staked balance
-     * - Only executes if there are tokens to unstake
-     * @custom:security-considerations
-     * - Prevents unstaking more than staked balance
-     * - Safely handles zero unstake amounts
-     */
-    function _unstake(uint256 amount) internal {
-        uint256 currentStake = rewardsManager.balanceOf(_msgSender());
-        uint256 unstakeAmount = amount > currentStake ? currentStake : amount;
-        if (unstakeAmount > 0) {
-            rewardsManager.unstakeFor(_msgSender(), unstakeAmount);
-        }
     }
 
     /**

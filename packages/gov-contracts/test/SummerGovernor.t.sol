@@ -125,8 +125,8 @@ contract SummerGovernorTest is
         governorB = new ExposedSummerGovernor(paramsB);
 
         vm.startPrank(address(mockGovernor));
-        aSummerToken.setDecayManager(address(governorA));
-        bSummerToken.setDecayManager(address(governorB));
+        aSummerToken.setDecayManager(address(governorA), true);
+        bSummerToken.setDecayManager(address(governorB), true);
         vm.stopPrank();
 
         governorA.setTrustedRemote(bEid, address(governorB));
@@ -1537,7 +1537,7 @@ contract SummerGovernorTest is
         );
 
         vm.prank(address(governorA));
-        aSummerToken.setDecayManager(address(wrongChainGovernor));
+        aSummerToken.setDecayManager(address(wrongChainGovernor), true);
 
         // Ensure Alice has enough tokens to meet the proposal threshold
         deal(
@@ -1569,7 +1569,115 @@ contract SummerGovernorTest is
         wrongChainGovernor.propose(targets, values, calldatas, description);
 
         vm.prank(address(wrongChainGovernor));
-        aSummerToken.setDecayManager(address(governorA));
+        aSummerToken.setDecayManager(address(governorA), true);
+    }
+
+    function test_ProposalFailsQuorumAfterDecay() public {
+        // Setup: Mint tokens just above quorum threshold
+        uint256 supply = 100000000 * 10 ** 18;
+        uint256 quorumThreshold = getQuorumThreshold(supply);
+
+        // Give multiple voters enough combined tokens to meet quorum
+        uint256 aliceTokens = quorumThreshold / 2;
+        uint256 bobTokens = quorumThreshold / 2;
+        uint256 totalVotingPower = aliceTokens + bobTokens;
+
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(alice, aliceTokens);
+        aSummerToken.mint(bob, bobTokens);
+        aSummerToken.mint(charlie, supply - aliceTokens - bobTokens);
+        vm.stopPrank();
+
+        // Delegate voting power
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.prank(bob);
+        aSummerToken.delegate(bob);
+        vm.roll(block.number + 1);
+
+        // Verify initial combined voting power meets quorum
+        uint256 initialAliceVotes = governorA.getVotes(alice, block.number - 1);
+        uint256 initialBobVotes = governorA.getVotes(bob, block.number - 1);
+        uint256 initialTotalVotes = initialAliceVotes + initialBobVotes;
+        uint256 initialQuorum = governorA.quorum(block.number - 1);
+
+        console.log("Initial Alice votes:", initialAliceVotes);
+        console.log("Initial Bob votes:", initialBobVotes);
+        console.log("Initial total votes:", initialTotalVotes);
+        console.log("Initial quorum needed:", initialQuorum);
+
+        assertTrue(
+            initialTotalVotes >= initialQuorum,
+            "Combined voting power should meet quorum initially"
+        );
+
+        // Move time beyond decay free window
+        uint256 decayPeriod = aSummerToken.decayFreeWindow() + 30 days;
+        vm.warp(block.timestamp + decayPeriod);
+        vm.roll(block.number + 1);
+
+        // Check decayed voting power
+        uint256 decayedAliceVotes = governorA.getVotes(alice, block.number - 1);
+        uint256 decayedBobVotes = governorA.getVotes(bob, block.number - 1);
+        uint256 decayedTotalVotes = decayedAliceVotes + decayedBobVotes;
+        uint256 quorumAfterDecay = governorA.quorum(block.number - 1);
+
+        console.log("Decayed Alice votes:", decayedAliceVotes);
+        console.log("Decayed Bob votes:", decayedBobVotes);
+        console.log("Decayed total votes:", decayedTotalVotes);
+        console.log("Quorum needed after decay:", quorumAfterDecay);
+
+        assertTrue(
+            decayedTotalVotes < quorumAfterDecay,
+            "Combined voting power should be below quorum after decay"
+        );
+
+        // Now create proposal with decayed weights
+        vm.prank(alice);
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description
+        ) = createProposalParams(address(aSummerToken));
+
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Move to voting period
+        vm.roll(block.number + governorA.votingDelay() + 1);
+
+        // Both voters vote in favor
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+        vm.prank(bob);
+        governorA.castVote(proposalId, 1);
+
+        // Check final proposal votes
+        (, uint256 finalForVotes, ) = governorA.proposalVotes(proposalId);
+        uint256 finalQuorum = governorA.quorum(block.number - 1);
+
+        console.log("Final for votes:", finalForVotes);
+        console.log("Final quorum needed:", finalQuorum);
+
+        assertTrue(
+            finalForVotes < finalQuorum,
+            "Proposal should not meet quorum with decayed votes"
+        );
+
+        // Move to end of voting period
+        vm.roll(block.number + governorA.votingPeriod() + 1);
+
+        // Verify proposal is defeated due to lost quorum
+        assertEq(
+            uint256(governorA.state(proposalId)),
+            uint256(IGovernor.ProposalState.Defeated),
+            "Proposal should be defeated due to insufficient quorum"
+        );
     }
 
     function getQuorumThreshold(uint256 supply) public pure returns (uint256) {

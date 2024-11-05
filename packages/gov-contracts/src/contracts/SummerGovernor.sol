@@ -454,6 +454,37 @@ contract SummerGovernor is
                             OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    // ... existing code ...
+
+    /**
+     * @dev Override of GovernorCountingSimple._countVote to use decayed voting power
+     */
+    function _countVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        uint256 weight,
+        bytes memory params
+    )
+        internal
+        virtual
+        override(Governor, GovernorCountingSimple)
+        returns (uint256)
+    {
+        uint256 decayedWeight = ISummerToken(address(token())).getVotes(
+            account
+        );
+
+        return
+            super._countVote(
+                proposalId,
+                account,
+                support,
+                decayedWeight,
+                params
+            );
+    }
+
     /*
      * @dev Overrides the internal cancellation function to use the timelocked version
      * @param targets The addresses of the contracts to call

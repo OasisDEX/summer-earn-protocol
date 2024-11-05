@@ -302,7 +302,7 @@
       {
         "name": "stakingRewardsManager",
         "type": "address",
-        "internalType": "contract IFleetRewardsManager"
+        "internalType": "contract IFleetCommanderRewardsManager"
       }
     ],
     "stateMutability": "view"
@@ -600,7 +600,7 @@
           {
             "name": "stakingRewardsManager",
             "type": "address",
-            "internalType": "contract IFleetRewardsManager"
+            "internalType": "contract IFleetCommanderRewardsManager"
           }
         ]
       }

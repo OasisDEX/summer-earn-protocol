@@ -338,94 +338,22 @@ contract SummerTokenTest is SummerTokenTestBase {
         bSummerToken.burnFrom(owner, amount);
     }
 
-    function test_DelegateAndStake() public {
-        uint256 amount = 100 ether;
-        aSummerToken.transfer(user1, amount);
-
-        // First approve the rewards manager
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
-
-        // Then delegate and stake
-        aSummerToken.delegateAndStake(user2);
-        vm.stopPrank();
-
-        // Verify delegation
-        assertEq(
-            aSummerToken.delegates(user1),
-            user2,
-            "Delegation should be to user2"
-        );
-
-        // Verify staking
-        assertEq(
-            aSummerToken.rewardsManager().balanceOf(user1),
-            amount,
-            "All tokens should be staked"
-        );
-        assertEq(
-            aSummerToken.balanceOf(user1),
-            0,
-            "User wallet should be empty after staking"
-        );
-    }
-
-    function test_UndelegateAndUnstake() public {
-        uint256 amount = 100 ether;
-        aSummerToken.transfer(user1, amount);
-
-        // First stake tokens
-        vm.startPrank(user1);
-        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
-        aSummerToken.delegateAndStake(user2);
-
-        // Verify initial state
-        assertEq(
-            aSummerToken.delegates(user1),
-            user2,
-            "Initial delegation should be to user2"
-        );
-        assertEq(
-            aSummerToken.rewardsManager().balanceOf(user1),
-            amount,
-            "Initial stake should be full amount"
-        );
-
-        // Perform undelegateAndUnstake
-        aSummerToken.undelegateAndUnstake();
-        vm.stopPrank();
-
-        // Verify undelegation
-        assertEq(
-            aSummerToken.delegates(user1),
-            address(0),
-            "Delegation should be cleared"
-        );
-
-        // Verify unstaking
-        assertEq(
-            aSummerToken.rewardsManager().balanceOf(user1),
-            0,
-            "Staked balance should be zero"
-        );
-        assertEq(
-            aSummerToken.balanceOf(user1),
-            amount,
-            "Tokens should be back in user wallet"
-        );
-    }
-
-    function test_VotingUnitsAfterDirectUnstake() public {
+    function test_VotingUnitsAfterUnstake() public {
         uint256 amount = 100 ether;
         uint256 unstakeAmount = 60 ether;
 
         // Setup: Transfer tokens to user1
         aSummerToken.transfer(user1, amount);
 
-        // 1. delegateAndStake
+        // Initialise voting decay for user2
+        vm.prank(user2);
+        aSummerToken.delegate(address(0));
+
+        // 1. delegate and stake
         vm.startPrank(user1);
         aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
-        aSummerToken.delegateAndStake(user2);
+        aSummerToken.delegate(user2);
+        aSummerToken.rewardsManager().stake(amount);
 
         // Verify initial state after stake
         assertEq(
@@ -469,12 +397,72 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
     }
 
-    function testFail_DelegateAndStakeWithoutApproval() public {
-        uint256 amount = 100 ether;
-        aSummerToken.transfer(user1, amount);
+    function test_VotingDecayWithGetVotes() public {
+        // Setup initial tokens and delegation
+        uint256 initialAmount = 100 ether;
+        aSummerToken.transfer(user1, initialAmount);
 
-        // Try to delegateAndStake without approval
-        vm.prank(user1);
-        aSummerToken.delegateAndStake(user2);
+        vm.startPrank(user1);
+        aSummerToken.delegate(user1);
+        vm.stopPrank();
+
+        // Move forward one block to ensure delegation is active
+        vm.roll(block.number + 1);
+
+        // Check initial voting power
+        uint256 initialVotes = aSummerToken.getVotes(user1);
+
+        assertEq(
+            initialVotes,
+            initialAmount,
+            "Initial getVotes should match amount"
+        );
+
+        // Move time beyond decay window
+        uint256 decayPeriod = aSummerToken.decayFreeWindow() + 30 days;
+        vm.warp(block.timestamp + decayPeriod);
+        vm.roll(block.number + 1000);
+
+        // // Force decay update
+        // vm.prank(address(mockGovernor));
+        // aSummerToken.updateDecayFactor(user1);
+
+        // Check current votes (should be decayed)
+        uint256 currentVotes = aSummerToken.getVotes(user1);
+        assertLt(
+            currentVotes,
+            initialAmount,
+            "Current votes should be decayed"
+        );
+
+        // Log values for clarity
+        console.log("Initial votes:", initialVotes);
+        console.log("Current votes (decayed):", currentVotes);
+
+        // Move time further to check continued decay
+        vm.warp(block.timestamp + 30 days);
+        vm.roll(block.number + 1);
+
+        uint256 furtherDecayedVotes = aSummerToken.getVotes(user1);
+        assertLt(
+            furtherDecayedVotes,
+            currentVotes,
+            "Votes should continue to decay over time"
+        );
+
+        // Force another decay update to halt further decay for the decay free window
+        vm.prank(address(mockGovernor));
+        aSummerToken.updateDecayFactor(user1);
+
+        // Move time forward but not beyond the decay free window
+        vm.warp(block.timestamp + 5 days);
+        vm.roll(block.number + 1);
+
+        uint256 noDecayVotes = aSummerToken.getVotes(user1);
+        assertEq(
+            noDecayVotes,
+            furtherDecayedVotes,
+            "Votes should not decay during the decay free window"
+        );
     }
 }

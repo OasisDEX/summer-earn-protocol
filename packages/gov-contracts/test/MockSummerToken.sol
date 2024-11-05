@@ -27,6 +27,12 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
+    function getVotes(
+        address account
+    ) external pure override returns (uint256) {
+        return 0;
+    }
+
     // Add missing implementations:
     function DOMAIN_SEPARATOR() external pure override returns (bytes32) {
         // Implement or revert
@@ -60,15 +66,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function delegateAndStake(address) external pure {
-        revert("Not implemented");
-    }
-
-    function undelegateAndUnstake() external pure {
-        revert("Not implemented");
-    }
-
-    function setDecayManager(address) external pure {
+    function setDecayManager(address, bool) external pure {
         revert("Not implemented");
     }
 
@@ -116,6 +114,6 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     }
 
     function updateDecayFactor(address) external pure {
-        revert("Not implemented");
+        return;
     }
 }

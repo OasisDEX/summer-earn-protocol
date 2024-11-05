@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
-import {IFleetRewardsManager} from "../../src/interfaces/IFleetRewardsManager.sol";
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";

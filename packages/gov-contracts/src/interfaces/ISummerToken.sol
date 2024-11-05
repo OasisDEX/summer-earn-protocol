@@ -69,13 +69,30 @@ interface ISummerToken is
 
     /**
      * @notice Emitted when the decay manager is updated
-     * @param newDecayManager The address of the new decay manager
+     * @param manager manager The address of the manager
+     * @param isEnabled isEnabled Whether the manager is enabled
      */
-    event DecayManagerUpdated(address newDecayManager);
+    event DecayManagerUpdated(address indexed manager, bool indexed isEnabled);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Returns the current votes for an account with decay factor applied
+     * @param account The address to get votes for
+     * @return The current voting power after applying the decay factor
+     * @dev This function:
+     * 1. Gets the raw votes using ERC20Votes' _getVotes
+     * 2. Applies the decay factor from VotingDecayManager
+     * @custom:relationship-to-votingdecay
+     * - Uses VotingDecayManager.getVotingPower() to apply decay
+     * - Decay factor is determined by:
+     *   - Time since last update
+     *   - Delegation chain (up to MAX_DELEGATION_DEPTH)
+     *   - Current decayRatePerSecond and decayFreeWindow
+     */
+    function getVotes(address account) external view returns (uint256);
 
     /**
      * @notice Creates a new vesting wallet for a beneficiary
@@ -97,17 +114,6 @@ interface ISummerToken is
      * @param amount The amount of tokens to mint
      */
     function mint(address to, uint256 amount) external;
-
-    /**
-     * @notice Delegates voting power and stakes tokens in a single transaction
-     * @param delegatee The address to delegate voting power to
-     */
-    function delegateAndStake(address delegatee) external;
-
-    /**
-     * @notice Removes delegation and unstakes tokens in a single transaction
-     */
-    function undelegateAndUnstake() external;
 
     /**
      * @notice Updates the decay factor for a specific account
@@ -141,10 +147,11 @@ interface ISummerToken is
 
     /**
      * @notice Sets the decay manager address
-     * @param newDecayManager The new decay manager address
+     * @param manager The address of the manager
+     * @param isEnabled Whether the manager is enabled
      * @dev Can only be called by the decay manager or the governor
      */
-    function setDecayManager(address newDecayManager) external;
+    function setDecayManager(address manager, bool isEnabled) external;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

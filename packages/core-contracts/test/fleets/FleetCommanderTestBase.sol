@@ -27,8 +27,8 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
-import {FleetRewardsManager} from "../../src/contracts/FleetRewardsManager.sol";
-import {IFleetRewardsManager} from "../../src/interfaces/IFleetRewardsManager.sol";
+import {FleetCommanderRewardsManager} from "../../src/contracts/FleetCommanderRewardsManager.sol";
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 
@@ -79,12 +79,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     // Other variables
     string public fleetName = "OK_Fleet";
     FleetCommanderParams public fleetCommanderParams;
-    // 0.1e18 per year is approximately 3.168808781402895e9 per second
-    // (0.1e18 / (365 * 24 * 60 * 60))
-    uint256 internal constant INITIAL_DECAY_RATE = 3.1709792e9; // ~10% per year
 
     // New variables
-    IFleetRewardsManager public stakingRewardsManager;
+    IFleetCommanderRewardsManager public stakingRewardsManager;
     MockSummerGovernor public mockGovernor;
     ERC20Mock[] public rewardTokens;
 
@@ -119,7 +116,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         vm.label(address(mockArk4), "Ark4-nonWithdrawable");
 
         FleetConfig memory config = fleetCommander.getConfig();
-        stakingRewardsManager = IFleetRewardsManager(
+        stakingRewardsManager = IFleetCommanderRewardsManager(
             config.stakingRewardsManager
         );
     }
@@ -166,11 +163,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         // Setup StakingRewardsManager
         // Deploy mock governor if not already deployed
         if (address(mockGovernor) == address(0)) {
-            mockGovernor = new MockSummerGovernor(
-                7 days, // initialDecayFreeWindow
-                INITIAL_DECAY_RATE,
-                VotingDecayLibrary.DecayFunction.Linear
-            );
+            mockGovernor = new MockSummerGovernor();
         }
 
         // Deploy reward tokens

@@ -80,42 +80,25 @@ contract GovernanceRewardsManagerTest is Test {
         stakingToken.approve(address(stakingRewardsManager), type(uint256).max);
     }
 
-    function test_StakeForOnlyCallableByStakingToken() public {
-        uint256 stakeAmount = 1000 * 1e18;
-
-        vm.prank(alice);
-        vm.expectRevert(IGovernanceRewardsManagerErrors.InvalidCaller.selector);
-        stakingRewardsManager.stakeFor(alice, stakeAmount);
-
-        vm.prank(address(stakingToken));
-        stakingRewardsManager.stakeFor(alice, stakeAmount);
-
-        assertEq(
-            stakingRewardsManager.balanceOf(alice),
-            stakeAmount,
-            "Stake amount should be correct"
-        );
-    }
-
     function test_StakeForUpdatesBalancesCorrectly() public {
         uint256 stakeAmount = 1000 * 1e18;
 
-        vm.prank(address(stakingToken));
-        stakingRewardsManager.stakeFor(alice, stakeAmount);
+        vm.prank(address(alice));
+        stakingRewardsManager.stakeFor(bob, stakeAmount);
 
         assertEq(
-            stakingRewardsManager.balanceOf(alice),
+            stakingRewardsManager.balanceOf(bob),
             stakeAmount,
             "Staked balance should be updated"
         );
     }
 
-    function test_UnstakeDirectly() public {
+    function test_Unstake() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 unstakeAmount = 500 * 1e18;
 
-        vm.prank(address(stakingToken));
-        stakingRewardsManager.stakeFor(alice, stakeAmount);
+        vm.prank(address(alice));
+        stakingRewardsManager.stake(stakeAmount);
 
         vm.prank(alice);
         stakingRewardsManager.unstake(unstakeAmount);
@@ -131,8 +114,8 @@ contract GovernanceRewardsManagerTest is Test {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 unstakeAmount = 500 * 1e18;
 
-        vm.prank(address(stakingToken));
-        stakingRewardsManager.stakeFor(alice, stakeAmount);
+        vm.prank(address(alice));
+        stakingRewardsManager.stake(stakeAmount);
 
         uint256 initialBalance = stakingToken.balanceOf(alice);
 
@@ -156,8 +139,8 @@ contract GovernanceRewardsManagerTest is Test {
         uint256 rewardAmount = 100 * 1e18;
 
         // Alice stakes
-        vm.prank(address(stakingToken));
-        stakingRewardsManager.stakeFor(alice, stakeAmount);
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
 
         // Notify reward
         vm.prank(address(mockGovernor));
@@ -200,15 +183,5 @@ contract GovernanceRewardsManagerTest is Test {
             rewardAmount,
             "Earned amount should be less than total reward due to unstake"
         );
-    }
-
-    function test_DirectStakingNotAllowed() public {
-        uint256 stakeAmount = 1000 * 1e18;
-
-        vm.prank(alice);
-        vm.expectRevert(
-            IGovernanceRewardsManagerErrors.DirectStakingNotAllowed.selector
-        );
-        stakingRewardsManager.stake(stakeAmount);
     }
 }

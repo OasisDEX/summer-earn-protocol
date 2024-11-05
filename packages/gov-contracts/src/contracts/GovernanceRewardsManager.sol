@@ -10,26 +10,11 @@ import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
-
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
 /**
  * @title GovernanceRewardsManager
  * @notice Contract for managing governance rewards with multiple reward tokens in the Summer protocol
  * @dev Implements IGovernanceRewardsManager interface and inherits from StakingRewardsManagerBase
- *
- * Access Control:
- * - Protocol Access Control:
- *   - Reward distribution functions (notifyRewardAmount, etc.) are restricted to protocol admins
- *   - Protocol configuration can only be modified by authorized addresses
- *
- * - SummerToken Integration:
- *   - Direct staking is disabled (stake function reverts)
- *   - All staking must occur through stakeFor/unstakeFor, which can only be called by the SummerToken contract
- *   - This ensures staking is always synchronized with token operations
- *
- * - User Operations:
- *   - Users can directly unstake their tokens
- *   - Users can claim their earned rewards
- *   - All user operations automatically update reward calculations
  */
 contract GovernanceRewardsManager is
     IGovernanceRewardsManager,
@@ -64,13 +49,13 @@ contract GovernanceRewardsManager is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Ensures the caller is the staking token contract
+     * @notice Updates the decay factor for an account before executing a function
+     * @param account The address of the account to update the decay factor for
+     * @dev Calls the stakingToken's updateDecayFactor function to ensure the account's
+     *      decay factor is up to date before any staking operations
      */
-    modifier onlyStakingToken() {
-        _stakingTokenInitialized();
-        if (_msgSender() != address(stakingToken)) {
-            revert InvalidCaller();
-        }
+    modifier updateDecay(address account) {
+        _updateDecayFactor(account);
         _;
     }
 
@@ -130,36 +115,25 @@ contract GovernanceRewardsManager is
                             MUTATIVE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IGovernanceRewardsManager
+    /// @inheritdoc IStakingRewardsManagerBase
     function stakeFor(
-        address staker,
+        address receiver,
         uint256 amount
-    )
-        external
-        override(IGovernanceRewardsManager, StakingRewardsManagerBase)
-        onlyStakingToken
-        updateReward(staker)
-    {
-        _stake(staker, staker, amount);
-    }
-
-    /// @inheritdoc IGovernanceRewardsManager
-    function unstakeFor(
-        address staker,
-        uint256 amount
-    ) external onlyStakingToken updateReward(staker) {
-        _unstake(staker, amount);
+    ) external override updateDecay(receiver) {
+        _stakingTokenInitialized();
+        _stake(_msgSender(), receiver, amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function stake(uint256) external pure override {
-        revert DirectStakingNotAllowed();
+    function stake(uint256 amount) external override updateDecay(_msgSender()) {
+        _stakingTokenInitialized();
+        _stake(_msgSender(), _msgSender(), amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
     function unstake(
         uint256 amount
-    ) external override updateReward(_msgSender()) {
+    ) external override updateReward(_msgSender()) updateDecay(_msgSender()) {
         _stakingTokenInitialized();
         _unstake(_msgSender(), amount);
     }
@@ -237,5 +211,9 @@ contract GovernanceRewardsManager is
                 (userSmoothedDecayFactor[account] *
                     (DECAY_SMOOTHING_FACTOR_BASE - DECAY_SMOOTHING_FACTOR))) /
             DECAY_SMOOTHING_FACTOR_BASE;
+    }
+
+    function _updateDecayFactor(address account) internal {
+        ISummerToken(address(stakingToken)).updateDecayFactor(account);
     }
 }
