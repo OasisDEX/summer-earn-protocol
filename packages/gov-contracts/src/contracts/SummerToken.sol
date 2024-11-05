@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {SummerVestingWallet} from "./SummerVestingWallet.sol";
+import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 
 contract SummerToken is
     OFT,
@@ -30,6 +31,7 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     mapping(address owner => address vestingWallet) public vestingWallets;
+    mapping(address vestingWallet => address owner) public vestingWalletOwners;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -79,7 +81,7 @@ contract SummerToken is
             )
         );
         vestingWallets[beneficiary] = newVestingWallet;
-
+        vestingWalletOwners[newVestingWallet] = beneficiary;
         _transfer(msg.sender, newVestingWallet, totalAmount);
 
         emit VestingWalletCreated(
@@ -162,7 +164,8 @@ contract SummerToken is
     }
 
     /**
-     * @dev Overrides the default _getVotingUnits function to include all user tokens in voting power, including locked up tokens in vesting wallets
+     * @dev Overrides the default _getVotingUnits function to include all user tokens in voting power, including locked
+     * up tokens in vesting wallets
      * @param account The address to get voting units for
      * @return uint256 The total number of voting units for the account
      * @custom:internal-logic
@@ -176,7 +179,8 @@ contract SummerToken is
      * - May increase the voting power of accounts with vesting wallets compared to standard ERC20Votes implementation
      * - Consider the implications of this increased voting power on governance decisions
      * @custom:gas-considerations
-     * - This function performs an additional storage read and potential balance check compared to the standard implementation
+     * - This function performs an additional storage read and potential balance check compared to the standard
+     * implementation
      * - May slightly increase gas costs for voting-related operations
      */
     function _getVotingUnits(
@@ -191,6 +195,61 @@ contract SummerToken is
         }
 
         return directBalance;
+    }
+
+    function _transferVotingUnits(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        // Handle vesting wallet voting power transfers
+        if (_handleVestingWalletVotingTransfer(from, to, amount)) {
+            return;
+        }
+
+        // Standard transfer
+        super._transferVotingUnits(from, to, amount);
+    }
+
+    /**
+     * @dev Handles voting power transfers involving vesting wallets
+     * @param from Source address
+     * @param to Destination address
+     * @param amount Amount of voting units to transfer
+     * @return bool True if the transfer was handled (vesting wallet case), false otherwise
+     * @custom:internal-logic
+     * - Checks if either from/to is a vesting wallet
+     * - Handles voting power redirections for vesting wallet transfers
+     */
+    function _handleVestingWalletVotingTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal returns (bool) {
+        // Case 1: Transfer TO vesting wallet
+        address vestingWalletOwner = vestingWalletOwners[to];
+        if (vestingWalletOwner != address(0)) {
+            // Skip if transfer is from the owner (they already have voting power)
+            if (from != vestingWalletOwner) {
+                // Transfer voting power to beneficiary instead of vesting wallet
+                super._transferVotingUnits(from, vestingWalletOwner, amount);
+            }
+            return true;
+        }
+
+        // Case 2: Transfer FROM vesting wallet
+        address fromVestingWalletOwner = vestingWalletOwners[from];
+        if (fromVestingWalletOwner != address(0)) {
+            // Skip if transfer is to the beneficiary (they already have voting power)
+            if (to == fromVestingWalletOwner) {
+                return true;
+            }
+            // Transfer voting power from beneficiary to recipient
+            super._transferVotingUnits(fromVestingWalletOwner, to, amount);
+            return true;
+        }
+
+        return false;
     }
 
     /*//////////////////////////////////////////////////////////////

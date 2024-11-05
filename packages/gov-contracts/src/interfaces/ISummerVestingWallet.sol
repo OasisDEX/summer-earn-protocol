@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title ISummerVestingWallet
- * @dev Interface for SummerVestingWallet, an extension of OpenZeppelin's VestingWallet with custom vesting schedules and separate admin role.
+ * @dev Interface for SummerVestingWallet, an extension of OpenZeppelin's VestingWallet with custom vesting schedules
+ * and separate admin role.
  * Supports two types of vesting: Team vesting and Investor/Ex-Team vesting, both with a 6-month cliff.
  *
  * Vesting Schedules:
