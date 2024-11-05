@@ -48,10 +48,17 @@ contract GovernanceRewardsManager is
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Updates the decay factor for an account before executing a function
+     * @param account The address of the account to update the decay factor for
+     * @dev Calls the stakingToken's updateDecayFactor function to ensure the account's
+     *      decay factor is up to date before any staking operations
+     */
     modifier updateDecay(address account) {
         _updateDecayFactor(account);
         _;
     }
+
     /**
      * @notice Updates rewards for an account before executing a function
      * @param account The address of the account to update rewards for

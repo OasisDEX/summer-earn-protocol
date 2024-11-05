@@ -52,6 +52,11 @@ contract SummerToken is
                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @notice Restricts function access to decay managers or the governor
+     * @dev Reverts with CallerIsNotAuthorized if caller is neither a decay manager nor governor
+     * @custom:security Ensures critical decay-related functions can only be called by authorized parties
+     */
     modifier onlyDecayManagerOrGovernor() {
         if (!_isDecayManager(_msgSender()) && !_isGovernor(_msgSender())) {
             revert CallerIsNotAuthorized(_msgSender());
@@ -59,6 +64,11 @@ contract SummerToken is
         _;
     }
 
+    /**
+     * @notice Restricts function access to decay managers only
+     * @dev Reverts with CallerIsNotDecayManager if caller is not a registered decay manager
+     * @custom:security Ensures decay-specific functions can only be called by decay managers
+     */
     modifier onlyDecayManager() {
         if (!_isDecayManager(_msgSender())) {
             revert CallerIsNotDecayManager(_msgSender());
@@ -66,6 +76,11 @@ contract SummerToken is
         _;
     }
 
+    /**
+     * @notice Updates the caller's decay factor before executing the function
+     * @dev Calls internal _updateDecayFactor function to recalculate the sender's current decay
+     * @custom:relationship-to-votingdecay Updates voting power decay before state-changing operations
+     */
     modifier updateDecay() {
         _updateDecayFactor(_msgSender());
         _;

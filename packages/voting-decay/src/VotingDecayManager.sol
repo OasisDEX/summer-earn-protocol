@@ -3,8 +3,6 @@ pragma solidity 0.8.28;
 
 import {VotingDecayLibrary} from "./VotingDecayLibrary.sol";
 import {IVotingDecayManager} from "./IVotingDecayManager.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
  * @title VotingDecayManager
@@ -13,7 +11,6 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
  */
 abstract contract VotingDecayManager is IVotingDecayManager {
     using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
-    using Checkpoints for Checkpoints.Trace208;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -34,12 +31,6 @@ abstract contract VotingDecayManager is IVotingDecayManager {
 
     /// @notice Maximum allowed depth for delegation chains to prevent circular dependencies
     uint256 private constant MAX_DELEGATION_DEPTH = 2;
-
-    /// @notice Mapping of account addresses to their decay factor checkpoints
-    mapping(address => Checkpoints.Trace208) private _decayFactorCheckpoints;
-
-    /// @notice Mapping of account addresses to their last update checkpoints
-    mapping(address => Checkpoints.Trace208) private _lastUpdateCheckpoints;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
