@@ -3,6 +3,8 @@ pragma solidity 0.8.28;
 
 import {VotingDecayLibrary} from "./VotingDecayLibrary.sol";
 import {IVotingDecayManager} from "./IVotingDecayManager.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
  * @title VotingDecayManager
@@ -11,6 +13,7 @@ import {IVotingDecayManager} from "./IVotingDecayManager.sol";
  */
 abstract contract VotingDecayManager is IVotingDecayManager {
     using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
+    using Checkpoints for Checkpoints.Trace208;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -31,6 +34,12 @@ abstract contract VotingDecayManager is IVotingDecayManager {
 
     /// @notice Maximum allowed depth for delegation chains to prevent circular dependencies
     uint256 private constant MAX_DELEGATION_DEPTH = 2;
+
+    /// @notice Mapping of account addresses to their decay factor checkpoints
+    mapping(address => Checkpoints.Trace208) private _decayFactorCheckpoints;
+
+    /// @notice Mapping of account addresses to their last update checkpoints
+    mapping(address => Checkpoints.Trace208) private _lastUpdateCheckpoints;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -199,7 +208,7 @@ abstract contract VotingDecayManager is IVotingDecayManager {
      * @param accountAddress Address of the account to update
      * @dev Updates the decay factor if the decay-free window has passed and resets the timestamp
      */
-    function _updateDecayFactor(address accountAddress) internal {
+    function _updateDecayFactor(address accountAddress) internal virtual {
         _initializeAccountIfNew(accountAddress);
         VotingDecayLibrary.DecayInfo storage account = decayInfoByAccount[
             accountAddress
@@ -213,6 +222,9 @@ abstract contract VotingDecayManager is IVotingDecayManager {
         account.lastUpdateTimestamp = uint40(block.timestamp);
 
         emit DecayUpdated(accountAddress, account.decayFactor);
+
+        // Create checkpoint after updating
+        _writeDecaySnapshot(accountAddress);
     }
 
     /**
@@ -238,4 +250,60 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     function _getDelegateTo(
         address accountAddress
     ) internal view virtual returns (address);
+
+    function _writeDecaySnapshot(address account) internal {
+        VotingDecayLibrary.DecayInfo storage currentInfo = decayInfoByAccount[
+            account
+        ];
+
+        _decayFactorCheckpoints[account].push(
+            uint48(block.number),
+            SafeCast.toUint208(currentInfo.decayFactor)
+        );
+
+        _lastUpdateCheckpoints[account].push(
+            uint48(block.number),
+            SafeCast.toUint208(currentInfo.lastUpdateTimestamp)
+        );
+    }
+
+    function _getDecayInfoAtTimepoint(
+        address account,
+        uint256 timepoint
+    ) internal view returns (uint256 decayFactor, uint256 lastUpdateTimestamp) {
+        uint48 blockNumber = SafeCast.toUint48(timepoint);
+
+        decayFactor = _decayFactorCheckpoints[account].upperLookupRecent(
+            blockNumber
+        );
+        lastUpdateTimestamp = _lastUpdateCheckpoints[account].upperLookupRecent(
+            blockNumber
+        );
+    }
+
+    /**
+     * @notice Calculates the historical decay factor at a specific timepoint
+     * @param account Address of the account
+     * @param timepoint The block number to calculate for
+     * @return The decay factor at that timepoint
+     */
+    function _calculateHistoricalDecayFactor(
+        address account,
+        uint256 timepoint
+    ) internal view returns (uint256) {
+        (
+            uint256 historicalDecayFactor,
+            uint256 historicalLastUpdate
+        ) = _getDecayInfoAtTimepoint(account, timepoint);
+
+        uint256 decayPeriod = timepoint - historicalLastUpdate;
+        return
+            VotingDecayLibrary.calculateDecayFactor(
+                historicalDecayFactor,
+                decayPeriod,
+                decayRatePerSecond,
+                decayFreeWindow,
+                decayFunction
+            );
+    }
 }

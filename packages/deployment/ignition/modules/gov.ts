@@ -129,6 +129,9 @@ export const GovModule = buildModule('GovModule', (m) => {
   m.call(summerToken, 'transferOwnership', [timelock.value])
   m.call(summerToken, 'setDecayManager', [summerGovernor.value])
 
+  const governanceRewardsManager = m.call(summerToken, 'rewardsManager')
+  m.call(summerToken, 'setDecayManager', [governanceRewardsManager.value])
+
   m.call(timelock, 'grantRole', [PROPOSER_ROLE, summerGovernor.value])
   m.call(timelock, 'grantRole', [CANCELLER_ROLE, summerGovernor.value])
   m.call(timelock, 'grantRole', [EXECUTOR_ROLE, summerGovernor.value])

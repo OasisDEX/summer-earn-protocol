@@ -79,9 +79,6 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     // Other variables
     string public fleetName = "OK_Fleet";
     FleetCommanderParams public fleetCommanderParams;
-    // 0.1e18 per year is approximately 3.168808781402895e9 per second
-    // (0.1e18 / (365 * 24 * 60 * 60))
-    uint256 internal constant INITIAL_DECAY_RATE = 3.1709792e9; // ~10% per year
 
     // New variables
     IFleetRewardsManager public stakingRewardsManager;
@@ -166,11 +163,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         // Setup StakingRewardsManager
         // Deploy mock governor if not already deployed
         if (address(mockGovernor) == address(0)) {
-            mockGovernor = new MockSummerGovernor(
-                7 days, // initialDecayFreeWindow
-                INITIAL_DECAY_RATE,
-                VotingDecayLibrary.DecayFunction.Linear
-            );
+            mockGovernor = new MockSummerGovernor();
         }
 
         // Deploy reward tokens

@@ -9,6 +9,7 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
@@ -45,21 +46,21 @@ contract SummerToken is
 
     mapping(address owner => address vestingWallet) public vestingWallets;
     GovernanceRewardsManager public rewardsManager;
-    address public decayManager;
+    mapping(address => bool) public decayManagers;
 
     /*//////////////////////////////////////////////////////////////
                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
     modifier onlyDecayManagerOrGovernor() {
-        if (decayManager != _msgSender() && !_isGovernor(_msgSender())) {
+        if (!_isDecayManager(_msgSender()) && !_isGovernor(_msgSender())) {
             revert CallerIsNotAuthorized(_msgSender());
         }
         _;
     }
 
     modifier onlyDecayManager() {
-        if (decayManager != _msgSender()) {
+        if (!_isDecayManager(_msgSender())) {
             revert CallerIsNotDecayManager(_msgSender());
         }
         _;
@@ -91,7 +92,11 @@ contract SummerToken is
             address(this),
             params.accessManager
         );
-        decayManager = params.decayManager;
+        decayManagers[params.decayManager] = true;
+        decayManagers[address(rewardsManager)] = true;
+
+        emit DecayManagerUpdated(params.decayManager, true);
+        emit DecayManagerUpdated(address(rewardsManager), true);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -119,10 +124,11 @@ contract SummerToken is
 
     /// @inheritdoc ISummerToken
     function setDecayManager(
-        address newDecayManager
+        address manager,
+        bool isEnabled
     ) public onlyDecayManagerOrGovernor {
-        decayManager = newDecayManager;
-        emit DecayManagerUpdated(newDecayManager);
+        decayManagers[manager] = isEnabled;
+        emit DecayManagerUpdated(manager, isEnabled);
     }
 
     /// @inheritdoc ISummerToken
@@ -179,18 +185,6 @@ contract SummerToken is
         _updateDecayFactor(account);
     }
 
-    /// @inheritdoc ISummerToken
-    function delegateAndStake(address delegatee) public virtual {
-        delegate(delegatee);
-        _stake(balanceOf(_msgSender()));
-    }
-
-    /// @inheritdoc ISummerToken
-    function undelegateAndUnstake() external {
-        delegate(address(0));
-        _unstake(rewardsManager.balanceOf(_msgSender()));
-    }
-
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -221,21 +215,10 @@ contract SummerToken is
         return super.nonces(owner);
     }
 
-    /**
-     * @notice Returns the current votes for an account with decay factor applied
-     * @param account The address to get votes for
-     * @return The current voting power after applying the decay factor
-     * @dev This function:
-     * 1. Gets the raw votes using ERC20Votes' _getVotes
-     * 2. Applies the decay factor from VotingDecayManager
-     * @custom:relationship-to-votingdecay
-     * - Uses VotingDecayManager.getVotingPower() to apply decay
-     * - Decay factor is determined by:
-     *   - Time since last update
-     *   - Delegation chain (up to MAX_DELEGATION_DEPTH)
-     *   - Current decayRatePerSecond and decayFreeWindow
-     */
-    function getVotes(address account) public view override returns (uint256) {
+    /// @inheritdoc ISummerToken
+    function getVotes(
+        address account
+    ) public view override(ISummerToken, Votes) returns (uint256) {
         return getVotingPower(account, super.getVotes(account));
     }
 
@@ -262,6 +245,10 @@ contract SummerToken is
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _isDecayManager(address account) internal view returns (bool) {
+        return decayManagers[account];
+    }
 
     /**
      * @dev Internal function to update token balances.
@@ -351,46 +338,6 @@ contract SummerToken is
         }
 
         super._transferVotingUnits(from, to, amount);
-    }
-
-    /**
-     * @dev Stakes tokens in the rewards manager for the caller
-     * @param amount The target amount to stake
-     * @custom:internal-logic
-     * - Compares current stake with target amount
-     * - Stakes additional tokens if target is higher
-     * - Unstakes excess tokens if target is lower
-     * @custom:security-considerations
-     * - Only modifies stake up to the available balance
-     * - Ensures atomic stake/unstake operations
-     */
-    function _stake(uint256 amount) internal {
-        uint256 currentStake = rewardsManager.balanceOf(_msgSender());
-        if (amount > currentStake) {
-            uint256 additionalStake = amount - currentStake;
-            rewardsManager.stakeFor(_msgSender(), additionalStake);
-        } else if (amount < currentStake) {
-            uint256 unstakeAmount = currentStake - amount;
-            rewardsManager.unstakeFor(_msgSender(), unstakeAmount);
-        }
-    }
-
-    /**
-     * @dev Unstakes tokens from the rewards manager for the caller
-     * @param amount The amount to unstake
-     * @custom:internal-logic
-     * - Caps unstake amount to current staked balance
-     * - Only executes if there are tokens to unstake
-     * @custom:security-considerations
-     * - Prevents unstaking more than staked balance
-     * - Safely handles zero unstake amounts
-     */
-    function _unstake(uint256 amount) internal {
-        uint256 currentStake = rewardsManager.balanceOf(_msgSender());
-        uint256 unstakeAmount = amount > currentStake ? currentStake : amount;
-        if (unstakeAmount > 0) {
-            rewardsManager.unstakeFor(_msgSender(), unstakeAmount);
-        }
     }
 
     /**
