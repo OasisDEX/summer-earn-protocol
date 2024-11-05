@@ -16,4 +16,8 @@ contract MockStakingRewardsManager is StakingRewardsManagerBase {
     function _initialize(IERC20 _stakingToken) internal override {
         stakingToken = _stakingToken;
     }
+
+    function stakeFor(address receiver, uint256 amount) external override {
+        _stake(_msgSender(), receiver, amount);
+    }
 }

@@ -15,21 +15,6 @@ import {ISummerToken} from "../interfaces/ISummerToken.sol";
  * @title GovernanceRewardsManager
  * @notice Contract for managing governance rewards with multiple reward tokens in the Summer protocol
  * @dev Implements IGovernanceRewardsManager interface and inherits from StakingRewardsManagerBase
- *
- * Access Control:
- * - Protocol Access Control:
- *   - Reward distribution functions (notifyRewardAmount, etc.) are restricted to protocol admins
- *   - Protocol configuration can only be modified by authorized addresses
- *
- * - SummerToken Integration:
- *   - Direct staking is disabled (stake function reverts)
- *   - All staking must occur through stakeFor/unstakeFor, which can only be called by the SummerToken contract
- *   - This ensures staking is always synchronized with token operations
- *
- * - User Operations:
- *   - Users can directly unstake their tokens
- *   - Users can claim their earned rewards
- *   - All user operations automatically update reward calculations
  */
 contract GovernanceRewardsManager is
     IGovernanceRewardsManager,

@@ -27,8 +27,8 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
-import {FleetRewardsManager} from "../../src/contracts/FleetRewardsManager.sol";
-import {IFleetRewardsManager} from "../../src/interfaces/IFleetRewardsManager.sol";
+import {FleetCommanderRewardsManager} from "../../src/contracts/FleetCommanderRewardsManager.sol";
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 
@@ -81,7 +81,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     FleetCommanderParams public fleetCommanderParams;
 
     // New variables
-    IFleetRewardsManager public stakingRewardsManager;
+    IFleetCommanderRewardsManager public stakingRewardsManager;
     MockSummerGovernor public mockGovernor;
     ERC20Mock[] public rewardTokens;
 
@@ -116,7 +116,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         vm.label(address(mockArk4), "Ark4-nonWithdrawable");
 
         FleetConfig memory config = fleetCommander.getConfig();
-        stakingRewardsManager = IFleetRewardsManager(
+        stakingRewardsManager = IFleetCommanderRewardsManager(
             config.stakingRewardsManager
         );
     }

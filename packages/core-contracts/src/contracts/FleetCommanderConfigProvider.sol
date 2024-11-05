@@ -12,7 +12,7 @@ import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {FleetRewardsManager} from "./FleetRewardsManager.sol";
+import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -61,7 +61,7 @@ contract FleetCommanderConfigProvider is
                 minimumBufferBalance: params.initialMinimumBufferBalance,
                 depositCap: params.depositCap,
                 maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-                stakingRewardsManager: new FleetRewardsManager(
+                stakingRewardsManager: new FleetCommanderRewardsManager(
                     address(params.accessManager),
                     address(this)
                 )
@@ -193,7 +193,7 @@ contract FleetCommanderConfigProvider is
         if (newStakingRewardsManager == address(0)) {
             revert FleetCommanderInvalidStakingRewardsManager();
         }
-        config.stakingRewardsManager = new FleetRewardsManager(
+        config.stakingRewardsManager = new FleetCommanderRewardsManager(
             address(_accessManager),
             address(this)
         );
