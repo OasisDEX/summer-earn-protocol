@@ -55,6 +55,7 @@ jobs:
         run: pnpm test
         env:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
       - name: Lint
         run: pnpm lint
 
@@ -66,6 +67,7 @@ jobs:
         working-directory: packages/core-contracts
         env:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v4
