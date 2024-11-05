@@ -222,9 +222,6 @@ abstract contract VotingDecayManager is IVotingDecayManager {
         account.lastUpdateTimestamp = uint40(block.timestamp);
 
         emit DecayUpdated(accountAddress, account.decayFactor);
-
-        // Create checkpoint after updating
-        _writeDecaySnapshot(accountAddress);
     }
 
     /**
@@ -250,60 +247,4 @@ abstract contract VotingDecayManager is IVotingDecayManager {
     function _getDelegateTo(
         address accountAddress
     ) internal view virtual returns (address);
-
-    function _writeDecaySnapshot(address account) internal {
-        VotingDecayLibrary.DecayInfo storage currentInfo = decayInfoByAccount[
-            account
-        ];
-
-        _decayFactorCheckpoints[account].push(
-            uint48(block.number),
-            SafeCast.toUint208(currentInfo.decayFactor)
-        );
-
-        _lastUpdateCheckpoints[account].push(
-            uint48(block.number),
-            SafeCast.toUint208(currentInfo.lastUpdateTimestamp)
-        );
-    }
-
-    function _getDecayInfoAtTimepoint(
-        address account,
-        uint256 timepoint
-    ) internal view returns (uint256 decayFactor, uint256 lastUpdateTimestamp) {
-        uint48 blockNumber = SafeCast.toUint48(timepoint);
-
-        decayFactor = _decayFactorCheckpoints[account].upperLookupRecent(
-            blockNumber
-        );
-        lastUpdateTimestamp = _lastUpdateCheckpoints[account].upperLookupRecent(
-            blockNumber
-        );
-    }
-
-    /**
-     * @notice Calculates the historical decay factor at a specific timepoint
-     * @param account Address of the account
-     * @param timepoint The block number to calculate for
-     * @return The decay factor at that timepoint
-     */
-    function _calculateHistoricalDecayFactor(
-        address account,
-        uint256 timepoint
-    ) internal view returns (uint256) {
-        (
-            uint256 historicalDecayFactor,
-            uint256 historicalLastUpdate
-        ) = _getDecayInfoAtTimepoint(account, timepoint);
-
-        uint256 decayPeriod = timepoint - historicalLastUpdate;
-        return
-            VotingDecayLibrary.calculateDecayFactor(
-                historicalDecayFactor,
-                decayPeriod,
-                decayRatePerSecond,
-                decayFreeWindow,
-                decayFunction
-            );
-    }
 }
