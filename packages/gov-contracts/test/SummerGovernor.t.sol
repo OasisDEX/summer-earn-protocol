@@ -19,6 +19,8 @@ import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
 import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 
@@ -1791,6 +1793,57 @@ contract SummerGovernorTest is
         aSummerToken.mint(alice, governorA.proposalThreshold());
         vm.stopPrank();
 
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.roll(block.number + 1);
+
+        // Verify decay update is called when proposing
+        vm.expectCall(
+            address(aSummerToken),
+            abi.encodeWithSelector(
+                ISummerToken.updateDecayFactor.selector,
+                alice
+            )
+        );
+
+        vm.prank(alice);
+        createProposal();
+    }
+
+    function testVestingWalletVotingPower() public {
+        // Initial setup
+        uint256 vestingAmount = 500000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 additionalAmount = 100000 * 10 ** 18;
+        address _bob = address(0xb0b);
+
+        vm.prank(_bob);
+        // Bob delegates to himself - even if he has no tokens yet, he will have voting power after Cas 5 test is
+        // finished
+        aSummerToken.delegate(_bob);
+
+        // Mint initial tokens to timelockA
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(address(timelockA), vestingAmount * 2); // Extra for additional tests
+        vm.stopPrank();
+
+        // Case 1: Create vesting wallet and transfer initial tokens
+        vm.startPrank(address(timelockA));
+        aSummerToken.createVestingWallet(
+            alice,
+            vestingAmount,
+            new uint256[](0),
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        aSummerToken.mint(alice, directAmount);
+        vm.stopPrank();
+
+        address vestingWalletAddress = aSummerToken.vestingWallets(alice);
+        SummerVestingWallet vestingWallet = SummerVestingWallet(
+            payable(vestingWalletAddress)
+        );
+
+        // Alice delegates to herself
         vm.prank(alice);
         aSummerToken.delegate(alice);
         vm.roll(block.number + 1);

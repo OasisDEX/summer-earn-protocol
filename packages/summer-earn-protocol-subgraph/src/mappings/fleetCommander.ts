@@ -40,7 +40,7 @@ export function handleArkRemoved(event: ArkRemoved): void {
 }
 
 export function handleDeposit(event: DepositEvent): void {
-  const account = getOrCreateAccount(event.params.sender.toHexString())
+  const account = getOrCreateAccount(event.params.owner.toHexString())
 
   const result = getAndUpdateVaultAndPositionDetails(event, account, event.block)
   const amount = event.params.assets
@@ -54,7 +54,7 @@ export function handleDeposit(event: DepositEvent): void {
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
-  const account = getOrCreateAccount(event.params.sender.toHexString())
+  const account = getOrCreateAccount(event.params.owner.toHexString())
 
   const result = getAndUpdateVaultAndPositionDetails(event, account, event.block)
   const amount = event.params.assets

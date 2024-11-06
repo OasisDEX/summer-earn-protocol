@@ -47,8 +47,8 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position = new Position(positionId)
     position.inputTokenBalance = constants.BigIntConstants.ZERO
     position.outputTokenBalance = constants.BigIntConstants.ZERO
-    position.outputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
-    position.outputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    position.inputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.account = positionIdDetails[0]
     position.vault = positionIdDetails[1]
     position.createdBlockNumber = block.number
