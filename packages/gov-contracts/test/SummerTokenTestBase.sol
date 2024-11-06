@@ -37,6 +37,15 @@ contract SummerTokenTestBase is TestHelperOz5 {
         initializeTokenTests();
     }
 
+    function enableTransfers() public {
+        uint256 transferEnableDate = aSummerToken.transferEnableDate() + 1;
+        vm.warp(transferEnableDate);
+        vm.prank(summerGovernor);
+        aSummerToken.enableTransfers();
+        vm.prank(summerGovernor);
+        bSummerToken.enableTransfers();
+    }
+
     function initializeTokenTests() public {
         vm.label(summerGovernor, "Summer Governor");
 
@@ -52,7 +61,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 name: "SummerToken A",
                 symbol: "SUMMERA",
                 lzEndpoint: lzEndpointA,
-                governor: summerGovernor
+                governor: summerGovernor,
+                transferEnableDate: block.timestamp + 1 days
             });
 
         ISummerToken.TokenParams memory tokenParamsB = ISummerToken
@@ -60,7 +70,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 name: "SummerToken B",
                 symbol: "SUMMERB",
                 lzEndpoint: lzEndpointB,
-                governor: summerGovernor
+                governor: summerGovernor,
+                transferEnableDate: block.timestamp + 1 days
             });
 
         aSummerToken = new SummerToken(tokenParamsA);
