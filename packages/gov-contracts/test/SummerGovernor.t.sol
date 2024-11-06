@@ -1800,11 +1800,11 @@ contract SummerGovernorTest is
         // Case 4: Transfer from vesting wallet to beneficiary (Alice)
         // First, let's make the tokens vestable
         vm.warp(block.timestamp + 365 days);
-        vm.startPrank(alice);
         uint256 vestableAmount = vestingWallet.vestedAmount(
             address(aSummerToken),
             SafeCast.toUint64(block.timestamp)
         );
+        vm.startPrank(alice);
         vestingWallet.release(address(aSummerToken));
         // aSummerToken.transfer(alice, vestableAmount);
         vm.roll(block.number + 1);
