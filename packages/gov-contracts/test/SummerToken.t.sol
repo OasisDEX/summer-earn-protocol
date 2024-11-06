@@ -251,7 +251,7 @@ contract SummerTokenTest is SummerTokenTestBase {
 
     function test_TransfersBlockedByDefault() public {
         uint256 amount = 1000 * 10 ** 18;
-        vm.expectRevert(ISummerToken.TransfersNotAllowed.selector);
+        vm.expectRevert(ISummerToken.TransferNotAllowed.selector);
         aSummerToken.transfer(user1, amount);
     }
 
@@ -390,7 +390,7 @@ contract SummerTokenTest is SummerTokenTestBase {
         aSummerToken.removeFromWhitelist(user1);
 
         // Transfer should fail after removal from whitelist
-        vm.expectRevert(ISummerToken.TransfersNotAllowed.selector);
+        vm.expectRevert(ISummerToken.TransferNotAllowed.selector);
         aSummerToken.transfer(user1, amount);
     }
 

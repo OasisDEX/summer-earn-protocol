@@ -157,7 +157,7 @@ contract SummerToken is
         uint256 amount
     ) internal override(ERC20, ERC20Votes) {
         if (!_canTransfer(from, to)) {
-            revert TransfersNotAllowed();
+            revert TransferNotAllowed();
         }
         super._update(from, to, amount);
     }

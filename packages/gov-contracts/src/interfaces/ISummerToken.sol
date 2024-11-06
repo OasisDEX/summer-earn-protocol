@@ -25,7 +25,7 @@ interface ISummerToken is IERC20, IERC20Permit {
     /**
      * @notice Error thrown when transfers are not allowed
      */
-    error TransfersNotAllowed();
+    error TransferNotAllowed();
 
     /**
      * @notice Error thrown when transfers cannot be enabled yet
