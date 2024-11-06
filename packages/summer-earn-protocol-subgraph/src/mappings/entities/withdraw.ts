@@ -23,5 +23,7 @@ export function createWithdrawEventEntity(
   withdraw.logIndex = event.logIndex.toI32()
   withdraw.hash = event.transaction.hash.toHexString()
   withdraw.position = positionDetails.positionId
+  withdraw.inputTokenBalance = positionDetails.inputTokenBalance
+  withdraw.inputTokenBalanceNormalizedUSD = positionDetails.inputTokenBalanceNormalizedUSD
   withdraw.save()
 }
