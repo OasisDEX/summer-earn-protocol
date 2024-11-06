@@ -31,6 +31,7 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     mapping(address owner => address vestingWallet) public vestingWallets;
+    mapping(address vestingWallet => address owner) public vestingWalletOwners;
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
     mapping(address => bool) public whitelistedAddresses;
@@ -109,7 +110,7 @@ contract SummerToken is
             )
         );
         vestingWallets[beneficiary] = newVestingWallet;
-
+        vestingWalletOwners[newVestingWallet] = beneficiary;
         _transfer(msg.sender, newVestingWallet, totalAmount);
 
         emit VestingWalletCreated(
@@ -242,6 +243,61 @@ contract SummerToken is
         }
 
         return directBalance;
+    }
+
+    function _transferVotingUnits(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        // Handle vesting wallet voting power transfers
+        if (_handleVestingWalletVotingTransfer(from, to, amount)) {
+            return;
+        }
+
+        // Standard transfer
+        super._transferVotingUnits(from, to, amount);
+    }
+
+    /**
+     * @dev Handles voting power transfers involving vesting wallets
+     * @param from Source address
+     * @param to Destination address
+     * @param amount Amount of voting units to transfer
+     * @return bool True if the transfer was handled (vesting wallet case), false otherwise
+     * @custom:internal-logic
+     * - Checks if either from/to is a vesting wallet
+     * - Handles voting power redirections for vesting wallet transfers
+     */
+    function _handleVestingWalletVotingTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal returns (bool) {
+        // Case 1: Transfer TO vesting wallet
+        address vestingWalletOwner = vestingWalletOwners[to];
+        if (vestingWalletOwner != address(0)) {
+            // Skip if transfer is from the owner (they already have voting power)
+            if (from != vestingWalletOwner) {
+                // Transfer voting power to beneficiary instead of vesting wallet
+                super._transferVotingUnits(from, vestingWalletOwner, amount);
+            }
+            return true;
+        }
+
+        // Case 2: Transfer FROM vesting wallet
+        address fromVestingWalletOwner = vestingWalletOwners[from];
+        if (fromVestingWalletOwner != address(0)) {
+            // Skip if transfer is to the beneficiary (they already have voting power)
+            if (to == fromVestingWalletOwner) {
+                return true;
+            }
+            // Transfer voting power from beneficiary to recipient
+            super._transferVotingUnits(fromVestingWalletOwner, to, amount);
+            return true;
+        }
+
+        return false;
     }
 
     /*//////////////////////////////////////////////////////////////
