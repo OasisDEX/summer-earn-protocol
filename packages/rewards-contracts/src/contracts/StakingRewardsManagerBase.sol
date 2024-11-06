@@ -311,7 +311,7 @@ abstract contract StakingRewardsManagerBase is
             rewards[rewardToken][account];
     }
 
-    function _updateReward(address account) internal virtual {
+    function _updateReward(address account) internal {
         uint256 rewardTokenCount = _rewardTokensList.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {
             address rewardTokenAddress = _rewardTokensList.at(i);

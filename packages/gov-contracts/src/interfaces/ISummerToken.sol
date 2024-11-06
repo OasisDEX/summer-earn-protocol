@@ -94,7 +94,7 @@ interface ISummerToken is
      * @param isEnabled isEnabled Whether the manager is enabled
      */
     event DecayManagerUpdated(address indexed manager, bool indexed isEnabled);
-    
+
     /**
      * @notice Emitted when transfers are enabled
      */
@@ -190,6 +190,8 @@ interface ISummerToken is
      * @dev Can only be called by the decay manager or the governor
      */
     function setDecayManager(address manager, bool isEnabled) external;
+
+    /**
      * @notice Enables transfers
      */
     function enableTransfers() external;

@@ -88,6 +88,7 @@ contract SummerToken is
         _updateDecayFactor(_msgSender());
         _;
     }
+
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
     mapping(address => bool) public whitelistedAddresses;

@@ -356,6 +356,8 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function test_VotingUnitsAfterUnstake() public {
+        enableTransfers();
+
         uint256 amount = 100 ether;
         uint256 partialStakeAmount = 40 ether;
         uint256 unstakeAmount = 60 ether;
@@ -447,6 +449,8 @@ contract SummerTokenTest is SummerTokenTestBase {
     }
 
     function test_VotingDecayWithGetVotes() public {
+        enableTransfers();
+
         // Setup initial tokens and delegation
         uint256 initialAmount = 100 ether;
         aSummerToken.transfer(user1, initialAmount);
@@ -508,6 +512,9 @@ contract SummerTokenTest is SummerTokenTestBase {
             noDecayVotes,
             furtherDecayedVotes,
             "Votes should not decay during the decay free window"
+        );
+    }
+
     function test_WhitelistTransfers() public {
         uint256 amount = 1000 * 10 ** 18;
 

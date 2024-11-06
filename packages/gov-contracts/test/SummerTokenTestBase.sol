@@ -55,9 +55,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
     function enableTransfers() public {
         uint256 transferEnableDate = aSummerToken.transferEnableDate() + 1;
         vm.warp(transferEnableDate);
-        vm.prank(summerGovernor);
+        vm.prank(owner);
         aSummerToken.enableTransfers();
-        vm.prank(summerGovernor);
+        vm.prank(owner);
         bSummerToken.enableTransfers();
     }
 
@@ -104,8 +104,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 decayManager: address(mockGovernor),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
-                governor: summerGovernor,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                governor: address(mockGovernor),
                 transferEnableDate: block.timestamp + 1 days
             });
 
@@ -120,8 +120,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 decayManager: address(mockGovernor),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
-                governor: summerGovernor,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                governor: address(mockGovernor),
                 transferEnableDate: block.timestamp + 1 days
             });
 

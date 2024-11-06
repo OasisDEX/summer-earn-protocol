@@ -54,6 +54,9 @@ contract GovernanceRewardsManager is
      */
     modifier updateReward(address account) override {
         _updateReward(account);
+        if (account != address(0)) {
+            _updateSmoothedDecayFactor(account);
+        }
         _;
     }
 
@@ -138,27 +141,6 @@ contract GovernanceRewardsManager is
     /*//////////////////////////////////////////////////////////////
                                 INTERNAL
     //////////////////////////////////////////////////////////////*/
-
-    function _updateReward(address account) internal override {
-        uint256 rewardTokenCount = _rewardTokensList.length();
-        for (uint256 i = 0; i < rewardTokenCount; i++) {
-            address rewardTokenAddress = _rewardTokensList.at(i);
-            IERC20 rewardToken = IERC20(rewardTokenAddress);
-            RewardData storage rewardTokenData = rewardData[rewardToken];
-            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
-            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
-                rewardToken
-            );
-            if (account != address(0)) {
-                rewards[rewardToken][account] = earned(account, rewardToken);
-                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
-                    .rewardPerTokenStored;
-            }
-        }
-        if (account != address(0)) {
-            _updateSmoothedDecayFactor(account);
-        }
-    }
 
     /**
      * @notice Updates the smoothed decay factor for a given account

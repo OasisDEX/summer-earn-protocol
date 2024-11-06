@@ -302,7 +302,7 @@
       {
         "name": "stakingRewardsManager",
         "type": "address",
-        "internalType": "contract IFleetStakingRewardsManager"
+        "internalType": "contract IFleetCommanderRewardsManager"
       }
     ],
     "stateMutability": "view"
@@ -600,7 +600,7 @@
           {
             "name": "stakingRewardsManager",
             "type": "address",
-            "internalType": "contract IFleetStakingRewardsManager"
+            "internalType": "contract IFleetCommanderRewardsManager"
           }
         ]
       }
@@ -1287,19 +1287,6 @@
         "name": "newTipRate",
         "type": "uint256",
         "internalType": "Percentage"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "stake",
-    "inputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -2689,6 +2676,11 @@
         "internalType": "uint256"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderStakingRewardsManagerNotSet",
+    "inputs": []
   },
   {
     "type": "error",
