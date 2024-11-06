@@ -21,7 +21,8 @@ import {DecayManager} from "./DecayManager.sol";
  * such as whitelisting and voting decay.
  *
  * TODO: Fully integrate voting decay once cross-chain messaging is tested
- * see https://github.com/OasisDEX/summer-earn-protocol/blob/0b6b338ef4ccb8efa209b9cf6226b3669917f0d2/packages/voting-decay/test/ExampleGovernor.sol#L76
+* see
+https://github.com/OasisDEX/summer-earn-protocol/blob/0b6b338ef4ccb8efa209b9cf6226b3669917f0d2/packages/voting-decay/test/ExampleGovernor.sol#L76
  */
 contract SummerGovernor is
     ISummerGovernor,
@@ -430,7 +431,6 @@ contract SummerGovernor is
      * @param _nativeFee The amount of native tokens to pay for the fee.
      * @return nativeFee The amount of native tokens to pay for the fee.
      */
-
     function _payNative(
         uint256 _nativeFee
     ) internal view override returns (uint256 nativeFee) {

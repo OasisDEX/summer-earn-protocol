@@ -136,6 +136,7 @@ contract SummerGovernorTest is
         vm.label(address(governorB), "SummerGovernor");
 
         vm.prank(owner);
+        enableTransfers();
         changeTokensOwnership(address(timelockA), address(timelockB));
 
         timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));

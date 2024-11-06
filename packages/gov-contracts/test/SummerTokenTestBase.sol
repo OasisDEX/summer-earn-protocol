@@ -52,6 +52,15 @@ contract SummerTokenTestBase is TestHelperOz5 {
         initializeTokenTests();
     }
 
+    function enableTransfers() public {
+        uint256 transferEnableDate = aSummerToken.transferEnableDate() + 1;
+        vm.warp(transferEnableDate);
+        vm.prank(summerGovernor);
+        aSummerToken.enableTransfers();
+        vm.prank(summerGovernor);
+        bSummerToken.enableTransfers();
+    }
+
     function initializeTokenTests() public {
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
@@ -96,6 +105,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                governor: summerGovernor,
+                transferEnableDate: block.timestamp + 1 days
             });
 
         ISummerToken.TokenParams memory tokenParamsB = ISummerToken
@@ -110,6 +121,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                governor: summerGovernor,
+                transferEnableDate: block.timestamp + 1 days
             });
 
         vm.label(owner, "Owner");

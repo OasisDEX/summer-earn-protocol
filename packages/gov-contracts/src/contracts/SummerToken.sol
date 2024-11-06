@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {SummerVestingWallet} from "./SummerVestingWallet.sol";
+import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
@@ -85,6 +88,9 @@ contract SummerToken is
         _updateDecayFactor(_msgSender());
         _;
     }
+    uint256 public immutable transferEnableDate;
+    bool public transfersEnabled;
+    mapping(address => bool) public whitelistedAddresses;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -112,6 +118,8 @@ contract SummerToken is
 
         emit DecayManagerUpdated(params.decayManager, true);
         emit DecayManagerUpdated(address(rewardsManager), true);
+
+        transferEnableDate = params.transferEnableDate;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -147,6 +155,30 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
+    function enableTransfers() external onlyOwner {
+        if (transfersEnabled) {
+            revert TransfersAlreadyEnabled();
+        }
+        if (block.timestamp < transferEnableDate) {
+            revert TransfersCannotBeEnabledYet();
+        }
+        transfersEnabled = true;
+        emit TransfersEnabled();
+    }
+
+    /// @inheritdoc ISummerToken
+    function addToWhitelist(address account) external onlyOwner {
+        whitelistedAddresses[account] = true;
+        emit AddressWhitelisted(account);
+    }
+
+    /// @inheritdoc ISummerToken
+    function removeFromWhitelist(address account) external onlyOwner {
+        whitelistedAddresses[account] = false;
+        emit AddressRemovedFromWhitelist(account);
+    }
+    /// @inheritdoc ISummerToken
+
     function createVestingWallet(
         address beneficiary,
         uint256 timeBasedAmount,
@@ -276,7 +308,26 @@ contract SummerToken is
         address to,
         uint256 amount
     ) internal override(ERC20, ERC20Votes) {
+        if (!_canTransfer(from, to)) {
+            revert TransferNotAllowed();
+        }
         super._update(from, to, amount);
+    }
+
+    function _canTransfer(
+        address from,
+        address to
+    ) internal view returns (bool) {
+        // Allow minting and burning
+        if (from == address(0) || to == address(0)) return true;
+
+        // Allow transfers if globally enabled
+        if (transfersEnabled) return true;
+
+        // Allow transfers involving whitelisted addresses
+        if (whitelistedAddresses[from] || whitelistedAddresses[to]) return true;
+
+        return false;
     }
 
     /**
@@ -312,9 +363,24 @@ contract SummerToken is
     }
 
     /**
-     * @dev Returns the voting units for an account including direct balance, staking balance, and vesting balance
+     * @dev Overrides the default _getVotingUnits function to include all user tokens in voting power, including locked
+     * up tokens in vesting wallets
      * @param account The address to get voting units for
-     * @return Voting units
+     * @return uint256 The total number of voting units for the account
+     * @custom:internal-logic
+     * - Retrieves the direct token balance of the account
+     * - Checks if the account has an associated vesting wallet
+     * - If a vesting wallet exists, adds its balance to the account's direct balance
+     * @custom:effects
+     * - Does not modify any state, view function only
+     * @custom:security-considerations
+     * - Ensures that tokens in vesting contracts still contribute to voting power
+     * - May increase the voting power of accounts with vesting wallets compared to standard ERC20Votes implementation
+     * - Consider the implications of this increased voting power on governance decisions
+     * @custom:gas-considerations
+     * - This function performs an additional storage read and potential balance check compared to the standard
+     * implementation
+     * - May slightly increase gas costs for voting-related operations
      */
     function _getVotingUnits(
         address account

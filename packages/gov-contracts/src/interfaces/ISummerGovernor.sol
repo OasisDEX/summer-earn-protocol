@@ -6,6 +6,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 
 /**
  * @title ISummerGovernor Interface
