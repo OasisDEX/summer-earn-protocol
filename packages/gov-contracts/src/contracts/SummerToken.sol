@@ -32,6 +32,9 @@ contract SummerToken is
 
     mapping(address owner => address vestingWallet) public vestingWallets;
     mapping(address vestingWallet => address owner) public vestingWalletOwners;
+    uint256 public immutable transferEnableDate;
+    bool public transfersEnabled;
+    mapping(address => bool) public whitelistedAddresses;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -43,13 +46,39 @@ contract SummerToken is
         OFT(params.name, params.symbol, params.lzEndpoint, params.governor)
         ERC20Permit(params.name)
         Ownable(params.governor)
-    {}
+    {
+        transferEnableDate = params.transferEnableDate;
+    }
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerToken
+    function enableTransfers() external onlyOwner {
+        if (transfersEnabled) {
+            revert TransfersAlreadyEnabled();
+        }
+        if (block.timestamp < transferEnableDate) {
+            revert TransfersCannotBeEnabledYet();
+        }
+        transfersEnabled = true;
+        emit TransfersEnabled();
+    }
+
+    /// @inheritdoc ISummerToken
+    function addToWhitelist(address account) external onlyOwner {
+        whitelistedAddresses[account] = true;
+        emit AddressWhitelisted(account);
+    }
+
+    /// @inheritdoc ISummerToken
+    function removeFromWhitelist(address account) external onlyOwner {
+        whitelistedAddresses[account] = false;
+        emit AddressRemovedFromWhitelist(account);
+    }
+    /// @inheritdoc ISummerToken
+
     function createVestingWallet(
         address beneficiary,
         uint256 timeBasedAmount,
@@ -128,7 +157,26 @@ contract SummerToken is
         address to,
         uint256 amount
     ) internal override(ERC20, ERC20Votes) {
+        if (!_canTransfer(from, to)) {
+            revert TransferNotAllowed();
+        }
         super._update(from, to, amount);
+    }
+
+    function _canTransfer(
+        address from,
+        address to
+    ) internal view returns (bool) {
+        // Allow minting and burning
+        if (from == address(0) || to == address(0)) return true;
+
+        // Allow transfers if globally enabled
+        if (transfersEnabled) return true;
+
+        // Allow transfers involving whitelisted addresses
+        if (whitelistedAddresses[from] || whitelistedAddresses[to]) return true;
+
+        return false;
     }
 
     /**
