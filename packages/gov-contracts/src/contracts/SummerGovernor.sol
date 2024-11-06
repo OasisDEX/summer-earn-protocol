@@ -13,7 +13,7 @@ import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/ex
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-
+import {DecayManager} from "./DecayManager.sol";
 /*
  * @title SummerGovernor
  * @dev This contract implements the governance mechanism for the Summer protocol.
@@ -29,6 +29,7 @@ contract SummerGovernor is
     GovernorSettings,
     GovernorCountingSimple,
     GovernorVotesQuorumFraction,
+    DecayManager,
     OApp
 {
     /*//////////////////////////////////////////////////////////////
@@ -68,11 +69,6 @@ contract SummerGovernor is
         _;
     }
 
-    modifier updateDecay() {
-        _updateDecayFactor(_msgSender());
-        _;
-    }
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -90,6 +86,7 @@ contract SummerGovernor is
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
         OApp(params.endpoint, address(params.timelock))
+        DecayManager(address(params.token))
         // @dev LayerZero do not directly initialize Ownable, so we do it here
         Ownable(address(params.timelock))
     {
@@ -288,7 +285,12 @@ contract SummerGovernor is
     function castVote(
         uint256 proposalId,
         uint8 support
-    ) public override(ISummerGovernor, Governor) updateDecay returns (uint256) {
+    )
+        public
+        override(ISummerGovernor, Governor)
+        updateDecay(_msgSender())
+        returns (uint256)
+    {
         address voter = _msgSender();
         return _castVote(proposalId, voter, support, "");
     }
@@ -302,7 +304,7 @@ contract SummerGovernor is
     )
         public
         override(Governor, ISummerGovernor)
-        updateDecay
+        updateDecay(_msgSender())
         onlyProposalChain
         returns (uint256)
     {
@@ -334,7 +336,7 @@ contract SummerGovernor is
         payable
         override(Governor, ISummerGovernor)
         onlyProposalChain
-        updateDecay
+        updateDecay(_msgSender())
         returns (uint256)
     {
         return super.execute(targets, values, calldatas, descriptionHash);
@@ -349,7 +351,7 @@ contract SummerGovernor is
     )
         public
         override(Governor, ISummerGovernor)
-        updateDecay
+        updateDecay(_msgSender())
         onlyProposalChain
         returns (uint256)
     {
@@ -422,10 +424,6 @@ contract SummerGovernor is
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _updateDecayFactor(address account) internal {
-        ISummerToken(address(token())).updateDecayFactor(account);
-    }
 
     /**
      * @dev Internal function to pay the native fee for LayerZero messaging.

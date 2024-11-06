@@ -340,46 +340,71 @@ contract SummerTokenTest is SummerTokenTestBase {
 
     function test_VotingUnitsAfterUnstake() public {
         uint256 amount = 100 ether;
+        uint256 partialStakeAmount = 40 ether;
         uint256 unstakeAmount = 60 ether;
 
         // Setup: Transfer tokens to user1
         aSummerToken.transfer(user1, amount);
 
-        // Initialise voting decay for user2
+        // Initialize voting decay for user2
         vm.prank(user2);
         aSummerToken.delegate(address(0));
 
-        // 1. delegate and stake
         vm.startPrank(user1);
-        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
-        aSummerToken.delegate(user2);
-        aSummerToken.rewardsManager().stake(amount);
 
-        // Verify initial state after stake
+        // 1. Delegate to user2 first
+        aSummerToken.delegate(user2);
+        assertEq(
+            aSummerToken.getVotes(user2),
+            amount,
+            "Initial voting power should match full amount"
+        );
+
+        // 2. Approve and partial stake
+        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
+        aSummerToken.rewardsManager().stake(partialStakeAmount);
+
+        // Verify state after partial stake
+        assertEq(
+            aSummerToken.rewardsManager().balanceOf(user1),
+            partialStakeAmount,
+            "Partial amount should be staked"
+        );
+        assertEq(
+            aSummerToken.balanceOf(user1),
+            amount - partialStakeAmount,
+            "Remaining tokens should be in wallet"
+        );
+        assertEq(
+            aSummerToken.getVotes(user2),
+            amount,
+            "Voting power should remain unchanged after partial stake"
+        );
+
+        // 3. Stake remaining amount
+        aSummerToken.rewardsManager().stake(amount - partialStakeAmount);
+
+        // Verify state after full stake
         assertEq(
             aSummerToken.rewardsManager().balanceOf(user1),
             amount,
-            "All tokens should be staked initially"
+            "All tokens should be staked"
         );
         assertEq(
             aSummerToken.balanceOf(user1),
             0,
             "Wallet should be empty after full stake"
         );
-
-        // 2. Direct unstake of partial amount
-        aSummerToken.rewardsManager().unstake(unstakeAmount);
-        vm.stopPrank();
-
-        // 3. Verify voting units includes both staked and wallet balance
-        uint256 expectedVotingUnits = amount; // Total voting power should remain the same
         assertEq(
             aSummerToken.getVotes(user2),
-            expectedVotingUnits,
-            "Voting units should include both staked and unstaked balances"
+            amount,
+            "Voting power should remain unchanged after full stake"
         );
 
-        // Verify individual components
+        // 4. Unstake partial amount
+        aSummerToken.rewardsManager().unstake(unstakeAmount);
+
+        // Verify final state
         assertEq(
             aSummerToken.rewardsManager().balanceOf(user1),
             amount - unstakeAmount,
@@ -391,10 +416,17 @@ contract SummerTokenTest is SummerTokenTestBase {
             "Wallet balance should contain unstaked amount"
         );
         assertEq(
+            aSummerToken.getVotes(user2),
+            amount,
+            "Voting power should remain unchanged after unstake"
+        );
+        assertEq(
             aSummerToken.delegates(user1),
             user2,
             "Delegation should remain unchanged"
         );
+
+        vm.stopPrank();
     }
 
     function test_VotingDecayWithGetVotes() public {

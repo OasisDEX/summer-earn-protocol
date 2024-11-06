@@ -62,21 +62,7 @@ abstract contract StakingRewardsManagerBase is
     //////////////////////////////////////////////////////////////*/
 
     modifier updateReward(address account) virtual {
-        uint256 rewardTokenCount = _rewardTokensList.length();
-        for (uint256 i = 0; i < rewardTokenCount; i++) {
-            address rewardTokenAddress = _rewardTokensList.at(i);
-            IERC20 rewardToken = IERC20(rewardTokenAddress);
-            RewardData storage rewardTokenData = rewardData[rewardToken];
-            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
-            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
-                rewardToken
-            );
-            if (account != address(0)) {
-                rewards[rewardToken][account] = earned(account, rewardToken);
-                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
-                    .rewardPerTokenStored;
-            }
-        }
+        _updateReward(account);
         _;
     }
 
@@ -323,5 +309,23 @@ abstract contract StakingRewardsManagerBase is
                     userRewardPerTokenPaid[rewardToken][account])) /
             1e18 +
             rewards[rewardToken][account];
+    }
+
+    function _updateReward(address account) internal virtual {
+        uint256 rewardTokenCount = _rewardTokensList.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            address rewardTokenAddress = _rewardTokensList.at(i);
+            IERC20 rewardToken = IERC20(rewardTokenAddress);
+            RewardData storage rewardTokenData = rewardData[rewardToken];
+            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
+            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
+                rewardToken
+            );
+            if (account != address(0)) {
+                rewards[rewardToken][account] = earned(account, rewardToken);
+                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
+                    .rewardPerTokenStored;
+            }
+        }
     }
 }
