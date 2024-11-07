@@ -302,7 +302,7 @@ contract FleetCommander is
             address(config.stakingRewardsManager),
             shares
         );
-        _stakeFor(receiver, shares);
+        _stakeOnBehalfOf(receiver, shares);
 
         return shares;
     }
@@ -1049,14 +1049,12 @@ contract FleetCommander is
      * @param amount The amount of tokens to stake
      * @custom:error FleetCommanderStakingRewardsManagerNotSet Thrown when the staking rewards manager address is not set
      */
-    function _stakeFor(address account, uint256 amount) internal {
+    function _stakeOnBehalfOf(address account, uint256 amount) internal {
         if (address(config.stakingRewardsManager) == address(0)) {
             revert FleetCommanderStakingRewardsManagerNotSet();
         }
 
-        IFleetCommanderRewardsManager(config.stakingRewardsManager).stakeFor(
-            account,
-            amount
-        );
+        IFleetCommanderRewardsManager(config.stakingRewardsManager)
+            .stakeOnBehalfOf(account, amount);
     }
 }

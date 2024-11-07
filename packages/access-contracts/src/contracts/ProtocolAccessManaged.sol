@@ -219,6 +219,21 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Modifier to restrict access to decay controllers only
+     */
+    modifier onlyDecayController() {
+        if (
+            !_accessManager.hasRole(
+                _accessManager.DECAY_CONTROLLER_ROLE(),
+                msg.sender
+            )
+        ) {
+            revert CallerIsNotDecayController(msg.sender);
+        }
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -248,5 +263,13 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      */
     function _isGovernor(address account) internal view returns (bool) {
         return _accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), account);
+    }
+
+    function _isDecayController(address account) internal view returns (bool) {
+        return
+            _accessManager.hasRole(
+                _accessManager.DECAY_CONTROLLER_ROLE(),
+                account
+            );
     }
 }

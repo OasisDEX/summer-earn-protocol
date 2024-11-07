@@ -52,6 +52,15 @@ contract SummerTokenTestBase is TestHelperOz5 {
         initializeTokenTests();
     }
 
+    function enableTransfers() public {
+        uint256 transferEnableDate = aSummerToken.transferEnableDate() + 1;
+        vm.warp(transferEnableDate);
+        vm.prank(owner);
+        aSummerToken.enableTransfers();
+        vm.prank(owner);
+        bSummerToken.enableTransfers();
+    }
+
     function initializeTokenTests() public {
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
@@ -95,7 +104,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 decayManager: address(mockGovernor),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                governor: address(mockGovernor),
+                transferEnableDate: block.timestamp + 1 days
             });
 
         ISummerToken.TokenParams memory tokenParamsB = ISummerToken
@@ -109,7 +120,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 decayManager: address(mockGovernor),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                governor: address(mockGovernor),
+                transferEnableDate: block.timestamp + 1 days
             });
 
         vm.label(owner, "Owner");
@@ -123,6 +136,20 @@ contract SummerTokenTestBase is TestHelperOz5 {
         address[] memory tokens = new address[](2);
         tokens[0] = address(aSummerToken);
         tokens[1] = address(bSummerToken);
+
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantDecayControllerRole(address(mockGovernor));
+        accessManagerA.grantDecayControllerRole(
+            address(aSummerToken.rewardsManager())
+        );
+        vm.stopPrank();
+
+        vm.startPrank(address(timelockB));
+        accessManagerB.grantDecayControllerRole(address(mockGovernor));
+        accessManagerB.grantDecayControllerRole(
+            address(bSummerToken.rewardsManager())
+        );
+        vm.stopPrank();
 
         this.wireOApps(tokens);
     }

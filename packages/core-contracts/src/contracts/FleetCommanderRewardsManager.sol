@@ -36,7 +36,10 @@ contract FleetCommanderRewardsManager is
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function stakeFor(address receiver, uint256 amount) external override {
+    function stakeOnBehalfOf(
+        address receiver,
+        uint256 amount
+    ) external override {
         _stake(_msgSender(), receiver, amount);
     }
 }

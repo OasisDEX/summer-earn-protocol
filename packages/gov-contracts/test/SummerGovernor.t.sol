@@ -19,6 +19,8 @@ import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
 import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 
@@ -124,10 +126,11 @@ contract SummerGovernorTest is
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
 
-        vm.startPrank(address(mockGovernor));
-        aSummerToken.setDecayManager(address(governorA), true);
-        bSummerToken.setDecayManager(address(governorB), true);
-        vm.stopPrank();
+        vm.prank(address(timelockA));
+        accessManagerA.grantDecayControllerRole(address(governorA));
+
+        vm.prank(address(timelockB));
+        accessManagerB.grantDecayControllerRole(address(governorB));
 
         governorA.setTrustedRemote(bEid, address(governorB));
         governorB.setTrustedRemote(aEid, address(governorA));
@@ -136,6 +139,7 @@ contract SummerGovernorTest is
         vm.label(address(governorB), "SummerGovernor");
 
         vm.prank(owner);
+        enableTransfers();
         changeTokensOwnership(address(timelockA), address(timelockB));
 
         timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));
@@ -1489,8 +1493,10 @@ contract SummerGovernorTest is
             params
         );
 
-        vm.prank(address(governorA));
-        aSummerToken.setDecayManager(address(wrongChainGovernor), true);
+        vm.startPrank(address(timelockA));
+        accessManagerA.revokeDecayControllerRole(address(governorA));
+        accessManagerA.grantDecayControllerRole(address(wrongChainGovernor));
+        vm.stopPrank();
 
         // Ensure Alice has enough tokens to meet the proposal threshold
         deal(
@@ -1522,8 +1528,8 @@ contract SummerGovernorTest is
         );
         wrongChainGovernor.propose(targets, values, calldatas, description);
 
-        vm.prank(address(wrongChainGovernor));
-        aSummerToken.setDecayManager(address(governorA), true);
+        // vm.prank(address(wrongChainGovernor));
+        // aSummerToken.setDecayManager(address(governorA), true);
     }
 
     function test_ProposalFailsQuorumAfterDecay() public {
@@ -1742,6 +1748,57 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
         advanceTimeAndBlock();
+
+        // Verify decay update is called when proposing
+        vm.expectCall(
+            address(aSummerToken),
+            abi.encodeWithSelector(
+                ISummerToken.updateDecayFactor.selector,
+                alice
+            )
+        );
+
+        vm.prank(alice);
+        createProposal();
+    }
+
+    function testVestingWalletVotingPower() public {
+        // Initial setup
+        uint256 vestingAmount = 500000 * 10 ** 18;
+        uint256 directAmount = 1000000 * 10 ** 18;
+        uint256 additionalAmount = 100000 * 10 ** 18;
+        address _bob = address(0xb0b);
+
+        vm.prank(_bob);
+        // Bob delegates to himself - even if he has no tokens yet, he will have voting power after Cas 5 test is
+        // finished
+        aSummerToken.delegate(_bob);
+
+        // Mint initial tokens to timelockA
+        vm.startPrank(address(timelockA));
+        aSummerToken.mint(address(timelockA), vestingAmount * 2); // Extra for additional tests
+        vm.stopPrank();
+
+        // Case 1: Create vesting wallet and transfer initial tokens
+        vm.startPrank(address(timelockA));
+        aSummerToken.createVestingWallet(
+            alice,
+            vestingAmount,
+            new uint256[](0),
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        aSummerToken.mint(alice, directAmount);
+        vm.stopPrank();
+
+        address vestingWalletAddress = aSummerToken.vestingWallets(alice);
+        SummerVestingWallet vestingWallet = SummerVestingWallet(
+            payable(vestingWalletAddress)
+        );
+
+        // Alice delegates to herself
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.roll(block.number + 1);
 
         // Verify decay update is called when proposing
         vm.expectCall(

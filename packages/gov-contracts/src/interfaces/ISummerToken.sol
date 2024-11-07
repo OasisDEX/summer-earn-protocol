@@ -45,7 +45,28 @@ interface ISummerToken is
         uint40 initialDecayFreeWindow;
         uint256 initialDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
+        address governor;
+        uint256 transferEnableDate;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Error thrown when transfers are not allowed
+     */
+    error TransferNotAllowed();
+
+    /**
+     * @notice Error thrown when transfers cannot be enabled yet
+     */
+    error TransfersCannotBeEnabledYet();
+
+    /**
+     * @notice Error thrown when transfers are already enabled
+     */
+    error TransfersAlreadyEnabled();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -68,11 +89,21 @@ interface ISummerToken is
     );
 
     /**
-     * @notice Emitted when the decay manager is updated
-     * @param manager manager The address of the manager
-     * @param isEnabled isEnabled Whether the manager is enabled
+     * @notice Emitted when transfers are enabled
      */
-    event DecayManagerUpdated(address indexed manager, bool indexed isEnabled);
+    event TransfersEnabled();
+
+    /**
+     * @notice Emitted when an address is whitelisted
+     * @param account The address of the whitelisted account
+     */
+    event AddressWhitelisted(address indexed account);
+
+    /**
+     * @notice Emitted when an address is removed from the whitelist
+     * @param account The address of the removed account
+     */
+    event AddressRemovedFromWhitelist(address indexed account);
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -146,12 +177,21 @@ interface ISummerToken is
     ) external;
 
     /**
-     * @notice Sets the decay manager address
-     * @param manager The address of the manager
-     * @param isEnabled Whether the manager is enabled
-     * @dev Can only be called by the decay manager or the governor
+     * @notice Enables transfers
      */
-    function setDecayManager(address manager, bool isEnabled) external;
+    function enableTransfers() external;
+
+    /**
+     * @notice Adds an address to the whitelist
+     * @param account The address to add to the whitelist
+     */
+    function addToWhitelist(address account) external;
+
+    /**
+     * @notice Removes an address from the whitelist
+     * @param account The address to remove from the whitelist
+     */
+    function removeFromWhitelist(address account) external;
 
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS

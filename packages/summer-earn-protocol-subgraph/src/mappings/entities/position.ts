@@ -5,10 +5,10 @@ import { PositionDetails } from '../../types'
 export function updatePosition(positionDetails: PositionDetails, block: ethereum.Block): void {
   const position = getOrCreatePosition(positionDetails.positionId, block)
   if (position) {
-    position.inputTokenBalance = positionDetails.outputTokenBalance
-    position.outputTokenBalance = positionDetails.inputTokenBalance
-    position.outputTokenBalanceNormalized = positionDetails.inputTokenBalanceNormalized
-    position.outputTokenBalanceNormalizedInUSD = positionDetails.inputTokenBalanceNormalizedUSD
+    position.inputTokenBalance = positionDetails.inputTokenBalance
+    position.outputTokenBalance = positionDetails.outputTokenBalance
+    position.inputTokenBalanceNormalized = positionDetails.inputTokenBalanceNormalized
+    position.inputTokenBalanceNormalizedInUSD = positionDetails.inputTokenBalanceNormalizedUSD
     position.save()
   }
 }

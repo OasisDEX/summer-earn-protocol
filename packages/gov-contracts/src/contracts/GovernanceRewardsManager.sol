@@ -11,6 +11,8 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {DecayController} from "./DecayController.sol";
+
 /**
  * @title GovernanceRewardsManager
  * @notice Contract for managing governance rewards with multiple reward tokens in the Summer protocol
@@ -18,7 +20,8 @@ import {ISummerToken} from "../interfaces/ISummerToken.sol";
  */
 contract GovernanceRewardsManager is
     IGovernanceRewardsManager,
-    StakingRewardsManagerBase
+    StakingRewardsManagerBase,
+    DecayController
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -44,45 +47,14 @@ contract GovernanceRewardsManager is
     mapping(address account => uint256 smoothedDecayFactor)
         public userSmoothedDecayFactor;
 
-    /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Updates the decay factor for an account before executing a function
-     * @param account The address of the account to update the decay factor for
-     * @dev Calls the stakingToken's updateDecayFactor function to ensure the account's
-     *      decay factor is up to date before any staking operations
-     */
-    modifier updateDecay(address account) {
-        _updateDecayFactor(account);
-        _;
-    }
-
     /**
      * @notice Updates rewards for an account before executing a function
      * @param account The address of the account to update rewards for
      * @dev Updates reward data for all reward tokens and the account's smoothed decay factor
      */
     modifier updateReward(address account) override {
-        uint256 rewardTokenCount = _rewardTokensList.length();
-        for (uint256 i = 0; i < rewardTokenCount; i++) {
-            address rewardTokenAddress = _rewardTokensList.at(i);
-            IERC20 rewardToken = IERC20(rewardTokenAddress);
-            RewardData storage rewardTokenData = rewardData[rewardToken];
-            rewardTokenData.rewardPerTokenStored = rewardPerToken(rewardToken);
-            rewardTokenData.lastUpdateTime = lastTimeRewardApplicable(
-                rewardToken
-            );
-            if (account != address(0)) {
-                rewards[rewardToken][account] = earned(account, rewardToken);
-                userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
-                    .rewardPerTokenStored;
-            }
-        }
-        if (account != address(0)) {
-            _updateSmoothedDecayFactor(account);
-        }
+        _updateReward(account);
+        _updateSmoothedDecayFactor(account);
         _;
     }
 
@@ -98,7 +70,7 @@ contract GovernanceRewardsManager is
     constructor(
         address _stakingToken,
         address _accessManager
-    ) StakingRewardsManagerBase(_accessManager) {
+    ) StakingRewardsManagerBase(_accessManager) DecayController(_stakingToken) {
         stakingToken = IERC20(_stakingToken);
     }
 
@@ -116,17 +88,15 @@ contract GovernanceRewardsManager is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function stakeFor(
+    function stakeOnBehalfOf(
         address receiver,
         uint256 amount
     ) external override updateDecay(receiver) {
-        _stakingTokenInitialized();
         _stake(_msgSender(), receiver, amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
     function stake(uint256 amount) external override updateDecay(_msgSender()) {
-        _stakingTokenInitialized();
         _stake(_msgSender(), _msgSender(), amount);
     }
 
@@ -134,7 +104,6 @@ contract GovernanceRewardsManager is
     function unstake(
         uint256 amount
     ) external override updateReward(_msgSender()) updateDecay(_msgSender()) {
-        _stakingTokenInitialized();
         _unstake(_msgSender(), amount);
     }
 
@@ -171,20 +140,16 @@ contract GovernanceRewardsManager is
                                 INTERNAL
     //////////////////////////////////////////////////////////////*/
 
-    function _stakingTokenInitialized() internal view {
-        if (address(stakingToken) == address(0)) {
-            revert StakingTokenNotInitialized();
-        }
-    }
-
     /**
      * @notice Updates the smoothed decay factor for a given account
      * @param account The address of the account to update
      */
     function _updateSmoothedDecayFactor(address account) internal {
-        userSmoothedDecayFactor[account] = _calculateSmoothedDecayFactor(
-            account
-        );
+        if (account != address(0)) {
+            userSmoothedDecayFactor[account] = _calculateSmoothedDecayFactor(
+                account
+            );
+        }
     }
 
     /**
@@ -211,9 +176,5 @@ contract GovernanceRewardsManager is
                 (userSmoothedDecayFactor[account] *
                     (DECAY_SMOOTHING_FACTOR_BASE - DECAY_SMOOTHING_FACTOR))) /
             DECAY_SMOOTHING_FACTOR_BASE;
-    }
-
-    function _updateDecayFactor(address account) internal {
-        ISummerToken(address(stakingToken)).updateDecayFactor(account);
     }
 }

@@ -80,11 +80,11 @@ contract GovernanceRewardsManagerTest is Test {
         stakingToken.approve(address(stakingRewardsManager), type(uint256).max);
     }
 
-    function test_StakeForUpdatesBalancesCorrectly() public {
+    function test_StakeOnBehalfOfUpdatesBalancesCorrectly() public {
         uint256 stakeAmount = 1000 * 1e18;
 
         vm.prank(address(alice));
-        stakingRewardsManager.stakeFor(bob, stakeAmount);
+        stakingRewardsManager.stakeOnBehalfOf(bob, stakeAmount);
 
         assertEq(
             stakingRewardsManager.balanceOf(bob),

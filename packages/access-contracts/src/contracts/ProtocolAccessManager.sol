@@ -20,6 +20,9 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
 
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
+    bytes32 public constant DECAY_CONTROLLER_ROLE =
+        keccak256("DECAY_CONTROLLER_ROLE");
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -189,6 +192,16 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
             arkAddress,
             account
         );
+    }
+
+    /// @inheritdoc IProtocolAccessManager
+    function grantDecayControllerRole(address account) public onlyGovernor {
+        _grantRole(DECAY_CONTROLLER_ROLE, account);
+    }
+
+    /// @inheritdoc IProtocolAccessManager
+    function revokeDecayControllerRole(address account) public onlyGovernor {
+        _revokeRole(DECAY_CONTROLLER_ROLE, account);
     }
 
     /*//////////////////////////////////////////////////////////////

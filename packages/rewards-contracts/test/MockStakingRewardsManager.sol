@@ -17,7 +17,7 @@ contract MockStakingRewardsManager is StakingRewardsManagerBase {
         stakingToken = _stakingToken;
     }
 
-    function stakeFor(address receiver, uint256 amount) external override {
+    function stakeOnBehalfOf(address receiver, uint256 amount) external {
         _stake(_msgSender(), receiver, amount);
     }
 }

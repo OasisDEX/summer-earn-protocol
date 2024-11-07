@@ -648,6 +648,12 @@ type Deposit implements Event @entity @transaction {
   " Amount of token deposited in USD "
   amountUSD: BigDecimal!
 
+  " Amount of input token in the position "
+  inputTokenBalance: BigInt!
+
+  " Amount of input token in the position in USD "
+  inputTokenBalanceNormalizedUSD: BigDecimal!
+
   " The vault involving this transaction "
   vault: Vault!
 
@@ -688,6 +694,12 @@ type Withdraw implements Event @entity @transaction {
 
   " Amount of token withdrawn in USD "
   amountUSD: BigDecimal!
+
+  " Amount of input token in the position "
+  inputTokenBalance: BigInt!
+
+  " Amount of input token in the position in USD "
+  inputTokenBalanceNormalizedUSD: BigDecimal!
 
   " The vault involving this transaction "
   vault: Vault!
@@ -864,11 +876,11 @@ type Position @entity {
   " Supply of the output token for the position "
   outputTokenBalance: BigInt!
 
-  " Normalized supply of the output token "
-  outputTokenBalanceNormalized: BigDecimal!
+  " Normalized supply of the input token "
+  inputTokenBalanceNormalized: BigDecimal!
 
-  " Normalized supply of the output token in USD "
-  outputTokenBalanceNormalizedInUSD: BigDecimal!
+  " Normalized supply of the input token in USD "
+  inputTokenBalanceNormalizedInUSD: BigDecimal!
 
   " Creation timestamp "
   createdTimestamp: BigInt!
