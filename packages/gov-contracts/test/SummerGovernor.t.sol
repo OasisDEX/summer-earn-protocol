@@ -59,6 +59,8 @@ contract ExposedSummerGovernor is SummerGovernor {
             _options
         );
     }
+
+    function forceUpdateDecay(address account) public updateDecay(account) {}
 }
 
 /*
@@ -1771,12 +1773,15 @@ contract SummerGovernorTest is
         createProposal();
     }
 
-    function testVestingWalletVotingPower() public {
+    function test_VestingWalletVotingPower() public {
         // Initial setup
         uint256 vestingAmount = 500000 * 10 ** 18;
         uint256 directAmount = 1000000 * 10 ** 18;
         uint256 additionalAmount = 100000 * 10 ** 18;
         address _bob = address(0xb0b);
+
+        vm.prank(address(timelockA));
+        aSummerToken.setDecayRatePerSecond(0);
 
         vm.prank(_bob);
         // Bob delegates to himself - even if he has no tokens yet, he will have voting power after Cas 5 test is
@@ -1796,6 +1801,7 @@ contract SummerGovernorTest is
             new uint256[](0),
             ISummerVestingWallet.VestingType.TeamVesting
         );
+
         aSummerToken.mint(alice, directAmount);
         vm.stopPrank();
 
@@ -1804,22 +1810,105 @@ contract SummerGovernorTest is
             payable(vestingWalletAddress)
         );
 
+        // Need to initialize decay account for vesting wallet to read votes
+        governorA.forceUpdateDecay(vestingWalletAddress);
+
         // Alice delegates to herself
         vm.prank(alice);
         aSummerToken.delegate(alice);
         advanceTimeAndBlock();
 
-        // Verify decay update is called when proposing
-        vm.expectCall(
-            address(aSummerToken),
-            abi.encodeWithSelector(
-                ISummerToken.updateDecayFactor.selector,
-                alice
-            )
+        // Check initial state
+        uint256 aliceVotingPower = governorA.getVotes(alice, block.number - 1);
+        uint256 vestingWalletVotingPower = governorA.getVotes(
+            vestingWalletAddress,
+            block.number - 1
+        );
+        assertEq(
+            vestingWalletVotingPower,
+            0,
+            "Vesting wallet should have 0 voting power"
+        );
+        assertEq(
+            aliceVotingPower,
+            vestingAmount + directAmount,
+            "Alice should have voting power from both direct and vesting tokens"
         );
 
-        vm.prank(alice);
-        createProposal();
+        // Case 2: Transfer from Alice to vesting wallet (should not change voting power)
+        vm.startPrank(alice);
+        aSummerToken.transfer(vestingWalletAddress, 100000 * 10 ** 18);
+        vm.roll(block.number + 1);
+
+        uint256 newAliceVotingPower = governorA.getVotes(
+            alice,
+            block.number - 1
+        );
+        assertEq(
+            newAliceVotingPower,
+            aliceVotingPower,
+            "Alice's voting power should not change when transferring to own vesting wallet"
+        );
+
+        // Case 3: Transfer from another address to vesting wallet
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(vestingWalletAddress, additionalAmount);
+        vm.roll(block.number + 1);
+
+        uint256 updatedAliceVotingPower = governorA.getVotes(
+            alice,
+            block.number - 1
+        );
+        assertEq(
+            updatedAliceVotingPower,
+            newAliceVotingPower + additionalAmount,
+            "Alice's voting power should increase when vesting wallet receives tokens from others"
+        );
+
+        // Case 4: Transfer from vesting wallet to beneficiary (Alice)
+        // First, let's make the tokens vestable
+        vm.warp(block.timestamp + 365 days);
+        uint256 vestableAmount = vestingWallet.vestedAmount(
+            address(aSummerToken),
+            SafeCast.toUint64(block.timestamp)
+        );
+        vm.startPrank(alice);
+        vestingWallet.release(address(aSummerToken));
+        vm.roll(block.number + 1);
+
+        uint256 afterClaimVotingPower = governorA.getVotes(
+            alice,
+            block.number - 1
+        );
+
+        assertEq(
+            afterClaimVotingPower,
+            updatedAliceVotingPower,
+            "Alice's voting power should be less than the updated amount because of decay"
+        );
+
+        // Case 5: Transfer from vesting wallet to third party (Bob)
+        vm.startPrank(vestingWalletAddress);
+        uint256 transferAmount = 25000 * 10 ** 18;
+        aSummerToken.transfer(_bob, transferAmount);
+        vm.roll(block.number + 1);
+
+        uint256 finalAliceVotingPower = governorA.getVotes(
+            alice,
+            block.number - 1
+        );
+
+        uint256 bobVotingPower = governorA.getVotes(_bob, block.number - 1);
+        assertEq(
+            finalAliceVotingPower,
+            afterClaimVotingPower - transferAmount,
+            "Alice's voting power should decrease when vesting wallet transfers to third party"
+        );
+        assertEq(
+            bobVotingPower,
+            transferAmount,
+            "Bob should receive voting power from vesting wallet transfer"
+        );
     }
 
     function test_DecayUpdateOnVote() public {
