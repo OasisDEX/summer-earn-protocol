@@ -89,13 +89,6 @@ interface ISummerToken is
     );
 
     /**
-     * @notice Emitted when the decay manager is updated
-     * @param manager manager The address of the manager
-     * @param isEnabled isEnabled Whether the manager is enabled
-     */
-    event DecayManagerUpdated(address indexed manager, bool indexed isEnabled);
-
-    /**
      * @notice Emitted when transfers are enabled
      */
     event TransfersEnabled();
@@ -182,14 +175,6 @@ interface ISummerToken is
     function setDecayFunction(
         VotingDecayLibrary.DecayFunction newFunction
     ) external;
-
-    /**
-     * @notice Sets the decay manager address
-     * @param manager The address of the manager
-     * @param isEnabled Whether the manager is enabled
-     * @dev Can only be called by the decay manager or the governor
-     */
-    function setDecayManager(address manager, bool isEnabled) external;
 
     /**
      * @notice Enables transfers

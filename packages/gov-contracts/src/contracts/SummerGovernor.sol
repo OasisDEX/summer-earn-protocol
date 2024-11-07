@@ -13,7 +13,8 @@ import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/ex
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {DecayManager} from "./DecayManager.sol";
+import {DecayController} from "./DecayController.sol";
+
 /*
  * @title SummerGovernor
  * @dev This contract implements the governance mechanism for the Summer protocol.
@@ -30,7 +31,7 @@ contract SummerGovernor is
     GovernorSettings,
     GovernorCountingSimple,
     GovernorVotesQuorumFraction,
-    DecayManager,
+    DecayController,
     OApp
 {
     /*//////////////////////////////////////////////////////////////
@@ -87,7 +88,7 @@ contract SummerGovernor is
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
         OApp(params.endpoint, address(params.timelock))
-        DecayManager(address(params.token))
+        DecayController(address(params.token))
         // @dev LayerZero do not directly initialize Ownable, so we do it here
         Ownable(address(params.timelock))
     {

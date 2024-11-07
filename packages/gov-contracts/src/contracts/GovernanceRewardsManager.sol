@@ -11,7 +11,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {DecayManager} from "./DecayManager.sol";
+import {DecayController} from "./DecayController.sol";
 
 /**
  * @title GovernanceRewardsManager
@@ -21,7 +21,7 @@ import {DecayManager} from "./DecayManager.sol";
 contract GovernanceRewardsManager is
     IGovernanceRewardsManager,
     StakingRewardsManagerBase,
-    DecayManager
+    DecayController
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -54,9 +54,7 @@ contract GovernanceRewardsManager is
      */
     modifier updateReward(address account) override {
         _updateReward(account);
-        if (account != address(0)) {
-            _updateSmoothedDecayFactor(account);
-        }
+        _updateSmoothedDecayFactor(account);
         _;
     }
 
@@ -72,7 +70,7 @@ contract GovernanceRewardsManager is
     constructor(
         address _stakingToken,
         address _accessManager
-    ) StakingRewardsManagerBase(_accessManager) DecayManager(_stakingToken) {
+    ) StakingRewardsManagerBase(_accessManager) DecayController(_stakingToken) {
         stakingToken = IERC20(_stakingToken);
     }
 
@@ -147,9 +145,11 @@ contract GovernanceRewardsManager is
      * @param account The address of the account to update
      */
     function _updateSmoothedDecayFactor(address account) internal {
-        userSmoothedDecayFactor[account] = _calculateSmoothedDecayFactor(
-            account
-        );
+        if (account != address(0)) {
+            userSmoothedDecayFactor[account] = _calculateSmoothedDecayFactor(
+                account
+            );
+        }
     }
 
     /**

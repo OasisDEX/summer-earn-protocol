@@ -167,4 +167,16 @@ interface IProtocolAccessManager {
      * @param account The account from which the Guardian role will be revoked
      */
     function revokeGuardianRole(address account) external;
+
+    /**
+     * @notice Grants the Decay Controller role to a given account
+     * @param account The account to which the Decay Controller role will be granted
+     */
+    function grantDecayControllerRole(address account) external;
+
+    /**
+     * @notice Revokes the Decay Controller role from a given account
+     * @param account The account from which the Decay Controller role will be revoked
+     */
+    function revokeDecayControllerRole(address account) external;
 }

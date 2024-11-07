@@ -96,7 +96,9 @@ export const GovModule = buildModule('GovModule', (m) => {
   const summerGovernorDeployParams = {
     token: summerToken,
     timelock: timelock,
+    // Note: Voting period is set to 1 second to allow for testing
     votingDelay: 1,
+    // Note: Voting period is set to 1 hour to allow for testing
     votingPeriod: 60 * 60,
     proposalThreshold: 10000n * 10n ** 18n,
     quorumFraction: 4,

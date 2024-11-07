@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
-import "../interfaces/ISummerToken.sol";
-
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {IDecayController} from "../interfaces/IDecayController.sol";
 /**
- * @title DecayManager
+ * @title DecayController
  * @notice Manages decay updates for governance rewards and voting power
  */
-abstract contract DecayManager {
+abstract contract DecayController is IDecayController {
     ISummerToken public immutable summerToken;
 
     constructor(address _summerToken) {
-        require(_summerToken != address(0), "DecayManager: zero address");
+        if (_summerToken == address(0)) {
+            revert DecayController__ZeroAddress();
+        }
         summerToken = ISummerToken(_summerToken);
     }
 

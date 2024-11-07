@@ -49,32 +49,19 @@ contract SummerToken is
 
     mapping(address owner => address vestingWallet) public vestingWallets;
     GovernanceRewardsManager public rewardsManager;
-    mapping(address => bool) public decayManagers;
 
     /*//////////////////////////////////////////////////////////////
                             MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Restricts function access to decay managers or the governor
-     * @dev Reverts with CallerIsNotAuthorized if caller is neither a decay manager nor governor
+     * @notice Restricts function access to decay controllers or the governor
+     * @dev Reverts with CallerIsNotAuthorized if caller is neither a decay controller nor governor
      * @custom:security Ensures critical decay-related functions can only be called by authorized parties
      */
-    modifier onlyDecayManagerOrGovernor() {
-        if (!_isDecayManager(_msgSender()) && !_isGovernor(_msgSender())) {
+    modifier onlyDecayControllerOrGovernor() {
+        if (!_isDecayController(_msgSender()) && !_isGovernor(_msgSender())) {
             revert CallerIsNotAuthorized(_msgSender());
-        }
-        _;
-    }
-
-    /**
-     * @notice Restricts function access to decay managers only
-     * @dev Reverts with CallerIsNotDecayManager if caller is not a registered decay manager
-     * @custom:security Ensures decay-specific functions can only be called by decay managers
-     */
-    modifier onlyDecayManager() {
-        if (!_isDecayManager(_msgSender())) {
-            revert CallerIsNotDecayManager(_msgSender());
         }
         _;
     }
@@ -115,11 +102,6 @@ contract SummerToken is
             address(this),
             params.accessManager
         );
-        decayManagers[params.decayManager] = true;
-        decayManagers[address(rewardsManager)] = true;
-
-        emit DecayManagerUpdated(params.decayManager, true);
-        emit DecayManagerUpdated(address(rewardsManager), true);
 
         transferEnableDate = params.transferEnableDate;
     }
@@ -145,15 +127,6 @@ contract SummerToken is
         VotingDecayLibrary.DecayFunction newFunction
     ) external onlyGovernor {
         _setDecayFunction(newFunction);
-    }
-
-    /// @inheritdoc ISummerToken
-    function setDecayManager(
-        address manager,
-        bool isEnabled
-    ) public onlyDecayManagerOrGovernor {
-        decayManagers[manager] = isEnabled;
-        emit DecayManagerUpdated(manager, isEnabled);
     }
 
     /// @inheritdoc ISummerToken
@@ -230,7 +203,7 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function updateDecayFactor(address account) external onlyDecayManager {
+    function updateDecayFactor(address account) external onlyDecayController {
         _updateDecayFactor(account);
     }
 
@@ -294,10 +267,6 @@ contract SummerToken is
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    function _isDecayManager(address account) internal view returns (bool) {
-        return decayManagers[account];
-    }
 
     /**
      * @dev Internal function to update token balances.

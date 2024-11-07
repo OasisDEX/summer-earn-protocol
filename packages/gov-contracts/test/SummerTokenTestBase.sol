@@ -137,6 +137,20 @@ contract SummerTokenTestBase is TestHelperOz5 {
         tokens[0] = address(aSummerToken);
         tokens[1] = address(bSummerToken);
 
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantDecayControllerRole(address(mockGovernor));
+        accessManagerA.grantDecayControllerRole(
+            address(aSummerToken.rewardsManager())
+        );
+        vm.stopPrank();
+
+        vm.startPrank(address(timelockB));
+        accessManagerB.grantDecayControllerRole(address(mockGovernor));
+        accessManagerB.grantDecayControllerRole(
+            address(bSummerToken.rewardsManager())
+        );
+        vm.stopPrank();
+
         this.wireOApps(tokens);
     }
 

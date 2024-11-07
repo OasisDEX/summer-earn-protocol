@@ -126,10 +126,11 @@ contract SummerGovernorTest is
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
 
-        vm.startPrank(address(mockGovernor));
-        aSummerToken.setDecayManager(address(governorA), true);
-        bSummerToken.setDecayManager(address(governorB), true);
-        vm.stopPrank();
+        vm.prank(address(timelockA));
+        accessManagerA.grantDecayControllerRole(address(governorA));
+
+        vm.prank(address(timelockB));
+        accessManagerB.grantDecayControllerRole(address(governorB));
 
         governorA.setTrustedRemote(bEid, address(governorB));
         governorB.setTrustedRemote(aEid, address(governorA));
@@ -1538,8 +1539,10 @@ contract SummerGovernorTest is
             params
         );
 
-        vm.prank(address(governorA));
-        aSummerToken.setDecayManager(address(wrongChainGovernor), true);
+        vm.startPrank(address(timelockA));
+        accessManagerA.revokeDecayControllerRole(address(governorA));
+        accessManagerA.grantDecayControllerRole(address(wrongChainGovernor));
+        vm.stopPrank();
 
         // Ensure Alice has enough tokens to meet the proposal threshold
         deal(
@@ -1570,8 +1573,8 @@ contract SummerGovernorTest is
         );
         wrongChainGovernor.propose(targets, values, calldatas, description);
 
-        vm.prank(address(wrongChainGovernor));
-        aSummerToken.setDecayManager(address(governorA), true);
+        // vm.prank(address(wrongChainGovernor));
+        // aSummerToken.setDecayManager(address(governorA), true);
     }
 
     function test_ProposalFailsQuorumAfterDecay() public {
