@@ -97,7 +97,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     token: summerToken,
     timelock: timelock,
     votingDelay: 1,
-    votingPeriod: 10000, // TODO: Change from block clock to timestamp
+    votingPeriod: 60 * 60,
     proposalThreshold: 10000n * 10n ** 18n,
     quorumFraction: 4,
     initialWhitelistGuardian: deployer,
