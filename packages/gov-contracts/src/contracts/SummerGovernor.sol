@@ -311,10 +311,10 @@ contract SummerGovernor is
         returns (uint256)
     {
         address proposer = _msgSender();
-        // Use block.number - 1 to get the proposer's voting power from the previous block.
+        // Use block.timestamp - 1 to get the proposer's voting power from the previous block.
         // This ensures we're using a finalized state and prevents potential same-block manipulations,
         // aligning with OpenZeppelin's recommended practice for governance contracts.
-        uint256 proposerVotes = getVotes(proposer, block.number - 1);
+        uint256 proposerVotes = getVotes(proposer, block.timestamp - 1);
 
         if (proposerVotes < proposalThreshold() && !isWhitelisted(proposer)) {
             revert SummerGovernorProposerBelowThresholdAndNotWhitelisted(
@@ -366,13 +366,13 @@ contract SummerGovernor is
         address proposer = proposalProposer(proposalId);
         if (
             _msgSender() != proposer &&
-            getVotes(proposer, block.number - 1) >= proposalThreshold() &&
+            getVotes(proposer, block.timestamp - 1) >= proposalThreshold() &&
             _msgSender() != config.whitelistGuardian
         ) {
             revert SummerGovernorUnauthorizedCancellation(
                 _msgSender(),
                 proposer,
-                getVotes(proposer, block.number - 1),
+                getVotes(proposer, block.timestamp - 1),
                 proposalThreshold()
             );
         }
@@ -670,7 +670,7 @@ contract SummerGovernor is
 
     /**
      * @dev Returns the current voting delay.
-     * @return The current voting delay in blocks.
+     * @return The current voting delay
      */
     function votingDelay()
         public
@@ -683,7 +683,7 @@ contract SummerGovernor is
 
     /**
      * @dev Returns the current voting period.
-     * @return The current voting period in blocks.
+     * @return The current voting period
      */
     function votingPeriod()
         public

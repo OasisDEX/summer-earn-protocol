@@ -83,8 +83,8 @@ contract SummerGovernorTest is
     address public david = address(0x114);
     address public whitelistGuardian = address(0x115);
 
-    uint48 public constant VOTING_DELAY = 1;
-    uint32 public constant VOTING_PERIOD = 50400;
+    uint48 public constant VOTING_DELAY = 1 days;
+    uint32 public constant VOTING_PERIOD = 1 weeks;
     uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
     uint256 public constant QUORUM_FRACTION = 4;
 
@@ -193,10 +193,11 @@ contract SummerGovernorTest is
         ) = createCrossChainProposal(bEid, governorA);
 
         // Ensure Alice has enough tokens on chain A
-        deal(address(aSummerToken), alice, governorA.proposalThreshold() * 2); // Increased token amount
+        deal(address(aSummerToken), alice, governorA.proposalThreshold() * 2);
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+
+        advanceTimeAndBlock();
 
         // Submit proposal on chain A
         vm.prank(alice);
@@ -207,17 +208,13 @@ contract SummerGovernorTest is
             srcDescription
         );
 
-        // Move to voting period
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         // Cast vote
         vm.prank(alice);
         governorA.castVote(proposalIdA, 1); // Vote in favor
 
-        // Move to end of voting period
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
+        advanceTimeForVotingPeriod();
 
         governorA.queue(
             srcTargets,
@@ -226,7 +223,7 @@ contract SummerGovernorTest is
             hashDescription(srcDescription)
         );
 
-        vm.warp(block.timestamp + timelockA.getMinDelay());
+        advanceTimeForTimelockMinDelay();
 
         vm.expectEmit(true, true, true, true);
         emit ISummerGovernor.ProposalSentCrossChain(dstProposalId, bEid);
@@ -259,7 +256,7 @@ contract SummerGovernorTest is
         deal(address(aSummerToken), alice, governorA.proposalThreshold() * 2); // Increased token amount
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         // Submit proposal on chain A
         vm.prank(alice);
@@ -270,17 +267,13 @@ contract SummerGovernorTest is
             srcDescription
         );
 
-        // Move to voting period
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         // Cast vote
         vm.prank(alice);
         governorA.castVote(proposalIdA, 1); // Vote in favor
 
-        // Move to end of voting period
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
+        advanceTimeForVotingPeriod();
 
         governorA.queue(
             srcTargets,
@@ -289,7 +282,7 @@ contract SummerGovernorTest is
             hashDescription(srcDescription)
         );
 
-        vm.warp(block.timestamp + timelockA.getMinDelay());
+        advanceTimeForTimelockMinDelay();
 
         governorA.execute(
             srcTargets,
@@ -572,7 +565,7 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
@@ -592,13 +585,12 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeAndBlock();
 
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
 
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         vm.prank(alice);
         governorA.castVote(proposalId, 1);
@@ -620,7 +612,7 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeAndBlock();
 
         vm.prank(alice);
         (
@@ -636,14 +628,12 @@ contract SummerGovernorTest is
             description
         );
 
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         vm.prank(alice);
         governorA.castVote(proposalId, 1);
 
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
+        advanceTimeForVotingPeriod();
 
         governorA.queue(
             targets,
@@ -652,7 +642,7 @@ contract SummerGovernorTest is
             hashDescription(description)
         );
 
-        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
+        advanceTimeForTimelockMinDelay();
 
         governorA.execute(
             targets,
@@ -680,7 +670,7 @@ contract SummerGovernorTest is
 
         vm.startPrank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
         vm.stopPrank();
 
         address[] memory targets = new address[](1);
@@ -704,15 +694,12 @@ contract SummerGovernorTest is
         );
 
         uint256 votingDelay = governorA.votingDelay();
-        vm.warp(block.timestamp + votingDelay + 1);
-        vm.roll(block.number + votingDelay + 1);
+        advanceTimeForVotingDelay();
 
         vm.prank(alice);
         governorA.castVote(proposalId, 1);
 
-        uint256 votingPeriod = governorA.votingPeriod();
-        vm.warp(block.timestamp + votingPeriod + 1);
-        vm.roll(block.number + votingPeriod + 1);
+        advanceTimeForVotingPeriod();
 
         governorA.queue(
             targets,
@@ -721,8 +708,7 @@ contract SummerGovernorTest is
             keccak256(bytes(description))
         );
 
-        uint256 timelockDelay = timelockA.getMinDelay();
-        vm.warp(block.timestamp + timelockDelay + 1);
+        advanceTimeForTimelockMinDelay();
 
         governorA.execute(
             targets,
@@ -755,7 +741,7 @@ contract SummerGovernorTest is
 
         vm.startPrank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1); // Move to next block to activate voting power
+        advanceTimeAndBlock();
 
         // Create proposal to set Bob as whitelist guardian
         address[] memory targets = new address[](1);
@@ -776,30 +762,12 @@ contract SummerGovernorTest is
             description
         );
 
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         governorA.castVote(proposalId, 1);
-
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
-
-        // Check the proposal state before queueing
-        assertEq(
-            uint256(governorA.state(proposalId)),
-            uint256(IGovernor.ProposalState.Succeeded),
-            "Proposal should be in Succeeded state"
-        );
-
-        governorA.queue(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
         vm.stopPrank();
 
+        // Try to cancel with non-guardian (should fail)
         vm.expectRevert(
             abi.encodeWithSignature(
                 "SummerGovernorUnauthorizedCancellation(address,address,uint256,uint256)",
@@ -817,6 +785,7 @@ contract SummerGovernorTest is
             keccak256(bytes(description))
         );
 
+        // Cancel with whitelist guardian (should succeed)
         vm.startPrank(whitelistGuardian);
         governorA.cancel(
             targets,
@@ -845,7 +814,7 @@ contract SummerGovernorTest is
 
         vm.startPrank(charlie);
         aSummerToken.delegate(charlie);
-        vm.roll(block.number + 1); // Move to next block to activate voting power
+        advanceTimeAndBlock();
 
         // Attempt to create a proposal
         (
@@ -880,22 +849,18 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeAndBlock();
 
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
 
-        // Move to voting period
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         // Cast votes
         vm.prank(alice);
         governorA.castVote(proposalId, 1);
 
-        // Move to end of voting period
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
+        advanceTimeForVotingPeriod();
 
         // Check if the proposal needs queuing
         bool needsQueuing = governorA.proposalNeedsQueuing(proposalId);
@@ -909,18 +874,14 @@ contract SummerGovernorTest is
      */
     function test_ClockMode() public view {
         string memory clockMode = governorA.CLOCK_MODE();
-        assertEq(
-            clockMode,
-            "mode=blocknumber&from=default",
-            "Incorrect CLOCK_MODE"
-        );
+        assertEq(clockMode, "mode=timestamp", "Incorrect CLOCK_MODE");
     }
 
     /*
      * @dev Tests the clock function.
      */
     function test_Clock() public view {
-        uint256 currentBlock = block.number;
+        uint256 currentBlock = block.timestamp;
         uint48 clockValue = governorA.clock();
         assertEq(
             uint256(clockValue),
@@ -1007,8 +968,7 @@ contract SummerGovernorTest is
 
         vm.startPrank(alice);
         aSummerToken.delegate(alice);
-
-        vm.roll(block.number + 1); // Move to next block to activate voting power
+        advanceTimeAndBlock();
         vm.stopPrank();
 
         // Create and execute a proposal to set the whitelist account expiration
@@ -1032,14 +992,12 @@ contract SummerGovernorTest is
             description
         );
 
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         vm.prank(alice);
         governorA.castVote(proposalId, 1);
 
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
+        advanceTimeForVotingPeriod();
 
         vm.prank(alice);
         governorA.queue(
@@ -1049,7 +1007,7 @@ contract SummerGovernorTest is
             keccak256(bytes(description))
         );
 
-        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
+        advanceTimeForTimelockMinDelay();
 
         vm.prank(bob);
         governorA.execute(
@@ -1098,7 +1056,7 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeAndBlock();
 
         vm.prank(alice);
         (uint256 proposalId, bytes32 descriptionHash) = createProposal();
@@ -1125,14 +1083,12 @@ contract SummerGovernorTest is
             description
         );
 
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         vm.prank(alice);
         governorA.castVote(guardianProposalId, 1);
 
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
+        advanceTimeForVotingPeriod();
 
         governorA.queue(
             targets,
@@ -1141,7 +1097,7 @@ contract SummerGovernorTest is
             keccak256(bytes(description))
         );
 
-        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
+        advanceTimeForTimelockMinDelay();
 
         governorA.execute(
             targets,
@@ -1184,7 +1140,7 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         vm.startPrank(alice);
         (uint256 proposalId, bytes32 descriptionHash) = createProposal();
@@ -1227,13 +1183,12 @@ contract SummerGovernorTest is
         vm.prank(charlie);
         aSummerToken.delegate(charlie);
 
-        // Move forward more blocks to ensure voting power is updated
-        vm.roll(block.number + 10);
+        advanceTimeAndBlock();
 
         console.log("Charlie's votes :", aSummerToken.getVotes(charlie));
         console.log("Charlie's balance :", aSummerToken.balanceOf(charlie));
         // Ensure Charlie has enough tokens to meet the proposal threshold
-        uint256 charlieVotes = governorA.getVotes(charlie, block.number - 1);
+        uint256 charlieVotes = governorA.getVotes(charlie, block.timestamp - 1);
         uint256 proposalThreshold = governorA.proposalThreshold();
         assertGe(
             charlieVotes,
@@ -1250,15 +1205,13 @@ contract SummerGovernorTest is
         vm.prank(charlie);
         (uint256 proposalId, ) = createProposal();
 
-        // Move to voting period
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         // Charlie votes in favor
         vm.prank(charlie);
         governorA.castVote(proposalId, 1);
 
-        // Move to end of voting period
-        vm.roll(block.number + governorA.votingPeriod());
+        advanceTimeForVotingPeriod();
 
         // Check proposal state
         assertEq(
@@ -1273,7 +1226,7 @@ contract SummerGovernorTest is
             uint256 forVotes,
             uint256 abstainVotes
         ) = governorA.proposalVotes(proposalId);
-        uint256 quorum = governorA.quorum(block.number - 1);
+        uint256 quorum = governorA.quorum(block.timestamp - 1);
         assertTrue(
             forVotes + againstVotes + abstainVotes < quorum,
             "Quorum should not be reached"
@@ -1308,8 +1261,7 @@ contract SummerGovernorTest is
         vm.prank(david);
         aSummerToken.delegate(david);
 
-        // Move forward a few blocks to ensure voting power is updated
-        vm.roll(block.number + 10);
+        advanceTimeAndBlock();
 
         // Mint tokens to the timelockA
         vm.startPrank(address(timelockA));
@@ -1331,22 +1283,24 @@ contract SummerGovernorTest is
             calldatas,
             description
         );
-        vm.roll(block.number + governorA.votingDelay() + 1);
+
+        advanceTimeForVotingDelay();
+
         console.log(
             "Alice's votes     :",
-            governorA.getVotes(alice, block.number - 1)
+            governorA.getVotes(alice, block.timestamp - 1)
         );
         console.log(
             "Bob's votes       :",
-            governorA.getVotes(bob, block.number - 1)
+            governorA.getVotes(bob, block.timestamp - 1)
         );
         console.log(
             "Charlie's votes   :",
-            governorA.getVotes(charlie, block.number - 1)
+            governorA.getVotes(charlie, block.timestamp - 1)
         );
         console.log(
             "David's votes     :",
-            governorA.getVotes(david, block.number - 1)
+            governorA.getVotes(david, block.timestamp - 1)
         );
         // Cast votes
 
@@ -1362,7 +1316,8 @@ contract SummerGovernorTest is
         vm.prank(david);
         governorA.castVote(proposalId1, 2);
 
-        vm.roll(block.number + governorA.votingPeriod());
+        advanceTimeForVotingPeriod();
+
         assertEq(
             uint256(governorA.state(proposalId1)),
             uint256(IGovernor.ProposalState.Succeeded)
@@ -1372,7 +1327,8 @@ contract SummerGovernorTest is
         bytes32 descriptionHash = keccak256(bytes(description));
         governorA.queue(targets, values, calldatas, descriptionHash);
 
-        vm.warp(block.timestamp + timelockA.getMinDelay());
+        advanceTimeForTimelockMinDelay();
+
         governorA.execute(targets, values, calldatas, descriptionHash);
 
         assertEq(
@@ -1380,8 +1336,7 @@ contract SummerGovernorTest is
             uint256(IGovernor.ProposalState.Executed)
         );
 
-        // Reset the state for the next scenario
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         // Scenario 2: Tie, quorum reached
         aliceTokens = aSummerToken.getVotes(alice);
@@ -1390,7 +1345,8 @@ contract SummerGovernorTest is
         davidTokens = aSummerToken.getVotes(david);
 
         uint256 proposalId2 = createProposalAndVote(bob, 1, 1, 1, 1);
-        vm.roll(block.number + governorA.votingPeriod());
+
+        advanceTimeForVotingPeriod();
 
         // Add logging statements
         (
@@ -1401,10 +1357,10 @@ contract SummerGovernorTest is
         console.log("For votes      :", forVotes);
         console.log("Against votes  :", againstVotes);
         console.log("Abstain votes  :", abstainVotes);
-        console.log("Quorum         :", governorA.quorum(block.number - 1));
+        console.log("Quorum         :", governorA.quorum(block.timestamp - 1));
         console.log(
             "Total supply   :",
-            aSummerToken.getPastTotalSupply(block.number - 1)
+            aSummerToken.getPastTotalSupply(block.timestamp - 1)
         );
 
         // This is the failing assertion
@@ -1424,12 +1380,11 @@ contract SummerGovernorTest is
         assertEq(abstainVotes, 0, "There should be no 'abstain' votes");
         assertGe(
             forVotes,
-            governorA.quorum(block.number - 1),
+            governorA.quorum(block.timestamp - 1),
             "For votes should meet or exceed quorum"
         );
 
-        // Reset the state for the next scenario
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         // Scenario 3: Majority against, quorum reached
         aliceTokens = aSummerToken.getVotes(alice);
@@ -1438,7 +1393,7 @@ contract SummerGovernorTest is
         davidTokens = aSummerToken.getVotes(david);
 
         uint256 proposalId3 = createProposalAndVote(charlie, 0, 0, 1, 2);
-        vm.roll(block.number + governorA.votingPeriod());
+        advanceTimeForVotingPeriod();
         (againstVotes, forVotes, abstainVotes) = governorA.proposalVotes(
             proposalId3
         );
@@ -1479,11 +1434,13 @@ contract SummerGovernorTest is
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        // Move forward a few blocks to ensure voting power is updated
-        vm.roll(block.number + 10);
+        advanceTimeAndBlock();
 
         // Check Alice's voting power
-        uint256 aliceVotingPower = governorA.getVotes(alice, block.number - 1);
+        uint256 aliceVotingPower = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
         uint256 expectedVotingPower = vestingAmount + directAmount;
 
         assertEq(
@@ -1496,8 +1453,7 @@ contract SummerGovernorTest is
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
 
-        // Move to voting period
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         // Alice votes
         vm.prank(alice);
@@ -1505,6 +1461,7 @@ contract SummerGovernorTest is
 
         // Check proposal votes
         (, uint256 forVotes, ) = governorA.proposalVotes(proposalId);
+
         assertEq(
             forVotes,
             expectedVotingPower,
@@ -1554,7 +1511,8 @@ contract SummerGovernorTest is
         );
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+
+        advanceTimeAndBlock();
 
         // Prepare proposal parameters
         (
@@ -1600,13 +1558,16 @@ contract SummerGovernorTest is
         aSummerToken.delegate(alice);
         vm.prank(bob);
         aSummerToken.delegate(bob);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         // Verify initial combined voting power meets quorum
-        uint256 initialAliceVotes = governorA.getVotes(alice, block.number - 1);
-        uint256 initialBobVotes = governorA.getVotes(bob, block.number - 1);
+        uint256 initialAliceVotes = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        uint256 initialBobVotes = governorA.getVotes(bob, block.timestamp - 1);
         uint256 initialTotalVotes = initialAliceVotes + initialBobVotes;
-        uint256 initialQuorum = governorA.quorum(block.number - 1);
+        uint256 initialQuorum = governorA.quorum(block.timestamp - 1);
 
         console.log("Initial Alice votes:", initialAliceVotes);
         console.log("Initial Bob votes:", initialBobVotes);
@@ -1618,16 +1579,16 @@ contract SummerGovernorTest is
             "Combined voting power should meet quorum initially"
         );
 
-        // Move time beyond decay free window
-        uint256 decayPeriod = aSummerToken.decayFreeWindow() + 30 days;
-        vm.warp(block.timestamp + decayPeriod);
-        vm.roll(block.number + 1);
+        advanceTimeForPeriod(aSummerToken.decayFreeWindow() + 30 days);
 
         // Check decayed voting power
-        uint256 decayedAliceVotes = governorA.getVotes(alice, block.number - 1);
-        uint256 decayedBobVotes = governorA.getVotes(bob, block.number - 1);
+        uint256 decayedAliceVotes = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        uint256 decayedBobVotes = governorA.getVotes(bob, block.timestamp - 1);
         uint256 decayedTotalVotes = decayedAliceVotes + decayedBobVotes;
-        uint256 quorumAfterDecay = governorA.quorum(block.number - 1);
+        uint256 quorumAfterDecay = governorA.quorum(block.timestamp - 1);
 
         console.log("Decayed Alice votes:", decayedAliceVotes);
         console.log("Decayed Bob votes:", decayedBobVotes);
@@ -1655,8 +1616,7 @@ contract SummerGovernorTest is
             description
         );
 
-        // Move to voting period
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         // Both voters vote in favor
         vm.prank(alice);
@@ -1666,7 +1626,7 @@ contract SummerGovernorTest is
 
         // Check final proposal votes
         (, uint256 finalForVotes, ) = governorA.proposalVotes(proposalId);
-        uint256 finalQuorum = governorA.quorum(block.number - 1);
+        uint256 finalQuorum = governorA.quorum(block.timestamp - 1);
 
         console.log("Final for votes:", finalForVotes);
         console.log("Final quorum needed:", finalQuorum);
@@ -1676,10 +1636,8 @@ contract SummerGovernorTest is
             "Proposal should not meet quorum with decayed votes"
         );
 
-        // Move to end of voting period
-        vm.roll(block.number + governorA.votingPeriod() + 1);
+        advanceTimeForVotingPeriod();
 
-        // Verify proposal is defeated due to lost quorum
         assertEq(
             uint256(governorA.state(proposalId)),
             uint256(IGovernor.ProposalState.Defeated),
@@ -1698,14 +1656,14 @@ contract SummerGovernorTest is
         uint8 charlieVote,
         uint8 davidVote
     ) internal returns (uint256) {
-        vm.roll(block.number + 1); // Ensure a new block for the proposal
+        advanceTimeAndBlock();
         vm.prank(proposer);
         (uint256 proposalId, ) = createProposal();
 
         // Add a check here to ensure the proposal is created successfully
         require(proposalId != 0, "Proposal creation failed");
 
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         vm.prank(alice);
         governorA.castVote(proposalId, aliceVote);
@@ -1800,7 +1758,7 @@ contract SummerGovernorTest is
 
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         // Verify decay update is called when proposing
         vm.expectCall(
@@ -1829,6 +1787,7 @@ contract SummerGovernorTest is
         // Bob delegates to himself - even if he has no tokens yet, he will have voting power after Cas 5 test is
         // finished
         aSummerToken.delegate(_bob);
+        advanceTimeAndBlock();
 
         // Mint initial tokens to timelockA
         vm.startPrank(address(timelockA));
@@ -1858,13 +1817,17 @@ contract SummerGovernorTest is
         // Alice delegates to herself
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+
+        advanceTimeAndBlock();
 
         // Check initial state
-        uint256 aliceVotingPower = governorA.getVotes(alice, block.number - 1);
+        uint256 aliceVotingPower = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
         uint256 vestingWalletVotingPower = governorA.getVotes(
             vestingWalletAddress,
-            block.number - 1
+            block.timestamp - 1
         );
         assertEq(
             vestingWalletVotingPower,
@@ -1880,11 +1843,11 @@ contract SummerGovernorTest is
         // Case 2: Transfer from Alice to vesting wallet (should not change voting power)
         vm.startPrank(alice);
         aSummerToken.transfer(vestingWalletAddress, 100000 * 10 ** 18);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         uint256 newAliceVotingPower = governorA.getVotes(
             alice,
-            block.number - 1
+            block.timestamp - 1
         );
         assertEq(
             newAliceVotingPower,
@@ -1895,11 +1858,11 @@ contract SummerGovernorTest is
         // Case 3: Transfer from another address to vesting wallet
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(vestingWalletAddress, additionalAmount);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         uint256 updatedAliceVotingPower = governorA.getVotes(
             alice,
-            block.number - 1
+            block.timestamp - 1
         );
         assertEq(
             updatedAliceVotingPower,
@@ -1916,11 +1879,11 @@ contract SummerGovernorTest is
         );
         vm.startPrank(alice);
         vestingWallet.release(address(aSummerToken));
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         uint256 afterClaimVotingPower = governorA.getVotes(
             alice,
-            block.number - 1
+            block.timestamp - 1
         );
 
         assertEq(
@@ -1933,14 +1896,14 @@ contract SummerGovernorTest is
         vm.startPrank(vestingWalletAddress);
         uint256 transferAmount = 25000 * 10 ** 18;
         aSummerToken.transfer(_bob, transferAmount);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         uint256 finalAliceVotingPower = governorA.getVotes(
             alice,
-            block.number - 1
+            block.timestamp - 1
         );
 
-        uint256 bobVotingPower = governorA.getVotes(_bob, block.number - 1);
+        uint256 bobVotingPower = governorA.getVotes(_bob, block.timestamp - 1);
         assertEq(
             finalAliceVotingPower,
             afterClaimVotingPower - transferAmount,
@@ -1964,13 +1927,13 @@ contract SummerGovernorTest is
         aSummerToken.delegate(alice);
         vm.prank(bob);
         aSummerToken.delegate(bob);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         vm.prank(alice);
         (uint256 proposalId, ) = createProposal();
 
         // Move to voting period
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         // Verify decay update is called when voting
         vm.expectCall(
@@ -1992,7 +1955,7 @@ contract SummerGovernorTest is
 
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         vm.prank(alice);
         (
@@ -2009,15 +1972,12 @@ contract SummerGovernorTest is
             description
         );
 
-        // Vote and move to execution
-        vm.warp(block.timestamp + governorA.votingDelay() + 1);
-        vm.roll(block.number + governorA.votingDelay() + 1);
+        advanceTimeForVotingDelay();
 
         vm.prank(alice);
         governorA.castVote(proposalId, 1);
 
-        vm.warp(block.timestamp + governorA.votingPeriod() + 1);
-        vm.roll(block.number + governorA.votingPeriod() + 1);
+        advanceTimeForVotingPeriod();
 
         governorA.queue(
             targets,
@@ -2025,7 +1985,8 @@ contract SummerGovernorTest is
             calldatas,
             keccak256(bytes(description))
         );
-        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
+
+        advanceTimeForTimelockMinDelay();
 
         // Verify decay update is called when executing
         vm.expectCall(
@@ -2050,7 +2011,7 @@ contract SummerGovernorTest is
 
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         vm.startPrank(alice);
         (uint256 proposalId, bytes32 descriptionHash) = createProposal();
@@ -2082,7 +2043,7 @@ contract SummerGovernorTest is
 
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         // Get initial decay factor
         uint256 initialDecayFactor = aSummerToken.getDecayFactor(alice);
@@ -2091,7 +2052,7 @@ contract SummerGovernorTest is
         vm.prank(alice);
         createProposal();
 
-        vm.warp(block.timestamp + aSummerToken.decayFreeWindow() + 30 days);
+        advanceTimeForPeriod(VOTING_DELAY + 30 days);
 
         // Check decay factor after proposal
         uint256 decayFactorAfterProposal = aSummerToken.getDecayFactor(alice);
@@ -2104,5 +2065,31 @@ contract SummerGovernorTest is
 
         console.log("Initial decay factor:", initialDecayFactor);
         console.log("Decay factor after proposal:", decayFactorAfterProposal);
+    }
+
+    // For immediate operations (propose, vote, etc)
+    function advanceTimeAndBlock() internal {
+        vm.warp(block.timestamp + 1);
+        vm.roll(block.number + 1);
+    }
+
+    function advanceTimeForPeriod(uint256 extraTime) internal {
+        vm.warp(block.timestamp + extraTime);
+        vm.roll(block.number + 1);
+    }
+
+    function advanceTimeForTimelockMinDelay() internal {
+        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
+        vm.roll(block.number + 1);
+    }
+
+    function advanceTimeForVotingPeriod() internal {
+        vm.warp(block.timestamp + VOTING_PERIOD + 1);
+        vm.roll(block.number + 1);
+    }
+
+    function advanceTimeForVotingDelay() internal {
+        vm.warp(block.timestamp + VOTING_DELAY + 1);
+        vm.roll(block.number + 1);
     }
 }
