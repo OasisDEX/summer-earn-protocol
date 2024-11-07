@@ -1787,6 +1787,7 @@ contract SummerGovernorTest is
         // Bob delegates to himself - even if he has no tokens yet, he will have voting power after Cas 5 test is
         // finished
         aSummerToken.delegate(_bob);
+        advanceTimeAndBlock();
 
         // Mint initial tokens to timelockA
         vm.startPrank(address(timelockA));
@@ -1816,6 +1817,7 @@ contract SummerGovernorTest is
         // Alice delegates to herself
         vm.prank(alice);
         aSummerToken.delegate(alice);
+
         advanceTimeAndBlock();
 
         // Check initial state
