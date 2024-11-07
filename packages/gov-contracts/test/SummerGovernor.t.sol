@@ -1819,10 +1819,13 @@ contract SummerGovernorTest is
         advanceTimeAndBlock();
 
         // Check initial state
-        uint256 aliceVotingPower = governorA.getVotes(alice, block.number - 1);
+        uint256 aliceVotingPower = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
         uint256 vestingWalletVotingPower = governorA.getVotes(
             vestingWalletAddress,
-            block.number - 1
+            block.timestamp - 1
         );
         assertEq(
             vestingWalletVotingPower,
@@ -1838,11 +1841,11 @@ contract SummerGovernorTest is
         // Case 2: Transfer from Alice to vesting wallet (should not change voting power)
         vm.startPrank(alice);
         aSummerToken.transfer(vestingWalletAddress, 100000 * 10 ** 18);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         uint256 newAliceVotingPower = governorA.getVotes(
             alice,
-            block.number - 1
+            block.timestamp - 1
         );
         assertEq(
             newAliceVotingPower,
@@ -1853,11 +1856,11 @@ contract SummerGovernorTest is
         // Case 3: Transfer from another address to vesting wallet
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(vestingWalletAddress, additionalAmount);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         uint256 updatedAliceVotingPower = governorA.getVotes(
             alice,
-            block.number - 1
+            block.timestamp - 1
         );
         assertEq(
             updatedAliceVotingPower,
@@ -1874,11 +1877,11 @@ contract SummerGovernorTest is
         );
         vm.startPrank(alice);
         vestingWallet.release(address(aSummerToken));
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         uint256 afterClaimVotingPower = governorA.getVotes(
             alice,
-            block.number - 1
+            block.timestamp - 1
         );
 
         assertEq(
@@ -1891,14 +1894,14 @@ contract SummerGovernorTest is
         vm.startPrank(vestingWalletAddress);
         uint256 transferAmount = 25000 * 10 ** 18;
         aSummerToken.transfer(_bob, transferAmount);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         uint256 finalAliceVotingPower = governorA.getVotes(
             alice,
-            block.number - 1
+            block.timestamp - 1
         );
 
-        uint256 bobVotingPower = governorA.getVotes(_bob, block.number - 1);
+        uint256 bobVotingPower = governorA.getVotes(_bob, block.timestamp - 1);
         assertEq(
             finalAliceVotingPower,
             afterClaimVotingPower - transferAmount,
