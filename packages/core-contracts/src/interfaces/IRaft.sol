@@ -5,7 +5,7 @@ import {IRaftErrors} from "../errors/IRaftErrors.sol";
 import {IRaftEvents} from "../events/IRaftEvents.sol";
 
 import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
 
 /**
  * @title IRaft

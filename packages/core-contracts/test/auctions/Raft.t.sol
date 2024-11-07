@@ -14,9 +14,11 @@ import "./AuctionTestBase.sol";
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {DutchAuctionErrors} from "@summerfi/dutch-auction/src/DutchAuctionErrors.sol";
-import {DutchAuctionEvents} from "@summerfi/dutch-auction/src/DutchAuctionEvents.sol";
-import {DutchAuctionLibrary} from "@summerfi/dutch-auction/src/DutchAuctionLibrary.sol";
+import {DutchAuctionErrors} from "@summerfi/dutch-auction/DutchAuctionErrors.sol";
+
+import {DutchAuctionEvents} from "@summerfi/dutch-auction/DutchAuctionEvents.sol";
+import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
+
 import {console} from "forge-std/console.sol";
 
 contract RaftTest is AuctionTestBase, IRaftEvents {

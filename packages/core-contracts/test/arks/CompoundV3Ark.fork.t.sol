@@ -6,10 +6,10 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 

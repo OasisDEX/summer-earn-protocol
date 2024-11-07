@@ -5,7 +5,7 @@ import {ICurveSwap} from "../../interfaces/curve/ICurveSwap.sol";
 import {Ark, ArkParams} from "../Ark.sol";
 
 import {CurveExchangeRateProvider} from "../../utils/exchangeRateProvider/CurveExchangeRateProvider.sol";
-import {Constants} from "../libraries/Constants.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IPActionSwapPTV3} from "@pendle/core-v2/contracts/interfaces/IPActionSwapPTV3.sol";

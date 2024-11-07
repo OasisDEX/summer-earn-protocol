@@ -64,6 +64,11 @@ interface IAccessControlErrors {
     error CallerIsNotGuardianOrGovernor(address caller);
 
     /**
+     * @notice Thrown when a caller is not the decay controller.
+     */
+    error CallerIsNotDecayController(address caller);
+
+    /**
      * @notice Thrown when a caller is not authorized to board.
      */
     error CallerIsNotAuthorizedToBoard(address caller);

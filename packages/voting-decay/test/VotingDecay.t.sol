@@ -15,8 +15,7 @@ contract TestVotingDecayManager is VotingDecayManager {
         VotingDecayManager(
             decayFreeWindow_,
             decayRatePerSecond_,
-            decayFunction_,
-            msg.sender
+            decayFunction_
         )
     {}
 
@@ -28,6 +27,14 @@ contract TestVotingDecayManager is VotingDecayManager {
 
     function initializeAccount(address account) public {
         _initializeAccountIfNew(account);
+    }
+
+    function setDecayRatePerSecond(uint256 newRatePerSecond) public {
+        _setDecayRatePerSecond(newRatePerSecond);
+    }
+
+    function setDecayFreeWindow(uint40 newWindow) public {
+        _setDecayFreeWindow(newWindow);
     }
 }
 

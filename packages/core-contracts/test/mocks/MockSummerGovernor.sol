@@ -7,6 +7,10 @@ import {ISummerGovernor} from "@summerfi/earn-gov-contracts/interfaces/ISummerGo
 contract MockSummerGovernor is ERC165 {
     mapping(bytes32 => mapping(address => bool)) private roles;
 
+    constructor() {}
+
+    function test_() public {}
+
     function hasRole(
         bytes32 role,
         address account
@@ -20,15 +24,6 @@ contract MockSummerGovernor is ERC165 {
 
     function revokeRole(bytes32 role, address account) external {
         roles[role][account] = false;
-    }
-
-    // Mock functions for governance
-    function votingDelay() external pure returns (uint256) {
-        return 1 days;
-    }
-
-    function votingPeriod() external pure returns (uint256) {
-        return 1 weeks;
     }
 
     function supportsInterface(

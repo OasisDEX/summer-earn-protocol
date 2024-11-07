@@ -9,8 +9,8 @@ pragma solidity 0.8.28;
  * https://github.com/Synthetixio/synthetix/blob/v2.101.3/contracts/StakingRewards.sol
  */
 import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBase.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin-next/ReentrancyGuardTransient.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -39,17 +39,32 @@ abstract contract StakingRewardsManagerBase is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    EnumerableSet.AddressSet private _rewardTokensList;
+    /* @notice List of all reward tokens supported by this contract */
+    EnumerableSet.AddressSet internal _rewardTokensList;
+    /* @notice The token that users stake to earn rewards */
     IERC20 public stakingToken;
 
+    /* @notice Mapping of reward token to its reward distribution data */
     mapping(IERC20 rewardToken => RewardData) public rewardData;
+    /* @notice Tracks the last reward per token paid to each user for each reward token */
     mapping(IERC20 rewardToken => mapping(address account => uint256 rewardPerTokenPaid))
         public userRewardPerTokenPaid;
+    /* @notice Tracks the unclaimed rewards for each user for each reward token */
     mapping(IERC20 rewardToken => mapping(address account => uint256 rewardAmount))
         public rewards;
 
+    /* @notice Total amount of tokens staked in the contract */
     uint256 public totalSupply;
     mapping(address account => uint256 balance) private _balances;
+
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier updateReward(address account) virtual {
+        _updateReward(account);
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -74,7 +89,7 @@ abstract contract StakingRewardsManagerBase is
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function balanceOf(address account) public view returns (uint256) {
+    function balanceOf(address account) public view virtual returns (uint256) {
         return _balances[account];
     }
 
@@ -105,13 +120,8 @@ abstract contract StakingRewardsManagerBase is
     function earned(
         address account,
         IERC20 rewardToken
-    ) public view returns (uint256) {
-        return
-            (_balances[account] *
-                (rewardPerToken(rewardToken) -
-                    userRewardPerTokenPaid[rewardToken][account])) /
-            1e18 +
-            rewards[rewardToken][account];
+    ) public view virtual returns (uint256) {
+        return _earned(account, rewardToken);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -132,21 +142,11 @@ abstract contract StakingRewardsManagerBase is
         _stake(_msgSender(), _msgSender(), amount);
     }
 
-    /// @notice Allows others to stake on behalf of a user
-    /// @param receiver The account to stake for
-    /// @param amount The amount of tokens to stake
-    function stakeOnBehalf(
-        address receiver,
-        uint256 amount
-    ) external virtual updateReward(receiver) {
-        _stake(_msgSender(), receiver, amount);
-    }
-
     /// @inheritdoc IStakingRewardsManagerBase
-    function withdraw(
+    function unstake(
         uint256 amount
-    ) public virtual updateReward(_msgSender()) {
-        _withdraw(amount);
+    ) external virtual updateReward(_msgSender()) {
+        _unstake(_msgSender(), amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -172,7 +172,7 @@ abstract contract StakingRewardsManagerBase is
     /// @inheritdoc IStakingRewardsManagerBase
     function exit() external virtual {
         getReward();
-        _withdraw(_balances[_msgSender()]);
+        _unstake(_msgSender(), _balances[_msgSender()]);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -241,6 +241,8 @@ abstract contract StakingRewardsManagerBase is
         emit RewardsDurationUpdated(address(rewardToken), _rewardsDuration);
     }
 
+    /// @notice Initializes the StakingRewardsManagerBase contract
+    /// @param _stakingToken The address of the staking token
     function _initialize(IERC20 _stakingToken) internal virtual {}
 
     /// @notice Removes a reward token from the list of reward tokens
@@ -283,19 +285,33 @@ abstract contract StakingRewardsManagerBase is
         emit Staked(account, amount);
     }
 
-    function _withdraw(uint256 amount) internal {
-        if (amount == 0) revert CannotWithdrawZero();
+    function _unstake(address staker, uint256 amount) internal {
+        if (amount == 0) revert CannotUnstakeZero();
         totalSupply -= amount;
-        _balances[_msgSender()] -= amount;
-        stakingToken.safeTransfer(_msgSender(), amount);
-        emit Withdrawn(_msgSender(), amount);
+        _balances[staker] -= amount;
+        stakingToken.safeTransfer(staker, amount);
+        emit Unstaked(staker, amount);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                                MODIFIERS
-    //////////////////////////////////////////////////////////////*/
+    /*
+     * @notice Internal function to calculate earned rewards for an account
+     * @param account The address to calculate earnings for
+     * @param rewardToken The reward token to calculate earnings for
+     * @return The amount of reward tokens earned
+     */
+    function _earned(
+        address account,
+        IERC20 rewardToken
+    ) internal view returns (uint256) {
+        return
+            (_balances[account] *
+                (rewardPerToken(rewardToken) -
+                    userRewardPerTokenPaid[rewardToken][account])) /
+            1e18 +
+            rewards[rewardToken][account];
+    }
 
-    modifier updateReward(address account) {
+    function _updateReward(address account) internal {
         uint256 rewardTokenCount = _rewardTokensList.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {
             address rewardTokenAddress = _rewardTokensList.at(i);
@@ -311,6 +327,5 @@ abstract contract StakingRewardsManagerBase is
                     .rewardPerTokenStored;
             }
         }
-        _;
     }
 }

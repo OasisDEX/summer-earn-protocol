@@ -8,8 +8,8 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 import "../../src/events/IArkEvents.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";

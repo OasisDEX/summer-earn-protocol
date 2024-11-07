@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IStakingRewardsManagerBaseErrors} from "../errors/IStakingRewardsManagerBaseErrors.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IStakingRewardsManagerBaseErrors} from "./IStakingRewardsManagerBaseErrors.sol";
 
 /* @title IStakingRewardsManagerBase
  * @notice Interface for the Staking Rewards Manager contract
@@ -76,12 +76,12 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param account The address of the account to stake for
      * @param amount The amount of tokens to stake
      */
-    function stakeOnBehalf(address account, uint256 amount) external;
+    function stakeOnBehalfOf(address account, uint256 amount) external;
 
-    /* @notice Withdraw staked tokens
-     * @param amount The amount of tokens to withdraw
+    /* @notice Unstake staked tokens
+     * @param amount The amount of tokens to unstake
      */
-    function withdraw(uint256 amount) external;
+    function unstake(uint256 amount) external;
 
     /* @notice Claim accumulated rewards */
     function getReward() external;
@@ -124,6 +124,12 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param amount The amount of tokens staked
      */
     event Staked(address indexed account, uint256 amount);
+
+    /* @notice Emitted when tokens are unstaked
+     * @param account The address of the account that unstaked
+     * @param amount The amount of tokens unstaked
+     */
+    event Unstaked(address indexed account, uint256 amount);
 
     /* @notice Emitted when tokens are withdrawn
      * @param user The address of the user that withdrew

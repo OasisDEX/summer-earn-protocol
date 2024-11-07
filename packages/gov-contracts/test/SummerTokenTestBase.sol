@@ -9,11 +9,15 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
 import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {MockSummerGovernor} from "./MockSummerGovernor.sol";
 
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
@@ -24,11 +28,22 @@ contract SummerTokenTestBase is TestHelperOz5 {
     SummerToken public aSummerToken;
     SummerToken public bSummerToken;
 
+    TimelockController public timelockA;
+    TimelockController public timelockB;
+
     address public lzEndpointA;
     address public lzEndpointB;
 
     address public owner = address(this);
-    address public summerGovernor = address(this);
+
+    ProtocolAccessManager public accessManagerA;
+    ProtocolAccessManager public accessManagerB;
+    MockSummerGovernor public mockGovernor;
+
+    /// @notice Initial decay rate per second (approximately 10% per year)
+    /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
+    uint256 internal constant INITIAL_DECAY_RATE_PER_SECOND = 3.1709792e9;
+    uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
 
     uint256 constant INITIAL_SUPPLY = 1000000000;
 
@@ -40,28 +55,57 @@ contract SummerTokenTestBase is TestHelperOz5 {
     function enableTransfers() public {
         uint256 transferEnableDate = aSummerToken.transferEnableDate() + 1;
         vm.warp(transferEnableDate);
-        vm.prank(summerGovernor);
+        vm.prank(owner);
         aSummerToken.enableTransfers();
-        vm.prank(summerGovernor);
+        vm.prank(owner);
         bSummerToken.enableTransfers();
     }
 
     function initializeTokenTests() public {
-        vm.label(summerGovernor, "Summer Governor");
-
         setUpEndpoints(2, LibraryType.UltraLightNode);
+
+        mockGovernor = new MockSummerGovernor();
 
         lzEndpointA = address(endpoints[aEid]);
         lzEndpointB = address(endpoints[bEid]);
         vm.label(lzEndpointA, "LayerZero Endpoint A");
         vm.label(lzEndpointB, "LayerZero Endpoint B");
 
+        address[] memory proposers = new address[](1);
+        proposers[0] = address(this);
+        address[] memory executors = new address[](1);
+        executors[0] = address(0);
+        timelockA = new TimelockController(
+            1 days,
+            proposers,
+            executors,
+            address(this)
+        );
+        timelockB = new TimelockController(
+            1 days,
+            proposers,
+            executors,
+            address(this)
+        );
+
+        accessManagerA = new ProtocolAccessManager(address(timelockA));
+        accessManagerB = new ProtocolAccessManager(address(timelockB));
+        vm.label(address(timelockA), "TimelockController A");
+        vm.label(address(timelockB), "TimelockController B");
+
         ISummerToken.TokenParams memory tokenParamsA = ISummerToken
             .TokenParams({
                 name: "SummerToken A",
                 symbol: "SUMMERA",
                 lzEndpoint: lzEndpointA,
-                governor: summerGovernor,
+                // Changed in inheriting test suites
+                owner: owner,
+                accessManager: address(accessManagerA),
+                decayManager: address(mockGovernor),
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                governor: address(mockGovernor),
                 transferEnableDate: block.timestamp + 1 days
             });
 
@@ -70,17 +114,42 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 name: "SummerToken B",
                 symbol: "SUMMERB",
                 lzEndpoint: lzEndpointB,
-                governor: summerGovernor,
+                // Changed in inheriting test suites
+                owner: owner,
+                accessManager: address(accessManagerB),
+                decayManager: address(mockGovernor),
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                governor: address(mockGovernor),
                 transferEnableDate: block.timestamp + 1 days
             });
 
+        vm.label(owner, "Owner");
+
+        vm.startPrank(owner);
         aSummerToken = new SummerToken(tokenParamsA);
         bSummerToken = new SummerToken(tokenParamsB);
+        vm.stopPrank();
 
         // Config and wire the tokens
         address[] memory tokens = new address[](2);
         tokens[0] = address(aSummerToken);
         tokens[1] = address(bSummerToken);
+
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantDecayControllerRole(address(mockGovernor));
+        accessManagerA.grantDecayControllerRole(
+            address(aSummerToken.rewardsManager())
+        );
+        vm.stopPrank();
+
+        vm.startPrank(address(timelockB));
+        accessManagerB.grantDecayControllerRole(address(mockGovernor));
+        accessManagerB.grantDecayControllerRole(
+            address(bSummerToken.rewardsManager())
+        );
+        vm.stopPrank();
 
         this.wireOApps(tokens);
     }

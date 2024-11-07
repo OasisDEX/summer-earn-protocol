@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {VotingDecayManager} from "../src/VotingDecayManager.sol";
 import {VotingDecayLibrary} from "../src/VotingDecayLibrary.sol";
 
-// Concrete implementation of VotingDecayManager for testing
 contract TestVotingDecayManager is VotingDecayManager {
     constructor(
         uint40 decayFreeWindow_,
@@ -15,8 +14,7 @@ contract TestVotingDecayManager is VotingDecayManager {
         VotingDecayManager(
             decayFreeWindow_,
             decayRatePerSecond_,
-            decayFunction_,
-            msg.sender
+            decayFunction_
         )
     {}
 
@@ -35,6 +33,20 @@ contract TestVotingDecayManager is VotingDecayManager {
             decayFactor: VotingDecayLibrary.WAD,
             lastUpdateTimestamp: uint40(block.timestamp)
         });
+    }
+
+    function setDecayRatePerSecond(uint256 newRatePerSecond) public {
+        _setDecayRatePerSecond(newRatePerSecond);
+    }
+
+    function setDecayFreeWindow(uint40 newWindow) public {
+        _setDecayFreeWindow(newWindow);
+    }
+
+    function setDecayFunction(
+        VotingDecayLibrary.DecayFunction newFunction
+    ) public {
+        _setDecayFunction(newFunction);
     }
 }
 

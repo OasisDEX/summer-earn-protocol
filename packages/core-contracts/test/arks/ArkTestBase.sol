@@ -3,14 +3,14 @@ pragma solidity 0.8.28;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {AaveV3Ark, ArkParams} from "../../src/contracts/arks/AaveV3Ark.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
 
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Test, console} from "forge-std/Test.sol";

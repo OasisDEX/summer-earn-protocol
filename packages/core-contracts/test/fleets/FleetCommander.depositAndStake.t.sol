@@ -5,13 +5,13 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
-import {IFleetStakingRewardsManager} from "../../src/interfaces/IFleetStakingRewardsManager.sol";
-import {IStakingRewardsManagerBase} from "../../src/interfaces/IStakingRewardsManagerBase.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
@@ -23,36 +23,6 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
         uint256 initialTipRate = 0;
         initializeFleetCommanderWithMockArks(initialTipRate);
         fleetCommanderStorageWriter.setDepositCap(MAX_DEPOSIT_CAP);
-    }
-
-    function test_Stake() public {
-        uint256 amount = DEPOSIT_AMOUNT;
-        mockToken.mint(mockUser, amount);
-
-        vm.startPrank(mockUser);
-        mockToken.approve(address(fleetCommander), amount);
-
-        // First, deposit the tokens
-        fleetCommander.deposit(amount, mockUser);
-
-        // Then, approve StakingRewardsManager to spend the shares
-        fleetCommander.approve(address(fleetCommander), amount);
-
-        // Finally, stake the deposited amount
-        fleetCommander.stake(amount);
-        vm.stopPrank();
-
-        // Assert the results
-        assertEq(
-            fleetCommander.balanceOf(mockUser),
-            0,
-            "FleetCommander balance should be zero"
-        );
-        assertEq(
-            stakingRewardsManager.balanceOf(mockUser),
-            amount,
-            "StakingRewardsManager balance should match deposit amount"
-        );
     }
 
     function test_DepositAndStake() public {
@@ -344,5 +314,16 @@ contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
             amount,
             "StakingRewardsManager balance should match deposit amount"
         );
+    }
+
+    function test_RevertWhenSettingZeroAddressStakingManager() public {
+        // Try to set staking rewards manager to zero address
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderInvalidStakingRewardsManager()"
+            )
+        );
+        fleetCommander.setStakingRewardsManager(address(0));
     }
 }

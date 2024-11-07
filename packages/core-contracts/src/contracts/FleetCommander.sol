@@ -14,10 +14,10 @@ import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {IFleetStakingRewardsManager} from "../interfaces/IFleetStakingRewardsManager.sol";
-import {Constants} from "./libraries/Constants.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 
 /**
  * @title FleetCommander
@@ -302,7 +302,7 @@ contract FleetCommander is
             address(config.stakingRewardsManager),
             shares
         );
-        _stakeOnBehalf(receiver, shares);
+        _stakeOnBehalfOf(receiver, shares);
 
         return shares;
     }
@@ -315,16 +315,6 @@ contract FleetCommander is
     ) external whenNotPaused returns (uint256 shares) {
         emit FleetCommanderReferral(receiver, referralCode);
         return depositAndStake(assets, receiver);
-    }
-
-    /// @inheritdoc IFleetCommander
-    function stake(uint256 shares) public {
-        IERC20(address(this)).transferFrom(_msgSender(), address(this), shares);
-        IERC20(address(this)).approve(
-            address(config.stakingRewardsManager),
-            shares
-        );
-        _stakeOnBehalf(_msgSender(), shares);
     }
 
     /// @inheritdoc IERC4626
@@ -1051,10 +1041,20 @@ contract FleetCommander is
         }
     }
 
-    function _stakeOnBehalf(address account, uint256 amount) internal {
-        if (address(config.stakingRewardsManager) != address(0)) {
-            IFleetStakingRewardsManager(config.stakingRewardsManager)
-                .stakeOnBehalf(account, amount);
+    /**
+     * @notice Stakes tokens on behalf of an account in the staking rewards manager
+     * @dev This internal function is called by depositAndStake to handle the staking portion
+     *      of the operation. It requires that a staking rewards manager is configured.
+     * @param account The address for which tokens will be staked
+     * @param amount The amount of tokens to stake
+     * @custom:error FleetCommanderStakingRewardsManagerNotSet Thrown when the staking rewards manager address is not set
+     */
+    function _stakeOnBehalfOf(address account, uint256 amount) internal {
+        if (address(config.stakingRewardsManager) == address(0)) {
+            revert FleetCommanderStakingRewardsManagerNotSet();
         }
+
+        IFleetCommanderRewardsManager(config.stakingRewardsManager)
+            .stakeOnBehalfOf(account, amount);
     }
 }

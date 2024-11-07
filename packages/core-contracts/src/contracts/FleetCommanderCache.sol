@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {StorageSlot} from "../../lib/openzeppelin-next/StorageSlot.sol";
+import {StorageSlot} from "@summerfi/dependencies/openzeppelin-next/StorageSlot.sol";
 
 import {IArk} from "../interfaces/IArk.sol";
 import {ArkData} from "../types/FleetCommanderTypes.sol";

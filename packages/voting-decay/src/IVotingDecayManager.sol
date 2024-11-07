@@ -25,11 +25,12 @@ interface IVotingDecayManager {
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event DecayUpdated(address indexed account, uint256 newRetentionFactor);
+    event DecayUpdated(address indexed account, uint256 newDecayFactor);
     event DecayRateSet(uint256 newRate);
     event DecayReset(address indexed account);
     event DecayFreeWindowSet(uint256 window);
     event DecayFunctionSet(uint8 newFunction);
+    event AccountInitialized(address indexed account);
 
     /*//////////////////////////////////////////////////////////////
                                 FUNCTIONS
@@ -53,26 +54,6 @@ interface IVotingDecayManager {
         address accountAddress,
         uint256 originalValue
     ) external view returns (uint256);
-
-    /**
-     * @notice Sets a new decay rate per second
-     * @param newRatePerSecond New decay rate (in WAD format)
-     */
-    function setDecayRatePerSecond(uint256 newRatePerSecond) external;
-
-    /**
-     * @notice Sets a new decay-free window duration
-     * @param newWindow New decay-free window duration in seconds
-     */
-    function setDecayFreeWindow(uint40 newWindow) external;
-
-    /**
-     * @notice Sets a new decay function type
-     * @param newFunction New decay function (Linear or Exponential)
-     */
-    function setDecayFunction(
-        VotingDecayLibrary.DecayFunction newFunction
-    ) external;
 
     /**
      * @notice Calculates the decay factor for an account

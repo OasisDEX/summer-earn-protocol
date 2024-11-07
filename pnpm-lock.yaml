@@ -88,6 +88,14 @@ importers:
         specifier: ^8.0.1
         version: 8.1.4
 
+  packages/access-contracts:
+    dependencies:
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
+
+  packages/constants: {}
+
   packages/core-contracts:
     dependencies:
       '@oasisdex/addresses':
@@ -109,6 +117,12 @@ importers:
       '@nomicfoundation/hardhat-ignition-viem':
         specifier: ^0.15.5
         version: 0.15.5(@nomicfoundation/hardhat-ignition@0.15.5)(@nomicfoundation/hardhat-viem@2.0.3)(@nomicfoundation/ignition-core@0.15.5)(hardhat@2.22.8)(viem@2.9.19)
+      '@summerfi/access-contracts':
+        specifier: workspace:*
+        version: link:../access-contracts
+      '@summerfi/constants':
+        specifier: workspace:*
+        version: link:../constants
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies
@@ -130,6 +144,9 @@ importers:
       '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
+      '@summerfi/rewards-contracts':
+        specifier: workspace:*
+        version: link:../rewards-contracts
       '@summerfi/tenderly-utils':
         specifier: workspace:*
         version: link:../tenderly-utils
@@ -373,6 +390,12 @@ importers:
       '@nomicfoundation/hardhat-ignition-viem':
         specifier: ^0.15.5
         version: 0.15.5(@nomicfoundation/hardhat-ignition@0.15.5)(@nomicfoundation/hardhat-viem@2.0.3)(@nomicfoundation/ignition-core@0.15.5)(hardhat@2.22.10)(viem@2.9.19)
+      '@summerfi/access-contracts':
+        specifier: workspace:*
+        version: link:../access-contracts
+      '@summerfi/constants':
+        specifier: workspace:*
+        version: link:../constants
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies
@@ -388,6 +411,9 @@ importers:
       '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
+      '@summerfi/rewards-contracts':
+        specifier: workspace:*
+        version: link:../rewards-contracts
       '@summerfi/tenderly-utils':
         specifier: workspace:*
         version: link:../tenderly-utils
@@ -502,6 +528,18 @@ importers:
       solhint:
         specifier: ^3.6.2
         version: 3.6.2(typescript@5.5.4)
+
+  packages/rewards-contracts:
+    dependencies:
+      '@summerfi/access-contracts':
+        specifier: workspace:*
+        version: link:../access-contracts
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
+      '@summerfi/voting-decay':
+        specifier: workspace:*
+        version: link:../voting-decay
 
   packages/summer-earn-protocol-subgraph:
     devDependencies:

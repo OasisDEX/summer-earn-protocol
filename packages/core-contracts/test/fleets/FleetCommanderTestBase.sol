@@ -6,19 +6,17 @@ import {Test} from "forge-std/Test.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
-import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 
-import {FleetStakingRewardsManager} from "../../src/contracts/FleetStakingRewardsManager.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
-import {IFleetStakingRewardsManager} from "../../src/interfaces/IFleetStakingRewardsManager.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
@@ -29,6 +27,10 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
+import {FleetCommanderRewardsManager} from "../../src/contracts/FleetCommanderRewardsManager.sol";
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
@@ -79,7 +81,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     FleetCommanderParams public fleetCommanderParams;
 
     // New variables
-    IFleetStakingRewardsManager public stakingRewardsManager;
+    IFleetCommanderRewardsManager public stakingRewardsManager;
     MockSummerGovernor public mockGovernor;
     ERC20Mock[] public rewardTokens;
 
@@ -114,7 +116,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         vm.label(address(mockArk4), "Ark4-nonWithdrawable");
 
         FleetConfig memory config = fleetCommander.getConfig();
-        stakingRewardsManager = IFleetStakingRewardsManager(
+        stakingRewardsManager = IFleetCommanderRewardsManager(
             config.stakingRewardsManager
         );
     }

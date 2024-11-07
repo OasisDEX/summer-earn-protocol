@@ -52,4 +52,7 @@ interface IStakingRewardsManagerBaseErrors {
 
     /* @notice Thrown when the rewards duration is zero */
     error RewardsDurationCannotBeZero();
+
+    /* @notice Thrown when attempting to unstake zero tokens */
+    error CannotUnstakeZero();
 }

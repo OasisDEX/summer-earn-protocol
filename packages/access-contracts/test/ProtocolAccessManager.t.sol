@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {ProtocolAccessManager} from "../../src/contracts/ProtocolAccessManager.sol";
-import {ContractSpecificRoles, IProtocolAccessManager} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ProtocolAccessManager} from "../src/contracts/ProtocolAccessManager.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "../src/interfaces/IProtocolAccessManager.sol";
 
 import {Test} from "forge-std/Test.sol";
 

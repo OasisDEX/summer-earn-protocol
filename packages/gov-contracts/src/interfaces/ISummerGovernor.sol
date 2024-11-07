@@ -3,10 +3,10 @@ pragma solidity 0.8.28;
 
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {VotingDecayLibrary} from "@summerfi/voting-decay/src/VotingDecayLibrary.sol";
 
 /**
  * @title ISummerGovernor Interface
@@ -36,9 +36,6 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         uint256 proposalThreshold;
         uint256 quorumFraction;
         address initialWhitelistGuardian;
-        uint40 initialDecayFreeWindow;
-        uint256 initialDecayRate;
-        VotingDecayLibrary.DecayFunction initialDecayFunction;
         address endpoint;
         uint32 proposalChainId;
     }
@@ -85,6 +82,17 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param trustedRemote The address of the trusted remote on the specified chain
      */
     event TrustedRemoteSet(uint32 indexed chainId, address trustedRemote);
+
+    /**
+     * @notice Casts a vote for a proposal
+     * @param proposalId The ID of the proposal to vote on
+     * @param support The support for the proposal (0 = against, 1 = for, 2 = abstain)
+     * @return The proposal ID
+     */
+    function castVote(
+        uint256 proposalId,
+        uint8 support
+    ) external returns (uint256);
 
     /**
      * @notice Proposes a new governance action

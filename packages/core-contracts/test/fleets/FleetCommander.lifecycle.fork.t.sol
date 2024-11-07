@@ -13,7 +13,7 @@ import "../../src/contracts/arks/MetaMorphoArk.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
 
 import "../../src/events/IArkEvents.sol";
-import {ContractSpecificRoles} from "../../src/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import "../../src/contracts/arks/ERC4626Ark.sol";

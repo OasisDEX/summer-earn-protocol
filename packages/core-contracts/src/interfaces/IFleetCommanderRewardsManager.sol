@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import "./IStakingRewardsManagerBase.sol";
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 
 /**
- * @title IFleetStakingRewardsManager
+ * @title IFleetCommanderRewardsManager
  * @notice Interface for the FleetStakingRewardsManager contract
  * @dev Extends IStakingRewardsManagerBase with Fleet-specific functionality
  */
-interface IFleetStakingRewardsManager is IStakingRewardsManagerBase {
+interface IFleetCommanderRewardsManager is IStakingRewardsManagerBase {
     /**
      * @notice Returns the address of the FleetCommander contract
      * @return The address of the FleetCommander

@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
 
 import {ConfigurationManagerParams} from "../types/ConfigurationManagerTypes.sol";
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 /**
  * @title ConfigurationManager

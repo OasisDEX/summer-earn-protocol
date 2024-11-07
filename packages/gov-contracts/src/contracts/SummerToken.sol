@@ -12,12 +12,29 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
+import {SummerVestingWallet} from "./SummerVestingWallet.sol";
+import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {VotingDecayManager} from "@summerfi/voting-decay/VotingDecayManager.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
 
+/**
+ * @title SummerToken
+ * @dev Implementation of the Summer governance token with vesting, cross-chain, and voting decay capabilities.
+ * @custom:security-contact security@summer.fi
+ */
 contract SummerToken is
     OFT,
     ERC20Burnable,
     ERC20Votes,
     ERC20Permit,
+    VotingDecayManager,
+    ProtocolAccessManaged,
     ISummerToken
 {
     /*//////////////////////////////////////////////////////////////
@@ -31,6 +48,22 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     mapping(address owner => address vestingWallet) public vestingWallets;
+    GovernanceRewardsManager public rewardsManager;
+
+    /*//////////////////////////////////////////////////////////////
+                            MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Updates the caller's decay factor before executing the function
+     * @dev Calls internal _updateDecayFactor function to recalculate the sender's current decay
+     * @custom:relationship-to-votingdecay Updates voting power decay before state-changing operations
+     */
+    modifier updateDecay() {
+        _updateDecayFactor(_msgSender());
+        _;
+    }
+
     mapping(address vestingWallet => address owner) public vestingWalletOwners;
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
@@ -43,16 +76,46 @@ contract SummerToken is
     constructor(
         TokenParams memory params
     )
-        OFT(params.name, params.symbol, params.lzEndpoint, params.governor)
+        OFT(params.name, params.symbol, params.lzEndpoint, params.owner)
         ERC20Permit(params.name)
-        Ownable(params.governor)
+        VotingDecayManager(
+            params.initialDecayFreeWindow,
+            params.initialDecayRate,
+            params.initialDecayFunction
+        )
+        ProtocolAccessManaged(params.accessManager)
+        Ownable(params.owner)
     {
+        rewardsManager = new GovernanceRewardsManager(
+            address(this),
+            params.accessManager
+        );
+
         transferEnableDate = params.transferEnableDate;
     }
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ISummerToken
+    function setDecayRatePerSecond(
+        uint256 newRatePerSecond
+    ) external onlyGovernor {
+        _setDecayRatePerSecond(newRatePerSecond);
+    }
+
+    /// @inheritdoc ISummerToken
+    function setDecayFreeWindow(uint40 newWindow) external onlyGovernor {
+        _setDecayFreeWindow(newWindow);
+    }
+
+    /// @inheritdoc ISummerToken
+    function setDecayFunction(
+        VotingDecayLibrary.DecayFunction newFunction
+    ) external onlyGovernor {
+        _setDecayFunction(newFunction);
+    }
 
     /// @inheritdoc ISummerToken
     function enableTransfers() external onlyOwner {
@@ -127,10 +190,30 @@ contract SummerToken is
         _mint(to, amount);
     }
 
+    /// @inheritdoc ISummerToken
+    function updateDecayFactor(address account) external onlyDecayController {
+        _updateDecayFactor(account);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Delegates voting power to a specified address
+     * @param delegatee The address to delegate voting power to
+     * @dev Updates the decay factor for the caller
+     */
+    function delegate(address delegatee) public override updateDecay {
+        super.delegate(delegatee);
+    }
+
+    /**
+     * @dev Required override to resolve inheritance conflict between IERC20Permit, ERC20Permit, and Nonces contracts.
+     * This implementation simply calls the parent implementation and exists solely to satisfy the compiler.
+     * @param owner The address to get nonces for
+     * @return The current nonce for the specified owner
+     */
     function nonces(
         address owner
     )
@@ -140,6 +223,33 @@ contract SummerToken is
         returns (uint256)
     {
         return super.nonces(owner);
+    }
+
+    /// @inheritdoc ISummerToken
+    function getVotes(
+        address account
+    ) public view override(ISummerToken, Votes) returns (uint256) {
+        return getVotingPower(account, super.getVotes(account));
+    }
+
+    /**
+     * @notice Returns the votes for an account at a specific past block, with decay factor applied
+     * @param account The address to get votes for
+     * @param timepoint The block number to get votes at
+     * @return The historical voting power after applying the decay factor
+     * @dev This function:
+     * 1. Gets the historical raw votes using ERC20Votes' _getPastVotes
+     * 2. Applies the current decay factor from VotingDecayManager
+     * @custom:relationship-to-votingdecay
+     * - Uses VotingDecayManager.getVotingPower() to apply decay
+     * - Note: The decay factor is current, not historical
+     * - This means voting power can decrease over time even for past checkpoints
+     */
+    function getPastVotes(
+        address account,
+        uint256 timepoint
+    ) public view override returns (uint256) {
+        return getVotingPower(account, super.getPastVotes(account, timepoint));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -234,28 +344,42 @@ contract SummerToken is
     function _getVotingUnits(
         address account
     ) internal view override returns (uint256) {
+        // Get raw voting units first
         uint256 directBalance = balanceOf(account);
-        address vestingWalletAddress = vestingWallets[account];
+        uint256 stakingBalance = rewardsManager.balanceOf(account);
+        uint256 vestingBalance = vestingWallets[account] != address(0)
+            ? balanceOf(vestingWallets[account])
+            : 0;
 
-        if (vestingWalletAddress != address(0)) {
-            uint256 vestingWalletBalance = balanceOf(vestingWalletAddress);
-            return directBalance + vestingWalletBalance;
-        }
-
-        return directBalance;
+        return directBalance + stakingBalance + vestingBalance;
     }
 
+    /**
+     * @dev Transfers, mints, or burns voting units while managing delegate votes.
+     * @param from The address transferring voting units (zero address for mints)
+     * @param to The address receiving voting units (zero address for burns)
+     * @param amount The amount of voting units to transfer
+     * @custom:internal-logic
+     * - Skips vote tracking for transfers involving the rewards manager
+     * - Updates total supply checkpoints for mints and burns
+     * - Moves delegate votes between accounts
+     * @custom:security-considerations
+     * - Ensures voting power is correctly tracked when tokens move between accounts
+     * - Special handling for staking/unstaking to prevent double-counting
+     */
     function _transferVotingUnits(
         address from,
         address to,
         uint256 amount
     ) internal override {
-        // Handle vesting wallet voting power transfers
+        if (_handleRewardsManagerVotingTransfer(from, to, amount)) {
+            return;
+        }
+
         if (_handleVestingWalletVotingTransfer(from, to, amount)) {
             return;
         }
 
-        // Standard transfer
         super._transferVotingUnits(from, to, amount);
     }
 
@@ -300,19 +424,44 @@ contract SummerToken is
         return false;
     }
 
+    /**
+     * @dev Handles voting power transfers involving the rewards manager
+     * @param from Source address
+     * @param to Destination address
+     * @param amount Amount of voting units to transfer
+     * @return bool True if the transfer was handled (rewards manager case), false otherwise
+     */
+    function _handleRewardsManagerVotingTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal returns (bool) {
+        if (from == address(rewardsManager) || to == address(rewardsManager)) {
+            return true;
+        }
+        return false;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Error thrown when attempting to create a vesting wallet for an address that already has one
-     * @param beneficiary The address for which a vesting wallet already exists
+     * @dev Returns the delegate address for a given account, implementing VotingDecayManager's abstract method
+     * @param account The address to check delegation for
+     * @return The delegate address for the account
+     * @custom:relationship-to-votingdecay
+     * - Required by VotingDecayManager to track delegation chains
+     * - Used in decay factor calculations to follow delegation paths
+     * - Supports VotingDecayManager's MAX_DELEGATION_DEPTH enforcement
+     * @custom:implementation-notes
+     * - Delegates are used both for voting power and decay factor inheritance
+     * - Returns zero address if account has not delegated
+     * - Uses OpenZeppelin's ERC20Votes delegation system via super.delegates()
      */
-    error VestingWalletAlreadyExists(address beneficiary);
-
-    /**
-     * @dev Error thrown when an invalid vesting type is provided
-     * @param invalidType The invalid vesting type that was provided
-     */
-    error InvalidVestingType(SummerVestingWallet.VestingType invalidType);
+    function _getDelegateTo(
+        address account
+    ) internal view override returns (address) {
+        return super.delegates(account);
+    }
 }

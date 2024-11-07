@@ -5,9 +5,9 @@ import {IArkAccessManaged} from "../interfaces/IArkAccessManaged.sol";
 
 import {IConfigurationManaged} from "../interfaces/IConfigurationManaged.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {ContractSpecificRoles} from "../interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
-import {ProtocolAccessManaged} from "./ProtocolAccessManaged.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 /**
  * @title ArkAccessManaged

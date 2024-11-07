@@ -12,7 +12,8 @@ import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governanc
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {VotingDecayManager} from "@summerfi/voting-decay/src/VotingDecayManager.sol";
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {DecayController} from "./DecayController.sol";
 
 /*
  * @title SummerGovernor
@@ -30,7 +31,7 @@ contract SummerGovernor is
     GovernorSettings,
     GovernorCountingSimple,
     GovernorVotesQuorumFraction,
-    VotingDecayManager,
+    DecayController,
     OApp
 {
     /*//////////////////////////////////////////////////////////////
@@ -86,13 +87,10 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
-        VotingDecayManager(
-            params.initialDecayFreeWindow,
-            params.initialDecayRate,
-            params.initialDecayFunction,
-            address(this)
-        )
-        OApp(params.endpoint, address(this))
+        OApp(params.endpoint, address(params.timelock))
+        DecayController(address(params.token))
+        // @dev LayerZero do not directly initialize Ownable, so we do it here
+        Ownable(address(params.timelock))
     {
         if (
             params.proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
@@ -286,6 +284,20 @@ contract SummerGovernor is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
+    function castVote(
+        uint256 proposalId,
+        uint8 support
+    )
+        public
+        override(ISummerGovernor, Governor)
+        updateDecay(_msgSender())
+        returns (uint256)
+    {
+        address voter = _msgSender();
+        return _castVote(proposalId, voter, support, "");
+    }
+
+    /// @inheritdoc ISummerGovernor
     function propose(
         address[] memory targets,
         uint256[] memory values,
@@ -294,6 +306,7 @@ contract SummerGovernor is
     )
         public
         override(Governor, ISummerGovernor)
+        updateDecay(_msgSender())
         onlyProposalChain
         returns (uint256)
     {
@@ -310,7 +323,7 @@ contract SummerGovernor is
                 proposalThreshold()
             );
         }
-        _updateDecayFactor(proposer);
+
         return _propose(targets, values, calldatas, description, proposer);
     }
 
@@ -325,6 +338,7 @@ contract SummerGovernor is
         payable
         override(Governor, ISummerGovernor)
         onlyProposalChain
+        updateDecay(_msgSender())
         returns (uint256)
     {
         return super.execute(targets, values, calldatas, descriptionHash);
@@ -339,6 +353,7 @@ contract SummerGovernor is
     )
         public
         override(Governor, ISummerGovernor)
+        updateDecay(_msgSender())
         onlyProposalChain
         returns (uint256)
     {
@@ -361,7 +376,7 @@ contract SummerGovernor is
                 proposalThreshold()
             );
         }
-        _updateDecayFactor(proposer);
+
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
@@ -434,15 +449,40 @@ contract SummerGovernor is
         emit WhitelistGuardianSet(_whitelistGuardian);
     }
 
-    function _getDelegateTo(
-        address account
-    ) internal view override returns (address) {
-        return token().delegates(account);
-    }
-
     /*//////////////////////////////////////////////////////////////
                             OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    // ... existing code ...
+
+    /**
+     * @dev Override of GovernorCountingSimple._countVote to use decayed voting power
+     */
+    function _countVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        uint256 weight,
+        bytes memory params
+    )
+        internal
+        virtual
+        override(Governor, GovernorCountingSimple)
+        returns (uint256)
+    {
+        uint256 decayedWeight = ISummerToken(address(token())).getVotes(
+            account
+        );
+
+        return
+            super._countVote(
+                proposalId,
+                account,
+                support,
+                decayedWeight,
+                params
+            );
+    }
 
     /*
      * @dev Overrides the internal cancellation function to use the timelocked version
