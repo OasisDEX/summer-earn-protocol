@@ -879,7 +879,7 @@ contract SummerGovernorTest is
      * @dev Tests the clock function.
      */
     function test_Clock() public view {
-        uint256 currentBlock = block.number;
+        uint256 currentBlock = block.timestamp;
         uint48 clockValue = governorA.clock();
         assertEq(
             uint256(clockValue),
@@ -1186,7 +1186,7 @@ contract SummerGovernorTest is
         console.log("Charlie's votes :", aSummerToken.getVotes(charlie));
         console.log("Charlie's balance :", aSummerToken.balanceOf(charlie));
         // Ensure Charlie has enough tokens to meet the proposal threshold
-        uint256 charlieVotes = governorA.getVotes(charlie, block.number - 1);
+        uint256 charlieVotes = governorA.getVotes(charlie, block.timestamp - 1);
         uint256 proposalThreshold = governorA.proposalThreshold();
         assertGe(
             charlieVotes,
@@ -1224,7 +1224,7 @@ contract SummerGovernorTest is
             uint256 forVotes,
             uint256 abstainVotes
         ) = governorA.proposalVotes(proposalId);
-        uint256 quorum = governorA.quorum(block.number - 1);
+        uint256 quorum = governorA.quorum(block.timestamp - 1);
         assertTrue(
             forVotes + againstVotes + abstainVotes < quorum,
             "Quorum should not be reached"
@@ -1286,19 +1286,19 @@ contract SummerGovernorTest is
 
         console.log(
             "Alice's votes     :",
-            governorA.getVotes(alice, block.number - 1)
+            governorA.getVotes(alice, block.timestamp - 1)
         );
         console.log(
             "Bob's votes       :",
-            governorA.getVotes(bob, block.number - 1)
+            governorA.getVotes(bob, block.timestamp - 1)
         );
         console.log(
             "Charlie's votes   :",
-            governorA.getVotes(charlie, block.number - 1)
+            governorA.getVotes(charlie, block.timestamp - 1)
         );
         console.log(
             "David's votes     :",
-            governorA.getVotes(david, block.number - 1)
+            governorA.getVotes(david, block.timestamp - 1)
         );
         // Cast votes
 
@@ -1355,10 +1355,10 @@ contract SummerGovernorTest is
         console.log("For votes      :", forVotes);
         console.log("Against votes  :", againstVotes);
         console.log("Abstain votes  :", abstainVotes);
-        console.log("Quorum         :", governorA.quorum(block.number - 1));
+        console.log("Quorum         :", governorA.quorum(block.timestamp - 1));
         console.log(
             "Total supply   :",
-            aSummerToken.getPastTotalSupply(block.number - 1)
+            aSummerToken.getPastTotalSupply(block.timestamp - 1)
         );
 
         // This is the failing assertion
@@ -1378,7 +1378,7 @@ contract SummerGovernorTest is
         assertEq(abstainVotes, 0, "There should be no 'abstain' votes");
         assertGe(
             forVotes,
-            governorA.quorum(block.number - 1),
+            governorA.quorum(block.timestamp - 1),
             "For votes should meet or exceed quorum"
         );
 
@@ -1435,7 +1435,10 @@ contract SummerGovernorTest is
         advanceTimeAndBlock();
 
         // Check Alice's voting power
-        uint256 aliceVotingPower = governorA.getVotes(alice, block.number - 1);
+        uint256 aliceVotingPower = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
         uint256 expectedVotingPower = vestingAmount + directAmount;
 
         assertEq(
@@ -1556,10 +1559,13 @@ contract SummerGovernorTest is
         advanceTimeAndBlock();
 
         // Verify initial combined voting power meets quorum
-        uint256 initialAliceVotes = governorA.getVotes(alice, block.number - 1);
-        uint256 initialBobVotes = governorA.getVotes(bob, block.number - 1);
+        uint256 initialAliceVotes = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        uint256 initialBobVotes = governorA.getVotes(bob, block.timestamp - 1);
         uint256 initialTotalVotes = initialAliceVotes + initialBobVotes;
-        uint256 initialQuorum = governorA.quorum(block.number - 1);
+        uint256 initialQuorum = governorA.quorum(block.timestamp - 1);
 
         console.log("Initial Alice votes:", initialAliceVotes);
         console.log("Initial Bob votes:", initialBobVotes);
@@ -1574,10 +1580,13 @@ contract SummerGovernorTest is
         advanceTimeForPeriod(aSummerToken.decayFreeWindow() + 30 days);
 
         // Check decayed voting power
-        uint256 decayedAliceVotes = governorA.getVotes(alice, block.number - 1);
-        uint256 decayedBobVotes = governorA.getVotes(bob, block.number - 1);
+        uint256 decayedAliceVotes = governorA.getVotes(
+            alice,
+            block.timestamp - 1
+        );
+        uint256 decayedBobVotes = governorA.getVotes(bob, block.timestamp - 1);
         uint256 decayedTotalVotes = decayedAliceVotes + decayedBobVotes;
-        uint256 quorumAfterDecay = governorA.quorum(block.number - 1);
+        uint256 quorumAfterDecay = governorA.quorum(block.timestamp - 1);
 
         console.log("Decayed Alice votes:", decayedAliceVotes);
         console.log("Decayed Bob votes:", decayedBobVotes);
@@ -1615,7 +1624,7 @@ contract SummerGovernorTest is
 
         // Check final proposal votes
         (, uint256 finalForVotes, ) = governorA.proposalVotes(proposalId);
-        uint256 finalQuorum = governorA.quorum(block.number - 1);
+        uint256 finalQuorum = governorA.quorum(block.timestamp - 1);
 
         console.log("Final for votes:", finalForVotes);
         console.log("Final quorum needed:", finalQuorum);
@@ -1798,7 +1807,7 @@ contract SummerGovernorTest is
         // Alice delegates to herself
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        vm.roll(block.number + 1);
+        advanceTimeAndBlock();
 
         // Verify decay update is called when proposing
         vm.expectCall(
