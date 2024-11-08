@@ -37,7 +37,7 @@ contract VotingDecayTest is Test {
     }
 
     function test_InitialRetentionFactor() public {
-        state.initializeAccountIfNew(user);
+        state.resetDecay(user);
         assertEq(
             state.getDecayFactor(user, _getDelegateTo),
             VotingDecayLibrary.WAD
@@ -45,7 +45,7 @@ contract VotingDecayTest is Test {
     }
 
     function test_DecayOverOneYear() public {
-        state.initializeAccountIfNew(user);
+        state.resetDecay(user);
 
         // Fast forward one year
         vm.warp(block.timestamp + 365 days);
@@ -59,7 +59,7 @@ contract VotingDecayTest is Test {
     }
 
     function test_SetDecayRatePerSecond() public {
-        state.initializeAccountIfNew(user);
+        state.resetDecay(user);
 
         uint256 newRate = uint256(2e17) / (365 * 24 * 60 * 60); // 20% per year
         vm.prank(owner);
@@ -84,7 +84,7 @@ contract VotingDecayTest is Test {
     }
 
     function test_ApplyDecayToValue() public {
-        state.initializeAccountIfNew(user);
+        state.resetDecay(user);
 
         // Fast forward 1 year
         vm.warp(block.timestamp + 365 days);
@@ -99,7 +99,7 @@ contract VotingDecayTest is Test {
     }
 
     function test_SetDecayFreeWindow() public {
-        state.initializeAccountIfNew(user);
+        state.resetDecay(user);
 
         uint40 newDecayFreeWindow = 60 days;
 

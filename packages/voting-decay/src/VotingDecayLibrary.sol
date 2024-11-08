@@ -114,6 +114,11 @@ library VotingDecayLibrary {
         emit DecayRateSet(newRatePerSecond);
     }
 
+    /**
+     * @notice Sets the decay-free window period during which no decay occurs
+     * @param self The DecayState storage
+     * @param newWindow The new decay-free window duration in seconds
+     */
     function setDecayFreeWindow(
         DecayState storage self,
         uint40 newWindow
@@ -122,6 +127,11 @@ library VotingDecayLibrary {
         emit DecayFreeWindowSet(newWindow);
     }
 
+    /**
+     * @notice Sets the decay function type (Linear or Exponential)
+     * @param self The DecayState storage
+     * @param newFunction The new decay function to use
+     */
     function setDecayFunction(
         DecayState storage self,
         DecayFunction newFunction
@@ -130,26 +140,18 @@ library VotingDecayLibrary {
         emit DecayFunctionSet(uint8(newFunction));
     }
 
-    function initializeAccountIfNew(
-        DecayState storage self,
-        address accountAddress
-    ) internal {
-        if (self.decayInfoByAccount[accountAddress].lastUpdateTimestamp == 0) {
-            self.decayInfoByAccount[accountAddress] = DecayInfo({
-                decayFactor: WAD,
-                lastUpdateTimestamp: uint40(block.timestamp)
-            });
-
-            emit AccountInitialized(accountAddress);
-        }
-    }
-
+    /**
+     * @notice Updates the decay factor for an account, considering the decay-free window
+     * @param self The DecayState storage
+     * @param accountAddress The address of the account to update
+     * @param getDelegateTo Function to retrieve delegation information
+     */
     function updateDecayFactor(
         DecayState storage self,
         address accountAddress,
         function(address) view returns (address) getDelegateTo
     ) internal {
-        initializeAccountIfNew(self, accountAddress);
+        _initializeAccountIfNew(self, accountAddress);
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
 
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
@@ -166,17 +168,29 @@ library VotingDecayLibrary {
         emit DecayUpdated(accountAddress, account.decayFactor);
     }
 
+    /**
+     * @notice Resets the decay factor for an account back to WAD (1e18)
+     * @param self The DecayState storage
+     * @param accountAddress The address of the account to reset
+     */
     function resetDecay(
         DecayState storage self,
         address accountAddress
     ) internal {
-        initializeAccountIfNew(self, accountAddress);
+        _initializeAccountIfNew(self, accountAddress);
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
         account.lastUpdateTimestamp = uint40(block.timestamp);
         account.decayFactor = WAD;
         emit DecayReset(accountAddress);
     }
 
+    /**
+     * @notice Initializes the decay state with initial parameters
+     * @param self The DecayState storage
+     * @param decayFreeWindow_ The initial decay-free window duration in seconds
+     * @param decayRatePerSecond_ The initial decay rate per second
+     * @param decayFunction_ The initial decay function type
+     */
     function initialize(
         DecayState storage self,
         uint40 decayFreeWindow_,
@@ -188,6 +202,14 @@ library VotingDecayLibrary {
         self.decayFunction = decayFunction_;
     }
 
+    /**
+     * @notice Calculates the current voting power by applying decay to the original value
+     * @param self The DecayState storage
+     * @param accountAddress The address of the account
+     * @param originalValue The original voting power value before decay
+     * @param getDelegateTo Function to retrieve delegation information
+     * @return The current voting power after applying decay
+     */
     function getVotingPower(
         DecayState storage self,
         address accountAddress,
@@ -227,6 +249,27 @@ library VotingDecayLibrary {
     /*//////////////////////////////////////////////////////////////
                             PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Initializes decay information for an account if it hasn't been initialized before
+     * @dev Sets initial decay factor to WAD (1e18) and lastUpdateTimestamp to current block timestamp
+     * @param self The DecayState storage
+     * @param accountAddress The address of the account to initialize
+     * @custom:emits AccountInitialized when a new account is initialized
+     */
+    function _initializeAccountIfNew(
+        DecayState storage self,
+        address accountAddress
+    ) private {
+        if (self.decayInfoByAccount[accountAddress].lastUpdateTimestamp == 0) {
+            self.decayInfoByAccount[accountAddress] = DecayInfo({
+                decayFactor: WAD,
+                lastUpdateTimestamp: uint40(block.timestamp)
+            });
+
+            emit AccountInitialized(accountAddress);
+        }
+    }
 
     /**
      * @notice Recursively calculates decay factor considering delegation depth
