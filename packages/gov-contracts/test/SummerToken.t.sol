@@ -472,7 +472,7 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
 
         // Move time beyond decay window
-        uint256 decayPeriod = aSummerToken.decayFreeWindow() + 30 days;
+        uint256 decayPeriod = aSummerToken.getDecayFreeWindow() + 30 days;
         vm.warp(block.timestamp + decayPeriod);
         vm.roll(block.number + 1000);
 
