@@ -28,7 +28,9 @@ export function updateVault(vaultDetails: VaultDetails, block: ethereum.Block): 
   vault.outputTokenSupply = vaultDetails.outputTokenSupply
   vault.totalValueLockedUSD = vaultDetails.totalValueLockedUSD
   vault.outputTokenPriceUSD = vaultDetails.outputTokenPriceUSD
+  vault.inputTokenPriceUSD = vaultDetails.inputTokenPriceUSD
   vault.pricePerShare = vaultDetails.pricePerShare
+
   vault.lastUpdateTimestamp = block.timestamp
   if (
     deltaTime.gt(BigDecimalConstants.ZERO) &&
