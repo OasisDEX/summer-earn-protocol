@@ -5,7 +5,6 @@ import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
-import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 
 /**
@@ -13,12 +12,7 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol"
  * @dev Interface for the Summer governance token, combining ERC20, permit functionality,
  * and voting decay mechanisms
  */
-interface ISummerToken is
-    IERC20,
-    IERC20Permit,
-    ISummerTokenErrors,
-    IVotingDecayManager
-{
+interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -108,6 +102,19 @@ interface ISummerToken is
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Returns the decay free window
+     * @return The decay free window in seconds
+     */
+    function getDecayFreeWindow() external view returns (uint40);
+
+    /**
+     * @notice Returns the decay factor for an account
+     * @param account The address to get the decay factor for
+     * @return The decay factor for the account
+     */
+    function getDecayFactor(address account) external view returns (uint256);
 
     /**
      * @notice Returns the current votes for an account with decay factor applied

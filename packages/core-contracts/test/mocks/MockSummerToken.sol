@@ -77,7 +77,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function decayFreeWindow() external pure returns (uint40) {
+    function getDecayFreeWindow() external pure returns (uint40) {
         revert("Not implemented");
     }
 

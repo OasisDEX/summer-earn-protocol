@@ -9,7 +9,6 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {IVotingDecayManager} from "@summerfi/voting-decay/IVotingDecayManager.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {DecayController} from "./DecayController.sol";
 
@@ -160,7 +159,7 @@ contract GovernanceRewardsManager is
     function _calculateSmoothedDecayFactor(
         address account
     ) internal view returns (uint256) {
-        uint256 currentDecayFactor = IVotingDecayManager(address(stakingToken))
+        uint256 currentDecayFactor = ISummerToken(address(stakingToken))
             .getDecayFactor(account);
 
         // If there's no existing smoothed factor, return the current factor

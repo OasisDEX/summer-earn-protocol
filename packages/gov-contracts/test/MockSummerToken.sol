@@ -82,11 +82,11 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function decayFreeWindow() external pure returns (uint40) {
+    function getDecayFreeWindow() external pure returns (uint40) {
         revert("Not implemented");
     }
 
-    function decayFunction()
+    function getDecayFunction()
         external
         pure
         returns (VotingDecayLibrary.DecayFunction)
@@ -94,7 +94,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function decayRatePerSecond() external pure returns (uint256) {
+    function getDecayRatePerSecond() external pure returns (uint256) {
         revert("Not implemented");
     }
 

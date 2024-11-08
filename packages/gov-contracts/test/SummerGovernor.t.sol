@@ -1579,7 +1579,7 @@ contract SummerGovernorTest is
             "Combined voting power should meet quorum initially"
         );
 
-        advanceTimeForPeriod(aSummerToken.decayFreeWindow() + 30 days);
+        advanceTimeForPeriod(aSummerToken.getDecayFreeWindow() + 30 days);
 
         // Check decayed voting power
         uint256 decayedAliceVotes = governorA.getVotes(
