@@ -66,6 +66,7 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(underlyingToken18Dec),

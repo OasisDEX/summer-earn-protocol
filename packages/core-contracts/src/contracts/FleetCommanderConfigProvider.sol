@@ -29,6 +29,7 @@ contract FleetCommanderConfigProvider is
     using EnumerableSet for EnumerableSet.AddressSet;
 
     FleetConfig public config;
+    string public details;
     EnumerableSet.AddressSet private _activeArks;
     mapping(address ark => bool isWithdrawable) public isArkWithdrawable;
 
@@ -44,6 +45,7 @@ contract FleetCommanderConfigProvider is
         BufferArk _bufferArk = new BufferArk(
             ArkParams({
                 name: "BufferArk",
+                details: "BufferArk details",
                 accessManager: address(params.accessManager),
                 asset: params.asset,
                 configurationManager: address(params.configurationManager),
@@ -68,6 +70,7 @@ contract FleetCommanderConfigProvider is
             })
         );
         isArkWithdrawable[address(_bufferArk)] = true;
+        details = params.details;
     }
 
     /**

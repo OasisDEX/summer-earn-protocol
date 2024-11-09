@@ -40,6 +40,7 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
 
         params = ArkParams({
             name: "USDC ERC4626 Ark",
+            details: "USDC ERC4626 Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDC_ADDRESS,

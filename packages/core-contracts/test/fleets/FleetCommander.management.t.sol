@@ -39,6 +39,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             asset: address(mockToken),
             name: "Fleet Commander",
             symbol: "FC",
+            details: "Mock details",
             depositCap: 10000,
             initialTipRate: Percentage.wrap(0)
         });
@@ -381,6 +382,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         BufferArk mockArkWithCommander = new BufferArk(
             ArkParams({
                 name: "MockArkWithCommander",
+                details: "Mock details",
                 accessManager: address(accessManager),
                 asset: address(mockToken),
                 configurationManager: address(configurationManager),

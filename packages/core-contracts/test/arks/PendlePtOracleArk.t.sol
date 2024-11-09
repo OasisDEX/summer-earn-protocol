@@ -134,6 +134,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         // Create USDC Ark
         ArkParams memory usdcParams = ArkParams({
             name: "Pendle USDC PT Ark",
+            details: "USDC Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDC,
@@ -152,6 +153,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
         // Create USDCE Ark
         ArkParams memory usdceParams = ArkParams({
             name: "Pendle USDCE PT Ark",
+            details: "USDCE Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDCE,
@@ -334,6 +336,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
                 });
         ArkParams memory usdcParams = ArkParams({
             name: "Pendle USDC PT Ark for Rollover Test",
+            details: "USDC Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDC,

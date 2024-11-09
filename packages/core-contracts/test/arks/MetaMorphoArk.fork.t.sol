@@ -37,6 +37,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(asset),
@@ -164,6 +165,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         // Arrange
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(asset),

@@ -31,6 +31,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(mockToken),
@@ -51,6 +52,7 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
     function test_Constructor() public {
         ArkParams memory params = ArkParams({
             name: "",
+            details: "TestArk details",
             accessManager: address(0),
             configurationManager: address(0),
             asset: address(0),

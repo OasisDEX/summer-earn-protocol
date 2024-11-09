@@ -38,6 +38,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(usdc),

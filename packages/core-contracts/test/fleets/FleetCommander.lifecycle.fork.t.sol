@@ -160,6 +160,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     function setupArks() internal {
         ArkParams memory usdcArkParams = ArkParams({
             name: "USDC Ark",
+            details: "USDC Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDC_ADDRESS,
@@ -172,6 +173,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
 
         ArkParams memory daiArkParams = ArkParams({
             name: "DAI Ark",
+            details: "DAI Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: DAI_ADDRESS,

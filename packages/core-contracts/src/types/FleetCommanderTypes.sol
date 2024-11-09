@@ -11,6 +11,7 @@ import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderReward
 
 struct FleetCommanderParams {
     string name;
+    string details;
     string symbol;
     address configurationManager;
     address accessManager;

@@ -51,6 +51,7 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "Pendle USDE PT Ark",
+            details: "Pendle USDE PT Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDE,
@@ -375,6 +376,7 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "Invalid Asset Ark",
+            details: "Invalid Asset Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: invalidAsset,

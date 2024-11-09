@@ -187,6 +187,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             asset: underlyingToken,
             name: fleetName,
             symbol: "TEST-SUM",
+            details: "TestFleet-details",
             initialTipRate: initialTipRate,
             depositCap: type(uint256).max
         });
@@ -241,6 +242,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             new ArkMock(
                 ArkParams({
                     name: "TestArk",
+                    details: "TestArk details",
                     accessManager: address(accessManager),
                     asset: tokenAddress,
                     configurationManager: address(configurationManager),
@@ -262,6 +264,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             new RestictedWithdrawalArkMock(
                 ArkParams({
                     name: "TestArk",
+                    details: "TestArk details",
                     accessManager: address(accessManager),
                     asset: tokenAddress,
                     configurationManager: address(configurationManager),

@@ -11,7 +11,7 @@ import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 interface AaveV3ArkUserInput {
-  token: Address
+  token: { address: Address; symbol: string }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -51,7 +51,7 @@ async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
     const tokenAddress = config.tokens[tokenSymbol as TokenType]
     tokens.push({
       title: tokenSymbol.toUpperCase(),
-      value: tokenAddress,
+      value: { address: tokenAddress, symbol: tokenSymbol.toUpperCase() },
     })
   }
 
@@ -90,7 +90,7 @@ async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
  */
 async function confirmDeployment(userInput: AaveV3ArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Token: ${userInput.token}`))
+  console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
@@ -117,7 +117,14 @@ async function deployAaveV3ArkContract(
         aaveV3Pool: config.protocolSpecific.aaveV3.pool,
         rewardsController: config.protocolSpecific.aaveV3.rewards,
         arkParams: {
-          name: `AaveV3-${userInput.token}-${config.protocolSpecific.aaveV3.pool}-${chainId}`,
+          name: `AaveV3-${userInput.token.symbol}-${chainId}`,
+          details: JSON.stringify({
+            protocol: 'AaveV3',
+            type: 'Lending',
+            token: userInput.token.address,
+            pool: config.protocolSpecific.aaveV3.pool,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,

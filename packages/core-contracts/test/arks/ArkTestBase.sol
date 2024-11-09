@@ -83,6 +83,7 @@ contract ArkTestBase is TestHelpers {
                 initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
                 asset: underlyingToken,
                 name: fleetName,
+                details: "TestArk details",
                 symbol: "TEST-SUM",
                 initialTipRate: initialTipRate,
                 depositCap: type(uint256).max

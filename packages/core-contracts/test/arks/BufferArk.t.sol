@@ -23,6 +23,7 @@ contract BufferArkTest is Test, IArkEvents, ArkTestBase {
         initializeCoreContracts();
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(mockToken),
@@ -45,6 +46,7 @@ contract BufferArkTest is Test, IArkEvents, ArkTestBase {
     function test_Constructor() public {
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(mockToken),
