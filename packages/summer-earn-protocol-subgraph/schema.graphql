@@ -395,6 +395,9 @@ type Vault @entity @regularPolling {
 
   " Price per share of output token in USD "
   outputTokenPriceUSD: BigDecimal
+  
+  " Price of input token in USD "
+  inputTokenPriceUSD: BigDecimal
 
   " Amount of input token per full share of output token. Usually corresponds to the value of `pricePerShare` or `pricePerFullShare` in the vault contract. "
   pricePerShare: BigDecimal
@@ -489,6 +492,9 @@ type VaultDailySnapshot @entity @dailySnapshot {
 
   " Price per share of output token in USD "
   outputTokenPriceUSD: BigDecimal
+  
+  " Price of input token in USD "
+  inputTokenPriceUSD: BigDecimal
 
   " Amount of input token per full share of output token. Usually corresponds to the value of `pricePerShare` or `pricePerFullShare` in the vault contract. "
   pricePerShare: BigDecimal
@@ -552,6 +558,9 @@ type VaultHourlySnapshot @entity @hourlySnapshot {
 
   " Price per share of output token in USD "
   outputTokenPriceUSD: BigDecimal
+  
+  " Price of input token in USD "
+  inputTokenPriceUSD: BigDecimal
 
   " Amount of input token per full share of output token. Usually corresponds to the value of `pricePerShare` or `pricePerFullShare` in the vault contract. "
   pricePerShare: BigDecimal
@@ -1065,6 +1074,9 @@ type PostActionVaultSnapshot @entity @hourlySnapshot {
 
   " Price per share of output token in USD "
   outputTokenPriceUSD: BigDecimal
+
+  " Price of input token in USD "
+  inputTokenPriceUSD: BigDecimal
 
   " Amount of input token per full share of output token. Usually corresponds to the value of `pricePerShare` or `pricePerFullShare` in the vault contract. "
   pricePerShare: BigDecimal

@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "0.2.20-fix-owner",
+  "version": "0.2.22-fix-input-token-price",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
