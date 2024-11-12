@@ -84,6 +84,11 @@
         "internalType": "string"
       },
       {
+        "name": "details",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
         "name": "requiresKeeperData",
         "type": "bool",
         "internalType": "bool"
@@ -206,6 +211,11 @@
           },
           {
             "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "details",
             "type": "string",
             "internalType": "string"
           },

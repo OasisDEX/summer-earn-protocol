@@ -13,6 +13,11 @@
             "internalType": "string"
           },
           {
+            "name": "details",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
             "name": "symbol",
             "type": "string",
             "internalType": "string"
@@ -476,6 +481,19 @@
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "details",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
