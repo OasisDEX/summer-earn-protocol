@@ -37,12 +37,12 @@ async function deployFleet() {
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
 
   const coreContracts = config.deployedContracts.core
-  const asset = getAssetAddress(fleetDefinition.assetSymbol, config)
+  const assetAddress = getAssetAddress(fleetDefinition.assetSymbol, config)
 
   if (await confirmDeployment(fleetDefinition)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
-    const deployedFleet = await deployFleetContracts(fleetDefinition, coreContracts, asset)
+    const deployedFleet = await deployFleetContracts(fleetDefinition, coreContracts, assetAddress)
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
@@ -83,8 +83,8 @@ async function getFleetDefinition(): Promise<FleetConfig> {
 
   const fleetDefinitionPath = path.resolve(fleetsDir, response.fleetDefinitionFile)
   console.log(kleur.green(`Loading fleet definition from: ${fleetDefinitionPath}`))
-
-  return loadFleetDefinition(fleetDefinitionPath)
+  // todo: remove this once we have a details field in the fleet definition
+  return { ...loadFleetDefinition(fleetDefinitionPath), details: JSON.stringify('') }
 }
 
 /**
@@ -123,7 +123,7 @@ async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
  * @returns {Promise<FleetContracts>} The deployed fleet contracts.
  */
 async function deployFleetContracts(
-  fleetDefinition: any,
+  fleetDefinition: FleetConfig,
   coreContracts: CoreContracts,
   asset: string,
 ) {
@@ -139,8 +139,8 @@ async function deployFleetContracts(
         protocolAccessManager: coreContracts.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
+        fleetDetails: fleetDefinition.details,
         asset,
-        initialArks: fleetDefinition.arks,
         initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,

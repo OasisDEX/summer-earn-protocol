@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { FleetConfig } from '../../types/config-types'
 
-export function loadFleetDefinition(filePath: string): FleetConfig {
+export function loadFleetDefinition(filePath: string): Omit<FleetConfig, 'details'> {
   const fullPath = path.resolve(filePath)
   if (!fs.existsSync(fullPath)) {
     throw new Error(`Fleet definition file not found: ${fullPath}`)

@@ -21,6 +21,7 @@ export function createFleetModule(moduleName: string) {
     const protocolAccessManager = m.getParameter<string>('protocolAccessManager')
     const fleetName = m.getParameter<string>('fleetName')
     const fleetSymbol = m.getParameter<string>('fleetSymbol')
+    const fleetDetails = m.getParameter<string>('fleetDetails')
     const asset = m.getParameter<string>('asset')
     const initialMinimumBufferBalance = m.getParameter<string>('initialMinimumBufferBalance')
     const initialRebalanceCooldown = m.getParameter<string>('initialRebalanceCooldown')
@@ -34,6 +35,7 @@ export function createFleetModule(moduleName: string) {
         configurationManager: configurationManager,
         accessManager: protocolAccessManager,
         asset: asset,
+        details: fleetDetails,
         initialMinimumBufferBalance: initialMinimumBufferBalance,
         initialRebalanceCooldown: initialRebalanceCooldown,
         depositCap: depositCap,

@@ -76,6 +76,7 @@ export interface FleetConfig {
   fleetName: string
   symbol: string
   assetSymbol: string
+  details: string
   initialMinimumBufferBalance: string
   initialRebalanceCooldown: string
   depositCap: string
