@@ -24,8 +24,7 @@ interface ERC4626ArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: Address
-  tokenSymbol: Tokens
+  token: { address: Address; symbol: Tokens }
   vaultId: string
   vaultName: string
 }
@@ -94,8 +93,7 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
 
   const aggregatedData = {
     ...responses,
-    token: tokenAddress,
-    tokenSymbol: selectedVault.token,
+    token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
     vaultName: selectedVault.vaultName,
   }
@@ -120,17 +118,26 @@ async function deployERC4626ArkContract(
 ): Promise<ERC4626ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const name = `ERC4626Ark_${userInput.vaultName}_${userInput.tokenSymbol}`
+  const name = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
+
   return (await hre.ignition.deploy(createERC4626ArkModule(name), {
     parameters: {
       [name]: {
         vault: userInput.vaultId,
         arkParams: {
-          name: `ERC4626-${userInput.token}-${userInput.vaultId}-${chainId}`,
+          name: name,
+          details: JSON.stringify({
+            protocol: userInput.vaultName,
+            type: 'ERC4626',
+            asset: userInput.token.address,
+            marketAsset: userInput.token.address,
+            pool: userInput.vaultId,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token,
+          token: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,

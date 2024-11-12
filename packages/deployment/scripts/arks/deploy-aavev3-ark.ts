@@ -121,7 +121,8 @@ async function deployAaveV3ArkContract(
           details: JSON.stringify({
             protocol: 'AaveV3',
             type: 'Lending',
-            token: userInput.token.address,
+            asset: userInput.token.address,
+            marketAsset: userInput.token.address,
             pool: config.protocolSpecific.aaveV3.pool,
             chainId: chainId,
           }),

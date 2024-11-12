@@ -59,13 +59,13 @@
         "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
         "vaults": {
           "usdc": {
-            "Moonwell Flagship USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
-            "Gauntlet USDC Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12"
+            "Moonwell_Flagship_USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
+            "Gauntlet_USDC_Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12"
           }
         },
         "markets": {
           "usdc": {
-            "wstETH-USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
+            "wstETH_USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
           },
           "dai": {
             "nomarket": "0x0000000000000000000000000000000000000000"
@@ -151,7 +151,8 @@
         "markets": {
           "usde": {
             "marketAddresses": {
-              "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+              "USDE_28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d",
+              "USDE_Karak_28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
             },
             "swapInTokens": [
               {

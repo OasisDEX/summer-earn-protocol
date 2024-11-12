@@ -23,8 +23,9 @@ interface MetaMorphoArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: Address
-  vaultId: string
+  token: { address: Address; symbol: Tokens }
+  vaultId: Address
+  vaultName: string
 }
 
 /**
@@ -64,7 +65,7 @@ async function getUserInput(config: BaseConfig): Promise<MetaMorphoArkUserInput>
       const vaultId = config.protocolSpecific.morpho.vaults[token as TokenType][vaultName]
       morphoVaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
-        value: { token, vaultId },
+        value: { token, vaultId, vaultName },
       })
     }
   }
@@ -102,8 +103,9 @@ async function getUserInput(config: BaseConfig): Promise<MetaMorphoArkUserInput>
 
   const aggregatedData = {
     ...responses,
-    token: tokenAddress,
+    token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
+    vaultName: selectedVault.vaultName,
   }
 
   return aggregatedData
@@ -143,11 +145,19 @@ async function deployMetaMorphoArkContract(
       MetaMorphoArkModule: {
         strategyVault: userInput.vaultId,
         arkParams: {
-          name: `MetaMorpho-${userInput.token}-${userInput.vaultId}-${chainId}`,
+          name: `MetaMorpho-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`,
+          details: JSON.stringify({
+            protocol: 'Morpho',
+            type: 'Vault',
+            asset: userInput.token.address,
+            marketAsset: userInput.token.address,
+            pool: userInput.vaultId,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token,
+          token: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,

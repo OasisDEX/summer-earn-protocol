@@ -13,9 +13,9 @@ import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 interface CompoundV3ArkUserInput {
-  compoundV3Pool: string
-  compoundV3Rewards: string
-  token: Address
+  compoundV3Pool: Address
+  compoundV3Rewards: Address
+  token: { address: Address; symbol: string }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -93,7 +93,7 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
 
   return {
     ...responses,
-    token: tokenAddress,
+    token: { address: tokenAddress, symbol: selectedPool },
     compoundV3Pool: config.protocolSpecific.compoundV3.pools[selectedPool].cToken,
     compoundV3Rewards: config.protocolSpecific.compoundV3.rewards,
   }
@@ -135,11 +135,19 @@ async function deployCompoundV3ArkContract(
         compoundV3Pool: userInput.compoundV3Pool,
         compoundV3Rewards: userInput.compoundV3Rewards,
         arkParams: {
-          name: `CompoundV3-${userInput.token}-${userInput.compoundV3Pool}-${chainId}`,
+          name: `CompoundV3-${userInput.token.symbol}-${chainId}`,
+          details: JSON.stringify({
+            protocol: 'CompoundV3',
+            type: 'Lending',
+            asset: userInput.token.address,
+            marketAsset: userInput.token.address,
+            pool: userInput.compoundV3Pool,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token,
+          token: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,

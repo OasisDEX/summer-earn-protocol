@@ -196,6 +196,12 @@ importers:
       '@nomicfoundation/hardhat-ignition-viem':
         specifier: ^0.15.5
         version: 0.15.5(@nomicfoundation/hardhat-ignition@0.15.5)(@nomicfoundation/hardhat-viem@2.0.3)(@nomicfoundation/ignition-core@0.15.5)(hardhat@2.22.10)(viem@2.9.19)
+      '@summerfi/access-contracts':
+        specifier: workspace:*
+        version: link:../access-contracts
+      '@summerfi/constants':
+        specifier: workspace:*
+        version: link:../constants
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies
@@ -217,6 +223,9 @@ importers:
       '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
+      '@summerfi/rewards-contracts':
+        specifier: workspace:*
+        version: link:../rewards-contracts
       '@summerfi/tenderly-utils':
         specifier: workspace:*
         version: link:../tenderly-utils

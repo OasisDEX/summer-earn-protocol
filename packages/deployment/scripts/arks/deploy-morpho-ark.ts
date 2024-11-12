@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import MorphoArkModule, { MorphoArkContracts } from '../../ignition/modules/arks/morpho-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
@@ -20,8 +20,9 @@ interface MorphoArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: Address
+  token: { address: Address; symbol: Tokens }
   marketId: string
+  marketName: string
 }
 /**
  * Main function to deploy a MorphoArk.
@@ -60,7 +61,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoArkUserInput> {
       const marketId = config.protocolSpecific.morpho.markets[token as TokenType][marketName]
       morphoMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
-        value: { token, marketId },
+        value: { token, marketId, marketName },
       })
     }
   }
@@ -98,8 +99,9 @@ async function getUserInput(config: BaseConfig): Promise<MorphoArkUserInput> {
 
   return {
     ...responses,
-    token: tokenAddress,
+    token: { address: tokenAddress, symbol: selectedMarket.token },
     marketId: selectedMarket.marketId,
+    marketName: selectedMarket.marketName,
   }
 }
 
@@ -138,11 +140,19 @@ async function deployMorphoArkContract(
         morphoBlue: config.protocolSpecific.morpho.blue,
         marketId: userInput.marketId,
         arkParams: {
-          name: `Morpho-${userInput.token}-${userInput.marketId}-${chainId}`,
+          name: `Morpho-${userInput.token.symbol}-${userInput.marketName}-${chainId}`,
+          details: JSON.stringify({
+            protocol: 'Morpho',
+            type: 'Lending',
+            asset: userInput.token.address,
+            marketAsset: userInput.token.address,
+            pool: userInput.marketId,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token,
+          token: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,

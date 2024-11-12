@@ -11,7 +11,7 @@ import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 interface PendleMarketInfo {
-  token: TokenType
+  token: { address: Address; symbol: Tokens }
   marketId: string
   marketName: string
 }
@@ -21,8 +21,9 @@ interface PendleLPArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: Address
+  token: { address: Address; symbol: Tokens }
   marketId: string
+  marketName: string
   router: Address
   oracle: Address
 }
@@ -55,7 +56,11 @@ async function getUserInput(config: BaseConfig): Promise<PendleLPArkUserInput> {
         config.protocolSpecific.pendle.markets[token as TokenType].marketAddresses[marketName]
       pendleMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
-        value: { token, marketId },
+        value: {
+          token: { symbol: token, address: config.tokens[token as TokenType] },
+          marketId,
+          marketName,
+        },
       })
     }
   }
@@ -95,8 +100,9 @@ async function getUserInput(config: BaseConfig): Promise<PendleLPArkUserInput> {
 
   const aggregatedData = {
     ...responses,
-    token: tokenAddress,
+    token: { address: tokenAddress, symbol: selectedMarket.token },
     marketId: selectedMarket.marketId,
+    marketName: selectedMarket.marketName,
     router: routerAddress,
     oracle: oracleAddress,
   }
@@ -131,11 +137,19 @@ async function deployPendleLPArkContract(
         oracle: userInput.oracle,
         router: userInput.router,
         arkParams: {
-          name: `PendleLp-${userInput.token}-${userInput.marketId}-${chainId}`,
+          name: `PendleLp-${userInput.token.symbol}-${userInput.marketName}-${chainId}`,
+          details: JSON.stringify({
+            protocol: 'Pendle',
+            type: 'Lp',
+            asset: userInput.token.address,
+            marketAsset: userInput.token.address,
+            pool: userInput.marketId,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token,
+          token: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
