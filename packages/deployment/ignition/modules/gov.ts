@@ -57,8 +57,8 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - ADDRESS_ZERO as executor (anyone can execute)
    * - deployer as admin (temporary)
    */
-  const MIN_DELAY = 86400
-  const TEMP_MIN_DELAY_DURING_TESTING = MIN_DELAY / 24
+  const MIN_DELAY = 86400n
+  const TEMP_MIN_DELAY_DURING_TESTING = MIN_DELAY / 24n
   const timelock = m.contract('TimelockController', [
     TEMP_MIN_DELAY_DURING_TESTING,
     [deployer],
@@ -78,11 +78,11 @@ export const GovModule = buildModule('GovModule', (m) => {
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
     owner: timelock,
-    decayManager: deployer,
     accessManager: protocolAccessManagerAddress,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
-    initialDecayRate: 3.1709792e9, // ~10% per year
+    initialDecayRate: 1n, // ~10% per year
     initialDecayFunction: DecayType.Linear,
+    transferEnableDate: 1731667188n,
   }
   const summerToken = m.contract('SummerToken', [summerTokenParams])
 
@@ -108,7 +108,10 @@ export const GovModule = buildModule('GovModule', (m) => {
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
 
-  const governanceRewardsManager = m.contract('GovernanceRewardsManager', [summerToken, protocolAccessManagerAddress])
+  const governanceRewardsManager = m.contract('GovernanceRewardsManager', [
+    summerToken,
+    protocolAccessManagerAddress,
+  ])
 
   /**
    * @dev Step 4: Post-deployment configuration
@@ -137,9 +140,15 @@ export const GovModule = buildModule('GovModule', (m) => {
   m.call(timelock, 'grantRole', [EXECUTOR_ROLE, summerGovernor], { id: 'grantRole_5' })
 
   const protocolAccessManager = m.contractAt('ProtocolAccessManager', protocolAccessManagerAddress)
-  m.call(protocolAccessManager, 'grantRole', [DECAY_CONTROLLER_ROLE, governanceRewardsManager], { id: 'grantRole_1' })
-  m.call(protocolAccessManager, 'grantRole', [DECAY_CONTROLLER_ROLE, summerGovernor], { id: 'grantRole_2' })
-  m.call(protocolAccessManager, 'revokeRole', [DEFAULT_ADMIN_ROLE, deployer], { id: 'revokeRole_1' })
+  m.call(protocolAccessManager, 'grantRole', [DECAY_CONTROLLER_ROLE, governanceRewardsManager], {
+    id: 'grantRole_1',
+  })
+  m.call(protocolAccessManager, 'grantRole', [DECAY_CONTROLLER_ROLE, summerGovernor], {
+    id: 'grantRole_2',
+  })
+  m.call(protocolAccessManager, 'revokeRole', [DEFAULT_ADMIN_ROLE, deployer], {
+    id: 'revokeRole_1',
+  })
   m.call(protocolAccessManager, 'grantRole', [DEFAULT_ADMIN_ROLE, timelock], { id: 'grantRole_6' })
   m.call(protocolAccessManager, 'grantRole', [GOVERNOR_ROLE, timelock], { id: 'grantRole_7' })
 
