@@ -101,11 +101,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 // Changed in inheriting test suites
                 owner: owner,
                 accessManager: address(accessManagerA),
-                decayManager: address(mockGovernor),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                governor: address(mockGovernor),
                 transferEnableDate: block.timestamp + 1 days
             });
 
@@ -117,11 +115,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 // Changed in inheriting test suites
                 owner: owner,
                 accessManager: address(accessManagerB),
-                decayManager: address(mockGovernor),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                governor: address(mockGovernor),
                 transferEnableDate: block.timestamp + 1 days
             });
 

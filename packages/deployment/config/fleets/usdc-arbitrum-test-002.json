@@ -1,6 +1,6 @@
 {
-  "fleetName": "LazyVault_USDE_Arbitrum_Test",
-  "symbol": "FUSDE",
+  "fleetName": "LazyVault_USDE",
+  "symbol": "LZUSDE",
   "assetSymbol": "USDE",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "0",

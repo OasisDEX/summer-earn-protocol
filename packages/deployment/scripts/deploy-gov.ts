@@ -21,7 +21,7 @@ export async function deployGov() {
  * @returns {Promise<GovContracts>} The deployed gov contracts.
  */
 async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
-  console.log(kleur.cyan().bold('Deploying Core Contracts...'))
+  console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
   checkExistingContracts(config, 'gov')
 
@@ -29,6 +29,7 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
     parameters: {
       GovModule: {
         lzEndpoint: config.common.lzEndpoint,
+        protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
       },
     },
   })

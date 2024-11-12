@@ -63,11 +63,8 @@ export const CoreModule = buildModule('CoreModule', (m) => {
    *
    * These contracts handle specific protocol functionalities:
    * - TipJar: Protocol fee management with access control and configuration
-   * - GovernanceRewardsManager: Reward distribution system (initialized in GovModule)
    */
   const tipJar = m.contract('TipJar', [protocolAccessManager, configurationManager])
-
-  const governanceRewardsManager = m.contract('GovernanceRewardsManager', [protocolAccessManager])
 
   /**
    * @dev Step 3: Deploy Main Protocol Contracts
@@ -126,7 +123,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
     configurationManager,
     harborCommand,
     admiralsQuarters,
-    governanceRewardsManager,
   }
 })
 

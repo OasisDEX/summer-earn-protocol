@@ -35,11 +35,9 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
         // Update from deployer address after deployment
         address owner;
         address accessManager;
-        address decayManager;
         uint40 initialDecayFreeWindow;
         uint256 initialDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
-        address governor;
         uint256 transferEnableDate;
     }
 

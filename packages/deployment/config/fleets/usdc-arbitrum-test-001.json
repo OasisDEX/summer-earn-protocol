@@ -1,6 +1,6 @@
 {
-  "fleetName": "LazyVault_USDC_Arbitrum_Test",
-  "symbol": "FUSDC",
+  "fleetName": "LazyVault_USDC",
+  "symbol": "LVUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "0",

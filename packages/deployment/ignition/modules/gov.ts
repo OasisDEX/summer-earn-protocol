@@ -23,7 +23,7 @@ const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
 const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
 const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
-
+const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 /**
  * @title Governance Module Deployment Script
  * @notice This module handles the deployment and initialization of the governance system
@@ -77,7 +77,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     name: 'SummerToken',
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
-    owner: timelock.value,
+    owner: timelock,
     decayManager: deployer,
     accessManager: protocolAccessManagerAddress,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
@@ -96,17 +96,19 @@ export const GovModule = buildModule('GovModule', (m) => {
   const summerGovernorDeployParams = {
     token: summerToken,
     timelock: timelock,
-    // Note: Voting period is set to 1 second to allow for testing
-    votingDelay: 1,
+    // Note: Voting delay is set to 1 second to allow for testing
+    votingDelay: 1n,
     // Note: Voting period is set to 1 hour to allow for testing
-    votingPeriod: 60 * 60,
+    votingPeriod: 60n * 60n,
     proposalThreshold: 10000n * 10n ** 18n,
-    quorumFraction: 4,
+    quorumFraction: 4n,
     initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
-    proposalChainId: 8453,
+    proposalChainId: 8453n,
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
+
+  const governanceRewardsManager = m.contract('GovernanceRewardsManager', [summerToken, protocolAccessManagerAddress])
 
   /**
    * @dev Step 4: Post-deployment configuration
@@ -128,22 +130,20 @@ export const GovModule = buildModule('GovModule', (m) => {
    * 4. Cleanup
    *    - Remove deployer's proposer role from TimelockController
    */
-  m.call(summerToken, 'transferOwnership', [timelock.value])
-  m.call(summerToken, 'setDecayManager', [summerGovernor.value])
+  m.call(summerToken, 'transferOwnership', [timelock])
 
-  const governanceRewardsManager = m.call(summerToken, 'rewardsManager')
-  m.call(summerToken, 'setDecayManager', [governanceRewardsManager.value])
-
-  m.call(timelock, 'grantRole', [PROPOSER_ROLE, summerGovernor.value])
-  m.call(timelock, 'grantRole', [CANCELLER_ROLE, summerGovernor.value])
-  m.call(timelock, 'grantRole', [EXECUTOR_ROLE, summerGovernor.value])
+  m.call(timelock, 'grantRole', [PROPOSER_ROLE, summerGovernor], { id: 'grantRole_3' })
+  m.call(timelock, 'grantRole', [CANCELLER_ROLE, summerGovernor], { id: 'grantRole_4' })
+  m.call(timelock, 'grantRole', [EXECUTOR_ROLE, summerGovernor], { id: 'grantRole_5' })
 
   const protocolAccessManager = m.contractAt('ProtocolAccessManager', protocolAccessManagerAddress)
-  m.call(protocolAccessManager, 'revokeRole', [DEFAULT_ADMIN_ROLE, deployer])
-  m.call(protocolAccessManager, 'grantRole', [DEFAULT_ADMIN_ROLE, timelock.value])
-  m.call(protocolAccessManager, 'grantRole', [GOVERNOR_ROLE, timelock.value])
+  m.call(protocolAccessManager, 'grantRole', [DECAY_CONTROLLER_ROLE, governanceRewardsManager], { id: 'grantRole_1' })
+  m.call(protocolAccessManager, 'grantRole', [DECAY_CONTROLLER_ROLE, summerGovernor], { id: 'grantRole_2' })
+  m.call(protocolAccessManager, 'revokeRole', [DEFAULT_ADMIN_ROLE, deployer], { id: 'revokeRole_1' })
+  m.call(protocolAccessManager, 'grantRole', [DEFAULT_ADMIN_ROLE, timelock], { id: 'grantRole_6' })
+  m.call(protocolAccessManager, 'grantRole', [GOVERNOR_ROLE, timelock], { id: 'grantRole_7' })
 
-  m.call(timelock, 'revokeRole', [PROPOSER_ROLE, deployer])
+  m.call(timelock, 'revokeRole', [PROPOSER_ROLE, deployer], { id: 'revokeRole_6' })
 
   return {
     summerGovernor,
