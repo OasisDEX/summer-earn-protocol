@@ -77,7 +77,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     name: 'SummerToken',
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
-    owner: timelock,
+    owner: deployer,
     accessManager: protocolAccessManagerAddress,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
     initialDecayRate: 1n, // ~10% per year
@@ -107,46 +107,6 @@ export const GovModule = buildModule('GovModule', (m) => {
     proposalChainId: 8453n,
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
-
-  /**
-   * @dev Step 4: Post-deployment configuration
-   *
-   * Configuration sequence:
-   * 1. Configure SummerToken
-   *    - Confirm TimelockController ownership
-   *    - Set SummerGovernor as decay manager
-   *
-   * 2. Configure TimelockController roles
-   *    - Grant PROPOSER_ROLE to SummerGovernor
-   *    - Grant CANCELLER_ROLE to SummerGovernor
-   *    - Grant EXECUTOR_ROLE to SummerGovernor
-   *
-   * 3. Configure ProtocolAccessManager
-   *    - Revoke deployer's admin rights
-   *    - Grant admin and governor roles to TimelockController
-   *
-   * 4. Cleanup
-   *    - Remove deployer's proposer role from TimelockController
-   */
-  m.call(summerToken, 'transferOwnership', [timelock])
-
-  m.call(timelock, 'grantRole', [PROPOSER_ROLE, summerGovernor], { id: 'grantRole_3' })
-  m.call(timelock, 'grantRole', [CANCELLER_ROLE, summerGovernor], { id: 'grantRole_4' })
-  m.call(timelock, 'grantRole', [EXECUTOR_ROLE, summerGovernor], { id: 'grantRole_5' })
-
-  const protocolAccessManager = m.contractAt('ProtocolAccessManager', protocolAccessManagerAddress)
-  // todo: grant decay controller role to governance rewards manager
-  m.call(protocolAccessManager, 'grantDecayControllerRole', [summerGovernor], {
-    id: 'grantRole_2',
-  })
-
-  m.call(protocolAccessManager, 'grantGovernorRole', [timelock], { id: 'grantRole_6' })
-  m.call(protocolAccessManager, 'grantGovernorRole', [timelock], { id: 'grantRole_7' })
-
-  m.call(timelock, 'revokeRole', [PROPOSER_ROLE, deployer], { id: 'revokeRole_6' })
-  m.call(protocolAccessManager, 'revokeGovernorRole', [deployer], {
-    id: 'revokeRole_1',
-  })
 
   return {
     summerGovernor,
