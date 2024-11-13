@@ -8,12 +8,6 @@ import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
  */
 interface ISummerTokenErrors {
     /**
-     * @dev Error thrown when attempting to create a vesting wallet for an address that already has one
-     * @param beneficiary The address for which a vesting wallet already exists
-     */
-    error VestingWalletAlreadyExists(address beneficiary);
-
-    /**
      * @dev Error thrown when an invalid vesting type is provided
      * @param invalidType The invalid vesting type that was provided
      */

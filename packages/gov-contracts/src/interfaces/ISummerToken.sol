@@ -65,22 +65,6 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Emitted when a new vesting wallet is created
-     * @param beneficiary The address of the beneficiary
-     * @param vestingWallet The address of the created vesting wallet
-     * @param timeBasedAmount The amount of tokens to be vested based on time
-     * @param goalAmounts The amounts of tokens to be vested based on goals
-     * @param vestingType The type of vesting schedule
-     */
-    event VestingWalletCreated(
-        address indexed beneficiary,
-        address indexed vestingWallet,
-        uint256 timeBasedAmount,
-        uint256[] goalAmounts,
-        SummerVestingWallet.VestingType vestingType
-    );
-
-    /**
      * @notice Emitted when transfers are enabled
      */
     event TransfersEnabled();
@@ -137,12 +121,12 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
      * @param goalAmounts Array of token amounts to be vested based on performance goals
      * @param vestingType Type of vesting schedule
      */
-    function createVestingWallet(
-        address beneficiary,
-        uint256 timeBasedAmount,
-        uint256[] memory goalAmounts,
-        SummerVestingWallet.VestingType vestingType
-    ) external;
+    // function createVestingWallet(
+    //     address beneficiary,
+    //     uint256 timeBasedAmount,
+    //     uint256[] memory goalAmounts,
+    //     SummerVestingWallet.VestingType vestingType
+    // ) external;
 
     /**
      * @notice Mints new tokens and assigns them to the specified address
@@ -197,15 +181,4 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
      * @param account The address to remove from the whitelist
      */
     function removeFromWhitelist(address account) external;
-
-    /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Gets the vesting wallet address for a given account
-     * @param owner The address of the account
-     * @return The address of the vesting wallet
-     */
-    function vestingWallets(address owner) external view returns (address);
 }

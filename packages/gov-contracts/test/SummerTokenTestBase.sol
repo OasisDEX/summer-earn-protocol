@@ -18,7 +18,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockSummerGovernor} from "./MockSummerGovernor.sol";
-
+import {SummerVestingWalletFactory} from "../src/contracts/SummerVestingWalletFactory.sol";
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
@@ -27,6 +27,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
 
     SummerToken public aSummerToken;
     SummerToken public bSummerToken;
+
+    SummerVestingWalletFactory public vestingWalletFactoryA;
+    SummerVestingWalletFactory public vestingWalletFactoryB;
 
     TimelockController public timelockA;
     TimelockController public timelockB;
@@ -127,6 +130,13 @@ contract SummerTokenTestBase is TestHelperOz5 {
         aSummerToken = new SummerToken(tokenParamsA);
         bSummerToken = new SummerToken(tokenParamsB);
         vm.stopPrank();
+
+        vestingWalletFactoryA = SummerVestingWalletFactory(
+            address(aSummerToken.vestingWalletFactory())
+        );
+        vestingWalletFactoryB = SummerVestingWalletFactory(
+            address(bSummerToken.vestingWalletFactory())
+        );
 
         // Config and wire the tokens
         address[] memory tokens = new address[](2);
