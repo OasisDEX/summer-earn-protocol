@@ -108,11 +108,6 @@ export const GovModule = buildModule('GovModule', (m) => {
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
 
-  const governanceRewardsManager = m.contract('GovernanceRewardsManager', [
-    summerToken,
-    protocolAccessManagerAddress,
-  ])
-
   /**
    * @dev Step 4: Post-deployment configuration
    *
@@ -140,9 +135,7 @@ export const GovModule = buildModule('GovModule', (m) => {
   m.call(timelock, 'grantRole', [EXECUTOR_ROLE, summerGovernor], { id: 'grantRole_5' })
 
   const protocolAccessManager = m.contractAt('ProtocolAccessManager', protocolAccessManagerAddress)
-  m.call(protocolAccessManager, 'grantDecayControllerRole', [governanceRewardsManager], {
-    id: 'grantRole_1',
-  })
+  // todo: grant decay controller role to governance rewards manager
   m.call(protocolAccessManager, 'grantDecayControllerRole', [summerGovernor], {
     id: 'grantRole_2',
   })
