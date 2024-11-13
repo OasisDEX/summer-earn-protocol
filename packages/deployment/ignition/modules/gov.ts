@@ -1,5 +1,4 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { keccak256, toBytes } from 'viem'
 import { ADDRESS_ZERO } from '../../scripts/common/constants'
 
 /**
@@ -10,20 +9,6 @@ enum DecayType {
   Exponential,
 }
 
-/**
- * @dev Constants for various roles used in access control
- * DEFAULT_ADMIN_ROLE - Has full administrative privileges
- * GOVERNOR_ROLE - Can execute governance actions
- * PROPOSER_ROLE - Can propose timelock operations
- * EXECUTOR_ROLE - Can execute timelock operations
- * CANCELLER_ROLE - Can cancel timelock operations
- */
-const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000'
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
-const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
-const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
-const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
-const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 /**
  * @title Governance Module Deployment Script
  * @notice This module handles the deployment and initialization of the governance system

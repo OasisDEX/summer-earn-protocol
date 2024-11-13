@@ -166,6 +166,7 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     await timelock.write.revokeRole([PROPOSER_ROLE, deployer.account.address])
   }
 
+  // todo: why is this not showing that deployer has admin role
   const hasDefaultAdminRole = await timelock.read.hasRole([
     DEFAULT_ADMIN_ROLE,
     deployer.account.address,
