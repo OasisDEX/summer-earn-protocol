@@ -140,19 +140,20 @@ export const GovModule = buildModule('GovModule', (m) => {
   m.call(timelock, 'grantRole', [EXECUTOR_ROLE, summerGovernor], { id: 'grantRole_5' })
 
   const protocolAccessManager = m.contractAt('ProtocolAccessManager', protocolAccessManagerAddress)
-  m.call(protocolAccessManager, 'grantRole', [DECAY_CONTROLLER_ROLE, governanceRewardsManager], {
+  m.call(protocolAccessManager, 'grantDecayControllerRole', [governanceRewardsManager], {
     id: 'grantRole_1',
   })
-  m.call(protocolAccessManager, 'grantRole', [DECAY_CONTROLLER_ROLE, summerGovernor], {
+  m.call(protocolAccessManager, 'grantDecayControllerRole', [summerGovernor], {
     id: 'grantRole_2',
   })
-  m.call(protocolAccessManager, 'revokeRole', [DEFAULT_ADMIN_ROLE, deployer], {
-    id: 'revokeRole_1',
-  })
-  m.call(protocolAccessManager, 'grantRole', [DEFAULT_ADMIN_ROLE, timelock], { id: 'grantRole_6' })
-  m.call(protocolAccessManager, 'grantRole', [GOVERNOR_ROLE, timelock], { id: 'grantRole_7' })
+
+  m.call(protocolAccessManager, 'grantGovernorRole', [timelock], { id: 'grantRole_6' })
+  m.call(protocolAccessManager, 'grantGovernorRole', [timelock], { id: 'grantRole_7' })
 
   m.call(timelock, 'revokeRole', [PROPOSER_ROLE, deployer], { id: 'revokeRole_6' })
+  m.call(protocolAccessManager, 'revokeGovernorRole', [deployer], {
+    id: 'revokeRole_1',
+  })
 
   return {
     summerGovernor,
