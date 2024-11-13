@@ -24,6 +24,21 @@ interface ISummerVestingWalletFactory {
         uint256[] goalAmounts,
         ISummerVestingWallet.VestingType vestingType
     );
+
+    /**
+     * @notice Creates a new vesting wallet for a beneficiary
+     * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
+     * @param timeBasedAmount Amount of tokens to be vested based on time
+     * @param goalAmounts Array of token amounts to be vested based on performance goals
+     * @param vestingType Type of vesting schedule
+     */
+    function createVestingWallet(
+        address beneficiary,
+        uint256 timeBasedAmount,
+        uint256[] memory goalAmounts,
+        ISummerVestingWallet.VestingType vestingType
+    ) external;
+
     /*//////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/

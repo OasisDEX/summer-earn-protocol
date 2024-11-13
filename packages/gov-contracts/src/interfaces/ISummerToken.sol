@@ -115,20 +115,6 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
     function getVotes(address account) external view returns (uint256);
 
     /**
-     * @notice Creates a new vesting wallet for a beneficiary
-     * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
-     * @param timeBasedAmount Amount of tokens to be vested based on time
-     * @param goalAmounts Array of token amounts to be vested based on performance goals
-     * @param vestingType Type of vesting schedule
-     */
-    // function createVestingWallet(
-    //     address beneficiary,
-    //     uint256 timeBasedAmount,
-    //     uint256[] memory goalAmounts,
-    //     SummerVestingWallet.VestingType vestingType
-    // ) external;
-
-    /**
      * @notice Mints new tokens and assigns them to the specified address
      * @param to The address to receive the minted tokens
      * @param amount The amount of tokens to mint
