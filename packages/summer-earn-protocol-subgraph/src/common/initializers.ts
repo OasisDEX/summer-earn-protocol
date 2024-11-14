@@ -219,6 +219,9 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
+    vaultSnapshots.inputTokenPriceUSD = vault.inputTokenPriceUSD
+      ? vault.inputTokenPriceUSD!
+      : constants.BigDecimalConstants.ZERO
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
@@ -283,6 +286,9 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
+    vaultSnapshots.inputTokenPriceUSD = vault.inputTokenPriceUSD
+      ? vault.inputTokenPriceUSD!
+      : constants.BigDecimalConstants.ZERO
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
@@ -333,6 +339,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.outputToken = outputToken.id
     vault.outputTokenSupply = constants.BigIntConstants.ZERO
     vault.outputTokenPriceUSD = constants.BigDecimalConstants.ZERO
+    vault.inputTokenPriceUSD = constants.BigDecimalConstants.ZERO
 
     vault.pricePerShare = constants.BigDecimalConstants.ZERO
     vault.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
@@ -584,6 +591,9 @@ export function getOrCreateVaultsPostActionSnapshots(
       : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
+      : constants.BigDecimalConstants.ZERO
+    vaultSnapshots.inputTokenPriceUSD = vault.inputTokenPriceUSD
+      ? vault.inputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
