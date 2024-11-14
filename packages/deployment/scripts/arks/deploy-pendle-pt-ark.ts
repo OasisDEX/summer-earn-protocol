@@ -2,7 +2,10 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import PendlePTArkModule, { PendlePTArkContracts } from '../../ignition/modules/arks/pendle-pt-ark'
+import {
+  createPendlePTArkModule,
+  PendlePTArkContracts,
+} from '../../ignition/modules/arks/pendle-pt-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -129,10 +132,12 @@ async function deployPendlePTArkContract(
 ): Promise<PendlePTArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(PendlePTArkModule, {
+  return (await hre.ignition.deploy(createPendlePTArkModule(moduleName), {
     parameters: {
-      PendlePTArkModule: {
+      [moduleName]: {
         market: userInput.marketId,
         oracle: userInput.oracle,
         router: userInput.router,
@@ -149,12 +154,12 @@ async function deployPendlePTArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-            asset: userInput.token.address,
-            depositCap: userInput.depositCap,
-            maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-            maxRebalanceInflow: userInput.maxRebalanceInflow,
-            requiresKeeperData: false,
-            maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          asset: userInput.token.address,
+          depositCap: userInput.depositCap,
+          maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+          maxRebalanceInflow: userInput.maxRebalanceInflow,
+          requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

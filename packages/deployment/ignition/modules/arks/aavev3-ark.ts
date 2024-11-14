@@ -1,25 +1,24 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 /**
- * AaveV3ArkModule for deploying the AaveV3Ark contract
+ * Factory function to create an AaveV3ArkModule for deploying the AaveV3Ark contract
  *
- * This module deploys the AaveV3Ark contract, which integrates with the Aave V3 protocol.
+ * This function creates a module that deploys the AaveV3Ark contract, which integrates with the Aave V3 protocol.
  *
- * @param {string} aaveV3Pool - The address of the Aave V3 lending pool
- * @param {string} rewardsController - The address of the Aave V3 rewards controller
- * @param {object} arkParams - An object containing the parameters for the Ark contract
- *
- * @returns {AaveV3ArkContracts} An object containing the address of the deployed AaveV3Ark contract
+ * @param {string} moduleName - Name of the module
+ * @returns {Function} A function that builds the module
  */
-export default buildModule('AaveV3ArkModule', (m) => {
-  const aaveV3Pool = m.getParameter('aaveV3Pool')
-  const rewardsController = m.getParameter('rewardsController')
-  const arkParams = m.getParameter('arkParams')
+export function createAaveV3ArkModule(moduleName: string) {
+  return buildModule(moduleName, (m) => {
+    const aaveV3Pool = m.getParameter('aaveV3Pool')
+    const rewardsController = m.getParameter('rewardsController')
+    const arkParams = m.getParameter('arkParams')
 
-  const aaveV3Ark = m.contract('AaveV3Ark', [aaveV3Pool, rewardsController, arkParams])
+    const aaveV3Ark = m.contract('AaveV3Ark', [aaveV3Pool, rewardsController, arkParams])
 
-  return { aaveV3Ark }
-})
+    return { aaveV3Ark }
+  })
+}
 
 /**
  * Type definition for the returned contract address

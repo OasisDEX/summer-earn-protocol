@@ -2,7 +2,8 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import PendlePtOracleArkModule, {
+import {
+  createPendlePtOracleArkModule,
   PendlePtOracleArkContracts,
 } from '../../ignition/modules/arks/pendle-pt-oracle-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
@@ -149,10 +150,12 @@ async function deployPendlePtOracleArkContract(
 ): Promise<PendlePtOracleArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `PendlePt-${userInput.token.symbol}-${userInput.marketSelection.marketName}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(PendlePtOracleArkModule, {
+  return (await hre.ignition.deploy(createPendlePtOracleArkModule(moduleName), {
     parameters: {
-      PendlePtOracleArkModule: {
+      [moduleName]: {
         market: userInput.marketId,
         oracle: userInput.pendleOracle,
         router: userInput.router,
@@ -170,12 +173,12 @@ async function deployPendlePtOracleArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-            asset: userInput.token.address,
-            depositCap: userInput.depositCap,
-            maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-            maxRebalanceInflow: userInput.maxRebalanceInflow,
-            requiresKeeperData: true,
-            maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          asset: userInput.token.address,
+          depositCap: userInput.depositCap,
+          maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+          maxRebalanceInflow: userInput.maxRebalanceInflow,
+          requiresKeeperData: true,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

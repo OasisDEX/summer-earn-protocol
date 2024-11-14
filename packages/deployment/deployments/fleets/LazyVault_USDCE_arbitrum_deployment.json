@@ -8,5 +8,10 @@
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "0",
   "depositCap": "0",
-  "initialTipRate": "0"
+  "initialTipRate": "0",
+  "arks": [
+    "0x507A2D9E87DBD3076e65992049C41270b47964f8",
+    "0x3002A7c8d5dC5CFaf81E747120B54D44bfAD5935",
+    "0xCAa67460558cDc09CAB34d052fD982ab4e8FA70f"
+  ]
 }

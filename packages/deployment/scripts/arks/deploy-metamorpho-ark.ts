@@ -2,7 +2,8 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import MetaMorphoArkModule, {
+import {
+  createMetaMorphoArkModule,
   MetaMorphoArkContracts,
 } from '../../ignition/modules/arks/metamorpho-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
@@ -139,10 +140,12 @@ async function deployMetaMorphoArkContract(
 ): Promise<MetaMorphoArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `MetaMorpho-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(MetaMorphoArkModule, {
+  return (await hre.ignition.deploy(createMetaMorphoArkModule(moduleName), {
     parameters: {
-      MetaMorphoArkModule: {
+      [moduleName]: {
         strategyVault: userInput.vaultId,
         arkParams: {
           name: `MetaMorpho-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`,
@@ -157,12 +160,12 @@ async function deployMetaMorphoArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-            asset: userInput.token.address,
-            depositCap: userInput.depositCap,
-            maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-            maxRebalanceInflow: userInput.maxRebalanceInflow,
-            requiresKeeperData: false,
-            maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          asset: userInput.token.address,
+          depositCap: userInput.depositCap,
+          maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+          maxRebalanceInflow: userInput.maxRebalanceInflow,
+          requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

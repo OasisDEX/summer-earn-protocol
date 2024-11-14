@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import AaveV3ArkModule, { AaveV3ArkContracts } from '../../ignition/modules/arks/aavev3-ark'
+import { AaveV3ArkContracts, createAaveV3ArkModule } from '../../ignition/modules/arks/aavev3-ark'
 import { BaseConfig, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -110,10 +110,12 @@ async function deployAaveV3ArkContract(
 ): Promise<AaveV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `AaveV3-${userInput.token.symbol}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(AaveV3ArkModule, {
+  return (await hre.ignition.deploy(createAaveV3ArkModule(moduleName), {
     parameters: {
-      AaveV3ArkModule: {
+      [moduleName]: {
         aaveV3Pool: config.protocolSpecific.aaveV3.pool,
         rewardsController: config.protocolSpecific.aaveV3.rewards,
         arkParams: {

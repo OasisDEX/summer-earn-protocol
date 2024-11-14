@@ -12,5 +12,8 @@
   "GovModule#SummerGovernor": "0xA0212c6A5eeF8aB7e5Dbeb478FF9C3f9177B0ADf",
   "FleetModule_LazyVault_USDC#FleetCommander": "0xAaB08AB98c93696665454b8C0a6eF8C2cd0206eF",
   "CompoundV3ArkModule#CompoundV3Ark": "0xda52B68beC75Ef9fC523Ec088A81AC42EEB09f83",
-  "AaveV3ArkModule#AaveV3Ark": "0x4D202D705B9A0116c83a600b7F96Debaf3eC8278"
+  "AaveV3ArkModule#AaveV3Ark": "0x4D202D705B9A0116c83a600b7F96Debaf3eC8278",
+  "Morpho_usdc_wstETH_USDC_8453#MorphoArk": "0xb18d21d5CE43b6B757337E420F4A41c161FDa4a8",
+  "MetaMorpho_usdc_Moonwell_Flagship_USDC_8453#MetaMorphoArk": "0x5dE48eE8cE8Eda5DB8961A10b0A57F2074234870",
+  "MetaMorpho_usdc_Gauntlet_USDC_Core_8453#MetaMorphoArk": "0x70c3174FD2dbAe35Dd34ECE8b3d09b17318131Be"
 }

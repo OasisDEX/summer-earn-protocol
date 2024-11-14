@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import MorphoArkModule, { MorphoArkContracts } from '../../ignition/modules/arks/morpho-ark'
+import { createMorphoArkModule, MorphoArkContracts } from '../../ignition/modules/arks/morpho-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -133,10 +133,12 @@ async function deployMorphoArkContract(
 ): Promise<MorphoArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `Morpho-${userInput.token.symbol}-${userInput.marketName}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(MorphoArkModule, {
+  return (await hre.ignition.deploy(createMorphoArkModule(moduleName), {
     parameters: {
-      MorphoArkModule: {
+      [moduleName]: {
         morphoBlue: config.protocolSpecific.morpho.blue,
         marketId: userInput.marketId,
         arkParams: {
@@ -152,12 +154,12 @@ async function deployMorphoArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-            asset: userInput.token.address,
-            depositCap: userInput.depositCap,
-            maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-            maxRebalanceInflow: userInput.maxRebalanceInflow,
-            requiresKeeperData: false,
-            maxDepositPercentageOfTVL: HUNDRED_PERCENT,
+          asset: userInput.token.address,
+          depositCap: userInput.depositCap,
+          maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+          maxRebalanceInflow: userInput.maxRebalanceInflow,
+          requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

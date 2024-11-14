@@ -2,8 +2,9 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import CompoundV3ArkModule, {
+import {
   CompoundV3ArkContracts,
+  createCompoundV3ArkModule,
 } from '../../ignition/modules/arks/compoundv3-ark'
 import { BaseConfig, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
@@ -128,10 +129,12 @@ async function deployCompoundV3ArkContract(
 ): Promise<CompoundV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `CompoundV3-${userInput.token.symbol}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(CompoundV3ArkModule, {
+  return (await hre.ignition.deploy(createCompoundV3ArkModule(moduleName), {
     parameters: {
-      CompoundV3ArkModule: {
+      [moduleName]: {
         compoundV3Pool: userInput.compoundV3Pool,
         compoundV3Rewards: userInput.compoundV3Rewards,
         arkParams: {
