@@ -74,7 +74,7 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
  */
 async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   console.log(kleur.cyan().bold('Setting up governance roles...'))
-
+  const publicClient = await hre.viem.getPublicClient()
   const [deployer] = await hre.viem.getWalletClients()
 
   const timelock = await hre.viem.getContractAt(
@@ -101,7 +101,10 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   const currentTokenOwner = await summerToken.read.owner()
   if (currentTokenOwner !== timelock.address) {
     console.log('Transferring SummerToken ownership to timelock...')
-    await summerToken.write.transferOwnership([timelock.address])
+    const hash = await summerToken.write.transferOwnership([timelock.address])
+    await publicClient.waitForTransactionReceipt({
+      hash: hash,
+    })
   }
 
   // Grant roles to SummerGovernor in Timelock
@@ -115,7 +118,10 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     const hasRole = await timelock.read.hasRole([role.value, summerGovernor.address])
     if (!hasRole) {
       console.log(`[TIMELOCK] - Granting ${role.name} to SummerGovernor...`)
-      await timelock.write.grantRole([role.value, summerGovernor.address])
+      const hash = await timelock.write.grantRole([role.value, summerGovernor.address])
+      await publicClient.waitForTransactionReceipt({
+        hash: hash,
+      })
     }
   }
 
@@ -128,7 +134,10 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     console.log(
       '[PROTOCOL ACCESS MANAGER] - Granting decay controller role to governance rewards manager...',
     )
-    await protocolAccessManager.write.grantDecayControllerRole([rewardsManagerAddress])
+    const hash = await protocolAccessManager.write.grantDecayControllerRole([rewardsManagerAddress])
+    await publicClient.waitForTransactionReceipt({
+      hash: hash,
+    })
   }
 
   const hasDecayRole2 = await protocolAccessManager.read.hasRole([
@@ -137,7 +146,12 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   ])
   if (!hasDecayRole2) {
     console.log('[PROTOCOL ACCESS MANAGER] - Granting decay controller role to SummerGovernor...')
-    await protocolAccessManager.write.grantDecayControllerRole([summerGovernor.address])
+    const hash = await protocolAccessManager.write.grantDecayControllerRole([
+      summerGovernor.address,
+    ])
+    await publicClient.waitForTransactionReceipt({
+      hash: hash,
+    })
   }
 
   // Grant governor role to timelock
@@ -147,34 +161,46 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   ])
   if (!hasGovernorRole) {
     console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
-    await protocolAccessManager.write.grantGovernorRole([timelock.address])
+    const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
+    await publicClient.waitForTransactionReceipt({
+      hash: hash,
+    })
   }
+  // todo: uncomment on final deployment
+  // // Revoke roles from deployer
+  // const hasDeployerGovernorRole = await protocolAccessManager.read.hasRole([
+  //   GOVERNOR_ROLE,
+  //   deployer.account.address,
+  // ])
+  // if (hasDeployerGovernorRole) {
+  //   console.log('[PROTOCOL ACCESS MANAGER] - Revoking governor role from deployer...')
+  //   const hash = await protocolAccessManager.write.revokeGovernorRole([deployer.account.address])
+  //   await publicClient.waitForTransactionReceipt({
+  //     hash: hash,
+  //   })
+  // }
 
-  // Revoke roles from deployer
-  const hasDeployerGovernorRole = await protocolAccessManager.read.hasRole([
-    GOVERNOR_ROLE,
-    deployer.account.address,
-  ])
-  if (hasDeployerGovernorRole) {
-    console.log('[PROTOCOL ACCESS MANAGER] - Revoking governor role from deployer...')
-    await protocolAccessManager.write.revokeGovernorRole([deployer.account.address])
-  }
+  // const hasProposerRole = await timelock.read.hasRole([PROPOSER_ROLE, deployer.account.address])
+  // if (hasProposerRole) {
+  //   console.log('[TIMELOCK] - Revoking proposer role from deployer...')
+  //   const hash = await timelock.write.revokeRole([PROPOSER_ROLE, deployer.account.address])
+  //   await publicClient.waitForTransactionReceipt({
+  //     hash: hash,
+  //   })
+  // }
 
-  const hasProposerRole = await timelock.read.hasRole([PROPOSER_ROLE, deployer.account.address])
-  if (hasProposerRole) {
-    console.log('[TIMELOCK] - Revoking proposer role from deployer...')
-    await timelock.write.revokeRole([PROPOSER_ROLE, deployer.account.address])
-  }
-
-  // todo: why is this not showing that deployer has admin role
-  const hasDefaultAdminRole = await timelock.read.hasRole([
-    DEFAULT_ADMIN_ROLE,
-    deployer.account.address,
-  ])
-  if (hasDefaultAdminRole) {
-    console.log('[TIMELOCK] - Revoking default admin role from deployer...')
-    await timelock.write.revokeRole([DEFAULT_ADMIN_ROLE, deployer.account.address])
-  }
+  // // todo: why is this not showing that deployer has admin role
+  // const hasDefaultAdminRole = await timelock.read.hasRole([
+  //   DEFAULT_ADMIN_ROLE,
+  //   deployer.account.address,
+  // ])
+  // if (hasDefaultAdminRole) {
+  //   console.log('[TIMELOCK] - Revoking default admin role from deployer...')
+  //   const hash = await timelock.write.revokeRole([DEFAULT_ADMIN_ROLE, deployer.account.address])
+  //   await publicClient.waitForTransactionReceipt({
+  //     hash: hash,
+  //   })
+  // }
 
   console.log(kleur.green().bold('Governance roles setup completed!'))
 }
