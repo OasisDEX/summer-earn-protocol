@@ -166,14 +166,6 @@ async function deployFleetContracts(
 function logDeploymentResults(deployedFleet: FleetContracts) {
   ModuleLogger.logFleet(deployedFleet)
 
-  console.log(kleur.yellow().bold('\nIMPORTANT: Commander roles need to be granted via governance'))
-  console.log(kleur.yellow('For each initial Ark, the buffer Ark, and the Fleet Commander, call:'))
-  console.log(
-    kleur.cyan(
-      `protocolAccessManager.grantCommanderRole(<address of the ark>, ${deployedFleet.fleetCommander.address})`,
-    ),
-  )
-
   console.log(kleur.green('Fleet deployment completed successfully!'))
   console.log(
     kleur.yellow('Fleet Commander Address:'),
@@ -204,9 +196,9 @@ async function addFleetToHarbor(
     })
     console.log(kleur.green('Fleet added to Harbor Command successfully!'))
   } else {
-    console.log(kleur.yellow('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
+    console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
     console.log(
-      kleur.yellow(
+      kleur.red(
         `Please add the fleet @ ${fleetCommanderAddress} to the Harbor Command (${harborCommandAddress}) via governance`,
       ),
     )

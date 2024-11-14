@@ -131,7 +131,7 @@
       }
     },
     "tokens": {
-      "usdc": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+      "usdc": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
       "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
       "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
       "usdt": "0x0000000000000000000000000000000000000000"
@@ -145,7 +145,7 @@
     "protocolSpecific": {
       "erc4626": {
         "usdc": {
-          "gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
+          "gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6"
         }
       },
       "pendle": {
@@ -190,7 +190,7 @@
       "compoundV3": {
         "pools": {
           "usdc": {
-            "cToken": "0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA"
+            "cToken": "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"
           },
           "usdt": {
             "cToken": "0xd98Be00b5D27fc98112BdE293e487f8D4cA57d07"

@@ -19,6 +19,7 @@ export async function addArkToFleet(
   config: BaseConfig,
   hre: HardhatRuntimeEnvironment,
 ) {
+  console.log(kleur.blue('Adding Ark to fleet...'))
   const fleets = getAvailableFleets(hre.network.name)
   const publicClient = await hre.viem.getPublicClient()
   const [deployer] = await hre.viem.getWalletClients()
@@ -31,7 +32,10 @@ export async function addArkToFleet(
     type: 'select',
     name: 'selectedFleet',
     message: 'Select a fleet to add the Ark to:',
-    choices: fleets.map((fleet) => ({ title: fleet.fleetName, value: fleet })),
+    choices: fleets.map((fleet) => ({
+      title: `${fleet.fleetName} (${fleet.network})`,
+      value: fleet,
+    })),
   })
 
   if (response.selectedFleet) {
@@ -43,6 +47,7 @@ export async function addArkToFleet(
       '..',
       '..',
       'deployments',
+      'fleets',
       response.selectedFleet.fileName,
     )
     const deploymentData = JSON.parse(fs.readFileSync(deploymentPath, 'utf8'))
@@ -78,9 +83,9 @@ export async function addArkToFleet(
         hash: hash,
       })
     } else {
-      console.log(kleur.yellow('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
+      console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
       console.log(
-        kleur.yellow(
+        kleur.red(
           `Please add the ark (${arkAddress}) to fleet @ ${response.selectedFleet.fleetAddress} via governance`,
         ),
       )
