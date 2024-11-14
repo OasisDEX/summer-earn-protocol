@@ -22,7 +22,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         address underlying,
         address configurationManager,
         Percentage initialTipRate
-    ) ERC4626Mock(underlying) Tipper(configurationManager, initialTipRate) {
+    ) ERC4626Mock(underlying) Tipper(initialTipRate) {
         tipJar = address(0x123);
     }
 

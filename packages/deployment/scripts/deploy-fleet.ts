@@ -145,7 +145,8 @@ async function deployFleetContracts(
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
-        fleetCommanderRewardsManagerFactory: coreContracts.fleetCommanderRewardsManagerFactory.address,
+        fleetCommanderRewardsManagerFactory:
+          coreContracts.fleetCommanderRewardsManagerFactory.address,
       },
     },
     deploymentId,
