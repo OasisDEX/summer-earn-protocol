@@ -4,7 +4,7 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import AaveV3ArkModule, { AaveV3ArkContracts } from '../../ignition/modules/arks/aavev3-ark'
 import { BaseConfig, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -129,11 +129,12 @@ async function deployAaveV3ArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token,
+          asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

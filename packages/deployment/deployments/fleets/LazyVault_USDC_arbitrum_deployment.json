@@ -1,0 +1,16 @@
+{
+  "fleetName": "LazyVault_USDC",
+  "fleetSymbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "fleetAddress": "0x3E6D6F868A298BAfa060079550101f414BaE1A16",
+  "bufferArkAddress": "0xE2Dd0b9E08e4fB7FCEFB5A08437B6FA41De860eD",
+  "network": "arbitrum",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "0",
+  "depositCap": "0",
+  "initialTipRate": "0",
+  "arks": [
+    "0xDff0fc7bFa32Fb536807820FB3Be6C9828463e32",
+    "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "CoreModule#AdmiralsQuarters": "0x1F555ecA085632cB4c4cF1c24f26dfD0B76B9825",
+  "CoreModule#DutchAuctionLibrary": "0x668a534C850d3CCa0968365319E8edE0754954F6",
+  "CoreModule#FleetCommanderRewardsManagerFactory": "0xdBB67D333DD4a49c0050315EC73e7eae8ac77cc1",
+  "CoreModule#ProtocolAccessManager": "0x700C403B5543D987a468E2382C3e75a7695725e1",
+  "CoreModule#ConfigurationManager": "0xd9B0c31551900df806a24E042fDA91E3da390c26",
+  "CoreModule#HarborCommand": "0xBd06f562d3e82844370652B47CbbFBFeb5688bC8",
+  "CoreModule#Raft": "0x63692CF5Bd85DC63A1740aAf87753c4e7D09CD63",
+  "CoreModule#TipJar": "0xE39Ec041d80d1E4587d6A2DA3021a0139a79A46e",
+  "GovModule#SummerToken": "0x4c32A28AD95deaBc06bF7C83AdEbCF6fe6721ED9",
+  "GovModule#TimelockController": "0x4e0037f487bBb588bf1B7a83BDe6c34FeD6099e3",
+  "GovModule#SummerGovernor": "0x59485a5Fbdb0e1AA830765D419f1b4C04c3770Af",
+  "FleetModule_LazyVault_USDC#FleetCommander": "0x3E6D6F868A298BAfa060079550101f414BaE1A16",
+  "CompoundV3ArkModule#CompoundV3Ark": "0xDff0fc7bFa32Fb536807820FB3Be6C9828463e32",
+  "AaveV3ArkModule#AaveV3Ark": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191"
+}

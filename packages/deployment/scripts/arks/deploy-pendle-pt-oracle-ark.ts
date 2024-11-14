@@ -6,7 +6,7 @@ import PendlePtOracleArkModule, {
   PendlePtOracleArkContracts,
 } from '../../ignition/modules/arks/pendle-pt-oracle-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -170,11 +170,12 @@ async function deployPendlePtOracleArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          asset: userInput.token.address,
-          depositCap: userInput.depositCap,
-          maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-          maxRebalanceInflow: userInput.maxRebalanceInflow,
-          requiresKeeperData: true,
+            asset: userInput.token.address,
+            depositCap: userInput.depositCap,
+            maxRebalanceOutflow: userInput.maxRebalanceOutflow,
+            maxRebalanceInflow: userInput.maxRebalanceInflow,
+            requiresKeeperData: true,
+            maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },
