@@ -14,6 +14,7 @@ export async function grantCommanderRole(
   fleetCommanderAddress: Address,
   hre: HardhatRuntimeEnvironment,
 ) {
+  const publicClient = await hre.viem.getPublicClient()
   const protocolAccessManager = await hre.viem.getContractAt(
     `ProtocolAccessManager` as string,
     protocolAccessManagerAddress,
@@ -22,6 +23,12 @@ export async function grantCommanderRole(
   const hasRole = await protocolAccessManager.read.hasRole([role, fleetCommanderAddress])
   if (!hasRole) {
     console.log(kleur.red().bold('Granting commander role for buffer ark to fleet commander'))
-    await protocolAccessManager.write.grantCommanderRole([arkAddress, fleetCommanderAddress])
+    const hash = await protocolAccessManager.write.grantCommanderRole([
+      arkAddress,
+      fleetCommanderAddress,
+    ])
+    await publicClient.waitForTransactionReceipt({
+      hash: hash,
+    })
   }
 }

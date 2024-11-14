@@ -20,7 +20,7 @@ export async function addArkToFleet(
   hre: HardhatRuntimeEnvironment,
 ) {
   const fleets = getAvailableFleets(hre.network.name)
-
+  const publicClient = await hre.viem.getPublicClient()
   if (fleets.length === 0) {
     console.log(kleur.yellow('No compatible fleets found for the current network.'))
     return
@@ -63,7 +63,10 @@ export async function addArkToFleet(
       'FleetCommander' as string,
       response.selectedFleet.fleetAddress,
     )
-    await fleetContract.write.addArk([arkAddress])
+    const hash = await fleetContract.write.addArk([arkAddress])
+    await publicClient.waitForTransactionReceipt({
+      hash: hash,
+    })
     deploymentData.arks.push(arkAddress)
 
     fs.writeFileSync(deploymentPath, JSON.stringify(deploymentData, null, 2))
