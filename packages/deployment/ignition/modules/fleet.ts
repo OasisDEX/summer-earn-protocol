@@ -27,7 +27,7 @@ export function createFleetModule(moduleName: string) {
     const initialRebalanceCooldown = m.getParameter<string>('initialRebalanceCooldown')
     const depositCap = m.getParameter<string>('depositCap')
     const initialTipRate = m.getParameter<string>('initialTipRate')
-
+    const fleetCommanderRewardsManagerFactory = m.getParameter<string>('fleetCommanderRewardsManagerFactory')
     const fleetCommander = m.contract('FleetCommander', [
       {
         name: fleetName,
@@ -40,6 +40,7 @@ export function createFleetModule(moduleName: string) {
         initialRebalanceCooldown: initialRebalanceCooldown,
         depositCap: depositCap,
         initialTipRate: initialTipRate,
+        fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory,
       },
     ])
     return { fleetCommander }
