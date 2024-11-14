@@ -72,7 +72,7 @@ export interface BaseConfig {
     }
   }
 }
-export interface FleetConfig {
+export interface FleetDefinition {
   fleetName: string
   symbol: string
   assetSymbol: string

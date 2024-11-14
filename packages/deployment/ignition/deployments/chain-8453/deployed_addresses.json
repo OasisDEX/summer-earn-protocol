@@ -9,5 +9,6 @@
   "CoreModule#TipJar": "0x5422f897e8A71E95b1D270dE2467E4Acd833E481",
   "GovModule#SummerToken": "0xa5d45e182074C46a24fc1a160bA0194337ee1d57",
   "GovModule#TimelockController": "0x0aE42A75Effa5f232838AE03A57114D362404dcA",
-  "GovModule#SummerGovernor": "0xA0212c6A5eeF8aB7e5Dbeb478FF9C3f9177B0ADf"
+  "GovModule#SummerGovernor": "0xA0212c6A5eeF8aB7e5Dbeb478FF9C3f9177B0ADf",
+  "FleetModule_LazyVault_USDC#FleetCommander": "0xAaB08AB98c93696665454b8C0a6eF8C2cd0206eF"
 }
