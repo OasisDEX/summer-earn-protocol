@@ -44,10 +44,9 @@ abstract contract Tipper is ITipper {
 
     /**
      * @notice Initializes the Tipper contract
-     * @param configurationManager The address of the ConfigurationManager contract
      * @param initialTipRate The initial tip rate for the Fleet
      */
-    constructor(address configurationManager, Percentage initialTipRate) {
+    constructor(Percentage initialTipRate) {
         tipRate = initialTipRate;
         lastTipTimestamp = block.timestamp;
     }

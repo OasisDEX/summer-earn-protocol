@@ -57,7 +57,7 @@ contract FleetCommander is
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProvider(params)
-        Tipper(params.configurationManager, params.initialTipRate)
+        Tipper(params.initialTipRate)
         CooldownEnforcer(params.initialRebalanceCooldown, false)
     {}
 
