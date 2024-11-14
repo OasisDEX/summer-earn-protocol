@@ -14,10 +14,10 @@ import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
+import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 
 /**
  * @title FleetCommander
@@ -69,7 +69,7 @@ contract FleetCommander is
      * @dev Modifier to collect the tip before any other action is taken
      */
     modifier collectTip() {
-        _accrueTip();
+        _accrueTip(tipJar());
         _;
     }
 
@@ -346,7 +346,7 @@ contract FleetCommander is
 
     /// @inheritdoc IFleetCommander
     function tip() public whenNotPaused returns (uint256) {
-        return _accrueTip();
+        return _accrueTip(tipJar());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -475,7 +475,7 @@ contract FleetCommander is
         // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision
         // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
-        _setTipRate(newTipRate);
+        _setTipRate(newTipRate, tipJar());
     }
 
     /// @inheritdoc IFleetCommander
@@ -1047,7 +1047,8 @@ contract FleetCommander is
      *      of the operation. It requires that a staking rewards manager is configured.
      * @param account The address for which tokens will be staked
      * @param amount The amount of tokens to stake
-     * @custom:error FleetCommanderStakingRewardsManagerNotSet Thrown when the staking rewards manager address is not set
+     * @custom:error FleetCommanderStakingRewardsManagerNotSet Thrown when the staking rewards manager address is not
+     * set
      */
     function _stakeOnBehalfOf(address account, uint256 amount) internal {
         if (address(config.stakingRewardsManager) == address(0)) {

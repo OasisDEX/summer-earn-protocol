@@ -5,15 +5,15 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {TestHelpers} from "../helpers/TestHelpers.sol";
 
-import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
-import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
 import {IArk} from "../../src/interfaces/IArk.sol";
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderTestBase} from "./FleetCommanderTestBase.sol";
-import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 
 contract DepositAndStakeTest is Test, TestHelpers, FleetCommanderTestBase {
     uint256 constant DEPOSIT_AMOUNT = 1000 * 10 ** 6;
