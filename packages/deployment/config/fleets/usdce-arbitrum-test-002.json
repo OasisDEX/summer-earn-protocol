@@ -1,7 +1,7 @@
 {
-  "fleetName": "LazyVault_USDE",
-  "symbol": "LZUSDE",
-  "assetSymbol": "USDE",
+  "fleetName": "LazyVault_USDCE",
+  "symbol": "LZUSDCE",
+  "assetSymbol": "USDCE",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "0",
   "depositCap": "0",

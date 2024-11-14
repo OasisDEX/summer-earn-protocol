@@ -8,8 +8,9 @@ export enum Tokens {
   DAI = 'dai',
   USDT = 'usdt',
   USDE = 'usde',
+  USDCE = 'usdce',
 }
-export type TokenType = Tokens.DAI | Tokens.USDC | Tokens.USDT | Tokens.USDE
+export type TokenType = Tokens.DAI | Tokens.USDC | Tokens.USDT | Tokens.USDE | Tokens.USDCE
 
 export interface BaseConfig {
   deployedContracts: {
