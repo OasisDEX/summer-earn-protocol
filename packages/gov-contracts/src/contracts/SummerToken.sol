@@ -131,7 +131,7 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function enableTransfers() external onlyOwner {
+    function enableTransfers() external onlyGovernor {
         if (transfersEnabled) {
             revert TransfersAlreadyEnabled();
         }
@@ -143,19 +143,19 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function addToWhitelist(address account) external onlyOwner {
+    function addToWhitelist(address account) external onlyGovernor {
         whitelistedAddresses[account] = true;
         emit AddressWhitelisted(account);
     }
 
     /// @inheritdoc ISummerToken
-    function removeFromWhitelist(address account) external onlyOwner {
+    function removeFromWhitelist(address account) external onlyGovernor {
         whitelistedAddresses[account] = false;
         emit AddressRemovedFromWhitelist(account);
     }
 
     /// @inheritdoc ISummerToken
-    function mint(address to, uint256 amount) external onlyOwner {
+    function mint(address to, uint256 amount) external onlyGovernor {
         _mint(to, amount);
     }
 
