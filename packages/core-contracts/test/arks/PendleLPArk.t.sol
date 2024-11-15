@@ -6,12 +6,13 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IPAllActionV3} from "@pendle/core-v2/contracts/interfaces/IPAllActionV3.sol";
@@ -49,6 +50,7 @@ contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "Pendle USDE LP Ark",
+            details: "Pendle USDE LP Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: USDE,
@@ -336,6 +338,7 @@ contract PendleLPArkTestFork is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "Invalid Asset Ark",
+            details: "Invalid Asset Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: invalidAsset,

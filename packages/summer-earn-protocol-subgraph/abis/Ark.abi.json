@@ -84,6 +84,11 @@
         "internalType": "string"
       },
       {
+        "name": "details",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
         "name": "requiresKeeperData",
         "type": "bool",
         "internalType": "bool"
@@ -139,6 +144,19 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "fleetCommanderRewardsManagerFactory",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -206,6 +224,11 @@
           },
           {
             "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "details",
             "type": "string",
             "internalType": "string"
           },

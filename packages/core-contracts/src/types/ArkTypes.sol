@@ -17,6 +17,11 @@ struct ArkParams {
      */
     string name;
     /**
+     * @notice Additional details about the Ark
+     * @dev This can be used to store additional information about the Ark
+     */
+    string details;
+    /**
      * @notice The address of the access manager contract
      * @dev This contract manages roles and permissions for the Ark
      */
@@ -100,6 +105,11 @@ struct ArkConfig {
      * @dev This is typically set at initialization and not changed
      */
     string name;
+    /**
+     * @notice Additional details about the Ark
+     * @dev This can be used to store additional information about the Ark
+     */
+    string details;
     /**
      * @notice Whether the Ark requires Keeper data to be passed in with rebalance transactions
      * @dev This flag is used to determine whether Keeper data is required for rebalance transactions

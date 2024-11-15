@@ -4,8 +4,9 @@ pragma solidity 0.8.28;
 import {ITipJar} from "../interfaces/ITipJar.sol";
 
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";

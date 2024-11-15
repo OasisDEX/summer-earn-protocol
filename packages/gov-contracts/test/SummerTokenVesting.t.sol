@@ -34,6 +34,10 @@ contract SummerVestingTest is SummerTokenTestBase {
         super.setUp();
         enableTransfers();
         aSummerToken.mint(address(this), INITIAL_SUPPLY * 10 ** 18);
+        aSummerToken.approve(
+            address(vestingWalletFactoryA),
+            TOTAL_VESTING_AMOUNT
+        );
         beneficiary = address(0x1);
         nonGovernance = address(0x2);
 
@@ -46,13 +50,15 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_CreateVestingWallet() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
-        address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
         assertNotEq(
             vestingWalletAddress,
             address(0),
@@ -67,7 +73,7 @@ contract SummerVestingTest is SummerTokenTestBase {
 
     function testFail_NonGovernanceCreateVestingWallet() public {
         vm.prank(nonGovernance);
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
@@ -76,13 +82,13 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function testFail_DuplicateVestingWallet() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
@@ -91,7 +97,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function testFail_InvalidVestingType() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
@@ -102,13 +108,15 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_TeamVesting() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
-        address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
         SummerVestingWallet vestingWallet = SummerVestingWallet(
             payable(vestingWalletAddress)
         );
@@ -158,13 +166,15 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_InvestorExTeamVesting() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             new uint256[](0),
             ISummerVestingWallet.VestingType.InvestorExTeamVesting
         );
-        address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
         SummerVestingWallet vestingWallet = SummerVestingWallet(
             payable(vestingWalletAddress)
         );
@@ -214,13 +224,15 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_PerformanceBasedVesting() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
-        address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
         SummerVestingWallet vestingWallet = SummerVestingWallet(
             payable(vestingWalletAddress)
         );
@@ -242,13 +254,15 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_ReleaseVestedTokens() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
-        address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
         SummerVestingWallet vestingWallet = SummerVestingWallet(
             payable(vestingWalletAddress)
         );
@@ -267,13 +281,15 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_RecallUnvestedTokens() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
-        address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
         SummerVestingWallet vestingWallet = SummerVestingWallet(
             payable(vestingWalletAddress)
         );
@@ -299,13 +315,15 @@ contract SummerVestingTest is SummerTokenTestBase {
         customGoalAmounts[1] = 40000 ether;
         customGoalAmounts[2] = 50000 ether;
 
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             customGoalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
-        address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
         SummerVestingWallet vestingWallet = SummerVestingWallet(
             payable(vestingWalletAddress)
         );
@@ -327,13 +345,15 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_AddNewGoal() public {
-        aSummerToken.createVestingWallet(
+        vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
-        address vestingWalletAddress = aSummerToken.vestingWallets(beneficiary);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
         SummerVestingWallet vestingWallet = SummerVestingWallet(
             payable(vestingWalletAddress)
         );

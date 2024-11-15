@@ -17,6 +17,7 @@ contract ConfigurationManagerTest is Test {
     address public initialTipJar;
     address public initialTreasury;
     address public initialHarborCommand;
+    address public initialFleetCommanderRewardsManagerFactory;
 
     function setUp() public {
         governor = address(1);
@@ -26,6 +27,7 @@ contract ConfigurationManagerTest is Test {
         initialTipJar = address(4);
         initialTreasury = address(5);
         initialHarborCommand = address(6);
+        initialFleetCommanderRewardsManagerFactory = address(7);
 
         // Setup AccessManager
         accessManager = new ProtocolAccessManager(governor);
@@ -35,7 +37,8 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: initialHarborCommand
+            harborCommand: initialHarborCommand,
+            fleetCommanderRewardsManagerFactory: initialFleetCommanderRewardsManagerFactory
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
@@ -47,7 +50,8 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: initialHarborCommand
+            harborCommand: initialHarborCommand,
+            fleetCommanderRewardsManagerFactory: initialFleetCommanderRewardsManagerFactory
         });
         configurationManager = new ConfigurationManager(address(accessManager));
         vm.prank(governor);
@@ -74,7 +78,8 @@ contract ConfigurationManagerTest is Test {
             raft: initialRaft,
             tipJar: initialTipJar,
             treasury: initialTreasury,
-            harborCommand: address(0)
+            harborCommand: address(0),
+            fleetCommanderRewardsManagerFactory: address(0)
         });
         vm.prank(governor);
         vm.expectRevert(

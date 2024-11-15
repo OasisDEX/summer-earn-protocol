@@ -3,38 +3,41 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x668b528AE5A515aB711aB7487B0A678D74135317"
+          "address": "0xBd06f562d3e82844370652B47CbbFBFeb5688bC8"
         },
         "summerToken": {
-          "address": "0x42133783AF47261d077d4111115F93F1cB4d3e8A"
+          "address": "0x700C403B5543D987a468E2382C3e75a7695725e1"
         },
         "timelock": {
-          "address": "0x8E72b2D81bD6978d4268089fE25868986136C701"
+          "address": "0xd9B0c31551900df806a24E042fDA91E3da390c26"
         }
       },
       "buyAndBurn": {
         "buyAndBurn": {
-          "address": "0x5dCbbc28ABA37594106D686B18ced1df25C170EF"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "core": {
         "protocolAccessManager": {
-          "address": "0xd236Cc900d35601C99950A7933158C3d2f0Dc46b"
+          "address": "0x336FE2c6c34e767e735Fd474D338ba12170783c7"
         },
         "tipJar": {
-          "address": "0x62C8419A4375599C7D2261f389BF1ED920975Cb5"
+          "address": "0x668a534C850d3CCa0968365319E8edE0754954F6"
         },
         "raft": {
-          "address": "0xf05e9f88f120185266eC0f813E9Bc7145fb2E854"
+          "address": "0x1F555ecA085632cB4c4cF1c24f26dfD0B76B9825"
         },
         "configurationManager": {
-          "address": "0xf5731e25F9FC734b1450a2Bcf6aC665B65a88515"
+          "address": "0x4fA0Aa0A4A9d3471F9E6A9E0D75b05c69fFF0D1a"
         },
         "harborCommand": {
-          "address": "0x8AB0a8E95A43633E7C424eE67F6E3fe66D4898B2"
+          "address": "0xfd3dDE67A2207508334Dd81F10e2Bfe8DD7886dc"
         },
         "admiralsQuarters": {
-          "address": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE"
+          "address": "0xa533e9d85bffd48036693F5AeA6B53F78B58cad9"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0xdBA66Fc80e55793d64bB3eBDa74646F7A80B97F1"
         }
       }
     },
@@ -42,7 +45,8 @@
       "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
       "usde": "0x0000000000000000000000000000000000000000",
-      "usdt": "0x0000000000000000000000000000000000000000"
+      "usdt": "0x0000000000000000000000000000000000000000",
+      "usdce": "0x0000000000000000000000000000000000000000"
     },
     "common": {
       "treasury": "0xAb1a4Ae0F851700CC42442c588f458B553cB2620",
@@ -59,13 +63,16 @@
         "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
         "vaults": {
           "usdc": {
-            "Moonwell Flagship USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
-            "Gauntlet USDC Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12"
+            "Moonwell_Flagship_USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
+            "Gauntlet_USDC_Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12",
+            "Gauntlet_USDC_Prime": "0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61",
+            "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
+            "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
           }
         },
         "markets": {
           "usdc": {
-            "wstETH-USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
+            "wstETH_USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
           },
           "dai": {
             "nomarket": "0x0000000000000000000000000000000000000000"
@@ -85,6 +92,11 @@
           }
         },
         "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1"
+      },
+      "erc4626": {
+        "usdc": {
+          "fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+        }
       }
     }
   },
@@ -92,46 +104,50 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0xd4DD34Dd91B09377EcdBB6DD22d930b825a4aA27"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "summerToken": {
-          "address": "0xceDBFEF8A10c20a96E2309E4Fd31F7D3834eFaF7"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "timelock": {
-          "address": "0x0381b9D857bccC043bE9FCa2717F02B7486780D4"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "buyAndBurn": {
         "buyAndBurn": {
-          "address": "0x1f221B5C47BcB4B5fA5E9ae31a9A35963cde67dd"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "core": {
         "protocolAccessManager": {
-          "address": "0x830a84c1125f7b2d4eE229B372A2f156F358a6CF"
+          "address": "0x12B63Bfc30B6EAAe2cEA4217aB8b8092605dA89B"
         },
         "tipJar": {
-          "address": "0x07060E282bd0FB99607c8915f1E538F8CebF5FC4"
+          "address": "0xBf83062641d869Bdb44E9072F6453D2E0a986D24"
         },
         "raft": {
-          "address": "0xA2e47Bb397f908aba018276a3CC683608404123f"
+          "address": "0x1b4b8c790A36F2e37bCd59db73320D6Fd897DB9A"
         },
         "configurationManager": {
-          "address": "0xbB906Aae2dB6366B7141Aee2E5B9D57BC177807B"
+          "address": "0xf65f4142A4734606cEC94Ea1c8549dE829231C85"
         },
         "harborCommand": {
-          "address": "0x72B3128bc1D0f0E1e3D03B6d1c974C0C08724C90"
+          "address": "0x3a2c9cc408fAeE0C6A206f37819f07f4BD19BC66"
         },
         "admiralsQuarters": {
-          "address": "0xd555F7D124a58617f49894b623b97Bf295674f14"
+          "address": "0x0369A0125465BB935f32EFff4e20Dccf93550C17"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0x6a1521C68c3d54693E1B2420C49103840EAc944f"
         }
       }
     },
     "tokens": {
-      "usdc": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+      "usdc": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
       "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
       "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
-      "usdt": "0x0000000000000000000000000000000000000000"
+      "usdt": "0x0000000000000000000000000000000000000000",
+      "usdce": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
     },
     "common": {
       "treasury": "0x13371f8Cf79706907a5A18939b77b426636C3BA0",
@@ -142,6 +158,9 @@
     "protocolSpecific": {
       "erc4626": {
         "usdc": {
+          "gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6"
+        },
+        "usdce": {
           "gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
         }
       },
@@ -151,7 +170,8 @@
         "markets": {
           "usde": {
             "marketAddresses": {
-              "USDE-28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+              "USDE_28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d",
+              "USDE_Karak_28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
             },
             "swapInTokens": [
               {
@@ -180,12 +200,18 @@
           },
           "usdt": {
             "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usdce": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
           }
         }
       },
       "compoundV3": {
         "pools": {
           "usdc": {
+            "cToken": "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"
+          },
+          "usdce": {
             "cToken": "0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA"
           },
           "usdt": {

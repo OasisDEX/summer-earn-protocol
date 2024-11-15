@@ -14,10 +14,10 @@ import {Tipper} from "./Tipper.sol";
 import {ERC20, ERC4626, IERC20, IERC4626, SafeERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
+import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 
 /**
  * @title FleetCommander
@@ -57,7 +57,7 @@ contract FleetCommander is
         ERC4626(IERC20(params.asset))
         ERC20(params.name, params.symbol)
         FleetCommanderConfigProvider(params)
-        Tipper(params.configurationManager, params.initialTipRate)
+        Tipper(params.initialTipRate)
         CooldownEnforcer(params.initialRebalanceCooldown, false)
     {}
 
@@ -69,7 +69,7 @@ contract FleetCommander is
      * @dev Modifier to collect the tip before any other action is taken
      */
     modifier collectTip() {
-        _accrueTip();
+        _accrueTip(tipJar());
         _;
     }
 
@@ -292,31 +292,6 @@ contract FleetCommander is
         return deposit(assets, receiver);
     }
 
-    /// @inheritdoc IFleetCommander
-    function depositAndStake(
-        uint256 assets,
-        address receiver
-    ) public whenNotPaused returns (uint256 shares) {
-        shares = deposit(assets, address(this));
-        IERC20(address(this)).approve(
-            address(config.stakingRewardsManager),
-            shares
-        );
-        _stakeOnBehalfOf(receiver, shares);
-
-        return shares;
-    }
-
-    /// @inheritdoc IFleetCommander
-    function depositAndStake(
-        uint256 assets,
-        address receiver,
-        bytes memory referralCode
-    ) external whenNotPaused returns (uint256 shares) {
-        emit FleetCommanderReferral(receiver, referralCode);
-        return depositAndStake(assets, receiver);
-    }
-
     /// @inheritdoc IERC4626
     function mint(
         uint256 shares,
@@ -346,7 +321,7 @@ contract FleetCommander is
 
     /// @inheritdoc IFleetCommander
     function tip() public whenNotPaused returns (uint256) {
-        return _accrueTip();
+        return _accrueTip(tipJar());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -475,7 +450,7 @@ contract FleetCommander is
         // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision
         // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
-        _setTipRate(newTipRate);
+        _setTipRate(newTipRate, tipJar());
     }
 
     /// @inheritdoc IFleetCommander
@@ -1039,22 +1014,5 @@ contract FleetCommander is
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
         }
-    }
-
-    /**
-     * @notice Stakes tokens on behalf of an account in the staking rewards manager
-     * @dev This internal function is called by depositAndStake to handle the staking portion
-     *      of the operation. It requires that a staking rewards manager is configured.
-     * @param account The address for which tokens will be staked
-     * @param amount The amount of tokens to stake
-     * @custom:error FleetCommanderStakingRewardsManagerNotSet Thrown when the staking rewards manager address is not set
-     */
-    function _stakeOnBehalfOf(address account, uint256 amount) internal {
-        if (address(config.stakingRewardsManager) == address(0)) {
-            revert FleetCommanderStakingRewardsManagerNotSet();
-        }
-
-        IFleetCommanderRewardsManager(config.stakingRewardsManager)
-            .stakeOnBehalfOf(account, amount);
     }
 }

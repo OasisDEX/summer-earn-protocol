@@ -2,16 +2,19 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import PendlePTArkModule, { PendlePTArkContracts } from '../../ignition/modules/arks/pendle-pt-ark'
+import {
+  createPendlePTArkModule,
+  PendlePTArkContracts,
+} from '../../ignition/modules/arks/pendle-pt-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 interface PendleMarketInfo {
-  token: TokenType
+  token: { address: Address; symbol: Tokens }
   marketId: string
   marketName: string
 }
@@ -21,8 +24,9 @@ interface PendlePTArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: Address
+  token: { address: Address; symbol: Tokens }
   marketId: string
+  marketName: string
   router: Address
   oracle: Address
 }
@@ -55,7 +59,11 @@ async function getUserInput(config: BaseConfig) {
         config.protocolSpecific.pendle.markets[token as TokenType].marketAddresses[marketName]
       pendleMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
-        value: { token, marketId },
+        value: {
+          token: { address: config.tokens[token as TokenType], symbol: token },
+          marketId,
+          marketName,
+        },
       })
     }
   }
@@ -95,8 +103,9 @@ async function getUserInput(config: BaseConfig) {
 
   const aggregatedData = {
     ...responses,
-    token: tokenAddress,
+    token: { address: tokenAddress, symbol: selectedMarket.token },
     marketId: selectedMarket.marketId,
+    marketName: selectedMarket.marketName,
     router: routerAddress,
     oracle: oracleAddress,
   }
@@ -123,23 +132,34 @@ async function deployPendlePTArkContract(
 ): Promise<PendlePTArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(PendlePTArkModule, {
+  return (await hre.ignition.deploy(createPendlePTArkModule(moduleName), {
     parameters: {
-      PendlePTArkModule: {
+      [moduleName]: {
         market: userInput.marketId,
         oracle: userInput.oracle,
         router: userInput.router,
         arkParams: {
           name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
+          details: JSON.stringify({
+            protocol: 'Pendle',
+            type: 'Pt',
+            asset: userInput.token.address,
+            marketAsset: userInput.token.address,
+            pool: userInput.marketId,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token,
+          asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

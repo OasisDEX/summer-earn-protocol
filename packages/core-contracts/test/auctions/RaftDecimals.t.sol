@@ -49,7 +49,8 @@ contract RaftDecimalsTest is AuctionTestBase {
                 raft: address(raftContract),
                 tipJar: address(1),
                 treasury: treasury,
-                harborCommand: address(2)
+                harborCommand: address(2),
+                fleetCommanderRewardsManagerFactory: address(3)
             })
         );
 
@@ -66,6 +67,7 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(underlyingToken18Dec),

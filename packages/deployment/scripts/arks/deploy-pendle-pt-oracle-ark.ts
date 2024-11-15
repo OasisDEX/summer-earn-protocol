@@ -2,18 +2,19 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import PendlePtOracleArkModule, {
+import {
+  createPendlePtOracleArkModule,
   PendlePtOracleArkContracts,
 } from '../../ignition/modules/arks/pendle-pt-oracle-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 interface PendleMarketInfo {
-  token: TokenType
+  token: { address: Address; symbol: Tokens }
   marketId: Address
   marketName: string
 }
@@ -24,7 +25,7 @@ interface PendlePtOracleArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: Address
+  token: { address: Address; symbol: Tokens }
   marketId: Address
   router: Address
   pendleOracle: Address
@@ -56,9 +57,10 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
     const marketConfig = config.protocolSpecific.pendle.markets[token as Tokens]
     for (const marketName in marketConfig.marketAddresses) {
       const marketId = marketConfig.marketAddresses[marketName]
+      const marketAssetAddress = config.tokens[token as TokenType]
       pendleMarkets.push({
         title: `Market Asset: ${token.toUpperCase()} - Market Name: ${marketName}`,
-        value: { token, marketId, marketName },
+        value: { token: { address: marketAssetAddress, symbol: token }, marketId, marketName },
       })
     }
   }
@@ -71,19 +73,20 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
     choices: pendleMarkets,
   })
 
-  const selectedToken = marketResponse.marketSelection.token
-  const selectedMarketConfig = config.protocolSpecific.pendle.markets[selectedToken as Tokens]
-  const swapTokenChoices = selectedMarketConfig.swapInTokens.map((swap) => ({
-    title: `Token: ${swap.token.toUpperCase()} - Oracle: ${swap.oracle}`,
-    value: swap,
+  const selectedMarketAsset = marketResponse.marketSelection.token
+  const selectedMarketConfig =
+    config.protocolSpecific.pendle.markets[selectedMarketAsset.symbol as Tokens]
+  const arkAssetChoices = selectedMarketConfig.swapInTokens.map((arkAsset) => ({
+    title: `Ark Asset: ${arkAsset.token.toUpperCase()} - Oracle: ${arkAsset.oracle}`,
+    value: arkAsset,
   }))
 
-  // Then prompt for swap token selection
-  const swapResponse = await prompts({
+  // Then prompt for ark asset selection
+  const arkAssetResponse = await prompts({
     type: 'select',
-    name: 'swapTokenSelection',
-    message: 'Select a swap token:',
-    choices: swapTokenChoices,
+    name: 'arkAssetSelection',
+    message: 'Select a swap ark/fleet asset:',
+    choices: arkAssetChoices,
   })
 
   // Rest of the prompts
@@ -110,15 +113,15 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
 
   // Set the token address based on the selected market
   const selectedMarket = marketResponse.marketSelection
-  const tokenAddress = config.tokens[swapResponse.swapTokenSelection.token as TokenType]
+  const arkAssetAddress = config.tokens[arkAssetResponse.arkAssetSelection.token as TokenType]
   const routerAddress = config.protocolSpecific.pendle.router
   const oracleAddress = config.protocolSpecific.pendle['lp-oracle']
 
   const aggregatedData = {
     ...responses,
     marketSelection: selectedMarket,
-    marketAssetOracle: swapResponse.swapTokenSelection.oracle,
-    token: tokenAddress,
+    marketAssetOracle: arkAssetResponse.arkAssetSelection.oracle,
+    token: { address: arkAssetAddress, symbol: arkAssetResponse.arkAssetSelection.token },
     marketId: selectedMarket.marketId,
     router: routerAddress,
     pendleOracle: oracleAddress,
@@ -147,39 +150,35 @@ async function deployPendlePtOracleArkContract(
 ): Promise<PendlePtOracleArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  // console.log({
-  //   market: userInput.marketId,
-  //   oracle: userInput.pendleOracle,
-  //   router: userInput.router,
-  //   marketAssetOracle: userInput.swapTokenSelection.oracle,
-  //   arkParams: {
-  //     name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
-  //     accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
-  //     configurationManager: config.deployedContracts.core.configurationManager.address as Address,
-  //     token: userInput.token,
-  //     depositCap: userInput.depositCap,
-  //     maxRebalanceOutflow: userInput.maxRebalanceOutflow,
-  //     maxRebalanceInflow: userInput.maxRebalanceInflow,
-  //     requiresKeeperData: true,
-  //   },
-  // })
-  return (await hre.ignition.deploy(PendlePtOracleArkModule, {
+  const arkName = `PendlePt-${userInput.token.symbol}-${userInput.marketSelection.marketName}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
+
+  return (await hre.ignition.deploy(createPendlePtOracleArkModule(moduleName), {
     parameters: {
-      PendlePtOracleArkModule: {
+      [moduleName]: {
         market: userInput.marketId,
         oracle: userInput.pendleOracle,
         router: userInput.router,
         marketAssetOracle: userInput.marketAssetOracle,
         arkParams: {
-          name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
+          name: `PendlePt-${userInput.token.symbol}-${userInput.marketSelection.marketName}-${chainId}`,
+          details: JSON.stringify({
+            protocol: 'Pendle',
+            type: 'PtOracle',
+            asset: userInput.token.address,
+            marketAsset: userInput.marketSelection.token.address,
+            pool: userInput.marketId,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          asset: userInput.token,
+          asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: true,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

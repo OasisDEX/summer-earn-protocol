@@ -17,8 +17,9 @@ import {IArkConfigProviderEvents} from "../../src/events/IArkConfigProviderEvent
 import {ArkParams, BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IFleetCommanderConfigProviderEvents} from "../../src/events/IFleetCommanderConfigProviderEvents.sol";
 import {IFleetCommanderEvents} from "../../src/events/IFleetCommanderEvents.sol";
-import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
@@ -39,6 +40,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             asset: address(mockToken),
             name: "Fleet Commander",
             symbol: "FC",
+            details: "Mock details",
             depositCap: 10000,
             initialTipRate: Percentage.wrap(0)
         });
@@ -381,6 +383,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         BufferArk mockArkWithCommander = new BufferArk(
             ArkParams({
                 name: "MockArkWithCommander",
+                details: "Mock details",
                 accessManager: address(accessManager),
                 asset: address(mockToken),
                 configurationManager: address(configurationManager),

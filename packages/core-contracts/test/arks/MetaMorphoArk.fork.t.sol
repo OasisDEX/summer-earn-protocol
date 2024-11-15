@@ -5,9 +5,9 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {Test, console} from "forge-std/Test.sol";
 
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 import "../../src/contracts/arks/MetaMorphoArk.sol";
 import "../../src/events/IArkEvents.sol";
@@ -37,6 +37,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(asset),
@@ -164,6 +165,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         // Arrange
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(asset),

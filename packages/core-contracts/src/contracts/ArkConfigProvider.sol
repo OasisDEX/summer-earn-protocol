@@ -57,6 +57,7 @@ abstract contract ArkConfigProvider is
             maxRebalanceOutflow: _params.maxRebalanceOutflow,
             maxRebalanceInflow: _params.maxRebalanceInflow,
             name: _params.name,
+            details: _params.details,
             requiresKeeperData: _params.requiresKeeperData,
             maxDepositPercentageOfTVL: _params.maxDepositPercentageOfTVL
         });

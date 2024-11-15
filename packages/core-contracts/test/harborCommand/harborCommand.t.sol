@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IHarborCommandEvents} from "../../src/events/IHarborCommandEvents.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import "forge-std/Test.sol";
 
 contract HarborCommandTest is Test {

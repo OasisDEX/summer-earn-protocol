@@ -1,5 +1,4 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { keccak256, toBytes } from 'viem'
 import { ADDRESS_ZERO } from '../../scripts/common/constants'
 
 /**
@@ -9,20 +8,6 @@ enum DecayType {
   Linear,
   Exponential,
 }
-
-/**
- * @dev Constants for various roles used in access control
- * DEFAULT_ADMIN_ROLE - Has full administrative privileges
- * GOVERNOR_ROLE - Can execute governance actions
- * PROPOSER_ROLE - Can propose timelock operations
- * EXECUTOR_ROLE - Can execute timelock operations
- * CANCELLER_ROLE - Can cancel timelock operations
- */
-const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000'
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
-const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
-const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
-const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 
 /**
  * @title Governance Module Deployment Script
@@ -57,8 +42,8 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - ADDRESS_ZERO as executor (anyone can execute)
    * - deployer as admin (temporary)
    */
-  const MIN_DELAY = 86400
-  const TEMP_MIN_DELAY_DURING_TESTING = MIN_DELAY / 24
+  const MIN_DELAY = 86400n
+  const TEMP_MIN_DELAY_DURING_TESTING = MIN_DELAY / 24n
   const timelock = m.contract('TimelockController', [
     TEMP_MIN_DELAY_DURING_TESTING,
     [deployer],
@@ -77,12 +62,12 @@ export const GovModule = buildModule('GovModule', (m) => {
     name: 'SummerToken',
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
-    owner: timelock.value,
-    decayManager: deployer,
+    owner: deployer,
     accessManager: protocolAccessManagerAddress,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
-    initialDecayRate: 3.1709792e9, // ~10% per year
+    initialDecayRate: 1n, // ~10% per year
     initialDecayFunction: DecayType.Linear,
+    transferEnableDate: 1731667188n,
   }
   const summerToken = m.contract('SummerToken', [summerTokenParams])
 
@@ -96,54 +81,17 @@ export const GovModule = buildModule('GovModule', (m) => {
   const summerGovernorDeployParams = {
     token: summerToken,
     timelock: timelock,
-    // Note: Voting period is set to 1 second to allow for testing
-    votingDelay: 1,
+    // Note: Voting delay is set to 1 second to allow for testing
+    votingDelay: 1n,
     // Note: Voting period is set to 1 hour to allow for testing
-    votingPeriod: 60 * 60,
+    votingPeriod: 60n * 60n,
     proposalThreshold: 10000n * 10n ** 18n,
-    quorumFraction: 4,
+    quorumFraction: 4n,
     initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
-    proposalChainId: 8453,
+    proposalChainId: 8453n,
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
-
-  /**
-   * @dev Step 4: Post-deployment configuration
-   *
-   * Configuration sequence:
-   * 1. Configure SummerToken
-   *    - Confirm TimelockController ownership
-   *    - Set SummerGovernor as decay manager
-   *
-   * 2. Configure TimelockController roles
-   *    - Grant PROPOSER_ROLE to SummerGovernor
-   *    - Grant CANCELLER_ROLE to SummerGovernor
-   *    - Grant EXECUTOR_ROLE to SummerGovernor
-   *
-   * 3. Configure ProtocolAccessManager
-   *    - Revoke deployer's admin rights
-   *    - Grant admin and governor roles to TimelockController
-   *
-   * 4. Cleanup
-   *    - Remove deployer's proposer role from TimelockController
-   */
-  m.call(summerToken, 'transferOwnership', [timelock.value])
-  m.call(summerToken, 'setDecayManager', [summerGovernor.value])
-
-  const governanceRewardsManager = m.call(summerToken, 'rewardsManager')
-  m.call(summerToken, 'setDecayManager', [governanceRewardsManager.value])
-
-  m.call(timelock, 'grantRole', [PROPOSER_ROLE, summerGovernor.value])
-  m.call(timelock, 'grantRole', [CANCELLER_ROLE, summerGovernor.value])
-  m.call(timelock, 'grantRole', [EXECUTOR_ROLE, summerGovernor.value])
-
-  const protocolAccessManager = m.contractAt('ProtocolAccessManager', protocolAccessManagerAddress)
-  m.call(protocolAccessManager, 'revokeRole', [DEFAULT_ADMIN_ROLE, deployer])
-  m.call(protocolAccessManager, 'grantRole', [DEFAULT_ADMIN_ROLE, timelock.value])
-  m.call(protocolAccessManager, 'grantRole', [GOVERNOR_ROLE, timelock.value])
-
-  m.call(timelock, 'revokeRole', [PROPOSER_ROLE, deployer])
 
   return {
     summerGovernor,

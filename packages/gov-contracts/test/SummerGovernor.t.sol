@@ -1421,7 +1421,8 @@ contract SummerGovernorTest is
         vm.stopPrank();
 
         vm.startPrank(address(timelockA));
-        aSummerToken.createVestingWallet(
+        aSummerToken.approve(address(vestingWalletFactoryA), vestingAmount);
+        vestingWalletFactoryA.createVestingWallet(
             alice,
             vestingAmount,
             new uint256[](0),
@@ -1796,7 +1797,8 @@ contract SummerGovernorTest is
 
         // Case 1: Create vesting wallet and transfer initial tokens
         vm.startPrank(address(timelockA));
-        aSummerToken.createVestingWallet(
+        aSummerToken.approve(address(vestingWalletFactoryA), vestingAmount);
+        vestingWalletFactoryA.createVestingWallet(
             alice,
             vestingAmount,
             new uint256[](0),
@@ -1806,7 +1808,9 @@ contract SummerGovernorTest is
         aSummerToken.mint(alice, directAmount);
         vm.stopPrank();
 
-        address vestingWalletAddress = aSummerToken.vestingWallets(alice);
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            alice
+        );
         SummerVestingWallet vestingWallet = SummerVestingWallet(
             payable(vestingWalletAddress)
         );

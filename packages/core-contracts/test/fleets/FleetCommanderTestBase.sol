@@ -10,27 +10,30 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+
 import {ArkParams} from "../../src/types/ArkTypes.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
+import {FleetCommanderRewardsManager} from "../../src/contracts/FleetCommanderRewardsManager.sol";
+
+import {FleetCommanderRewardsManagerFactory} from "../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 import {FleetConfig} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
 import {FleetCommanderTestHelpers} from "../helpers/FleetCommanderTestHelpers.sol";
 import {ArkMock} from "../mocks/ArkMock.sol";
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {RestictedWithdrawalArkMock} from "../mocks/RestictedWithdrawalArkMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
-import {FleetCommanderRewardsManager} from "../../src/contracts/FleetCommanderRewardsManager.sol";
-import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
-import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     using PercentageUtils for uint256;
@@ -58,6 +61,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
     RestictedWithdrawalArkMock public mockArk4;
     BufferArk public bufferArk;
     HarborCommand public harborCommand;
+    FleetCommanderRewardsManagerFactory
+        public fleetCommanderRewardsManagerFactory;
 
     // Addresses
     address public governor = address(1);
@@ -139,6 +144,9 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));
         }
+        if (address(fleetCommanderRewardsManagerFactory) == address(0)) {
+            fleetCommanderRewardsManagerFactory = new FleetCommanderRewardsManagerFactory();
+        }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
                 address(accessManager)
@@ -149,7 +157,10 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
                     raft: address(raft),
                     tipJar: address(tipJar),
                     treasury: treasury,
-                    harborCommand: address(harborCommand)
+                    harborCommand: address(harborCommand),
+                    fleetCommanderRewardsManagerFactory: address(
+                        fleetCommanderRewardsManagerFactory
+                    )
                 })
             );
         }
@@ -187,6 +198,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             asset: underlyingToken,
             name: fleetName,
             symbol: "TEST-SUM",
+            details: "TestFleet-details",
             initialTipRate: initialTipRate,
             depositCap: type(uint256).max
         });
@@ -241,6 +253,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             new ArkMock(
                 ArkParams({
                     name: "TestArk",
+                    details: "TestArk details",
                     accessManager: address(accessManager),
                     asset: tokenAddress,
                     configurationManager: address(configurationManager),
@@ -262,6 +275,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
             new RestictedWithdrawalArkMock(
                 ArkParams({
                     name: "TestArk",
+                    details: "TestArk details",
                     accessManager: address(accessManager),
                     asset: tokenAddress,
                     configurationManager: address(configurationManager),

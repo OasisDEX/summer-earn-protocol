@@ -7,12 +7,15 @@ import {FleetCommanderPausable} from "./FleetCommanderPausable.sol";
 
 import {IFleetCommanderConfigProvider} from "../interfaces/IFleetCommanderConfigProvider.sol";
 
-import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IFleetCommanderRewardsManagerFactory} from "../interfaces/IFleetCommanderRewardsManagerFactory.sol";
 import {FleetConfig} from "../types/FleetCommanderTypes.sol";
-import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
+import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
@@ -24,11 +27,13 @@ import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contract
 contract FleetCommanderConfigProvider is
     ProtocolAccessManaged,
     FleetCommanderPausable,
+    ConfigurationManaged,
     IFleetCommanderConfigProvider
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     FleetConfig public config;
+    string public details;
     EnumerableSet.AddressSet private _activeArks;
     mapping(address ark => bool isWithdrawable) public isArkWithdrawable;
 
@@ -40,10 +45,12 @@ contract FleetCommanderConfigProvider is
     )
         ProtocolAccessManaged(params.accessManager)
         FleetCommanderPausable(INITIAL_MINIMUM_PAUSE_TIME)
+        ConfigurationManaged(params.configurationManager)
     {
         BufferArk _bufferArk = new BufferArk(
             ArkParams({
                 name: "BufferArk",
+                details: "BufferArk details",
                 accessManager: address(params.accessManager),
                 asset: params.asset,
                 configurationManager: address(params.configurationManager),
@@ -61,13 +68,13 @@ contract FleetCommanderConfigProvider is
                 minimumBufferBalance: params.initialMinimumBufferBalance,
                 depositCap: params.depositCap,
                 maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-                stakingRewardsManager: new FleetCommanderRewardsManager(
-                    address(params.accessManager),
-                    address(this)
-                )
+                stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
+                    fleetCommanderRewardsManagerFactory()
+                ).createRewardsManager(address(_accessManager), address(this))
             })
         );
         isArkWithdrawable[address(_bufferArk)] = true;
+        details = params.details;
     }
 
     /**
@@ -193,10 +200,9 @@ contract FleetCommanderConfigProvider is
         if (newStakingRewardsManager == address(0)) {
             revert FleetCommanderInvalidStakingRewardsManager();
         }
-        config.stakingRewardsManager = new FleetCommanderRewardsManager(
-            address(_accessManager),
-            address(this)
-        );
+        config.stakingRewardsManager = IFleetCommanderRewardsManagerFactory(
+            fleetCommanderRewardsManagerFactory()
+        ).createRewardsManager(address(_accessManager), address(this));
         emit FleetCommanderStakingRewardsUpdated(newStakingRewardsManager);
     }
 

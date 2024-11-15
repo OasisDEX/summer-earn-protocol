@@ -8,10 +8,10 @@ import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol
 import "../../src/events/IArkEvents.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
@@ -28,6 +28,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
         comet = IComet(cometAddress);
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(mockToken),
@@ -50,6 +51,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
     function test_Constructor() public {
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(mockToken),

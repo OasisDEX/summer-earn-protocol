@@ -196,6 +196,12 @@ importers:
       '@nomicfoundation/hardhat-ignition-viem':
         specifier: ^0.15.5
         version: 0.15.5(@nomicfoundation/hardhat-ignition@0.15.5)(@nomicfoundation/hardhat-viem@2.0.3)(@nomicfoundation/ignition-core@0.15.5)(hardhat@2.22.10)(viem@2.9.19)
+      '@summerfi/access-contracts':
+        specifier: workspace:*
+        version: link:../access-contracts
+      '@summerfi/constants':
+        specifier: workspace:*
+        version: link:../constants
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies
@@ -217,6 +223,9 @@ importers:
       '@summerfi/percentage-solidity':
         specifier: workspace:*
         version: link:../percentage
+      '@summerfi/rewards-contracts':
+        specifier: workspace:*
+        version: link:../rewards-contracts
       '@summerfi/tenderly-utils':
         specifier: workspace:*
         version: link:../tenderly-utils
@@ -229,6 +238,9 @@ importers:
       hardhat:
         specifier: ^2.22.8
         version: 2.22.10(ts-node@10.9.2)(typescript@5.5.4)
+      hardhat-contract-sizer:
+        specifier: ^2.10.0
+        version: 2.10.0(hardhat@2.22.10)
       kleur:
         specifier: ^4.1.5
         version: 4.1.5
@@ -6279,6 +6291,17 @@ packages:
   /graphql@16.9.0:
     resolution: {integrity: sha512-GGTKBX4SD7Wdb8mqeDLni2oaRGYQWjWHGKPQ24ZMnUtKfcsVoiv4uX8+LJr1K6U5VW2Lu1BwJnj7uiori0YtRw==}
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
+    dev: true
+
+  /hardhat-contract-sizer@2.10.0(hardhat@2.22.10):
+    resolution: {integrity: sha512-QiinUgBD5MqJZJh1hl1jc9dNnpJg7eE/w4/4GEnrcmZJJTDbVFNe3+/3Ep24XqISSkYxRz36czcPHKHd/a0dwA==}
+    peerDependencies:
+      hardhat: ^2.0.0
+    dependencies:
+      chalk: 4.1.2
+      cli-table3: 0.6.0
+      hardhat: 2.22.10(ts-node@10.9.2)(typescript@5.5.4)
+      strip-ansi: 6.0.1
     dev: true
 
   /hardhat-deploy@0.12.4:

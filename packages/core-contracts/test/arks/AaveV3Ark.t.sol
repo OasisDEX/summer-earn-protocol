@@ -6,11 +6,12 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -41,6 +42,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
 
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(mockToken),
@@ -92,6 +94,7 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
     function test_Constructor() public {
         ArkParams memory params = ArkParams({
             name: "TestArk",
+            details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
             asset: address(mockToken),

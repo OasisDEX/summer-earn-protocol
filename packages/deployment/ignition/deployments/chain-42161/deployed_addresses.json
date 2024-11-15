@@ -1,19 +1,10 @@
 {
-  "CoreModule#AdmiralsQuarters": "0xd555F7D124a58617f49894b623b97Bf295674f14",
-  "CoreModule#DutchAuctionLibrary": "0x61f8D651FBD00C68A2d747a5dEF8558bE8c75Bda",
-  "CoreModule#ProtocolAccessManager": "0x830a84c1125f7b2d4eE229B372A2f156F358a6CF",
-  "CoreModule#Raft": "0xA2e47Bb397f908aba018276a3CC683608404123f",
-  "CoreModule#ConfigurationManager": "0xbB906Aae2dB6366B7141Aee2E5B9D57BC177807B",
-  "CoreModule#HarborCommand": "0x72B3128bc1D0f0E1e3D03B6d1c974C0C08724C90",
-  "CoreModule#TipJar": "0x07060E282bd0FB99607c8915f1E538F8CebF5FC4",
-  "GovModule#SummerToken": "0xceDBFEF8A10c20a96E2309E4Fd31F7D3834eFaF7",
-  "GovModule#TimelockController": "0x0381b9D857bccC043bE9FCa2717F02B7486780D4",
-  "GovModule#SummerGovernor": "0xd4DD34Dd91B09377EcdBB6DD22d930b825a4aA27",
-  "BuyAndBurnModule#DutchAuctionLibrary": "0x39d44f8121Ec115f1F92E079cEDf2F5cdb8318e5",
-  "BuyAndBurnModule#BuyAndBurn": "0x1f221B5C47BcB4B5fA5E9ae31a9A35963cde67dd",
-  "FleetModule_LazyVault_USDC_Arbitrum_Test#FleetCommander": "0x4774d1cD62D20c288dFAdEfDEDF79d5B4cae1856",
-  "AaveV3ArkModule#AaveV3Ark": "0x85AA5809f3ce928b658Dd17876DC414962456563",
-  "CompoundV3ArkModule#CompoundV3Ark": "0x8e3293b9052437D3A5aad5e829D8EE8B05bC391e",
-  "ERC4626Ark_gearbox_usdc#ERC4626Ark": "0x1003aaeB64B9fc1BB8BB4dcEb7c65A59BA61a0f8",
-  "PendlePtOracleArkModule#PendlePtOracleArk": "0xfd3dDE67A2207508334Dd81F10e2Bfe8DD7886dc"
+  "CoreModule#ProtocolAccessManager": "0x12B63Bfc30B6EAAe2cEA4217aB8b8092605dA89B",
+  "CoreModule#AdmiralsQuarters": "0x0369A0125465BB935f32EFff4e20Dccf93550C17",
+  "CoreModule#DutchAuctionLibrary": "0x455B0d98F1392636382FD41e98D8070377eBC4f0",
+  "CoreModule#FleetCommanderRewardsManagerFactory": "0x6a1521C68c3d54693E1B2420C49103840EAc944f",
+  "CoreModule#ConfigurationManager": "0xf65f4142A4734606cEC94Ea1c8549dE829231C85",
+  "CoreModule#HarborCommand": "0x3a2c9cc408fAeE0C6A206f37819f07f4BD19BC66",
+  "CoreModule#Raft": "0x1b4b8c790A36F2e37bCd59db73320D6Fd897DB9A",
+  "CoreModule#TipJar": "0xBf83062641d869Bdb44E9072F6453D2E0a986D24"
 }

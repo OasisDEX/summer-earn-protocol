@@ -1,6 +1,6 @@
 {
-  "fleetName": "FleetCommander_BaseUSDC_Test",
-  "symbol": "FUSDC",
+  "fleetName": "LazyVault_USDC",
+  "symbol": "LVUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "0",

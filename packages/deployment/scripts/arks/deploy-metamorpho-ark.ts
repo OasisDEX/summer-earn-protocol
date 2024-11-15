@@ -2,11 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import MetaMorphoArkModule, {
+import {
+  createMetaMorphoArkModule,
   MetaMorphoArkContracts,
 } from '../../ignition/modules/arks/metamorpho-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -23,8 +24,9 @@ interface MetaMorphoArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: Address
-  vaultId: string
+  token: { address: Address; symbol: Tokens }
+  vaultId: Address
+  vaultName: string
 }
 
 /**
@@ -64,7 +66,7 @@ async function getUserInput(config: BaseConfig): Promise<MetaMorphoArkUserInput>
       const vaultId = config.protocolSpecific.morpho.vaults[token as TokenType][vaultName]
       morphoVaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
-        value: { token, vaultId },
+        value: { token, vaultId, vaultName },
       })
     }
   }
@@ -102,8 +104,9 @@ async function getUserInput(config: BaseConfig): Promise<MetaMorphoArkUserInput>
 
   const aggregatedData = {
     ...responses,
-    token: tokenAddress,
+    token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
+    vaultName: selectedVault.vaultName,
   }
 
   return aggregatedData
@@ -137,21 +140,32 @@ async function deployMetaMorphoArkContract(
 ): Promise<MetaMorphoArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `MetaMorpho-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(MetaMorphoArkModule, {
+  return (await hre.ignition.deploy(createMetaMorphoArkModule(moduleName), {
     parameters: {
-      MetaMorphoArkModule: {
+      [moduleName]: {
         strategyVault: userInput.vaultId,
         arkParams: {
-          name: `MetaMorpho-${userInput.token}-${userInput.vaultId}-${chainId}`,
+          name: `MetaMorpho-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`,
+          details: JSON.stringify({
+            protocol: 'Morpho',
+            type: 'Vault',
+            asset: userInput.token.address,
+            marketAsset: userInput.token.address,
+            pool: userInput.vaultId,
+            chainId: chainId,
+          }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token,
+          asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

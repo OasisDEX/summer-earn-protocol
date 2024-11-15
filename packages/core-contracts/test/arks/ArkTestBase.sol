@@ -3,21 +3,22 @@ pragma solidity 0.8.28;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {AaveV3Ark, ArkParams} from "../../src/contracts/arks/AaveV3Ark.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
 import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.sol";
 import {IFleetCommander} from "../../src/interfaces/IFleetCommander.sol";
 import {IFleetCommanderConfigProvider} from "../../src/interfaces/IFleetCommanderConfigProvider.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 
+import {FleetCommanderRewardsManagerFactory} from "../../src/contracts/FleetCommanderRewardsManagerFactory.sol";
 import {BufferArk} from "../../src/contracts/arks/BufferArk.sol";
 import {FleetCommanderParams} from "../../src/types/FleetCommanderTypes.sol";
 import {FleetCommanderStorageWriter} from "../helpers/FleetCommanderStorageWriter.sol";
@@ -42,6 +43,8 @@ contract ArkTestBase is TestHelpers {
     ProtocolAccessManager public accessManager;
     ConfigurationManager public configurationManager;
     HarborCommand public harborCommand;
+    FleetCommanderRewardsManagerFactory
+        public fleetCommanderRewardsManagerFactory;
 
     function initializeCoreContracts() internal {
         mockToken = new ERC20Mock();
@@ -50,6 +53,9 @@ contract ArkTestBase is TestHelpers {
         }
         if (address(harborCommand) == address(0)) {
             harborCommand = new HarborCommand(address(accessManager));
+        }
+        if (address(fleetCommanderRewardsManagerFactory) == address(0)) {
+            fleetCommanderRewardsManagerFactory = new FleetCommanderRewardsManagerFactory();
         }
         if (address(configurationManager) == address(0)) {
             configurationManager = new ConfigurationManager(
@@ -61,7 +67,10 @@ contract ArkTestBase is TestHelpers {
                     tipJar: tipJar,
                     raft: raft,
                     treasury: treasury,
-                    harborCommand: address(harborCommand)
+                    harborCommand: address(harborCommand),
+                    fleetCommanderRewardsManagerFactory: address(
+                        fleetCommanderRewardsManagerFactory
+                    )
                 })
             );
         }
@@ -83,6 +92,7 @@ contract ArkTestBase is TestHelpers {
                 initialRebalanceCooldown: INITIAL_REBALANCE_COOLDOWN,
                 asset: underlyingToken,
                 name: fleetName,
+                details: "TestArk details",
                 symbol: "TEST-SUM",
                 initialTipRate: initialTipRate,
                 depositCap: type(uint256).max

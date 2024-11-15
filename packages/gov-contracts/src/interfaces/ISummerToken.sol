@@ -35,11 +35,9 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
         // Update from deployer address after deployment
         address owner;
         address accessManager;
-        address decayManager;
         uint40 initialDecayFreeWindow;
         uint256 initialDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
-        address governor;
         uint256 transferEnableDate;
     }
 
@@ -65,22 +63,6 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Emitted when a new vesting wallet is created
-     * @param beneficiary The address of the beneficiary
-     * @param vestingWallet The address of the created vesting wallet
-     * @param timeBasedAmount The amount of tokens to be vested based on time
-     * @param goalAmounts The amounts of tokens to be vested based on goals
-     * @param vestingType The type of vesting schedule
-     */
-    event VestingWalletCreated(
-        address indexed beneficiary,
-        address indexed vestingWallet,
-        uint256 timeBasedAmount,
-        uint256[] goalAmounts,
-        SummerVestingWallet.VestingType vestingType
-    );
 
     /**
      * @notice Emitted when transfers are enabled
@@ -131,20 +113,6 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
      *   - Current decayRatePerSecond and decayFreeWindow
      */
     function getVotes(address account) external view returns (uint256);
-
-    /**
-     * @notice Creates a new vesting wallet for a beneficiary
-     * @param beneficiary Address of the beneficiary to whom vested tokens are transferred
-     * @param timeBasedAmount Amount of tokens to be vested based on time
-     * @param goalAmounts Array of token amounts to be vested based on performance goals
-     * @param vestingType Type of vesting schedule
-     */
-    function createVestingWallet(
-        address beneficiary,
-        uint256 timeBasedAmount,
-        uint256[] memory goalAmounts,
-        SummerVestingWallet.VestingType vestingType
-    ) external;
 
     /**
      * @notice Mints new tokens and assigns them to the specified address
@@ -199,15 +167,4 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
      * @param account The address to remove from the whitelist
      */
     function removeFromWhitelist(address account) external;
-
-    /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Gets the vesting wallet address for a given account
-     * @param owner The address of the account
-     * @return The address of the vesting wallet
-     */
-    function vestingWallets(address owner) external view returns (address);
 }

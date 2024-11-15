@@ -3,10 +3,10 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address } from 'viem'
+import { Address, keccak256, toBytes } from 'viem'
 import { CoreContracts } from '../ignition/modules/core'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
-import { BaseConfig, FleetConfig } from '../types/config-types'
+import { BaseConfig, FleetDefinition } from '../types/config-types'
 import { grantCommanderRole } from './common/grant-commander-role'
 import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
 import { getConfigByNetwork } from './helpers/config-handler'
@@ -37,12 +37,12 @@ async function deployFleet() {
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
 
   const coreContracts = config.deployedContracts.core
-  const asset = getAssetAddress(fleetDefinition.assetSymbol, config)
+  const assetAddress = getAssetAddress(fleetDefinition.assetSymbol, config)
 
   if (await confirmDeployment(fleetDefinition)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
-    const deployedFleet = await deployFleetContracts(fleetDefinition, coreContracts, asset)
+    const deployedFleet = await deployFleetContracts(fleetDefinition, coreContracts, assetAddress)
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
@@ -66,7 +66,7 @@ async function deployFleet() {
  * Prompts the user for the fleet definition file and loads it.
  * @returns The loaded fleet definition object.
  */
-async function getFleetDefinition(): Promise<FleetConfig> {
+async function getFleetDefinition(): Promise<FleetDefinition> {
   const fleetsDir = path.resolve(__dirname, '..', 'config', 'fleets')
   const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
 
@@ -83,8 +83,8 @@ async function getFleetDefinition(): Promise<FleetConfig> {
 
   const fleetDefinitionPath = path.resolve(fleetsDir, response.fleetDefinitionFile)
   console.log(kleur.green(`Loading fleet definition from: ${fleetDefinitionPath}`))
-
-  return loadFleetDefinition(fleetDefinitionPath)
+  // todo: remove this once we have a details field in the fleet definition
+  return { ...loadFleetDefinition(fleetDefinitionPath), details: JSON.stringify('') }
 }
 
 /**
@@ -123,7 +123,7 @@ async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
  * @returns {Promise<FleetContracts>} The deployed fleet contracts.
  */
 async function deployFleetContracts(
-  fleetDefinition: any,
+  fleetDefinition: FleetDefinition,
   coreContracts: CoreContracts,
   asset: string,
 ) {
@@ -139,16 +139,23 @@ async function deployFleetContracts(
         protocolAccessManager: coreContracts.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
+        fleetDetails: fleetDefinition.details,
         asset,
-        initialArks: fleetDefinition.arks,
         initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
         initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
+        fleetCommanderRewardsManagerFactory:
+          coreContracts.fleetCommanderRewardsManagerFactory.address,
       },
     },
     deploymentId,
   })
+  await addFleetToHarbor(
+    deployedModule.fleetCommander.address,
+    coreContracts.harborCommand.address as Address,
+    coreContracts.protocolAccessManager.address as Address,
+  )
   return deployedModule
 }
 
@@ -159,31 +166,43 @@ async function deployFleetContracts(
 function logDeploymentResults(deployedFleet: FleetContracts) {
   ModuleLogger.logFleet(deployedFleet)
 
-  console.log(kleur.yellow().bold('\nIMPORTANT: Commander roles need to be granted via governance'))
-  console.log(kleur.yellow('For each initial Ark, the buffer Ark, and the Fleet Commander, call:'))
-  console.log(
-    kleur.cyan(
-      `protocolAccessManager.grantCommanderRole(<address of the ark>, ${deployedFleet.fleetCommander.address})`,
-    ),
-  )
-
-  console.log(
-    kleur
-      .yellow()
-      .bold(
-        '\nIMPORTANT: The Fleet Commander needs to be enlisted in the Harbor Command via governance',
-      ),
-  )
-  console.log(kleur.yellow('Call:'))
-  console.log(
-    kleur.cyan(`harborCommand.enlistFleetCommander(${deployedFleet.fleetCommander.address})`),
-  )
-
   console.log(kleur.green('Fleet deployment completed successfully!'))
   console.log(
     kleur.yellow('Fleet Commander Address:'),
     kleur.cyan(deployedFleet.fleetCommander.address),
   )
+}
+async function addFleetToHarbor(
+  fleetCommanderAddress: Address,
+  harborCommandAddress: Address,
+  protocolAccessManagerAddress: Address,
+) {
+  const publicClient = await hre.viem.getPublicClient()
+  const [deployer] = await hre.viem.getWalletClients()
+  const protocolAccessManager = await hre.viem.getContractAt(
+    'ProtocolAccessManager' as string,
+    protocolAccessManagerAddress,
+  )
+  const hasGovernorRole = await protocolAccessManager.read.hasRole([
+    keccak256(toBytes('GOVERNOR_ROLE')),
+    deployer.account.address,
+  ])
+  if (hasGovernorRole) {
+    const hash = await (
+      await hre.viem.getContractAt('HarborCommand' as string, harborCommandAddress)
+    ).write.enlistFleetCommander([fleetCommanderAddress])
+    await publicClient.waitForTransactionReceipt({
+      hash: hash,
+    })
+    console.log(kleur.green('Fleet added to Harbor Command successfully!'))
+  } else {
+    console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
+    console.log(
+      kleur.red(
+        `Please add the fleet @ ${fleetCommanderAddress} to the Harbor Command (${harborCommandAddress}) via governance`,
+      ),
+    )
+  }
 }
 
 // Execute the deployFleet function and handle any errors
