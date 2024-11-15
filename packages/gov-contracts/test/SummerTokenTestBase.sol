@@ -148,6 +148,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
         accessManagerA.grantDecayControllerRole(
             address(aSummerToken.rewardsManager())
         );
+        accessManagerA.grantGovernorRole(address(this));
         vm.stopPrank();
 
         vm.startPrank(address(timelockB));
@@ -155,6 +156,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
         accessManagerB.grantDecayControllerRole(
             address(bSummerToken.rewardsManager())
         );
+        accessManagerB.grantGovernorRole(address(this));
         vm.stopPrank();
 
         this.wireOApps(tokens);

@@ -7,7 +7,7 @@ import {
   ERC4626ArkContracts,
 } from '../../ignition/modules/arks/erc4626-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -118,14 +118,15 @@ async function deployERC4626ArkContract(
 ): Promise<ERC4626ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const name = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
+  const arkName = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(createERC4626ArkModule(name), {
+  return (await hre.ignition.deploy(createERC4626ArkModule(moduleName), {
     parameters: {
-      [name]: {
+      [moduleName]: {
         vault: userInput.vaultId,
         arkParams: {
-          name: name,
+          name: arkName,
           details: JSON.stringify({
             protocol: userInput.vaultName,
             type: 'ERC4626',
@@ -137,11 +138,12 @@ async function deployERC4626ArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token.address,
+          asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

@@ -1,27 +1,25 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 /**
- * PendleLPArkModule for deploying the PendleLPArk contract
+ * Factory function to create a PendleLPArkModule for deploying the PendleLPArk contract
  *
- * This module deploys the PendleLPArk contract, which manages a Pendle LP token strategy within the Ark system.
+ * This function creates a module that deploys the PendleLPArk contract, which manages a Pendle LP token strategy.
  *
- * @param {string} market - The address of the Pendle market
- * @param {string} oracle - The address of the Pendle oracle
- * @param {string} router - The address of the Pendle router
- * @param {object} arkParams - An object containing the parameters for the Ark contract
- *
- * @returns {PendleLPArkContracts} An object containing the address of the deployed PendleLPArk contract
+ * @param {string} moduleName - Name of the module
+ * @returns {Function} A function that builds the module
  */
-export default buildModule('PendleLPArkModule', (m) => {
-  const market = m.getParameter('market')
-  const oracle = m.getParameter('oracle')
-  const router = m.getParameter('router')
-  const arkParams = m.getParameter('arkParams')
+export function createPendleLPArkModule(moduleName: string) {
+  return buildModule(moduleName, (m) => {
+    const market = m.getParameter('market')
+    const oracle = m.getParameter('oracle')
+    const router = m.getParameter('router')
+    const arkParams = m.getParameter('arkParams')
 
-  const pendleLPArk = m.contract('PendleLPArk', [market, oracle, router, arkParams])
+    const pendleLPArk = m.contract('PendleLPArk', [market, oracle, router, arkParams])
 
-  return { pendleLPArk }
-})
+    return { pendleLPArk }
+  })
+}
 
 /**
  * Type definition for the returned contract address

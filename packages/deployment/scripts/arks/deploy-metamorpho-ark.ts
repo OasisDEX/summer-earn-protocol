@@ -2,11 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import MetaMorphoArkModule, {
+import {
+  createMetaMorphoArkModule,
   MetaMorphoArkContracts,
 } from '../../ignition/modules/arks/metamorpho-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -139,10 +140,12 @@ async function deployMetaMorphoArkContract(
 ): Promise<MetaMorphoArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `MetaMorpho-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(MetaMorphoArkModule, {
+  return (await hre.ignition.deploy(createMetaMorphoArkModule(moduleName), {
     parameters: {
-      MetaMorphoArkModule: {
+      [moduleName]: {
         strategyVault: userInput.vaultId,
         arkParams: {
           name: `MetaMorpho-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`,
@@ -157,11 +160,12 @@ async function deployMetaMorphoArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token.address,
+          asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

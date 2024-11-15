@@ -2,9 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import PendleLPArkModule, { PendleLPArkContracts } from '../../ignition/modules/arks/pendle-lp-ark'
+import {
+  createPendleLPArkModule,
+  PendleLPArkContracts,
+} from '../../ignition/modules/arks/pendle-lp-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -129,10 +132,12 @@ async function deployPendleLPArkContract(
 ): Promise<PendleLPArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `PendleLp-${userInput.token.symbol}-${userInput.marketName}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(PendleLPArkModule, {
+  return (await hre.ignition.deploy(createPendleLPArkModule(moduleName), {
     parameters: {
-      PendleLPArkModule: {
+      [moduleName]: {
         market: userInput.marketId,
         oracle: userInput.oracle,
         router: userInput.router,
@@ -149,11 +154,12 @@ async function deployPendleLPArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token.address,
+          asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },

@@ -543,24 +543,18 @@ contract SummerTokenTest is SummerTokenTestBase {
         aSummerToken.transfer(user1, amount);
     }
 
-    function test_OnlyOwnerCanManageWhitelist() public {
+    function test_OnlyGovernorCanManageWhitelist() public {
         // Try to add to whitelist as non-owner
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "OwnableUnauthorizedAccount(address)",
-                user1
-            )
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", user1)
         );
         aSummerToken.addToWhitelist(user2);
 
         // Try to remove from whitelist as non-owner
         vm.prank(user1);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "OwnableUnauthorizedAccount(address)",
-                user1
-            )
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", user1)
         );
         aSummerToken.removeFromWhitelist(user2);
     }

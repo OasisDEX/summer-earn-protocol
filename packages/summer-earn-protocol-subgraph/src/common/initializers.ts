@@ -22,6 +22,7 @@ import { ArkTemplate, FleetCommanderTemplate } from '../../generated/templates'
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { updateVaultAPRs } from '../mappings/entities/vault'
+import { addresses } from './addressProvider'
 import * as constants from './constants'
 import * as utils from './utils'
 
@@ -101,7 +102,11 @@ export function getOrCreateToken(address: Address): Token {
     const contract = ERC20Contract.bind(address)
 
     token.name = utils.readValue<string>(contract.try_name(), '')
-    token.symbol = utils.readValue<string>(contract.try_symbol(), '')
+    if (address == addresses.USDCE) {
+      token.symbol = 'USDC.E'
+    } else {
+      token.symbol = utils.readValue<string>(contract.try_symbol(), '')
+    }
     token.decimals = utils
       .readValue<BigInt>(contract.try_decimals(), constants.BigIntConstants.ZERO)
       .toI32() as u8
@@ -219,6 +224,9 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
+    vaultSnapshots.inputTokenPriceUSD = vault.inputTokenPriceUSD
+      ? vault.inputTokenPriceUSD!
+      : constants.BigDecimalConstants.ZERO
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
@@ -283,6 +291,9 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
+    vaultSnapshots.inputTokenPriceUSD = vault.inputTokenPriceUSD
+      ? vault.inputTokenPriceUSD!
+      : constants.BigDecimalConstants.ZERO
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
@@ -333,6 +344,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.outputToken = outputToken.id
     vault.outputTokenSupply = constants.BigIntConstants.ZERO
     vault.outputTokenPriceUSD = constants.BigDecimalConstants.ZERO
+    vault.inputTokenPriceUSD = constants.BigDecimalConstants.ZERO
 
     vault.pricePerShare = constants.BigDecimalConstants.ZERO
     vault.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
@@ -584,6 +596,9 @@ export function getOrCreateVaultsPostActionSnapshots(
       : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
+      : constants.BigDecimalConstants.ZERO
+    vaultSnapshots.inputTokenPriceUSD = vault.inputTokenPriceUSD
+      ? vault.inputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!

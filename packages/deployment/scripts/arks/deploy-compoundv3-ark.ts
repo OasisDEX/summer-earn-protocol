@@ -2,11 +2,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import CompoundV3ArkModule, {
+import {
   CompoundV3ArkContracts,
+  createCompoundV3ArkModule,
 } from '../../ignition/modules/arks/compoundv3-ark'
 import { BaseConfig, TokenType } from '../../types/config-types'
-import { MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -108,7 +109,7 @@ async function confirmDeployment(userInput: CompoundV3ArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Compound V3 Pool: ${userInput.compoundV3Pool}`))
   console.log(kleur.yellow(`Compound V3 Rewards: ${userInput.compoundV3Rewards}`))
-  console.log(kleur.yellow(`Token: ${userInput.token}`))
+  console.log(kleur.yellow(`Token: ${userInput.token.symbol}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
@@ -128,10 +129,12 @@ async function deployCompoundV3ArkContract(
 ): Promise<CompoundV3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
+  const arkName = `CompoundV3-${userInput.token.symbol}-${chainId}`
+  const moduleName = arkName.replace(/-/g, '_')
 
-  return (await hre.ignition.deploy(CompoundV3ArkModule, {
+  return (await hre.ignition.deploy(createCompoundV3ArkModule(moduleName), {
     parameters: {
-      CompoundV3ArkModule: {
+      [moduleName]: {
         compoundV3Pool: userInput.compoundV3Pool,
         compoundV3Rewards: userInput.compoundV3Rewards,
         arkParams: {
@@ -147,11 +150,12 @@ async function deployCompoundV3ArkContract(
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
-          token: userInput.token.address,
+          asset: userInput.token.address,
           depositCap: userInput.depositCap,
           maxRebalanceOutflow: userInput.maxRebalanceOutflow,
           maxRebalanceInflow: userInput.maxRebalanceInflow,
           requiresKeeperData: false,
+          maxDepositPercentageOfTVL: HUNDRED_PERCENT,
         },
       },
     },
