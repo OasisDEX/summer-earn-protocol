@@ -92,6 +92,11 @@
           }
         },
         "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1"
+      },
+      "erc4626": {
+        "usdc": {
+          "fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+        }
       }
     }
   },
