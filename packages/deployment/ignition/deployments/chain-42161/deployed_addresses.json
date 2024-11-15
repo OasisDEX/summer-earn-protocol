@@ -1,20 +1,10 @@
 {
-  "CoreModule#AdmiralsQuarters": "0x1F555ecA085632cB4c4cF1c24f26dfD0B76B9825",
-  "CoreModule#DutchAuctionLibrary": "0x668a534C850d3CCa0968365319E8edE0754954F6",
-  "CoreModule#FleetCommanderRewardsManagerFactory": "0xdBB67D333DD4a49c0050315EC73e7eae8ac77cc1",
-  "CoreModule#ProtocolAccessManager": "0x700C403B5543D987a468E2382C3e75a7695725e1",
-  "CoreModule#ConfigurationManager": "0xd9B0c31551900df806a24E042fDA91E3da390c26",
-  "CoreModule#HarborCommand": "0xBd06f562d3e82844370652B47CbbFBFeb5688bC8",
-  "CoreModule#Raft": "0x63692CF5Bd85DC63A1740aAf87753c4e7D09CD63",
-  "CoreModule#TipJar": "0xE39Ec041d80d1E4587d6A2DA3021a0139a79A46e",
-  "GovModule#SummerToken": "0x4c32A28AD95deaBc06bF7C83AdEbCF6fe6721ED9",
-  "GovModule#TimelockController": "0x4e0037f487bBb588bf1B7a83BDe6c34FeD6099e3",
-  "GovModule#SummerGovernor": "0x59485a5Fbdb0e1AA830765D419f1b4C04c3770Af",
-  "FleetModule_LazyVault_USDC#FleetCommander": "0x3E6D6F868A298BAfa060079550101f414BaE1A16",
-  "CompoundV3ArkModule#CompoundV3Ark": "0xDff0fc7bFa32Fb536807820FB3Be6C9828463e32",
-  "AaveV3ArkModule#AaveV3Ark": "0xa8E4716a1e8Db9dD79f1812AF30e073d3f4Cf191",
-  "FleetModule_LazyVault_USDCE#FleetCommander": "0xa689599c43C30e20153D2A9eD3d263fb72853E6c",
-  "ERC4626_gearbox_usdce_42161#ERC4626Ark": "0x507A2D9E87DBD3076e65992049C41270b47964f8",
-  "AaveV3_USDCE_42161#AaveV3Ark": "0x3002A7c8d5dC5CFaf81E747120B54D44bfAD5935",
-  "CompoundV3_usdce_42161#CompoundV3Ark": "0xCAa67460558cDc09CAB34d052fD982ab4e8FA70f"
+  "CoreModule#ProtocolAccessManager": "0x12B63Bfc30B6EAAe2cEA4217aB8b8092605dA89B",
+  "CoreModule#AdmiralsQuarters": "0x0369A0125465BB935f32EFff4e20Dccf93550C17",
+  "CoreModule#DutchAuctionLibrary": "0x455B0d98F1392636382FD41e98D8070377eBC4f0",
+  "CoreModule#FleetCommanderRewardsManagerFactory": "0x6a1521C68c3d54693E1B2420C49103840EAc944f",
+  "CoreModule#ConfigurationManager": "0xf65f4142A4734606cEC94Ea1c8549dE829231C85",
+  "CoreModule#HarborCommand": "0x3a2c9cc408fAeE0C6A206f37819f07f4BD19BC66",
+  "CoreModule#Raft": "0x1b4b8c790A36F2e37bCd59db73320D6Fd897DB9A",
+  "CoreModule#TipJar": "0xBf83062641d869Bdb44E9072F6453D2E0a986D24"
 }

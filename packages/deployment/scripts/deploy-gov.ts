@@ -98,14 +98,14 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
 
   // Transfer SummerToken ownership to timelock if not already owned
-  const currentTokenOwner = await summerToken.read.owner()
-  if (currentTokenOwner !== timelock.address) {
-    console.log('Transferring SummerToken ownership to timelock...')
-    const hash = await summerToken.write.transferOwnership([timelock.address])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
-  }
+  // const currentTokenOwner = await summerToken.read.owner()
+  // if (currentTokenOwner !== timelock.address) {
+  //   console.log('Transferring SummerToken ownership to timelock...')
+  //   const hash = await summerToken.write.transferOwnership([timelock.address])
+  //   await publicClient.waitForTransactionReceipt({
+  //     hash: hash,
+  //   })
+  // }
 
   // Grant roles to SummerGovernor in Timelock
   const roles = [

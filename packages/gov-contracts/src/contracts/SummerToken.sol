@@ -372,7 +372,7 @@ contract SummerToken is
         address to,
         uint256 amount
     ) internal override {
-        if (_handleRewardsManagerVotingTransfer(from, to, amount)) {
+        if (_handleRewardsManagerVotingTransfer(from, to)) {
             return;
         }
 
@@ -431,13 +431,11 @@ contract SummerToken is
      * @dev Handles voting power transfers involving the rewards manager
      * @param from Source address
      * @param to Destination address
-     * @param amount Amount of voting units to transfer
      * @return bool True if the transfer was handled (rewards manager case), false otherwise
      */
     function _handleRewardsManagerVotingTransfer(
         address from,
-        address to,
-        uint256 amount
+        address to
     ) internal returns (bool) {
         if (from == address(rewardsManager) || to == address(rewardsManager)) {
             return true;

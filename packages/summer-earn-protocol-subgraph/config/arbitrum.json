@@ -1,6 +1,6 @@
 {
   "network": "arbitrum-one",
-  "harbor-command-address": "0xBd06f562d3e82844370652B47CbbFBFeb5688bC8",
+  "harbor-command-address": "0x3a2c9cc408fAeE0C6A206f37819f07f4BD19BC66",
   "harbor-command-start-block": 274400602,
   "interval-handler-block-interval": 240
 }

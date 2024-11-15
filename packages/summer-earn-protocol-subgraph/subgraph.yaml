@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: arbitrum-one
+    network: base
     source:
       abi: HarborCommand
-      address: "0xBd06f562d3e82844370652B47CbbFBFeb5688bC8"
-      startBlock: 274400602
+      address: "0xfd3dDE67A2207508334Dd81F10e2Bfe8DD7886dc"
+      startBlock: 22398801
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -52,12 +52,12 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 240 
+            every: 30 
       file: ./src/mappings/harborCommand.ts
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: arbitrum-one
+    network: base
     source:
       abi: FleetCommander
     mapping:
@@ -115,7 +115,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: arbitrum-one
+    network: base
     source:
       abi: Ark
     mapping:
