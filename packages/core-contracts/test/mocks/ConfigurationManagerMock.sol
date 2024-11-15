@@ -10,17 +10,20 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
     address public raft;
     uint256 public tipRate;
     address public harborCommand;
+    address public fleetCommanderRewardsManagerFactory;
 
     constructor(
         address _tipJar,
         address _treasury,
         address _raft,
-        address _harborCommand
+        address _harborCommand,
+        address _fleetCommanderRewardsManagerFactory
     ) {
         tipJar = _tipJar;
         treasury = _treasury;
         raft = _raft;
         harborCommand = _harborCommand;
+        fleetCommanderRewardsManagerFactory = _fleetCommanderRewardsManagerFactory;
     }
 
     function initializeConfiguration(
@@ -34,6 +37,8 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
     function setTreasury(address) external pure {}
 
     function setHarborCommand(address) external pure {}
+
+    function setFleetCommanderRewardsManagerFactory(address) external pure {}
 }
 
 contract ConfigurationManagerImplMock is ConfigurationManagerMock {
@@ -41,8 +46,17 @@ contract ConfigurationManagerImplMock is ConfigurationManagerMock {
         address _tipJar,
         address _treasury,
         address _raft,
-        address _harborCommand
-    ) ConfigurationManagerMock(_tipJar, _treasury, _raft, _harborCommand) {}
+        address _harborCommand,
+        address _fleetCommanderRewardsManagerFactory
+    )
+        ConfigurationManagerMock(
+            _tipJar,
+            _treasury,
+            _raft,
+            _harborCommand,
+            _fleetCommanderRewardsManagerFactory
+        )
+    {}
 
     function setTipJar(address newTipJar) external override {
         tipJar = newTipJar;

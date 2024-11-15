@@ -2,13 +2,13 @@
 pragma solidity 0.8.28;
 
 import {IArk} from "../interfaces/IArk.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @notice Configuration parameters for the FleetCommander contract
  */
-
 struct FleetCommanderParams {
     string name;
     string details;
@@ -56,7 +56,7 @@ struct FleetConfig {
     /**
      * @notice The address of the staking rewards contract
      */
-    IFleetCommanderRewardsManager stakingRewardsManager;
+    address stakingRewardsManager;
 }
 
 /**

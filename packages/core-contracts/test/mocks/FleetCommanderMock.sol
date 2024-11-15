@@ -16,12 +16,15 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     FleetConfig public config;
     address[] public arks;
     mapping(address => bool) public isArkActive;
+    address public tipJar;
 
     constructor(
         address underlying,
         address configurationManager,
         Percentage initialTipRate
-    ) ERC4626Mock(underlying) Tipper(configurationManager, initialTipRate) {}
+    ) ERC4626Mock(underlying) Tipper(initialTipRate) {
+        tipJar = address(0x123);
+    }
 
     function _mintTip(
         address account,
@@ -80,11 +83,11 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     }
 
     function setTipRate(Percentage newTipRate) external {
-        _setTipRate(newTipRate);
+        _setTipRate(newTipRate, tipJar);
     }
 
     function tip() public returns (uint256) {
-        return _accrueTip();
+        return _accrueTip(tipJar);
     }
 
     function addArk(address ark) external {

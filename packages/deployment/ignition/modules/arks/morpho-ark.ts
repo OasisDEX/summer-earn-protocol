@@ -1,25 +1,24 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 /**
- * MorphoArkModule for deploying the MorphoArk contract
+ * Factory function to create a MorphoArkModule for deploying the MorphoArk contract
  *
- * This module deploys the MorphoArk contract, which integrates with the Morpho protocol.
+ * This function creates a module that deploys the MorphoArk contract, which integrates with the Morpho protocol.
  *
- * @param {string} morphoBlue - The address of the Morpho Blue contract
- * @param {string} marketId - The ID of the Morpho market
- * @param {object} arkParams - An object containing the parameters for the Ark contract
- *
- * @returns {MorphoArkContracts} An object containing the address of the deployed MorphoArk contract
+ * @param {string} moduleName - Name of the module
+ * @returns {Function} A function that builds the module
  */
-export default buildModule('MorphoArkModule', (m) => {
-  const morphoBlue = m.getParameter('morphoBlue')
-  const marketId = m.getParameter('marketId')
-  const arkParams = m.getParameter('arkParams')
+export function createMorphoArkModule(moduleName: string) {
+  return buildModule(moduleName, (m) => {
+    const morphoBlue = m.getParameter('morphoBlue')
+    const marketId = m.getParameter('marketId')
+    const arkParams = m.getParameter('arkParams')
 
-  const morphoArk = m.contract('MorphoArk', [morphoBlue, marketId, arkParams])
+    const morphoArk = m.contract('MorphoArk', [morphoBlue, marketId, arkParams])
 
-  return { morphoArk }
-})
+    return { morphoArk }
+  })
+}
 
 /**
  * Type definition for the returned contract address

@@ -4,8 +4,6 @@ pragma solidity 0.8.28;
 import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
-
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
@@ -25,7 +23,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  * @custom:see ITipper
  */
 
-abstract contract Tipper is ITipper, ConfigurationManaged {
+abstract contract Tipper is ITipper {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;
 
@@ -46,13 +44,9 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
 
     /**
      * @notice Initializes the Tipper contract
-     * @param configurationManager The address of the ConfigurationManager contract
      * @param initialTipRate The initial tip rate for the Fleet
      */
-    constructor(
-        address configurationManager,
-        Percentage initialTipRate
-    ) ConfigurationManaged(configurationManager) {
+    constructor(Percentage initialTipRate) {
         tipRate = initialTipRate;
         lastTipTimestamp = block.timestamp;
     }
@@ -89,11 +83,11 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
      * @custom:note The newTipRate should be sized according to the PERCENTAGE_FACTOR in @Percentage.sol.
      *              For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18).
      */
-    function _setTipRate(Percentage newTipRate) internal {
+    function _setTipRate(Percentage newTipRate, address tipJar) internal {
         if (!PercentageUtils.isPercentageInRange(newTipRate)) {
             revert TipRateCannotExceedOneHundredPercent();
         }
-        _accrueTip(); // Accrue tips before changing the rate
+        _accrueTip(tipJar); // Accrue tips before changing the rate
         tipRate = newTipRate;
         emit TipRateUpdated(newTipRate);
     }
@@ -114,7 +108,9 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
      * - Handles the case where tipRate is zero to prevent unnecessary computations
      * - Uses a custom power function for precise calculations
      */
-    function _accrueTip() internal returns (uint256 tippedShares) {
+    function _accrueTip(
+        address tipJar
+    ) internal returns (uint256 tippedShares) {
         if (tipRate == toPercentage(0)) {
             lastTipTimestamp = block.timestamp;
             return 0;
@@ -130,7 +126,7 @@ abstract contract Tipper is ITipper, ConfigurationManaged {
         tippedShares = _calculateTip(totalShares, timeElapsed);
 
         if (tippedShares > 0) {
-            _mintTip(tipJar(), tippedShares);
+            _mintTip(tipJar, tippedShares);
             lastTipTimestamp = block.timestamp;
             emit TipAccrued(tippedShares);
         }

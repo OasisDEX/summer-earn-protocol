@@ -2,7 +2,6 @@
 pragma solidity 0.8.28;
 
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -15,11 +14,12 @@ import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
-import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
+import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 
 /**
  * @title SummerToken
@@ -47,9 +47,8 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     VotingDecayLibrary.DecayState internal decayState;
-    mapping(address owner => address vestingWallet) public vestingWallets;
     GovernanceRewardsManager public rewardsManager;
-    mapping(address vestingWallet => address owner) public vestingWalletOwners;
+    SummerVestingWalletFactory public vestingWalletFactory;
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
     mapping(address => bool) public whitelistedAddresses;
@@ -90,6 +89,7 @@ contract SummerToken is
         );
 
         transferEnableDate = params.transferEnableDate;
+        vestingWalletFactory = new SummerVestingWalletFactory(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function enableTransfers() external onlyOwner {
+    function enableTransfers() external onlyGovernor {
         if (transfersEnabled) {
             revert TransfersAlreadyEnabled();
         }
@@ -143,63 +143,19 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function addToWhitelist(address account) external onlyOwner {
+    function addToWhitelist(address account) external onlyGovernor {
         whitelistedAddresses[account] = true;
         emit AddressWhitelisted(account);
     }
 
     /// @inheritdoc ISummerToken
-    function removeFromWhitelist(address account) external onlyOwner {
+    function removeFromWhitelist(address account) external onlyGovernor {
         whitelistedAddresses[account] = false;
         emit AddressRemovedFromWhitelist(account);
     }
-    /// @inheritdoc ISummerToken
-
-    function createVestingWallet(
-        address beneficiary,
-        uint256 timeBasedAmount,
-        uint256[] memory goalAmounts,
-        SummerVestingWallet.VestingType vestingType
-    ) external {
-        if (vestingWallets[beneficiary] != address(0)) {
-            revert VestingWalletAlreadyExists(beneficiary);
-        }
-
-        uint64 startTimestamp = uint64(block.timestamp);
-        uint64 durationSeconds = 730 days; // 2 years for both vesting types
-
-        uint256 totalAmount = timeBasedAmount;
-        for (uint256 i = 0; i < goalAmounts.length; i++) {
-            totalAmount += goalAmounts[i];
-        }
-
-        address newVestingWallet = address(
-            new SummerVestingWallet(
-                address(this),
-                beneficiary,
-                startTimestamp,
-                durationSeconds,
-                vestingType,
-                timeBasedAmount,
-                goalAmounts,
-                msg.sender // Set the caller as the admin
-            )
-        );
-        vestingWallets[beneficiary] = newVestingWallet;
-        vestingWalletOwners[newVestingWallet] = beneficiary;
-        _transfer(msg.sender, newVestingWallet, totalAmount);
-
-        emit VestingWalletCreated(
-            beneficiary,
-            newVestingWallet,
-            timeBasedAmount,
-            goalAmounts,
-            vestingType
-        );
-    }
 
     /// @inheritdoc ISummerToken
-    function mint(address to, uint256 amount) external onlyOwner {
+    function mint(address to, uint256 amount) external onlyGovernor {
         _mint(to, amount);
     }
 
@@ -390,8 +346,9 @@ contract SummerToken is
         // Get raw voting units first
         uint256 directBalance = balanceOf(account);
         uint256 stakingBalance = rewardsManager.balanceOf(account);
-        uint256 vestingBalance = vestingWallets[account] != address(0)
-            ? balanceOf(vestingWallets[account])
+        uint256 vestingBalance = vestingWalletFactory.vestingWallets(account) !=
+            address(0)
+            ? balanceOf(vestingWalletFactory.vestingWallets(account))
             : 0;
 
         return directBalance + stakingBalance + vestingBalance;
@@ -415,7 +372,7 @@ contract SummerToken is
         address to,
         uint256 amount
     ) internal override {
-        if (_handleRewardsManagerVotingTransfer(from, to, amount)) {
+        if (_handleRewardsManagerVotingTransfer(from, to)) {
             return;
         }
 
@@ -442,7 +399,9 @@ contract SummerToken is
         uint256 amount
     ) internal returns (bool) {
         // Case 1: Transfer TO vesting wallet
-        address vestingWalletOwner = vestingWalletOwners[to];
+        address vestingWalletOwner = vestingWalletFactory.vestingWalletOwners(
+            to
+        );
         if (vestingWalletOwner != address(0)) {
             // Skip if transfer is from the owner (they already have voting power)
             if (from != vestingWalletOwner) {
@@ -453,7 +412,8 @@ contract SummerToken is
         }
 
         // Case 2: Transfer FROM vesting wallet
-        address fromVestingWalletOwner = vestingWalletOwners[from];
+        address fromVestingWalletOwner = vestingWalletFactory
+            .vestingWalletOwners(from);
         if (fromVestingWalletOwner != address(0)) {
             // Skip if transfer is to the beneficiary (they already have voting power)
             if (to == fromVestingWalletOwner) {
@@ -471,13 +431,11 @@ contract SummerToken is
      * @dev Handles voting power transfers involving the rewards manager
      * @param from Source address
      * @param to Destination address
-     * @param amount Amount of voting units to transfer
      * @return bool True if the transfer was handled (rewards manager case), false otherwise
      */
     function _handleRewardsManagerVotingTransfer(
         address from,
-        address to,
-        uint256 amount
+        address to
     ) internal returns (bool) {
         if (from == address(rewardsManager) || to == address(rewardsManager)) {
             return true;

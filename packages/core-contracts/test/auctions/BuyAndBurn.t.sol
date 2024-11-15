@@ -2,8 +2,9 @@
 pragma solidity 0.8.28;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
-import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
+
 import "../../src/errors/IBuyAndBurnErrors.sol";
+import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";

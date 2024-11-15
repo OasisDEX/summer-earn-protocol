@@ -26,6 +26,9 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
     /// @inheritdoc IConfigurationManager
     address public harborCommand;
 
+    /// @inheritdoc IConfigurationManager
+    address public fleetCommanderRewardsManagerFactory;
+
     /**
      * @notice Constructs the ConfigurationManager contract
      * @param _accessManager The address of the ProtocolAccessManager contract
@@ -43,7 +46,8 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
             params.raft == address(0) ||
             params.tipJar == address(0) ||
             params.treasury == address(0) ||
-            params.harborCommand == address(0)
+            params.harborCommand == address(0) ||
+            params.fleetCommanderRewardsManagerFactory == address(0)
         ) {
             revert AddressZero();
         }
@@ -51,10 +55,16 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         tipJar = params.tipJar;
         treasury = params.treasury;
         harborCommand = params.harborCommand;
+        fleetCommanderRewardsManagerFactory = params
+            .fleetCommanderRewardsManagerFactory;
         emit RaftUpdated(address(0), params.raft);
         emit TipJarUpdated(address(0), params.tipJar);
         emit TreasuryUpdated(address(0), params.treasury);
         emit HarborCommandUpdated(address(0), params.harborCommand);
+        emit FleetCommanderRewardsManagerFactoryUpdated(
+            address(0),
+            params.fleetCommanderRewardsManagerFactory
+        );
         initialized = true;
     }
 
@@ -92,5 +102,19 @@ contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
         }
         emit HarborCommandUpdated(harborCommand, newHarborCommand);
         harborCommand = newHarborCommand;
+    }
+
+    /// @inheritdoc IConfigurationManager
+    function setFleetCommanderRewardsManagerFactory(
+        address newFleetCommanderRewardsManagerFactory
+    ) external onlyGovernor {
+        if (newFleetCommanderRewardsManagerFactory == address(0)) {
+            revert AddressZero();
+        }
+        emit FleetCommanderRewardsManagerFactoryUpdated(
+            fleetCommanderRewardsManagerFactory,
+            newFleetCommanderRewardsManagerFactory
+        );
+        fleetCommanderRewardsManagerFactory = newFleetCommanderRewardsManagerFactory;
     }
 }

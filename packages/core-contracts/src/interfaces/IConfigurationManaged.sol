@@ -44,5 +44,14 @@ interface IConfigurationManaged {
      */
     function harborCommand() external view returns (address);
 
+    /**
+     * @notice Gets the address of the Fleet Commander Rewards Manager Factory contract
+     * @return The address of the Fleet Commander Rewards Manager Factory contract
+     */
+    function fleetCommanderRewardsManagerFactory()
+        external
+        view
+        returns (address);
+
     error ConfigurationManagerZeroAddress();
 }

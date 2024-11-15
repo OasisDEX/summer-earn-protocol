@@ -6,9 +6,8 @@ import path from 'node:path'
  * @returns An array of fleet objects compatible with the current network.
  */
 export function getAvailableFleets(networkName: string) {
-  const deploymentsDir = path.resolve(__dirname, '..', '..', 'deployments')
+  const deploymentsDir = path.resolve(__dirname, '..', '..', 'deployments', 'fleets')
   const files = fs.readdirSync(deploymentsDir).filter((file) => file.endsWith('_deployment.json'))
-
   return files
     .map((file) => {
       const content = JSON.parse(fs.readFileSync(path.join(deploymentsDir, file), 'utf8'))

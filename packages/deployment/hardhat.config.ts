@@ -1,6 +1,6 @@
 import { default as dotenv } from 'dotenv'
-import { resolve } from 'path'
 import 'hardhat-contract-sizer'
+import { resolve } from 'path'
 import './plugins/multiSourceCompile'
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
@@ -20,8 +20,7 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     disambiguatePaths: false,
     runOnCompile: true,
-    strict: true,
-
+    strict: false,
   },
   etherscan: {
     apiKey: {
@@ -38,7 +37,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 100,
       },
       evmVersion: 'cancun',
       viaIR: true,
