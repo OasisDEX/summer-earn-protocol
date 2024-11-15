@@ -10,9 +10,10 @@ import {IConfigurationManager} from "../../src/interfaces/IConfigurationManager.
 import {Tipper} from "../../src/contracts/Tipper.sol";
 
 import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
-import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+
 import {ConfigurationManagerImplMock, ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -48,7 +49,8 @@ contract TipperTest is Test, ITipperEvents {
                     tipJar,
                     address(0),
                     address(0),
-                    address(harborCommand)
+                    address(harborCommand),
+                    address(0)
                 )
             )
         );
@@ -63,10 +65,6 @@ contract TipperTest is Test, ITipperEvents {
     }
 
     function test_InitialState() public view {
-        assertEq(
-            address(fleetCommander.configurationManager()),
-            address(configManager)
-        );
         assertTrue(fleetCommander.tipRate() == initialTipRate);
         assertEq(fleetCommander.tipJar(), tipJar);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
@@ -215,7 +213,7 @@ contract TipperTest is Test, ITipperEvents {
 contract TipperHarness is Tipper {
     constructor(
         address configurationManager
-    ) Tipper(configurationManager, PercentageUtils.fromIntegerPercentage(0)) {
+    ) Tipper(PercentageUtils.fromIntegerPercentage(0)) {
         tipRate = PercentageUtils.fromIntegerPercentage(1); // 1%
     }
 

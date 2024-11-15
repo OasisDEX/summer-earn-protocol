@@ -2,6 +2,7 @@ import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
 import { FleetContracts } from '../../ignition/modules/fleet'
+import { FleetDefinition } from '../../types/config-types'
 
 /**
  * Creates and saves a deployment JSON file with fleet information.
@@ -9,7 +10,7 @@ import { FleetContracts } from '../../ignition/modules/fleet'
  * @param {FleetContracts} deployedFleet - The deployed fleet contracts.
  */
 export function saveFleetDeploymentJson(
-  fleetDefinition: any,
+  fleetDefinition: FleetDefinition,
   deployedFleet: FleetContracts,
   bufferArkAddress: string,
 ) {
@@ -19,16 +20,19 @@ export function saveFleetDeploymentJson(
     assetSymbol: fleetDefinition.assetSymbol,
     fleetAddress: deployedFleet.fleetCommander.address,
     bufferArkAddress: bufferArkAddress,
-    configFile: fleetDefinition.configFile,
     network: fleetDefinition.network,
+    initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
+    initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
+    depositCap: fleetDefinition.depositCap,
+    initialTipRate: fleetDefinition.initialTipRate,
   }
 
-  const deploymentDir = path.resolve(__dirname, '..', '..', 'deployments')
+  const deploymentDir = path.resolve(__dirname, '..', '..', 'deployments', 'fleets')
   if (!fs.existsSync(deploymentDir)) {
     fs.mkdirSync(deploymentDir, { recursive: true })
   }
 
-  const fileName = `${fleetDefinition.fleetName.replace(/\W/g, '')}_deployment.json`
+  const fileName = `${fleetDefinition.fleetName.replace(/\W/g, '')}_${fleetDefinition.network}_deployment.json`
   const filePath = path.join(deploymentDir, fileName)
 
   fs.writeFileSync(filePath, JSON.stringify(deploymentInfo, null, 2))

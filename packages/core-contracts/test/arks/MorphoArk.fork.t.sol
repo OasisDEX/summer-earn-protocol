@@ -7,9 +7,9 @@ import {Test, console} from "forge-std/Test.sol";
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
 import "../../src/events/IArkEvents.sol";
 
+import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTypes.sol";
 
 import {MockUniversalRewardsDistributor} from "../mocks/MockUniversalRewardsDistributor.sol";
 import {ArkTestBase} from "./ArkTestBase.sol";

@@ -42,4 +42,14 @@ abstract contract ConfigurationManaged is IConfigurationManaged {
     function harborCommand() public view virtual returns (address) {
         return configurationManager.harborCommand();
     }
+
+    /// @inheritdoc IConfigurationManaged
+    function fleetCommanderRewardsManagerFactory()
+        public
+        view
+        virtual
+        returns (address)
+    {
+        return configurationManager.fleetCommanderRewardsManagerFactory();
+    }
 }

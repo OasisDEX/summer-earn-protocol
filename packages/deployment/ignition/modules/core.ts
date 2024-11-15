@@ -66,6 +66,8 @@ export const CoreModule = buildModule('CoreModule', (m) => {
    */
   const tipJar = m.contract('TipJar', [protocolAccessManager, configurationManager])
 
+  const fleetCommanderRewardsManagerFactory = m.contract('FleetCommanderRewardsManagerFactory', [])
+
   /**
    * @dev Step 3: Deploy Main Protocol Contracts
    *
@@ -103,6 +105,7 @@ export const CoreModule = buildModule('CoreModule', (m) => {
     tipJar: tipJar,
     treasury: treasury,
     harborCommand: harborCommand,
+    fleetCommanderRewardsManagerFactory: fleetCommanderRewardsManagerFactory,
   }
 
   m.call(configurationManager, 'initializeConfiguration', [configurationManagerParams])
@@ -123,6 +126,7 @@ export const CoreModule = buildModule('CoreModule', (m) => {
     configurationManager,
     harborCommand,
     admiralsQuarters,
+    fleetCommanderRewardsManagerFactory,
   }
 })
 
@@ -137,4 +141,5 @@ export type CoreContracts = {
   configurationManager: { address: string }
   harborCommand: { address: string }
   admiralsQuarters: { address: string }
+  fleetCommanderRewardsManagerFactory: { address: string }
 }

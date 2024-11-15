@@ -131,7 +131,7 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function enableTransfers() external onlyOwner {
+    function enableTransfers() external onlyGovernor {
         if (transfersEnabled) {
             revert TransfersAlreadyEnabled();
         }
@@ -143,19 +143,19 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function addToWhitelist(address account) external onlyOwner {
+    function addToWhitelist(address account) external onlyGovernor {
         whitelistedAddresses[account] = true;
         emit AddressWhitelisted(account);
     }
 
     /// @inheritdoc ISummerToken
-    function removeFromWhitelist(address account) external onlyOwner {
+    function removeFromWhitelist(address account) external onlyGovernor {
         whitelistedAddresses[account] = false;
         emit AddressRemovedFromWhitelist(account);
     }
 
     /// @inheritdoc ISummerToken
-    function mint(address to, uint256 amount) external onlyOwner {
+    function mint(address to, uint256 amount) external onlyGovernor {
         _mint(to, amount);
     }
 
@@ -372,7 +372,7 @@ contract SummerToken is
         address to,
         uint256 amount
     ) internal override {
-        if (_handleRewardsManagerVotingTransfer(from, to, amount)) {
+        if (_handleRewardsManagerVotingTransfer(from, to)) {
             return;
         }
 
@@ -431,13 +431,11 @@ contract SummerToken is
      * @dev Handles voting power transfers involving the rewards manager
      * @param from Source address
      * @param to Destination address
-     * @param amount Amount of voting units to transfer
      * @return bool True if the transfer was handled (rewards manager case), false otherwise
      */
     function _handleRewardsManagerVotingTransfer(
         address from,
-        address to,
-        uint256 amount
+        address to
     ) internal returns (bool) {
         if (from == address(rewardsManager) || to == address(rewardsManager)) {
             return true;
