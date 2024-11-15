@@ -24,6 +24,7 @@ import { FleetCommander as FleetCommanderContract } from '../../generated/templa
 import { updateVaultAPRs } from '../mappings/entities/vault'
 import * as constants from './constants'
 import * as utils from './utils'
+import { addresses } from './addressProvider'
 
 export function getOrCreateAccount(id: string): Account {
   let account = Account.load(id)
@@ -101,7 +102,11 @@ export function getOrCreateToken(address: Address): Token {
     const contract = ERC20Contract.bind(address)
 
     token.name = utils.readValue<string>(contract.try_name(), '')
-    token.symbol = utils.readValue<string>(contract.try_symbol(), '')
+    if (address == addresses.USDCE) {
+      token.symbol = 'USDC.E'
+    } else {
+      token.symbol = utils.readValue<string>(contract.try_symbol(), '')
+    }
     token.decimals = utils
       .readValue<BigInt>(contract.try_decimals(), constants.BigIntConstants.ZERO)
       .toI32() as u8
@@ -229,10 +234,10 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.calculatedApr = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.DAY_IN_SECONDS,
-        )
+        previousSnapshot.pricePerShare!,
+        vault.pricePerShare!,
+        constants.BigDecimalConstants.DAY_IN_SECONDS,
+      )
     log.error('vaultSnapshots.pricePerShare {} previous {} day in seconds {} apr {}', [
       vaultSnapshots.pricePerShare!.toString(),
       previousSnapshot ? previousSnapshot.pricePerShare!.toString() : 'nope',
@@ -295,10 +300,10 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.calculatedApr = !previousSnapshot
       ? constants.BigDecimalConstants.ZERO
       : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.HOUR_IN_SECONDS,
-        )
+        previousSnapshot.pricePerShare!,
+        vault.pricePerShare!,
+        constants.BigDecimalConstants.HOUR_IN_SECONDS,
+      )
 
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
