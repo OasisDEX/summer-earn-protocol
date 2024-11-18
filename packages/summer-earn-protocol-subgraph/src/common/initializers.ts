@@ -334,7 +334,12 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.protocol = constants.PROTOCOL_ID
     const config = vaultContract.getConfig()
+    vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
+    vault.minimumBufferBalance = config.minimumBufferBalance
+    vault.stakingRewardsManager = config.stakingRewardsManager
+    vault.maxRebalanceOperations = config.maxRebalanceOperations
+    vault.details = utils.readValue<string>(vaultContract.try_details(), '')
 
     const inputToken = getOrCreateToken(vaultContract.asset())
     vault.inputToken = inputToken.id
@@ -413,10 +418,14 @@ export function getOrCreateArk(
 
     ark.name = arkContract.name()
     ark.vault = vaultAddress.toHexString()
-    ark.depositLimit = utils.readValue<BigInt>(
-      arkContract.try_depositCap(),
-      constants.BigIntConstants.ZERO,
-    )
+    const config = arkContract.getConfig()
+    ark.depositLimit = config.depositCap
+    ark.depositCap = ark.depositLimit
+    ark.maxDepositPercentageOfTVL = config.maxDepositPercentageOfTVL
+    ark.maxRebalanceOutflow = config.maxRebalanceOutflow
+    ark.maxRebalanceInflow = config.maxRebalanceInflow
+    ark.requiresKeeperData = config.requiresKeeperData
+    ark.details = config.details
 
     ark.inputToken = vault.inputToken
     ark.inputTokenBalance = constants.BigIntConstants.ZERO
