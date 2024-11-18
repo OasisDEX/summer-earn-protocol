@@ -1,5 +1,7 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
+
 import { Address, keccak256, toBytes } from 'viem'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
 import { BaseConfig } from '../types/config-types'
@@ -12,7 +14,6 @@ const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
 const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
-const DEFAULT_ADMIN_ROLE = keccak256(toBytes('DEFAULT_ADMIN_ROLE'))
 
 export async function deployGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -31,12 +32,16 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
   // checkExistingContracts(config, 'gov')
+  // Prompt for initial supply if not provided
+  const initialSupply = await promptForInitialSupply()
+  console.log(kleur.blue('Initial Supply:'), kleur.cyan(`${initialSupply} SUMMER`))
 
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
       GovModule: {
         lzEndpoint: config.common.lzEndpoint,
         protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
+        initialSupply,
       },
     },
   })
@@ -44,9 +49,34 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   updateIndexJson('gov', hre.network.name, gov)
   await setupGovernanceRoles(gov, config)
 
-  console.log(kleur.green().bold('All Core Contracts Deployed Successfully!'))
+  console.log(kleur.green().bold('All Gov Contracts Deployed Successfully!'))
 
   return gov
+}
+
+async function promptForInitialSupply(): Promise<string> {
+  if (process.env.SUMMER_INITIAL_SUPPLY) {
+    return process.env.SUMMER_INITIAL_SUPPLY
+  }
+
+  const { value } = await prompts({
+    type: 'text',
+    name: 'value',
+    message: 'Enter the initial supply of SUMMER tokens (e.g., 10000000 for 10M tokens):',
+    initial: '10000000',
+    validate: (value: string) => {
+      const num = Number(value)
+      if (isNaN(num) || num <= 0) {
+        return 'Please enter a valid positive number'
+      }
+      if (!Number.isInteger(num)) {
+        return 'Please enter a whole number'
+      }
+      return true
+    },
+  })
+
+  return value
 }
 
 /**
