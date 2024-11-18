@@ -112,6 +112,18 @@ templates:
         - event: FleetCommanderWithdrawnFromArks(indexed address,address,uint256)
           handler: handleFleetCommanderWithdrawnFromArks
           receipt: true
+        - event: FleetCommanderDepositCapUpdated(uint256)
+          handler: handleFleetCommanderDepositCapUpdated
+          receipt: true
+        - event: FleetCommanderStakingRewardsUpdated(address)
+          handler: handleFleetCommanderStakingRewardsUpdated
+          receipt: true
+        - event: FleetCommanderMaxRebalanceOperationsUpdated(uint256)
+          handler: handleFleetCommanderMaxRebalanceOperationsUpdated
+          receipt: true
+        - event: FleetCommanderminimumBufferBalanceUpdated(uint256)
+          handler: handleFleetCommanderMinimumBufferBalanceUpdated
+          receipt: true
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
@@ -160,5 +172,17 @@ templates:
           receipt: true
         - event: Moved(indexed address,indexed address,address,uint256)
           handler: handleMoved
+          receipt: true
+        - event: DepositCapUpdated(uint256)
+          handler: handleDepositCapUpdated
+          receipt: true
+        - event: MaxDepositPercentageOfTVLUpdated(uint256)
+          handler: handleMaxDepositPercentageOfTVLUpdated
+          receipt: true
+        - event: MaxRebalanceOutflowUpdated(uint256)
+          handler: handleMaxRebalanceOutflowUpdated
+          receipt: true
+        - event: MaxRebalanceInflowUpdated(uint256)
+          handler: handleMaxRebalanceInflowUpdated
           receipt: true
       file: ./src/mappings/ark.ts
