@@ -3,6 +3,10 @@ import {
   ArkAdded,
   ArkRemoved,
   Deposit as DepositEvent,
+  FleetCommanderDepositCapUpdated,
+  FleetCommanderMaxRebalanceOperationsUpdated,
+  FleetCommanderminimumBufferBalanceUpdated,
+  FleetCommanderStakingRewardsUpdated,
   FleetCommanderWithdrawnFromArks,
   Rebalanced,
   Withdraw as WithdrawEvent,
@@ -73,4 +77,44 @@ export function handleFleetCommanderWithdrawnFromArks(
 ): void {
   const vault = getOrCreateVault(event.address, event.block)
   updateVaultAndArks(event, vault)
+}
+
+export function handleFleetCommanderMinimumBufferBalanceUpdated(
+  event: FleetCommanderminimumBufferBalanceUpdated,
+): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  if (vault) {
+    vault.minimumBufferBalance = event.params.newBalance
+    vault.save()
+  }
+}
+
+export function handleFleetCommanderDepositCapUpdated(
+  event: FleetCommanderDepositCapUpdated,
+): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  if (vault) {
+    vault.depositCap = event.params.newCap
+    vault.save()
+  }
+}
+
+export function handleFleetCommanderStakingRewardsUpdated(
+  event: FleetCommanderStakingRewardsUpdated,
+): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  if (vault) {
+    vault.stakingRewardsManager = event.params.newStakingRewards
+    vault.save()
+  }
+}
+
+export function handleFleetCommanderMaxRebalanceOperationsUpdated(
+  event: FleetCommanderMaxRebalanceOperationsUpdated,
+): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  if (vault) {
+    vault.maxRebalanceOperations = event.params.newMaxRebalanceOperations
+    vault.save()
+  }
 }
