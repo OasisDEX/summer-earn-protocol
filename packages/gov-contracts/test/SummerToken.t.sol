@@ -24,14 +24,6 @@ contract SummerTokenTest is SummerTokenTestBase {
 
     function setUp() public virtual override {
         super.setUp();
-        mintTokens();
-    }
-
-    function mintTokens() public {
-        vm.deal(user1, 1000 ether);
-        vm.deal(user2, 1000 ether);
-        aSummerToken.mint(address(this), INITIAL_SUPPLY * 10 ** 18);
-        bSummerToken.mint(address(this), INITIAL_SUPPLY * 10 ** 18);
     }
 
     // ===============================================
@@ -63,6 +55,7 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(aSummerToken.balanceOf(user1), tokensToSend);
         assertEq(bSummerToken.balanceOf(user2), 0);
 
+        vm.deal(user1, 1 ether);
         vm.prank(user1);
         aSummerToken.send{value: fee.nativeFee}(
             sendParam,
@@ -102,6 +95,7 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(aSummerToken.balanceOf(user1), tokensToSend);
         assertEq(bSummerToken.balanceOf(address(composer)), 0);
 
+        vm.deal(user1, 1 ether);
         vm.prank(user1);
         (
             MessagingReceipt memory msgReceipt,
@@ -205,12 +199,12 @@ contract SummerTokenTest is SummerTokenTestBase {
 
     function test_InitialSupply() public view {
         assertEq(aSummerToken.totalSupply(), INITIAL_SUPPLY * 10 ** 18);
-        assertEq(bSummerToken.totalSupply(), INITIAL_SUPPLY * 10 ** 18);
+        assertEq(bSummerToken.totalSupply(), 0); // bSummerToken is initialized with 0 supply
     }
 
     function test_OwnerBalance() public view {
         assertEq(aSummerToken.balanceOf(owner), INITIAL_SUPPLY * 10 ** 18);
-        assertEq(bSummerToken.balanceOf(owner), INITIAL_SUPPLY * 10 ** 18);
+        assertEq(bSummerToken.balanceOf(owner), 0); // bSummerToken is initialized with 0 supply
     }
 
     function test_TokenNameAndSymbol() public view {
@@ -230,12 +224,10 @@ contract SummerTokenTest is SummerTokenTestBase {
             (INITIAL_SUPPLY * 10 ** 18) - amount
         );
 
+        bSummerToken.mint(owner, amount * 2); // bSummerToken is initialized with 0 supply, so we need to mint to test transfer
         bSummerToken.transfer(user2, amount);
         assertEq(bSummerToken.balanceOf(user2), amount);
-        assertEq(
-            bSummerToken.balanceOf(owner),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
+        assertEq(bSummerToken.balanceOf(owner), amount);
     }
 
     function test_TransfersBlockedByDefault() public {
@@ -265,6 +257,9 @@ contract SummerTokenTest is SummerTokenTestBase {
         bSummerToken.approve(user1, amount);
         assertEq(bSummerToken.allowance(owner, user1), amount);
 
+        // bSummerToken is initialized with 0 supply, so we need to mint to test transferFrom
+        bSummerToken.mint(owner, amount);
+
         vm.prank(user1);
         bSummerToken.transferFrom(owner, user2, amount);
         assertEq(bSummerToken.balanceOf(user2), amount);
@@ -289,6 +284,8 @@ contract SummerTokenTest is SummerTokenTestBase {
         enableTransfers();
         uint256 amount = 1000 * 10 ** 18;
         uint256 initialSupplyA = aSummerToken.totalSupply();
+
+        bSummerToken.mint(owner, amount); // bSummerToken is initialized with 0 supply, so we need to mint to test burn
         uint256 initialSupplyB = bSummerToken.totalSupply();
 
         aSummerToken.burn(amount);
@@ -325,19 +322,14 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
         assertEq(aSummerToken.allowance(owner, user1), 0);
 
+        bSummerToken.mint(owner, amount * 2); // bSummerToken is initialized with 0 supply, so we need to mint to test burnFrom
         bSummerToken.approve(user1, amount);
 
         vm.prank(user1);
         bSummerToken.burnFrom(owner, amount);
 
-        assertEq(
-            bSummerToken.balanceOf(owner),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
-        assertEq(
-            bSummerToken.totalSupply(),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
+        assertEq(bSummerToken.balanceOf(owner), amount);
+        assertEq(bSummerToken.totalSupply(), amount);
         assertEq(bSummerToken.allowance(owner, user1), 0);
     }
 
@@ -584,12 +576,10 @@ contract SummerTokenTest is SummerTokenTestBase {
             (INITIAL_SUPPLY * 10 ** 18) - amount
         );
 
+        bSummerToken.mint(owner, amount * 2); // bSummerToken is initialized with 0 supply, so we need to mint to test transfer
         bSummerToken.addToWhitelist(user2);
         bSummerToken.transfer(user2, amount);
         assertEq(bSummerToken.balanceOf(user2), amount);
-        assertEq(
-            bSummerToken.balanceOf(owner),
-            (INITIAL_SUPPLY * 10 ** 18) - amount
-        );
+        assertEq(bSummerToken.balanceOf(owner), amount);
     }
 }

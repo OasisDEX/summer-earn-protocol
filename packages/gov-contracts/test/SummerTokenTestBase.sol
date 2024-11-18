@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../src/contracts/SummerToken.sol";
+import {SupplyControlSummerToken} from "./SupplyControlSummerToken.sol";
 import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
 
 import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
@@ -19,14 +19,15 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol"
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockSummerGovernor} from "./MockSummerGovernor.sol";
 import {SummerVestingWalletFactory} from "../src/contracts/SummerVestingWalletFactory.sol";
+
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
     uint32 public aEid = 1;
     uint32 public bEid = 2;
 
-    SummerToken public aSummerToken;
-    SummerToken public bSummerToken;
+    SupplyControlSummerToken public aSummerToken;
+    SupplyControlSummerToken public bSummerToken;
 
     SummerVestingWalletFactory public vestingWalletFactoryA;
     SummerVestingWalletFactory public vestingWalletFactoryB;
@@ -107,7 +108,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                transferEnableDate: block.timestamp + 1 days
+                transferEnableDate: block.timestamp + 1 days,
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                initialSupply: INITIAL_SUPPLY * 10 ** 18
             });
 
         ISummerToken.TokenParams memory tokenParamsB = ISummerToken
@@ -121,14 +124,16 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                transferEnableDate: block.timestamp + 1 days
+                transferEnableDate: block.timestamp + 1 days,
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                initialSupply: 0
             });
 
         vm.label(owner, "Owner");
 
         vm.startPrank(owner);
-        aSummerToken = new SummerToken(tokenParamsA);
-        bSummerToken = new SummerToken(tokenParamsB);
+        aSummerToken = new SupplyControlSummerToken(tokenParamsA);
+        bSummerToken = new SupplyControlSummerToken(tokenParamsB);
         vm.stopPrank();
 
         vestingWalletFactoryA = SummerVestingWalletFactory(
@@ -166,8 +171,12 @@ contract SummerTokenTestBase is TestHelperOz5 {
         address _newOwnerA,
         address _newOwnerB
     ) public {
+        vm.startPrank(owner);
+        aSummerToken.transfer(_newOwnerA, aSummerToken.balanceOf(owner));
+        bSummerToken.transfer(_newOwnerB, bSummerToken.balanceOf(owner));
         aSummerToken.transferOwnership(_newOwnerA);
         bSummerToken.transferOwnership(_newOwnerB);
+        vm.stopPrank();
     }
 }
 
