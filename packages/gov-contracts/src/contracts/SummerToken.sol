@@ -10,6 +10,7 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {ERC20Capped} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
@@ -31,6 +32,7 @@ contract SummerToken is
     ERC20Burnable,
     ERC20Votes,
     ERC20Permit,
+    ERC20Capped,
     ProtocolAccessManaged,
     ISummerToken
 {
@@ -75,6 +77,7 @@ contract SummerToken is
     )
         OFT(params.name, params.symbol, params.lzEndpoint, params.owner)
         ERC20Permit(params.name)
+        ERC20Capped(params.maxSupply)
         ProtocolAccessManaged(params.accessManager)
         Ownable(params.owner)
     {
@@ -90,6 +93,8 @@ contract SummerToken is
         );
 
         transferEnableDate = params.transferEnableDate;
+
+        _mint(params.owner, params.maxSupply);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -198,11 +203,6 @@ contract SummerToken is
         );
     }
 
-    /// @inheritdoc ISummerToken
-    function mint(address to, uint256 amount) external onlyOwner {
-        _mint(to, amount);
-    }
-
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -309,7 +309,7 @@ contract SummerToken is
         address from,
         address to,
         uint256 amount
-    ) internal override(ERC20, ERC20Votes) {
+    ) internal override(ERC20, ERC20Votes, ERC20Capped) {
         if (!_canTransfer(from, to)) {
             revert TransferNotAllowed();
         }
@@ -478,7 +478,7 @@ contract SummerToken is
         address from,
         address to,
         uint256 amount
-    ) internal returns (bool) {
+    ) internal view returns (bool) {
         if (from == address(rewardsManager) || to == address(rewardsManager)) {
             return true;
         }

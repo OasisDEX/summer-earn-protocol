@@ -24,14 +24,6 @@ contract SummerTokenTest is SummerTokenTestBase {
 
     function setUp() public virtual override {
         super.setUp();
-        mintTokens();
-    }
-
-    function mintTokens() public {
-        vm.deal(user1, 1000 ether);
-        vm.deal(user2, 1000 ether);
-        aSummerToken.mint(address(this), INITIAL_SUPPLY * 10 ** 18);
-        bSummerToken.mint(address(this), INITIAL_SUPPLY * 10 ** 18);
     }
 
     // ===============================================

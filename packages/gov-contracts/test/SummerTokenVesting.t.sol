@@ -33,7 +33,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     function setUp() public override {
         super.setUp();
         enableTransfers();
-        aSummerToken.mint(address(this), INITIAL_SUPPLY * 10 ** 18);
+        aSummerToken.transfer(address(this), INITIAL_SUPPLY * 10 ** 18);
         beneficiary = address(0x1);
         nonGovernance = address(0x2);
 

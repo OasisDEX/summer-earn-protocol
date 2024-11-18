@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../src/contracts/SummerToken.sol";
+import {SupplyControlSummerToken} from "./SupplyControlSummerToken.sol";
 import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
 
 import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
@@ -25,8 +25,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
     uint32 public aEid = 1;
     uint32 public bEid = 2;
 
-    SummerToken public aSummerToken;
-    SummerToken public bSummerToken;
+    SupplyControlSummerToken public aSummerToken;
+    SupplyControlSummerToken public bSummerToken;
 
     TimelockController public timelockA;
     TimelockController public timelockB;
@@ -98,7 +98,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 name: "SummerToken A",
                 symbol: "SUMMERA",
                 lzEndpoint: lzEndpointA,
-                // Changed in inheriting test suites
                 owner: owner,
                 accessManager: address(accessManagerA),
                 decayManager: address(mockGovernor),
@@ -106,7 +105,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 governor: address(mockGovernor),
-                transferEnableDate: block.timestamp + 1 days
+                transferEnableDate: block.timestamp + 1 days,
+                maxSupply: INITIAL_SUPPLY * 10 ** 18
             });
 
         ISummerToken.TokenParams memory tokenParamsB = ISummerToken
@@ -114,7 +114,6 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 name: "SummerToken B",
                 symbol: "SUMMERB",
                 lzEndpoint: lzEndpointB,
-                // Changed in inheriting test suites
                 owner: owner,
                 accessManager: address(accessManagerB),
                 decayManager: address(mockGovernor),
@@ -122,14 +121,15 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 governor: address(mockGovernor),
-                transferEnableDate: block.timestamp + 1 days
+                transferEnableDate: block.timestamp + 1 days,
+                maxSupply: INITIAL_SUPPLY * 10 ** 18
             });
 
         vm.label(owner, "Owner");
 
         vm.startPrank(owner);
-        aSummerToken = new SummerToken(tokenParamsA);
-        bSummerToken = new SummerToken(tokenParamsB);
+        aSummerToken = new SupplyControlSummerToken(tokenParamsA);
+        bSummerToken = new SupplyControlSummerToken(tokenParamsB);
         vm.stopPrank();
 
         // Config and wire the tokens

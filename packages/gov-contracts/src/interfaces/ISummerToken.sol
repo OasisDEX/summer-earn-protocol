@@ -27,6 +27,9 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
      * @param initialDecayFreeWindow The initial decay free window in seconds
      * @param initialDecayRate The initial decay rate
      * @param initialDecayFunction The initial decay function
+     * @param governor The governor address
+     * @param transferEnableDate The transfer enable date
+     * @param maxSupply The maximum supply of the token
      */
     struct TokenParams {
         string name;
@@ -41,6 +44,7 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
         VotingDecayLibrary.DecayFunction initialDecayFunction;
         address governor;
         uint256 transferEnableDate;
+        uint256 maxSupply;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -145,13 +149,6 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
         uint256[] memory goalAmounts,
         SummerVestingWallet.VestingType vestingType
     ) external;
-
-    /**
-     * @notice Mints new tokens and assigns them to the specified address
-     * @param to The address to receive the minted tokens
-     * @param amount The amount of tokens to mint
-     */
-    function mint(address to, uint256 amount) external;
 
     /**
      * @notice Updates the decay factor for a specific account
