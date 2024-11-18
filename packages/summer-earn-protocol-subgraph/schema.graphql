@@ -349,6 +349,9 @@ type Vault @entity @regularPolling {
   " Name of liquidity pool (e.g. Curve.fi DAI/USDC/USDT) "
   name: String
 
+  " Details of the Fleet Commander "
+  details: String
+
   " Symbol of liquidity pool (e.g. 3CRV) "
   symbol: String
 
@@ -921,6 +924,9 @@ type Ark @entity @regularPolling {
 
   " Name of liquidity pool (e.g. Curve.fi DAI/USDC/USDT) "
   name: String
+
+  " Details of the ark "
+  details: String
 
   " Token that need to be deposited to take a position in protocol "
   inputToken: Token!

@@ -339,6 +339,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.minimumBufferBalance = config.minimumBufferBalance
     vault.stakingRewardsManager = config.stakingRewardsManager
     vault.maxRebalanceOperations = config.maxRebalanceOperations
+    vault.details = utils.readValue<string>(vaultContract.try_details(), '')
 
     const inputToken = getOrCreateToken(vaultContract.asset())
     vault.inputToken = inputToken.id
@@ -417,24 +418,15 @@ export function getOrCreateArk(
 
     ark.name = arkContract.name()
     ark.vault = vaultAddress.toHexString()
-    ark.depositLimit = utils.readValue<BigInt>(
-      arkContract.try_depositCap(),
-      constants.BigIntConstants.ZERO,
-    )
+    const config = arkContract.getConfig()
+    ark.depositLimit = config.depositCap
     ark.depositCap = ark.depositLimit
-    ark.maxDepositPercentageOfTVL = utils.readValue<BigInt>(
-      arkContract.try_maxDepositPercentageOfTVL(),
-      constants.BigIntConstants.ZERO,
-    )
-    ark.maxRebalanceOutflow = utils.readValue<BigInt>(
-      arkContract.try_maxRebalanceOutflow(),
-      constants.BigIntConstants.ZERO,
-    )
-    ark.maxRebalanceInflow = utils.readValue<BigInt>(
-      arkContract.try_maxRebalanceInflow(),
-      constants.BigIntConstants.ZERO,
-    )
-    ark.requiresKeeperData = arkContract.requiresKeeperData()
+    ark.maxDepositPercentageOfTVL = config.maxDepositPercentageOfTVL
+    ark.maxRebalanceOutflow = config.maxRebalanceOutflow
+    ark.maxRebalanceInflow = config.maxRebalanceInflow
+    ark.requiresKeeperData = config.requiresKeeperData
+    ark.details = config.details
+
     ark.inputToken = vault.inputToken
     ark.inputTokenBalance = constants.BigIntConstants.ZERO
     ark.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
