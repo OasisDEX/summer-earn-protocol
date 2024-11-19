@@ -40,14 +40,24 @@ interface IAdmiralsQuarters is
      * @param fleetCommander The address of the FleetCommander contract
      * @param inputToken The token to be deposited
      * @param amount The amount of inputToken to be deposited (0 for all)
+     * @param receiver The address to receive the shares
      * @return shares The number of shares received from the FleetCommander
      * @dev Emits a FleetEntered event
      */
     function enterFleet(
         address fleetCommander,
         IERC20 inputToken,
-        uint256 amount
+        uint256 amount,
+        address receiver
     ) external returns (uint256 shares);
+
+    /**
+     * @notice Stakes shares in a FleetCommander
+     * @param fleetCommander The address of the FleetCommander contract
+     * @param amount The amount of shares to stake
+     * @dev Emits a FleetSharesStaked event
+     */
+    function stakeFleetShares(address fleetCommander, uint256 amount) external;
 
     /**
      * @notice Exits a FleetCommander by withdrawing tokens

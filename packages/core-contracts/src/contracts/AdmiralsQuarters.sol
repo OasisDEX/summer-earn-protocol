@@ -5,13 +5,14 @@ import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next
 
 import {IAdmiralsQuarters} from "../interfaces/IAdmiralsQuarters.sol";
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
+
+import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
+import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
-import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
-import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
-import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 /**
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
@@ -49,6 +50,7 @@ import {ConfigurationManaged} from "./ConfigurationManaged.sol";
  * - Ensure that the 1inch Router address provided in the constructor is correct and trusted.
  * - Since there is no data exchange between calls - make sure all the tokens are returned to the user
  */
+
 contract AdmiralsQuarters is
     Ownable,
     Multicall,
@@ -95,7 +97,8 @@ contract AdmiralsQuarters is
     function enterFleet(
         address fleetCommander,
         IERC20 inputToken,
-        uint256 amount
+        uint256 amount,
+        address receiver
     ) external nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
         _validateToken(inputToken);
@@ -110,9 +113,9 @@ contract AdmiralsQuarters is
         if (depositAmount > balance) revert InsufficientOutputAmount();
 
         fleetToken.forceApprove(address(fleet), depositAmount);
-        shares = fleet.deposit(depositAmount, msg.sender);
+        shares = fleet.deposit(depositAmount, receiver);
 
-        emit FleetEntered(msg.sender, fleetCommander, depositAmount, shares);
+        emit FleetEntered(receiver, fleetCommander, depositAmount, shares);
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -131,12 +134,12 @@ contract AdmiralsQuarters is
         emit FleetExited(msg.sender, fleetCommander, withdrawAmount, shares);
     }
 
+    /// @inheritdoc IAdmiralsQuarters
     function stakeFleetShares(
         address fleetCommander,
         uint256 amount
     ) external nonReentrant {
         _validateFleetCommander(fleetCommander);
-        _validateAmount(amount);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         address rewardsManager = fleet.getConfig().stakingRewardsManager;
