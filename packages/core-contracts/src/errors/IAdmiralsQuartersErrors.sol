@@ -62,4 +62,9 @@ interface IAdmiralsQuartersErrors {
      * @notice Thrown when the provided token does not match the expected token.
      */
     error TokenMismatch();
+
+    /**
+     * @notice Thrown when the provided rewards manager does not match the expected rewards manager.
+     */
+    error InvalidRewardsManager();
 }

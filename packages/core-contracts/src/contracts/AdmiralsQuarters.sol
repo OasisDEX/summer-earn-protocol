@@ -9,7 +9,9 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
-
+import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
+import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
+import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 /**
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
@@ -51,21 +53,25 @@ contract AdmiralsQuarters is
     Ownable,
     Multicall,
     ReentrancyGuardTransient,
-    IAdmiralsQuarters
+    IAdmiralsQuarters,
+    ConfigurationManaged
 {
     using SafeERC20 for IERC20;
 
     address public immutable oneInchRouter;
 
-    constructor(address _oneInchRouter) Ownable(msg.sender) {
+    constructor(
+        address _oneInchRouter,
+        address _configurationManager
+    ) Ownable(msg.sender) ConfigurationManaged(_configurationManager) {
         if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
         oneInchRouter = _oneInchRouter;
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function depositTokens(IERC20 asset, uint256 amount) external nonReentrant {
-        if (address(asset) == address(0)) revert InvalidToken();
-        if (amount == 0) revert ZeroAmount();
+        _validateToken(asset);
+        _validateAmount(amount);
 
         asset.safeTransferFrom(msg.sender, address(this), amount);
         emit TokensDeposited(msg.sender, address(asset), amount);
@@ -76,7 +82,7 @@ contract AdmiralsQuarters is
         IERC20 asset,
         uint256 amount
     ) external nonReentrant {
-        if (address(asset) == address(0)) revert InvalidToken();
+        _validateToken(asset);
         if (amount == 0) {
             amount = asset.balanceOf(address(this));
         }
@@ -91,8 +97,8 @@ contract AdmiralsQuarters is
         IERC20 inputToken,
         uint256 amount
     ) external nonReentrant returns (uint256 shares) {
-        if (fleetCommander == address(0)) revert InvalidFleetCommander();
-        if (address(inputToken) == address(0)) revert InvalidToken();
+        _validateFleetCommander(fleetCommander);
+        _validateToken(inputToken);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetToken = IERC20(fleet.asset());
@@ -114,7 +120,7 @@ contract AdmiralsQuarters is
         address fleetCommander,
         uint256 amount
     ) external nonReentrant returns (uint256 shares) {
-        if (fleetCommander == address(0)) revert InvalidFleetCommander();
+        _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
 
@@ -123,6 +129,30 @@ contract AdmiralsQuarters is
         shares = fleet.withdraw(withdrawAmount, address(this), msg.sender);
 
         emit FleetExited(msg.sender, fleetCommander, withdrawAmount, shares);
+    }
+
+    function stakeFleetShares(
+        address fleetCommander,
+        uint256 amount
+    ) external nonReentrant {
+        _validateFleetCommander(fleetCommander);
+        _validateAmount(amount);
+
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        address rewardsManager = fleet.getConfig().stakingRewardsManager;
+        if (rewardsManager == address(0)) revert InvalidRewardsManager();
+
+        uint256 balance = IERC20(fleetCommander).balanceOf(address(this));
+        uint256 stakeAmount = amount == 0 ? balance : amount;
+        if (stakeAmount > balance) revert InsufficientOutputAmount();
+
+        IERC20(fleetCommander).forceApprove(rewardsManager, stakeAmount);
+        IFleetCommanderRewardsManager(rewardsManager).stakeOnBehalfOf(
+            msg.sender,
+            stakeAmount
+        );
+
+        emit FleetSharesStaked(msg.sender, fleetCommander, stakeAmount);
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -189,6 +219,24 @@ contract AdmiralsQuarters is
         if (swappedAmount < minTokensReceived) {
             revert InsufficientOutputAmount();
         }
+    }
+
+    function _validateFleetCommander(address fleetCommander) internal view {
+        if (
+            !IHarborCommand(harborCommand()).activeFleetCommanders(
+                fleetCommander
+            )
+        ) {
+            revert InvalidFleetCommander();
+        }
+    }
+
+    function _validateToken(IERC20 token) internal view {
+        if (address(token) == address(0)) revert InvalidToken();
+    }
+
+    function _validateAmount(uint256 amount) internal view {
+        if (amount == 0) revert ZeroAmount();
     }
 
     /// @inheritdoc IAdmiralsQuarters

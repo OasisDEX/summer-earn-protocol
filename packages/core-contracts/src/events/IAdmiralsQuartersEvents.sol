@@ -62,6 +62,18 @@ interface IAdmiralsQuartersEvents {
     );
 
     /**
+     * @dev Emitted when a user stakes their fleet shares.
+     * @param user The address of the user who staked their shares.
+     * @param fleetCommander The address of the FleetCommander contract.
+     * @param amount The amount of shares staked.
+     */
+    event FleetSharesStaked(
+        address indexed user,
+        address indexed fleetCommander,
+        uint256 amount
+    );
+
+    /**
      * @dev Emitted when a token swap occurs.
      * @param user The address of the user who performed the swap.
      * @param fromToken The address of the token being swapped from.

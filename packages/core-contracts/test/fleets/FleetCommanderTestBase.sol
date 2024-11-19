@@ -209,6 +209,8 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         fleetCommanderStorageWriter = new FleetCommanderStorageWriter(
             address(fleetCommander)
         );
+        harborCommand.enlistFleetCommander(address(fleetCommander));
+        vm.stopPrank();
     }
 
     function setupMockArks(address underlyingToken) internal {

@@ -57,7 +57,10 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             address(fleetCommander)
         );
 
-        admiralsQuarters = new AdmiralsQuarters(ONE_INCH_ROUTER);
+        admiralsQuarters = new AdmiralsQuarters(
+            ONE_INCH_ROUTER,
+            address(configurationManager)
+        );
 
         // Grant roles
         accessManager.grantContractSpecificRole(
@@ -103,8 +106,15 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
     function test_Constructor() public {
         vm.startPrank(governor);
         vm.expectRevert(abi.encodeWithSignature("InvalidRouterAddress()"));
-        new AdmiralsQuarters(address(0));
-        admiralsQuarters = new AdmiralsQuarters(ONE_INCH_ROUTER);
+        new AdmiralsQuarters(address(0), address(configurationManager));
+        vm.expectRevert(
+            abi.encodeWithSignature("ConfigurationManagerZeroAddress()")
+        );
+        new AdmiralsQuarters(ONE_INCH_ROUTER, address(0));
+        admiralsQuarters = new AdmiralsQuarters(
+            ONE_INCH_ROUTER,
+            address(configurationManager)
+        );
         assertEq(
             address(admiralsQuarters.owner()),
             governor,
