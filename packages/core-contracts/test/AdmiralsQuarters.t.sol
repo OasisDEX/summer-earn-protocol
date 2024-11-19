@@ -296,7 +296,32 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         vm.stopPrank();
     }
-
+    function test_Deposit_Enter_Stake_Reverts() public {
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+        uint256 usdcAmount = 1000e6; // 1000 USDC
+        vm.startPrank(user1);
+        bytes[] memory enterCalls = new bytes[](3);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), usdcAmount)
+        );
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (
+                address(usdcFleet),
+                IERC20(USDC_ADDRESS),
+                usdcAmount / 2,
+                address(admiralsQuarters)
+            )
+        );
+        enterCalls[2] = abi.encodeCall(
+            admiralsQuarters.stakeFleetShares,
+            (address(usdcFleet), usdcAmount)
+        );
+        vm.expectRevert(abi.encodeWithSignature("InsufficientOutputAmount()"));
+        admiralsQuarters.multicall(enterCalls);
+        vm.stopPrank();
+    }
     function test_EnterAndExitFleetsX() public {
         uint256 usdcAmount = 1000e6; // 1000 USDC
         uint256 minDaiAmount = 499e18; // Expecting at least 499 DAI

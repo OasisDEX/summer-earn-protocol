@@ -143,7 +143,7 @@ contract AdmiralsQuarters is
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         address rewardsManager = fleet.getConfig().stakingRewardsManager;
-        if (rewardsManager == address(0)) revert InvalidRewardsManager();
+        _validateRewardsManager(rewardsManager);
 
         uint256 balance = IERC20(fleetCommander).balanceOf(address(this));
         uint256 stakeAmount = amount == 0 ? balance : amount;
@@ -241,7 +241,9 @@ contract AdmiralsQuarters is
     function _validateAmount(uint256 amount) internal view {
         if (amount == 0) revert ZeroAmount();
     }
-
+    function _validateRewardsManager(address rewardsManager) internal view {
+        if (rewardsManager == address(0)) revert InvalidRewardsManager();
+    }
     /// @inheritdoc IAdmiralsQuarters
     function rescueTokens(
         IERC20 token,
