@@ -45,8 +45,7 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - ADDRESS_ZERO as executor (anyone can execute)
    * - deployer as admin (temporary)
    */
-  const MIN_DELAY = 86400n
-  const TEMP_MIN_DELAY_DURING_TESTING = MIN_DELAY / 48n // 30 minutes
+  const TEMP_MIN_DELAY_DURING_TESTING = 300n // 5 minutes
   const timelock = m.contract('TimelockController', [
     TEMP_MIN_DELAY_DURING_TESTING,
     [deployer],

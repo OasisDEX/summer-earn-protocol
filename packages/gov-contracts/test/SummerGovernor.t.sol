@@ -35,13 +35,6 @@ contract ExposedSummerGovernor is SummerGovernor {
         _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
     }
 
-    function setTrustedRemote(
-        uint32 _chainId,
-        address _trustedRemote
-    ) public override {
-        trustedRemotes[_chainId] = _trustedRemote;
-    }
-
     function exposedSendProposalToTargetChain(
         uint32 _dstEid,
         address[] memory _dstTargets,
@@ -88,8 +81,8 @@ contract SummerGovernorTest is
     uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
     uint256 public constant QUORUM_FRACTION = 4;
 
-    uint32[] public trustedRemoteChainIds = [1, 2];
-    address[] public trustedRemoteAddresses = [address(0x116), address(0x117)];
+    uint32[] public peerChainIds = [1, 2];
+    address[] public peerAddresses = [address(0x116), address(0x117)];
 
     /*
      * @dev Sets up the test environment.
@@ -115,8 +108,8 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
                 proposalChainId: 31337,
-                trustedRemoteChainIds: trustedRemoteChainIds,
-                trustedRemoteAddresses: trustedRemoteAddresses
+                peerChainIds: peerChainIds,
+                peerAddresses: peerAddresses
             });
         SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
             .GovernorParams({
@@ -129,8 +122,8 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
                 proposalChainId: 31337,
-                trustedRemoteChainIds: trustedRemoteChainIds,
-                trustedRemoteAddresses: trustedRemoteAddresses
+                peerChainIds: peerChainIds,
+                peerAddresses: peerAddresses
             });
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
@@ -140,9 +133,6 @@ contract SummerGovernorTest is
 
         vm.prank(address(timelockB));
         accessManagerB.grantDecayControllerRole(address(governorB));
-
-        governorA.setTrustedRemote(bEid, address(governorB));
-        governorB.setTrustedRemote(aEid, address(governorA));
 
         vm.label(address(governorA), "SummerGovernor");
         vm.label(address(governorB), "SummerGovernor");
@@ -551,8 +541,8 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: address(0),
                 endpoint: lzEndpointA,
                 proposalChainId: 31337,
-                trustedRemoteChainIds: trustedRemoteChainIds,
-                trustedRemoteAddresses: trustedRemoteAddresses
+                peerChainIds: peerChainIds,
+                peerAddresses: peerAddresses
             });
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -957,8 +947,8 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: address(0x5),
                 endpoint: lzEndpointA,
                 proposalChainId: 31337,
-                trustedRemoteChainIds: trustedRemoteChainIds,
-                trustedRemoteAddresses: trustedRemoteAddresses
+                peerChainIds: peerChainIds,
+                peerAddresses: peerAddresses
             });
 
         vm.expectRevert(
@@ -992,7 +982,6 @@ contract SummerGovernorTest is
         uint256 expiration = block.timestamp + 10 days;
 
         // Ensure Alice has enough voting power
-        uint256 proposalThreshold = governorA.proposalThreshold();
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
@@ -1528,8 +1517,8 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: address(endpoints[aEid]),
                 proposalChainId: governanceChainId, // Set to a different chain ID
-                trustedRemoteChainIds: trustedRemoteChainIds,
-                trustedRemoteAddresses: trustedRemoteAddresses
+                peerChainIds: peerChainIds,
+                peerAddresses: peerAddresses
             });
 
         ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(
@@ -1580,7 +1569,6 @@ contract SummerGovernorTest is
         // Give multiple voters enough combined tokens to meet quorum
         uint256 aliceTokens = quorumThreshold / 2;
         uint256 bobTokens = quorumThreshold / 2;
-        uint256 totalVotingPower = aliceTokens + bobTokens;
 
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(alice, aliceTokens);
@@ -1906,7 +1894,7 @@ contract SummerGovernorTest is
         // Case 4: Transfer from vesting wallet to beneficiary (Alice)
         // First, let's make the tokens vestable
         vm.warp(block.timestamp + 365 days);
-        uint256 vestableAmount = vestingWallet.vestedAmount(
+        vestingWallet.vestedAmount(
             address(aSummerToken),
             SafeCast.toUint64(block.timestamp)
         );

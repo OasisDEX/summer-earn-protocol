@@ -104,7 +104,7 @@ contract SummerGovernor is
         uint32[] memory _peerChainIds,
         address[] memory _peerAddresses
     ) internal {
-        if (params.peerChainIds.length <= 0) {
+        if (_peerChainIds.length <= 0) {
             return;
         }
         if (_peerChainIds.length != _peerAddresses.length) {
@@ -458,8 +458,6 @@ contract SummerGovernor is
                             OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // ... existing code ...
-
     /**
      * @dev Override of GovernorCountingSimple._countVote to use decayed voting power
      */
@@ -467,7 +465,7 @@ contract SummerGovernor is
         uint256 proposalId,
         address account,
         uint8 support,
-        uint256 weight,
+        uint256,
         bytes memory params
     )
         internal
