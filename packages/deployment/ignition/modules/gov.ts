@@ -34,8 +34,6 @@ export const GovModule = buildModule('GovModule', (m) => {
   const lzEndpoint = m.getParameter('lzEndpoint')
   const protocolAccessManagerAddress = m.getParameter('protocolAccessManager')
   const initialSupply = m.getParameter('initialSupply')
-  const trustedRemoteChainIds = m.getParameter('trustedRemoteChainIds')
-  const trustedRemoteAddresses = m.getParameter('trustedRemoteAddresses')
 
   /**
    * @dev Step 1: Deploy TimelockController
@@ -46,7 +44,7 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - deployer as admin (temporary)
    */
   const MIN_DELAY = 86400n
-  const TEMP_MIN_DELAY_DURING_TESTING = MIN_DELAY / 24n
+  const TEMP_MIN_DELAY_DURING_TESTING = MIN_DELAY / 48n // 30 minutes
   const timelock = m.contract('TimelockController', [
     TEMP_MIN_DELAY_DURING_TESTING,
     [deployer],
@@ -95,8 +93,6 @@ export const GovModule = buildModule('GovModule', (m) => {
     initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
     proposalChainId: 8453n,
-    trustedRemoteChainIds: trustedRemoteChainIds,
-    trustedRemoteAddresses: trustedRemoteAddresses,
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
 

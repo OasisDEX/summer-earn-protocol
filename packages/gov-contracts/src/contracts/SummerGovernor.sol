@@ -58,8 +58,6 @@ contract SummerGovernor is
 
     GovernorConfig public config;
 
-    mapping(uint32 chainId => address trustedRemote) public trustedRemotes;
-
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -95,10 +93,6 @@ contract SummerGovernor is
         proposalChainId = params.proposalChainId;
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
-        _setInitialTrustedRemotes(
-            params.trustedRemoteChainIds,
-            params.trustedRemoteAddresses
-        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -199,13 +193,6 @@ contract SummerGovernor is
             );
 
         emit ProposalReceivedCrossChain(proposalId, _origin.srcEid);
-
-        address trustedRemote = trustedRemotes[_origin.srcEid];
-        address originSender = address(uint160(uint256(_origin.sender)));
-
-        if (originSender != trustedRemote) {
-            revert SummerGovernorInvalidSender(originSender);
-        }
 
         _executeCrossChainProposal(
             proposalId,
@@ -441,29 +428,6 @@ contract SummerGovernor is
         }
         config.whitelistGuardian = _whitelistGuardian;
         emit WhitelistGuardianSet(_whitelistGuardian);
-    }
-
-    /**
-     * @dev Internal function to set initial trusted remotes
-     * @param _chainIds Array of chain IDs to set as trusted
-     * @param _remoteAddresses Array of corresponding remote addresses
-     */
-    function _setInitialTrustedRemotes(
-        uint32[] memory _chainIds,
-        address[] memory _remoteAddresses
-    ) internal {
-        if (_chainIds.length != _remoteAddresses.length) {
-            revert SummerGovernorInvalidTrustedRemoteArrays();
-        }
-
-        for (uint256 i = 0; i < _chainIds.length; i++) {
-            address remote = _remoteAddresses[i];
-            if (remote == address(0)) {
-                revert SummerGovernorInvalidTrustedRemote(remote);
-            }
-            trustedRemotes[_chainIds[i]] = remote;
-            emit TrustedRemoteSet(_chainIds[i], remote);
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -709,18 +673,6 @@ contract SummerGovernor is
         returns (uint256)
     {
         return super.votingPeriod();
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function setTrustedRemote(
-        uint32 _chainId,
-        address _trustedRemote
-    ) external virtual onlyGovernance {
-        if (_trustedRemote == address(0)) {
-            revert SummerGovernorInvalidTrustedRemote(_trustedRemote);
-        }
-        trustedRemotes[_chainId] = _trustedRemote;
-        emit TrustedRemoteSet(_chainId, _trustedRemote);
     }
 
     /**

@@ -45,16 +45,6 @@ interface ISummerGovernorErrors {
      */
     error SummerGovernorInvalidWhitelistGuardian(address whitelistGuardian);
 
-    /* @notice Error thrown when the sender is invalid
-     * @param originSender The invalid sender
-     */
-    error SummerGovernorInvalidSender(address originSender);
-
-    /* @notice Error thrown when the trusted remote is invalid
-     * @param trustedRemote The invalid trusted remote
-     */
-    error SummerGovernorInvalidTrustedRemote(address trustedRemote);
-
     /* @notice Error thrown when the chain id is invalid
      * @param chainId The invalid chain id
      * @param proposalChainId The proposal chain id
@@ -67,7 +57,4 @@ interface ISummerGovernorErrors {
 
     /* @notice Error thrown when the caller is not the rewards manager */
     error SummerGovernorInvalidCaller();
-
-    /* @notice Error thrown when the trusted remote arrays are invalid */
-    error SummerGovernorInvalidTrustedRemoteArrays();
 }
