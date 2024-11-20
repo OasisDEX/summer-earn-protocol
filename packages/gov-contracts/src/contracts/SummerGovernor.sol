@@ -92,19 +92,13 @@ contract SummerGovernor is
         // @dev LayerZero do not directly initialize Ownable, so we do it here
         Ownable(address(params.timelock))
     {
-        if (
-            params.proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
-            params.proposalThreshold > MAX_PROPOSAL_THRESHOLD
-        ) {
-            revert SummerGovernorInvalidProposalThreshold(
-                params.proposalThreshold,
-                MIN_PROPOSAL_THRESHOLD,
-                MAX_PROPOSAL_THRESHOLD
-            );
-        }
-
-        _setWhitelistGuardian(params.initialWhitelistGuardian);
         proposalChainId = params.proposalChainId;
+        _validateProposalThreshold(params.proposalThreshold);
+        _setWhitelistGuardian(params.initialWhitelistGuardian);
+        _setInitialTrustedRemotes(
+            params.trustedRemoteChainIds,
+            params.trustedRemoteAddresses
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -449,6 +443,29 @@ contract SummerGovernor is
         emit WhitelistGuardianSet(_whitelistGuardian);
     }
 
+    /**
+     * @dev Internal function to set initial trusted remotes
+     * @param _chainIds Array of chain IDs to set as trusted
+     * @param _remoteAddresses Array of corresponding remote addresses
+     */
+    function _setInitialTrustedRemotes(
+        uint32[] memory _chainIds,
+        address[] memory _remoteAddresses
+    ) internal {
+        if (_chainIds.length != _remoteAddresses.length) {
+            revert SummerGovernorInvalidTrustedRemoteArrays();
+        }
+
+        for (uint256 i = 0; i < _chainIds.length; i++) {
+            address remote = _remoteAddresses[i];
+            if (remote == address(0)) {
+                revert SummerGovernorInvalidTrustedRemote(remote);
+            }
+            trustedRemotes[_chainIds[i]] = remote;
+            emit TrustedRemoteSet(_chainIds[i], remote);
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                             OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -704,5 +721,24 @@ contract SummerGovernor is
         }
         trustedRemotes[_chainId] = _trustedRemote;
         emit TrustedRemoteSet(_chainId, _trustedRemote);
+    }
+
+    /**
+     * @dev Internal function to validate the proposal threshold
+     * @param _proposalThreshold The threshold to validate
+     */
+    function _validateProposalThreshold(
+        uint256 _proposalThreshold
+    ) internal pure {
+        if (
+            _proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
+            _proposalThreshold > MAX_PROPOSAL_THRESHOLD
+        ) {
+            revert SummerGovernorInvalidProposalThreshold(
+                _proposalThreshold,
+                MIN_PROPOSAL_THRESHOLD,
+                MAX_PROPOSAL_THRESHOLD
+            );
+        }
     }
 }

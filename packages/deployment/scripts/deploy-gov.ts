@@ -1,7 +1,9 @@
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 
+import path from 'path'
 import { Address, keccak256, toBytes } from 'viem'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
 import { BaseConfig } from '../types/config-types'
@@ -14,6 +16,7 @@ const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
 const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
+const HUB_CHAIN_ID = 8453 // Base chain ID
 
 export async function deployGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -31,10 +34,17 @@ export async function deployGov() {
 async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
-  // checkExistingContracts(config, 'gov')
-  // Prompt for initial supply if not provided
   const initialSupply = await promptForInitialSupply()
   console.log(kleur.blue('Initial Supply:'), kleur.cyan(`${initialSupply} SUMMER`))
+
+  let trustedRemoteChainIds: number[] = []
+  let trustedRemoteAddresses: string[] = []
+
+  if (hre.network.config.chainId !== HUB_CHAIN_ID) {
+    const { chainIds, addresses } = await promptForTrustedRemotes()
+    trustedRemoteChainIds = chainIds
+    trustedRemoteAddresses = addresses
+  }
 
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
@@ -42,6 +52,8 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
         lzEndpoint: config.common.lzEndpoint,
         protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
         initialSupply,
+        trustedRemoteChainIds,
+        trustedRemoteAddresses,
       },
     },
   })
@@ -54,9 +66,9 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   return gov
 }
 
-async function promptForInitialSupply(): Promise<string> {
+async function promptForInitialSupply(): Promise<bigint> {
   if (process.env.SUMMER_INITIAL_SUPPLY) {
-    return process.env.SUMMER_INITIAL_SUPPLY
+    return BigInt(process.env.SUMMER_INITIAL_SUPPLY)
   }
 
   const { value } = await prompts({
@@ -66,7 +78,7 @@ async function promptForInitialSupply(): Promise<string> {
     initial: '10000000',
     validate: (value: string) => {
       const num = Number(value)
-      if (isNaN(num) || num <= 0) {
+      if (isNaN(num) || num < 0) {
         return 'Please enter a valid positive number'
       }
       if (!Number.isInteger(num)) {
@@ -76,7 +88,71 @@ async function promptForInitialSupply(): Promise<string> {
     },
   })
 
-  return value
+  return BigInt(value) * 10n ** 18n
+}
+
+async function promptForTrustedRemotes(): Promise<{ chainIds: number[]; addresses: string[] }> {
+  const { includeHub } = await prompts({
+    type: 'confirm',
+    name: 'includeHub',
+    message: 'Do you want to add Base (8453) as a trusted remote chain?',
+    initial: true,
+  })
+
+  let chainIds: number[] = []
+  let addresses: string[] = []
+
+  if (includeHub) {
+    chainIds.push(HUB_CHAIN_ID)
+    const baseConfig = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../config/index.json'), 'utf8'),
+    ).base
+    const hubAddress = baseConfig.deployedContracts.gov.summerGovernor.address
+    addresses.push(hubAddress)
+    console.log(kleur.blue('Added Base chain with SummerGovernor address:'), kleur.cyan(hubAddress))
+  }
+
+  const { addMore } = await prompts({
+    type: 'confirm',
+    name: 'addMore',
+    message: 'Do you want to add additional trusted remote chains?',
+    initial: false,
+  })
+
+  if (addMore) {
+    let adding = true
+    while (adding) {
+      const { chainId, address } = await prompts([
+        {
+          type: 'number',
+          name: 'chainId',
+          message: 'Enter the chain ID for the trusted remote:',
+          validate: (value) => value > 0 || 'Please enter a valid chain ID',
+        },
+        {
+          type: 'text',
+          name: 'address',
+          message: 'Enter the SummerGovernor address for the trusted remote:',
+          validate: (value) =>
+            /^0x[a-fA-F0-9]{40}$/.test(value) || 'Please enter a valid Ethereum address',
+        },
+      ])
+
+      chainIds.push(chainId)
+      addresses.push(address)
+
+      const { continue: shouldContinue } = await prompts({
+        type: 'confirm',
+        name: 'continue',
+        message: 'Do you want to add another trusted remote?',
+        initial: false,
+      })
+
+      adding = shouldContinue
+    }
+  }
+
+  return { chainIds, addresses }
 }
 
 /**

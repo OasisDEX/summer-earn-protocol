@@ -67,4 +67,7 @@ interface ISummerGovernorErrors {
 
     /* @notice Error thrown when the caller is not the rewards manager */
     error SummerGovernorInvalidCaller();
+
+    /* @notice Error thrown when the trusted remote arrays are invalid */
+    error SummerGovernorInvalidTrustedRemoteArrays();
 }
