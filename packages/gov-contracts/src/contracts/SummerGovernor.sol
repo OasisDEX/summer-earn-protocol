@@ -87,12 +87,36 @@ contract SummerGovernor is
         GovernorTimelockControl(params.timelock)
         OApp(params.endpoint, address(params.timelock))
         DecayController(address(params.token))
-        // @dev LayerZero do not directly initialize Ownable, so we do it here
         Ownable(address(params.timelock))
     {
         proposalChainId = params.proposalChainId;
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
+        _initializePeers(params.peerChainIds, params.peerAddresses);
+    }
+
+    /**
+     * @dev Internal function to initialize peers during construction
+     * @param _peerChainIds Array of chain IDs for peers
+     * @param _peerAddresses Array of peer addresses corresponding to chainIds
+     */
+    function _initializePeers(
+        uint32[] memory _peerChainIds,
+        address[] memory _peerAddresses
+    ) internal {
+        if (params.peerChainIds.length <= 0) {
+            return;
+        }
+        if (_peerChainIds.length != _peerAddresses.length) {
+            revert SummerGovernorInvalidPeerArrays();
+        }
+
+        for (uint256 i = 0; i < _peerChainIds.length; i++) {
+            _setPeer(
+                _peerChainIds[i],
+                bytes32(uint256(uint160(_peerAddresses[i])))
+            );
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -15,6 +15,12 @@ const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
+// Add interface for peer configuration
+interface PeerConfig {
+  chainId: number
+  address: string
+}
+
 export async function deployGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
   const config = getConfigByNetwork(hre.network.name)
@@ -34,12 +40,18 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   const initialSupply = await promptForInitialSupply()
   console.log(kleur.blue('Initial Supply:'), kleur.cyan(`${initialSupply} SUMMER`))
 
+  // Add peer configuration prompt
+  const peers = await promptForPeers()
+
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
       GovModule: {
         lzEndpoint: config.common.lzEndpoint,
         protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
         initialSupply,
+        // Add peer configuration
+        peerChainIds: peers.map((p) => p.chainId),
+        peerAddresses: peers.map((p) => p.address),
       },
     },
   })
@@ -75,6 +87,63 @@ async function promptForInitialSupply(): Promise<bigint> {
   })
 
   return BigInt(value) * 10n ** 18n
+}
+
+// Add new function to prompt for peer configuration
+async function promptForPeers(): Promise<PeerConfig[]> {
+  if (process.env.SKIP_PEER_SETUP === 'true') {
+    console.log(kleur.yellow('Skipping peer setup as SKIP_PEER_SETUP=true'))
+    return []
+  }
+
+  const { setupPeers } = await prompts({
+    type: 'confirm',
+    name: 'setupPeers',
+    message: 'Would you like to configure peer governors?',
+    initial: true,
+  })
+
+  if (!setupPeers) return []
+
+  const peers: PeerConfig[] = []
+  let addMore = true
+
+  while (addMore) {
+    const { chainId } = await prompts({
+      type: 'number',
+      name: 'chainId',
+      message: 'Enter the LayerZero chain ID for the peer:',
+      validate: (value) => value > 0 || 'Please enter a valid chain ID',
+    })
+
+    const { address } = await prompts({
+      type: 'text',
+      name: 'address',
+      message: 'Enter the governor contract address for this peer:',
+      validate: (value) => /^0x[a-fA-F0-9]{40}$/.test(value) || 'Please enter a valid address',
+    })
+
+    peers.push({ chainId, address })
+
+    const { continue: shouldContinue } = await prompts({
+      type: 'confirm',
+      name: 'continue',
+      message: 'Would you like to add another peer?',
+      initial: false,
+    })
+
+    addMore = shouldContinue
+  }
+
+  // Log peer configuration
+  if (peers.length > 0) {
+    console.log('\nConfigured Peers:')
+    peers.forEach((peer) => {
+      console.log(kleur.blue(`Chain ID: ${peer.chainId}`), kleur.cyan(`Address: ${peer.address}`))
+    })
+  }
+
+  return peers
 }
 
 /**

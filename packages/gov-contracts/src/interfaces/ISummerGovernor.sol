@@ -27,6 +27,8 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param initialDecayFunction The initial decay function
      * @param endpoint The LayerZero endpoint address
      * @param proposalChainId The proposal chain ID
+     * @param peerChainIds Array of chain IDs for initial peers
+     * @param peerAddresses Array of peer addresses corresponding to chainIds
      */
     struct GovernorParams {
         IVotes token;
@@ -38,6 +40,8 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         address initialWhitelistGuardian;
         address endpoint;
         uint32 proposalChainId;
+        uint32[] peerChainIds;
+        address[] peerAddresses;
     }
 
     /**
