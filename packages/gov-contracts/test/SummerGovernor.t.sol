@@ -35,13 +35,6 @@ contract ExposedSummerGovernor is SummerGovernor {
         _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
     }
 
-    function setTrustedRemote(
-        uint32 _chainId,
-        address _trustedRemote
-    ) public override {
-        trustedRemotes[_chainId] = _trustedRemote;
-    }
-
     function exposedSendProposalToTargetChain(
         uint32 _dstEid,
         address[] memory _dstTargets,
@@ -133,9 +126,6 @@ contract SummerGovernorTest is
 
         vm.prank(address(timelockB));
         accessManagerB.grantDecayControllerRole(address(governorB));
-
-        governorA.setTrustedRemote(bEid, address(governorB));
-        governorB.setTrustedRemote(aEid, address(governorA));
 
         vm.label(address(governorA), "SummerGovernor");
         vm.label(address(governorB), "SummerGovernor");
@@ -331,42 +321,6 @@ contract SummerGovernorTest is
         }
 
         assertTrue(foundEvent, "ProposalSentCrossChain event not found");
-    }
-
-    function test_ReceiveProposalFromUntrustedSource() public {
-        // Setup: Prepare a cross-chain proposal
-        (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[] memory calldatas,
-            string memory description,
-            uint256 proposalId
-        ) = createCrossChainProposal(aEid, governorB);
-
-        // Encode the proposal data
-        bytes memory payload = abi.encode(
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        // Create an Origin struct with an untrusted source
-        Origin memory origin = Origin(
-            aEid,
-            bytes32(uint256(uint160(address(0x1234)))),
-            0
-        );
-
-        // Attempt to receive the proposal
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "SummerGovernorInvalidSender(address)",
-                address(0x1234)
-            )
-        );
-        governorB.exposedLzReceive(origin, payload, "");
     }
 
     function test_InsufficientNativeFeeForCrossChainMessage() public {

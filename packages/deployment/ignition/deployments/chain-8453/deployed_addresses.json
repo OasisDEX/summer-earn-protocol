@@ -1,13 +1,13 @@
 {
-  "CoreModule#DutchAuctionLibrary": "0xA69e129038cCb75BCA01874a2281CfcAa49D7E81",
-  "CoreModule#FleetCommanderRewardsManagerFactory": "0x8fAF711962E89047CB26Fb4B4F8Dbd578069db53",
-  "CoreModule#ProtocolAccessManager": "0xcAc80bf5ca41857D96b41239C4cfC8EE0f695A68",
-  "CoreModule#ConfigurationManager": "0x6fF16CD9234Dad834E48ef4B463588425f21F669",
-  "CoreModule#HarborCommand": "0xdE95876a5B3463A12DcE25A71E7CD603052e104d",
-  "CoreModule#Raft": "0xfbfaeEd52e25F63D36D3698d8049EB982ee5A14A",
-  "CoreModule#AdmiralsQuarters": "0x7BF2b17a6f17E2397E7CC8687a2E3e2578C4C254",
-  "CoreModule#TipJar": "0x355E2e10a0056a0ae18F5f67925b74fdD9Ba87D7",
-  "GovModule#SummerToken": "0x75B5AbD44d3fFC54F951264E2335a63790746316",
-  "GovModule#TimelockController": "0x11aa96b3070321CDB23737E10F678de42C47D266",
-  "GovModule#SummerGovernor": "0xb0F76bB756cd43DC5110f7959bB2c390d34D7dAB"
+  "CoreModule#DutchAuctionLibrary": "0xBA57eaB5B4e8560061b7237db2dC3226b2DAc064",
+  "CoreModule#FleetCommanderRewardsManagerFactory": "0xF950adFAfDe8AC2965F6C81d3C7547eC050aBCd9",
+  "CoreModule#ProtocolAccessManager": "0x5dC319042a1c576Df961d91184dDE74290b0a304",
+  "CoreModule#ConfigurationManager": "0x5c442EA2a29c0A595F017E1b2bEad568d9AA77Da",
+  "CoreModule#HarborCommand": "0x8397E1fB09d1288c7Ae5D662aa79327A16543C8A",
+  "CoreModule#Raft": "0xf262b7343C9FeC08BFFdEd605Add006EEb29F003",
+  "CoreModule#AdmiralsQuarters": "0xaB150eEa0653F2f23f070A67CCA30316Aa8f83A5",
+  "CoreModule#TipJar": "0x8F5bd6A728fC20877DC9360C5C49e9E774031A9a",
+  "GovModule#SummerToken": "0xD7F06Ec67475db382F273dBe66d6e86a979d9836",
+  "GovModule#TimelockController": "0x9b34645a5Fe6f973483eA2d9D296C5424e599E01",
+  "GovModule#SummerGovernor": "0x82e3992f7C78c40DC540723b2c2e9c84877a87eC"
 }

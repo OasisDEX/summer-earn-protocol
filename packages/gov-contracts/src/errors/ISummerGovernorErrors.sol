@@ -45,11 +45,6 @@ interface ISummerGovernorErrors {
      */
     error SummerGovernorInvalidWhitelistGuardian(address whitelistGuardian);
 
-    /* @notice Error thrown when the sender is invalid
-     * @param originSender The invalid sender
-     */
-    error SummerGovernorInvalidSender(address originSender);
-
     /* @notice Error thrown when the trusted remote is invalid
      * @param trustedRemote The invalid trusted remote
      */
@@ -67,4 +62,7 @@ interface ISummerGovernorErrors {
 
     /* @notice Error thrown when the caller is not the rewards manager */
     error SummerGovernorInvalidCaller();
+
+    /* @notice Error thrown when the peer arrays are invalid */
+    error SummerGovernorInvalidPeerArrays();
 }

@@ -15,6 +15,11 @@ const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
+interface PeerConfig {
+  eid: number
+  address: string
+}
+
 export async function deployGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
   const config = getConfigByNetwork(hre.network.name)
@@ -31,10 +36,11 @@ export async function deployGov() {
 async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
-  // checkExistingContracts(config, 'gov')
-  // Prompt for initial supply if not provided
   const initialSupply = await promptForInitialSupply()
   console.log(kleur.blue('Initial Supply:'), kleur.cyan(`${initialSupply} SUMMER`))
+
+  // Add peer configuration prompt
+  const peers = await promptForPeers()
 
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
@@ -42,6 +48,8 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
         lzEndpoint: config.common.lzEndpoint,
         protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
         initialSupply,
+        peerEndpointIds: peers.map((p) => p.eid),
+        peerAddresses: peers.map((p) => p.address),
       },
     },
   })
@@ -62,11 +70,11 @@ async function promptForInitialSupply(): Promise<bigint> {
   const { value } = await prompts({
     type: 'text',
     name: 'value',
-    message: 'Enter the initial supply of SUMMER tokens (e.g., 10000000 for 10M tokens):',
-    initial: '10000000',
+    message: 'Enter the initial supply of SUMMER tokens (e.g., 1000000000 for 1B tokens):',
+    initial: '1000000000',
     validate: (value: string) => {
       const num = Number(value)
-      if (isNaN(num) || num <= 0) {
+      if (isNaN(num) || num < 0) {
         return 'Please enter a valid positive number'
       }
       if (!Number.isInteger(num)) {
@@ -77,6 +85,63 @@ async function promptForInitialSupply(): Promise<bigint> {
   })
 
   return BigInt(value) * 10n ** 18n
+}
+
+// Add new function to prompt for peer configuration
+async function promptForPeers(): Promise<PeerConfig[]> {
+  if (process.env.SKIP_PEER_SETUP === 'true') {
+    console.log(kleur.yellow('Skipping peer setup as SKIP_PEER_SETUP=true'))
+    return []
+  }
+
+  const { setupPeers } = await prompts({
+    type: 'confirm',
+    name: 'setupPeers',
+    message: 'Would you like to configure peer governors?',
+    initial: true,
+  })
+
+  if (!setupPeers) return []
+
+  const peers: PeerConfig[] = []
+  let addMore = true
+
+  while (addMore) {
+    const { eid } = await prompts({
+      type: 'number',
+      name: 'eid',
+      message: 'Enter the LayerZero Endpoint ID (EID) for the peer:',
+      validate: (value) => value > 0 || 'Please enter a valid EID',
+    })
+
+    const { address } = await prompts({
+      type: 'text',
+      name: 'address',
+      message: 'Enter the governor contract address for this peer:',
+      validate: (value) => /^0x[a-fA-F0-9]{40}$/.test(value) || 'Please enter a valid address',
+    })
+
+    peers.push({ eid, address })
+
+    const { continue: shouldContinue } = await prompts({
+      type: 'confirm',
+      name: 'continue',
+      message: 'Would you like to add another peer?',
+      initial: false,
+    })
+
+    addMore = shouldContinue
+  }
+
+  // Log peer configuration
+  if (peers.length > 0) {
+    console.log('\nConfigured Peers:')
+    peers.forEach((peer) => {
+      console.log(kleur.blue(`EID: ${peer.eid}`), kleur.cyan(`Address: ${peer.address}`))
+    })
+  }
+
+  return peers
 }
 
 /**
@@ -189,6 +254,7 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     GOVERNOR_ROLE,
     timelock.address,
   ])
+
   if (!hasGovernorRole) {
     console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
     const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])

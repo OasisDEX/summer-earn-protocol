@@ -58,12 +58,19 @@ contract SummerGovernor is
 
     GovernorConfig public config;
 
-    mapping(uint32 chainId => address trustedRemote) public trustedRemotes;
-
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Modifier to restrict certain functions to only be called on the proposal chain (hub chain).
+     * This ensures that governance actions like proposing, executing, and canceling can only happen
+     * on the designated hub chain, while other chains act as spokes that can only receive and execute
+     * proposals that have been approved on the hub.
+     *
+     * Note: The proposal chain is also referred to as the hub chain in the system's architecture.
+     * All governance proposals must originate from this chain.
+     */
     modifier onlyProposalChain() {
         if (block.chainid != proposalChainId) {
             revert SummerGovernorInvalidChain(block.chainid, proposalChainId);
@@ -92,19 +99,10 @@ contract SummerGovernor is
         // @dev LayerZero do not directly initialize Ownable, so we do it here
         Ownable(address(params.timelock))
     {
-        if (
-            params.proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
-            params.proposalThreshold > MAX_PROPOSAL_THRESHOLD
-        ) {
-            revert SummerGovernorInvalidProposalThreshold(
-                params.proposalThreshold,
-                MIN_PROPOSAL_THRESHOLD,
-                MAX_PROPOSAL_THRESHOLD
-            );
-        }
-
+        _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
         proposalChainId = params.proposalChainId;
+        _initializePeers(params.peerEndpointIds, params.peerAddresses);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -205,13 +203,6 @@ contract SummerGovernor is
             );
 
         emit ProposalReceivedCrossChain(proposalId, _origin.srcEid);
-
-        address trustedRemote = trustedRemotes[_origin.srcEid];
-        address originSender = address(uint160(uint256(_origin.sender)));
-
-        if (originSender != trustedRemote) {
-            revert SummerGovernorInvalidSender(originSender);
-        }
 
         _executeCrossChainProposal(
             proposalId,
@@ -449,11 +440,52 @@ contract SummerGovernor is
         emit WhitelistGuardianSet(_whitelistGuardian);
     }
 
+    /**
+     * @dev Internal function to initialize peers during construction
+     * @param _peerEndpointIds Array of chain IDs for peers
+     * @param _peerAddresses Array of peer addresses corresponding to chainIds
+     */
+    function _initializePeers(
+        uint32[] memory _peerEndpointIds,
+        address[] memory _peerAddresses
+    ) internal {
+        if (_peerEndpointIds.length <= 0) {
+            return;
+        }
+        if (_peerEndpointIds.length != _peerAddresses.length) {
+            revert SummerGovernorInvalidPeerArrays();
+        }
+
+        for (uint256 i = 0; i < _peerEndpointIds.length; i++) {
+            _setPeer(
+                _peerEndpointIds[i],
+                bytes32(uint256(uint160(_peerAddresses[i])))
+            );
+        }
+    }
+
+    /**
+     * @dev Internal function to validate the proposal threshold
+     * @param _proposalThreshold The threshold to validate
+     */
+    function _validateProposalThreshold(
+        uint256 _proposalThreshold
+    ) internal pure {
+        if (
+            _proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
+            _proposalThreshold > MAX_PROPOSAL_THRESHOLD
+        ) {
+            revert SummerGovernorInvalidProposalThreshold(
+                _proposalThreshold,
+                MIN_PROPOSAL_THRESHOLD,
+                MAX_PROPOSAL_THRESHOLD
+            );
+        }
+    }
+
     /*//////////////////////////////////////////////////////////////
                             OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    // ... existing code ...
 
     /**
      * @dev Override of GovernorCountingSimple._countVote to use decayed voting power
@@ -692,17 +724,5 @@ contract SummerGovernor is
         returns (uint256)
     {
         return super.votingPeriod();
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function setTrustedRemote(
-        uint32 _chainId,
-        address _trustedRemote
-    ) external virtual onlyGovernance {
-        if (_trustedRemote == address(0)) {
-            revert SummerGovernorInvalidTrustedRemote(_trustedRemote);
-        }
-        trustedRemotes[_chainId] = _trustedRemote;
-        emit TrustedRemoteSet(_chainId, _trustedRemote);
     }
 }

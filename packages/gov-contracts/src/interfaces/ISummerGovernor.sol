@@ -27,6 +27,8 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param initialDecayFunction The initial decay function
      * @param endpoint The LayerZero endpoint address
      * @param proposalChainId The proposal chain ID
+     * @param peerEndpointIds The peer endpoint IDs
+     * @param peerAddresses The peer addresses
      */
     struct GovernorParams {
         IVotes token;
@@ -38,6 +40,8 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         address initialWhitelistGuardian;
         address endpoint;
         uint32 proposalChainId;
+        uint32[] peerEndpointIds;
+        address[] peerAddresses;
     }
 
     /**
@@ -75,13 +79,6 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         uint256 indexed proposalId,
         uint32 indexed srcEid
     );
-
-    /**
-     * @notice Emitted when a trusted remote is set for a chain
-     * @param chainId The chain ID for which the trusted remote is set
-     * @param trustedRemote The address of the trusted remote on the specified chain
-     */
-    event TrustedRemoteSet(uint32 indexed chainId, address trustedRemote);
 
     /**
      * @notice Casts a vote for a proposal
@@ -180,13 +177,6 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param _whitelistGuardian The address of the new whitelist guardian
      */
     function setWhitelistGuardian(address _whitelistGuardian) external;
-
-    /**
-     * @notice Sets a trusted remote for a specific chain ID
-     * @param _chainId The chain ID to set the trusted remote for
-     * @param _trustedRemote The address of the trusted remote on the specified chain
-     */
-    function setTrustedRemote(uint32 _chainId, address _trustedRemote) external;
 
     /**
      * @notice Gets the expiration time for a whitelisted account
