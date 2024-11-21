@@ -54,9 +54,9 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   return gov
 }
 
-async function promptForInitialSupply(): Promise<string> {
+async function promptForInitialSupply(): Promise<bigint> {
   if (process.env.SUMMER_INITIAL_SUPPLY) {
-    return process.env.SUMMER_INITIAL_SUPPLY
+    return BigInt(process.env.SUMMER_INITIAL_SUPPLY)
   }
 
   const { value } = await prompts({
@@ -76,7 +76,7 @@ async function promptForInitialSupply(): Promise<string> {
     },
   })
 
-  return value
+  return BigInt(value) * 10n ** 18n
 }
 
 /**
