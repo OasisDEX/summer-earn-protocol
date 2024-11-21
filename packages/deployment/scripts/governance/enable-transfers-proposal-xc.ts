@@ -85,16 +85,9 @@ async function main() {
     console.log('Source values:', srcValues)
     console.log('Source calldatas:', srcCalldatas)
     console.log('Source description:', srcDescription)
+    console.log('Hashed description:', hashDescription(srcDescription))
 
-    // First, simulate the transaction to get better error messages
-    const simulatedCall = await publicClient.simulateContract({
-      address: BASE_SUMMER_GOVERNOR_ADDRESS,
-      abi: governorAbi,
-      functionName: 'propose',
-      args: [srcTargets, srcValues, srcCalldatas, srcDescription],
-      account: account.address,
-    })
-
+    throw new Error('Not implemented')
     console.log('Simulation successful, proceeding with transaction...')
 
     // Submit the proposal with explicit gas parameters

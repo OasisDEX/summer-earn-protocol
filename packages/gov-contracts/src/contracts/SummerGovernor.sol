@@ -58,8 +58,6 @@ contract SummerGovernor is
 
     GovernorConfig public config;
 
-    mapping(uint32 chainId => address trustedRemote) public trustedRemotes;
-
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -89,16 +87,36 @@ contract SummerGovernor is
         GovernorTimelockControl(params.timelock)
         OApp(params.endpoint, address(params.timelock))
         DecayController(address(params.token))
-        // @dev LayerZero do not directly initialize Ownable, so we do it here
         Ownable(address(params.timelock))
     {
         proposalChainId = params.proposalChainId;
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
-        _setInitialTrustedRemotes(
-            params.trustedRemoteChainIds,
-            params.trustedRemoteAddresses
-        );
+        _initializePeers(params.peerChainIds, params.peerAddresses);
+    }
+
+    /**
+     * @dev Internal function to initialize peers during construction
+     * @param _peerChainIds Array of chain IDs for peers
+     * @param _peerAddresses Array of peer addresses corresponding to chainIds
+     */
+    function _initializePeers(
+        uint32[] memory _peerChainIds,
+        address[] memory _peerAddresses
+    ) internal {
+        if (_peerChainIds.length <= 0) {
+            return;
+        }
+        if (_peerChainIds.length != _peerAddresses.length) {
+            revert SummerGovernorInvalidPeerArrays();
+        }
+
+        for (uint256 i = 0; i < _peerChainIds.length; i++) {
+            _setPeer(
+                _peerChainIds[i],
+                bytes32(uint256(uint160(_peerAddresses[i])))
+            );
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -199,13 +217,6 @@ contract SummerGovernor is
             );
 
         emit ProposalReceivedCrossChain(proposalId, _origin.srcEid);
-
-        address trustedRemote = trustedRemotes[_origin.srcEid];
-        address originSender = address(uint160(uint256(_origin.sender)));
-
-        if (originSender != trustedRemote) {
-            revert SummerGovernorInvalidSender(originSender);
-        }
 
         _executeCrossChainProposal(
             proposalId,
@@ -443,34 +454,9 @@ contract SummerGovernor is
         emit WhitelistGuardianSet(_whitelistGuardian);
     }
 
-    /**
-     * @dev Internal function to set initial trusted remotes
-     * @param _chainIds Array of chain IDs to set as trusted
-     * @param _remoteAddresses Array of corresponding remote addresses
-     */
-    function _setInitialTrustedRemotes(
-        uint32[] memory _chainIds,
-        address[] memory _remoteAddresses
-    ) internal {
-        if (_chainIds.length != _remoteAddresses.length) {
-            revert SummerGovernorInvalidTrustedRemoteArrays();
-        }
-
-        for (uint256 i = 0; i < _chainIds.length; i++) {
-            address remote = _remoteAddresses[i];
-            if (remote == address(0)) {
-                revert SummerGovernorInvalidTrustedRemote(remote);
-            }
-            trustedRemotes[_chainIds[i]] = remote;
-            emit TrustedRemoteSet(_chainIds[i], remote);
-        }
-    }
-
     /*//////////////////////////////////////////////////////////////
                             OVERRIDE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-
-    // ... existing code ...
 
     /**
      * @dev Override of GovernorCountingSimple._countVote to use decayed voting power
@@ -479,7 +465,7 @@ contract SummerGovernor is
         uint256 proposalId,
         address account,
         uint8 support,
-        uint256 weight,
+        uint256,
         bytes memory params
     )
         internal
@@ -709,18 +695,6 @@ contract SummerGovernor is
         returns (uint256)
     {
         return super.votingPeriod();
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function setTrustedRemote(
-        uint32 _chainId,
-        address _trustedRemote
-    ) external virtual onlyGovernance {
-        if (_trustedRemote == address(0)) {
-            revert SummerGovernorInvalidTrustedRemote(_trustedRemote);
-        }
-        trustedRemotes[_chainId] = _trustedRemote;
-        emit TrustedRemoteSet(_chainId, _trustedRemote);
     }
 
     /**

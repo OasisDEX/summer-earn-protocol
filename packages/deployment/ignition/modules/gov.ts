@@ -34,8 +34,8 @@ export const GovModule = buildModule('GovModule', (m) => {
   const lzEndpoint = m.getParameter('lzEndpoint')
   const protocolAccessManagerAddress = m.getParameter('protocolAccessManager')
   const initialSupply = m.getParameter('initialSupply')
-  const trustedRemoteChainIds = m.getParameter('trustedRemoteChainIds')
-  const trustedRemoteAddresses = m.getParameter('trustedRemoteAddresses')
+  const peerChainIds = m.getParameter<number[]>('peerChainIds', [])
+  const peerAddresses = m.getParameter<string[]>('peerAddresses', [])
 
   /**
    * @dev Step 1: Deploy TimelockController
@@ -45,8 +45,7 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - ADDRESS_ZERO as executor (anyone can execute)
    * - deployer as admin (temporary)
    */
-  const MIN_DELAY = 86400n
-  const TEMP_MIN_DELAY_DURING_TESTING = MIN_DELAY / 24n
+  const TEMP_MIN_DELAY_DURING_TESTING = 300n // 5 minutes
   const timelock = m.contract('TimelockController', [
     TEMP_MIN_DELAY_DURING_TESTING,
     [deployer],
@@ -86,17 +85,15 @@ export const GovModule = buildModule('GovModule', (m) => {
   const summerGovernorDeployParams = {
     token: summerToken,
     timelock: timelock,
-    // Note: Voting delay is set to 1 second to allow for testing
     votingDelay: 1n,
-    // Note: Voting period is set to 1 hour to allow for testing
     votingPeriod: 60n * 60n,
     proposalThreshold: 10000n * 10n ** 18n,
     quorumFraction: 4n,
     initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
     proposalChainId: 8453n,
-    trustedRemoteChainIds: trustedRemoteChainIds,
-    trustedRemoteAddresses: trustedRemoteAddresses,
+    peerChainIds: peerChainIds,
+    peerAddresses: peerAddresses,
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
 
