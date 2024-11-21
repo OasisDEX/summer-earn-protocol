@@ -16,7 +16,7 @@ const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
 interface PeerConfig {
-  chainId: number
+  eid: number
   address: string
 }
 
@@ -48,8 +48,7 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
         lzEndpoint: config.common.lzEndpoint,
         protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
         initialSupply,
-        // Add peer configuration
-        peerChainIds: peers.map((p) => p.chainId),
+        peerEndpointIds: peers.map((p) => p.eid),
         peerAddresses: peers.map((p) => p.address),
       },
     },
@@ -108,11 +107,11 @@ async function promptForPeers(): Promise<PeerConfig[]> {
   let addMore = true
 
   while (addMore) {
-    const { chainId } = await prompts({
+    const { eid } = await prompts({
       type: 'number',
-      name: 'chainId',
-      message: 'Enter the LayerZero chain ID for the peer:',
-      validate: (value) => value > 0 || 'Please enter a valid chain ID',
+      name: 'eid',
+      message: 'Enter the LayerZero Endpoint ID (EID) for the peer:',
+      validate: (value) => value > 0 || 'Please enter a valid EID',
     })
 
     const { address } = await prompts({
@@ -122,7 +121,7 @@ async function promptForPeers(): Promise<PeerConfig[]> {
       validate: (value) => /^0x[a-fA-F0-9]{40}$/.test(value) || 'Please enter a valid address',
     })
 
-    peers.push({ chainId, address })
+    peers.push({ eid, address })
 
     const { continue: shouldContinue } = await prompts({
       type: 'confirm',
@@ -138,7 +137,7 @@ async function promptForPeers(): Promise<PeerConfig[]> {
   if (peers.length > 0) {
     console.log('\nConfigured Peers:')
     peers.forEach((peer) => {
-      console.log(kleur.blue(`Chain ID: ${peer.chainId}`), kleur.cyan(`Address: ${peer.address}`))
+      console.log(kleur.blue(`EID: ${peer.eid}`), kleur.cyan(`Address: ${peer.address}`))
     })
   }
 

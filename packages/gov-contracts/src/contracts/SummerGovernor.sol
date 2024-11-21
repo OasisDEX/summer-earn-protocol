@@ -97,28 +97,28 @@ contract SummerGovernor is
         hubChainId = params.hubChainId;
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
-        _initializePeers(params.peerChainIds, params.peerAddresses);
+        _initializePeers(params.peerEndpointIds, params.peerAddresses);
     }
 
     /**
      * @dev Internal function to initialize peers during construction
-     * @param _peerChainIds Array of chain IDs for peers
+     * @param _peerEndpointIds Array of chain IDs for peers
      * @param _peerAddresses Array of peer addresses corresponding to chainIds
      */
     function _initializePeers(
-        uint32[] memory _peerChainIds,
+        uint32[] memory _peerEndpointIds,
         address[] memory _peerAddresses
     ) internal {
-        if (_peerChainIds.length <= 0) {
+        if (_peerEndpointIds.length <= 0) {
             return;
         }
-        if (_peerChainIds.length != _peerAddresses.length) {
+        if (_peerEndpointIds.length != _peerAddresses.length) {
             revert SummerGovernorInvalidPeerArrays();
         }
 
-        for (uint256 i = 0; i < _peerChainIds.length; i++) {
+        for (uint256 i = 0; i < _peerEndpointIds.length; i++) {
             _setPeer(
-                _peerChainIds[i],
+                _peerEndpointIds[i],
                 bytes32(uint256(uint160(_peerAddresses[i])))
             );
         }

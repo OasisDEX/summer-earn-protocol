@@ -27,7 +27,7 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param initialDecayFunction The initial decay function
      * @param endpoint The LayerZero endpoint address
      * @param hubChainId The hub chain ID
-     * @param peerChainIds Array of chain IDs for initial peers
+     * @param peerEndpointIds Array of chain IDs for initial peers
      * @param peerAddresses Array of peer addresses corresponding to chainIds
      */
     struct GovernorParams {
@@ -40,7 +40,7 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         address initialWhitelistGuardian;
         address endpoint;
         uint32 hubChainId;
-        uint32[] peerChainIds;
+        uint32[] peerEndpointIds;
         address[] peerAddresses;
     }
 

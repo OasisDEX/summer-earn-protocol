@@ -19,25 +19,25 @@
       },
       "core": {
         "protocolAccessManager": {
-          "address": "0x10aA8356107b4903f99bC5c23f7369A57953Fd31"
+          "address": "0xF18466e1BeF7b40B91231B76232B3756094CB5d7"
         },
         "tipJar": {
           "address": "0xc7C9d0BcbEE418a4012C67d83cBd291860416DF9"
         },
         "raft": {
-          "address": "0xaF5506dB6a8c7Bfad5e70D1f2fDBB7b1FC89E249"
-        },
-        "configurationManager": {
-          "address": "0x694F9c802909CeaBa936230354de95968cE36aB5"
-        },
-        "harborCommand": {
           "address": "0x7eBdDaAD5B026fa8835F376fd78CDac0BCC45FCf"
         },
+        "configurationManager": {
+          "address": "0x10aA8356107b4903f99bC5c23f7369A57953Fd31"
+        },
+        "harborCommand": {
+          "address": "0x694F9c802909CeaBa936230354de95968cE36aB5"
+        },
         "admiralsQuarters": {
-          "address": "0xBf83062641d869Bdb44E9072F6453D2E0a986D24"
+          "address": "0xaF5506dB6a8c7Bfad5e70D1f2fDBB7b1FC89E249"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0xF18466e1BeF7b40B91231B76232B3756094CB5d7"
+          "address": "0x6e35745f52aA2034A216a3dA16261D5bF599Cf38"
         }
       }
     },

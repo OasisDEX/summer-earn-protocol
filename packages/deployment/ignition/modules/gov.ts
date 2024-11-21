@@ -34,7 +34,7 @@ export const GovModule = buildModule('GovModule', (m) => {
   const lzEndpoint = m.getParameter('lzEndpoint')
   const protocolAccessManagerAddress = m.getParameter('protocolAccessManager')
   const initialSupply = m.getParameter('initialSupply')
-  const peerChainIds = m.getParameter<number[]>('peerChainIds', [])
+  const peerEndpointIds = m.getParameter<number[]>('peerEndpointIds', [])
   const peerAddresses = m.getParameter<string[]>('peerAddresses', [])
 
   /**
@@ -92,7 +92,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
     proposalChainId: 8453n,
-    peerChainIds: peerChainIds,
+    peerEndpointIds: peerEndpointIds,
     peerAddresses: peerAddresses,
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])

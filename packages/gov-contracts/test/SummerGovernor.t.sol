@@ -81,7 +81,7 @@ contract SummerGovernorTest is
     uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
     uint256 public constant QUORUM_FRACTION = 4;
 
-    uint32[] public peerChainIds = [1, 2];
+    uint32[] public peerEndpointIds = [1, 2];
     address[] public peerAddresses = [address(0x116), address(0x117)];
 
     /*
@@ -108,7 +108,7 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
-                peerChainIds: peerChainIds,
+                peerEndpointIds: peerEndpointIds,
                 peerAddresses: peerAddresses
             });
         SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
@@ -122,7 +122,7 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
                 hubChainId: 31337,
-                peerChainIds: peerChainIds,
+                peerEndpointIds: peerEndpointIds,
                 peerAddresses: peerAddresses
             });
         governorA = new ExposedSummerGovernor(paramsA);
@@ -505,7 +505,7 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: address(0),
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
-                peerChainIds: peerChainIds,
+                peerEndpointIds: peerEndpointIds,
                 peerAddresses: peerAddresses
             });
         vm.expectRevert(
@@ -911,7 +911,7 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: address(0x5),
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
-                peerChainIds: peerChainIds,
+                peerEndpointIds: peerEndpointIds,
                 peerAddresses: peerAddresses
             });
 
@@ -1481,7 +1481,7 @@ contract SummerGovernorTest is
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: address(endpoints[aEid]),
                 hubChainId: governanceChainId, // Set to a different chain ID
-                peerChainIds: peerChainIds,
+                peerEndpointIds: peerEndpointIds,
                 peerAddresses: peerAddresses
             });
 
