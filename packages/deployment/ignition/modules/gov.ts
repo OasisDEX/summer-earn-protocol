@@ -70,7 +70,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     initialDecayRate: 3.1709792e9, // ~10% per year
     initialDecayFunction: DecayType.Linear,
     transferEnableDate: 1731667188n,
-    maxSupply: 100_000_000n * 10n ** 18n, // 100M tokens
+    maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
     initialSupply: initialSupply,
   }
   const summerToken = m.contract('SummerToken', [summerTokenParams])

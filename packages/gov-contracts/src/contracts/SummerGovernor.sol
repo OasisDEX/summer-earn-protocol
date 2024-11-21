@@ -40,7 +40,7 @@ contract SummerGovernor is
 
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
     uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
-    uint32 public immutable proposalChainId;
+    uint32 public immutable hubChainId;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -62,9 +62,14 @@ contract SummerGovernor is
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
-    modifier onlyProposalChain() {
-        if (block.chainid != proposalChainId) {
-            revert SummerGovernorInvalidChain(block.chainid, proposalChainId);
+    /**
+     * @dev Modifier to restrict function access to only the hub chain
+     * @notice Functions with this modifier can only be called on the chain specified as the hub chain
+     * @custom:throws SummerGovernorInvalidChain if called from a non-hub chain
+     */
+    modifier onlyHubChain() {
+        if (block.chainid != hubChainId) {
+            revert SummerGovernorInvalidChain(block.chainid, hubChainId);
         }
         _;
     }
@@ -89,7 +94,7 @@ contract SummerGovernor is
         DecayController(address(params.token))
         Ownable(address(params.timelock))
     {
-        proposalChainId = params.proposalChainId;
+        hubChainId = params.hubChainId;
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
         _initializePeers(params.peerChainIds, params.peerAddresses);
@@ -312,7 +317,7 @@ contract SummerGovernor is
         public
         override(Governor, ISummerGovernor)
         updateDecay(_msgSender())
-        onlyProposalChain
+        onlyHubChain
         returns (uint256)
     {
         address proposer = _msgSender();
@@ -342,7 +347,7 @@ contract SummerGovernor is
         public
         payable
         override(Governor, ISummerGovernor)
-        onlyProposalChain
+        onlyHubChain
         updateDecay(_msgSender())
         returns (uint256)
     {
@@ -359,7 +364,7 @@ contract SummerGovernor is
         public
         override(Governor, ISummerGovernor)
         updateDecay(_msgSender())
-        onlyProposalChain
+        onlyHubChain
         returns (uint256)
     {
         uint256 proposalId = hashProposal(

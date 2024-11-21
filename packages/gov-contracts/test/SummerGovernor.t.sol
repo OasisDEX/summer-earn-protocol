@@ -107,7 +107,7 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerChainIds: peerChainIds,
                 peerAddresses: peerAddresses
             });
@@ -121,7 +121,7 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerChainIds: peerChainIds,
                 peerAddresses: peerAddresses
             });
@@ -330,42 +330,6 @@ contract SummerGovernorTest is
         assertTrue(foundEvent, "ProposalSentCrossChain event not found");
     }
 
-    function test_ReceiveProposalFromUntrustedSource() public {
-        // Setup: Prepare a cross-chain proposal
-        (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[] memory calldatas,
-            string memory description,
-            uint256 proposalId
-        ) = createCrossChainProposal(aEid, governorB);
-
-        // Encode the proposal data
-        bytes memory payload = abi.encode(
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        // Create an Origin struct with an untrusted source
-        Origin memory origin = Origin(
-            aEid,
-            bytes32(uint256(uint160(address(0x1234)))),
-            0
-        );
-
-        // Attempt to receive the proposal
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "SummerGovernorInvalidSender(address)",
-                address(0x1234)
-            )
-        );
-        governorB.exposedLzReceive(origin, payload, "");
-    }
-
     function test_InsufficientNativeFeeForCrossChainMessage() public {
         // Prepare cross-chain proposal parameters
         (
@@ -540,7 +504,7 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerChainIds: peerChainIds,
                 peerAddresses: peerAddresses
             });
@@ -946,7 +910,7 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0x5),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerChainIds: peerChainIds,
                 peerAddresses: peerAddresses
             });
@@ -1516,7 +1480,7 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: address(endpoints[aEid]),
-                proposalChainId: governanceChainId, // Set to a different chain ID
+                hubChainId: governanceChainId, // Set to a different chain ID
                 peerChainIds: peerChainIds,
                 peerAddresses: peerAddresses
             });

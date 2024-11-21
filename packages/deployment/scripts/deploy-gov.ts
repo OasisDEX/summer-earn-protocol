@@ -15,7 +15,6 @@ const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
-// Add interface for peer configuration
 interface PeerConfig {
   chainId: number
   address: string
@@ -72,8 +71,8 @@ async function promptForInitialSupply(): Promise<bigint> {
   const { value } = await prompts({
     type: 'text',
     name: 'value',
-    message: 'Enter the initial supply of SUMMER tokens (e.g., 10000000 for 10M tokens):',
-    initial: '10000000',
+    message: 'Enter the initial supply of SUMMER tokens (e.g., 1000000000 for 1B tokens):',
+    initial: '1000000000',
     validate: (value: string) => {
       const num = Number(value)
       if (isNaN(num) || num < 0) {
