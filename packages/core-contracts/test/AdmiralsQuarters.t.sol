@@ -5,7 +5,7 @@ import {AdmiralsQuarters} from "../src/contracts/AdmiralsQuarters.sol";
 
 import {FleetCommander} from "../src/contracts/FleetCommander.sol";
 import {IAggregationRouterV6} from "../src/interfaces/1inch/IAggregationRouterV6.sol";
-
+import {IFleetCommanderRewardsManager} from "../src/interfaces/IFleetCommanderRewardsManager.sol";
 import {FleetCommanderTestBase} from "./fleets/FleetCommanderTestBase.sol";
 import {OneInchTestHelpers} from "./helpers/OneInchTestHelpers.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -57,7 +57,10 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             address(fleetCommander)
         );
 
-        admiralsQuarters = new AdmiralsQuarters(ONE_INCH_ROUTER);
+        admiralsQuarters = new AdmiralsQuarters(
+            ONE_INCH_ROUTER,
+            address(configurationManager)
+        );
 
         // Grant roles
         accessManager.grantContractSpecificRole(
@@ -103,8 +106,15 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
     function test_Constructor() public {
         vm.startPrank(governor);
         vm.expectRevert(abi.encodeWithSignature("InvalidRouterAddress()"));
-        new AdmiralsQuarters(address(0));
-        admiralsQuarters = new AdmiralsQuarters(ONE_INCH_ROUTER);
+        new AdmiralsQuarters(address(0), address(configurationManager));
+        vm.expectRevert(
+            abi.encodeWithSignature("ConfigurationManagerZeroAddress()")
+        );
+        new AdmiralsQuarters(ONE_INCH_ROUTER, address(0));
+        admiralsQuarters = new AdmiralsQuarters(
+            ONE_INCH_ROUTER,
+            address(configurationManager)
+        );
         assertEq(
             address(admiralsQuarters.owner()),
             governor,
@@ -147,7 +157,12 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         // RevertsOnInvalidFleetCommander
         vm.startPrank(user1);
         vm.expectRevert(abi.encodeWithSignature("InvalidFleetCommander()"));
-        admiralsQuarters.enterFleet(address(0), IERC20(USDC_ADDRESS), 1000e6);
+        admiralsQuarters.enterFleet(
+            address(0),
+            IERC20(USDC_ADDRESS),
+            1000e6,
+            user1
+        );
         vm.stopPrank();
         // RevertsOnInvalidToken
         vm.startPrank(user1);
@@ -155,7 +170,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         admiralsQuarters.enterFleet(
             address(usdcFleet),
             IERC20(address(0)),
-            1000e6
+            1000e6,
+            user1
         );
         vm.stopPrank();
         // RevertsOnInsufficientOutputAmount
@@ -164,7 +180,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         admiralsQuarters.enterFleet(
             address(usdcFleet),
             IERC20(USDC_ADDRESS),
-            1000e6
+            1000e6,
+            user1
         );
         vm.stopPrank();
     }
@@ -249,6 +266,62 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         admiralsQuarters.multicall(enterCalls);
     }
 
+    function test_Deposit_Enter_Stake() public {
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+        uint256 usdcAmount = 1000e6; // 1000 USDC
+        vm.startPrank(user1);
+        bytes[] memory enterCalls = new bytes[](3);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), usdcAmount)
+        );
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (
+                address(usdcFleet),
+                IERC20(USDC_ADDRESS),
+                usdcAmount / 2,
+                address(admiralsQuarters)
+            )
+        );
+        enterCalls[2] = abi.encodeCall(
+            admiralsQuarters.stakeFleetShares,
+            (address(usdcFleet), 0)
+        );
+        admiralsQuarters.multicall(enterCalls);
+        assertEq(
+            IFleetCommanderRewardsManager(rewardsManager).balanceOf(user1),
+            usdcAmount / 2,
+            "Should have staked USDC fleet shares"
+        );
+        vm.stopPrank();
+    }
+    function test_Deposit_Enter_Stake_Reverts() public {
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+        uint256 usdcAmount = 1000e6; // 1000 USDC
+        vm.startPrank(user1);
+        bytes[] memory enterCalls = new bytes[](3);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), usdcAmount)
+        );
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (
+                address(usdcFleet),
+                IERC20(USDC_ADDRESS),
+                usdcAmount / 2,
+                address(admiralsQuarters)
+            )
+        );
+        enterCalls[2] = abi.encodeCall(
+            admiralsQuarters.stakeFleetShares,
+            (address(usdcFleet), usdcAmount)
+        );
+        vm.expectRevert(abi.encodeWithSignature("InsufficientOutputAmount()"));
+        admiralsQuarters.multicall(enterCalls);
+        vm.stopPrank();
+    }
     function test_EnterAndExitFleetsX() public {
         uint256 usdcAmount = 1000e6; // 1000 USDC
         uint256 minDaiAmount = 499e18; // Expecting at least 499 DAI
@@ -276,7 +349,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         enterCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount / 2)
+            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount / 2, user1)
         );
         enterCalls[2] = abi.encodeCall(
             admiralsQuarters.swap,
@@ -290,7 +363,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         enterCalls[3] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), 0)
+            (address(daiFleet), IERC20(DAI_ADDRESS), 0, user1)
         );
 
         admiralsQuarters.multicall(enterCalls);
@@ -420,7 +493,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         moveCalls[2] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), 0)
+            (address(daiFleet), IERC20(DAI_ADDRESS), 0, user1)
         );
 
         admiralsQuarters.multicall(moveCalls);
@@ -462,7 +535,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         depositCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), daiAmount)
+            (address(daiFleet), IERC20(DAI_ADDRESS), daiAmount, user1)
         );
         admiralsQuarters.multicall(depositCalls);
 
@@ -505,7 +578,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         withdrawAndSwapCalls[2] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), 0)
+            (address(usdcFleet), IERC20(USDC_ADDRESS), 0, user1)
         );
         withdrawAndSwapCalls[3] = abi.encodeCall(
             admiralsQuarters.withdrawTokens,
@@ -551,7 +624,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         depositCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount)
+            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount, user1)
         );
         admiralsQuarters.multicall(depositCalls);
 
@@ -594,11 +667,11 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         withdrawSwapAndDepositCalls[2] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), halfUsdcAmount)
+            (address(usdcFleet), IERC20(USDC_ADDRESS), halfUsdcAmount, user1)
         );
         withdrawSwapAndDepositCalls[3] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), 0)
+            (address(daiFleet), IERC20(DAI_ADDRESS), 0, user1)
         );
         withdrawSwapAndDepositCalls[4] = abi.encodeCall(
             admiralsQuarters.withdrawTokens,
@@ -637,7 +710,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         depositCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount)
+            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount, user1)
         );
         depositCalls[2] = abi.encodeCall(
             admiralsQuarters.depositTokens,
@@ -645,7 +718,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         depositCalls[3] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), daiAmount)
+            (address(daiFleet), IERC20(DAI_ADDRESS), daiAmount, user1)
         );
         admiralsQuarters.multicall(depositCalls);
 
@@ -705,7 +778,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         swapCalls[2] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), 0)
+            (address(daiFleet), IERC20(DAI_ADDRESS), 0, user1)
         );
         swapCalls[3] = abi.encodeCall(
             admiralsQuarters.exitFleet,
@@ -723,7 +796,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         swapCalls[5] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), 0)
+            (address(usdcFleet), IERC20(USDC_ADDRESS), 0, user1)
         );
 
         admiralsQuarters.multicall(swapCalls);
@@ -861,7 +934,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         admiralsQuarters.enterFleet(
             address(usdcFleet),
             IERC20(USDC_ADDRESS),
-            user1UsdcAmount
+            user1UsdcAmount,
+            user1
         );
         vm.stopPrank();
 
@@ -871,7 +945,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         admiralsQuarters.enterFleet(
             address(daiFleet),
             IERC20(DAI_ADDRESS),
-            user2DaiAmount
+            user2DaiAmount,
+            user2
         );
         vm.stopPrank();
 
