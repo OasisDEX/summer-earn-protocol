@@ -241,10 +241,12 @@ contract AdmiralsQuarters is
     function _validateAmount(uint256 amount) internal view {
         if (amount == 0) revert ZeroAmount();
     }
+
     function _validateRewardsManager(address rewardsManager) internal view {
         if (rewardsManager == address(0)) revert InvalidRewardsManager();
     }
     /// @inheritdoc IAdmiralsQuarters
+
     function rescueTokens(
         IERC20 token,
         address to,

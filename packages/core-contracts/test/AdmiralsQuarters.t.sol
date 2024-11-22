@@ -296,6 +296,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         vm.stopPrank();
     }
+
     function test_Deposit_Enter_Stake_Reverts() public {
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
         uint256 usdcAmount = 1000e6; // 1000 USDC
@@ -322,6 +323,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         admiralsQuarters.multicall(enterCalls);
         vm.stopPrank();
     }
+
     function test_EnterAndExitFleetsX() public {
         uint256 usdcAmount = 1000e6; // 1000 USDC
         uint256 minDaiAmount = 499e18; // Expecting at least 499 DAI
