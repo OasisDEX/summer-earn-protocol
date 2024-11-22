@@ -1,3 +1,4 @@
+import { Options } from '@layerzerolabs/lz-v2-utilities'
 import dotenv from 'dotenv'
 import {
   Address,
@@ -33,18 +34,14 @@ function hashDescription(description: string): Hex {
 
 // Helper function to construct LayerZero options
 function constructLzOptions(gasLimit: bigint = 200000n): Hex {
-  // Based on LayerZero docs:
-  // 1. Type 3 options (0x0003)
-  // 2. ExecutorLzReceiveOption (01) with length (0011) and gas amount
-  // Resulting in something like: 0x0003010011010000000000000000000000000000030d40
+  // Create new options instance and add required execution options
+  const options = Options.newOptions()
+    // Add gas for lzReceive execution on destination
+    .addExecutorLzReceiveOption(Number(gasLimit), 0) // (gas limit, msg.value)
+    // Add ordered execution option to ensure proper message ordering
+    .addExecutorOrderedExecutionOption()
 
-  const optionsType = '0003' // Type 3 options
-  const executorFlag = '01' // ExecutorLzReceiveOption
-  const optionLength = '0011' // Length of the option
-  const version = '01' // Version
-  const gasHex = gasLimit.toString(16).padStart(40, '0')
-
-  return `0x${optionsType}${executorFlag}${optionLength}${version}${gasHex}` as Hex
+  return options.toHex() as Hex
 }
 
 async function main() {
@@ -68,9 +65,16 @@ async function main() {
     encodeFunctionData({
       abi: parseAbi(['function enableTransfers()']),
       args: [],
-    }),
+    }) as Hex,
   ]
   const dstDescription = 'Enable transfers on Arbitrum SummerToken (v2)'
+
+  console.log('Destination description:', dstDescription)
+  console.log('Hashed destination description:', hashDescription(dstDescription))
+  console.log('LayerZero options:', constructLzOptions(200000n))
+  console.log('Destination targets:', dstTargets)
+  console.log('Destination values:', dstValues)
+  console.log('Destination calldatas:', dstCalldatas)
 
   // Prepare the Base-side proposal parameters (source proposal)
   const srcTargets = [HUB_SUMMER_GOVERNOR_ADDRESS]
@@ -91,9 +95,9 @@ async function main() {
         dstValues,
         dstCalldatas,
         hashDescription(dstDescription),
-        lzOptions, // Use proper LayerZero options instead of '0x'
+        lzOptions,
       ],
-    }),
+    }) as Hex,
   ]
 
   const srcDescription = `Cross-chain proposal: ${dstDescription}`
