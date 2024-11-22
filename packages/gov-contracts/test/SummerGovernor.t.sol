@@ -104,7 +104,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
-                proposalChainId: 31337
+                proposalChainId: 31337,
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
         SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
             .GovernorParams({
@@ -116,7 +118,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
-                proposalChainId: 31337
+                proposalChainId: 31337,
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
@@ -497,7 +501,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337
+                proposalChainId: 31337,
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -901,7 +907,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0x5),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337
+                proposalChainId: 31337,
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
 
         vm.expectRevert(
@@ -1470,7 +1478,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: address(endpoints[aEid]),
-                proposalChainId: governanceChainId // Set to a different chain ID
+                proposalChainId: governanceChainId, // Set to a different chain ID
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
 
         ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(

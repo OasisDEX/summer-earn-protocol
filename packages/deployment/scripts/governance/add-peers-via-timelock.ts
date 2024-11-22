@@ -8,27 +8,54 @@ import {
   http,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { base } from 'viem/chains'
+import { arbitrum } from 'viem/chains'
 
 dotenv.config()
 
-// Validate required environment variables
-if (!process.env.BASE_SUMMER_GOVERNOR_ADDRESS)
-  throw new Error('BASE_SUMMER_GOVERNOR_ADDRESS not set')
-if (!process.env.ARB_SUMMER_GOVERNOR_ADDRESS) throw new Error('ARB_SUMMER_GOVERNOR_ADDRESS not set')
-if (!process.env.ARB_ENDPOINT_ID) throw new Error('ARB_ENDPOINT_ID not set')
-if (!process.env.BASE_TIMELOCK_ADDRESS) throw new Error('BASE_TIMELOCK_ADDRESS not set')
-if (!process.env.PRIVATE_KEY) throw new Error('PRIVATE_KEY not set')
-if (!process.env.RPC_URL) throw new Error('RPC_URL not set')
-
 // Contract addresses
-const HUB_SUMMER_GOVERNOR_ADDRESS = process.env.BASE_SUMMER_GOVERNOR_ADDRESS as Address
-const ARB_SUMMER_GOVERNOR_ADDRESS = process.env.ARB_SUMMER_GOVERNOR_ADDRESS as Address
-const ARB_ENDPOINT_ID = process.env.ARB_ENDPOINT_ID as string // LayerZero chain ID for Arbitrum
-const BASE_TIMELOCK_ADDRESS = process.env.BASE_TIMELOCK_ADDRESS as Address
+const GOVERNOR_ADDRESS = process.env.ARB_SUMMER_GOVERNOR_ADDRESS as Address
+const PEER_GOVERNOR_ADDRESS = process.env.BASE_SUMMER_GOVERNOR_ADDRESS as Address
+const PEER_ENDPOINT_ID = process.env.BASE_ENDPOINT_ID as string
+const TIMELOCK_ADDRESS = process.env.ARB_TIMELOCK_ADDRESS as Address
+const RPC_URL = process.env.ARBITRUM_RPC_URL as string
+const CHAIN = arbitrum
+// const CHAIN = base;
+
+// Verify addresses and endpoint ID are not empty
+if (!GOVERNOR_ADDRESS) {
+  throw new Error('GOVERNOR_ADDRESS is not set')
+}
+
+if (!PEER_GOVERNOR_ADDRESS) {
+  throw new Error('PEER_GOVERNOR_ADDRESS is not set')
+}
+
+if (!PEER_ENDPOINT_ID) {
+  throw new Error('PEER_ENDPOINT_ID is not set')
+}
+
+if (!TIMELOCK_ADDRESS) {
+  throw new Error('TIMELOCK_ADDRESS is not set')
+}
+
+if (!RPC_URL) {
+  throw new Error('RPC_URL is not set')
+}
+
+console.log('Using addresses:')
+console.log('GOVERNOR_ADDRESS:', GOVERNOR_ADDRESS)
+console.log('PEER_GOVERNOR_ADDRESS:', PEER_GOVERNOR_ADDRESS)
+console.log('PEER_ENDPOINT_ID:', PEER_ENDPOINT_ID)
+console.log('TIMELOCK_ADDRESS:', TIMELOCK_ADDRESS)
+
+// Reduce gas parameters
+const GAS_LIMIT = 200000n // Reduced from 300000n
+const MAX_FEE_PER_GAS = 1500000000n // 1.5 gwei (reduced from 150 gwei)
+const MAX_PRIORITY_FEE_PER_GAS = 1500000000n // 1.5 gwei (reduced from 15 gwei)
 
 function createSetPeerCalldata(peerAddress: Address, endpointId: string): Hex {
-  const peerAddressAsBytes32 = `0x${peerAddress.slice(2).padEnd(64, '0')}` as Hex
+  const peerAddressAsBytes32 = `0x000000000000000000000000${peerAddress.slice(2)}` as Hex
+  console.log('peerAddressAsBytes32:', peerAddressAsBytes32)
   return encodeFunctionData({
     abi: [
       {
@@ -47,11 +74,11 @@ function createSetPeerCalldata(peerAddress: Address, endpointId: string): Hex {
 }
 
 async function scheduleSetPeerOperation(publicClient: any, walletClient: any, delay: bigint) {
-  const setPeerCalldata = createSetPeerCalldata(ARB_SUMMER_GOVERNOR_ADDRESS, ARB_ENDPOINT_ID)
+  const setPeerCalldata = createSetPeerCalldata(PEER_GOVERNOR_ADDRESS, PEER_ENDPOINT_ID)
   console.log('setPeerCalldata:', setPeerCalldata)
 
   const hasRole = await publicClient.readContract({
-    address: BASE_TIMELOCK_ADDRESS,
+    address: TIMELOCK_ADDRESS,
     abi: [
       {
         name: 'hasRole',
@@ -90,7 +117,7 @@ async function scheduleSetPeerOperation(publicClient: any, walletClient: any, de
       },
     ],
     args: [
-      HUB_SUMMER_GOVERNOR_ADDRESS,
+      GOVERNOR_ADDRESS,
       0n,
       setPeerCalldata,
       '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -100,19 +127,27 @@ async function scheduleSetPeerOperation(publicClient: any, walletClient: any, de
   })
 
   const tx = await walletClient.sendTransaction({
-    to: BASE_TIMELOCK_ADDRESS,
+    to: TIMELOCK_ADDRESS,
     data: scheduleTx,
     value: 0n,
-    gasLimit: 1000000n,
-    maxFeePerGas: 100000000000n, // 100 gwei
-    maxPriorityFeePerGas: 10000000000n, // 10 gwei
+    gas: GAS_LIMIT, // Use higher gas limit
+    maxFeePerGas: MAX_FEE_PER_GAS,
+    maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
   })
 
   console.log(`Schedule transaction sent: ${tx}`)
+
+  // Add transaction receipt logging
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: tx })
+  console.log('Transaction mined:', {
+    blockNumber: receipt.blockNumber,
+    gasUsed: receipt.gasUsed,
+    effectiveGasPrice: receipt.effectiveGasPrice,
+  })
 }
 
 async function executeSetPeerOperation(walletClient: any) {
-  const setPeerCalldata = createSetPeerCalldata(ARB_SUMMER_GOVERNOR_ADDRESS, ARB_ENDPOINT_ID)
+  const setPeerCalldata = createSetPeerCalldata(PEER_GOVERNOR_ADDRESS, PEER_ENDPOINT_ID)
 
   const executeTx = encodeFunctionData({
     abi: [
@@ -131,7 +166,7 @@ async function executeSetPeerOperation(walletClient: any) {
       },
     ],
     args: [
-      HUB_SUMMER_GOVERNOR_ADDRESS,
+      GOVERNOR_ADDRESS,
       0n,
       setPeerCalldata,
       '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -140,10 +175,12 @@ async function executeSetPeerOperation(walletClient: any) {
   })
 
   const tx = await walletClient.sendTransaction({
-    to: BASE_TIMELOCK_ADDRESS,
+    to: TIMELOCK_ADDRESS,
     data: executeTx,
     value: 0n,
-    gasLimit: 1000000n,
+    gas: GAS_LIMIT,
+    maxFeePerGas: MAX_FEE_PER_GAS,
+    maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
   })
 
   console.log(`Execute transaction sent: ${tx}`)
@@ -151,19 +188,19 @@ async function executeSetPeerOperation(walletClient: any) {
 
 async function main() {
   const publicClient = createPublicClient({
-    chain: base,
-    transport: http(process.env.RPC_URL),
+    chain: CHAIN,
+    transport: http(RPC_URL),
   })
 
   const account = privateKeyToAccount(`0x${process.env.PRIVATE_KEY as Hex}`)
   const walletClient = createWalletClient({
     account,
-    chain: base,
-    transport: http(process.env.RPC_URL),
+    chain: CHAIN,
+    transport: http(RPC_URL),
   })
 
   const delay = (await publicClient.readContract({
-    address: BASE_TIMELOCK_ADDRESS,
+    address: TIMELOCK_ADDRESS,
     abi: [
       {
         name: 'getMinDelay',

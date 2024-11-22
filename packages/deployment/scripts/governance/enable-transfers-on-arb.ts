@@ -67,7 +67,7 @@ async function main() {
       args: [],
     }) as Hex,
   ]
-  const dstDescription = 'Enable transfers on Arbitrum SummerToken (v2)'
+  const dstDescription = 'Enable transfers on Arbitrum SummerToken (v6)'
 
   console.log('Destination description:', dstDescription)
   console.log('Hashed destination description:', hashDescription(dstDescription))
@@ -110,7 +110,6 @@ async function main() {
     console.log('Source description:', srcDescription)
     console.log('Hashed description:', hashDescription(srcDescription))
 
-    // throw new Error('Not implemented')
     console.log('Simulation successful, proceeding with transaction...')
 
     // Submit the proposal with explicit gas parameters
