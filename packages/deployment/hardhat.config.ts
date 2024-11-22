@@ -63,10 +63,12 @@ const config: HardhatUserConfig = {
     mainnet: {
       url: `${process.env.MAINNET_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 1,
     },
     optimism: {
       url: `${process.env.OPTIMISM_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 10,
     },
     arbitrum: {
       url: `${process.env.ARBITRUM_RPC_URL}`,
