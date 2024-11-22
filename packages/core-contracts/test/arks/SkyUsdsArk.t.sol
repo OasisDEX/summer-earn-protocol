@@ -96,12 +96,6 @@ contract USDSArkTestFork is Test, IArkEvents, ArkTestBase {
         );
     }
 
-    function test_Harvest_Reverts() public {
-        vm.expectRevert("USDSArk: No manual harvesting required");
-        vm.prank(raft);
-        ark.harvest(bytes(""));
-    }
-
     function test_Disembark_USDSArk_fork() public {
         // First board some assets so we have something to disembark
         uint256 boardAmount = 1000 * 10 ** 6; // 1000 USDC

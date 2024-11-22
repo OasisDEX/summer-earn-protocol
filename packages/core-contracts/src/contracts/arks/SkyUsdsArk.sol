@@ -65,7 +65,15 @@ contract SkyUsdsArk is Ark {
     // No harvest function needed as rewards are automatically compounded in stakedUSDS
     function _harvest(
         bytes calldata
-    ) internal pure override returns (address[] memory, uint256[] memory) {
-        revert("USDSArk: No manual harvesting required");
+    )
+        internal
+        pure
+        override
+        returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
+    {
+        rewardTokens = new address[](1);
+        rewardAmounts = new uint256[](1);
+        rewardTokens[0] = address(0);
+        rewardAmounts[0] = 0;
     }
 }
