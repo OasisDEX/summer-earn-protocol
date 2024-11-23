@@ -9,8 +9,17 @@ export enum Tokens {
   USDT = 'usdt',
   USDE = 'usde',
   USDCE = 'usdce',
+  USDS = 'usds',
+  STAKED_USDS = 'stakedUsds',
 }
-export type TokenType = Tokens.DAI | Tokens.USDC | Tokens.USDT | Tokens.USDE | Tokens.USDCE
+export type TokenType =
+  | Tokens.DAI
+  | Tokens.USDC
+  | Tokens.USDT
+  | Tokens.USDE
+  | Tokens.USDCE
+  | Tokens.USDS
+  | Tokens.STAKED_USDS
 
 export interface BaseConfig {
   deployedContracts: {
@@ -70,6 +79,11 @@ export interface BaseConfig {
         }
       }
       rewards: Address
+    }
+    sky: {
+      psmLite: {
+        [key in Tokens]: Address
+      }
     }
   }
 }
