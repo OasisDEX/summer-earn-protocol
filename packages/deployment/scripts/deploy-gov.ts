@@ -1,10 +1,10 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 
 import { Address, keccak256, toBytes } from 'viem'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
 import { BaseConfig } from '../types/config-types'
+import { ADDRESS_ZERO } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 import { updateIndexJson } from './helpers/update-json'
@@ -36,16 +36,15 @@ export async function deployGov() {
 async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
-  const initialSupply = await promptForInitialSupply()
+  const initialSupply = getInitialSupply(config)
   console.log(kleur.blue('Initial Supply:'), kleur.cyan(`${initialSupply} SUMMER`))
 
   // Add peer configuration prompt
-  const peers = await promptForPeers()
-
+  const peers = getPeersFromConfig(hre.network.name)
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
       GovModule: {
-        lzEndpoint: config.common.lzEndpoint,
+        lzEndpoint: config.common.layerZero.lzEndpoint,
         protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
         initialSupply,
         peerEndpointIds: peers.map((p) => p.eid),
@@ -62,75 +61,56 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   return gov
 }
 
-async function promptForInitialSupply(): Promise<bigint> {
-  if (process.env.SUMMER_INITIAL_SUPPLY) {
-    return BigInt(process.env.SUMMER_INITIAL_SUPPLY)
-  }
-
-  const { value } = await prompts({
-    type: 'text',
-    name: 'value',
-    message: 'Enter the initial supply of SUMMER tokens (e.g., 1000000000 for 1B tokens):',
-    initial: '1000000000',
-    validate: (value: string) => {
-      const num = Number(value)
-      if (isNaN(num) || num < 0) {
-        return 'Please enter a valid positive number'
-      }
-      if (!Number.isInteger(num)) {
-        return 'Please enter a whole number'
-      }
-      return true
-    },
-  })
-
-  return BigInt(value) * 10n ** 18n
+/**
+ * Retrieves the initial supply of tokens from the configuration.
+ *
+ * @param config - The configuration object for the current network.
+ * @returns The initial supply of tokens as a bigint, scaled to 18 decimal places.
+ */
+function getInitialSupply(config: BaseConfig): bigint {
+  return BigInt(config.common.initialSupply) * 10n ** 18n
 }
 
-// Add new function to prompt for peer configuration
-async function promptForPeers(): Promise<PeerConfig[]> {
-  if (process.env.SKIP_PEER_SETUP === 'true') {
-    console.log(kleur.yellow('Skipping peer setup as SKIP_PEER_SETUP=true'))
-    return []
-  }
-
-  const { setupPeers } = await prompts({
-    type: 'confirm',
-    name: 'setupPeers',
-    message: 'Would you like to configure peer governors?',
-    initial: true,
-  })
-
-  if (!setupPeers) return []
-
+/**
+ * Retrieves the peer configuration for the given network.
+ *
+ * This function iterates over all available networks, excluding the current one,
+ * and collects the peer configurations for networks where the SummerGovernor contract
+ * is deployed. The peer configuration includes the endpoint ID (eid) and the address
+ * of the SummerGovernor contract.
+ *
+ * @param currentNetwork - The name of the current network to exclude from the peer list.
+ * @returns An array of peer configurations.
+ */
+function getPeersFromConfig(currentNetwork: string): PeerConfig[] {
   const peers: PeerConfig[] = []
-  let addMore = true
+  const networks = Object.keys(hre.config.networks)
 
-  while (addMore) {
-    const { eid } = await prompts({
-      type: 'number',
-      name: 'eid',
-      message: 'Enter the LayerZero Endpoint ID (EID) for the peer:',
-      validate: (value) => value > 0 || 'Please enter a valid EID',
-    })
+  for (const network of networks) {
+    console.log(kleur.blue().bold('Checking network:'), kleur.cyan(network))
+    // Skip current network
+    if (network === currentNetwork || network === 'hardhat' || network === 'local') {
+      console.log(kleur.blue().bold('Skipping current network:'), kleur.cyan(network))
+      continue
+    }
 
-    const { address } = await prompts({
-      type: 'text',
-      name: 'address',
-      message: 'Enter the governor contract address for this peer:',
-      validate: (value) => /^0x[a-fA-F0-9]{40}$/.test(value) || 'Please enter a valid address',
-    })
-
-    peers.push({ eid, address })
-
-    const { continue: shouldContinue } = await prompts({
-      type: 'confirm',
-      name: 'continue',
-      message: 'Would you like to add another peer?',
-      initial: false,
-    })
-
-    addMore = shouldContinue
+    // Get config for the network
+    try {
+      const networkConfig = getConfigByNetwork(network)
+      // Skip if no gov contracts or SummerGovernor not deployed
+      if (
+        !networkConfig.deployedContracts?.gov?.summerGovernor?.address ||
+        networkConfig.deployedContracts?.gov?.summerGovernor.address == ADDRESS_ZERO
+      )
+        continue
+      peers.push({
+        eid: parseInt(networkConfig.common.layerZero.eID),
+        address: networkConfig.deployedContracts.gov.summerGovernor.address,
+      })
+    } catch (error) {
+      console.log(kleur.red().bold('Skipping network, alck of config:'), kleur.cyan(network))
+      continue
+    }
   }
 
   // Log peer configuration

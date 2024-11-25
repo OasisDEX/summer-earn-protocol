@@ -49,10 +49,14 @@
       "usdce": "0x0000000000000000000000000000000000000000"
     },
     "common": {
+      "initialSupply": "1000000000",
       "treasury": "0xAb1a4Ae0F851700CC42442c588f458B553cB2620",
-      "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
-      "tipRate": "100"
+      "tipRate": "100",
+      "layerZero": {
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "eID": "30184"
+      }
     },
     "protocolSpecific": {
       "aaveV3": {
@@ -150,10 +154,14 @@
       "usdce": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
     },
     "common": {
+      "initialSupply": "0",
       "treasury": "0x13371f8Cf79706907a5A18939b77b426636C3BA0",
-      "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
-      "tipRate": "100"
+      "tipRate": "100",
+      "layerZero": {
+        "eID": "30110",
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+      }
     },
     "protocolSpecific": {
       "erc4626": {
