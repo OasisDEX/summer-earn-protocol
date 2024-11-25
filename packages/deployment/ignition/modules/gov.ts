@@ -80,8 +80,12 @@ export const GovModule = buildModule('GovModule', (m) => {
    * @dev Step 3: Deploy SummerGovernor
    * This contract manages the governance process
    * - Integrates with SummerToken for voting power calculations
-   * - Uses TimelockController for action execution
-   * - Configured with initial voting parameters and cross-chain settings
+   * - On BASE chain (proposalChainId == chainId):
+   *   - Uses TimelockController for action execution
+   *   - TimelockController owns the governor
+   * - On satellite chains:
+   *   - Governor executes actions directly
+   *   - Governor owns itself
    */
   const summerGovernorDeployParams = {
     token: summerToken,

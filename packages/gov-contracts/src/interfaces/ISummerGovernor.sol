@@ -39,6 +39,8 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         uint256 quorumFraction;
         address initialWhitelistGuardian;
         address endpoint;
+        /// @dev On BASE chain (proposalChainId == block.chainid), timelock owns the governor
+        /// @dev On satellite chains, the governor owns itself
         uint32 proposalChainId;
         uint32[] peerEndpointIds;
         address[] peerAddresses;

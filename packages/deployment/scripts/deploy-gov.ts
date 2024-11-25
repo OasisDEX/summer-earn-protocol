@@ -172,34 +172,37 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   // Get governance rewards manager address from SummerToken
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
 
-  // Transfer SummerToken ownership to timelock if not already owned
-  // const currentTokenOwner = await summerToken.read.owner()
-  // if (currentTokenOwner !== timelock.address) {
-  //   console.log('Transferring SummerToken ownership to timelock...')
-  //   const hash = await summerToken.write.transferOwnership([timelock.address])
-  //   await publicClient.waitForTransactionReceipt({
-  //     hash: hash,
-  //   })
-  // }
+  // Determine if we're on HUB chain (currently BASE chain)
+  const isHubChain = (await summerGovernor.read.proposalChainId()) === hre.network.config.chainId
 
-  // Grant roles to SummerGovernor in Timelock
-  const roles = [
-    { name: 'PROPOSER_ROLE', value: PROPOSER_ROLE },
-    { name: 'CANCELLER_ROLE', value: CANCELLER_ROLE },
-    { name: 'EXECUTOR_ROLE', value: EXECUTOR_ROLE },
-  ]
-
-  for (const role of roles) {
-    const hasRole = await timelock.read.hasRole([role.value, summerGovernor.address])
-    if (!hasRole) {
-      console.log(`[TIMELOCK] - Granting ${role.name} to SummerGovernor...`)
-      const hash = await timelock.write.grantRole([role.value, summerGovernor.address])
-      await publicClient.waitForTransactionReceipt({
-        hash: hash,
-      })
+  // Set up the correct governor role based on chain
+  if (isHubChain) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Setting up HUB chain governance...')
+    // On HUB, the timelock should have governor role
+    const hasGovernorRole = await protocolAccessManager.read.hasRole([
+      GOVERNOR_ROLE,
+      timelock.address,
+    ])
+    if (!hasGovernorRole) {
+      console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
+      const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+    }
+  } else {
+    console.log('[PROTOCOL ACCESS MANAGER] - Setting up satellite chain governance...')
+    // On satellite chains, the governor contract itself should have governor role
+    const hasGovernorRole = await protocolAccessManager.read.hasRole([
+      GOVERNOR_ROLE,
+      summerGovernor.address,
+    ])
+    if (!hasGovernorRole) {
+      console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to governor contract...')
+      const hash = await protocolAccessManager.write.grantGovernorRole([summerGovernor.address])
+      await publicClient.waitForTransactionReceipt({ hash })
     }
   }
 
+  // Rest of the setup remains the same for both chains
   // Grant decay controller role to governance rewards manager
   const hasDecayRole = await protocolAccessManager.read.hasRole([
     DECAY_CONTROLLER_ROLE,
@@ -210,9 +213,7 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
       '[PROTOCOL ACCESS MANAGER] - Granting decay controller role to governance rewards manager...',
     )
     const hash = await protocolAccessManager.write.grantDecayControllerRole([rewardsManagerAddress])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
+    await publicClient.waitForTransactionReceipt({ hash })
   }
 
   const hasDecayRole2 = await protocolAccessManager.read.hasRole([
@@ -224,59 +225,27 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     const hash = await protocolAccessManager.write.grantDecayControllerRole([
       summerGovernor.address,
     ])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
+    await publicClient.waitForTransactionReceipt({ hash })
   }
 
-  // Grant governor role to timelock
-  const hasGovernorRole = await protocolAccessManager.read.hasRole([
-    GOVERNOR_ROLE,
-    timelock.address,
-  ])
+  // On BASE chain only: Set up timelock roles
+  if (isHubChain) {
+    // Grant roles to SummerGovernor in Timelock
+    const roles = [
+      { name: 'PROPOSER_ROLE', value: PROPOSER_ROLE },
+      { name: 'CANCELLER_ROLE', value: CANCELLER_ROLE },
+      { name: 'EXECUTOR_ROLE', value: EXECUTOR_ROLE },
+    ]
 
-  if (!hasGovernorRole) {
-    console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
-    const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
+    for (const role of roles) {
+      const hasRole = await timelock.read.hasRole([role.value, summerGovernor.address])
+      if (!hasRole) {
+        console.log(`[TIMELOCK] - Granting ${role.name} to SummerGovernor...`)
+        const hash = await timelock.write.grantRole([role.value, summerGovernor.address])
+        await publicClient.waitForTransactionReceipt({ hash })
+      }
+    }
   }
-  // todo: uncomment on final deployment
-  // // Revoke roles from deployer
-  // const hasDeployerGovernorRole = await protocolAccessManager.read.hasRole([
-  //   GOVERNOR_ROLE,
-  //   deployer.account.address,
-  // ])
-  // if (hasDeployerGovernorRole) {
-  //   console.log('[PROTOCOL ACCESS MANAGER] - Revoking governor role from deployer...')
-  //   const hash = await protocolAccessManager.write.revokeGovernorRole([deployer.account.address])
-  //   await publicClient.waitForTransactionReceipt({
-  //     hash: hash,
-  //   })
-  // }
-
-  // const hasProposerRole = await timelock.read.hasRole([PROPOSER_ROLE, deployer.account.address])
-  // if (hasProposerRole) {
-  //   console.log('[TIMELOCK] - Revoking proposer role from deployer...')
-  //   const hash = await timelock.write.revokeRole([PROPOSER_ROLE, deployer.account.address])
-  //   await publicClient.waitForTransactionReceipt({
-  //     hash: hash,
-  //   })
-  // }
-
-  // // todo: why is this not showing that deployer has admin role
-  // const hasDefaultAdminRole = await timelock.read.hasRole([
-  //   DEFAULT_ADMIN_ROLE,
-  //   deployer.account.address,
-  // ])
-  // if (hasDefaultAdminRole) {
-  //   console.log('[TIMELOCK] - Revoking default admin role from deployer...')
-  //   const hash = await timelock.write.revokeRole([DEFAULT_ADMIN_ROLE, deployer.account.address])
-  //   await publicClient.waitForTransactionReceipt({
-  //     hash: hash,
-  //   })
-  // }
 
   console.log(kleur.green().bold('Governance roles setup completed!'))
 }

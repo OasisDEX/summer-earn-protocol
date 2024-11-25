@@ -20,10 +20,6 @@ import {DecayController} from "./DecayController.sol";
  * @dev This contract implements the governance mechanism for the Summer protocol.
  * It extends various OpenZeppelin governance modules and includes custom functionality
  * such as whitelisting and voting decay.
- *
- * TODO: Fully integrate voting decay once cross-chain messaging is tested
-* see
-https://github.com/OasisDEX/summer-earn-protocol/blob/0b6b338ef4ccb8efa209b9cf6226b3669917f0d2/packages/voting-decay/test/ExampleGovernor.sol#L76
  */
 contract SummerGovernor is
     ISummerGovernor,
@@ -94,10 +90,19 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
-        OApp(params.endpoint, address(params.timelock))
+        OApp(
+            params.endpoint,
+            params.proposalChainId == block.chainid
+                ? address(params.timelock)
+                : address(this)
+        )
         DecayController(address(params.token))
-        // @dev LayerZero do not directly initialize Ownable, so we do it here
-        Ownable(address(params.timelock))
+        // Only set timelock as owner on HUB chain (currently BASE chain)
+        Ownable(
+            params.proposalChainId == block.chainid
+                ? address(params.timelock)
+                : address(this)
+        )
     {
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
