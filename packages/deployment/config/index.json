@@ -159,7 +159,7 @@
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
       "layerZero": {
-        "eID": "110",
+        "eID": "30110",
         "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
       }
     },
