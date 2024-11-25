@@ -41,6 +41,7 @@
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts"
   },
   "devDependencies": {
+    "@layerzerolabs/lz-v2-utilities": "^2.3.39",
     "@nomicfoundation/hardhat-foundry": "^1.1.2",
     "@nomicfoundation/hardhat-ignition": "^0.15.5",
     "@nomicfoundation/hardhat-ignition-viem": "^0.15.5",

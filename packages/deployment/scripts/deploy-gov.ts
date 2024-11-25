@@ -1,10 +1,10 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import prompts from 'prompts'
 
 import { Address, keccak256, toBytes } from 'viem'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
 import { BaseConfig } from '../types/config-types'
+import { ADDRESS_ZERO } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 import { updateIndexJson } from './helpers/update-json'
@@ -14,6 +14,11 @@ const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
 const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
+
+interface PeerConfig {
+  eid: number
+  address: string
+}
 
 export async function deployGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
@@ -31,17 +36,19 @@ export async function deployGov() {
 async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   console.log(kleur.cyan().bold('Deploying Gov Contracts...'))
 
-  // checkExistingContracts(config, 'gov')
-  // Prompt for initial supply if not provided
-  const initialSupply = await promptForInitialSupply()
+  const initialSupply = getInitialSupply(config)
   console.log(kleur.blue('Initial Supply:'), kleur.cyan(`${initialSupply} SUMMER`))
 
+  // Add peer configuration prompt
+  const peers = getPeersFromConfig(hre.network.name)
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
       GovModule: {
-        lzEndpoint: config.common.lzEndpoint,
+        lzEndpoint: config.common.layerZero.lzEndpoint,
         protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
         initialSupply,
+        peerEndpointIds: peers.map((p) => p.eid),
+        peerAddresses: peers.map((p) => p.address),
       },
     },
   })
@@ -54,29 +61,67 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   return gov
 }
 
-async function promptForInitialSupply(): Promise<string> {
-  if (process.env.SUMMER_INITIAL_SUPPLY) {
-    return process.env.SUMMER_INITIAL_SUPPLY
+/**
+ * Retrieves the initial supply of tokens from the configuration.
+ *
+ * @param config - The configuration object for the current network.
+ * @returns The initial supply of tokens as a bigint, scaled to 18 decimal places.
+ */
+function getInitialSupply(config: BaseConfig): bigint {
+  return BigInt(config.common.initialSupply) * 10n ** 18n
+}
+
+/**
+ * Retrieves the peer configuration for the given network.
+ *
+ * This function iterates over all available networks, excluding the current one,
+ * and collects the peer configurations for networks where the SummerGovernor contract
+ * is deployed. The peer configuration includes the endpoint ID (eid) and the address
+ * of the SummerGovernor contract.
+ *
+ * @param currentNetwork - The name of the current network to exclude from the peer list.
+ * @returns An array of peer configurations.
+ */
+function getPeersFromConfig(currentNetwork: string): PeerConfig[] {
+  const peers: PeerConfig[] = []
+  const networks = Object.keys(hre.config.networks)
+
+  for (const network of networks) {
+    console.log(kleur.blue().bold('Checking network:'), kleur.cyan(network))
+    // Skip current network
+    if (network === currentNetwork || network === 'hardhat' || network === 'local') {
+      console.log(kleur.blue().bold('Skipping current network:'), kleur.cyan(network))
+      continue
+    }
+
+    // Get config for the network
+    try {
+      const networkConfig = getConfigByNetwork(network)
+      // Skip if no gov contracts or SummerGovernor not deployed
+      if (
+        !networkConfig.deployedContracts?.gov?.summerGovernor?.address ||
+        networkConfig.deployedContracts?.gov?.summerGovernor.address == ADDRESS_ZERO
+      )
+        continue
+      peers.push({
+        eid: parseInt(networkConfig.common.layerZero.eID),
+        address: networkConfig.deployedContracts.gov.summerGovernor.address,
+      })
+    } catch (error) {
+      console.log(kleur.red().bold('Skipping network, alck of config:'), kleur.cyan(network))
+      continue
+    }
   }
 
-  const { value } = await prompts({
-    type: 'text',
-    name: 'value',
-    message: 'Enter the initial supply of SUMMER tokens (e.g., 10000000 for 10M tokens):',
-    initial: '10000000',
-    validate: (value: string) => {
-      const num = Number(value)
-      if (isNaN(num) || num <= 0) {
-        return 'Please enter a valid positive number'
-      }
-      if (!Number.isInteger(num)) {
-        return 'Please enter a whole number'
-      }
-      return true
-    },
-  })
+  // Log peer configuration
+  if (peers.length > 0) {
+    console.log('\nConfigured Peers:')
+    peers.forEach((peer) => {
+      console.log(kleur.blue(`EID: ${peer.eid}`), kleur.cyan(`Address: ${peer.address}`))
+    })
+  }
 
-  return value
+  return peers
 }
 
 /**
@@ -127,34 +172,37 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   // Get governance rewards manager address from SummerToken
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
 
-  // Transfer SummerToken ownership to timelock if not already owned
-  // const currentTokenOwner = await summerToken.read.owner()
-  // if (currentTokenOwner !== timelock.address) {
-  //   console.log('Transferring SummerToken ownership to timelock...')
-  //   const hash = await summerToken.write.transferOwnership([timelock.address])
-  //   await publicClient.waitForTransactionReceipt({
-  //     hash: hash,
-  //   })
-  // }
+  // Determine if we're on HUB chain (currently BASE chain)
+  const isHubChain = (await summerGovernor.read.proposalChainId()) === hre.network.config.chainId
 
-  // Grant roles to SummerGovernor in Timelock
-  const roles = [
-    { name: 'PROPOSER_ROLE', value: PROPOSER_ROLE },
-    { name: 'CANCELLER_ROLE', value: CANCELLER_ROLE },
-    { name: 'EXECUTOR_ROLE', value: EXECUTOR_ROLE },
-  ]
-
-  for (const role of roles) {
-    const hasRole = await timelock.read.hasRole([role.value, summerGovernor.address])
-    if (!hasRole) {
-      console.log(`[TIMELOCK] - Granting ${role.name} to SummerGovernor...`)
-      const hash = await timelock.write.grantRole([role.value, summerGovernor.address])
-      await publicClient.waitForTransactionReceipt({
-        hash: hash,
-      })
+  // Set up the correct governor role based on chain
+  if (isHubChain) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Setting up HUB chain governance...')
+    // On HUB, the timelock should have governor role
+    const hasGovernorRole = await protocolAccessManager.read.hasRole([
+      GOVERNOR_ROLE,
+      timelock.address,
+    ])
+    if (!hasGovernorRole) {
+      console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
+      const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+    }
+  } else {
+    console.log('[PROTOCOL ACCESS MANAGER] - Setting up satellite chain governance...')
+    // On satellite chains, the governor contract itself should have governor role
+    const hasGovernorRole = await protocolAccessManager.read.hasRole([
+      GOVERNOR_ROLE,
+      summerGovernor.address,
+    ])
+    if (!hasGovernorRole) {
+      console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to governor contract...')
+      const hash = await protocolAccessManager.write.grantGovernorRole([summerGovernor.address])
+      await publicClient.waitForTransactionReceipt({ hash })
     }
   }
 
+  // Rest of the setup remains the same for both chains
   // Grant decay controller role to governance rewards manager
   const hasDecayRole = await protocolAccessManager.read.hasRole([
     DECAY_CONTROLLER_ROLE,
@@ -165,9 +213,7 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
       '[PROTOCOL ACCESS MANAGER] - Granting decay controller role to governance rewards manager...',
     )
     const hash = await protocolAccessManager.write.grantDecayControllerRole([rewardsManagerAddress])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
+    await publicClient.waitForTransactionReceipt({ hash })
   }
 
   const hasDecayRole2 = await protocolAccessManager.read.hasRole([
@@ -179,58 +225,27 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     const hash = await protocolAccessManager.write.grantDecayControllerRole([
       summerGovernor.address,
     ])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
+    await publicClient.waitForTransactionReceipt({ hash })
   }
 
-  // Grant governor role to timelock
-  const hasGovernorRole = await protocolAccessManager.read.hasRole([
-    GOVERNOR_ROLE,
-    timelock.address,
-  ])
-  if (!hasGovernorRole) {
-    console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
-    const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
+  // On BASE chain only: Set up timelock roles
+  if (isHubChain) {
+    // Grant roles to SummerGovernor in Timelock
+    const roles = [
+      { name: 'PROPOSER_ROLE', value: PROPOSER_ROLE },
+      { name: 'CANCELLER_ROLE', value: CANCELLER_ROLE },
+      { name: 'EXECUTOR_ROLE', value: EXECUTOR_ROLE },
+    ]
+
+    for (const role of roles) {
+      const hasRole = await timelock.read.hasRole([role.value, summerGovernor.address])
+      if (!hasRole) {
+        console.log(`[TIMELOCK] - Granting ${role.name} to SummerGovernor...`)
+        const hash = await timelock.write.grantRole([role.value, summerGovernor.address])
+        await publicClient.waitForTransactionReceipt({ hash })
+      }
+    }
   }
-  // todo: uncomment on final deployment
-  // // Revoke roles from deployer
-  // const hasDeployerGovernorRole = await protocolAccessManager.read.hasRole([
-  //   GOVERNOR_ROLE,
-  //   deployer.account.address,
-  // ])
-  // if (hasDeployerGovernorRole) {
-  //   console.log('[PROTOCOL ACCESS MANAGER] - Revoking governor role from deployer...')
-  //   const hash = await protocolAccessManager.write.revokeGovernorRole([deployer.account.address])
-  //   await publicClient.waitForTransactionReceipt({
-  //     hash: hash,
-  //   })
-  // }
-
-  // const hasProposerRole = await timelock.read.hasRole([PROPOSER_ROLE, deployer.account.address])
-  // if (hasProposerRole) {
-  //   console.log('[TIMELOCK] - Revoking proposer role from deployer...')
-  //   const hash = await timelock.write.revokeRole([PROPOSER_ROLE, deployer.account.address])
-  //   await publicClient.waitForTransactionReceipt({
-  //     hash: hash,
-  //   })
-  // }
-
-  // // todo: why is this not showing that deployer has admin role
-  // const hasDefaultAdminRole = await timelock.read.hasRole([
-  //   DEFAULT_ADMIN_ROLE,
-  //   deployer.account.address,
-  // ])
-  // if (hasDefaultAdminRole) {
-  //   console.log('[TIMELOCK] - Revoking default admin role from deployer...')
-  //   const hash = await timelock.write.revokeRole([DEFAULT_ADMIN_ROLE, deployer.account.address])
-  //   await publicClient.waitForTransactionReceipt({
-  //     hash: hash,
-  //   })
-  // }
 
   console.log(kleur.green().bold('Governance roles setup completed!'))
 }

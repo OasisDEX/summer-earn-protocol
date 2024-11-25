@@ -3,13 +3,13 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0xBd06f562d3e82844370652B47CbbFBFeb5688bC8"
+          "address": "0x7315aDc64617308Fac0F5c50775f399aFa6464F0"
         },
         "summerToken": {
-          "address": "0x700C403B5543D987a468E2382C3e75a7695725e1"
+          "address": "0x5f311c931e03217aa0eae99eaF15A7b33543Ec75"
         },
         "timelock": {
-          "address": "0xd9B0c31551900df806a24E042fDA91E3da390c26"
+          "address": "0x6Cd849487777eD659bb936F7aA0b4dD8eB30D4F5"
         }
       },
       "buyAndBurn": {
@@ -19,25 +19,25 @@
       },
       "core": {
         "protocolAccessManager": {
-          "address": "0x336FE2c6c34e767e735Fd474D338ba12170783c7"
+          "address": "0x2a828B0E5cB549eE568923E815D9A781b6f4F018"
         },
         "tipJar": {
-          "address": "0x668a534C850d3CCa0968365319E8edE0754954F6"
+          "address": "0xD4CA828E62Dd96945A6D322c0a31c48d18591aDC"
         },
         "raft": {
-          "address": "0x1F555ecA085632cB4c4cF1c24f26dfD0B76B9825"
+          "address": "0xb0F76bB756cd43DC5110f7959bB2c390d34D7dAB"
         },
         "configurationManager": {
-          "address": "0x4fA0Aa0A4A9d3471F9E6A9E0D75b05c69fFF0D1a"
+          "address": "0x75B5AbD44d3fFC54F951264E2335a63790746316"
         },
         "harborCommand": {
-          "address": "0xfd3dDE67A2207508334Dd81F10e2Bfe8DD7886dc"
+          "address": "0x11aa96b3070321CDB23737E10F678de42C47D266"
         },
         "admiralsQuarters": {
-          "address": "0xa533e9d85bffd48036693F5AeA6B53F78B58cad9"
+          "address": "0x1128D017709bfF7284a8D5ca7898551d4E995b4C"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0xdBA66Fc80e55793d64bB3eBDa74646F7A80B97F1"
+          "address": "0x355E2e10a0056a0ae18F5f67925b74fdD9Ba87D7"
         }
       }
     },
@@ -49,10 +49,14 @@
       "usdce": "0x0000000000000000000000000000000000000000"
     },
     "common": {
+      "initialSupply": "1000000000",
       "treasury": "0xAb1a4Ae0F851700CC42442c588f458B553cB2620",
-      "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
-      "tipRate": "100"
+      "tipRate": "100",
+      "layerZero": {
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "eID": "30184"
+      }
     },
     "protocolSpecific": {
       "aaveV3": {
@@ -104,13 +108,13 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xA62aF16aD97B01aC7AB10122B453C0630a37e48c"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x5f311c931e03217aa0eae99eaF15A7b33543Ec75"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x6Cd849487777eD659bb936F7aA0b4dD8eB30D4F5"
         }
       },
       "buyAndBurn": {
@@ -120,25 +124,25 @@
       },
       "core": {
         "protocolAccessManager": {
-          "address": "0x12B63Bfc30B6EAAe2cEA4217aB8b8092605dA89B"
+          "address": "0x2a828B0E5cB549eE568923E815D9A781b6f4F018"
         },
         "tipJar": {
-          "address": "0xBf83062641d869Bdb44E9072F6453D2E0a986D24"
+          "address": "0xD4CA828E62Dd96945A6D322c0a31c48d18591aDC"
         },
         "raft": {
-          "address": "0x1b4b8c790A36F2e37bCd59db73320D6Fd897DB9A"
+          "address": "0xb0F76bB756cd43DC5110f7959bB2c390d34D7dAB"
         },
         "configurationManager": {
-          "address": "0xf65f4142A4734606cEC94Ea1c8549dE829231C85"
+          "address": "0x75B5AbD44d3fFC54F951264E2335a63790746316"
         },
         "harborCommand": {
-          "address": "0x3a2c9cc408fAeE0C6A206f37819f07f4BD19BC66"
+          "address": "0x11aa96b3070321CDB23737E10F678de42C47D266"
         },
         "admiralsQuarters": {
-          "address": "0x0369A0125465BB935f32EFff4e20Dccf93550C17"
+          "address": "0x1128D017709bfF7284a8D5ca7898551d4E995b4C"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x6a1521C68c3d54693E1B2420C49103840EAc944f"
+          "address": "0x355E2e10a0056a0ae18F5f67925b74fdD9Ba87D7"
         }
       }
     },
@@ -150,10 +154,14 @@
       "usdce": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
     },
     "common": {
+      "initialSupply": "0",
       "treasury": "0x13371f8Cf79706907a5A18939b77b426636C3BA0",
-      "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
-      "tipRate": "100"
+      "tipRate": "100",
+      "layerZero": {
+        "eID": "30110",
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+      }
     },
     "protocolSpecific": {
       "erc4626": {

@@ -117,7 +117,7 @@ export const CoreModule = buildModule('CoreModule', (m) => {
    * - Completed core configuration
    * - Swap provider for token operations
    */
-  const admiralsQuarters = m.contract('AdmiralsQuarters', [swapProvider])
+  const admiralsQuarters = m.contract('AdmiralsQuarters', [swapProvider, configurationManager])
 
   return {
     protocolAccessManager,
