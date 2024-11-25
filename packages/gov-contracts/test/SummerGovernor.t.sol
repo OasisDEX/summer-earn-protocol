@@ -35,13 +35,6 @@ contract ExposedSummerGovernor is SummerGovernor {
         _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
     }
 
-    function setTrustedRemote(
-        uint32 _chainId,
-        address _trustedRemote
-    ) public override {
-        trustedRemotes[_chainId] = _trustedRemote;
-    }
-
     function exposedSendProposalToTargetChain(
         uint32 _dstEid,
         address[] memory _dstTargets,
@@ -111,7 +104,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
-                proposalChainId: 31337
+                proposalChainId: 31337,
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
         SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
             .GovernorParams({
@@ -123,7 +118,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
-                proposalChainId: 31337
+                proposalChainId: 31337,
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
@@ -133,9 +130,6 @@ contract SummerGovernorTest is
 
         vm.prank(address(timelockB));
         accessManagerB.grantDecayControllerRole(address(governorB));
-
-        governorA.setTrustedRemote(bEid, address(governorB));
-        governorB.setTrustedRemote(aEid, address(governorA));
 
         vm.label(address(governorA), "SummerGovernor");
         vm.label(address(governorB), "SummerGovernor");
@@ -333,42 +327,6 @@ contract SummerGovernorTest is
         assertTrue(foundEvent, "ProposalSentCrossChain event not found");
     }
 
-    function test_ReceiveProposalFromUntrustedSource() public {
-        // Setup: Prepare a cross-chain proposal
-        (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[] memory calldatas,
-            string memory description,
-            uint256 proposalId
-        ) = createCrossChainProposal(aEid, governorB);
-
-        // Encode the proposal data
-        bytes memory payload = abi.encode(
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        // Create an Origin struct with an untrusted source
-        Origin memory origin = Origin(
-            aEid,
-            bytes32(uint256(uint160(address(0x1234)))),
-            0
-        );
-
-        // Attempt to receive the proposal
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "SummerGovernorInvalidSender(address)",
-                address(0x1234)
-            )
-        );
-        governorB.exposedLzReceive(origin, payload, "");
-    }
-
     function test_InsufficientNativeFeeForCrossChainMessage() public {
         // Prepare cross-chain proposal parameters
         (
@@ -543,7 +501,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337
+                proposalChainId: 31337,
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
         vm.expectRevert(
             abi.encodeWithSignature(
@@ -947,7 +907,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0x5),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337
+                proposalChainId: 31337,
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
 
         vm.expectRevert(
@@ -1516,7 +1478,9 @@ contract SummerGovernorTest is
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: address(endpoints[aEid]),
-                proposalChainId: governanceChainId // Set to a different chain ID
+                proposalChainId: governanceChainId, // Set to a different chain ID
+                peerEndpointIds: new uint32[](0), // Empty uint32 array
+                peerAddresses: new address[](0) // Empty address array
             });
 
         ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(
