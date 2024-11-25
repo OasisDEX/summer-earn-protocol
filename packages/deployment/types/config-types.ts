@@ -19,8 +19,12 @@ export interface BaseConfig {
     buyAndBurn: BuyAndBurnContracts
   }
   common: {
+    initialSupply: string
+    layerZero: {
+      lzEndpoint: Address
+      eID: string
+    }
     treasury: Address
-    lzEndpoint: Address
     swapProvider: Address
     tipRate: string
   }
