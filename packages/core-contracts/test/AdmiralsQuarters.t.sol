@@ -25,6 +25,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address public constant UNISWAP_USDC_DAI_V3_POOL =
         0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168;
+
     address public user1 = address(0x1111);
     address public user2 = address(0x2222);
     FleetCommander public usdcFleet;

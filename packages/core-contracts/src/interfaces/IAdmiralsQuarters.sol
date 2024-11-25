@@ -39,7 +39,7 @@ interface IAdmiralsQuarters is
      * @notice Enters a FleetCommander by depositing tokens
      * @param fleetCommander The address of the FleetCommander contract
      * @param inputToken The token to be deposited
-     * @param amount The amount of inputToken to be deposited (0 for all)
+     * @param assets The amount of inputToken to be deposited (0 for all)
      * @param receiver The address to receive the shares
      * @return shares The number of shares received from the FleetCommander
      * @dev Emits a FleetEntered event
@@ -47,29 +47,30 @@ interface IAdmiralsQuarters is
     function enterFleet(
         address fleetCommander,
         IERC20 inputToken,
-        uint256 amount,
+        uint256 assets,
         address receiver
     ) external returns (uint256 shares);
 
     /**
      * @notice Stakes shares in a FleetCommander
+     * @dev If zero shares are provided, the full balance of the FleetCommander is staked
      * @param fleetCommander The address of the FleetCommander contract
-     * @param amount The amount of shares to stake
+     * @param shares The amount of shares to stake
      * @dev Emits a FleetSharesStaked event
      */
-    function stakeFleetShares(address fleetCommander, uint256 amount) external;
+    function stakeFleetShares(address fleetCommander, uint256 shares) external;
 
     /**
      * @notice Exits a FleetCommander by withdrawing tokens
      * @param fleetCommander The address of the FleetCommander contract
-     * @param amount The amount of shares to withdraw (0 for all)
-     * @return assets The amount of assets received from the FleetCommander
+     * @param assets The amount of shares to withdraw (0 for all)
+     * @return shares The amount of assets received from the FleetCommander
      * @dev Emits a FleetExited event
      */
     function exitFleet(
         address fleetCommander,
-        uint256 amount
-    ) external returns (uint256 assets);
+        uint256 assets
+    ) external returns (uint256 shares);
 
     /**
      * @notice Performs a token swap using 1inch Router
@@ -98,4 +99,48 @@ interface IAdmiralsQuarters is
      * @dev Emits a TokensRescued event
      */
     function rescueTokens(IERC20 token, address to, uint256 amount) external;
+
+    /**
+     * @notice Imports a position from an ERC4626 vault to AdmiralsQuarters, has to be followed by a call to enter fleet
+     * @dev If zero shares are provided, the full balance of the vault is imported
+     * @dev needs approval from the user to withdraw on their behalf (e.g.
+     * ERC4626Vault.approve(address(admiralsQuarters), type(uint256).max))
+     * @param vault The address of the ERC4626 vault
+     * @param shares The amount of vault tokens to import
+     * @dev Emits an ERC4626PositionImported event
+     */
+    function moveFromERC4626ToAdmiralsQuarters(
+        address vault,
+        uint256 shares
+    ) external;
+
+    /**
+     * @notice Imports a position from an Aave aToken to AdmiralsQuarters, has to be followed by a call to enter fleet
+     * @dev If zero amount is provided, the full balance of the aToken is imported
+     * @dev needs approval from the user to transfer from their wallet (e.g. aUSDC.approve(address(admiralsQuarters),
+     * type(uint256).max))
+     * @dev approval requires small buffer due to constant accrual of interest
+     * @param aToken The address of the Aave aToken
+     * @param amount The amount of tokens to import
+     * @dev Emits an AavePositionImported event
+     */
+    function moveFromAaveToAdmiralsQuarters(
+        address aToken,
+        uint256 amount
+    ) external;
+
+    /**
+     * @notice Imports a position from a Compound cToken to AdmiralsQuarters, has to be followed by a call to enter
+     * fleet
+     * @dev If zero amount is provided, the full balance of the cToken is imported
+     * @dev needs approval from the user to withdraw on their behalf (e.g. cUSDC.allow(address(admiralsQuarters),true))
+     *
+     * @param cToken The address of the Compound cToken
+     * @param amount The amount of tokens to import
+     * @dev Emits a CompoundPositionImported event
+     */
+    function moveFromCompoundToAdmiralsQuarters(
+        address cToken,
+        uint256 amount
+    ) external;
 }

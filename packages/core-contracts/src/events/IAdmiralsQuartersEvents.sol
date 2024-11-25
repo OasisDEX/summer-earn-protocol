@@ -112,4 +112,39 @@ interface IAdmiralsQuartersEvents {
         address indexed to,
         uint256 amount
     );
+    /**
+     * @dev Emitted when a user's compound position is imported.
+     * @param user The address of the user whose position is imported.
+     * @param cToken The address of the cToken being imported.
+     * @param amount The amount of tokens being imported.
+     */
+    event CompoundPositionImported(
+        address indexed user,
+        address indexed cToken,
+        uint256 amount
+    );
+
+    /**
+     * @dev Emitted when a user's aave position is imported.
+     * @param user The address of the user whose position is imported.
+     * @param aToken The address of the aToken being imported.
+     * @param amount The amount of tokens being imported.
+     */
+    event AavePositionImported(
+        address indexed user,
+        address indexed aToken,
+        uint256 amount
+    );
+
+    /**
+     * @dev Emitted when a user's erc4626 position is imported.
+     * @param user The address of the user whose position is imported.
+     * @param vault The address of the vault being imported.
+     * @param amount The amount of tokens being imported.
+     */
+    event ERC4626PositionImported(
+        address indexed user,
+        address indexed vault,
+        uint256 amount
+    );
 }
