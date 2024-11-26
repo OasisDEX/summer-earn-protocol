@@ -94,6 +94,13 @@ contract GovernanceRewardsManager is
         _stake(_msgSender(), receiver, amount);
     }
 
+    /**
+     * @notice No op function to satisfy IGovernanceRewardsManager interface
+     */
+    function unstakeOnBehalfOf(address, address, uint256) external override {
+        /* no op */
+    }
+
     /// @inheritdoc IStakingRewardsManagerBase
     function stake(uint256 amount) external override updateDecay(_msgSender()) {
         _stake(_msgSender(), _msgSender(), amount);
@@ -103,7 +110,7 @@ contract GovernanceRewardsManager is
     function unstake(
         uint256 amount
     ) external override updateReward(_msgSender()) updateDecay(_msgSender()) {
-        _unstake(_msgSender(), amount);
+        _unstake(_msgSender(), _msgSender(), amount);
     }
 
     /*//////////////////////////////////////////////////////////////

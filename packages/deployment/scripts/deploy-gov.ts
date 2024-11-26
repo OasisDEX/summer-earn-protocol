@@ -14,6 +14,7 @@ const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
 const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
+const ADMIRALS_QUARTERS_ROLE = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
 
 interface PeerConfig {
   eid: number
@@ -246,7 +247,21 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
       }
     }
   }
-
+  const hasAdmiralsQuartersRole =
+    config.deployedContracts.core.admiralsQuarters.address !== ADDRESS_ZERO &&
+    (await protocolAccessManager.read.hasRole([
+      ADMIRALS_QUARTERS_ROLE,
+      config.deployedContracts.core.admiralsQuarters.address,
+    ]))
+  if (!hasAdmiralsQuartersRole) {
+    console.log(
+      '[PROTOCOL ACCESS MANAGER] - Granting admirals quarters role to admirals quarters...',
+    )
+    const hash = await protocolAccessManager.write.grantAdmiralsQuartersRole([
+      config.deployedContracts.core.admiralsQuarters.address,
+    ])
+    await publicClient.waitForTransactionReceipt({ hash })
+  }
   console.log(kleur.green().bold('Governance roles setup completed!'))
 }
 
