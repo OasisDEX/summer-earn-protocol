@@ -22,8 +22,16 @@ abstract contract ProtectedMulticall is Multicall {
     using StorageSlot for *;
 
     error MulticallAlreadyInProgress();
+    error NotMulticall();
 
     bytes32 constant CALLER_KEY = keccak256("admirals-quarters-caller");
+
+    modifier onlyMulticall() {
+        if (_getCaller() != _msgSender()) {
+            revert NotMulticall();
+        }
+        _;
+    }
     /**
      * @dev Receives and executes a batch of function calls on this contract.
      * @custom:oz-upgrades-unsafe-allow-reachable delegatecall

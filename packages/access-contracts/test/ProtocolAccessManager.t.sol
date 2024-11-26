@@ -262,6 +262,44 @@ contract ProtocolAccessManagerTest is Test {
         vm.prank(governor);
         accessManager.revokeRole(keccak256("COMMANDER_ROLE"), keeper);
     }
+
+    function test_AdmiralsQuartersRole() public {
+        address admiralsQuarters = address(0x123);
+
+        // Only governor can grant the role
+        vm.startPrank(governor);
+        accessManager.grantAdmiralsQuartersRole(admiralsQuarters);
+        assertTrue(
+            accessManager.hasRole(
+                accessManager.ADMIRALS_QUARTERS_ROLE(),
+                admiralsQuarters
+            )
+        );
+        vm.stopPrank();
+
+        // Non-governor cannot grant the role
+        vm.startPrank(user);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "AccessControlUnauthorizedAccount(address,bytes32)",
+                user,
+                accessManager.GOVERNOR_ROLE()
+            )
+        );
+        accessManager.grantAdmiralsQuartersRole(user);
+        vm.stopPrank();
+
+        // Role can be revoked by governor
+        vm.startPrank(governor);
+        accessManager.revokeAdmiralsQuartersRole(admiralsQuarters);
+        assertFalse(
+            accessManager.hasRole(
+                accessManager.ADMIRALS_QUARTERS_ROLE(),
+                admiralsQuarters
+            )
+        );
+        vm.stopPrank();
+    }
 }
 
 contract TestProtocolAccessManager is ProtocolAccessManager {

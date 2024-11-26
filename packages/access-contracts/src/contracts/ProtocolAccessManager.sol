@@ -23,6 +23,9 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     bytes32 public constant DECAY_CONTROLLER_ROLE =
         keccak256("DECAY_CONTROLLER_ROLE");
 
+    bytes32 public constant ADMIRALS_QUARTERS_ROLE =
+        keccak256("ADMIRALS_QUARTERS_ROLE");
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -226,5 +229,19 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         address roleTargetContract
     ) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(roleName, roleTargetContract));
+    }
+
+    /// @inheritdoc IProtocolAccessManager
+    function grantAdmiralsQuartersRole(
+        address account
+    ) external onlyRole(GOVERNOR_ROLE) {
+        _grantRole(ADMIRALS_QUARTERS_ROLE, account);
+    }
+
+    /// @inheritdoc IProtocolAccessManager
+    function revokeAdmiralsQuartersRole(
+        address account
+    ) external onlyRole(GOVERNOR_ROLE) {
+        _revokeRole(ADMIRALS_QUARTERS_ROLE, account);
     }
 }

@@ -146,7 +146,7 @@ abstract contract StakingRewardsManagerBase is
     function unstake(
         uint256 amount
     ) external virtual updateReward(_msgSender()) {
-        _unstake(_msgSender(), amount);
+        _unstake(_msgSender(), _msgSender(), amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -172,7 +172,7 @@ abstract contract StakingRewardsManagerBase is
     /// @inheritdoc IStakingRewardsManagerBase
     function exit() external virtual {
         getReward();
-        _unstake(_msgSender(), _balances[_msgSender()]);
+        _unstake(_msgSender(), _msgSender(), _balances[_msgSender()]);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -274,23 +274,23 @@ abstract contract StakingRewardsManagerBase is
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _stake(address from, address account, uint256 amount) internal {
+    function _stake(address from, address receiver, uint256 amount) internal {
         if (amount == 0) revert CannotStakeZero();
         if (address(stakingToken) == address(0)) {
             revert StakingTokenNotInitialized();
         }
         totalSupply += amount;
-        _balances[account] += amount;
+        _balances[receiver] += amount;
         stakingToken.safeTransferFrom(from, address(this), amount);
-        emit Staked(account, amount);
+        emit Staked(receiver, amount);
     }
 
-    function _unstake(address staker, uint256 amount) internal {
+    function _unstake(address from, address receiver, uint256 amount) internal {
         if (amount == 0) revert CannotUnstakeZero();
         totalSupply -= amount;
-        _balances[staker] -= amount;
-        stakingToken.safeTransfer(staker, amount);
-        emit Unstaked(staker, amount);
+        _balances[from] -= amount;
+        stakingToken.safeTransfer(receiver, amount);
+        emit Unstaked(from, amount);
     }
 
     /*

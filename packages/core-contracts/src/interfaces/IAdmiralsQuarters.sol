@@ -58,7 +58,19 @@ interface IAdmiralsQuarters is
      * @param shares The amount of shares to stake
      * @dev Emits a FleetSharesStaked event
      */
-    function stakeFleetShares(address fleetCommander, uint256 shares) external;
+    function stake(address fleetCommander, uint256 shares) external;
+
+    /**
+     * @notice Unstakes shares from a FleetCommander and withdraws assets to user wallet
+     * @dev If zero shares are provided, the full balance of the FleetCommander is unstaked
+     * @param fleetCommander The address of the FleetCommander contract
+     * @param shares The amount of shares to unstake
+     * @dev Emits a FleetSharesUnstaked event
+     */
+    function unstakeAndWithdrawAssets(
+        address fleetCommander,
+        uint256 shares
+    ) external;
 
     /**
      * @notice Exits a FleetCommander by withdrawing tokens

@@ -148,7 +148,7 @@ contract AdmiralsQuartersImportTest is
             )
         );
         importCalls[2] = abi.encodeCall(
-            admiralsQuarters.stakeFleetShares,
+            admiralsQuarters.stake,
             (address(usdcFleet), 0)
         );
 
@@ -196,7 +196,7 @@ contract AdmiralsQuartersImportTest is
             )
         );
         importCalls[2] = abi.encodeCall(
-            admiralsQuarters.stakeFleetShares,
+            admiralsQuarters.stake,
             (address(usdcFleet), 0)
         );
 
@@ -254,7 +254,7 @@ contract AdmiralsQuartersImportTest is
             )
         );
         importCalls[2] = abi.encodeCall(
-            admiralsQuarters.stakeFleetShares,
+            admiralsQuarters.stake,
             (address(usdcFleet), 0)
         );
 
@@ -339,7 +339,7 @@ contract AdmiralsQuartersImportTest is
             )
         );
         importCalls[4] = abi.encodeCall(
-            admiralsQuarters.stakeFleetShares,
+            admiralsQuarters.stake,
             (address(usdcFleet), 0)
         );
 
