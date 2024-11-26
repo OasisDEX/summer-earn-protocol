@@ -20,4 +20,12 @@ contract MockStakingRewardsManager is StakingRewardsManagerBase {
     function stakeOnBehalfOf(address receiver, uint256 amount) external {
         _stake(_msgSender(), receiver, amount);
     }
+
+    function unstakeOnBehalfOf(
+        address from,
+        address receiver,
+        uint256 amount
+    ) external {
+        /* no op */
+    }
 }

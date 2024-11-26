@@ -62,15 +62,31 @@ interface IComet {
     /// @notice Event emitted when reserves are withdrawn by the governor
     event WithdrawReserves(address indexed to, uint256 amount);
 
+    function allow(address spender, bool isAllowed) external;
+
     function borrowBalanceOf(address account) external view returns (uint256);
 
     function supply(address asset, uint256 amount) external;
 
     function withdraw(address asset, uint256 amount) external;
 
+    function withdrawFrom(
+        address from,
+        address to,
+        address asset,
+        uint256 amount
+    ) external;
+
     function getSupplyRate(uint256 utilization) external view returns (uint64);
 
     function getUtilization() external view returns (uint256);
 
     function balanceOf(address owner) external view returns (uint256);
+
+    function baseToken() external view returns (address);
+
+    function hasPermission(
+        address owner,
+        address manager
+    ) external view returns (bool);
 }

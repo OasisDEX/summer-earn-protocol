@@ -8,16 +8,24 @@ import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
 import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
+
+import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
+import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
+import {IComet} from "../interfaces/compound-v3/IComet.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+import {ProtectedMulticall} from "./ProtectedMulticall.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
+
 /**
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
  *      with integrated swapping functionality using 1inch Router.
- * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas efficiency.
+ * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
+ * efficiency.
  * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored
  * ReentrancyGuardTransient )
  *
@@ -50,95 +58,99 @@ import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
  * - Ensure that the 1inch Router address provided in the constructor is correct and trusted.
  * - Since there is no data exchange between calls - make sure all the tokens are returned to the user
  */
-
 contract AdmiralsQuarters is
     Ownable,
-    Multicall,
+    ProtectedMulticall,
     ReentrancyGuardTransient,
     IAdmiralsQuarters,
     ConfigurationManaged
 {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IAToken;
 
     address public immutable oneInchRouter;
 
     constructor(
         address _oneInchRouter,
         address _configurationManager
-    ) Ownable(msg.sender) ConfigurationManaged(_configurationManager) {
+    ) Ownable(_msgSender()) ConfigurationManaged(_configurationManager) {
         if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
         oneInchRouter = _oneInchRouter;
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function depositTokens(IERC20 asset, uint256 amount) external nonReentrant {
+    function depositTokens(
+        IERC20 asset,
+        uint256 amount
+    ) external onlyMulticall nonReentrant {
         _validateToken(asset);
         _validateAmount(amount);
 
-        asset.safeTransferFrom(msg.sender, address(this), amount);
-        emit TokensDeposited(msg.sender, address(asset), amount);
+        asset.safeTransferFrom(_msgSender(), address(this), amount);
+        emit TokensDeposited(_msgSender(), address(asset), amount);
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function withdrawTokens(
         IERC20 asset,
         uint256 amount
-    ) external nonReentrant {
+    ) external onlyMulticall nonReentrant {
         _validateToken(asset);
         if (amount == 0) {
             amount = asset.balanceOf(address(this));
         }
 
-        asset.safeTransfer(msg.sender, amount);
-        emit TokensWithdrawn(msg.sender, address(asset), amount);
+        asset.safeTransfer(_msgSender(), amount);
+        emit TokensWithdrawn(_msgSender(), address(asset), amount);
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function enterFleet(
         address fleetCommander,
         IERC20 inputToken,
-        uint256 amount,
+        uint256 assets,
         address receiver
-    ) external nonReentrant returns (uint256 shares) {
+    ) external onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
         _validateToken(inputToken);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
-        IERC20 fleetToken = IERC20(fleet.asset());
+        IERC20 fleetAsset = IERC20(fleet.asset());
 
-        if (address(inputToken) != address(fleetToken)) revert TokenMismatch();
+        if (address(inputToken) != address(fleetAsset)) revert TokenMismatch();
 
         uint256 balance = inputToken.balanceOf(address(this));
-        uint256 depositAmount = amount == 0 ? balance : amount;
-        if (depositAmount > balance) revert InsufficientOutputAmount();
+        assets = assets == 0 ? balance : assets;
+        receiver = receiver == address(0) ? _msgSender() : receiver;
+        if (assets > balance) revert InsufficientOutputAmount();
 
-        fleetToken.forceApprove(address(fleet), depositAmount);
-        shares = fleet.deposit(depositAmount, receiver);
+        fleetAsset.forceApprove(address(fleet), assets);
+        shares = fleet.deposit(assets, receiver);
 
-        emit FleetEntered(receiver, fleetCommander, depositAmount, shares);
+        emit FleetEntered(receiver, fleetCommander, assets, shares);
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function exitFleet(
         address fleetCommander,
-        uint256 amount
-    ) external nonReentrant returns (uint256 shares) {
+        uint256 assets
+    ) external onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
 
-        uint256 withdrawAmount = amount == 0 ? type(uint256).max : amount;
+        assets = assets == 0 ? type(uint256).max : assets;
 
-        shares = fleet.withdraw(withdrawAmount, address(this), msg.sender);
+        shares = fleet.withdraw(assets, address(this), _msgSender());
 
-        emit FleetExited(msg.sender, fleetCommander, withdrawAmount, shares);
+        emit FleetExited(_msgSender(), fleetCommander, assets, shares);
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function stakeFleetShares(
+    function stake(
         address fleetCommander,
-        uint256 amount
-    ) external nonReentrant {
+        uint256 shares
+    ) external onlyMulticall nonReentrant {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -146,57 +158,138 @@ contract AdmiralsQuarters is
         _validateRewardsManager(rewardsManager);
 
         uint256 balance = IERC20(fleetCommander).balanceOf(address(this));
-        uint256 stakeAmount = amount == 0 ? balance : amount;
-        if (stakeAmount > balance) revert InsufficientOutputAmount();
+        shares = shares == 0 ? balance : shares;
+        if (shares > balance) revert InsufficientOutputAmount();
 
-        IERC20(fleetCommander).forceApprove(rewardsManager, stakeAmount);
+        IERC20(fleetCommander).forceApprove(rewardsManager, shares);
         IFleetCommanderRewardsManager(rewardsManager).stakeOnBehalfOf(
-            msg.sender,
-            stakeAmount
+            _msgSender(),
+            shares
         );
 
-        emit FleetSharesStaked(msg.sender, fleetCommander, stakeAmount);
+        emit FleetSharesStaked(_msgSender(), fleetCommander, shares);
+    }
+
+    function unstakeAndWithdrawAssets(
+        address fleetCommander,
+        uint256 shares
+    ) external onlyMulticall nonReentrant {
+        _validateFleetCommander(fleetCommander);
+
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        address rewardsManager = fleet.getConfig().stakingRewardsManager;
+        _validateRewardsManager(rewardsManager);
+
+        shares = shares == 0
+            ? IFleetCommanderRewardsManager(rewardsManager).balanceOf(
+                _msgSender()
+            )
+            : shares;
+        // Pass _msgSender() as onBehalfOf to ensure we can only unstake for the caller
+        // unstake to admirals quarters
+        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
+            _msgSender(),
+            address(this),
+            shares
+        );
+        fleet.withdraw(shares, _msgSender(), address(this));
+
+        emit FleetSharesUnstaked(_msgSender(), fleetCommander, shares);
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function swap(
         IERC20 fromToken,
         IERC20 toToken,
-        uint256 amount,
+        uint256 assets,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
-    ) external nonReentrant returns (uint256 swappedAmount) {
+    ) external onlyMulticall nonReentrant returns (uint256 swappedAmount) {
         if (
             address(fromToken) == address(0) || address(toToken) == address(0)
         ) {
             revert InvalidToken();
         }
-        if (amount == 0) revert ZeroAmount();
+        if (assets == 0) revert ZeroAmount();
         if (address(fromToken) == address(toToken)) {
             revert AssetMismatch();
         }
         swappedAmount = _swap(
             fromToken,
             toToken,
-            amount,
+            assets,
             minTokensReceived,
             swapCalldata
         );
 
         emit Swapped(
-            msg.sender,
+            _msgSender(),
             address(fromToken),
             address(toToken),
-            amount,
+            assets,
             swappedAmount
         );
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function moveFromCompoundToAdmiralsQuarters(
+        address cToken,
+        uint256 assets
+    ) external onlyMulticall nonReentrant {
+        IComet token = IComet(cToken);
+        address underlying = token.baseToken();
+
+        // Get actual assets if 0 was passed
+        assets = assets == 0 ? token.balanceOf(_msgSender()) : assets;
+
+        // Calculate underlying assets
+        token.withdrawFrom(_msgSender(), address(this), underlying, assets);
+
+        emit CompoundPositionImported(_msgSender(), cToken, assets);
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function moveFromAaveToAdmiralsQuarters(
+        address aToken,
+        uint256 assets
+    ) external onlyMulticall nonReentrant {
+        IAToken token = IAToken(aToken);
+        IPoolV3 pool = IPoolV3(token.POOL());
+        IERC20 underlying = IERC20(token.UNDERLYING_ASSET_ADDRESS());
+
+        assets = assets == 0 ? token.balanceOf(_msgSender()) : assets;
+
+        token.safeTransferFrom(_msgSender(), address(this), assets);
+        pool.withdraw(address(underlying), assets, address(this));
+
+        emit AavePositionImported(_msgSender(), aToken, assets);
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function moveFromERC4626ToAdmiralsQuarters(
+        address vault,
+        uint256 shares
+    ) external onlyMulticall nonReentrant {
+        IERC4626 vaultToken = IERC4626(vault);
+        IERC20 underlying = IERC20(vaultToken.asset());
+
+        // Get actual shares if 0 was passed
+        shares = shares == 0 ? vaultToken.balanceOf(_msgSender()) : shares;
+
+        uint256 underlyingAmount = vaultToken.redeem(
+            shares,
+            address(this),
+            _msgSender()
+        );
+
+        emit ERC4626PositionImported(_msgSender(), vault, shares);
     }
 
     /**
      * @dev Internal function to perform a token swap using 1inch
      * @param fromToken The token to swap from
      * @param toToken The token to swap to
-     * @param amount The amount of fromToken to swap
+     * @param assets The amount of fromToken to swap
      * @param minTokensReceived The minimum amount of toToken to receive after the swap
      * @param swapCalldata The 1inch swap calldata
      * @return swappedAmount The amount of toToken received from the swap
@@ -204,13 +297,13 @@ contract AdmiralsQuarters is
     function _swap(
         IERC20 fromToken,
         IERC20 toToken,
-        uint256 amount,
+        uint256 assets,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) internal returns (uint256 swappedAmount) {
         uint256 balanceBefore = toToken.balanceOf(address(this));
 
-        fromToken.forceApprove(oneInchRouter, amount);
+        fromToken.forceApprove(oneInchRouter, assets);
         (bool success, ) = oneInchRouter.call(swapCalldata);
         if (!success) {
             revert SwapFailed();
