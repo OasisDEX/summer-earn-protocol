@@ -24,7 +24,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
  *      with integrated swapping functionality using 1inch Router.
- * @notice This contract uses an OpenZeppelin onlyMulticall nonReentrant modifier with transient storage for gas
+ * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas
  * efficiency.
  * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored
  * ReentrancyGuardTransient )
