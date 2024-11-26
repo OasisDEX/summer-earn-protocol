@@ -317,6 +317,67 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         vm.stopPrank();
     }
+    // ... existing code ...
+
+    function test_DirectUnstakeAfterStakingThroughAdmiralsQuarters() public {
+        // Setup: Deposit and stake through AdmiralsQuarters
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+        uint256 usdcAmount = 1000e6; // 1000 USDC
+
+        vm.startPrank(user1);
+
+        // Deposit, enter fleet, and stake via AdmiralsQuarters
+        bytes[] memory enterCalls = new bytes[](3);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), usdcAmount)
+        );
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (
+                address(usdcFleet),
+                IERC20(USDC_ADDRESS),
+                usdcAmount,
+                address(admiralsQuarters)
+            )
+        );
+        enterCalls[2] = abi.encodeCall(
+            admiralsQuarters.stake,
+            (address(usdcFleet), 0)
+        );
+        admiralsQuarters.multicall(enterCalls);
+
+        // Verify stake was successful
+        uint256 stakedAmount = IFleetCommanderRewardsManager(rewardsManager)
+            .balanceOf(user1);
+        assertGt(stakedAmount, 0, "User should have staked balance");
+
+        // Attempt to unstake directly through rewards manager
+        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
+            user1,
+            user1,
+            stakedAmount
+        );
+
+        // Verify stake amount remains unchanged
+        assertEq(
+            IFleetCommanderRewardsManager(rewardsManager).balanceOf(user1),
+            0,
+            "Staked amount should be zero"
+        );
+        assertEq(
+            IERC20(address(usdcFleet)).balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no fleet shares"
+        );
+        assertEq(
+            IERC20(address(usdcFleet)).balanceOf(address(user1)),
+            stakedAmount,
+            "User should have received back their shares"
+        );
+
+        vm.stopPrank();
+    }
 
     function test_Deposit_Enter_Stake_Reverts() public {
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
