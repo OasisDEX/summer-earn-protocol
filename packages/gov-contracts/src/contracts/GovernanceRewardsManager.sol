@@ -103,7 +103,7 @@ contract GovernanceRewardsManager is
     function unstake(
         uint256 amount
     ) external override updateReward(_msgSender()) updateDecay(_msgSender()) {
-        _unstake(_msgSender(), amount);
+        _unstake(_msgSender(), _msgSender(), amount);
     }
 
     /*//////////////////////////////////////////////////////////////
