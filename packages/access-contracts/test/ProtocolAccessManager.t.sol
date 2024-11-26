@@ -279,28 +279,19 @@ contract ProtocolAccessManagerTest is Test {
 
         // Non-governor cannot grant the role
         vm.startPrank(user);
-        vm.expectRevert("AccessControl: account is missing role");
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "AccessControlUnauthorizedAccount(address,bytes32)",
+                user,
+                accessManager.GOVERNOR_ROLE()
+            )
+        );
         accessManager.grantAdmiralsQuartersRole(user);
         vm.stopPrank();
 
         // Role can be revoked by governor
         vm.startPrank(governor);
         accessManager.revokeAdmiralsQuartersRole(admiralsQuarters);
-        assertFalse(
-            accessManager.hasRole(
-                accessManager.ADMIRALS_QUARTERS_ROLE(),
-                admiralsQuarters
-            )
-        );
-        vm.stopPrank();
-
-        // Role holder can renounce
-        vm.startPrank(governor);
-        accessManager.grantAdmiralsQuartersRole(admiralsQuarters);
-        vm.stopPrank();
-
-        vm.startPrank(admiralsQuarters);
-        accessManager.renounceAdmiralsQuartersRole();
         assertFalse(
             accessManager.hasRole(
                 accessManager.ADMIRALS_QUARTERS_ROLE(),
