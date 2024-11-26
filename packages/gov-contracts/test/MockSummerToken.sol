@@ -103,7 +103,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function getRewardsManager()
+    function rewardsManager()
         external
         pure
         returns (IGovernanceRewardsManager)

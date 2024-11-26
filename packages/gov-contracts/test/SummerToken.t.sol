@@ -372,8 +372,8 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
 
         // 2. Approve and partial stake
-        aSummerToken.approve(address(aSummerToken.getRewardsManager()), amount);
-        aSummerToken.getRewardsManager().stake(partialStakeAmount);
+        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
+        aSummerToken.rewardsManager().stake(partialStakeAmount);
 
         // Verify state after partial stake
         assertEq(

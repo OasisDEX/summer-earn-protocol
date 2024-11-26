@@ -105,7 +105,7 @@ contract SummerGovernor is
         )
     {
         _setRewardsManager(
-            address(ISummerToken(params.token).getRewardsManager())
+            address(ISummerToken(params.token).rewardsManager())
         );
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);

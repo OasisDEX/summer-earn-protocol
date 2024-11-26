@@ -146,15 +146,6 @@ contract SummerToken is
         emit AddressRemovedFromWhitelist(account);
     }
 
-    /// @inheritdoc ISummerToken
-    function getRewardsManager()
-        external
-        view
-        returns (IGovernanceRewardsManager)
-    {
-        return rewardsManager;
-    }
-
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/

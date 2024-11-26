@@ -170,11 +170,8 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
     function removeFromWhitelist(address account) external;
 
     /**
-     * @notice Returns the rewards manager address
-     * @return The rewards manager contract
+     * @notice Returns the address of the rewards manager contract
+     * @return The address of the rewards manager
      */
-    function getRewardsManager()
-        external
-        view
-        returns (IGovernanceRewardsManager);
+    function rewardsManager() external view returns (IGovernanceRewardsManager);
 }
