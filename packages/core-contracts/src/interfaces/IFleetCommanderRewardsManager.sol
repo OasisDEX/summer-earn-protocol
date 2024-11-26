@@ -14,4 +14,16 @@ interface IFleetCommanderRewardsManager is IStakingRewardsManagerBase {
      * @return The address of the FleetCommander
      */
     function fleetCommander() external view returns (address);
+
+    /**
+     * @notice Thrown when a non-AdmiralsQuarters contract tries
+     * to unstake on behalf
+     */
+    error CallerNotAdmiralsQuarters();
+
+    /**
+     * @notice Thrown when AdmiralsQuarters tries to unstake for
+     * someone other than msg.sender
+     */
+    error InvalidUnstakeRecipient();
 }

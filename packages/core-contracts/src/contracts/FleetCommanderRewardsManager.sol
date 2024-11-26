@@ -42,4 +42,23 @@ contract FleetCommanderRewardsManager is
     ) external override {
         _stake(_msgSender(), receiver, amount);
     }
+
+    function unstakeOnBehalfOf(
+        address from,
+        address receiver,
+        uint256 amount
+    ) external override {
+        // Direct unstaking is always allowed
+        if (_msgSender() == from) {
+            _unstake(from, receiver, amount);
+            return;
+        }
+
+        // Only AdmiralsQuarters with role can unstake on behalf
+        if (!hasAdmiralsQuartersRole(_msgSender())) {
+            revert CallerNotAdmiralsQuarters();
+        }
+
+        _unstake(from, receiver, amount);
+    }
 }

@@ -252,6 +252,16 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         return keccak256(abi.encodePacked(roleName, roleTargetContract));
     }
 
+    function hasAdmiralsQuartersRole(
+        address account
+    ) public view returns (bool) {
+        return
+            _accessManager.hasRole(
+                _accessManager.ADMIRALS_QUARTERS_ROLE(),
+                account
+            );
+    }
+
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/

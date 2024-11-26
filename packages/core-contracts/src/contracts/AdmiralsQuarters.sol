@@ -24,7 +24,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
  *      with integrated swapping functionality using 1inch Router.
- * @notice This contract uses an OpenZeppelin nonReentrant modifier with transient storage for gas efficiency.
+ * @notice This contract uses an OpenZeppelin onlyMulticall nonReentrant modifier with transient storage for gas
+ * efficiency.
  * @notice When it was developed the OpenZeppelin version was 5.0.2 ( hence the use of locally stored
  * ReentrancyGuardTransient )
  *
@@ -72,32 +73,35 @@ contract AdmiralsQuarters is
     constructor(
         address _oneInchRouter,
         address _configurationManager
-    ) Ownable(msg.sender) ConfigurationManaged(_configurationManager) {
+    ) Ownable(_msgSender()) ConfigurationManaged(_configurationManager) {
         if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
         oneInchRouter = _oneInchRouter;
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function depositTokens(IERC20 asset, uint256 amount) external nonReentrant {
+    function depositTokens(
+        IERC20 asset,
+        uint256 amount
+    ) external onlyMulticall nonReentrant {
         _validateToken(asset);
         _validateAmount(amount);
 
-        asset.safeTransferFrom(msg.sender, address(this), amount);
-        emit TokensDeposited(msg.sender, address(asset), amount);
+        asset.safeTransferFrom(_msgSender(), address(this), amount);
+        emit TokensDeposited(_msgSender(), address(asset), amount);
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function withdrawTokens(
         IERC20 asset,
         uint256 amount
-    ) external nonReentrant {
+    ) external onlyMulticall nonReentrant {
         _validateToken(asset);
         if (amount == 0) {
             amount = asset.balanceOf(address(this));
         }
 
-        asset.safeTransfer(msg.sender, amount);
-        emit TokensWithdrawn(msg.sender, address(asset), amount);
+        asset.safeTransfer(_msgSender(), amount);
+        emit TokensWithdrawn(_msgSender(), address(asset), amount);
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -106,7 +110,7 @@ contract AdmiralsQuarters is
         IERC20 inputToken,
         uint256 assets,
         address receiver
-    ) external nonReentrant returns (uint256 shares) {
+    ) external onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
         _validateToken(inputToken);
 
@@ -117,7 +121,7 @@ contract AdmiralsQuarters is
 
         uint256 balance = inputToken.balanceOf(address(this));
         assets = assets == 0 ? balance : assets;
-        receiver = receiver == address(0) ? msg.sender : receiver;
+        receiver = receiver == address(0) ? _msgSender() : receiver;
         if (assets > balance) revert InsufficientOutputAmount();
 
         fleetAsset.forceApprove(address(fleet), assets);
@@ -130,23 +134,23 @@ contract AdmiralsQuarters is
     function exitFleet(
         address fleetCommander,
         uint256 assets
-    ) external nonReentrant returns (uint256 shares) {
+    ) external onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
 
         assets = assets == 0 ? type(uint256).max : assets;
 
-        shares = fleet.withdraw(assets, address(this), msg.sender);
+        shares = fleet.withdraw(assets, address(this), _msgSender());
 
-        emit FleetExited(msg.sender, fleetCommander, assets, shares);
+        emit FleetExited(_msgSender(), fleetCommander, assets, shares);
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function stakeFleetShares(
+    function stake(
         address fleetCommander,
         uint256 shares
-    ) external nonReentrant {
+    ) external onlyMulticall nonReentrant {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -159,11 +163,38 @@ contract AdmiralsQuarters is
 
         IERC20(fleetCommander).forceApprove(rewardsManager, shares);
         IFleetCommanderRewardsManager(rewardsManager).stakeOnBehalfOf(
-            msg.sender,
+            _msgSender(),
             shares
         );
 
-        emit FleetSharesStaked(msg.sender, fleetCommander, shares);
+        emit FleetSharesStaked(_msgSender(), fleetCommander, shares);
+    }
+
+    function unstakeAndWithdrawAssets(
+        address fleetCommander,
+        uint256 shares
+    ) external onlyMulticall nonReentrant {
+        _validateFleetCommander(fleetCommander);
+
+        IFleetCommander fleet = IFleetCommander(fleetCommander);
+        address rewardsManager = fleet.getConfig().stakingRewardsManager;
+        _validateRewardsManager(rewardsManager);
+
+        shares = shares == 0
+            ? IFleetCommanderRewardsManager(rewardsManager).balanceOf(
+                _msgSender()
+            )
+            : shares;
+        // Pass _msgSender() as onBehalfOf to ensure we can only unstake for the caller
+        // unstake to admirals quarters
+        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
+            _msgSender(),
+            address(this),
+            shares
+        );
+        fleet.withdraw(shares, _msgSender(), address(this));
+
+        emit FleetSharesUnstaked(_msgSender(), fleetCommander, shares);
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -173,7 +204,7 @@ contract AdmiralsQuarters is
         uint256 assets,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
-    ) external nonReentrant returns (uint256 swappedAmount) {
+    ) external onlyMulticall nonReentrant returns (uint256 swappedAmount) {
         if (
             address(fromToken) == address(0) || address(toToken) == address(0)
         ) {
@@ -192,7 +223,7 @@ contract AdmiralsQuarters is
         );
 
         emit Swapped(
-            msg.sender,
+            _msgSender(),
             address(fromToken),
             address(toToken),
             assets,
@@ -204,54 +235,54 @@ contract AdmiralsQuarters is
     function moveFromCompoundToAdmiralsQuarters(
         address cToken,
         uint256 assets
-    ) external nonReentrant {
+    ) external onlyMulticall nonReentrant {
         IComet token = IComet(cToken);
         address underlying = token.baseToken();
 
         // Get actual assets if 0 was passed
-        assets = assets == 0 ? token.balanceOf(msg.sender) : assets;
+        assets = assets == 0 ? token.balanceOf(_msgSender()) : assets;
 
         // Calculate underlying assets
-        token.withdrawFrom(msg.sender, address(this), underlying, assets);
+        token.withdrawFrom(_msgSender(), address(this), underlying, assets);
 
-        emit CompoundPositionImported(msg.sender, cToken, assets);
+        emit CompoundPositionImported(_msgSender(), cToken, assets);
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function moveFromAaveToAdmiralsQuarters(
         address aToken,
         uint256 assets
-    ) external nonReentrant {
+    ) external onlyMulticall nonReentrant {
         IAToken token = IAToken(aToken);
         IPoolV3 pool = IPoolV3(token.POOL());
         IERC20 underlying = IERC20(token.UNDERLYING_ASSET_ADDRESS());
 
-        assets = assets == 0 ? token.balanceOf(msg.sender) : assets;
+        assets = assets == 0 ? token.balanceOf(_msgSender()) : assets;
 
-        token.safeTransferFrom(msg.sender, address(this), assets);
+        token.safeTransferFrom(_msgSender(), address(this), assets);
         pool.withdraw(address(underlying), assets, address(this));
 
-        emit AavePositionImported(msg.sender, aToken, assets);
+        emit AavePositionImported(_msgSender(), aToken, assets);
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function moveFromERC4626ToAdmiralsQuarters(
         address vault,
         uint256 shares
-    ) external nonReentrant {
+    ) external onlyMulticall nonReentrant {
         IERC4626 vaultToken = IERC4626(vault);
         IERC20 underlying = IERC20(vaultToken.asset());
 
         // Get actual shares if 0 was passed
-        shares = shares == 0 ? vaultToken.balanceOf(msg.sender) : shares;
+        shares = shares == 0 ? vaultToken.balanceOf(_msgSender()) : shares;
 
         uint256 underlyingAmount = vaultToken.redeem(
             shares,
             address(this),
-            msg.sender
+            _msgSender()
         );
 
-        emit ERC4626PositionImported(msg.sender, vault, shares);
+        emit ERC4626PositionImported(_msgSender(), vault, shares);
     }
 
     /**
