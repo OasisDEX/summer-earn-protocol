@@ -36,7 +36,6 @@ flowchart TD
 - Implement timelock scheduling for received proposals on satellite chains
 - Allow permissionless execution of scheduled proposals
 - Ensure synchronization of timelock delays between hub and satellites
-- Consider gas optimization for multiple proposal executions
 
 ### 1.4 Standard vs Cross-Chain Governance Comparison
 
@@ -49,8 +48,6 @@ flowchart TD
 | **Timelock** | Single timelock controller | Dual timelock structure:<br>- Primary timelock on hub<br>- Secondary timelocks on satellites |
 | **Token Supply** | Single chain token management | - Hub: Full token supply<br>- Satellites: "Teleported" tokens only |
 | **Access Control** | Standard OZ AccessControl | Two-tier structure:<br>- Hub: Full governance capabilities<br>- Satellites: Execute-only permissions |
-
-Key Implementation Differences:
 
 ## 2. Novel Decay Mechanism
 
@@ -297,6 +294,33 @@ Satellite chains should implement a timelock system that:
        E --> F["Allow Permissionless Execution"]
    ```
 
+### 4.4 Role Management Security
+
+**Critical Role Considerations:**
+- ADMIN_ROLE serves as default admin and guardian for all roles
+- PROPOSER_ROLE members can create proposals
+- EXECUTOR_ROLE members can execute proposals after delay
+- CANCELLER_ROLE members can cancel pending proposals
+
+**Security Recommendations:**
+1. **Role Assignment**
+   - Minimize number of admin accounts
+   - Use multisig or governance for admin role
+   - Consider time-locks for role changes
+   - Document all role holders and their powers
+
+2. **Execution Delays**
+   - Each role member has individual execution delay
+   - Operations must be scheduled before execution
+   - Delays provide safety window for dangerous operations
+   - Consider longer delays for more critical functions
+
+3. **Guardian Powers**
+   - Guardians can cancel scheduled operations
+   - Critical for emergency response
+   - Risk of denial-of-service attacks
+   - Consider multi-signature requirements for cancellation
+
 ## 5. Token & Voting Power
 
 ### 5.1 Voting Power Sources
@@ -509,6 +533,25 @@ The system is partially compatible with Tally.xyz, supporting core governance fe
   - This effectively mitigates reorg risks by waiting for practical finality before message delivery
 - Gas price volatility impact
 
+### 7.4 Timelock Security Considerations
+
+**Dual Timelock Risks:**
+1. **Hub Timelock**
+   - Controls all governance operations
+   - Self-administered through governance
+   - Critical for protocol security
+   - Holds protocol assets and permissions
+
+2. **Satellite Timelocks**
+   - Execute cross-chain proposals
+   - Must sync with hub timelock
+   - Potential for timing attacks
+   - Cross-chain message validation critical
+
+**Security Recommendations:**
+- Maintain minimum delay periods
+- Careful
+
 ## 8. Critical Contracts
 
 ### 8.1 SummerGovernor.sol
@@ -518,6 +561,17 @@ The central governance contract that manages the entire protocol's governance sy
   - Hub chain (BASE) creates and executes proposals
   - Uses LayerZero for secure message passing to satellite chains
   - Only hub chain can initiate proposals and voting
+
+- **Proposal Safety Mechanisms**
+  - Timelock delay provides window for users to exit before potentially dangerous operations
+  - TimelockController acts as execution barrier with configurable delay
+  - CANCELLER_ROLE in TimelockController can cancel pending operations
+  - [TODO] Exploring enhanced whitelist guardian powers because of the added risk posed by decayed accounts:
+    - Allow guardians to cancel proposals with short-term expiration (e.g., 96 hours -> 2 weeks)
+    - Limits denial of service risk while providing emergency backstop
+    - Must be implemented carefully to prevent abuse of cancellation power
+    - Consider requiring multiple guardians to agree for cancellation
+    - We just need to be conscious that giving guardians CANCELLER_ROLES opens up the risk of Denial of Service by these trusted persons
 
 - **Voting Power**
   - Implements decay mechanism via DecayController
