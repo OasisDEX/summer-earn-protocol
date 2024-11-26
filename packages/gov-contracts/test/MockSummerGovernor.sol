@@ -10,7 +10,7 @@ contract MockSummerGovernor is ERC165 {
 
     constructor() {}
 
-    function test_() public {}
+    function test() public {}
 
     function hasRole(
         bytes32 role,

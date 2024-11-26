@@ -63,6 +63,9 @@ contract GovernanceRewardsManagerTest is Test {
             address(accessManager)
         );
 
+        vm.prank(address(mockGovernor));
+        accessManager.grantDecayControllerRole(address(stakingRewardsManager));
+
         // Mint initial tokens
         stakingToken.mint(alice, INITIAL_STAKE_AMOUNT);
         stakingToken.mint(bob, INITIAL_STAKE_AMOUNT);

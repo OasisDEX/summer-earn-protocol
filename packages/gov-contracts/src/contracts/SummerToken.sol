@@ -12,6 +12,7 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {ERC20Capped} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
@@ -20,6 +21,8 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol"
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
+import {DecayController} from "./DecayController.sol";
+import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
 
 /**
  * @title SummerToken
@@ -33,6 +36,7 @@ contract SummerToken is
     ERC20Permit,
     ERC20Capped,
     ProtocolAccessManaged,
+    DecayController,
     ISummerToken
 {
     using VotingDecayLibrary for VotingDecayLibrary.DecayState;
@@ -41,24 +45,12 @@ contract SummerToken is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    IGovernanceRewardsManager public rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
-    GovernanceRewardsManager public rewardsManager;
     SummerVestingWalletFactory public vestingWalletFactory;
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
-    mapping(address => bool) public whitelistedAddresses;
-
-    /*//////////////////////////////////////////////////////////////
-                            MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Updates the caller's decay factor before executing the function
-     */
-    modifier updateDecay() {
-        decayState.updateDecayFactor(_msgSender(), _getDelegateTo);
-        _;
-    }
+    mapping(address account => bool isWhitelisted) public whitelistedAddresses;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -71,6 +63,7 @@ contract SummerToken is
         ERC20Permit(params.name)
         ERC20Capped(params.maxSupply)
         ProtocolAccessManaged(params.accessManager)
+        DecayController(address(this))
         Ownable(params.owner)
     {
         decayState.initialize(
@@ -83,6 +76,8 @@ contract SummerToken is
             address(this),
             params.accessManager
         );
+        // Required to set rewards manager in Token's DecayController
+        _setRewardsManager(address(rewardsManager));
 
         transferEnableDate = params.transferEnableDate;
         vestingWalletFactory = new SummerVestingWalletFactory(address(this));
@@ -160,7 +155,9 @@ contract SummerToken is
      * @param delegatee The address to delegate voting power to
      * @dev Updates the decay factor for the caller
      */
-    function delegate(address delegatee) public override updateDecay {
+    function delegate(
+        address delegatee
+    ) public override(IVotes, Votes) updateDecay(_msgSender()) {
         super.delegate(delegatee);
     }
 
@@ -217,7 +214,7 @@ contract SummerToken is
     function getPastVotes(
         address account,
         uint256 timepoint
-    ) public view override returns (uint256) {
+    ) public view override(IVotes, Votes) returns (uint256) {
         return
             decayState.getVotingPower(
                 account,

@@ -4,9 +4,8 @@ pragma solidity 0.8.28;
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {ISummerToken} from "./ISummerToken.sol";
 
 /**
  * @title ISummerGovernor Interface
@@ -31,7 +30,7 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param peerAddresses The peer addresses
      */
     struct GovernorParams {
-        IVotes token;
+        ISummerToken token;
         TimelockController timelock;
         uint48 votingDelay;
         uint32 votingPeriod;

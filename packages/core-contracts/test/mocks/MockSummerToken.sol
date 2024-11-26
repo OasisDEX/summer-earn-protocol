@@ -7,6 +7,7 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ISummerToken, SummerVestingWallet} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
 
 contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     uint256 private constant INITIAL_SUPPLY = 1e9;
@@ -52,6 +53,33 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
+    function delegate(address) external pure {
+        revert("Not implemented");
+    }
+
+    function delegateBySig(
+        address,
+        uint256,
+        uint256,
+        uint8,
+        bytes32,
+        bytes32
+    ) external pure {
+        revert("Not implemented");
+    }
+
+    function delegates(address) external pure returns (address) {
+        revert("Not implemented");
+    }
+
+    function getPastTotalSupply(uint256) external pure returns (uint256) {
+        revert("Not implemented");
+    }
+
+    function getPastVotes(address, uint256) external pure returns (uint256) {
+        revert("Not implemented");
+    }
+
     function addToWhitelist(address) external pure override {
         revert("Not implemented");
     }
@@ -78,6 +106,14 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     }
 
     function setDecayManager(address, bool) external pure {
+        revert("Not implemented");
+    }
+
+    function rewardsManager()
+        external
+        pure
+        returns (IGovernanceRewardsManager)
+    {
         revert("Not implemented");
     }
 

@@ -96,7 +96,7 @@ contract SummerGovernorTest is
 
         SummerGovernor.GovernorParams memory paramsA = ISummerGovernor
             .GovernorParams({
-                token: IVotes(address(aSummerToken)),
+                token: aSummerToken,
                 timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -110,7 +110,7 @@ contract SummerGovernorTest is
             });
         SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
             .GovernorParams({
-                token: IVotes(address(bSummerToken)),
+                token: bSummerToken,
                 timelock: timelockB,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -493,7 +493,7 @@ contract SummerGovernorTest is
 
         SummerGovernor.GovernorParams memory params = ISummerGovernor
             .GovernorParams({
-                token: IVotes(address(aSummerToken)),
+                token: aSummerToken,
                 timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -899,7 +899,7 @@ contract SummerGovernorTest is
 
         SummerGovernor.GovernorParams memory params = ISummerGovernor
             .GovernorParams({
-                token: IVotes(address(aSummerToken)),
+                token: aSummerToken,
                 timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -943,7 +943,6 @@ contract SummerGovernorTest is
         uint256 expiration = block.timestamp + 10 days;
 
         // Ensure Alice has enough voting power
-        uint256 proposalThreshold = governorA.proposalThreshold();
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
@@ -1470,7 +1469,7 @@ contract SummerGovernorTest is
         // Deploy the governorA with a different chain ID than the current one
         SummerGovernor.GovernorParams memory params = ISummerGovernor
             .GovernorParams({
-                token: IVotes(address(aSummerToken)),
+                token: aSummerToken,
                 timelock: timelockA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
@@ -1531,7 +1530,6 @@ contract SummerGovernorTest is
         // Give multiple voters enough combined tokens to meet quorum
         uint256 aliceTokens = quorumThreshold / 2;
         uint256 bobTokens = quorumThreshold / 2;
-        uint256 totalVotingPower = aliceTokens + bobTokens;
 
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(alice, aliceTokens);
@@ -1857,7 +1855,7 @@ contract SummerGovernorTest is
         // Case 4: Transfer from vesting wallet to beneficiary (Alice)
         // First, let's make the tokens vestable
         vm.warp(block.timestamp + 365 days);
-        uint256 vestableAmount = vestingWallet.vestedAmount(
+        vestingWallet.vestedAmount(
             address(aSummerToken),
             SafeCast.toUint64(block.timestamp)
         );

@@ -6,13 +6,15 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+import {IGovernanceRewardsManager} from "./IGovernanceRewardsManager.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 
 /**
  * @title ISummerToken
  * @dev Interface for the Summer governance token, combining ERC20, permit functionality,
  * and voting decay mechanisms
  */
-interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
+interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -166,4 +168,10 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors {
      * @param account The address to remove from the whitelist
      */
     function removeFromWhitelist(address account) external;
+
+    /**
+     * @notice Returns the address of the rewards manager contract
+     * @return The address of the rewards manager
+     */
+    function rewardsManager() external view returns (IGovernanceRewardsManager);
 }
