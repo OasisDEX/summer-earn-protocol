@@ -10,4 +10,9 @@ interface IDecayController {
      * @notice Error thrown when a zero address is provided for the summer token
      */
     error DecayController__ZeroAddress();
+
+    /**
+     * @notice Error thrown when the rewards manager is already set
+     */
+    error DecayController__RewardsManagerAlreadySet();
 }

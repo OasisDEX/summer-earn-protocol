@@ -104,6 +104,9 @@ contract SummerGovernor is
                 : address(this)
         )
     {
+        _setRewardsManager(
+            address(ISummerToken(params.token).getRewardsManager())
+        );
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
         proposalChainId = params.proposalChainId;
@@ -499,7 +502,7 @@ contract SummerGovernor is
         uint256 proposalId,
         address account,
         uint8 support,
-        uint256 weight,
+        uint256,
         bytes memory params
     )
         internal

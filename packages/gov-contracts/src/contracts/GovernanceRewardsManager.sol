@@ -49,11 +49,10 @@ contract GovernanceRewardsManager is
     /**
      * @notice Updates rewards for an account before executing a function
      * @param account The address of the account to update rewards for
-     * @dev Updates reward data for all reward tokens and the account's smoothed decay factor
+     * @dev Updates reward data for all reward tokens
      */
     modifier updateReward(address account) override {
         _updateReward(account);
-        _updateSmoothedDecayFactor(account);
         _;
     }
 
@@ -71,6 +70,7 @@ contract GovernanceRewardsManager is
         address _accessManager
     ) StakingRewardsManagerBase(_accessManager) DecayController(_stakingToken) {
         stakingToken = IERC20(_stakingToken);
+        _setRewardsManager(address(this));
     }
 
     /**
@@ -95,15 +95,37 @@ contract GovernanceRewardsManager is
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function stake(uint256 amount) external override updateDecay(_msgSender()) {
+    function stake(
+        uint256 amount
+    )
+        external
+        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
+        updateDecay(_msgSender())
+    {
         _stake(_msgSender(), _msgSender(), amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
     function unstake(
         uint256 amount
-    ) external override updateReward(_msgSender()) updateDecay(_msgSender()) {
+    )
+        external
+        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
+        updateReward(_msgSender())
+        updateDecay(_msgSender())
+    {
         _unstake(_msgSender(), amount);
+    }
+
+    /**
+     * @notice External function to update smoothed decay factor
+     * @param account The address to update
+     * @dev Only callable by the SummerToken or this contract
+     */
+    function updateSmoothedDecayFactor(
+        address account
+    ) external onlyDecayController {
+        _updateSmoothedDecayFactor(account);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -126,7 +148,12 @@ contract GovernanceRewardsManager is
     function earned(
         address account,
         IERC20 rewardToken
-    ) public view override returns (uint256) {
+    )
+        public
+        view
+        override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
+        returns (uint256)
+    {
         uint256 rawEarned = _earned(account, rewardToken);
         uint256 latestSmoothedDecayFactor = _calculateSmoothedDecayFactor(
             account
