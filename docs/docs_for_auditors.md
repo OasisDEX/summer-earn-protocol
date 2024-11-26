@@ -20,7 +20,7 @@ The Summer Protocol implements a cross-chain governance system with BASE as the 
 ### 1.2 Cross-Chain Communication
 The protocol uses LayerZero for secure cross-chain messaging. The typical proposal flow is:
 
-\```mermaid
+\```
 flowchart TD
     A["Proposal Created on Hub (BASE)"] --> B["Voting Delay Passes"]
     B --> C["Voting Begins"]
@@ -506,9 +506,8 @@ The system is partially compatible with Tally.xyz, supporting core governance fe
 - Delegation management
 
 **Important Limitations:**
-- Tally does not support visualization of the decay mechanism or decay-adjusted voting power
+- Tally has no built in ability (in UI) for showing voting decay over time
 - Cross-chain proposal simulations are not supported in the Tally interface
-- Users should refer to the protocol's custom frontend for complete governance features
 
 ## 7. Known Limitations & Trade-offs
 
@@ -670,7 +669,7 @@ The protocol's governance token implementation, combining voting power, vesting 
 - **Transfer Restrictions**
   - Configurable transfer enable date
   - Whitelist system for early transfers
-  - Protected minting and burning operations
+  - Protected minting and burning operations are available only on teleport
 
 - **Vesting Integration**
   - Custom vesting wallet factory
