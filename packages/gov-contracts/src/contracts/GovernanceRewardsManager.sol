@@ -95,7 +95,7 @@ contract GovernanceRewardsManager is
     }
 
     /**
-
+     * @notice No op function to satisfy IGovernanceRewardsManager interface
      */
     function unstakeOnBehalfOf(address, address, uint256) external override {
         /* no op */
