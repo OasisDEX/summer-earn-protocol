@@ -645,6 +645,25 @@
   },
   {
     "type": "function",
+    "name": "hasAdmiralsQuartersRole",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isArkActive",
     "inputs": [
       {
