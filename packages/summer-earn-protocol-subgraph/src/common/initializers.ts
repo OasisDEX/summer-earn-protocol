@@ -360,8 +360,10 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance
-    vault.stakingRewardsManager = config.stakingRewardsManager
-    getOrCreateRewardsManager(config.stakingRewardsManager)
+    vault.stakingRewardsManager = Address.fromString(
+      getOrCreateRewardsManager(config.stakingRewardsManager).id,
+    )
+
     vault.maxRebalanceOperations = config.maxRebalanceOperations
     vault.details = utils.readValue<string>(vaultContract.try_details(), '')
 
