@@ -653,7 +653,7 @@ type Deposit implements Event @entity @transaction {
   " The protocol this transaction belongs to "
   protocol: YieldAggregator!
 
-  " Market that tokens are deposited into "
+  " Address that received tokens "
   to: String!
 
   " Address that deposited tokens "
@@ -749,7 +749,7 @@ type Staked implements Event @entity @transaction {
   " Address that received tokens "
   to: String!
 
-  " Market that tokens are withdrawn from "
+  " Address that sent tokens "
   from: String!
 
   " Block number of this event "
@@ -758,13 +758,13 @@ type Staked implements Event @entity @transaction {
   " Timestamp of this event "
   timestamp: BigInt!
 
-  " Token withdrawn "
+  " Token staked "
   asset: Token!
 
-  " Amount of token withdrawn in native units "
+  " Amount of token staked in native units "
   amount: BigInt!
 
-  " Amount of token withdrawn in USD "
+  " Amount of token staked in USD "
   amountUSD: BigDecimal!
 
   " Amount of input token in the position "
@@ -776,7 +776,7 @@ type Staked implements Event @entity @transaction {
   " The vault involving this transaction "
   vault: Vault!
 
-  " Position that this withdraw belongs to "
+  " Position that this stake belongs to "
   position: Position!
 }
 type Unstaked implements Event @entity @transaction {
@@ -795,7 +795,7 @@ type Unstaked implements Event @entity @transaction {
   " Address that received tokens "
   to: String!
 
-  " Market that tokens are withdrawn from "
+  " Address that sent tokens "
   from: String!
 
   " Block number of this event "
@@ -807,10 +807,10 @@ type Unstaked implements Event @entity @transaction {
   " Token withdrawn "
   asset: Token!
 
-  " Amount of token withdrawn in native units "
+  " Amount of token unstaked in native units "
   amount: BigInt!
 
-  " Amount of token withdrawn in USD "
+  " Amount of token unstaked in USD "
   amountUSD: BigDecimal!
 
   " Amount of input token in the position "
@@ -822,7 +822,7 @@ type Unstaked implements Event @entity @transaction {
   " The vault involving this transaction "
   vault: Vault!
 
-  " Position that this withdraw belongs to "
+  " Position that this unstake belongs to "
   position: Position!
 }
 # An account is a unique Ethereum address
