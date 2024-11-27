@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: arbitrum-one
+    network: base
     source:
       abi: HarborCommand
-      address: "0xc67be6da8D50EB2583a92adccBf2d36a2759DB1e"
-      startBlock: 278532315
+      address: "0xf98f23e091F661EbC6a65374Ce3330322C1BA367"
+      startBlock: 22919444
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -18,6 +18,8 @@ dataSources:
       abis:
         - name: HarborCommand
           file: ./abis/HarborCommand.abi.json
+        - name: FleetCommanderRewardsManager
+          file: ./abis/FleetCommanderRewardsManager.abi.json          
         - name: Ark
           file: ./abis/Ark.abi.json
         - name: FleetCommander
@@ -52,12 +54,12 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 240 
+            every: 30 
       file: ./src/mappings/harborCommand.ts
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: arbitrum-one
+    network: base
     source:
       abi: FleetCommander
     mapping:
@@ -71,6 +73,8 @@ templates:
           file: ./abis/Ark.abi.json
         - name: FleetCommander
           file: ./abis/FleetCommander.abi.json
+        - name: FleetCommanderRewardsManager
+          file: ./abis/FleetCommanderRewardsManager.abi.json
         - name: ERC20
           file: ./abis/common/ERC20.json
         - name: OneInchOracle
@@ -123,11 +127,11 @@ templates:
           receipt: true
         - event: FleetCommanderminimumBufferBalanceUpdated(uint256)
           handler: handleFleetCommanderMinimumBufferBalanceUpdated
-          receipt: true
+          receipt: true        
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: arbitrum-one
+    network: base
     source:
       abi: Ark
     mapping:
@@ -186,3 +190,51 @@ templates:
           handler: handleMaxRebalanceInflowUpdated
           receipt: true
       file: ./src/mappings/ark.ts
+  - kind: ethereum/contract
+    name: FleetCommanderRewardsManagerTemplate
+    network: base
+    source:
+      abi: FleetCommanderRewardsManager
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+        - name: FleetCommanderRewardsManager
+          file: ./abis/FleetCommanderRewardsManager.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: FeedRegistry
+          file: ./abis/oracles/feed-registry.json
+        - name: SusdeOracle
+          file: ./abis/oracles/susde-oracle.json
+        - name: SparkOracle
+          file: ./abis/oracles/spark-oracle.json
+        - name: AaveV2Oracle
+          file: ./abis/oracles/aave-v2-price-oracle.json
+        - name: EnsReverseResolver
+          file: ./abis/ens/reverse-resolver.json
+        - name: EnsRegistry
+          file: ./abis/ens/registry.json
+        - name: DefaultReverseNameResolver
+          file: ./abis/ens/default-resolver.json
+      eventHandlers:
+        - event: Staked(indexed address,uint256)
+          handler: handleStaked
+          receipt: true
+        - event: Unstaked(indexed address,uint256)
+          handler: handleUnstaked
+          receipt: true
+      file: ./src/mappings/fleetCommander.ts

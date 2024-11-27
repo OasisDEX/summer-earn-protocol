@@ -46,21 +46,22 @@ export function updateVault(vaultDetails: VaultDetails, block: ethereum.Block): 
 }
 
 export function getVaultAndPositionDetails(
-  event: ethereum.Event,
+  vaultAddress: Address,
   account: Account,
   block: ethereum.Block,
 ): VaultAndPositionDetails {
-  const vaultDetails = getVaultDetails(event.address, block)
-  const positionDetails = getPositionDetails(event, account, vaultDetails)
+  const vaultDetails = getVaultDetails(vaultAddress, block)
+  const positionDetails = getPositionDetails(vaultAddress, account, vaultDetails)
   return { vaultDetails: vaultDetails, positionDetails: positionDetails }
 }
 
 export function getAndUpdateVaultAndPositionDetails(
   event: ethereum.Event,
+  vaultAddress: Address,
   account: Account,
   block: ethereum.Block,
 ): VaultAndPositionDetails {
-  const result = getVaultAndPositionDetails(event, account, block)
+  const result = getVaultAndPositionDetails(vaultAddress, account, block)
 
   updateVault(result.vaultDetails, event.block)
   updatePosition(result.positionDetails, event.block)

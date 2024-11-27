@@ -9,6 +9,7 @@ import {
   Position,
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
+  RewardsManager,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
@@ -18,9 +19,15 @@ import {
   Vault as VaultStore,
   YieldAggregator,
 } from '../../generated/schema'
-import { ArkTemplate, FleetCommanderTemplate } from '../../generated/templates'
+import {
+  ArkTemplate,
+  FleetCommanderRewardsManagerTemplate,
+  FleetCommanderTemplate,
+} from '../../generated/templates'
+import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+
 import { updateVaultAPRs } from '../mappings/entities/vault'
 import { addresses } from './addressProvider'
 import * as constants from './constants'
@@ -41,15 +48,31 @@ export function getOrCreateAccount(id: string): Account {
   return account
 }
 
+export function getOrCreateRewardsManager(rewardsManagerAddress: Address): RewardsManager {
+  let rewardsManager = RewardsManager.load(rewardsManagerAddress.toHexString())
+  if (!rewardsManager) {
+    rewardsManager = new RewardsManager(rewardsManagerAddress.toHexString())
+    const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(rewardsManagerAddress)
+    const vaultAddress = rewardsManagerContract.fleetCommander()
+    rewardsManager.vault = vaultAddress.toHexString()
+    rewardsManager.save()
+  }
+  return rewardsManager
+}
+
 export function getOrCreatePosition(positionId: string, block: ethereum.Block): Position {
   let position = Position.load(positionId)
   const positionIdDetails = utils.getAccountIdAndVaultIdFromPositionId(positionId)
   if (!position) {
     position = new Position(positionId)
     position.inputTokenBalance = constants.BigIntConstants.ZERO
+    position.stakedInputTokenBalance = constants.BigIntConstants.ZERO
     position.outputTokenBalance = constants.BigIntConstants.ZERO
+    position.stakedOutputTokenBalance = constants.BigIntConstants.ZERO
     position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    position.stakedInputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.stakedInputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.account = positionIdDetails[0]
     position.vault = positionIdDetails[1]
     position.createdBlockNumber = block.number
@@ -337,7 +360,10 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance
-    vault.stakingRewardsManager = config.stakingRewardsManager
+    vault.stakingRewardsManager = Address.fromString(
+      getOrCreateRewardsManager(config.stakingRewardsManager).id,
+    )
+
     vault.maxRebalanceOperations = config.maxRebalanceOperations
     vault.details = utils.readValue<string>(vaultContract.try_details(), '')
 
@@ -398,6 +424,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     yeildAggregator.save()
 
     FleetCommanderTemplate.create(vaultAddress)
+    FleetCommanderRewardsManagerTemplate.create(config.stakingRewardsManager)
   }
 
   return vault

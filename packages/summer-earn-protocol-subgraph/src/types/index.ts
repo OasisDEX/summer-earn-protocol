@@ -1,4 +1,4 @@
-import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { Token } from '../../generated/schema'
 
 export class VaultAndPositionDetails {
@@ -9,9 +9,13 @@ export class VaultAndPositionDetails {
 export class PositionDetails {
   positionId: string
   outputTokenBalance: BigInt
+  stakedOutputTokenBalance: BigInt
   inputTokenBalance: BigInt
   inputTokenBalanceNormalized: BigDecimal
   inputTokenBalanceNormalizedUSD: BigDecimal
+  stakedInputTokenBalance: BigInt
+  stakedInputTokenBalanceNormalized: BigDecimal
+  stakedInputTokenBalanceNormalizedUSD: BigDecimal
   vault: string
   account: string
   inputToken: Token
@@ -19,9 +23,13 @@ export class PositionDetails {
   constructor(
     positionId: string,
     outputTokenBalance: BigInt,
+    stakedOutputTokenBalance: BigInt,
     inputTokenBalance: BigInt,
     inputTokenBalanceNormalized: BigDecimal,
     inputTokenBalanceNormalizedUSD: BigDecimal,
+    stakedInputTokenBalance: BigInt,
+    stakedInputTokenBalanceNormalized: BigDecimal,
+    stakedInputTokenBalanceNormalizedUSD: BigDecimal,
     vault: string,
     account: string,
     inputToken: Token,
@@ -29,9 +37,13 @@ export class PositionDetails {
   ) {
     this.positionId = positionId
     this.outputTokenBalance = outputTokenBalance
+    this.stakedOutputTokenBalance = stakedOutputTokenBalance
     this.inputTokenBalance = inputTokenBalance
     this.inputTokenBalanceNormalized = inputTokenBalanceNormalized
     this.inputTokenBalanceNormalizedUSD = inputTokenBalanceNormalizedUSD
+    this.stakedInputTokenBalance = stakedInputTokenBalance
+    this.stakedInputTokenBalanceNormalized = stakedInputTokenBalanceNormalized
+    this.stakedInputTokenBalanceNormalizedUSD = stakedInputTokenBalanceNormalizedUSD
     this.vault = vault
     this.account = account
     this.inputToken = inputToken
@@ -48,6 +60,7 @@ export class VaultDetails {
   outputTokenSupply: BigInt
   inputToken: Token
   protocol: string
+  rewardsManager: Address
   constructor(
     vaultId: string,
     totalValueLockedUSD: BigDecimal,
@@ -58,6 +71,7 @@ export class VaultDetails {
     outputTokenSupply: BigInt,
     inputToken: Token,
     protocol: string,
+    rewardsManager: Address,
   ) {
     this.vaultId = vaultId
     this.totalValueLockedUSD = totalValueLockedUSD
@@ -68,6 +82,7 @@ export class VaultDetails {
     this.outputTokenSupply = outputTokenSupply
     this.inputToken = inputToken
     this.protocol = protocol
+    this.rewardsManager = rewardsManager
   }
 }
 

@@ -6,9 +6,14 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
   const position = getOrCreatePosition(positionDetails.positionId, block)
   if (position) {
     position.inputTokenBalance = positionDetails.inputTokenBalance
+    position.stakedInputTokenBalance = positionDetails.stakedInputTokenBalance
     position.outputTokenBalance = positionDetails.outputTokenBalance
+    position.stakedOutputTokenBalance = positionDetails.stakedOutputTokenBalance
     position.inputTokenBalanceNormalized = positionDetails.inputTokenBalanceNormalized
+    position.stakedInputTokenBalanceNormalized = positionDetails.stakedInputTokenBalanceNormalized
     position.inputTokenBalanceNormalizedInUSD = positionDetails.inputTokenBalanceNormalizedUSD
+    position.stakedInputTokenBalanceNormalizedInUSD =
+      positionDetails.stakedInputTokenBalanceNormalizedUSD
     position.save()
   }
 }
