@@ -18,7 +18,8 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     vaultContract.try_totalSupply(),
     constants.BigIntConstants.ZERO,
   )
-
+  const config = vaultContract.getConfig()
+  const rewardsManager = config.stakingRewardsManager
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(vault.inputToken), block)
   const pricePerShare =
@@ -36,5 +37,6 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     totalSupply,
     inputToken,
     vault.protocol,
+    rewardsManager,
   )
 }

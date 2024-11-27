@@ -462,6 +462,8 @@ type Vault @entity @regularPolling {
 
   rebalances: [Rebalance!]! @derivedFrom(field: "vault")
   actionSnapshots: [PostActionVaultSnapshot!]! @derivedFrom(field: "vault")
+
+  rewardsManager: RewardsManager! @derivedFrom(field: "vault")
 }
 
 #################################
@@ -731,7 +733,98 @@ type Withdraw implements Event @entity @transaction {
   " Position that this withdraw belongs to "
   position: Position!
 }
+type Staked implements Event @entity @transaction {
+  " { Transaction hash }-{ Log index }"
+  id: ID!
 
+  " Transaction hash of the transaction that emitted this event "
+  hash: String!
+
+  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
+  logIndex: Int!
+
+  " The protocol this transaction belongs to "
+  protocol: YieldAggregator!
+
+  " Address that received tokens "
+  to: String!
+
+  " Market that tokens are withdrawn from "
+  from: String!
+
+  " Block number of this event "
+  blockNumber: BigInt!
+
+  " Timestamp of this event "
+  timestamp: BigInt!
+
+  " Token withdrawn "
+  asset: Token!
+
+  " Amount of token withdrawn in native units "
+  amount: BigInt!
+
+  " Amount of token withdrawn in USD "
+  amountUSD: BigDecimal!
+
+  " Amount of input token in the position "
+  inputTokenBalance: BigInt!
+
+  " Amount of input token in the position in USD "
+  inputTokenBalanceNormalizedUSD: BigDecimal!
+
+  " The vault involving this transaction "
+  vault: Vault!
+
+  " Position that this withdraw belongs to "
+  position: Position!
+}
+type Unstaked implements Event @entity @transaction {
+  " { Transaction hash }-{ Log index }"
+  id: ID!
+
+  " Transaction hash of the transaction that emitted this event "
+  hash: String!
+
+  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
+  logIndex: Int!
+
+  " The protocol this transaction belongs to "
+  protocol: YieldAggregator!
+
+  " Address that received tokens "
+  to: String!
+
+  " Market that tokens are withdrawn from "
+  from: String!
+
+  " Block number of this event "
+  blockNumber: BigInt!
+
+  " Timestamp of this event "
+  timestamp: BigInt!
+
+  " Token withdrawn "
+  asset: Token!
+
+  " Amount of token withdrawn in native units "
+  amount: BigInt!
+
+  " Amount of token withdrawn in USD "
+  amountUSD: BigDecimal!
+
+  " Amount of input token in the position "
+  inputTokenBalance: BigInt!
+
+  " Amount of input token in the position in USD "
+  inputTokenBalanceNormalizedUSD: BigDecimal!
+
+  " The vault involving this transaction "
+  vault: Vault!
+
+  " Position that this withdraw belongs to "
+  position: Position!
+}
 # An account is a unique Ethereum address
 # Helps to accumulate total unique users
 type Account @entity @regularPolling {
@@ -899,11 +992,23 @@ type Position @entity {
   " Supply of the output token for the position "
   outputTokenBalance: BigInt!
 
+  " Staked balance of the input token for the position "
+  stakedInputTokenBalance: BigInt!
+
+  " Staked balance of the output token for the position "
+  stakedOutputTokenBalance: BigInt!
+
   " Normalized supply of the input token "
   inputTokenBalanceNormalized: BigDecimal!
 
+  " Normalized staked balance of the input token "
+  stakedInputTokenBalanceNormalized: BigDecimal!
+
   " Normalized supply of the input token in USD "
   inputTokenBalanceNormalizedInUSD: BigDecimal!
+
+  " Normalized staked balance of the input token in USD "
+  stakedInputTokenBalanceNormalizedInUSD: BigDecimal!
 
   " Creation timestamp "
   createdTimestamp: BigInt!
@@ -913,6 +1018,8 @@ type Position @entity {
 
   deposits: [Deposit!]! @derivedFrom(field: "position")
   withdrawals: [Withdraw!]! @derivedFrom(field: "position")
+  stakedEvents: [Staked!]! @derivedFrom(field: "position")
+  unstakedEvents: [Unstaked!]! @derivedFrom(field: "position")
 }
 
 type Ark @entity @regularPolling {
@@ -1152,4 +1259,9 @@ type PostActionArkSnapshot @entity @hourlySnapshot {
   #  Additional fields
   "Current APR"
   apr: BigDecimal!
+}
+
+type RewardsManager @entity {
+  id: ID!
+  vault: Vault!
 }
