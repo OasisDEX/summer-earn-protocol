@@ -109,7 +109,7 @@ function getPeersFromConfig(currentNetwork: string): PeerConfig[] {
         address: networkConfig.deployedContracts.gov.summerGovernor.address,
       })
     } catch (error) {
-      console.log(kleur.red().bold('Skipping network, alck of config:'), kleur.cyan(network))
+      console.log(kleur.red().bold('Skipping network, lack of config:'), kleur.cyan(network))
       continue
     }
   }

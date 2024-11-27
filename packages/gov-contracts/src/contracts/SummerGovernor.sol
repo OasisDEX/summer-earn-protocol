@@ -457,7 +457,7 @@ contract SummerGovernor is
         uint32[] memory _peerEndpointIds,
         address[] memory _peerAddresses
     ) internal {
-        if (_peerEndpointIds.length <= 0) {
+        if (_peerEndpointIds.length == 0) {
             return;
         }
         if (_peerEndpointIds.length != _peerAddresses.length) {
