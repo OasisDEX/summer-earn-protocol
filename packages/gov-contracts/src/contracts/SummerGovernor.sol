@@ -185,6 +185,34 @@ contract SummerGovernor is
     receive() external payable override {}
 
     /**
+     * @dev Internal function to queue a proposal received from another chain.
+     * @param proposalId The ID of the proposal to queue.
+     * @param targets The target addresses for the proposal.
+     * @param values The values for the proposal.
+     * @param calldatas The calldata for the proposal.
+     * @param descriptionHash The description hash for the proposal.
+     */
+    function _queueCrossChainProposal(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal returns (uint256) {
+        uint48 eta = _queueOperations(
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+
+        emit ProposalQueued(proposalId, uint256(eta));
+
+        return proposalId;
+    }
+
+    /**
      * @dev Receives a proposal from another chain and executes it.
      * @param _origin The origin of the message.
      * @param // _guid The global packet identifier.
@@ -212,64 +240,7 @@ contract SummerGovernor is
 
         emit ProposalReceivedCrossChain(proposalId, _origin.srcEid);
 
-        _executeCrossChainProposal(
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            descriptionHash
-        );
-    }
-
-    /**
-     * @dev Internal function to execute a proposal.
-     * @param proposalId The ID of the proposal to execute.
-     * @param targets The target addresses for the proposal.
-     * @param values The values for the proposal.
-     * @param calldatas The calldata for the proposal.
-     * @param descriptionHash The description hash for the proposal.
-     */
-    function _executeCrossChainProposal(
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) internal returns (uint256) {
-        _executeCrossChainOperations(
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            descriptionHash
-        );
-
-        emit ProposalExecuted(proposalId);
-
-        return proposalId;
-    }
-
-    /**
-     * @dev Internal function to execute cross-chain proposal operations.
-     * @param proposalId The ID of the proposal.
-     * @param targets The addresses of the contracts to call on the destination chain.
-     * @param values The ETH values to send with the calls on the destination chain.
-     * @param calldatas The call data for each contract call on the destination chain.
-     * @param descriptionHash The hash of the proposal description.
-     *
-     * This function is used for executing proposals that have been received from another chain.
-     * It bypasses the timelock and directly executes the operations using the base Governor's
-     * _executeOperations function. This is necessary because the proposal has already been
-     * executed on the source chain and we want to avoid double-queueing.
-     */
-    function _executeCrossChainOperations(
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) internal {
-        Governor._executeOperations(
+        _queueCrossChainProposal(
             proposalId,
             targets,
             values,
