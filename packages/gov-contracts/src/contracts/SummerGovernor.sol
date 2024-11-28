@@ -36,7 +36,7 @@ contract SummerGovernor is
 
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
     uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
-    uint32 public immutable proposalChainId;
+    uint32 public immutable hubChainId;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -59,17 +59,26 @@ contract SummerGovernor is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Modifier to restrict certain functions to only be called on the proposal chain (hub chain).
+     * @dev Modifier to restrict certain functions to only be called on the hub chain.
      * This ensures that governance actions like proposing, executing, and canceling can only happen
      * on the designated hub chain, while other chains act as spokes that can only receive and execute
      * proposals that have been approved on the hub.
-     *
-     * Note: The proposal chain is also referred to as the hub chain in the system's architecture.
-     * All governance proposals must originate from this chain.
      */
-    modifier onlyProposalChain() {
-        if (block.chainid != proposalChainId) {
-            revert SummerGovernorInvalidChain(block.chainid, proposalChainId);
+    modifier onlyHubChain() {
+        if (block.chainid != hubChainId) {
+            revert SummerGovernorNotHubChain(block.chainid, hubChainId);
+        }
+        _;
+    }
+
+    /**
+     * @dev Modifier to restrict certain functions to only be called on satellite chains (non-hub chains).
+     * This ensures that certain operations can only happen on spoke chains that receive and execute
+     * proposals from the hub chain.
+     */
+    modifier onlySatelliteChain() {
+        if (block.chainid == hubChainId) {
+            revert SummerGovernorCannotExecuteOnHubChain();
         }
         _;
     }
@@ -92,14 +101,13 @@ contract SummerGovernor is
         GovernorTimelockControl(params.timelock)
         OApp(
             params.endpoint,
-            params.proposalChainId == block.chainid
+            params.hubChainId == block.chainid
                 ? address(params.timelock)
                 : address(this)
         )
         DecayController(address(params.token))
-        // Only set timelock as owner on HUB chain (currently BASE chain)
         Ownable(
-            params.proposalChainId == block.chainid
+            params.hubChainId == block.chainid
                 ? address(params.timelock)
                 : address(this)
         )
@@ -109,7 +117,7 @@ contract SummerGovernor is
         );
         _validateProposalThreshold(params.proposalThreshold);
         _setWhitelistGuardian(params.initialWhitelistGuardian);
-        proposalChainId = params.proposalChainId;
+        hubChainId = params.hubChainId;
         _initializePeers(params.peerEndpointIds, params.peerAddresses);
     }
 
@@ -125,7 +133,7 @@ contract SummerGovernor is
         bytes[] memory _dstCalldatas,
         bytes32 _dstDescriptionHash,
         bytes calldata _options
-    ) external onlyGovernance {
+    ) external onlyGovernance onlyHubChain {
         _sendProposalToTargetChain(
             _dstEid,
             _dstTargets,
@@ -198,7 +206,7 @@ contract SummerGovernor is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) internal returns (uint256) {
+    ) internal onlySatelliteChain returns (uint256) {
         uint48 eta = _queueOperations(
             proposalId,
             targets,
@@ -261,6 +269,7 @@ contract SummerGovernor is
         public
         override(ISummerGovernor, Governor)
         updateDecay(_msgSender())
+        onlyHubChain
         returns (uint256)
     {
         address voter = _msgSender();
@@ -277,7 +286,7 @@ contract SummerGovernor is
         public
         override(Governor, ISummerGovernor)
         updateDecay(_msgSender())
-        onlyProposalChain
+        onlyHubChain
         returns (uint256)
     {
         address proposer = _msgSender();
@@ -307,8 +316,8 @@ contract SummerGovernor is
         public
         payable
         override(Governor, ISummerGovernor)
-        onlyProposalChain
         updateDecay(_msgSender())
+        onlyHubChain
         returns (uint256)
     {
         return super.execute(targets, values, calldatas, descriptionHash);
@@ -324,7 +333,7 @@ contract SummerGovernor is
         public
         override(Governor, ISummerGovernor)
         updateDecay(_msgSender())
-        onlyProposalChain
+        onlyHubChain
         returns (uint256)
     {
         uint256 proposalId = hashProposal(

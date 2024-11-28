@@ -98,7 +98,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     quorumFraction: 4n,
     initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
-    proposalChainId: 8453n,
+    hubChainId: 8453n,
     peerEndpointIds: peerEndpointIds,
     peerAddresses: peerAddresses,
   }

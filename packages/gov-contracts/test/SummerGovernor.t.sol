@@ -42,7 +42,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerEndpointIds: new uint32[](0), // Empty uint32 array
                 peerAddresses: new address[](0) // Empty address array
             });
@@ -448,7 +448,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: address(0x5),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerEndpointIds: new uint32[](0), // Empty uint32 array
                 peerAddresses: new address[](0) // Empty address array
             });
@@ -1018,7 +1018,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: address(endpoints[aEid]),
-                proposalChainId: governanceChainId, // Set to a different chain ID
+                hubChainId: governanceChainId,
                 peerEndpointIds: new uint32[](0), // Empty uint32 array
                 peerAddresses: new address[](0) // Empty address array
             });
@@ -1055,7 +1055,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         vm.prank(alice);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SummerGovernorInvalidChain.selector,
+                SummerGovernorNotHubChain.selector,
                 currentChainId,
                 governanceChainId
             )
@@ -1463,7 +1463,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         advanceTimeAndBlock();
 
         vm.startPrank(alice);
-        (uint256 proposalId, bytes32 descriptionHash) = createProposal();
+        (, bytes32 descriptionHash) = createProposal();
         (
             address[] memory targets,
             uint256[] memory values,

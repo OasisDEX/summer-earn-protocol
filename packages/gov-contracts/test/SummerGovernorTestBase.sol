@@ -79,7 +79,7 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerEndpointIds: new uint32[](0), // Empty uint32 array
                 peerAddresses: new address[](0) // Empty address array
             });
@@ -93,7 +93,7 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerEndpointIds: new uint32[](0), // Empty uint32 array
                 peerAddresses: new address[](0) // Empty address array
             });

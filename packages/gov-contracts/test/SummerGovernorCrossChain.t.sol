@@ -11,11 +11,9 @@ import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SummerGovernorTestBase, ExposedSummerGovernor} from "./SummerGovernorTestBase.sol";
 import {ILayerZeroEndpointV2} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
-import {Strings} from "@summerfi/dependencies/openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
     using OptionsBuilder for bytes;
-    using Strings for bytes;
 
     function setUp() public override {
         initializeTokenTests();
@@ -33,7 +31,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerEndpointIds: new uint32[](0),
                 peerAddresses: new address[](0)
             });
@@ -49,7 +47,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerEndpointIds: new uint32[](0),
                 peerAddresses: new address[](0)
             });
@@ -153,6 +151,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             hashDescription(srcDescription)
         );
 
+        useNetworkB();
+
         // Verify cross-chain message
         verifyPackets(bEid, addressToBytes32(address(governorB)));
 
@@ -161,7 +161,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             bool foundReceivedEvent,
             bool foundQueuedEvent,
             uint256 queuedEta
-        ) = _verifyProposalEvents(dstProposalId, aEid);
+        ) = _verifyProposalEvents(dstProposalId);
 
         assertTrue(
             foundReceivedEvent,
@@ -362,16 +362,16 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
-        // Get the proposalChainId from the governor contract
-        uint256 expectedProposalChainId = governorA.proposalChainId();
+        // Get the hubChainId from the governor contract
+        uint256 expectedHubChainId = governorA.hubChainId();
 
         // Attempt to propose on wrong chain
         vm.prank(alice);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "SummerGovernorInvalidChain(uint256,uint256)",
+                "SummerGovernorNotHubChain(uint256,uint256)",
                 999,
-                expectedProposalChainId
+                expectedHubChainId
             )
         );
         governorA.propose(targets, values, calldatas, description);
@@ -400,7 +400,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             uint256[] memory srcValues,
             bytes[] memory srcCalldatas,
             string memory srcDescription,
-            uint256 dstProposalId,
+            ,
             ,
             ,
             ,
@@ -459,6 +459,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             hashDescription(srcDescription)
         );
 
+        useNetworkB();
+
         // Verify successful execution
         verifyPackets(bEid, addressToBytes32(address(governorB)));
     }
@@ -486,7 +488,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 quorumFraction: QUORUM_FRACTION,
                 initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
+                hubChainId: 31337,
                 peerEndpointIds: invalidEndpointIds,
                 peerAddresses: invalidAddresses
             });
@@ -497,7 +499,6 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         new ExposedSummerGovernor(invalidParams);
     }
 
-    // TODO: Update this scenario - need a whitelist version
     // Scenario: A cross-chain proposal is created and then cancelled by the
     // whitelist guardian before it can be executed. This tests the cancellation
     // mechanism and its effects on both the source and target chains.
@@ -559,6 +560,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             hashDescription(srcDescription)
         );
 
+        useNetworkB();
+
         // Verify cross-chain message delivery
         verifyPackets(bEid, addressToBytes32(address(governorB)));
 
@@ -566,8 +569,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         (
             bool foundReceivedEvent,
             bool foundQueuedEvent,
-            uint256 queuedEta
-        ) = _verifyProposalEvents(dstProposalId, aEid);
+
+        ) = _verifyProposalEvents(dstProposalId);
 
         assertTrue(foundReceivedEvent, "Missing received event on chain B");
         assertTrue(foundQueuedEvent, "Missing queued event on chain B");
@@ -618,6 +621,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         uint256[] memory cancelValues = new uint256[](1);
         string memory cancelDescription = "Send cancellation to chain B";
 
+        useNetworkA();
+
         // Submit and process cancellation proposal
         vm.prank(alice);
         uint256 cancelProposalId = governorA.propose(
@@ -650,22 +655,12 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             hashDescription(cancelDescription)
         );
 
+        useNetworkB();
+
         // Verify cross-chain message delivery for cancellation
         verifyPackets(bEid, addressToBytes32(address(governorB)));
 
         // Need to wait for timelock delay before executing
-        advanceTimeForTimelockMinDelay();
-
-        // Now execute on chain B's timelock
-        bytes32 salt = bytes20(address(governorB)) ^ dstDescriptionHash;
-        bytes32 timelockId = timelockB.hashOperationBatch(
-            dstTargets,
-            dstValues,
-            dstCalldatas,
-            bytes32(0), // predecessor
-            salt
-        );
-
         advanceTimeForTimelockMinDelay();
 
         // Execute the cancellation proposal instead of the original proposal
@@ -754,6 +749,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             hashDescription(srcDescription)
         );
 
+        useNetworkB();
+
         // Verify cross-chain message delivery
         verifyPackets(bEid, addressToBytes32(address(governorB)));
 
@@ -761,8 +758,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         (
             bool foundReceivedEvent,
             bool foundQueuedEvent,
-            uint256 queuedEta
-        ) = _verifyProposalEvents(dstProposalId, aEid);
+
+        ) = _verifyProposalEvents(dstProposalId);
 
         assertTrue(foundReceivedEvent, "Missing received event on chain B");
         assertTrue(foundQueuedEvent, "Missing queued event on chain B");
@@ -888,6 +885,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             hashDescription(srcDescription)
         );
 
+        useNetworkB();
+
         // Verify cross-chain message
         verifyPackets(bEid, addressToBytes32(address(governorB)));
 
@@ -973,7 +972,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         for (uint i = 0; i < dstTargets.length; i++) {
             console.log("Target", i, ":", dstTargets[i]);
             console.log("Value", i, ":", dstValues[i]);
-            console.log("Calldata", i, ":", toHexString(dstCalldatas[i]));
+            console.log("Calldata", i, ":", _toHexString(dstCalldatas[i]));
         }
 
         return (
@@ -1025,8 +1024,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
     }
 
     function _verifyProposalEvents(
-        uint256 expectedProposalId,
-        uint32 expectedSrcEid
+        uint256 expectedProposalId
     )
         internal
         returns (
@@ -1080,32 +1078,6 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         assertTrue(foundQueuedEvent, "Missing ProposalQueued event");
     }
 
-    // Add these helper functions to match OZ's calculations
-    function timelockSalt(
-        address governor,
-        bytes32 descriptionHash
-    ) internal pure returns (bytes32) {
-        return bytes20(governor) ^ descriptionHash;
-    }
-
-    function hashOperationBatch(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 salt
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    targets,
-                    values,
-                    calldatas,
-                    0, // predecessor (always 0 in our case)
-                    salt
-                )
-            );
-    }
-
     // Helper function to verify timelock operation
     function _verifyTimelockOperation(
         address[] memory targets,
@@ -1134,8 +1106,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         return (timelockId, eta);
     }
 
-    // Add this helper function
-    function toHexString(
+    function _toHexString(
         bytes memory data
     ) internal pure returns (string memory) {
         bytes memory alphabet = "0123456789abcdef";

@@ -203,6 +203,16 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     }
   }
 
+  // On satellite chains, grant CANCELLER_ROLE to timelock
+  if (!isHubChain) {
+    const hasTimelockCancellerRole = await timelock.read.hasRole([CANCELLER_ROLE, timelock.address])
+    if (!hasTimelockCancellerRole) {
+      console.log('[TIMELOCK] - Granting CANCELLER_ROLE to timelock on satellite chain...')
+      const hash = await timelock.write.grantRole([CANCELLER_ROLE, timelock.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+    }
+  }
+
   // Rest of the setup remains the same for both chains
   // Grant decay controller role to governance rewards manager
   const hasDecayRole = await protocolAccessManager.read.hasRole([
