@@ -500,8 +500,9 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
     }
 
     // Scenario: A cross-chain proposal is created and then cancelled by the
-    // whitelist guardian before it can be executed. This tests the cancellation
-    // mechanism and its effects on both the source and target chains.
+    // a proposal sent from the source chain and executed on the spoke chain.
+    // This tests the cancellation mechanism between the source and spoke
+    // chains.
     function test_CrossChainProposalCancellation() public {
         vm.recordLogs();
 

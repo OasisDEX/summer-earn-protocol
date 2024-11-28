@@ -99,18 +99,9 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
-        OApp(
-            params.endpoint,
-            params.hubChainId == block.chainid
-                ? address(params.timelock)
-                : address(this)
-        )
+        OApp(params.endpoint, address(params.timelock))
         DecayController(address(params.token))
-        Ownable(
-            params.hubChainId == block.chainid
-                ? address(params.timelock)
-                : address(this)
-        )
+        Ownable(address(params.timelock))
     {
         _setRewardsManager(
             address(ISummerToken(params.token).rewardsManager())
