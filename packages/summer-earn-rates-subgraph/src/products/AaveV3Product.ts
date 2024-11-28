@@ -5,7 +5,10 @@ import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
 
 export class AaveV3Product extends Product {
-  getRate(currentTimestamp: BigInt): BigDecimal {
+  getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
+    if (currentBlock.lt(this.startBlock)) {
+      return BigDecimalConstants.ZERO
+    }
     const pool = AaveV3PoolDataProvider.bind(addresses.AAVE_V3_DATA_PROVIDER)
     const tryReserveData = pool.try_getReserveData(Address.fromBytes(this.token.address))
     if (tryReserveData.reverted) {
