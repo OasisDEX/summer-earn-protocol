@@ -20,7 +20,7 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param votingPeriod The voting period in seconds
      * @param proposalThreshold The proposal threshold in tokens
      * @param quorumFraction The quorum fraction in tokens
-     * @param initialWhitelistGuardian The initial whitelist guardian address
+     * @param initialGuardian The initial whitelist guardian address
      * @param initialDecayFreeWindow The initial decay free window in seconds
      * @param initialDecayRate The initial decay rate
      * @param initialDecayFunction The initial decay function
@@ -36,7 +36,7 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         uint32 votingPeriod;
         uint256 proposalThreshold;
         uint256 quorumFraction;
-        address initialWhitelistGuardian;
+        address initialGuardian;
         address endpoint;
         /// @dev On BASE chain (hubChainId == block.chainid), timelock owns the governor
         /// @dev On satellite chains, the governor owns itself
@@ -46,20 +46,17 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
     }
 
     /**
-     * @notice Emitted when a whitelisted account's expiration is set
-     * @param account The address of the whitelisted account
-     * @param expiration The timestamp when the account's whitelist status expires
+     * @notice Emitted when a guardian's expiration is set
+     * @param account The address of the guardian
+     * @param expiration The timestamp when the guardian's whitelist status expires
      */
-    event WhitelistAccountExpirationSet(
-        address indexed account,
-        uint256 expiration
-    );
+    event GuardianExpirationSet(address indexed account, uint256 expiration);
 
     /**
-     * @notice Emitted when a new whitelist guardian is set
-     * @param newGuardian The address of the new whitelist guardian
+     * @notice Emitted when a new guardian is set
+     * @param guardian The address of the new guardian
      */
-    event WhitelistGuardianSet(address indexed newGuardian);
+    event GuardianSet(address indexed guardian);
 
     /**
      * @notice Emitted when a proposal is sent cross-chain
@@ -157,40 +154,28 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
     ) external;
 
     /**
-     * @notice Checks if an account is whitelisted
+     * @notice Checks if an account is whitelisted as a guardian
+     * @dev Guardians have the ability to cancel both pending proposals and queued timelock proposals
      * @param account The address to check
-     * @return bool True if the account is whitelisted, false otherwise
+     * @return bool True if the account is a guardian, false otherwise
      */
-    function isWhitelisted(address account) external view returns (bool);
+    function isGuardian(address account) external view returns (bool);
 
     /**
-     * @notice Sets the expiration time for a whitelisted account
-     * @param account The address of the account to whitelist
-     * @param expiration The timestamp when the account's whitelist status expires
+     * @notice Sets the expiration time for a whitelisted guardian account
+     * @dev Guardians are trusted entities with the power to cancel malicious or erroneous proposals
+     * @param account The address of the account to whitelist as guardian
+     * @param expiration The timestamp when the account's guardian status expires
      */
-    function setWhitelistAccountExpiration(
-        address account,
-        uint256 expiration
-    ) external;
+    function setGuardian(address account, uint256 expiration) external;
 
     /**
-     * @notice Sets a new whitelist guardian
-     * @param _whitelistGuardian The address of the new whitelist guardian
-     */
-    function setWhitelistGuardian(address _whitelistGuardian) external;
-
-    /**
-     * @notice Gets the expiration time for a whitelisted account
+     * @notice Gets the expiration time for a whitelisted guardian account
+     * @dev After expiration, the account loses its guardian privileges to cancel proposals
      * @param account The address to check
-     * @return The expiration timestamp for the account's whitelist status
+     * @return The expiration timestamp for the account's guardian status
      */
-    function getWhitelistAccountExpiration(
+    function getGuardianExpiration(
         address account
     ) external view returns (uint256);
-
-    /**
-     * @notice Gets the current whitelist guardian address
-     * @return The address of the current whitelist guardian
-     */
-    function getWhitelistGuardian() external view returns (address);
 }

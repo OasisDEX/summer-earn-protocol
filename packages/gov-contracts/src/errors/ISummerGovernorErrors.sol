@@ -16,12 +16,12 @@ interface ISummerGovernorErrors {
         uint256 maxThreshold
     );
 
-    /* @notice Error thrown when a proposer is below the threshold and not whitelisted
+    /* @notice Error thrown when a proposer is below the threshold and not a guardian
      * @param proposer The address of the proposer
      * @param votes The number of votes the proposer has
      * @param threshold The required threshold for proposing
      */
-    error SummerGovernorProposerBelowThresholdAndNotWhitelisted(
+    error SummerGovernorProposerBelowThresholdAndNotGuardian(
         address proposer,
         uint256 votes,
         uint256 threshold
@@ -41,9 +41,9 @@ interface ISummerGovernorErrors {
     );
 
     /* @notice Error thrown when the whitelist guardian is not set
-     * @param whitelistGuardian The address of the whitelist guardian
+     * @param guardian The address of the whitelist guardian
      */
-    error SummerGovernorInvalidWhitelistGuardian(address whitelistGuardian);
+    error SummerGovernorInvalidGuardian(address guardian);
 
     /* @notice Error thrown when the trusted remote is invalid
      * @param trustedRemote The invalid trusted remote

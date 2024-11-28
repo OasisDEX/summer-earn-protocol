@@ -42,17 +42,9 @@ contract SummerGovernor is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /*
-     * @dev Configuration structure for the governor
-     * @param whitelistAccountExpirations Mapping of account addresses to their whitelist expiration timestamps
-     * @param whitelistGuardian Address of the account with special privileges for managing the whitelist
-     */
-    struct GovernorConfig {
-        mapping(address => uint256) whitelistAccountExpirations;
-        address whitelistGuardian;
-    }
-
-    GovernorConfig public config;
+    /// @dev Mapping of account addresses to their guardian expiration timestamps
+    mapping(address guardian => uint256 expirationTimestamp)
+        public guardianExpirations;
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
@@ -106,8 +98,8 @@ contract SummerGovernor is
         _setRewardsManager(
             address(ISummerToken(params.token).rewardsManager())
         );
+        _setGuardian(params.initialGuardian, 90 days);
         _validateProposalThreshold(params.proposalThreshold);
-        _setWhitelistGuardian(params.initialWhitelistGuardian);
         hubChainId = params.hubChainId;
         _initializePeers(params.peerEndpointIds, params.peerAddresses);
     }
@@ -281,13 +273,10 @@ contract SummerGovernor is
         returns (uint256)
     {
         address proposer = _msgSender();
-        // Use block.timestamp - 1 to get the proposer's voting power from the previous block.
-        // This ensures we're using a finalized state and prevents potential same-block manipulations,
-        // aligning with OpenZeppelin's recommended practice for governance contracts.
         uint256 proposerVotes = getVotes(proposer, block.timestamp - 1);
 
-        if (proposerVotes < proposalThreshold() && !isWhitelisted(proposer)) {
-            revert SummerGovernorProposerBelowThresholdAndNotWhitelisted(
+        if (proposerVotes < proposalThreshold() && !isGuardian(proposer)) {
+            revert SummerGovernorProposerBelowThresholdAndNotGuardian(
                 proposer,
                 proposerVotes,
                 proposalThreshold()
@@ -337,7 +326,7 @@ contract SummerGovernor is
         if (
             _msgSender() != proposer &&
             getVotes(proposer, block.timestamp - 1) >= proposalThreshold() &&
-            _msgSender() != config.whitelistGuardian
+            !isGuardian(_msgSender())
         ) {
             revert SummerGovernorUnauthorizedCancellation(
                 _msgSender(),
@@ -355,42 +344,23 @@ contract SummerGovernor is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
-    function isWhitelisted(
-        address account
-    ) public view override returns (bool) {
-        return (config.whitelistAccountExpirations[account] > block.timestamp);
+    function isGuardian(address account) public view returns (bool) {
+        return (guardianExpirations[account] > block.timestamp);
     }
 
     /// @inheritdoc ISummerGovernor
-    function setWhitelistAccountExpiration(
+    function setGuardian(
         address account,
         uint256 expiration
     ) external override onlyGovernance {
-        config.whitelistAccountExpirations[account] = expiration;
-        emit WhitelistAccountExpirationSet(account, expiration);
+        _setGuardian(account, expiration);
     }
 
     /// @inheritdoc ISummerGovernor
-    function setWhitelistGuardian(
-        address _whitelistGuardian
-    ) external override onlyGovernance {
-        _setWhitelistGuardian(_whitelistGuardian);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            GETTER FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc ISummerGovernor
-    function getWhitelistAccountExpiration(
+    function getGuardianExpiration(
         address account
-    ) public view returns (uint256) {
-        return config.whitelistAccountExpirations[account];
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function getWhitelistGuardian() public view returns (address) {
-        return config.whitelistGuardian;
+    ) external view returns (uint256) {
+        return guardianExpirations[account];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -411,12 +381,12 @@ contract SummerGovernor is
         return _nativeFee;
     }
 
-    function _setWhitelistGuardian(address _whitelistGuardian) internal {
-        if (_whitelistGuardian == address(0)) {
-            revert SummerGovernorInvalidWhitelistGuardian(_whitelistGuardian);
+    function _setGuardian(address _guardian, uint256 _expiration) internal {
+        if (_guardian == address(0)) {
+            revert SummerGovernorInvalidGuardian(_guardian);
         }
-        config.whitelistGuardian = _whitelistGuardian;
-        emit WhitelistGuardianSet(_whitelistGuardian);
+        guardianExpirations[_guardian] = _expiration;
+        emit GuardianSet(_guardian);
     }
 
     /**

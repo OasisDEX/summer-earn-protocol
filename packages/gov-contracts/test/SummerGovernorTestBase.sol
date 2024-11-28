@@ -56,7 +56,7 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
     address public bob = address(0x112);
     address public charlie = address(0x113);
     address public david = address(0x114);
-    address public whitelistGuardian = address(0x115);
+    address public guardian = address(0x115);
 
     function setUp() public virtual override {
         initializeTokenTests();
@@ -77,11 +77,11 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
+                initialGuardian: guardian,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
         SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
             .GovernorParams({
@@ -91,11 +91,11 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
+                initialGuardian: guardian,
                 endpoint: lzEndpointB,
                 hubChainId: 31337,
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);

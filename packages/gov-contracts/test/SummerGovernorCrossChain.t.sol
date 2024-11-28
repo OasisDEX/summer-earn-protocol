@@ -29,7 +29,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
+                initialGuardian: guardian,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
                 peerEndpointIds: new uint32[](0),
@@ -45,7 +45,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
+                initialGuardian: guardian,
                 endpoint: lzEndpointB,
                 hubChainId: 31337,
                 peerEndpointIds: new uint32[](0),
@@ -486,7 +486,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
+                initialGuardian: guardian,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
                 peerEndpointIds: invalidEndpointIds,
@@ -775,13 +775,10 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         );
 
         // Grant the whitelist guardian the cancel role
-        timelockB.grantRole(
-            timelockB.CANCELLER_ROLE(),
-            address(whitelistGuardian)
-        );
+        timelockB.grantRole(timelockB.CANCELLER_ROLE(), guardian);
 
-        // Cancel the proposal using whitelist guardian on chain B
-        vm.prank(whitelistGuardian);
+        // Cancel the proposal using guardian on chain B
+        vm.prank(guardian);
         timelockB.cancel(operationId);
 
         // Verify the operation was cancelled in the timelock
