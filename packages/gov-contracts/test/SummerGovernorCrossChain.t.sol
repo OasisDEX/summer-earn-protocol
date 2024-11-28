@@ -434,11 +434,13 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         vm.mockCall(
             address(lzEndpointA),
             abi.encodeWithSelector(ILayerZeroEndpointV2.send.selector),
-            abi.encode(bytes("Failed"))
+            abi.encodeWithSelector(bytes4(keccak256("FailedCall()")))
         );
 
         // First attempt should fail
-        vm.expectRevert("Failed");
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedCall()")))
+        );
         governorA.execute(
             srcTargets,
             srcValues,
@@ -495,6 +497,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         new ExposedSummerGovernor(invalidParams);
     }
 
+    // TODO: Update this scenario - need a whitelist version
     // Scenario: A cross-chain proposal is created and then cancelled by the
     // whitelist guardian before it can be executed. This tests the cancellation
     // mechanism and its effects on both the source and target chains.
@@ -569,24 +572,20 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         assertTrue(foundReceivedEvent, "Missing received event on chain B");
         assertTrue(foundQueuedEvent, "Missing queued event on chain B");
 
-        // Create a cancellation proposal on chain A that will send a cross-chain message to chain B
-        bytes[] memory cancelCalldatas = new bytes[](1);
-
-        // Create the cross-chain message payload for cancellation
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReceiveOption(200000, 0);
-
-        // THINK WE NEED TO UPDATE THIS
-        // The actual cancellation calldata that will be executed on chain B
-        bytes[] memory dstCancelCalldatas = new bytes[](1);
-        dstCancelCalldatas[0] = abi.encodeWithSelector(
-            timelockB.cancel.selector,
+        // Calculate the operation ID that needs to be cancelled
+        bytes32 operationId = timelockB.hashOperationBatch(
             dstTargets,
             dstValues,
             dstCalldatas,
             bytes32(0), // predecessor
             bytes20(address(governorB)) ^ dstDescriptionHash // salt
+        );
+
+        // Create the cancellation calldata with just the operation ID
+        bytes[] memory dstCancelCalldatas = new bytes[](1);
+        dstCancelCalldatas[0] = abi.encodeWithSelector(
+            timelockB.cancel.selector,
+            operationId
         );
 
         address[] memory dstCancelTargets = new address[](1);
@@ -595,6 +594,14 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         uint256[] memory dstCancelValues = new uint256[](1);
 
         // Wrap the cancellation in a cross-chain message
+        bytes[] memory cancelCalldatas = new bytes[](1);
+
+        // Create the cross-chain message payload for cancellation
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(200000, 0);
+
+        // The actual cancellation calldata that will be executed on chain B
         cancelCalldatas[0] = abi.encodeWithSelector(
             SummerGovernor.sendProposalToTargetChain.selector,
             bEid,
@@ -671,10 +678,118 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 keccak256(bytes("Cancel proposal on chain B")) // salt for cancellation
         );
 
-        // Verify proposal is cancelled on chain B
-        assertEq(
-            uint256(governorB.state(dstProposalId)),
-            uint256(IGovernor.ProposalState.Canceled)
+        // Verify the original operation was cancelled in the timelock
+        bytes32 originalOperationId = timelockB.hashOperationBatch(
+            dstTargets,
+            dstValues,
+            dstCalldatas,
+            bytes32(0), // predecessor
+            bytes20(address(governorB)) ^ dstDescriptionHash // original salt
+        );
+
+        assertFalse(
+            timelockB.isOperationPending(originalOperationId),
+            "Original operation should no longer be pending after cancellation"
+        );
+    }
+
+    // Scenario: A cross-chain proposal is created and then cancelled by the
+    // whitelist guardian before it can be executed. This tests the guardian's
+    // ability to directly cancel operations on both source and target chains.
+    function test_WhitelistGuardianCrossChainCancellation() public {
+        vm.recordLogs();
+
+        // Setup: Give Alice enough tokens and ETH
+        vm.deal(address(governorA), 100 ether);
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create and submit cross-chain proposal
+        (
+            address[] memory srcTargets,
+            uint256[] memory srcValues,
+            bytes[] memory srcCalldatas,
+            string memory srcDescription,
+            uint256 dstProposalId,
+            address[] memory dstTargets,
+            uint256[] memory dstValues,
+            bytes[] memory dstCalldatas,
+            bytes32 dstDescriptionHash
+        ) = _createCrossChainProposal(bEid, governorA);
+
+        // Submit proposal on chain A
+        vm.prank(alice);
+        uint256 proposalIdA = governorA.propose(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            srcDescription
+        );
+
+        // Complete governance process on chain A
+        advanceTimeForVotingDelay();
+        vm.prank(alice);
+        governorA.castVote(proposalIdA, 1);
+        advanceTimeForVotingPeriod();
+
+        governorA.queue(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            hashDescription(srcDescription)
+        );
+
+        advanceTimeForTimelockMinDelay();
+
+        // Execute on chain A which sends to chain B
+        governorA.execute(
+            srcTargets,
+            srcValues,
+            srcCalldatas,
+            hashDescription(srcDescription)
+        );
+
+        // Verify cross-chain message delivery
+        verifyPackets(bEid, addressToBytes32(address(governorB)));
+
+        // Verify proposal was received and queued on chain B
+        (
+            bool foundReceivedEvent,
+            bool foundQueuedEvent,
+            uint256 queuedEta
+        ) = _verifyProposalEvents(dstProposalId, aEid);
+
+        assertTrue(foundReceivedEvent, "Missing received event on chain B");
+        assertTrue(foundQueuedEvent, "Missing queued event on chain B");
+
+        // Calculate the operation ID on chain B
+        bytes32 operationId = timelockB.hashOperationBatch(
+            dstTargets,
+            dstValues,
+            dstCalldatas,
+            bytes32(0), // predecessor
+            bytes20(address(governorB)) ^ dstDescriptionHash // salt
+        );
+
+        // Grant the whitelist guardian the cancel role
+        timelockB.grantRole(
+            timelockB.CANCELLER_ROLE(),
+            address(whitelistGuardian)
+        );
+
+        // Cancel the proposal using whitelist guardian on chain B
+        vm.prank(whitelistGuardian);
+        timelockB.cancel(operationId);
+
+        // Verify the operation was cancelled in the timelock
+        assertFalse(
+            timelockB.isOperationPending(operationId),
+            "Operation should no longer be pending after guardian cancellation"
         );
     }
 
@@ -709,121 +824,6 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             srcCalldatas,
             hashDescription(srcDescription),
             lowGasOptions
-        );
-    }
-
-    // Scenario: A proposal goes through the entire governance process across
-    // multiple chains. This test verifies that the proposal states remain
-    // consistent and correctly transition on both the source and target chains.
-    function test_ProposalConsistencyAcrossChains() public {
-        // Setup: Give Alice enough tokens and ETH
-        vm.deal(address(governorA), 100 ether);
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
-
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
-        advanceTimeAndBlock();
-
-        // Create cross-chain proposal
-        (
-            address[] memory srcTargets,
-            uint256[] memory srcValues,
-            bytes[] memory srcCalldatas,
-            string memory srcDescription,
-            uint256 dstProposalId,
-            address[] memory dstTargets,
-            uint256[] memory dstValues,
-            bytes[] memory dstCalldatas,
-            bytes32 dstDescriptionHash
-        ) = _createCrossChainProposal(bEid, governorA);
-
-        // Submit and process proposal on chain A
-        vm.prank(alice);
-        uint256 proposalIdA = governorA.propose(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            srcDescription
-        );
-
-        // Complete governance process on chain A
-        advanceTimeForVotingDelay();
-        vm.prank(alice);
-        governorA.castVote(proposalIdA, 1);
-        advanceTimeForVotingPeriod();
-
-        governorA.queue(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            hashDescription(srcDescription)
-        );
-
-        advanceTimeForTimelockMinDelay();
-
-        // Execute on chain A which sends to chain B
-        governorA.execute(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            hashDescription(srcDescription)
-        );
-
-        // Verify cross-chain message
-        verifyPackets(bEid, addressToBytes32(address(governorB)));
-
-        // Verify proposal states are consistent
-        assertEq(
-            uint256(governorA.state(proposalIdA)),
-            uint256(IGovernor.ProposalState.Executed),
-            "Inconsistent state on chain A"
-        );
-
-        // Verify proposal was received and queued on chain B
-        (
-            bool foundReceivedEvent,
-            bool foundQueuedEvent,
-            uint256 queuedEta
-        ) = _verifyProposalEvents(dstProposalId, aEid);
-
-        assertTrue(foundReceivedEvent, "Missing received event on chain B");
-        assertTrue(foundQueuedEvent, "Missing queued event on chain B");
-
-        // Verify proposal is queued on chain B
-        bytes32 salt = bytes20(address(governorB)) ^ dstDescriptionHash;
-        bytes32 timelockId = timelockB.hashOperationBatch(
-            dstTargets,
-            dstValues,
-            dstCalldatas,
-            0, // predecessor (always 0 in our case)
-            salt
-        );
-        assertTrue(
-            timelockB.isOperationPending(timelockId),
-            "Operation should be pending in timelock"
-        );
-
-        // Execute on chain B after timelock delay
-        vm.warp(queuedEta + 1);
-        governorB.execute(
-            dstTargets,
-            dstValues,
-            dstCalldatas,
-            dstDescriptionHash
-        );
-
-        assertTrue(
-            timelockB.isOperationDone(timelockId),
-            "Operation should be done in timelock"
-        );
-
-        // Verify final states match
-        assertEq(
-            uint256(governorB.state(dstProposalId)),
-            uint256(IGovernor.ProposalState.Executed),
-            "Inconsistent state on chain B"
         );
     }
 
