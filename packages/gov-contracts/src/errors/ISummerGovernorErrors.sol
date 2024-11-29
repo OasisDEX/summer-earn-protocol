@@ -40,11 +40,6 @@ interface ISummerGovernorErrors {
         uint256 threshold
     );
 
-    /* @notice Error thrown when the whitelist guardian is not set
-     * @param guardian The address of the whitelist guardian
-     */
-    error SummerGovernorInvalidGuardian(address guardian);
-
     /* @notice Error thrown when the trusted remote is invalid
      * @param trustedRemote The invalid trusted remote
      */

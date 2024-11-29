@@ -9,7 +9,7 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
 import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {SummerTimelockController} from "../src/contracts/SummerTimelockController.sol";
 
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
@@ -32,8 +32,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
     SummerVestingWalletFactory public vestingWalletFactoryA;
     SummerVestingWalletFactory public vestingWalletFactoryB;
 
-    TimelockController public timelockA;
-    TimelockController public timelockB;
+    SummerTimelockController public timelockA;
+    SummerTimelockController public timelockB;
 
     address public lzEndpointA;
     address public lzEndpointB;
@@ -79,23 +79,27 @@ contract SummerTokenTestBase is TestHelperOz5 {
         proposers[0] = address(this);
         address[] memory executors = new address[](1);
         executors[0] = address(0);
-        timelockA = new TimelockController(
+
+        address timelockAdmin = address(this);
+        timelockA = new SummerTimelockController(
             1 days,
             proposers,
             executors,
-            address(this)
+            timelockAdmin,
+            address(aSummerToken)
         );
-        timelockB = new TimelockController(
+        timelockB = new SummerTimelockController(
             1 days,
             proposers,
             executors,
-            address(this)
+            timelockAdmin,
+            address(bSummerToken)
         );
 
         accessManagerA = new ProtocolAccessManager(address(timelockA));
         accessManagerB = new ProtocolAccessManager(address(timelockB));
-        vm.label(address(timelockA), "TimelockController A");
-        vm.label(address(timelockB), "TimelockController B");
+        vm.label(address(timelockA), "SummerTimelockController A");
+        vm.label(address(timelockB), "SummerTimelockController B");
 
         ISummerToken.TokenParams memory tokenParamsA = ISummerToken
             .TokenParams({

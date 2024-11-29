@@ -5,6 +5,7 @@ import {Origin, SummerGovernor} from "../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
 
 import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 import {SummerToken} from "../src/contracts/SummerToken.sol";
@@ -36,11 +37,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialGuardian: address(0),
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
                 peerEndpointIds: new uint32[](0),
@@ -165,91 +166,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
     }
 
     /*
-     * @dev Tests the whitelisting process through a governance proposal.
-     * Verifies that an account can be whitelisted via a proposal.
-     */
-    function test_Whitelisting() public {
-        address account = address(0x03);
-        uint256 expiration = block.timestamp + 10 days;
-
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
-
-        vm.startPrank(alice);
-        aSummerToken.delegate(alice);
-        advanceTimeAndBlock();
-        vm.stopPrank();
-
-        address[] memory targets = new address[](1);
-        targets[0] = address(governorA);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setGuardian.selector,
-            account,
-            expiration
-        );
-        string memory description = "Whitelist account proposal";
-
-        vm.prank(alice);
-        uint256 proposalId = governorA.propose(
-            targets,
-            values,
-            calldatas,
-            description
-        );
-
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1)); // Give Alice enough tokens to meet quorum
-        vm.stopPrank();
-
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
-
-        advanceTimeForVotingDelay();
-
-        vm.prank(alice);
-        governorA.castVote(proposalId, 1);
-
-        vm.startPrank(address(timelockA));
-
-        vm.stopPrank();
-        advanceTimeForVotingPeriod();
-
-        governorA.queue(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        advanceTimeForTimelockMinDelay();
-
-        governorA.execute(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        bool isGuardian = governorA.isGuardian(account);
-        uint256 actualExpiration = governorA.getGuardianExpiration(account);
-
-        assertTrue(isGuardian, "Account should be a guardian");
-        assertEq(
-            actualExpiration,
-            expiration,
-            "Expiration timestamp should match"
-        );
-    }
-
-    /*
      * @dev Tests the proposal cancellation process.
      * Ensures that a proposal can be canceled by the whitelist guardian.
      */
     function test_ProposalCancellation() public {
+        // Setup initial tokens for proposal creation
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(
             address(alice),
@@ -261,19 +182,13 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         aSummerToken.delegate(alice);
         advanceTimeAndBlock();
 
-        // Create proposal to set Bob as guardian
-        address[] memory targets = new address[](1);
-        targets[0] = address(governorA);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        uint256 expiration = block.timestamp + 10 days;
-        calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setGuardian.selector,
-            bob,
-            expiration
-        );
-        string memory description = "Set Bob as guardian";
+        // Create a regular proposal (e.g., to transfer tokens)
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description
+        ) = createProposalParams(address(aSummerToken));
 
         uint256 proposalId = governorA.propose(
             targets,
@@ -305,7 +220,8 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             keccak256(bytes(description))
         );
 
-        // Cancel with whitelist guardian (should succeed)
+        // Cancel with guardian (should succeed)
+        // Note: guardian is set up in the test base with the proper role
         vm.startPrank(guardian);
         governorA.cancel(
             targets,
@@ -320,6 +236,12 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             "Proposal should be canceled"
         );
         vm.stopPrank();
+
+        // Verify guardian role through AccessManager
+        assertTrue(
+            accessManagerA.hasRole(accessManagerA.GUARDIAN_ROLE(), guardian),
+            "Guardian should have guardian role in AccessManager"
+        );
     }
 
     /*
@@ -441,11 +363,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: belowMin,
                 quorumFraction: QUORUM_FRACTION,
-                initialGuardian: address(0x5),
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
                 peerEndpointIds: new uint32[](0),
@@ -475,14 +397,13 @@ contract SummerGovernorTest is SummerGovernorTestBase {
     }
 
     /*
-     * @dev Tests proposal creation by a whitelisted account.
-     * Ensures a whitelisted account can create a proposal without meeting the threshold.
+     * @dev Tests proposal creation by a guardian account.
+     * Ensures a guardian account can create a proposal without meeting the threshold.
      */
-    function test_ProposalCreationWhitelisted() public {
+    function test_ProposalCreationByGuardian() public {
         address guardian = address(0x1234);
-        uint256 expiration = block.timestamp + 10 days;
 
-        // Ensure Alice has enough voting power
+        // Ensure Alice has enough voting power for governance
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
@@ -492,18 +413,17 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         advanceTimeAndBlock();
         vm.stopPrank();
 
-        // Create and execute a proposal to set the guardian expiration
+        // Create proposal to grant guardian role through AccessManager
         address[] memory targets = new address[](1);
-        targets[0] = address(governorA);
+        targets[0] = address(accessManagerA);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
         calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setGuardian.selector,
-            guardian,
-            expiration
+            IProtocolAccessManager.grantGuardianRole.selector,
+            guardian
         );
-        string memory description = "Set guardian expiration";
+        string memory description = "Grant guardian role";
 
         vm.prank(alice);
         uint256 proposalId = governorA.propose(
@@ -520,7 +440,6 @@ contract SummerGovernorTest is SummerGovernorTestBase {
 
         advanceTimeForVotingPeriod();
 
-        vm.prank(alice);
         governorA.queue(
             targets,
             values,
@@ -530,7 +449,6 @@ contract SummerGovernorTest is SummerGovernorTestBase {
 
         advanceTimeForTimelockMinDelay();
 
-        vm.prank(bob);
         governorA.execute(
             targets,
             values,
@@ -542,23 +460,36 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         vm.prank(guardian);
         aSummerToken.delegate(address(0));
 
-        // Verify that the user is a guardian
-        assertTrue(governorA.isGuardian(guardian), "User should be a guardian");
+        // Verify that the account has the guardian role
+        assertTrue(
+            accessManagerA.hasRole(accessManagerA.GUARDIAN_ROLE(), guardian),
+            "Account should have guardian role"
+        );
 
-        // Now create a proposal as the guardian
+        // Create a proposal as the guardian without meeting threshold
         vm.startPrank(guardian);
-        (uint256 anotherProposalId, ) = createProposal();
+        (uint256 guardianProposalId, ) = createProposal();
         vm.stopPrank();
 
         // Verify that the proposal was created successfully
         assertTrue(
-            anotherProposalId > 0,
+            guardianProposalId > 0,
             "Proposal should be created successfully"
         );
         assertEq(
-            uint256(governorA.state(anotherProposalId)),
+            uint256(governorA.state(guardianProposalId)),
             uint256(IGovernor.ProposalState.Pending),
             "Proposal should be in Pending state"
+        );
+
+        // Verify guardian can create proposal without meeting threshold
+        uint256 guardianVotes = governorA.getVotes(
+            guardian,
+            block.timestamp - 1
+        );
+        assertTrue(
+            guardianVotes < governorA.proposalThreshold(),
+            "Guardian should have less votes than threshold"
         );
     }
 
@@ -586,13 +517,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
-        uint256 expiration = block.timestamp + 10 days;
         calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setGuardian.selector,
-            guardian,
-            expiration
+            IProtocolAccessManager.grantGuardianRole.selector,
+            guardian
         );
-        string memory description = "Set guardian";
+        string memory description = "Grant guardian role";
 
         vm.prank(alice);
         uint256 guardianProposalId = governorA.propose(
@@ -1010,11 +939,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialGuardian: guardian,
                 endpoint: address(endpoints[aEid]),
                 hubChainId: governanceChainId,
                 peerEndpointIds: new uint32[](0),
@@ -1534,11 +1463,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
         calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setGuardian.selector,
+            IProtocolAccessManager.setGuardianExpiration.selector,
             guardian,
             expiration
         );
-        string memory description = "Set guardian";
+        string memory description = "Set guardian expiration";
 
         // Create proposal
         vm.prank(alice);
@@ -1568,11 +1497,122 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         governorA.execute(targets, values, calldatas, descriptionHash);
 
         // Verify guardian expiration
-        uint256 guardianExpiration = governorA.getGuardianExpiration(guardian);
+        uint256 guardianExpiration = accessManagerA.getGuardianExpiration(
+            guardian
+        );
         assertEq(
             guardianExpiration,
             expiration,
             "Guardian expiration should match set value"
+        );
+    }
+
+    /*
+     * @dev Tests the guardian role assignment through a governance proposal.
+     * Verifies that an account can be granted the guardian role via a proposal.
+     */
+    function test_GuardianRoleAssignment() public {
+        address account = address(0x03);
+
+        // Give Alice enough tokens to meet proposal threshold
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+        vm.stopPrank();
+
+        // Create proposal to grant guardian role through AccessManager
+        address[] memory targets = new address[](1);
+        targets[0] = address(accessManagerA);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSelector(
+            IProtocolAccessManager.grantGuardianRole.selector,
+            account
+        );
+        string memory description = "Grant guardian role to account";
+
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Give Alice enough tokens to meet quorum
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        advanceTimeForVotingDelay();
+
+        // Vote on proposal
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        // Queue and execute the proposal
+        governorA.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        advanceTimeForTimelockMinDelay();
+
+        governorA.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        // Verify the account has been granted the guardian role
+        bool hasGuardianRole = accessManagerA.hasRole(
+            accessManagerA.GUARDIAN_ROLE(),
+            account
+        );
+        assertTrue(hasGuardianRole, "Account should have guardian role");
+
+        // Verify the account can perform guardian actions
+        vm.prank(account);
+        (
+            address[] memory cancelTargets,
+            uint256[] memory cancelValues,
+            bytes[] memory cancelCalldatas,
+            string memory cancelDescription
+        ) = createProposalParams(address(aSummerToken));
+
+        uint256 newProposalId = governorA.propose(
+            cancelTargets,
+            cancelValues,
+            cancelCalldatas,
+            cancelDescription
+        );
+
+        // Guardian should be able to cancel the proposal
+        vm.prank(account);
+        governorA.cancel(
+            cancelTargets,
+            cancelValues,
+            cancelCalldatas,
+            keccak256(bytes(cancelDescription))
+        );
+
+        assertEq(
+            uint256(governorA.state(newProposalId)),
+            uint256(IGovernor.ProposalState.Canceled),
+            "Proposal should be canceled by guardian"
         );
     }
 }

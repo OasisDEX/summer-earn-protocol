@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
-
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 /**
  * @title ProtocolAccessManager
  * @notice Central contract for managing access control across the protocol
@@ -14,10 +14,23 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
                                 CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Role identifier for protocol governors - highest privilege level with admin capabilities
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
+    /// @notice Role identifier for super keepers who can globally perform fleet maintanence roles
     bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
 
+    /**
+     * @notice Role identifier for protocol guardians
+     * @dev Guardians have emergency powers across multiple protocol components:
+     * - Can pause/unpause Fleet operations for security
+     * - Can pause/unpause TipJar operations
+     * - Can cancel governance proposals on SummerGovernor even if they don't meet normal cancellation requirements
+     * - Can cancel TipJar proposals
+     *
+     * The guardian role serves as an emergency backstop to protect the protocol, but with less
+     * privilege than governors.
+     */
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
     bytes32 public constant DECAY_CONTROLLER_ROLE =
@@ -243,5 +256,61 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         address account
     ) external onlyRole(GOVERNOR_ROLE) {
         _revokeRole(ADMIRALS_QUARTERS_ROLE, account);
+    }
+
+    mapping(address guardian => uint256 expirationTimestamp)
+        public guardianExpirations;
+
+    /**
+     * @notice Checks if an account is an active guardian (has role and not expired)
+     * @param account Address to check
+     * @return bool True if account is an active guardian
+     */
+    function isActiveGuardian(address account) public view returns (bool) {
+        return
+            hasRole(GUARDIAN_ROLE, account) &&
+            guardianExpirations[account] > block.timestamp;
+    }
+
+    /**
+     * @notice Sets the expiration timestamp for a guardian
+     * @param account Guardian address
+     * @param expiration Timestamp when guardian powers expire
+     */
+    function setGuardianExpiration(
+        address account,
+        uint256 expiration
+    ) external onlyRole(GOVERNOR_ROLE) {
+        if (!hasRole(GUARDIAN_ROLE, account)) {
+            revert CallerIsNotGuardian(account);
+        }
+        guardianExpirations[account] = expiration;
+        emit GuardianExpirationSet(account, expiration);
+    }
+
+    /**
+     * @inheritdoc IProtocolAccessManager
+     */
+    function hasRole(
+        bytes32 role,
+        address account
+    )
+        public
+        view
+        virtual
+        override(IProtocolAccessManager, AccessControl)
+        returns (bool)
+    {
+        return super.hasRole(role, account);
+    }
+
+    /// @inheritdoc IProtocolAccessManager
+    function getGuardianExpiration(
+        address account
+    ) external view returns (uint256 expiration) {
+        if (!hasRole(GUARDIAN_ROLE, account)) {
+            revert CallerIsNotGuardian(account);
+        }
+        return guardianExpirations[account];
     }
 }

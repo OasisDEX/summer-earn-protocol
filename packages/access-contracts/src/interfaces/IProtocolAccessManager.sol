@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+
 /**
  * @dev Dynamic roles are roles that are not hardcoded in the contract but are defined by the protocol
  * Members of this enum are treated as prefixes to the role generated using prefix and target contract address
@@ -191,4 +193,84 @@ interface IProtocolAccessManager {
      * @param account The address to revoke the role from
      */
     function revokeAdmiralsQuartersRole(address account) external;
+
+    /*//////////////////////////////////////////////////////////////
+                            ROLE CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Role identifier for the Governor role
+    function GOVERNOR_ROLE() external pure returns (bytes32);
+
+    /// @notice Role identifier for the Guardian role
+    function GUARDIAN_ROLE() external pure returns (bytes32);
+
+    /// @notice Role identifier for the Super Keeper role
+    function SUPER_KEEPER_ROLE() external pure returns (bytes32);
+
+    /// @notice Role identifier for the Decay Controller role
+    function DECAY_CONTROLLER_ROLE() external pure returns (bytes32);
+
+    /// @notice Role identifier for the Admirals Quarters role
+    function ADMIRALS_QUARTERS_ROLE() external pure returns (bytes32);
+
+    /**
+     * @notice Checks if an account has a specific role
+     * @param role The role identifier to check
+     * @param account The account to check the role for
+     * @return bool True if the account has the role, false otherwise
+     */
+    function hasRole(
+        bytes32 role,
+        address account
+    ) external view returns (bool);
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Emitted when a guardian's expiration is set
+     * @param account The address of the guardian
+     * @param expiration The timestamp until which the guardian powers are valid
+     */
+    event GuardianExpirationSet(address indexed account, uint256 expiration);
+
+    /*//////////////////////////////////////////////////////////////
+                            GUARDIAN FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Checks if an account is an active guardian (has role and not expired)
+     * @param account Address to check
+     * @return bool True if account is an active guardian
+     */
+    function isActiveGuardian(address account) external view returns (bool);
+
+    /**
+     * @notice Sets the expiration timestamp for a guardian
+     * @param account Guardian address
+     * @param expiration Timestamp when guardian powers expire
+     */
+    function setGuardianExpiration(
+        address account,
+        uint256 expiration
+    ) external;
+
+    /**
+     * @notice Gets the expiration timestamp for a guardian
+     * @param account Guardian address
+     * @return uint256 Timestamp when guardian powers expire
+     */
+    function guardianExpirations(
+        address account
+    ) external view returns (uint256);
+
+    /**
+     * @notice Gets the expiration timestamp for a guardian
+     * @param account Guardian address
+     * @return expiration Timestamp when guardian powers expire
+     */
+    function getGuardianExpiration(
+        address account
+    ) external view returns (uint256 expiration);
 }

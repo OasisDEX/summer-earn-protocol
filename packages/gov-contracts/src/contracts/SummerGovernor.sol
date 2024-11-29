@@ -14,6 +14,7 @@ import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {DecayController} from "./DecayController.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 /*
  * @title SummerGovernor
@@ -42,9 +43,7 @@ contract SummerGovernor is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Mapping of account addresses to their guardian expiration timestamps
-    mapping(address guardian => uint256 expirationTimestamp)
-        public guardianExpirations;
+    IProtocolAccessManager public immutable accessManager;
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
@@ -95,10 +94,10 @@ contract SummerGovernor is
         DecayController(address(params.token))
         Ownable(address(params.timelock))
     {
+        accessManager = IProtocolAccessManager(params.accessManager);
         _setRewardsManager(
             address(ISummerToken(params.token).rewardsManager())
         );
-        _setGuardian(params.initialGuardian, 90 days);
         _validateProposalThreshold(params.proposalThreshold);
         hubChainId = params.hubChainId;
         _initializePeers(params.peerEndpointIds, params.peerAddresses);
@@ -275,7 +274,9 @@ contract SummerGovernor is
         address proposer = _msgSender();
         uint256 proposerVotes = getVotes(proposer, block.timestamp - 1);
 
-        if (proposerVotes < proposalThreshold() && !isGuardian(proposer)) {
+        if (
+            proposerVotes < proposalThreshold() && !isActiveGuardian(proposer)
+        ) {
             revert SummerGovernorProposerBelowThresholdAndNotGuardian(
                 proposer,
                 proposerVotes,
@@ -326,7 +327,7 @@ contract SummerGovernor is
         if (
             _msgSender() != proposer &&
             getVotes(proposer, block.timestamp - 1) >= proposalThreshold() &&
-            !isGuardian(_msgSender())
+            !isActiveGuardian(_msgSender())
         ) {
             revert SummerGovernorUnauthorizedCancellation(
                 _msgSender(),
@@ -344,23 +345,8 @@ contract SummerGovernor is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
-    function isGuardian(address account) public view returns (bool) {
-        return (guardianExpirations[account] > block.timestamp);
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function setGuardian(
-        address account,
-        uint256 expiration
-    ) external override onlyGovernance {
-        _setGuardian(account, expiration);
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function getGuardianExpiration(
-        address account
-    ) external view returns (uint256) {
-        return guardianExpirations[account];
+    function isActiveGuardian(address account) public view returns (bool) {
+        return accessManager.isActiveGuardian(account);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -379,14 +365,6 @@ contract SummerGovernor is
             revert NotEnoughNative(address(this).balance);
         }
         return _nativeFee;
-    }
-
-    function _setGuardian(address _guardian, uint256 _expiration) internal {
-        if (_guardian == address(0)) {
-            revert SummerGovernorInvalidGuardian(_guardian);
-        }
-        guardianExpirations[_guardian] = _expiration;
-        emit GuardianSet(_guardian);
     }
 
     /**
