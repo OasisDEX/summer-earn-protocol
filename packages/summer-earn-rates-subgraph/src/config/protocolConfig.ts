@@ -211,7 +211,13 @@ class ProtocolConfig {
         new CompoundProduct(
           getOrCreateToken(addresses.USDCE),
           Address.fromString('0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA'),
-          BigInt.fromI32(263570533),
+          BigInt.fromI32(159160679),
+          'CompoundV3',
+        ),
+        new CompoundProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf'),
+          BigInt.fromI32(159160679),
           'CompoundV3',
         ),
       ]),
@@ -219,7 +225,13 @@ class ProtocolConfig {
         new GearboxProduct(
           getOrCreateToken(addresses.USDCE),
           Address.fromString('0xa76c604145D7394DEc36C49Af494C144Ff327861'),
-          BigInt.fromI32(263570533),
+          BigInt.fromI32(184650413),
+          'Gearbox',
+        ),
+        new GearboxProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6'),
+          BigInt.fromI32(221759351),
           'Gearbox',
         ),
       ]),
@@ -227,7 +239,13 @@ class ProtocolConfig {
         new AaveV3Product(
           getOrCreateToken(addresses.USDCE),
           Address.fromString('0x794a61358D6845594F94dc1DB02A252b5b4814aD'),
-          BigInt.fromI32(263570533),
+          BigInt.fromI32(159160679),
+          'AaveV3',
+        ),
+        new AaveV3Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x794a61358D6845594F94dc1DB02A252b5b4814aD'),
+          BigInt.fromI32(159160679),
           'AaveV3',
         ),
       ]),
@@ -253,7 +271,7 @@ class ProtocolConfig {
         new CompoundProduct(
           getOrCreateToken(addresses.USDC),
           Address.fromString('0xb125E6687d4313864e53df431d5425969c15Eb2F'),
-          BigInt.fromI32(21053831),
+          BigInt.fromI32(7551731),
           'CompoundV3',
         ),
       ]),
@@ -261,8 +279,48 @@ class ProtocolConfig {
         new AaveV3Product(
           getOrCreateToken(addresses.USDC),
           Address.fromString('0xA238Dd80C259a72e81d7e4664a9801593F98d1c5'),
-          BigInt.fromI32(21053831),
+          BigInt.fromI32(7551731),
           'AaveV3',
+        ),
+      ]),
+      new Protocol('Fluid', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169'),
+          BigInt.fromI32(17551731),
+          'Fluid',
+        ),
+      ]),
+      new Protocol('Morpho', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca'),
+          BigInt.fromI32(15620450),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12'),
+          BigInt.fromI32(15330380),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61'),
+          BigInt.fromI32(15327791),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e'),
+          BigInt.fromI32(15626272),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183'),
+          BigInt.fromI32(15183452),
+          'Morpho',
         ),
       ]),
     ]

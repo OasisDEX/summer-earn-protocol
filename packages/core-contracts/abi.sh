@@ -16,5 +16,6 @@ mkdir -p "$ABI_DIR"
 echo "Copying ABI JSON files..."
 cp "$OUT_DIR/Ark.sol/Ark.abi.json" "$ABI_DIR/Ark.abi.json"
 cp "$OUT_DIR/FleetCommander.sol/FleetCommander.abi.json" "$ABI_DIR/FleetCommander.abi.json"
+cp "$OUT_DIR/FleetCommanderRewardsManager.sol/FleetCommanderRewardsManager.abi.json" "$ABI_DIR/FleetCommanderRewardsManager.abi.json"
 
 echo "Done!"

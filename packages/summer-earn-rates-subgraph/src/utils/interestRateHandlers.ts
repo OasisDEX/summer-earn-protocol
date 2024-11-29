@@ -8,7 +8,7 @@ export function handleInterestRate(
   protocolName: string,
   product: Product,
 ): void {
-  const rate = product.getRate(block.timestamp)
+  const rate = product.getRate(block.timestamp, block.number)
   updateEMA(block, protocolName, product, rate)
   const interestRate = new InterestRate(
     protocolName +

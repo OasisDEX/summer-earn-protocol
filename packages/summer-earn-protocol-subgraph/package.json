@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "0.4.2-add-unstake",
+  "version": "0.4.4-only-hourly-apr-updates",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",

@@ -26,7 +26,7 @@ function updateArkData(vaultAddress: Address, arkAddress: Address, block: ethere
 
 function updateVaultData(vaultAddress: Address, block: ethereum.Block): void {
   const vaultDetails = getVaultDetails(vaultAddress, block)
-  updateVault(vaultDetails, block)
+  updateVault(vaultDetails, block, true)
 }
 
 // Snapshot management functions

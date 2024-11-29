@@ -192,7 +192,7 @@ contract AdmiralsQuarters is
             address(this),
             shares
         );
-        fleet.withdraw(shares, _msgSender(), address(this));
+        fleet.withdraw(type(uint256).max, _msgSender(), address(this));
 
         emit FleetSharesUnstaked(_msgSender(), fleetCommander, shares);
     }

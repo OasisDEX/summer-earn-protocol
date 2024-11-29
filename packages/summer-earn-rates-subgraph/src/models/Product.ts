@@ -48,7 +48,7 @@ export class Product {
     this.oracle = oracle
     this.name = `${groupName}-${token.address.toHexString()}-${poolAddress.toHexString()}-${getChainIdByNetworkName(dataSource.network()).toString().split('.')[0]}`
   }
-  getRate(currentTimestamp: BigInt): BigDecimal {
+  getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
     return BigDecimal.zero()
   }
 }

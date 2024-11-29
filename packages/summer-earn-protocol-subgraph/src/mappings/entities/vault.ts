@@ -14,7 +14,11 @@ import { getVaultDetails } from '../../utils/vault'
 import { updateArk } from './ark'
 import { updatePosition } from './position'
 
-export function updateVault(vaultDetails: VaultDetails, block: ethereum.Block): void {
+export function updateVault(
+  vaultDetails: VaultDetails,
+  block: ethereum.Block,
+  shouldUpdateApr: boolean,
+): void {
   const vault = getOrCreateVault(Address.fromString(vaultDetails.vaultId), block)
   let previousPricePerShare = vault.pricePerShare
   if (
@@ -30,39 +34,41 @@ export function updateVault(vaultDetails: VaultDetails, block: ethereum.Block): 
   vault.outputTokenPriceUSD = vaultDetails.outputTokenPriceUSD
   vault.inputTokenPriceUSD = vaultDetails.inputTokenPriceUSD
   vault.pricePerShare = vaultDetails.pricePerShare
-
-  vault.lastUpdateTimestamp = block.timestamp
-  if (
-    deltaTime.gt(BigDecimalConstants.ZERO) &&
-    !previousPricePerShare.equals(vaultDetails.pricePerShare)
-  ) {
-    vault.calculatedApr = getAprForTimePeriod(
-      previousPricePerShare,
-      vaultDetails.pricePerShare,
-      deltaTime,
-    )
+  if (shouldUpdateApr) {
+    vault.lastUpdateTimestamp = block.timestamp
+    if (
+      deltaTime.gt(BigDecimalConstants.ZERO) &&
+      !previousPricePerShare.equals(vaultDetails.pricePerShare)
+    ) {
+      vault.calculatedApr = getAprForTimePeriod(
+        previousPricePerShare,
+        vaultDetails.pricePerShare,
+        deltaTime,
+      )
+    }
   }
   vault.save()
 }
 
 export function getVaultAndPositionDetails(
-  event: ethereum.Event,
+  vaultAddress: Address,
   account: Account,
   block: ethereum.Block,
 ): VaultAndPositionDetails {
-  const vaultDetails = getVaultDetails(event.address, block)
-  const positionDetails = getPositionDetails(event, account, vaultDetails)
+  const vaultDetails = getVaultDetails(vaultAddress, block)
+  const positionDetails = getPositionDetails(vaultAddress, account, vaultDetails)
   return { vaultDetails: vaultDetails, positionDetails: positionDetails }
 }
 
 export function getAndUpdateVaultAndPositionDetails(
   event: ethereum.Event,
+  vaultAddress: Address,
   account: Account,
   block: ethereum.Block,
 ): VaultAndPositionDetails {
-  const result = getVaultAndPositionDetails(event, account, block)
+  const result = getVaultAndPositionDetails(vaultAddress, account, block)
 
-  updateVault(result.vaultDetails, event.block)
+  updateVault(result.vaultDetails, event.block, false)
   updatePosition(result.positionDetails, event.block)
 
   return { vaultDetails: result.vaultDetails, positionDetails: result.positionDetails }
@@ -71,7 +77,7 @@ export function getAndUpdateVaultAndPositionDetails(
 export function updateVaultAndArks(event: ethereum.Event, vault: Vault): void {
   const vaultDetails = getVaultDetails(event.address, event.block)
 
-  updateVault(vaultDetails, event.block)
+  updateVault(vaultDetails, event.block, false)
   getOrCreateVaultsPostActionSnapshots(event.address, event.block)
 
   const arks = vault.arksArray
