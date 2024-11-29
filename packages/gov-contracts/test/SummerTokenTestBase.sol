@@ -80,24 +80,34 @@ contract SummerTokenTestBase is TestHelperOz5 {
         address[] memory executors = new address[](1);
         executors[0] = address(0);
 
+        address fakeDeployerKey = address(0x1234);
+        accessManagerA = new ProtocolAccessManager(fakeDeployerKey);
+        accessManagerB = new ProtocolAccessManager(fakeDeployerKey);
+
         address timelockAdmin = address(this);
         timelockA = new SummerTimelockController(
             1 days,
             proposers,
             executors,
             timelockAdmin,
-            address(aSummerToken)
+            address(accessManagerA)
         );
         timelockB = new SummerTimelockController(
             1 days,
             proposers,
             executors,
             timelockAdmin,
-            address(bSummerToken)
+            address(accessManagerB)
         );
 
-        accessManagerA = new ProtocolAccessManager(address(timelockA));
-        accessManagerB = new ProtocolAccessManager(address(timelockB));
+        vm.startPrank(fakeDeployerKey);
+        accessManagerA.grantGovernorRole(address(timelockA));
+        accessManagerB.grantGovernorRole(address(timelockB));
+
+        accessManagerA.revokeGovernorRole(fakeDeployerKey);
+        accessManagerB.revokeGovernorRole(fakeDeployerKey);
+        vm.stopPrank();
+
         vm.label(address(timelockA), "SummerTimelockController A");
         vm.label(address(timelockB), "SummerTimelockController B");
 

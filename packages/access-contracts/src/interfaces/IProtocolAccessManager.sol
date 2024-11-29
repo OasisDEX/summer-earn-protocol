@@ -273,4 +273,16 @@ interface IProtocolAccessManager {
     function getGuardianExpiration(
         address account
     ) external view returns (uint256 expiration);
+
+    /**
+     * @notice Emitted when an invalid guardian expiry period is set
+     * @param expiryPeriod The expiry period that was set
+     * @param minExpiryPeriod The minimum allowed expiry period
+     * @param maxExpiryPeriod The maximum allowed expiry period
+     */
+    error InvalidGuardianExpiryPeriod(
+        uint256 expiryPeriod,
+        uint256 minExpiryPeriod,
+        uint256 maxExpiryPeriod
+    );
 }

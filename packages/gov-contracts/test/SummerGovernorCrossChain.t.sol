@@ -665,6 +665,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         advanceTimeForTimelockMinDelay();
 
         // Execute the cancellation proposal instead of the original proposal
+        vm.prank(guardian);
         timelockB.executeBatch(
             dstCancelTargets,
             dstCancelValues,
@@ -694,6 +695,15 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
     // ability to directly cancel operations on both source and target chains.
     function test_WhitelistGuardianCrossChainCancellation() public {
         vm.recordLogs();
+
+        // Setup guardian in AccessManager
+        vm.startPrank(address(timelockB));
+        accessManagerB.grantGuardianRole(guardian);
+        accessManagerB.setGuardianExpiration(
+            guardian,
+            block.timestamp + 1000000
+        );
+        vm.stopPrank();
 
         // Setup: Give Alice enough tokens and ETH
         vm.deal(address(governorA), 100 ether);

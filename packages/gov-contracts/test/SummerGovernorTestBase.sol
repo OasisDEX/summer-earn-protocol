@@ -201,6 +201,64 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
         return (targets, values, calldatas, description);
     }
 
+    function createAndExecuteProposal(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) internal {
+        // Give Alice enough tokens to meet proposal threshold
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Give Alice enough tokens to meet quorum
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        advanceTimeForVotingDelay();
+
+        // Vote on proposal
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        // Queue and execute the proposal
+        governorA.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        advanceTimeForTimelockMinDelay();
+
+        governorA.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+    }
+
     /*
      * @dev Hashes the description of a proposal.
      * @param description The description to hash.

@@ -39,6 +39,12 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     bytes32 public constant ADMIRALS_QUARTERS_ROLE =
         keccak256("ADMIRALS_QUARTERS_ROLE");
 
+    /// @notice Minimum allowed guardian expiration period (7 days)
+    uint256 public constant MIN_GUARDIAN_EXPIRY = 7 days;
+
+    /// @notice Maximum allowed guardian expiration period (180 days)
+    uint256 public constant MAX_GUARDIAN_EXPIRY = 180 days;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -276,6 +282,9 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      * @notice Sets the expiration timestamp for a guardian
      * @param account Guardian address
      * @param expiration Timestamp when guardian powers expire
+     * @dev The expiration period (time from now until expiration) must be between MIN_GUARDIAN_EXPIRY and MAX_GUARDIAN_EXPIRY
+     * This ensures guardians can't be immediately removed (protecting against malicious proposals) while still
+     * allowing for their eventual phase-out (protecting against malicious guardians)
      */
     function setGuardianExpiration(
         address account,
@@ -284,6 +293,19 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
         if (!hasRole(GUARDIAN_ROLE, account)) {
             revert CallerIsNotGuardian(account);
         }
+
+        uint256 expiryPeriod = expiration - block.timestamp;
+        if (
+            expiryPeriod < MIN_GUARDIAN_EXPIRY ||
+            expiryPeriod > MAX_GUARDIAN_EXPIRY
+        ) {
+            revert InvalidGuardianExpiryPeriod(
+                expiryPeriod,
+                MIN_GUARDIAN_EXPIRY,
+                MAX_GUARDIAN_EXPIRY
+            );
+        }
+
         guardianExpirations[account] = expiration;
         emit GuardianExpirationSet(account, expiration);
     }
