@@ -180,6 +180,14 @@ contract SummerTokenTestBase is TestHelperOz5 {
         bSummerToken.transferOwnership(_newOwnerB);
         vm.stopPrank();
     }
+
+    function useNetworkA() public {
+        vm.chainId(31337);
+    }
+
+    function useNetworkB() public {
+        vm.chainId(31338);
+    }
 }
 
 // Mock contract for OFT compose testing

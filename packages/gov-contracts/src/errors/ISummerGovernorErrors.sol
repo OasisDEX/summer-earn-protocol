@@ -52,9 +52,13 @@ interface ISummerGovernorErrors {
 
     /* @notice Error thrown when the chain id is invalid
      * @param chainId The invalid chain id
-     * @param proposalChainId The proposal chain id
+     * @param hubChainId The valid chain id
      */
-    error SummerGovernorInvalidChain(uint256 chainId, uint256 proposalChainId);
+    error SummerGovernorNotHubChain(uint256 chainId, uint256 hubChainId);
+
+    /* @notice Error thrown when an attempt is made to execute on the hub chain
+     */
+    error SummerGovernorCannotExecuteOnHubChain();
 
     /* @notice Error thrown when the governor is not set
      */

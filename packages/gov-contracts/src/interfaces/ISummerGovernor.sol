@@ -25,7 +25,7 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param initialDecayRate The initial decay rate
      * @param initialDecayFunction The initial decay function
      * @param endpoint The LayerZero endpoint address
-     * @param proposalChainId The proposal chain ID
+     * @param hubChainId The hub chain ID
      * @param peerEndpointIds The peer endpoint IDs
      * @param peerAddresses The peer addresses
      */
@@ -38,9 +38,9 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         uint256 quorumFraction;
         address initialWhitelistGuardian;
         address endpoint;
-        /// @dev On BASE chain (proposalChainId == block.chainid), timelock owns the governor
+        /// @dev On BASE chain (hubChainId == block.chainid), timelock owns the governor
         /// @dev On satellite chains, the governor owns itself
-        uint32 proposalChainId;
+        uint32 hubChainId;
         uint32[] peerEndpointIds;
         address[] peerAddresses;
     }
