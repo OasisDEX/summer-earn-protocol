@@ -135,5 +135,40 @@ contract SummerTimelockController is TimelockController {
         super.schedule(target, value, data, predecessor, salt, delay);
     }
 
-    // Also override scheduleBatch with similar logic
+    // Override scheduleBatch to track guardian expiry operations
+    function scheduleBatch(
+        address[] calldata targets,
+        uint256[] calldata values,
+        bytes[] calldata payloads,
+        bytes32 predecessor,
+        bytes32 salt,
+        uint256 delay
+    ) public virtual override onlyRole(PROPOSER_ROLE) {
+        bytes32 id = hashOperationBatch(
+            targets,
+            values,
+            payloads,
+            predecessor,
+            salt
+        );
+
+        for (uint256 i = 0; i < payloads.length; i++) {
+            if (
+                bytes4(payloads[i]) ==
+                IProtocolAccessManager.setGuardianExpiration.selector
+            ) {
+                _guardianExpiryOperations[id] = true;
+                break;
+            }
+        }
+
+        super.scheduleBatch(
+            targets,
+            values,
+            payloads,
+            predecessor,
+            salt,
+            delay
+        );
+    }
 }

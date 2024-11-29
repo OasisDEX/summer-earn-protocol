@@ -9,7 +9,6 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
 import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-import {SummerTimelockController} from "../src/contracts/SummerTimelockController.sol";
 
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
@@ -19,7 +18,7 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol"
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockSummerGovernor} from "./MockSummerGovernor.sol";
 import {SummerVestingWalletFactory} from "../src/contracts/SummerVestingWalletFactory.sol";
-
+import {SummerTimelockController} from "../src/contracts/SummerTimelockController.sol";
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
@@ -32,8 +31,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
     SummerVestingWalletFactory public vestingWalletFactoryA;
     SummerVestingWalletFactory public vestingWalletFactoryB;
 
-    SummerTimelockController public timelockA;
-    SummerTimelockController public timelockB;
+    ExposedSummerTimelockController public timelockA;
+    ExposedSummerTimelockController public timelockB;
 
     address public lzEndpointA;
     address public lzEndpointB;
@@ -85,14 +84,14 @@ contract SummerTokenTestBase is TestHelperOz5 {
         accessManagerB = new ProtocolAccessManager(fakeDeployerKey);
 
         address timelockAdmin = address(this);
-        timelockA = new SummerTimelockController(
+        timelockA = new ExposedSummerTimelockController(
             1 days,
             proposers,
             executors,
             timelockAdmin,
             address(accessManagerA)
         );
-        timelockB = new SummerTimelockController(
+        timelockB = new ExposedSummerTimelockController(
             1 days,
             proposers,
             executors,
@@ -201,6 +200,30 @@ contract SummerTokenTestBase is TestHelperOz5 {
 
     function useNetworkB() public {
         vm.chainId(31338);
+    }
+}
+
+contract ExposedSummerTimelockController is SummerTimelockController {
+    constructor(
+        uint256 minDelay,
+        address[] memory proposers,
+        address[] memory executors,
+        address admin,
+        address _accessManager
+    )
+        SummerTimelockController(
+            minDelay,
+            proposers,
+            executors,
+            admin,
+            _accessManager
+        )
+    {}
+
+    function exposedIsGuardianExpiryProposal(
+        bytes32 operationId
+    ) external view returns (bool) {
+        return _isGuardianExpiryProposal(operationId);
     }
 }
 

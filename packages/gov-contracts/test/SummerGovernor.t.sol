@@ -25,6 +25,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor, SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ExposedSummerTimelockController} from "./SummerTokenTestBase.sol";
 
 /*
  * @title SummerGovernorTest
@@ -1474,5 +1475,146 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             uint256(IGovernor.ProposalState.Canceled),
             "Proposal should be canceled by guardian"
         );
+    }
+
+    function test_GuardianExpiryProposalTracking() public {
+        // Give Alice enough tokens to meet proposal threshold and quorum
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Test single operation
+        address[] memory targets = new address[](1);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+
+        targets[0] = address(accessManagerA);
+        values[0] = 0;
+        calldatas[0] = abi.encodeWithSelector(
+            IProtocolAccessManager.setGuardianExpiration.selector,
+            bob,
+            block.timestamp + 30 days
+        );
+
+        string memory description = "Set guardian expiry";
+        bytes32 singleDescriptionHash = keccak256(bytes(description));
+
+        vm.prank(alice);
+        uint256 singleProposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Test batch operation with mixed operations
+        address[] memory batchTargets = new address[](2);
+        uint256[] memory batchValues = new uint256[](2);
+        bytes[] memory batchCalldatas = new bytes[](2);
+
+        batchTargets[0] = address(accessManagerA);
+        batchValues[0] = 0;
+        batchCalldatas[0] = abi.encodeWithSelector(
+            IProtocolAccessManager.grantGuardianRole.selector,
+            charlie
+        );
+
+        batchTargets[1] = address(accessManagerA);
+        batchValues[1] = 0;
+        batchCalldatas[1] = abi.encodeWithSelector(
+            IProtocolAccessManager.setGuardianExpiration.selector,
+            charlie,
+            block.timestamp + 30 days
+        );
+
+        string memory batchDescription = "batch description";
+        bytes32 batchDescriptionHash = keccak256(bytes(batchDescription));
+
+        vm.prank(alice);
+        uint256 batchProposalId = governorA.propose(
+            batchTargets,
+            batchValues,
+            batchCalldatas,
+            batchDescription
+        );
+
+        // Vote and queue both proposals
+        advanceTimeForVotingDelay();
+
+        vm.startPrank(alice);
+        governorA.castVote(singleProposalId, 1);
+        governorA.castVote(batchProposalId, 1);
+        vm.stopPrank();
+
+        advanceTimeForVotingPeriod();
+
+        governorA.queue(targets, values, calldatas, singleDescriptionHash);
+        governorA.queue(
+            batchTargets,
+            batchValues,
+            batchCalldatas,
+            batchDescriptionHash
+        );
+
+        // Verify that both operations are marked as guardian expiry operations
+        bytes32 singleOpId = timelockA.hashOperationBatch(
+            targets,
+            values,
+            calldatas,
+            0, // predecessor
+            _timelockSalt(address(governorA), singleDescriptionHash) // salt
+        );
+
+        bytes32 batchOpId = timelockA.hashOperationBatch(
+            batchTargets,
+            batchValues,
+            batchCalldatas,
+            0, // predecessor
+            _timelockSalt(address(governorA), batchDescriptionHash) // salt
+        );
+
+        console.log("Batch Op Id");
+        console.logBytes32(batchOpId);
+
+        assertTrue(
+            ExposedSummerTimelockController(payable(address(timelockA)))
+                .exposedIsGuardianExpiryProposal(singleOpId),
+            "Single operation should be marked as guardian expiry"
+        );
+        assertTrue(
+            ExposedSummerTimelockController(payable(address(timelockA)))
+                .exposedIsGuardianExpiryProposal(batchOpId),
+            "Batch operation should be marked as guardian expiry"
+        );
+
+        // Try to cancel the operations with a guardian (should fail)
+        address guardian = address(0x1234);
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantGuardianRole(guardian);
+        accessManagerA.setGuardianExpiration(
+            guardian,
+            block.timestamp + 1000000
+        );
+        timelockA.grantRole(timelockA.CANCELLER_ROLE(), guardian);
+        vm.stopPrank();
+
+        vm.startPrank(guardian);
+        vm.expectRevert("Only governors can cancel guardian expiry proposals");
+        timelockA.cancel(singleOpId);
+
+        vm.expectRevert("Only governors can cancel guardian expiry proposals");
+        timelockA.cancel(batchOpId);
+        vm.stopPrank();
+    }
+
+    function _timelockSalt(
+        address addressToSalt,
+        bytes32 descriptionHash
+    ) private pure returns (bytes32) {
+        return bytes20(addressToSalt) ^ descriptionHash;
     }
 }

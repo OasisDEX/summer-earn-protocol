@@ -9,38 +9,6 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
 
-contract ExposedSummerGovernor is SummerGovernor {
-    constructor(GovernorParams memory params) SummerGovernor(params) {}
-
-    function exposedLzReceive(
-        Origin calldata _origin,
-        bytes calldata payload,
-        bytes calldata extraData
-    ) public {
-        _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
-    }
-
-    function exposedSendProposalToTargetChain(
-        uint32 _dstEid,
-        address[] memory _dstTargets,
-        uint256[] memory _dstValues,
-        bytes[] memory _dstCalldatas,
-        bytes32 _dstDescriptionHash,
-        bytes calldata _options
-    ) public {
-        _sendProposalToTargetChain(
-            _dstEid,
-            _dstTargets,
-            _dstValues,
-            _dstCalldatas,
-            _dstDescriptionHash,
-            _options
-        );
-    }
-
-    function forceUpdateDecay(address account) public updateDecay(account) {}
-}
-
 contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
     using OptionsBuilder for bytes;
 
@@ -295,4 +263,36 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
         vm.warp(block.timestamp + VOTING_DELAY + 1);
         vm.roll(block.number + 1);
     }
+}
+
+contract ExposedSummerGovernor is SummerGovernor {
+    constructor(GovernorParams memory params) SummerGovernor(params) {}
+
+    function exposedLzReceive(
+        Origin calldata _origin,
+        bytes calldata payload,
+        bytes calldata extraData
+    ) public {
+        _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
+    }
+
+    function exposedSendProposalToTargetChain(
+        uint32 _dstEid,
+        address[] memory _dstTargets,
+        uint256[] memory _dstValues,
+        bytes[] memory _dstCalldatas,
+        bytes32 _dstDescriptionHash,
+        bytes calldata _options
+    ) public {
+        _sendProposalToTargetChain(
+            _dstEid,
+            _dstTargets,
+            _dstValues,
+            _dstCalldatas,
+            _dstDescriptionHash,
+            _options
+        );
+    }
+
+    function forceUpdateDecay(address account) public updateDecay(account) {}
 }
