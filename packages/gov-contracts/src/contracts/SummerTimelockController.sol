@@ -158,7 +158,6 @@ contract SummerTimelockController is TimelockController {
                 IProtocolAccessManager.setGuardianExpiration.selector
             ) {
                 _guardianExpiryOperations[id] = true;
-                break;
             }
         }
 
