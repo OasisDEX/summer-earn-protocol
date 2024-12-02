@@ -288,7 +288,7 @@ library VotingDecayLibrary {
         function(address) view returns (address) getDelegateTo
     ) private view returns (uint256) {
         if (accountAddress == address(0)) {
-            return WAD;
+            return 0;
         }
 
         if (depth >= MAX_DELEGATION_DEPTH) {
@@ -316,7 +316,7 @@ library VotingDecayLibrary {
         // Has Delegate + Delegate does not have Decay Info
         // OR No Delegate + Does not have Decay Info
         if (!_hasDecayInfo(self, accountAddress)) {
-            return WAD;
+            return 0;
         }
 
         // No Delegate + Has Decay Info
