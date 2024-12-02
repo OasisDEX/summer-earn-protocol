@@ -14,6 +14,7 @@ import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {DecayController} from "./DecayController.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 /*
  * @title SummerGovernor
@@ -42,17 +43,7 @@ contract SummerGovernor is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /*
-     * @dev Configuration structure for the governor
-     * @param whitelistAccountExpirations Mapping of account addresses to their whitelist expiration timestamps
-     * @param whitelistGuardian Address of the account with special privileges for managing the whitelist
-     */
-    struct GovernorConfig {
-        mapping(address => uint256) whitelistAccountExpirations;
-        address whitelistGuardian;
-    }
-
-    GovernorConfig public config;
+    IProtocolAccessManager public immutable accessManager;
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
@@ -103,11 +94,11 @@ contract SummerGovernor is
         DecayController(address(params.token))
         Ownable(address(params.timelock))
     {
+        accessManager = IProtocolAccessManager(params.accessManager);
         _setRewardsManager(
             address(ISummerToken(params.token).rewardsManager())
         );
         _validateProposalThreshold(params.proposalThreshold);
-        _setWhitelistGuardian(params.initialWhitelistGuardian);
         hubChainId = params.hubChainId;
         _initializePeers(params.peerEndpointIds, params.peerAddresses);
     }
@@ -281,13 +272,12 @@ contract SummerGovernor is
         returns (uint256)
     {
         address proposer = _msgSender();
-        // Use block.timestamp - 1 to get the proposer's voting power from the previous block.
-        // This ensures we're using a finalized state and prevents potential same-block manipulations,
-        // aligning with OpenZeppelin's recommended practice for governance contracts.
         uint256 proposerVotes = getVotes(proposer, block.timestamp - 1);
 
-        if (proposerVotes < proposalThreshold() && !isWhitelisted(proposer)) {
-            revert SummerGovernorProposerBelowThresholdAndNotWhitelisted(
+        if (
+            proposerVotes < proposalThreshold() && !isActiveGuardian(proposer)
+        ) {
+            revert SummerGovernorProposerBelowThresholdAndNotGuardian(
                 proposer,
                 proposerVotes,
                 proposalThreshold()
@@ -337,7 +327,7 @@ contract SummerGovernor is
         if (
             _msgSender() != proposer &&
             getVotes(proposer, block.timestamp - 1) >= proposalThreshold() &&
-            _msgSender() != config.whitelistGuardian
+            !isActiveGuardian(_msgSender())
         ) {
             revert SummerGovernorUnauthorizedCancellation(
                 _msgSender(),
@@ -355,42 +345,8 @@ contract SummerGovernor is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
-    function isWhitelisted(
-        address account
-    ) public view override returns (bool) {
-        return (config.whitelistAccountExpirations[account] > block.timestamp);
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function setWhitelistAccountExpiration(
-        address account,
-        uint256 expiration
-    ) external override onlyGovernance {
-        config.whitelistAccountExpirations[account] = expiration;
-        emit WhitelistAccountExpirationSet(account, expiration);
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function setWhitelistGuardian(
-        address _whitelistGuardian
-    ) external override onlyGovernance {
-        _setWhitelistGuardian(_whitelistGuardian);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            GETTER FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc ISummerGovernor
-    function getWhitelistAccountExpiration(
-        address account
-    ) public view returns (uint256) {
-        return config.whitelistAccountExpirations[account];
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function getWhitelistGuardian() public view returns (address) {
-        return config.whitelistGuardian;
+    function isActiveGuardian(address account) public view returns (bool) {
+        return accessManager.isActiveGuardian(account);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -409,14 +365,6 @@ contract SummerGovernor is
             revert NotEnoughNative(address(this).balance);
         }
         return _nativeFee;
-    }
-
-    function _setWhitelistGuardian(address _whitelistGuardian) internal {
-        if (_whitelistGuardian == address(0)) {
-            revert SummerGovernorInvalidWhitelistGuardian(_whitelistGuardian);
-        }
-        config.whitelistGuardian = _whitelistGuardian;
-        emit WhitelistGuardianSet(_whitelistGuardian);
     }
 
     /**

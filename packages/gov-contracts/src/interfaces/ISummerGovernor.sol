@@ -4,9 +4,9 @@ pragma solidity 0.8.28;
 import {ISummerGovernorErrors} from "../errors/ISummerGovernorErrors.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {SummerTimelockController} from "../contracts/SummerTimelockController.sol";
 import {ISummerToken} from "./ISummerToken.sol";
-
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 /**
  * @title ISummerGovernor Interface
  * @notice Interface for the SummerGovernor contract, extending OpenZeppelin's IGovernor
@@ -16,14 +16,11 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @dev Struct for the governor parameters
      * @param token The token contract address
      * @param timelock The timelock controller contract address
+     * @param accessManager The access manager contract address
      * @param votingDelay The voting delay in seconds
      * @param votingPeriod The voting period in seconds
      * @param proposalThreshold The proposal threshold in tokens
      * @param quorumFraction The quorum fraction in tokens
-     * @param initialWhitelistGuardian The initial whitelist guardian address
-     * @param initialDecayFreeWindow The initial decay free window in seconds
-     * @param initialDecayRate The initial decay rate
-     * @param initialDecayFunction The initial decay function
      * @param endpoint The LayerZero endpoint address
      * @param hubChainId The hub chain ID
      * @param peerEndpointIds The peer endpoint IDs
@@ -31,35 +28,17 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      */
     struct GovernorParams {
         ISummerToken token;
-        TimelockController timelock;
+        SummerTimelockController timelock;
+        IProtocolAccessManager accessManager;
         uint48 votingDelay;
         uint32 votingPeriod;
         uint256 proposalThreshold;
         uint256 quorumFraction;
-        address initialWhitelistGuardian;
         address endpoint;
-        /// @dev On BASE chain (hubChainId == block.chainid), timelock owns the governor
-        /// @dev On satellite chains, the governor owns itself
         uint32 hubChainId;
         uint32[] peerEndpointIds;
         address[] peerAddresses;
     }
-
-    /**
-     * @notice Emitted when a whitelisted account's expiration is set
-     * @param account The address of the whitelisted account
-     * @param expiration The timestamp when the account's whitelist status expires
-     */
-    event WhitelistAccountExpirationSet(
-        address indexed account,
-        uint256 expiration
-    );
-
-    /**
-     * @notice Emitted when a new whitelist guardian is set
-     * @param newGuardian The address of the new whitelist guardian
-     */
-    event WhitelistGuardianSet(address indexed newGuardian);
 
     /**
      * @notice Emitted when a proposal is sent cross-chain
@@ -157,40 +136,10 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
     ) external;
 
     /**
-     * @notice Checks if an account is whitelisted
+     * @notice Checks if an account is an active guardian for governance purposes
+     * @dev Delegates check to ProtocolAccessManager
      * @param account The address to check
-     * @return bool True if the account is whitelisted, false otherwise
+     * @return bool True if the account is an active guardian, false otherwise
      */
-    function isWhitelisted(address account) external view returns (bool);
-
-    /**
-     * @notice Sets the expiration time for a whitelisted account
-     * @param account The address of the account to whitelist
-     * @param expiration The timestamp when the account's whitelist status expires
-     */
-    function setWhitelistAccountExpiration(
-        address account,
-        uint256 expiration
-    ) external;
-
-    /**
-     * @notice Sets a new whitelist guardian
-     * @param _whitelistGuardian The address of the new whitelist guardian
-     */
-    function setWhitelistGuardian(address _whitelistGuardian) external;
-
-    /**
-     * @notice Gets the expiration time for a whitelisted account
-     * @param account The address to check
-     * @return The expiration timestamp for the account's whitelist status
-     */
-    function getWhitelistAccountExpiration(
-        address account
-    ) external view returns (uint256);
-
-    /**
-     * @notice Gets the current whitelist guardian address
-     * @return The address of the current whitelist guardian
-     */
-    function getWhitelistGuardian() external view returns (address);
+    function isActiveGuardian(address account) external view returns (bool);
 }

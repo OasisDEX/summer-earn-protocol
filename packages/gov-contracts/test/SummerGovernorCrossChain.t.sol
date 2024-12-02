@@ -25,11 +25,11 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
                 peerEndpointIds: new uint32[](0),
@@ -41,11 +41,11 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: bSummerToken,
                 timelock: timelockB,
+                accessManager: accessManagerB,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
                 hubChainId: 31337,
                 peerEndpointIds: new uint32[](0),
@@ -482,11 +482,11 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
                 peerEndpointIds: invalidEndpointIds,
@@ -665,6 +665,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         advanceTimeForTimelockMinDelay();
 
         // Execute the cancellation proposal instead of the original proposal
+        vm.prank(guardian);
         timelockB.executeBatch(
             dstCancelTargets,
             dstCancelValues,
@@ -694,6 +695,15 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
     // ability to directly cancel operations on both source and target chains.
     function test_WhitelistGuardianCrossChainCancellation() public {
         vm.recordLogs();
+
+        // Setup guardian in AccessManager
+        vm.startPrank(address(timelockB));
+        accessManagerB.grantGuardianRole(guardian);
+        accessManagerB.setGuardianExpiration(
+            guardian,
+            block.timestamp + 1000000
+        );
+        vm.stopPrank();
 
         // Setup: Give Alice enough tokens and ETH
         vm.deal(address(governorA), 100 ether);
@@ -775,13 +785,10 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         );
 
         // Grant the whitelist guardian the cancel role
-        timelockB.grantRole(
-            timelockB.CANCELLER_ROLE(),
-            address(whitelistGuardian)
-        );
+        timelockB.grantRole(timelockB.CANCELLER_ROLE(), guardian);
 
-        // Cancel the proposal using whitelist guardian on chain B
-        vm.prank(whitelistGuardian);
+        // Cancel the proposal using guardian on chain B
+        vm.prank(guardian);
         timelockB.cancel(operationId);
 
         // Verify the operation was cancelled in the timelock

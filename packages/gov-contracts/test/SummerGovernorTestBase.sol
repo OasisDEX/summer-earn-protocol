@@ -9,38 +9,6 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
 
-contract ExposedSummerGovernor is SummerGovernor {
-    constructor(GovernorParams memory params) SummerGovernor(params) {}
-
-    function exposedLzReceive(
-        Origin calldata _origin,
-        bytes calldata payload,
-        bytes calldata extraData
-    ) public {
-        _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
-    }
-
-    function exposedSendProposalToTargetChain(
-        uint32 _dstEid,
-        address[] memory _dstTargets,
-        uint256[] memory _dstValues,
-        bytes[] memory _dstCalldatas,
-        bytes32 _dstDescriptionHash,
-        bytes calldata _options
-    ) public {
-        _sendProposalToTargetChain(
-            _dstEid,
-            _dstTargets,
-            _dstValues,
-            _dstCalldatas,
-            _dstDescriptionHash,
-            _options
-        );
-    }
-
-    function forceUpdateDecay(address account) public updateDecay(account) {}
-}
-
 contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
     using OptionsBuilder for bytes;
 
@@ -56,7 +24,7 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
     address public bob = address(0x112);
     address public charlie = address(0x113);
     address public david = address(0x114);
-    address public whitelistGuardian = address(0x115);
+    address public guardian = address(0x115);
 
     function setUp() public virtual override {
         initializeTokenTests();
@@ -73,29 +41,29 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
         SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
             .GovernorParams({
                 token: bSummerToken,
                 timelock: timelockB,
+                accessManager: accessManagerB,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
                 endpoint: lzEndpointB,
                 hubChainId: 31337,
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
@@ -201,6 +169,64 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
         return (targets, values, calldatas, description);
     }
 
+    function createAndExecuteProposal(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) internal {
+        // Give Alice enough tokens to meet proposal threshold
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Give Alice enough tokens to meet quorum
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        advanceTimeForVotingDelay();
+
+        // Vote on proposal
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        // Queue and execute the proposal
+        governorA.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        advanceTimeForTimelockMinDelay();
+
+        governorA.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+    }
+
     /*
      * @dev Hashes the description of a proposal.
      * @param description The description to hash.
@@ -237,4 +263,36 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
         vm.warp(block.timestamp + VOTING_DELAY + 1);
         vm.roll(block.number + 1);
     }
+}
+
+contract ExposedSummerGovernor is SummerGovernor {
+    constructor(GovernorParams memory params) SummerGovernor(params) {}
+
+    function exposedLzReceive(
+        Origin calldata _origin,
+        bytes calldata payload,
+        bytes calldata extraData
+    ) public {
+        _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
+    }
+
+    function exposedSendProposalToTargetChain(
+        uint32 _dstEid,
+        address[] memory _dstTargets,
+        uint256[] memory _dstValues,
+        bytes[] memory _dstCalldatas,
+        bytes32 _dstDescriptionHash,
+        bytes calldata _options
+    ) public {
+        _sendProposalToTargetChain(
+            _dstEid,
+            _dstTargets,
+            _dstValues,
+            _dstCalldatas,
+            _dstDescriptionHash,
+            _options
+        );
+    }
+
+    function forceUpdateDecay(address account) public updateDecay(account) {}
 }
