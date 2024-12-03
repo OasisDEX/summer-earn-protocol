@@ -247,8 +247,7 @@ contract RaftDecimalsTest is AuctionTestBase {
         vm.prank(governor);
         raftContract.startAuction(
             address(params.mockArk),
-            address(params.rewardToken),
-            address(params.underlyingToken)
+            address(params.rewardToken)
         );
 
         // Test initial price

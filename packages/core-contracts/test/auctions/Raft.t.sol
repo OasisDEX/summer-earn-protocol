@@ -129,7 +129,6 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         raftContract.harvestAndStartAuction(
             address(mockArk1),
-            address(mockPaymentToken),
             _getEncodedRewardData(rewardTokens, rewardAmounts)
         );
 
@@ -184,7 +183,6 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         raftContract.harvestAndStartAuction(
             address(mockArk1),
-            address(mockPaymentToken),
             _getEncodedRewardData(rewardTokens, rewardAmounts)
         );
 
@@ -289,11 +287,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             )
         );
 
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
         vm.stopPrank();
 
         // Verify second auction setup
@@ -495,11 +489,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             )
         );
 
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
         vm.stopPrank();
 
         // Verify second auction setup
@@ -604,11 +594,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
 
         vm.prank(governor);
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
 
         (, DutchAuctionLibrary.AuctionState memory state) = raftContract
             .auctions(address(mockArk1), address(mockRewardToken));
@@ -745,21 +731,13 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
                 address(mockRewardToken)
             )
         );
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
     }
 
     function test_CannotStartAuctionWithNoTokens() public {
         vm.prank(governor);
         vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
     }
 
     function test_CannotFinalizeAuctionBeforeEndTime() public {
@@ -951,11 +929,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
                 REWARD_AMOUNT
             )
         );
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
         vm.stopPrank();
     }
 
@@ -1092,11 +1066,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             amount2.applyPercentage(Percentage.wrap(KICKER_REWARD_PERCENTAGE))
         );
 
-        raftContract.sweepAndStartAuction(
-            address(mockArk1),
-            tokensToSweep,
-            address(mockPaymentToken)
-        );
+        raftContract.sweepAndStartAuction(address(mockArk1), tokensToSweep);
 
         (, DutchAuctionLibrary.AuctionState memory state) = raftContract
             .auctions(address(mockArk1), address(mockRewardToken));

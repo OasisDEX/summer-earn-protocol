@@ -9,7 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Raft
- * @notice Manages auctions for harvested rewards from Arks and handles the buy-and-burn mechanism
+ * @notice Manages auctions for harvested rewards from Arks and handles the auction mechanism
  * @dev Implements IRaft interface and inherits from ArkAccessManaged and AuctionManagerBase
  * @custom:see IRaft
  */
@@ -57,34 +57,31 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     /// @inheritdoc IRaft
     function harvestAndStartAuction(
         address ark,
-        address paymentToken,
         bytes calldata rewardData
     ) external onlyGovernor {
         (address[] memory harvestedTokens, ) = _harvest(ark, rewardData);
         for (uint256 i = 0; i < harvestedTokens.length; i++) {
-            _startAuction(ark, harvestedTokens[i], paymentToken);
+            _startAuction(ark, harvestedTokens[i]);
         }
     }
 
     /// @inheritdoc IRaft
     function sweepAndStartAuction(
         address ark,
-        address[] calldata tokens,
-        address paymentToken
+        address[] calldata tokens
     ) external {
         (address[] memory sweptTokens, ) = _sweep(ark, tokens);
         for (uint256 i = 0; i < sweptTokens.length; i++) {
-            _startAuction(ark, sweptTokens[i], paymentToken);
+            _startAuction(ark, sweptTokens[i]);
         }
     }
 
     /// @inheritdoc IRaft
     function startAuction(
         address ark,
-        address rewardToken,
-        address paymentToken
+        address rewardToken
     ) public onlyGovernor {
-        _startAuction(ark, rewardToken, paymentToken);
+        _startAuction(ark, rewardToken);
     }
 
     /// @inheritdoc IRaft
@@ -243,7 +240,6 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
      * @notice Starts a new auction for a specific Ark and reward token
      * @param ark The address of the Ark
      * @param rewardToken The address of the reward token to be auctioned
-     * @param paymentToken The address of the token used for payment in the auction
      * @custom:internal-logic
      * - Checks if there's an existing, unfinalized auction for the given Ark and reward token
      * - Calculates the total tokens to be auctioned (obtained + unsold)
@@ -257,11 +253,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
      * - Ensure that there's no existing unfinalized auction before starting a new one
      * - Validate that the total tokens to be auctioned is greater than zero
      */
-    function _startAuction(
-        address ark,
-        address rewardToken,
-        address paymentToken
-    ) internal {
+    function _startAuction(address ark, address rewardToken) internal {
         DutchAuctionLibrary.Auction storage existingAuction = auctions[ark][
             rewardToken
         ];
@@ -277,7 +269,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
 
         DutchAuctionLibrary.Auction memory newAuction = _createAuction(
             IERC20(rewardToken),
-            IERC20(paymentToken),
+            IERC20(IArk(ark).getConfig().asset),
             totalTokens,
             address(this)
         );

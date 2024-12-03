@@ -16,7 +16,6 @@ interface IRaft is IRaftEvents, IRaftErrors {
     /**
      * @dev Harvests rewards from the specified Ark and starts an auction for the harvested tokens
      * @param ark The address of the Ark contract to harvest rewards from
-     * @param paymentToken The address of the token used for payment in the auction
      * @param rewardData Additional data required by a protocol to harvest
      * @custom:internal-logic
      * - Harvests rewards from the specified Ark
@@ -30,7 +29,6 @@ interface IRaft is IRaftEvents, IRaftErrors {
      */
     function harvestAndStartAuction(
         address ark,
-        address paymentToken,
         bytes calldata rewardData
     ) external;
 
@@ -75,7 +73,6 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * @dev Sweeps tokens from the specified Ark and starts an auction for them
      * @param ark The address of the Ark contract to sweep tokens from
      * @param tokens The addresses of the tokens to sweep
-     * @param paymentToken The address of the token used for payment in the auction
      * @custom:internal-logic
      * - Sweeps specified tokens from the Ark
      * - Starts an auction for each swept token
@@ -87,8 +84,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
      */
     function sweepAndStartAuction(
         address ark,
-        address[] calldata tokens,
-        address paymentToken
+        address[] calldata tokens
     ) external;
 
     /**
@@ -112,7 +108,6 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * @dev Starts a Dutch auction for the harvested rewards of a specific Ark and reward token
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token to be auctioned
-     * @param paymentToken The address of the token used for payment in the auction
      * @custom:internal-logic
      * - Creates a new auction for the specified reward token
      * - Resets obtainedTokens and unsoldTokens for the given Ark and reward token
@@ -123,11 +118,7 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * - Ensure only authorized addresses can call this function
      * - Check for existing auctions before starting a new one
      */
-    function startAuction(
-        address ark,
-        address rewardToken,
-        address paymentToken
-    ) external;
+    function startAuction(address ark, address rewardToken) external;
 
     /**
      * @dev Allows users to buy tokens from an active auction
