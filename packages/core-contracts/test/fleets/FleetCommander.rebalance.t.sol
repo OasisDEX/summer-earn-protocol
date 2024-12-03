@@ -361,7 +361,7 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_FleetCommanderRebalanceTooManyOperations() public {
         // Arrange
-        RebalanceData[] memory rebalanceData = new RebalanceData[](10 + 1);
+        RebalanceData[] memory rebalanceData = new RebalanceData[](50 + 1);
 
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
@@ -369,7 +369,7 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "FleetCommanderRebalanceTooManyOperations(uint256)",
-                10 + 1
+                50 + 1
             )
         );
         fleetCommander.rebalance(rebalanceData);

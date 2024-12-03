@@ -19,9 +19,9 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
     /// @notice Default parameters for all auctions
     AuctionDefaultParameters public auctionDefaultParameters;
 
-    /// @notice Counter for generating unique auction IDs
-    /// @dev Initialized to 0. The first auction will have ID 1 due to pre-increment in _createAuction
-    uint256 public nextAuctionId;
+    /// @notice Counter for tracking the current auction ID
+    /// @dev Initialized to 0. Incremented before each new auction creation
+    uint256 public currentAuctionId;
 
     /**
      * @notice Initializes the AuctionManagerBase with default parameters
@@ -29,7 +29,7 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
      */
     constructor(AuctionDefaultParameters memory _defaultParameters) {
         auctionDefaultParameters = _defaultParameters;
-        // nextAuctionId is implicitly initialized to 0
+        // currentAuctionId is implicitly initialized to 0
     }
 
     /**
@@ -40,11 +40,11 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
      * @param unsoldTokensRecipient The address to receive any unsold tokens after the auction
      * @return A new Auction struct
      * @custom:internal-logic
-     * - Pre-increments nextAuctionId to generate a unique ID (first auction will have ID 1)
+     * - Pre-increments currentAuctionId to generate a unique ID (first auction will have ID 1)
      * - Creates an AuctionParams struct using default parameters and provided inputs
      * - Calls the createAuction function of the DutchAuctionLibrary to initialize the auction
      * @custom:effects
-     * - Increments nextAuctionId
+     * - Increments currentAuctionId
      * - Creates and returns a new Auction struct
      * @custom:security-considerations
      * - Ensure that the provided token addresses are valid
@@ -58,7 +58,7 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
     ) internal returns (DutchAuctionLibrary.Auction memory) {
         DutchAuctionLibrary.AuctionParams memory params = DutchAuctionLibrary
             .AuctionParams({
-                auctionId: ++nextAuctionId,
+                auctionId: ++currentAuctionId,
                 auctionToken: auctionToken,
                 paymentToken: paymentToken,
                 duration: auctionDefaultParameters.duration,

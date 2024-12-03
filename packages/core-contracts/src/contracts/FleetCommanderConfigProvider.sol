@@ -36,7 +36,7 @@ contract FleetCommanderConfigProvider is
     string public details;
     EnumerableSet.AddressSet private _activeArks;
 
-    uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
+    uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
 
     constructor(
@@ -207,6 +207,11 @@ contract FleetCommanderConfigProvider is
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
     ) external onlyCurator(address(this)) whenNotPaused {
+        if (newMaxRebalanceOperations > MAX_REBALANCE_OPERATIONS) {
+            revert FleetCommanderMaxRebalanceOperationsTooHigh(
+                newMaxRebalanceOperations
+            );
+        }
         config.maxRebalanceOperations = newMaxRebalanceOperations;
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations

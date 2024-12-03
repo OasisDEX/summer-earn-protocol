@@ -50,7 +50,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
         assertEq(config.minimumBufferBalance, 1000);
         assertEq(config.depositCap, 10000);
-        assertEq(config.maxRebalanceOperations, 10);
+        assertEq(config.maxRebalanceOperations, 50);
         assertTrue(newFleetCommander.isArkActive(address(config.bufferArk)));
     }
 

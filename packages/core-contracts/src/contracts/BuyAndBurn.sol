@@ -71,7 +71,7 @@ contract BuyAndBurn is
             totalTokens,
             treasury()
         );
-        uint256 auctionId = nextAuctionId;
+        uint256 auctionId = currentAuctionId;
         auctions[auctionId] = newAuction;
         ongoingAuctions[tokenToAuction] = auctionId;
         auctionSummerRaised[auctionId] = 0;

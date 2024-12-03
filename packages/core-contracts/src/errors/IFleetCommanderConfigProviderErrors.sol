@@ -46,4 +46,12 @@ interface IFleetCommanderConfigProviderErrors {
      * @notice Thrown when trying to set a StakingRewardsManager to the zero address
      */
     error FleetCommanderInvalidStakingRewardsManager();
+
+    /**
+     * @notice Thrown when trying to set a max rebalance operations to a value greater than the max allowed
+     * @param newMaxRebalanceOperations The new max rebalance operations value
+     */
+    error FleetCommanderMaxRebalanceOperationsTooHigh(
+        uint256 newMaxRebalanceOperations
+    );
 }
