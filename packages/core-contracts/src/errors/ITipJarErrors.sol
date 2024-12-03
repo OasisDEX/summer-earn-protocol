@@ -13,7 +13,7 @@ interface ITipJarErrors {
     /**
      * @notice Thrown when an invalid recipient address is provided.
      */
-    error InvalidRecipientAddress();
+    error InvalidTipStreamRecipient();
 
     /**
      * @notice Thrown when attempting to create a tip stream for a recipient that already has one.

@@ -64,6 +64,10 @@ contract TipJar is
     function addTipStream(
         TipStream memory tipStream
     ) external onlyGovernor returns (uint256 lockedUntilEpoch) {
+        // Add check for zero address
+        if (tipStream.recipient == address(0)) {
+            revert InvalidTipStreamRecipient();
+        }
         if (tipStreams[tipStream.recipient].recipient != address(0)) {
             revert TipStreamAlreadyExists(tipStream.recipient);
         }

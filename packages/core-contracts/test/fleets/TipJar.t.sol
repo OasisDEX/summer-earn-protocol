@@ -166,6 +166,17 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(fromPercentage(stream.allocation), 0);
         assertEq(stream.lockedUntilEpoch, 0);
     }
+    function test_FailAddTipStreamWithZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidTipStreamRecipient()"));
+        tipJar.addTipStream(
+            ITipJar.TipStream({
+                recipient: address(0),
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
+        );
+    }
 
     function test_GetAllTipStreams() public {
         address anotherMockTipStreamParticipant = address(5);
