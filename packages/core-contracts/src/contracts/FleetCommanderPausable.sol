@@ -26,6 +26,7 @@ abstract contract FleetCommanderPausable is Pausable {
      */
     constructor(uint256 _initialMinimumPauseTime) {
         minimumPauseTime = _initialMinimumPauseTime;
+        emit MinimumPauseTimeUpdated(_initialMinimumPauseTime);
     }
 
     /**

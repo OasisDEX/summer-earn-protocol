@@ -61,6 +61,7 @@ contract FleetCommanderConfigProvider is
             }),
             address(this)
         );
+        emit ArkAdded(address(_bufferArk));
         _setFleetConfig(
             FleetConfig({
                 bufferArk: IArk(address(_bufferArk)),

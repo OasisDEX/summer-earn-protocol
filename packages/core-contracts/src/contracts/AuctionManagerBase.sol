@@ -29,6 +29,7 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
      */
     constructor(AuctionDefaultParameters memory _defaultParameters) {
         auctionDefaultParameters = _defaultParameters;
+        emit AuctionDefaultParametersUpdated(_defaultParameters);
         // currentAuctionId is implicitly initialized to 0
     }
 
