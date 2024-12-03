@@ -97,10 +97,15 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     {
         sweptTokens = new address[](tokens.length);
         sweptAmounts = new uint256[](tokens.length);
-        if (config.asset.balanceOf(address(this)) > 0) {
-            address bufferArk = address(
-                IFleetCommander(config.commander).getConfig().bufferArk
-            );
+
+        address bufferArk = address(
+            IFleetCommander(config.commander).getConfig().bufferArk
+        );
+
+        if (
+            config.asset.balanceOf(address(this)) > 0 &&
+            address(this) != bufferArk
+        ) {
             config.asset.forceApprove(
                 bufferArk,
                 config.asset.balanceOf(address(this))
