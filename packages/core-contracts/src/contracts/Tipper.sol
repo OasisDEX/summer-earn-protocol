@@ -111,14 +111,14 @@ abstract contract Tipper is ITipper {
     function _accrueTip(
         address tipJar
     ) internal returns (uint256 tippedShares) {
+        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
+
+        if (timeElapsed == 0) return 0;
+
         if (tipRate == toPercentage(0)) {
             lastTipTimestamp = block.timestamp;
             return 0;
         }
-
-        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
-
-        if (timeElapsed == 0) return 0;
 
         // Note: This line assumes the contract itself is an ERC20 token
         uint256 totalShares = IERC20(address(this)).totalSupply();

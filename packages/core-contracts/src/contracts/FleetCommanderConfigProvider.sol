@@ -262,7 +262,7 @@ contract FleetCommanderConfigProvider is
             revert FleetCommanderArkAlreadyExists(ark);
         }
 
-        if (IArk(ark).getConfig().commander != address(0)) {
+        if (IArk(ark).commander() != address(0)) {
             revert FleetCommanderArkAlreadyHasCommander();
         }
         IArk(ark).registerFleetCommander();

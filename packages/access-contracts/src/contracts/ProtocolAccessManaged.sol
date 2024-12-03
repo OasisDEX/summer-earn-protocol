@@ -46,7 +46,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice The ProtocolAccessManager instance used for access control
-    ProtocolAccessManager internal _accessManager;
+    ProtocolAccessManager internal immutable _accessManager;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR

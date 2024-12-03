@@ -36,9 +36,6 @@ abstract contract ArkConfigProvider is
         ArkAccessManaged(_params.accessManager)
         ConfigurationManaged(_params.configurationManager)
     {
-        if (_params.configurationManager == address(0)) {
-            revert CannotDeployArkWithoutConfigurationManager();
-        }
         if (_params.asset == address(0)) {
             revert CannotDeployArkWithoutToken();
         }

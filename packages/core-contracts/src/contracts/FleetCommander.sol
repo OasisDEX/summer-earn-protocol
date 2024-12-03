@@ -467,12 +467,12 @@ contract FleetCommander is
     }
 
     /// @inheritdoc IFleetCommander
-    function pause() external onlyGuardianOrGovernor whenNotPaused {
+    function pause() external onlyGuardianOrGovernor {
         _pause();
     }
 
     /// @inheritdoc IFleetCommander
-    function unpause() external onlyGuardianOrGovernor whenPaused {
+    function unpause() external onlyGuardianOrGovernor {
         _unpause();
     }
 
@@ -741,11 +741,11 @@ contract FleetCommander is
         uint256 initialBufferBalance,
         uint256 totalToMove
     ) internal view {
-        if (initialBufferBalance <= config.minimumBufferBalance) {
+        uint256 minimumBufferBalance = config.minimumBufferBalance;
+        if (initialBufferBalance <= minimumBufferBalance) {
             revert FleetCommanderNoExcessFunds();
         }
-        uint256 excessFunds = initialBufferBalance -
-            config.minimumBufferBalance;
+        uint256 excessFunds = initialBufferBalance - minimumBufferBalance;
         if (totalToMove > excessFunds) {
             revert FleetCommanderInsufficientBuffer();
         }
@@ -775,10 +775,8 @@ contract FleetCommander is
     function _validateBufferArkNotInvolved(
         RebalanceData memory data
     ) internal view {
-        if (
-            data.toArk == address(config.bufferArk) ||
-            data.fromArk == address(config.bufferArk)
-        ) {
+        address bufferArk = address(config.bufferArk);
+        if (data.toArk == bufferArk || data.fromArk == bufferArk) {
             revert FleetCommanderCantUseRebalanceOnBufferArk();
         }
     }
@@ -837,13 +835,13 @@ contract FleetCommander is
         if (toArk == address(0)) {
             revert FleetCommanderArkNotFound(toArk);
         }
-        if (address(fromArk) == address(0)) {
+        if (fromArk == address(0)) {
             revert FleetCommanderArkNotFound(fromArk);
         }
-        if (!isArkActive(address(toArk))) {
+        if (!isArkActive(toArk)) {
             revert FleetCommanderArkNotActive(toArk);
         }
-        if (!isArkActive(address(fromArk))) {
+        if (!isArkActive(fromArk)) {
             revert FleetCommanderArkNotActive(fromArk);
         }
         uint256 maxRebalanceOutflow = IArk(fromArk).maxRebalanceOutflow();

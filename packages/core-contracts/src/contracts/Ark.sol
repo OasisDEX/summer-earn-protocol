@@ -97,23 +97,18 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     {
         sweptTokens = new address[](tokens.length);
         sweptAmounts = new uint256[](tokens.length);
+        IERC20 asset = config.asset;
 
         address bufferArk = address(
-            IFleetCommander(config.commander).getConfig().bufferArk
+            IFleetCommander(config.commander).bufferArk()
         );
 
-        if (
-            config.asset.balanceOf(address(this)) > 0 &&
-            address(this) != bufferArk
-        ) {
-            config.asset.forceApprove(
+        if (asset.balanceOf(address(this)) > 0 && address(this) != bufferArk) {
+            asset.forceApprove(
                 bufferArk,
                 config.asset.balanceOf(address(this))
             );
-            IArk(bufferArk).board(
-                config.asset.balanceOf(address(this)),
-                bytes("")
-            );
+            IArk(bufferArk).board(asset.balanceOf(address(this)), bytes(""));
         }
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 amount = IERC20(tokens[i]).balanceOf(address(this));
@@ -140,10 +135,11 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
         validateBoardData(boardData)
     {
         address msgSender = msg.sender;
-        config.asset.safeTransferFrom(msgSender, address(this), amount);
+        IERC20 asset = config.asset;
+        asset.safeTransferFrom(msgSender, address(this), amount);
         _board(amount, boardData);
 
-        emit Boarded(msgSender, address(config.asset), amount);
+        emit Boarded(msgSender, address(asset), amount);
     }
 
     /// @inheritdoc IArk
@@ -152,10 +148,11 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
         bytes calldata disembarkData
     ) external onlyCommander nonReentrant validateDisembarkData(disembarkData) {
         address msgSender = msg.sender;
+        IERC20 asset = config.asset;
         _disembark(amount, disembarkData);
-        config.asset.safeTransfer(msgSender, amount);
+        asset.safeTransfer(msgSender, amount);
 
-        emit Disembarked(msgSender, address(config.asset), amount);
+        emit Disembarked(msgSender, address(asset), amount);
     }
 
     /// @inheritdoc IArk
@@ -167,10 +164,11 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     ) external onlyCommander validateDisembarkData(disembarkData) {
         _disembark(amount, disembarkData);
 
-        config.asset.approve(receiverArk, amount);
+        IERC20 asset = config.asset;
+        asset.approve(receiverArk, amount);
         IArk(receiverArk).board(amount, boardData);
 
-        emit Moved(address(this), receiverArk, address(config.asset), amount);
+        emit Moved(address(this), receiverArk, address(asset), amount);
     }
 
     /*//////////////////////////////////////////////////////////////
