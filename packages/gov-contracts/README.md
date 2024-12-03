@@ -90,3 +90,7 @@ $ cast --help
 ## Documentation
 
 For more detailed information about Foundry, visit: https://book.getfoundry.sh/
+
+### Audits
+
+- [ChainSecurity](./audits/chainsecurity-audit.pdf)
