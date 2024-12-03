@@ -202,6 +202,7 @@ contract FleetCommanderCache {
      * - Populates data for regular arks and buffer ark
      * - Sorts the array by total assets
      * - Caches the total assets and ark data
+     * - buffer ark is always at the end of the array
      * @custom:effects
      * - Caches total assets and ark data
      * - Modifies storage slots related to ark data
@@ -229,8 +230,6 @@ contract FleetCommanderCache {
         _arksData[arks.length] = ArkData(address(bufferArk), bufferArkAssets);
         totalAssets += bufferArkAssets;
 
-        // Sort array by total assets
-        _sortArkDataByTotalAssets(_arksData);
         _cacheAllArksTotalAssets(totalAssets);
         _cacheAllArks(_arksData);
     }
