@@ -125,10 +125,7 @@ interface IFleetCommanderConfigProvider is
     ) external;
 
     /**
-     * @notice Sets the staking rewards manager contract address
-     * @param newStakingRewardsManager The address  of the new staking rewards manager contract
+     * @notice Deploys and sets the staking rewards manager contract address
      */
-    function setStakingRewardsManager(
-        address newStakingRewardsManager
-    ) external;
+    function updateStakingRewardsManager() external;
 }

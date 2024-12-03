@@ -500,4 +500,17 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         fleetCommander.setFleetDepositCap(1000);
     }
+
+    function test_UpdateStakingRewardsManager() public {
+        address initialStakingRewardsManager = fleetCommander
+            .getConfig()
+            .stakingRewardsManager;
+
+        vm.prank(governor);
+        fleetCommander.updateStakingRewardsManager();
+
+        FleetConfig memory config = fleetCommander.getConfig();
+        assertNotEq(config.stakingRewardsManager, initialStakingRewardsManager);
+        assertNotEq(config.stakingRewardsManager, address(0));
+    }
 }

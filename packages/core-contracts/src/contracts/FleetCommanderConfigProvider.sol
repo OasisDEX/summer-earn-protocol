@@ -194,16 +194,15 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function setStakingRewardsManager(
-        address newStakingRewardsManager
-    ) external onlyCurator(address(this)) whenNotPaused {
-        if (newStakingRewardsManager == address(0)) {
-            revert FleetCommanderInvalidStakingRewardsManager();
-        }
+    function updateStakingRewardsManager()
+        external
+        onlyCurator(address(this))
+        whenNotPaused
+    {
         config.stakingRewardsManager = IFleetCommanderRewardsManagerFactory(
             fleetCommanderRewardsManagerFactory()
         ).createRewardsManager(address(_accessManager), address(this));
-        emit FleetCommanderStakingRewardsUpdated(newStakingRewardsManager);
+        emit FleetCommanderStakingRewardsUpdated(config.stakingRewardsManager);
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider

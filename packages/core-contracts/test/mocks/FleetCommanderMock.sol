@@ -130,9 +130,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function setMinimumBufferBalance(uint256 newMinimumBalance) external {}
 
-    function setStakingRewardsManager(
-        address newStakingRewardsManager
-    ) external {}
+    function updateStakingRewardsManager() external {}
 
     function rebalance(RebalanceData[] calldata data) external {}
 
