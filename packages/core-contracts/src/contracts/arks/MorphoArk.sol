@@ -103,6 +103,20 @@ contract MorphoArk is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev MorphoArk is always withdrawable
+     * @dev TODO: add logic to check for pause etc
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return totalAssets();
+    }
+
+    /**
      * @notice Supplies tokens to the Morpho market
      * @param amount The amount of tokens to supply
      * @param /// data Additional data (unused in this implementation)

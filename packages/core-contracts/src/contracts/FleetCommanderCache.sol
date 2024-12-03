@@ -80,7 +80,6 @@ contract FleetCommanderCache {
      * @dev Calculates the total assets of withdrawable arks
      * @param arks Array of ark addresses
      * @param bufferArk The buffer ark instance
-     * @param isArkWithdrawable Mapping to check if an ark is withdrawable
      * @return withdrawableTotalAssets The sum of total assets across withdrawable arks
      *  - arks that don't require additional data to be boarded or disembarked from.
      * @custom:internal-logic
@@ -91,12 +90,11 @@ contract FleetCommanderCache {
      * - No state changes
      * @custom:security-considerations
      * - Relies on accurate reporting of total assets by individual arks
-     * - Depends on the correctness of the isArkWithdrawable mapping
+     * - Depends on the correctness of the isWithdrawable function
      */
     function _withdrawableTotalAssets(
         address[] memory arks,
-        IArk bufferArk,
-        mapping(address => bool) storage isArkWithdrawable
+        IArk bufferArk
     ) internal view returns (uint256 withdrawableTotalAssets) {
         bool isWithdrawableTotalAssetsCached = StorageSlots
             .IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
@@ -112,11 +110,10 @@ contract FleetCommanderCache {
 
         IArk[] memory allArks = _getAllArks(arks, bufferArk);
         for (uint256 i = 0; i < allArks.length; i++) {
-            if (
-                i == allArks.length - 1 ||
-                isArkWithdrawable[address(allArks[i])]
-            ) {
-                withdrawableTotalAssets += allArks[i].totalAssets();
+            uint256 withdrawableAssets = IArk(allArks[i])
+                .withdrawableTotalAssets();
+            if (i == allArks.length - 1 || withdrawableAssets > 0) {
+                withdrawableTotalAssets += withdrawableAssets;
             }
         }
     }
@@ -330,7 +327,6 @@ contract FleetCommanderCache {
      * @dev Retrieves and processes data for withdrawable arks
      * @param arks Array of ark addresses
      * @param bufferArk The buffer ark instance
-     * @param isArkWithdrawable Mapping to check if an ark is withdrawable
      * @custom:internal-logic
      * - Fetches data for all arks using _getArksData
      * - Filters arks based on withdrawability
@@ -342,15 +338,14 @@ contract FleetCommanderCache {
      * - Modifies storage by caching withdrawable arks data
      * - Updates the total assets of withdrawable arks in storage
      * @custom:security-considerations
-     * - Assumes the isArkWithdrawable mapping is correctly maintained
+     * - Assumes the isWithdrawable function is correctly implemented by Ark contracts
      * - Uses assembly for array resizing, which bypasses Solidity's safety checks
      * - Relies on the correctness of _getArksData, _cacheWithdrawableArksTotalAssets,
      *   _sortArkDataByTotalAssets, and _cacheWithdrawableArksTotalAssetsArray functions
      */
     function _getWithdrawableArksData(
         address[] memory arks,
-        IArk bufferArk,
-        mapping(address => bool) storage isArkWithdrawable
+        IArk bufferArk
     ) internal {
         ArkData[] memory _arksData = _getArksData(arks, bufferArk);
         // Initialize data for withdrawable arks
@@ -362,13 +357,16 @@ contract FleetCommanderCache {
 
         // Populate data for withdrawable arks
         for (uint256 i = 0; i < _arksData.length; i++) {
-            if (
-                i == _arksData.length - 1 ||
-                isArkWithdrawable[_arksData[i].arkAddress]
-            ) {
-                _withdrawableArksData[withdrawableCount] = _arksData[i];
+            uint256 withdrawableAssets = IArk(_arksData[i].arkAddress)
+                .withdrawableTotalAssets();
+            if (i == _arksData.length - 1 || withdrawableAssets > 0) {
+                // overwrite the ArkData struct with the withdrawable assets
+                _withdrawableArksData[withdrawableCount] = ArkData(
+                    _arksData[i].arkAddress,
+                    withdrawableAssets
+                );
 
-                withdrawableTotalAssets += _arksData[i].totalAssets;
+                withdrawableTotalAssets += withdrawableAssets;
                 withdrawableCount++;
             }
         }

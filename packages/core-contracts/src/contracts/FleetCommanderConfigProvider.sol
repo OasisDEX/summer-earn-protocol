@@ -35,7 +35,6 @@ contract FleetCommanderConfigProvider is
     FleetConfig public config;
     string public details;
     EnumerableSet.AddressSet private _activeArks;
-    mapping(address ark => bool isWithdrawable) public isArkWithdrawable;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
@@ -73,7 +72,6 @@ contract FleetCommanderConfigProvider is
                 ).createRewardsManager(address(_accessManager), address(this))
             })
         );
-        isArkWithdrawable[address(_bufferArk)] = true;
         details = params.details;
     }
 
@@ -242,7 +240,7 @@ contract FleetCommanderConfigProvider is
      * - Registers this contract as the ark's FleetCommander
      * - Adds the ark to the list of active arks
      * @custom:effects
-     * - Modifies isArkActive and isArkWithdrawable mappings
+     * - Modifies isArkActive mapping
      * - Updates the arks array
      * - Emits an ArkAdded event
      * @custom:security-considerations
@@ -258,8 +256,6 @@ contract FleetCommanderConfigProvider is
             revert FleetCommanderArkAlreadyExists(ark);
         }
 
-        // Ark can be withdrawn by anyone if it doesnt' require keeper data
-        isArkWithdrawable[ark] = !IArk(ark).requiresKeeperData();
         if (IArk(ark).getConfig().commander != address(0)) {
             revert FleetCommanderArkAlreadyHasCommander();
         }

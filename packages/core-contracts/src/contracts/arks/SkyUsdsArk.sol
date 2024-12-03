@@ -41,6 +41,22 @@ contract SkyUsdsArk is Ark {
 
     function totalAssets() public view override returns (uint256) {
         return
+            stakedUsds.convertToAssets(stakedUsds.balanceOf(address(this))) /
+            TO_18_DECIMALS_CONVERSION_FACTOR;
+    }
+
+    /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev SkyUsdsArk is always withdrawable
+     * @dev TODO:  check for current psm liquidity
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return
             stakedUsds.maxWithdraw(address(this)) /
             TO_18_DECIMALS_CONVERSION_FACTOR;
     }

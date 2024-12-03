@@ -94,11 +94,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(
-            getArks(),
-            config.bufferArk,
-            isArkWithdrawable
-        );
+        _getWithdrawableArksData(getArks(), config.bufferArk);
         _;
         _flushCache();
     }
@@ -338,12 +334,7 @@ contract FleetCommander is
 
     /// @inheritdoc IFleetCommander
     function withdrawableTotalAssets() public view returns (uint256) {
-        return
-            _withdrawableTotalAssets(
-                getArks(),
-                config.bufferArk,
-                isArkWithdrawable
-            );
+        return _withdrawableTotalAssets(getArks(), config.bufferArk);
     }
 
     /// @inheritdoc IERC4626

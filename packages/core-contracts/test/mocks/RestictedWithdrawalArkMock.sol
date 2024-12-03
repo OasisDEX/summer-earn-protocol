@@ -34,6 +34,15 @@ contract RestictedWithdrawalArkMock is Ark {
         return IERC20(config.asset).balanceOf(address(this));
     }
 
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return 0;
+    }
+
     /**
      * @notice Simulates boarding (depositing) assets into the Ark
      * @param amount The amount of assets to board

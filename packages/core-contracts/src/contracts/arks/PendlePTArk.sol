@@ -44,6 +44,20 @@ contract PendlePTArk is BasePendleArk {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev PendlePTArk is always withdrawable
+     * @dev TODO:  add logic to check for pause etc
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return totalAssets();
+    }
+
+    /**
      * @notice Set up token approvals for Pendle interactions
      */
     function _setupApprovals() internal override {
