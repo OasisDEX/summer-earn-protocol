@@ -1265,19 +1265,6 @@
   },
   {
     "type": "function",
-    "name": "setStakingRewardsManager",
-    "inputs": [
-      {
-        "name": "newStakingRewardsManager",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setTipRate",
     "inputs": [
       {
@@ -1450,6 +1437,13 @@
         "internalType": "uint256"
       }
     ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateStakingRewardsManager",
+    "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
