@@ -683,25 +683,6 @@
   },
   {
     "type": "function",
-    "name": "isArkWithdrawable",
-    "inputs": [
-      {
-        "name": "ark",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "isWithdrawable",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "lastTipTimestamp",
     "inputs": [],
     "outputs": [
