@@ -112,7 +112,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused returns (uint256 shares) {
+    ) public whenNotPaused collectTip returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -136,7 +136,6 @@ contract FleetCommander is
     )
         public
         override(ERC4626, IFleetCommander)
-        collectTip
         useWithdrawCache
         whenNotPaused
         returns (uint256 assets)
@@ -190,7 +189,6 @@ contract FleetCommander is
     )
         public
         override(ERC4626, IFleetCommander)
-        collectTip
         useWithdrawCache
         whenNotPaused
         returns (uint256 shares)
