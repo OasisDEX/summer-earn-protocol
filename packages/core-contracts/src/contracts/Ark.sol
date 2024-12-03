@@ -64,8 +64,7 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     /// @inheritdoc IArk
     function totalAssets() external view virtual returns (uint256) {}
 
-    /// @notice Returns the amount of assets that are withdrawable
-    /// @return The amount of assets that are withdrawable
+    /// @inheritdoc IArk
     function withdrawableTotalAssets() external view returns (uint256) {
         if (config.requiresKeeperData) {
             return 0;
