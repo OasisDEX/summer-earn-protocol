@@ -26,14 +26,14 @@ contract AuctionTestBase is FleetCommanderTestBase {
     uint256 constant END_PRICE = (0.1 * 10) ** DECIMALS;
     uint256 public KICKER_REWARD_PERCENTAGE = 0;
 
-    AuctionDefaultParameters defaultParams;
+    BaseAuctionParameters defaultParams;
 
     function setUp() public virtual {
         KICKER_REWARD_PERCENTAGE = 0;
         initializeFleetCommanderWithMockArks(0);
         vm.prank(governor);
         accessManager.grantSuperKeeperRole(superKeeper);
-        defaultParams = AuctionDefaultParameters({
+        defaultParams = BaseAuctionParameters({
             duration: uint40(AUCTION_DURATION),
             startPrice: START_PRICE,
             endPrice: END_PRICE,

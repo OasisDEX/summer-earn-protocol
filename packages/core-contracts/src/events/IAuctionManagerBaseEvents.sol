@@ -8,5 +8,5 @@ interface IAuctionManagerBaseEvents {
      * @notice Emitted when the auction configuration is updated
      * @param newConfig The new auction configuration
      */
-    event AuctionDefaultParametersUpdated(AuctionDefaultParameters newConfig);
+    event AuctionDefaultParametersUpdated(BaseAuctionParameters newConfig);
 }

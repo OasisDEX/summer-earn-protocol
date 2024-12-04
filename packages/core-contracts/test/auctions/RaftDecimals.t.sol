@@ -11,6 +11,8 @@ import {ArkMock, ArkParams} from "../mocks/ArkMock.sol";
 import "./AuctionTestBase.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {IArkConfigProvider} from "../../src/interfaces/IArk.sol";
 
 struct TestParams {
     ERC20Mock rewardToken;
@@ -33,6 +35,7 @@ contract RaftDecimalsTest is AuctionTestBase {
     ERC20Mock public underlyingToken6Dec;
     ERC20Mock public underlyingToken8Dec;
     ERC20Mock public underlyingToken18Dec;
+    address public constant MOCKED_FLEET_ADDRESS = address(666);
 
     function setUp() public override {
         super.setUp();
@@ -40,10 +43,11 @@ contract RaftDecimalsTest is AuctionTestBase {
         defaultParams.kickerRewardPercentage = Percentage.wrap(
             KICKER_REWARD_PERCENTAGE
         );
-        raftContract = new Raft(address(accessManager), defaultParams);
+        raftContract = new Raft(address(accessManager));
 
         configurationManager = new ConfigurationManager(address(accessManager));
-        vm.prank(governor);
+
+        vm.startPrank(governor);
         configurationManager.initializeConfiguration(
             ConfigurationManagerParams({
                 raft: address(raftContract),
@@ -64,7 +68,9 @@ contract RaftDecimalsTest is AuctionTestBase {
             "PT18",
             18
         );
+        accessManager.grantCuratorRole(MOCKED_FLEET_ADDRESS, address(governor));
 
+        vm.stopPrank();
         ArkParams memory params = ArkParams({
             name: "TestArk",
             details: "TestArk details",
@@ -78,13 +84,26 @@ contract RaftDecimalsTest is AuctionTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
         mockArk18Dec = new ArkMock(params);
-
+        vm.mockCall(
+            address(mockArk18Dec),
+            abi.encodeWithSelector(IArkConfigProvider.commander.selector),
+            abi.encode(MOCKED_FLEET_ADDRESS)
+        );
         params.asset = address(underlyingToken6Dec);
         mockArk6Dec = new ArkMock(params);
-
+        vm.mockCall(
+            address(mockArk6Dec),
+            abi.encodeWithSelector(IArkConfigProvider.commander.selector),
+            abi.encode(MOCKED_FLEET_ADDRESS)
+        );
         params.asset = address(underlyingToken8Dec);
         mockArk8Dec = new ArkMock(params);
-
+        vm.mockCall(
+            address(mockArk8Dec),
+            abi.encodeWithSelector(IArkConfigProvider.commander.selector),
+            abi.encode(MOCKED_FLEET_ADDRESS)
+        );
+        vm.stopPrank();
         mintTokens(
             address(rewardToken6Dec),
             address(mockArk6Dec),
@@ -219,8 +238,10 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         // Update auction parameters for this specific test
         vm.prank(governor);
-        raftContract.updateAuctionDefaultParameters(
-            AuctionDefaultParameters({
+        raftContract.setArkAuctionParameters(
+            address(params.mockArk),
+            address(params.rewardToken),
+            BaseAuctionParameters({
                 duration: uint40(AUCTION_DURATION),
                 startPrice: adjustedStartPrice,
                 endPrice: adjustedEndPrice,
@@ -233,14 +254,14 @@ contract RaftDecimalsTest is AuctionTestBase {
 
         // Harvest rewards
         vm.prank(governor);
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(params.rewardToken);
+        address[] memory _rewardTokens = new address[](1);
+        _rewardTokens[0] = address(params.rewardToken);
         uint256[] memory rewardAmounts = new uint256[](1);
         rewardAmounts[0] = rewardAmount;
 
         raftContract.harvest(
             address(params.mockArk),
-            _getEncodedRewardData(rewardTokens, rewardAmounts)
+            _getEncodedRewardData(_rewardTokens, rewardAmounts)
         );
 
         // Start auction

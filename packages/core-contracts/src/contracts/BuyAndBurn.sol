@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IBuyAndBurn} from "../interfaces/IBuyAndBurn.sol";
-import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
+import {BaseAuctionParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -36,21 +36,23 @@ contract BuyAndBurn is
     mapping(uint256 auctionId => uint256 amountRaised)
         public auctionSummerRaised;
 
+    /// @notice Mapping of custom auction parameters for each token
+    mapping(address tokenAddress => BaseAuctionParameters)
+        public tokenAuctionParameters;
+
     /**
      * @notice Initializes the BuyAndBurn contract
      * @param _summer Address of the SUMMER token
      * @param _accessManager Address of the access manager
      * @param _configurationManager Address of the configuration manager
-     * @param _defaultParameters Default parameters for auctions
      */
     constructor(
         address _summer,
         address _accessManager,
-        address _configurationManager,
-        AuctionDefaultParameters memory _defaultParameters
+        address _configurationManager
     )
         ProtocolAccessManaged(_accessManager)
-        AuctionManagerBase(_defaultParameters)
+        AuctionManagerBase()
         ConfigurationManaged(_configurationManager)
     {
         summerToken = ERC20Burnable(_summer);
@@ -62,15 +64,22 @@ contract BuyAndBurn is
             revert BuyAndBurnAuctionAlreadyRunning(tokenToAuction);
         }
 
+        // Check if parameters are set by checking duration
+        if (tokenAuctionParameters[tokenToAuction].duration == 0) {
+            revert BuyAndBurnAuctionParametersNotSet(tokenToAuction);
+        }
+
         IERC20 auctionToken = IERC20(tokenToAuction);
         uint256 totalTokens = auctionToken.balanceOf(address(this));
 
-        DutchAuctionLibrary.Auction memory newAuction = _createAuction(
-            auctionToken,
-            summerToken,
-            totalTokens,
-            treasury()
-        );
+        DutchAuctionLibrary.Auction
+            memory newAuction = _createAuctionWithParams(
+                auctionToken,
+                summerToken,
+                totalTokens,
+                treasury(),
+                tokenAuctionParameters[tokenToAuction]
+            );
         uint256 auctionId = currentAuctionId;
         auctions[auctionId] = newAuction;
         ongoingAuctions[tokenToAuction] = auctionId;
@@ -117,10 +126,15 @@ contract BuyAndBurn is
     }
 
     /* @inheritdoc IBuyAndBurn */
-    function updateAuctionDefaultParameters(
-        AuctionDefaultParameters calldata newParameters
-    ) external override onlyGovernor {
-        _updateAuctionDefaultParameters(newParameters);
+    function setTokenAuctionParameters(
+        address token,
+        BaseAuctionParameters calldata parameters
+    ) external onlyGovernor {
+        if (parameters.duration == 0) {
+            revert BuyAndBurnInvalidAuctionParameters(token);
+        }
+        tokenAuctionParameters[token] = parameters;
+        emit TokenAuctionParametersSet(token, parameters);
     }
 
     /**

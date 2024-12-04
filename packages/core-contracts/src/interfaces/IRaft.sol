@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {IRaftErrors} from "../errors/IRaftErrors.sol";
 import {IRaftEvents} from "../events/IRaftEvents.sol";
 
-import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
+import {BaseAuctionParameters} from "../types/CommonAuctionTypes.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
 
 /**
@@ -200,21 +200,6 @@ interface IRaft is IRaftEvents, IRaftErrors {
     ) external view returns (uint256);
 
     /**
-     * @dev Updates the default parameters for future auctions
-     * @param newConfig The new default parameters
-     * @custom:internal-logic
-     * - Updates the auctionDefaultParameters with the new configuration
-     * @custom:effects
-     * - Modifies the auctionDefaultParameters
-     * @custom:security-considerations
-     * - Ensure only authorized addresses can update parameters
-     * - Validate the new parameters
-     */
-    function updateAuctionDefaultParameters(
-        AuctionDefaultParameters calldata newConfig
-    ) external;
-
-    /**
      * @dev Boards the auctioned token to an Ark
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token to board the rewards to
@@ -234,5 +219,42 @@ interface IRaft is IRaftEvents, IRaftErrors {
         address ark,
         address rewardToken,
         bytes calldata data
+    ) external;
+
+    /**
+     * @notice Sets whether a token can be swept from an Ark
+     * @param ark The address of the Ark
+     * @param token The token address
+     * @param isSweepable Whether the token should be sweepable
+     * @custom:internal-logic
+     * - Sets the sweepableTokens mapping for the specified Ark and token
+     * @custom:effects
+     * - Updates the sweepableTokens mapping
+     * @custom:security-considerations
+     * - Ensure only authorized addresses can call this function
+     * - Validate the Ark address and token address
+     */
+    function setSweepableToken(
+        address ark,
+        address token,
+        bool isSweepable
+    ) external;
+
+    /**
+     * @dev Sets the auction parameters for a specific Ark and reward token
+     * @param ark The address of the Ark
+     * @param rewardToken The address of the reward token
+     * @param parameters The auction parameters to set
+     * @custom:internal-logic
+     * - Sets the auction parameters for the specified Ark and reward token
+     * @custom:effects
+     * - Updates the auction parameters
+     * @custom:security-considerations
+     * - Ensure only authorized addresses can call this function
+     */
+    function setArkAuctionParameters(
+        address ark,
+        address rewardToken,
+        BaseAuctionParameters calldata parameters
     ) external;
 }
