@@ -82,6 +82,11 @@ abstract contract ArkConfigProvider is
     }
 
     /// @inheritdoc IArkConfigProvider
+    function details() external view returns (string memory) {
+        return config.details;
+    }
+
+    /// @inheritdoc IArkConfigProvider
     function depositCap() external view returns (uint256) {
         return config.depositCap;
     }
