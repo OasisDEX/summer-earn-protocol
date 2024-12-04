@@ -64,19 +64,6 @@
   },
   {
     "type": "function",
-    "name": "DEFAULT_MAX_REBALANCE_OPERATIONS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "INITIAL_MINIMUM_PAUSE_TIME",
     "inputs": [],
     "outputs": [
@@ -2217,6 +2204,16 @@
   },
   {
     "type": "error",
+    "name": "CooldownEnforcerCooldownTooLong",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CooldownEnforcerCooldownTooShort",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "CooldownNotElapsed",
     "inputs": [
       {
@@ -2511,6 +2508,11 @@
   },
   {
     "type": "error",
+    "name": "FleetCommanderAssetMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "FleetCommanderCantUseMaxUintMovingFromBuffer",
     "inputs": []
   },
@@ -2646,6 +2648,11 @@
   },
   {
     "type": "error",
+    "name": "FleetCommanderPausableMinimumPauseTimeTooShort",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "FleetCommanderRebalanceAmountZero",
     "inputs": [
       {
@@ -2747,7 +2754,7 @@
   },
   {
     "type": "error",
-    "name": "TipRateCannotExceedOneHundredPercent",
+    "name": "TipRateCannotExceedFivePercent",
     "inputs": []
   },
   {

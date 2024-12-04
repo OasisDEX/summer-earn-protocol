@@ -1028,6 +1028,11 @@
   },
   {
     "type": "error",
+    "name": "MaxDepositPercentageOfTVLTooHigh",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
   },
