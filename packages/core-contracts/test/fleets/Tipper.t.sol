@@ -116,11 +116,11 @@ contract TipperTest is Test, ITipperEvents {
         // 6 months
     }
 
-    function test_TipRateCannotExceedOneHundredPercent() public {
+    function test_TipRateCannotExceedFivePercent() public {
         vm.expectRevert(
-            abi.encodeWithSignature("TipRateCannotExceedOneHundredPercent()")
+            abi.encodeWithSignature("TipRateCannotExceedFivePercent()")
         );
-        fleetCommander.setTipRate(PercentageUtils.fromIntegerPercentage(101));
+        fleetCommander.setTipRate(PercentageUtils.fromIntegerPercentage(6));
     }
 
     function test_CompoundingEffect() public {

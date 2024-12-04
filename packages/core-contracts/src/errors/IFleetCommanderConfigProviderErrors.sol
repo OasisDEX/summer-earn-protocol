@@ -54,4 +54,9 @@ interface IFleetCommanderConfigProviderErrors {
     error FleetCommanderMaxRebalanceOperationsTooHigh(
         uint256 newMaxRebalanceOperations
     );
+
+    /**
+     * @notice Thrown when the asset of the Ark does not match the asset of the FleetCommander
+     */
+    error FleetCommanderAssetMismatch();
 }

@@ -9,36 +9,30 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
- * @title ProtocolAccessManager
- * @notice This contract is the central authority for access control within the protocol.
- * It defines and manages various roles that govern different aspects of the system.
+ * @title ProtocolAccessManaged
+ * @notice This contract provides role-based access control functionality for protocol contracts
+ * by interfacing with a central ProtocolAccessManager.
  *
- * @dev This contract extends LimitedAccessControl, which restricts direct role management.
- * Roles are typically assigned during deployment or through governance proposals.
+ * @dev This contract is meant to be inherited by other protocol contracts that need
+ * role-based access control. It provides modifiers and utilities to check various roles.
  *
- * The contract defines four main roles:
+ * The contract supports several key roles through modifiers:
  * 1. GOVERNOR_ROLE: System-wide administrators
- * 2. KEEPER_ROLE: Routine maintenance operators
- * 3. SUPER_KEEPER_ROLE: Advanced maintenance operators
- * 4. COMMANDER_ROLE: Managers of specific protocol components (Arks)
+ * 2. KEEPER_ROLE: Routine maintenance operators (contract-specific)
+ * 3. SUPER_KEEPER_ROLE: Advanced maintenance operators (global)
+ * 4. CURATOR_ROLE: Fleet-specific managers
+ * 5. GUARDIAN_ROLE: Emergency response operators
+ * 6. DECAY_CONTROLLER_ROLE: Specific role for decay management
  *
- * Role Hierarchy and Management:
- * - The GOVERNOR_ROLE is at the top of the hierarchy and can manage all other roles.
- * - Other roles cannot manage roles directly due to LimitedAccessControl restrictions.
- * - Role assignments are typically done through governance proposals or during initial setup.
- *
- * Usage in the System:
- * - Other contracts in the system inherit from ProtocolAccessManaged, which checks permissions
- *   against this ProtocolAccessManager.
- * - Critical functions in various contracts are protected by role-based modifiers
- *   (e.g., onlyGovernor, onlyKeeper, etc.) which query this contract for permissions.
+ * Usage:
+ * - Inherit from this contract to gain access to role-checking modifiers
+ * - Use modifiers like onlyGovernor, onlyKeeper, etc. to protect functions
+ * - Access the internal _accessManager to perform custom role checks
  *
  * Security Considerations:
- * - The GOVERNOR_ROLE has significant power and should be managed carefully, potentially
- *   through a multi-sig wallet or governance contract.
- * - The SUPER_KEEPER_ROLE has elevated privileges and should be assigned judiciously.
- * - The COMMANDER_ROLE is not directly manageable through this contract but is used
- *   in other parts of the system for specific access control.
+ * - The contract validates the access manager address during construction
+ * - All role checks are performed against the immutable access manager instance
+ * - Contract-specific roles are generated using the contract's address to prevent conflicts
  */
 contract ProtocolAccessManaged is IAccessControlErrors, Context {
     /*//////////////////////////////////////////////////////////////

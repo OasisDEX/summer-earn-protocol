@@ -26,6 +26,16 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
     uint256 private _lastActionTimestamp;
 
     /**
+     * @notice The minimum duration that the contract must remain paused
+     */
+    uint256 private constant MINIMUM_COOLDOWN_TIME_SECONDS = 1 minutes;
+
+    /**
+     * @notice The maximum duration that the contract can enforce
+     */
+    uint256 private constant MAXIMUM_COOLDOWN_TIME_SECONDS = 1 days;
+
+    /**
      * CONSTRUCTOR
      */
 
@@ -40,6 +50,13 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      *      otherwise it is set to 0 signaling that the cooldown period has not started yet.
      */
     constructor(uint256 cooldown_, bool enforceFromNow) {
+        if (cooldown_ < MINIMUM_COOLDOWN_TIME_SECONDS) {
+            revert CooldownEnforcerCooldownTooShort();
+        }
+        if (cooldown_ > MAXIMUM_COOLDOWN_TIME_SECONDS) {
+            revert CooldownEnforcerCooldownTooLong();
+        }
+
         _cooldown = cooldown_;
 
         if (enforceFromNow) {
@@ -99,6 +116,12 @@ abstract contract CooldownEnforcer is ICooldownEnforcer {
      * @dev The function is internal so it can be wrapped with access modifiers if needed
      */
     function _updateCooldown(uint256 newCooldown) internal {
+        if (newCooldown < MINIMUM_COOLDOWN_TIME_SECONDS) {
+            revert CooldownEnforcerCooldownTooShort();
+        }
+        if (newCooldown > MAXIMUM_COOLDOWN_TIME_SECONDS) {
+            revert CooldownEnforcerCooldownTooLong();
+        }
         emit CooldownUpdated(_cooldown, newCooldown);
 
         _cooldown = newCooldown;

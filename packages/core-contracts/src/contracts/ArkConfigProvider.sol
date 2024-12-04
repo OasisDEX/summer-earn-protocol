@@ -9,7 +9,8 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
 /**
  * @title ArkConfigProvider
  * @author SummerFi
@@ -44,6 +45,13 @@ abstract contract ArkConfigProvider is
         }
         if (raft() == address(0)) {
             revert CannotDeployArkWithoutRaft();
+        }
+        if (
+            !PercentageUtils.isPercentageInRange(
+                _params.maxDepositPercentageOfTVL
+            )
+        ) {
+            revert MaxDepositPercentageOfTVLTooHigh();
         }
 
         config = ArkConfig({
@@ -122,6 +130,11 @@ abstract contract ArkConfigProvider is
     function setMaxDepositPercentageOfTVL(
         Percentage newMaxDepositPercentageOfTVL
     ) external onlyCommander {
+        if (
+            !PercentageUtils.isPercentageInRange(newMaxDepositPercentageOfTVL)
+        ) {
+            revert MaxDepositPercentageOfTVLTooHigh();
+        }
         config.maxDepositPercentageOfTVL = newMaxDepositPercentageOfTVL;
         emit MaxDepositPercentageOfTVLUpdated(newMaxDepositPercentageOfTVL);
     }

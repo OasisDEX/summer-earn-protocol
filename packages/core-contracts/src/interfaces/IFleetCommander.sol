@@ -163,7 +163,7 @@ interface IFleetCommander is
      *      - disembarkData: Additional data for the disembark operation
      * @dev Using type(uint256).max as the amount will move all assets from the fromArk to the toArk
      * @dev Rebalance operations cannot involve the buffer Ark directly
-     * @dev The number of operations in a single rebalance call is limited to DEFAULT_MAX_REBALANCE_OPERATIONS
+     * @dev The number of operations in a single rebalance call is limited to MAX_REBALANCE_OPERATIONS
      * @dev Rebalance is subject to a cooldown period between calls
      * @dev Only callable by accounts with the Keeper role
      */
@@ -184,7 +184,7 @@ interface IFleetCommander is
      * @dev type(uint256).max is not allowed as an amount for buffer adjustments
      * @dev When withdrawing from the buffer, the total amount moved cannot reduce the buffer balance below
      * minFundsBufferBalance
-     * @dev The number of operations in a single adjustBuffer call is limited to DEFAULT_MAX_REBALANCE_OPERATIONS
+     * @dev The number of operations in a single adjustBuffer call is limited to MAX_REBALANCE_OPERATIONS
      * @dev AdjustBuffer is subject to a cooldown period between calls
      * @dev Only callable by accounts with the Keeper role
      */

@@ -4,10 +4,38 @@ pragma solidity 0.8.28;
 import {ContractSpecificRoles, IProtocolAccessManager} from "../interfaces/IProtocolAccessManager.sol";
 import {LimitedAccessControl} from "./LimitedAccessControl.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+
 /**
  * @title ProtocolAccessManager
- * @notice Central contract for managing access control across the protocol
- * @dev Implements IProtocolAccessManager interface and extends LimitedAccessControl
+ * @notice This contract is the central authority for access control within the protocol.
+ * It defines and manages various roles that govern different aspects of the system.
+ *
+ * @dev This contract extends LimitedAccessControl, which restricts direct role management.
+ * Roles are typically assigned during deployment or through governance proposals.
+ *
+ * The contract defines four main roles:
+ * 1. GOVERNOR_ROLE: System-wide administrators
+ * 2. KEEPER_ROLE: Routine maintenance operators
+ * 3. SUPER_KEEPER_ROLE: Advanced maintenance operators
+ * 4. COMMANDER_ROLE: Managers of specific protocol components (Arks)
+ *
+ * Role Hierarchy and Management:
+ * - The GOVERNOR_ROLE is at the top of the hierarchy and can manage all other roles.
+ * - Other roles cannot manage roles directly due to LimitedAccessControl restrictions.
+ * - Role assignments are typically done through governance proposals or during initial setup.
+ *
+ * Usage in the System:
+ * - Other contracts in the system inherit from ProtocolAccessManaged, which checks permissions
+ *   against this ProtocolAccessManager.
+ * - Critical functions in various contracts are protected by role-based modifiers
+ *   (e.g., onlyGovernor, onlyKeeper, etc.) which query this contract for permissions.
+ *
+ * Security Considerations:
+ * - The GOVERNOR_ROLE has significant power and should be managed carefully, potentially
+ *   through a multi-sig wallet or governance contract.
+ * - The SUPER_KEEPER_ROLE has elevated privileges and should be assigned judiciously.
+ * - The COMMANDER_ROLE is not directly manageable through this contract but is used
+ *   in other parts of the system for specific access control.
  */
 contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /*//////////////////////////////////////////////////////////////
@@ -52,7 +80,7 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /**
      * @notice Initializes the ProtocolAccessManager contract
      * @param governor Address of the initial governor
-     * @dev Grants the governor address the DEFAULT_ADMIN_ROLE, GOVERNOR_ROLE, and GUARDIAN_ROLE
+     * @dev Grants the governor address the GOVERNOR_ROLE
      */
     constructor(address governor) {
         _grantRole(GOVERNOR_ROLE, governor);

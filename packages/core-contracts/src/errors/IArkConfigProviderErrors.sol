@@ -37,4 +37,9 @@ interface IArkConfigProviderErrors {
      * @notice Thrown when there's a mismatch between expected and actual assets in an ERC4626 operation.
      */
     error ERC4626AssetMismatch();
+
+    /**
+     * @notice Thrown when the max deposit percentage of TVL is greater than 100%.
+     */
+    error MaxDepositPercentageOfTVLTooHigh();
 }

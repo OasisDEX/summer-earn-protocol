@@ -37,13 +37,6 @@ contract FleetCommander is
     using Math for uint256;
 
     /*//////////////////////////////////////////////////////////////
-                            CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Default maximum number of rebalance operations allowed in a single transaction
-    uint256 public constant DEFAULT_MAX_REBALANCE_OPERATIONS = 10;
-
-    /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
@@ -410,8 +403,8 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
-        // Validate that no operations are moving to or from the bufferArk
         _validateReallocateAllAssets(rebalanceData);
+        // Validate that no operations are moving to or from the bufferArk
         _validateRebalance(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }

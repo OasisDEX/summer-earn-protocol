@@ -11,8 +11,8 @@ import {Test, console} from "forge-std/Test.sol";
 abstract contract CooldownEnforcer_TestBase is Test {
     CooldownEnforcerMock public cooldownEnforcer;
 
-    uint256 initialCooldown = 10;
-    uint256 updatedCooldown = 20;
+    uint256 initialCooldown = 1 minutes;
+    uint256 updatedCooldown = 20 minutes;
 
     uint256 initialTimestamp = 20000;
     uint256 snapshotId;

@@ -63,4 +63,10 @@ interface ITipJarErrors {
      * @notice Thrown when an invalid FleetCommander address is provided.
      */
     error InvalidFleetCommanderAddress();
+
+    /**
+     * @notice Thrown when a tip stream is locked for too long.
+     * @param recipient The address of the recipient with the locked tip stream.
+     */
+    error TipStreamLockedForTooLong(address recipient);
 }

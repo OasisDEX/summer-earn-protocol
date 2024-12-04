@@ -17,9 +17,10 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
 import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /**
- * @title
+ * @title FleetCommanderConfigProvider
  * @author SummerFi
  * @notice This contract provides configuration management for the FleetCommander
  * @custom:see IFleetCommanderConfigProvider
@@ -37,7 +38,7 @@ contract FleetCommanderConfigProvider is
     EnumerableSet.AddressSet private _activeArks;
 
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
-    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
+    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
     constructor(
         FleetCommanderParams memory params
@@ -264,6 +265,9 @@ contract FleetCommanderConfigProvider is
 
         if (IArk(ark).commander() != address(0)) {
             revert FleetCommanderArkAlreadyHasCommander();
+        }
+        if (address(IArk(ark).asset()) != IERC4626(address(this)).asset()) {
+            revert FleetCommanderAssetMismatch();
         }
         IArk(ark).registerFleetCommander();
         _activeArks.add(ark);

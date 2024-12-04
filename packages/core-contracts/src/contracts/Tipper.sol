@@ -8,6 +8,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
 /**
  * @title Tipper
  * @notice Contract implementing tip accrual functionality
@@ -26,6 +27,9 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 abstract contract Tipper is ITipper {
     using PercentageUtils for uint256;
     using MathUtils for Percentage;
+
+    /// @notice The maximum tip rate is 5%
+    Percentage immutable MAX_TIP_RATE = Percentage.wrap(5 * 1e18);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -47,6 +51,9 @@ abstract contract Tipper is ITipper {
      * @param initialTipRate The initial tip rate for the Fleet
      */
     constructor(Percentage initialTipRate) {
+        if (initialTipRate > MAX_TIP_RATE) {
+            revert TipRateCannotExceedFivePercent();
+        }
         tipRate = initialTipRate;
         lastTipTimestamp = block.timestamp;
     }
@@ -84,8 +91,8 @@ abstract contract Tipper is ITipper {
      *              For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18).
      */
     function _setTipRate(Percentage newTipRate, address tipJar) internal {
-        if (!PercentageUtils.isPercentageInRange(newTipRate)) {
-            revert TipRateCannotExceedOneHundredPercent();
+        if (newTipRate > MAX_TIP_RATE) {
+            revert TipRateCannotExceedFivePercent();
         }
         _accrueTip(tipJar); // Accrue tips before changing the rate
         tipRate = newTipRate;

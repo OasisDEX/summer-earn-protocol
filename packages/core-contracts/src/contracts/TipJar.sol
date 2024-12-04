@@ -29,6 +29,9 @@ contract TipJar is
 {
     using PercentageUtils for uint256;
 
+    /// @notice The maximum duration that a tip stream can be locked for
+    uint256 constant MAX_ALLOWED_LOCKED_UNTIL_EPOCH = 750 days;
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -70,6 +73,12 @@ contract TipJar is
         }
         if (tipStreams[tipStream.recipient].recipient != address(0)) {
             revert TipStreamAlreadyExists(tipStream.recipient);
+        }
+        if (
+            tipStream.lockedUntilEpoch >
+            block.timestamp + MAX_ALLOWED_LOCKED_UNTIL_EPOCH
+        ) {
+            revert TipStreamLockedForTooLong(tipStream.recipient);
         }
         _validateTipStreamAllocation(
             tipStream.allocation,
@@ -122,7 +131,12 @@ contract TipJar is
         if (shakeAllFleetCommanders) {
             shakeAll();
         }
-
+        if (
+            tipStream.lockedUntilEpoch >
+            block.timestamp + MAX_ALLOWED_LOCKED_UNTIL_EPOCH
+        ) {
+            revert TipStreamLockedForTooLong(tipStream.recipient);
+        }
         tipStreams[tipStream.recipient].allocation = tipStream.allocation;
         tipStreams[tipStream.recipient].lockedUntilEpoch = tipStream
             .lockedUntilEpoch;
