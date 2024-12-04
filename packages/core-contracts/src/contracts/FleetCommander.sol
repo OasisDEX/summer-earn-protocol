@@ -215,7 +215,7 @@ contract FleetCommander is
 
         _forceDisembarkFromSortedArks(assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
-        _setLastActionTimestamp(0);
+        _resetLastActionTimestamp();
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -238,7 +238,7 @@ contract FleetCommander is
         totalAssetsToWithdraw = previewRedeem(shares);
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
-        _setLastActionTimestamp(0);
+        _resetLastActionTimestamp();
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
 
