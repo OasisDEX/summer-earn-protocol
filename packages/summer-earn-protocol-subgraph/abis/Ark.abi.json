@@ -129,6 +129,19 @@
   },
   {
     "type": "function",
+    "name": "details",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "disembark",
     "inputs": [
       {
