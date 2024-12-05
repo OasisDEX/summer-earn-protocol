@@ -431,19 +431,6 @@
   },
   {
     "type": "function",
-    "name": "estimateAccruedTip",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "fleetCommanderRewardsManagerFactory",
     "inputs": [],
     "outputs": [
