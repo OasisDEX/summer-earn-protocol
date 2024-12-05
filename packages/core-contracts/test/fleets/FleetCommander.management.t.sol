@@ -411,11 +411,15 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             }),
             address(fleetCommander)
         );
-
-        // Try to add the Ark with an existing commander
+        vm.prank(governor);
+        accessManager.grantCommanderRole(
+            address(mockArkWithCommander),
+            address(fleetCommander)
+        );
+        // Try to add the Ark with an existing commander, assuming the fleet has the appropriate role
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSignature("FleetCommanderArkAlreadyHasCommander()")
+            abi.encodeWithSignature("FleetCommanderAlreadyRegistered()")
         );
         fleetCommander.addArk(address(mockArkWithCommander));
     }

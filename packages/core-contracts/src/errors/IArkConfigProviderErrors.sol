@@ -42,4 +42,14 @@ interface IArkConfigProviderErrors {
      * @notice Thrown when the max deposit percentage of TVL is greater than 100%.
      */
     error MaxDepositPercentageOfTVLTooHigh();
+
+    /**
+     * @notice Thrown when attempting to register a FleetCommander when one is already registered.
+     */
+    error FleetCommanderAlreadyRegistered();
+
+    /**
+     * @notice Thrown when attempting to unregister a FleetCommander by a non-registered address.
+     */
+    error FleetCommanderNotRegistered();
 }

@@ -161,11 +161,17 @@ abstract contract ArkConfigProvider is
     }
 
     function registerFleetCommander() external onlyCommander {
+        if (config.commander != address(0)) {
+            revert FleetCommanderAlreadyRegistered();
+        }
         config.commander = msg.sender;
         emit FleetCommanderRegistered(msg.sender);
     }
 
     function unregisterFleetCommander() external onlyCommander {
+        if (_msgSender() != config.commander) {
+            revert FleetCommanderNotRegistered();
+        }
         config.commander = address(0);
         emit FleetCommanderUnregistered(msg.sender);
     }

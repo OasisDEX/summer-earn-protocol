@@ -265,10 +265,6 @@ contract FleetCommanderConfigProvider is
         if (isArkActiveOrBufferArk(ark)) {
             revert FleetCommanderArkAlreadyExists(ark);
         }
-
-        if (IArk(ark).commander() != address(0)) {
-            revert FleetCommanderArkAlreadyHasCommander();
-        }
         if (address(IArk(ark).asset()) != IERC4626(address(this)).asset()) {
             revert FleetCommanderAssetMismatch();
         }
