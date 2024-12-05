@@ -521,7 +521,7 @@
   },
   {
     "type": "function",
-    "name": "getArks",
+    "name": "getActiveArks",
     "inputs": [],
     "outputs": [
       {
@@ -651,7 +651,7 @@
   },
   {
     "type": "function",
-    "name": "isArkActive",
+    "name": "isArkActiveOrBufferArk",
     "inputs": [
       {
         "name": "arkAddress",
