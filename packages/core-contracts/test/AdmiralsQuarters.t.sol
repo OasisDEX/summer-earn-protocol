@@ -595,9 +595,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         // Get initial balances
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
-        uint256 initialStakedBalance = IFleetCommanderRewardsManager(
-            rewardsManager
-        ).balanceOf(user1);
 
         // Unstake all shares (using 0 amount)
         bytes[] memory calls2 = new bytes[](1);

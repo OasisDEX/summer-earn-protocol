@@ -36,7 +36,7 @@ contract RestictedWithdrawalArkMock is Ark {
 
     function _withdrawableTotalAssets()
         internal
-        view
+        pure
         override
         returns (uint256)
     {

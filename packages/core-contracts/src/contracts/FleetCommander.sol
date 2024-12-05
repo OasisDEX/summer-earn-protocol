@@ -786,7 +786,7 @@ contract FleetCommander is
      */
     function _validateReallocateAllAssets(
         RebalanceData[] calldata rebalanceData
-    ) internal {
+    ) internal view {
         if (rebalanceData.length > config.maxRebalanceOperations) {
             revert FleetCommanderRebalanceTooManyOperations(
                 rebalanceData.length

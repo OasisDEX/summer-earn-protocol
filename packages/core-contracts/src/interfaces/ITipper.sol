@@ -23,11 +23,4 @@ interface ITipper is ITipperEvents, ITipperErrors {
      * @return The Unix timestamp of when tips were last accrued
      */
     function lastTipTimestamp() external view returns (uint256);
-
-    /**
-     * @notice Estimate the amount of tips accrued since the last tip accrual
-     * @return The estimated amount of accrued tips in the underlying asset's smallest unit
-     * @dev This function performs a calculation without changing the contract's state
-     */
-    function estimateAccruedTip() external view returns (uint256);
 }

@@ -207,7 +207,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      */
     function _withdrawableTotalAssets()
         internal
-        view
+        pure
         override
         returns (uint256)
     {

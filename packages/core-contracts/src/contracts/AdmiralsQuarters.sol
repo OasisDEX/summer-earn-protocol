@@ -327,15 +327,15 @@ contract AdmiralsQuarters is
         }
     }
 
-    function _validateToken(IERC20 token) internal view {
+    function _validateToken(IERC20 token) internal pure {
         if (address(token) == address(0)) revert InvalidToken();
     }
 
-    function _validateAmount(uint256 amount) internal view {
+    function _validateAmount(uint256 amount) internal pure {
         if (amount == 0) revert ZeroAmount();
     }
 
-    function _validateRewardsManager(address rewardsManager) internal view {
+    function _validateRewardsManager(address rewardsManager) internal pure {
         if (rewardsManager == address(0)) revert InvalidRewardsManager();
     }
     /// @inheritdoc IAdmiralsQuarters

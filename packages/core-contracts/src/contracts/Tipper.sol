@@ -5,7 +5,6 @@ import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
@@ -26,7 +25,6 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 
 abstract contract Tipper is ITipper {
     using PercentageUtils for uint256;
-    using MathUtils for Percentage;
 
     /// @notice The maximum tip rate is 5%
     Percentage immutable MAX_TIP_RATE = Percentage.wrap(5 * 1e18);
@@ -128,7 +126,8 @@ abstract contract Tipper is ITipper {
         }
 
         // Note: This line assumes the contract itself is an ERC20 token
-        uint256 totalShares = IERC20(address(this)).totalSupply();
+        uint256 totalShares = IERC20(address(this)).totalSupply() -
+            IERC20(address(this)).balanceOf(tipJar);
 
         tippedShares = _calculateTip(totalShares, timeElapsed);
 
@@ -145,59 +144,20 @@ abstract contract Tipper is ITipper {
      * @param timeElapsed The time elapsed since the last tip accrual
      * @return The amount of new shares to be minted as tip
      * @custom:internal-logic
-     * - Calculates the rate per second based on the annual tip rate
-     * - Computes the compound interest factor using a custom power function
-     * - Applies the compound interest factor to the total shares
-     * - Returns the difference between the final and initial share amounts
+     * - Calculates a time-adjusted rate by scaling the annual tip rate by the elapsed time
+     * - Applies this adjusted rate to the total shares to determine tip amount
      * @custom:effects
      * - Does not modify any state, pure function
-     * @custom:security-considerations
-     * - Uses high-precision calculations to minimize rounding errors
-     * - Relies on a custom power function for accurate compound interest calculation
      */
     function _calculateTip(
         uint256 totalShares,
         uint256 timeElapsed
     ) internal view returns (uint256) {
-        Percentage ratePerSecond = Percentage.wrap(
-            (Percentage.unwrap(tipRate) / Constants.SECONDS_PER_YEAR)
+        Percentage timeAdjustedRate = Percentage.wrap(
+            ((timeElapsed * Percentage.unwrap(tipRate)) /
+                Constants.SECONDS_PER_YEAR)
         );
 
-        // Calculate (1 + r)^t using a custom power function
-        Percentage factor = MathUtils.rpow(
-            PERCENTAGE_100 + ratePerSecond,
-            timeElapsed,
-            PERCENTAGE_100
-        );
-
-        // Calculate S = P * (1 + r)^t
-        uint256 finalShares = totalShares.applyPercentage(factor);
-
-        // Return the difference (S - P)
-        // This represents the total interest (tip) earned
-        return finalShares - totalShares;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Estimates the amount of tips accrued since the last tip accrual
-     * @return The estimated amount of accrued tips
-     * @custom:internal-logic
-     * - Calculates the time elapsed since the last tip accrual
-     * - Retrieves the current total supply of shares
-     * - Calls _calculateTip to estimate the accrued tip amount
-     * @custom:effects
-     * - Does not modify any state, view function
-     * @custom:security-considerations
-     * - This is an estimate and may slightly differ from the actual accrued amount
-     *   due to potential changes in totalSupply between estimation and actual accrual
-     */
-    function estimateAccruedTip() public view returns (uint256) {
-        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
-        uint256 totalShares = IERC20(address(this)).totalSupply();
-        return _calculateTip(totalShares, timeElapsed);
+        return totalShares.applyPercentage(timeAdjustedRate);
     }
 }
