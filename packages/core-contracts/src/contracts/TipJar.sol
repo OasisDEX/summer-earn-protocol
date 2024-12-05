@@ -255,7 +255,7 @@ contract TipJar is
         }
 
         uint256 withdrawnAssets = fleetCommander.redeem(
-            shares,
+            type(uint256).max,
             address(this),
             address(this)
         );

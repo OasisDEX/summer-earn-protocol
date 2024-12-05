@@ -79,6 +79,9 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         address receiver,
         address owner
     ) public override(IFleetCommander, ERC4626) returns (uint256) {
+        if (assets == type(uint256).max) {
+            assets = balanceOf(owner);
+        }
         return super.redeem(assets, receiver, owner);
     }
 

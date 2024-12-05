@@ -19,6 +19,7 @@ import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;
@@ -235,7 +236,7 @@ contract TipJarTest is Test, ITipJarEvents {
 
         // Shake the jar
         tipJar.shake(address(fleetCommander));
-
+        assertEq(IERC20(fleetCommander).balanceOf(address(tipJar)), 0 ether);
         // Check balances
         assertEq(underlyingToken.balanceOf(mockTipStreamRecipient), 600 ether);
         assertEq(
