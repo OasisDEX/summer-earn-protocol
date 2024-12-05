@@ -15,7 +15,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     FleetConfig public config;
     address[] public arks;
-    mapping(address => bool) public isArkActive;
+    mapping(address => bool) public isArkActiveOrBufferArk;
     address public tipJar;
 
     constructor(
@@ -91,11 +91,11 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     }
 
     function addArk(address ark) external {
-        isArkActive[ark] = true;
+        isArkActiveOrBufferArk[ark] = true;
         arks.push(ark);
     }
 
-    function getArks() external view returns (address[] memory) {
+    function getActiveArks() external view returns (address[] memory) {
         return arks;
     }
 

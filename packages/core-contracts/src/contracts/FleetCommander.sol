@@ -74,7 +74,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useDepositCache() {
-        _getArksData(getArks(), config.bufferArk);
+        _getArksData(getActiveArks(), config.bufferArk);
         _;
         _flushCache();
     }
@@ -87,7 +87,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(getArks(), config.bufferArk);
+        _getWithdrawableArksData(getActiveArks(), config.bufferArk);
         _;
         _flushCache();
     }
@@ -322,12 +322,12 @@ contract FleetCommander is
         override(IFleetCommander, ERC4626)
         returns (uint256)
     {
-        return _totalAssets(getArks(), config.bufferArk);
+        return _totalAssets(getActiveArks(), config.bufferArk);
     }
 
     /// @inheritdoc IFleetCommander
     function withdrawableTotalAssets() public view returns (uint256) {
-        return _withdrawableTotalAssets(getArks(), config.bufferArk);
+        return _withdrawableTotalAssets(getActiveArks(), config.bufferArk);
     }
 
     /// @inheritdoc IERC4626
@@ -825,10 +825,10 @@ contract FleetCommander is
         if (fromArk == address(0)) {
             revert FleetCommanderArkNotFound(fromArk);
         }
-        if (!isArkActive(toArk)) {
+        if (!isArkActiveOrBufferArk(toArk)) {
             revert FleetCommanderArkNotActive(toArk);
         }
-        if (!isArkActive(fromArk)) {
+        if (!isArkActiveOrBufferArk(fromArk)) {
             revert FleetCommanderArkNotActive(fromArk);
         }
         if (IArk(toArk).depositCap() == 0) {

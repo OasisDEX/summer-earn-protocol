@@ -78,11 +78,12 @@ contract FleetCommanderConfigProvider is
     }
 
     /**
-     * @dev Modifier to restrict function access to only active Arks
+     * @dev Modifier to restrict function access to only active Arks (excluding the buffer ark)
      * @param arkAddress The address of the Ark to check
      * @custom:internal-logic
      * - Checks if the provided arkAddress is in the _activeArks set
      * - If not found, reverts with FleetCommanderArkNotFound error
+     * - If the arkAddress is the buffer ark, it will not revert, due to the buffer ark being a special case
      * @custom:effects
      * - No direct state changes, but may revert the transaction
      * @custom:security-considerations
@@ -98,7 +99,9 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function isArkActive(address arkAddress) public view returns (bool) {
+    function isArkActiveOrBufferArk(
+        address arkAddress
+    ) public view returns (bool) {
         return
             _activeArks.contains(arkAddress) ||
             arkAddress == address(config.bufferArk);
@@ -110,7 +113,7 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function getArks() public view returns (address[] memory) {
+    function getActiveArks() public view returns (address[] memory) {
         return _activeArks.values();
     }
 
@@ -247,7 +250,7 @@ contract FleetCommanderConfigProvider is
      * - Registers this contract as the ark's FleetCommander
      * - Adds the ark to the list of active arks
      * @custom:effects
-     * - Modifies isArkActive mapping
+     * - Modifies isArkActiveOrBufferArk mapping
      * - Updates the arks array
      * - Emits an ArkAdded event
      * @custom:security-considerations
@@ -259,7 +262,7 @@ contract FleetCommanderConfigProvider is
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();
         }
-        if (isArkActive(ark)) {
+        if (isArkActiveOrBufferArk(ark)) {
             revert FleetCommanderArkAlreadyExists(ark);
         }
 
@@ -285,7 +288,7 @@ contract FleetCommanderConfigProvider is
      * - Unregisters this contract as the ark's FleetCommander
      * - Revokes the COMMANDER_ROLE for this contract on the ark
      * @custom:effects
-     * - Modifies the isArkActive mapping
+     * - Modifies the isArkActiveOrBufferArk mapping
      * - Updates the arks array
      * - Changes the ark's FleetCommander status
      * - Revokes a role in the access manager
@@ -295,10 +298,7 @@ contract FleetCommanderConfigProvider is
      * - Validates ark state before removal to prevent inconsistencies
      * - Only callable internally, typically by privileged roles
      */
-    function _removeArk(address ark) internal {
-        if (!isArkActive(ark)) {
-            revert FleetCommanderArkNotFound(ark);
-        }
+    function _removeArk(address ark) internal onlyActiveArk(ark) {
         _validateArkRemoval(ark);
         _activeArks.remove(ark);
 

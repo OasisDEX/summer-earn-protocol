@@ -51,11 +51,13 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertEq(config.minimumBufferBalance, 1000);
         assertEq(config.depositCap, 10000);
         assertEq(config.maxRebalanceOperations, 50);
-        assertTrue(newFleetCommander.isArkActive(address(config.bufferArk)));
+        assertTrue(
+            newFleetCommander.isArkActiveOrBufferArk(address(config.bufferArk))
+        );
     }
 
     function test_GetArks() public view {
-        address[] memory arks = fleetCommander.getArks();
+        address[] memory arks = fleetCommander.getActiveArks();
         assertEq(arks.length, 4);
         assertEq(arks[0], address(mockArk1));
         assertEq(arks[1], address(mockArk2));
@@ -111,10 +113,21 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.removeArk(address(mockArk1));
     }
-
+    function test_RemoveBufferArk() public {
+        address bufferArkAddress = fleetCommander.bufferArk();
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
+                bufferArkAddress
+            )
+        );
+        vm.startPrank(governor);
+        fleetCommander.removeArk(bufferArkAddress);
+        vm.stopPrank();
+    }
     function test_RemoveSuccessful() public {
         // First, set max allocation to 0
-        uint256 initialArksCount = fleetCommander.getArks().length;
+        uint256 initialArksCount = fleetCommander.getActiveArks().length;
         vm.prank(governor);
         fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
@@ -131,8 +144,11 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.expectEmit();
         emit IFleetCommanderConfigProviderEvents.ArkRemoved(address(mockArk1));
         fleetCommander.removeArk(address(mockArk1));
-        assertEq(fleetCommander.getArks().length, initialArksCount - 1);
-        assertEq(fleetCommander.isArkActive(address(mockArk1)), false);
+        assertEq(fleetCommander.getActiveArks().length, initialArksCount - 1);
+        assertEq(
+            fleetCommander.isArkActiveOrBufferArk(address(mockArk1)),
+            false
+        );
     }
 
     function test_RemoveArkWithNonZeroAssets() public {
