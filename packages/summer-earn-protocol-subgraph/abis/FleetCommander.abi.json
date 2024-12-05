@@ -2435,11 +2435,6 @@
   },
   {
     "type": "error",
-    "name": "FleetCommanderArkAlreadyHasCommander",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "FleetCommanderArkAssetsNotZero",
     "inputs": [
       {

@@ -1010,6 +1010,16 @@
   },
   {
     "type": "error",
+    "name": "FleetCommanderAlreadyRegistered",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderNotRegistered",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidAccessManagerAddress",
     "inputs": [
       {
