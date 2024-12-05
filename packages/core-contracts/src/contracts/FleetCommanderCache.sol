@@ -245,6 +245,67 @@ contract FleetCommanderCache {
     }
 
     /**
+     * @dev Caches the inflow and outflow balances for the specified Ark addresses.
+     *      Updates the maximum inflow and outflow balances if they are not set.
+     * @param outflowArkAddress The address of the Ark from which the outflow is occurring.
+     * @param inflowArkAddress The address of the Ark to which the inflow is occurring.
+     * @param amount The amount to be added to both inflow and outflow balances.
+     * @return newInflowBalance The updated inflow balance for the inflow Ark.
+     * @return newOutflowBalance The updated outflow balance for the outflow Ark.
+     * @return maxInflow The maximum inflow balance for the inflow Ark.
+     * @return maxOutflow The maximum outflow balance for the outflow Ark.
+     */
+    function _cacheArkFlow(
+        address outflowArkAddress,
+        address inflowArkAddress,
+        uint256 amount
+    )
+        internal
+        returns (
+            uint256 newInflowBalance,
+            uint256 newOutflowBalance,
+            uint256 maxInflow,
+            uint256 maxOutflow
+        )
+    {
+        bytes32 inflowSlot = _getStorageSlot(
+            StorageSlots.ARK_INFLOW_BALANCE_STORAGE,
+            uint256(uint160(inflowArkAddress))
+        );
+        bytes32 outflowSlot = _getStorageSlot(
+            StorageSlots.ARK_OUTFLOW_BALANCE_STORAGE,
+            uint256(uint160(outflowArkAddress))
+        );
+        bytes32 maxInflowSlot = _getStorageSlot(
+            StorageSlots.ARK_MAX_INFLOW_BALANCE_STORAGE,
+            uint256(uint160(inflowArkAddress))
+        );
+        bytes32 maxOutflowSlot = _getStorageSlot(
+            StorageSlots.ARK_MAX_OUTFLOW_BALANCE_STORAGE,
+            uint256(uint160(outflowArkAddress))
+        );
+
+        maxInflow = maxInflowSlot.asUint256().tload();
+        maxOutflow = maxOutflowSlot.asUint256().tload();
+
+        if (maxInflow == 0) {
+            maxInflow = IArk(inflowArkAddress).maxRebalanceInflow();
+            maxInflowSlot.asUint256().tstore(maxInflow);
+        }
+        if (maxOutflow == 0) {
+            maxOutflow = IArk(outflowArkAddress).maxRebalanceOutflow();
+            maxOutflowSlot.asUint256().tstore(maxOutflow);
+        }
+
+        // Load current balance (if it's the first time, it will be 0)
+        newInflowBalance = inflowSlot.asUint256().tload() + amount;
+        newOutflowBalance = outflowSlot.asUint256().tload() + amount;
+
+        inflowSlot.asUint256().tstore(newInflowBalance);
+        outflowSlot.asUint256().tstore(newOutflowBalance);
+    }
+
+    /**
      * @notice Retrieves the data (address, totalAssets) for all withdrawable arks from cache
      * @return arksData An array of ArkData structs containing the ark addresses and their total assets
      */

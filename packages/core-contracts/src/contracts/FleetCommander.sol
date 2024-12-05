@@ -596,6 +596,8 @@ contract FleetCommander is
         } else {
             amount = data.amount;
         }
+        // The validation has to take into account the actual amount that will be moved
+        _validateReallocateAssets(data.fromArk, data.toArk, amount);
 
         uint256 toArkDepositCap = getEffectiveArkDepositCap(toArk);
         uint256 toArkAllocation = toArk.totalAssets();
@@ -784,7 +786,7 @@ contract FleetCommander is
      */
     function _validateReallocateAllAssets(
         RebalanceData[] calldata rebalanceData
-    ) internal view {
+    ) internal {
         if (rebalanceData.length > config.maxRebalanceOperations) {
             revert FleetCommanderRebalanceTooManyOperations(
                 rebalanceData.length
@@ -792,14 +794,6 @@ contract FleetCommander is
         }
         if (rebalanceData.length == 0) {
             revert FleetCommanderRebalanceNoOperations();
-        }
-
-        for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _validateReallocateAssets(
-                rebalanceData[i].fromArk,
-                rebalanceData[i].toArk,
-                rebalanceData[i].amount
-            );
         }
     }
 
@@ -821,7 +815,7 @@ contract FleetCommander is
         address fromArk,
         address toArk,
         uint256 amount
-    ) internal view {
+    ) internal {
         if (amount == 0) {
             revert FleetCommanderRebalanceAmountZero(toArk);
         }
@@ -837,24 +831,28 @@ contract FleetCommander is
         if (!isArkActive(fromArk)) {
             revert FleetCommanderArkNotActive(fromArk);
         }
-        uint256 maxRebalanceOutflow = IArk(fromArk).maxRebalanceOutflow();
-        if (amount > maxRebalanceOutflow) {
+        if (IArk(toArk).depositCap() == 0) {
+            revert FleetCommanderArkDepositCapZero(toArk);
+        }
+        (
+            uint256 inflowBalance,
+            uint256 outflowBalance,
+            uint256 maxRebalanceInflow,
+            uint256 maxRebalanceOutflow
+        ) = _cacheArkFlow(fromArk, toArk, amount);
+        if (outflowBalance > maxRebalanceOutflow) {
             revert FleetCommanderExceedsMaxOutflow(
                 fromArk,
-                amount,
+                outflowBalance,
                 maxRebalanceOutflow
             );
         }
-        uint256 maxRebalanceInflow = IArk(toArk).maxRebalanceInflow();
-        if (amount > maxRebalanceInflow) {
+        if (inflowBalance > maxRebalanceInflow) {
             revert FleetCommanderExceedsMaxInflow(
                 toArk,
-                amount,
+                inflowBalance,
                 maxRebalanceInflow
             );
-        }
-        if (IArk(toArk).depositCap() == 0) {
-            revert FleetCommanderArkDepositCapZero(toArk);
         }
     }
 

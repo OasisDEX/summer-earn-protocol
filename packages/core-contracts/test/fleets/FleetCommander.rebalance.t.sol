@@ -730,4 +730,48 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.rebalance(rebalanceData);
     }
+
+    function test_RebalanceExceedsMoveMaxRebalanceOutflow_MultipleOperations()
+        public
+    {
+        // Arrange
+        uint256 maxRebalanceOutflow = 500 * 10 ** 6;
+        uint256 rebalanceAmount1 = 300 * 10 ** 6;
+        uint256 rebalanceAmount2 = 300 * 10 ** 6; // Total 600M > maxRebalanceOutflow
+
+        mockToken.mint(ark1, 5000 * 10 ** 6);
+        mockToken.mint(ark2, 5000 * 10 ** 6);
+        mockToken.mint(ark3, 5000 * 10 ** 6);
+
+        mockArkMaxRebalanceOutflow(ark1, maxRebalanceOutflow);
+
+        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
+        rebalanceData[0] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark2,
+            boardData: bytes(""),
+            disembarkData: bytes(""),
+            amount: rebalanceAmount1
+        });
+        rebalanceData[1] = RebalanceData({
+            fromArk: ark1,
+            toArk: ark3,
+            boardData: bytes(""),
+            disembarkData: bytes(""),
+            amount: rebalanceAmount2
+        });
+
+        // Act & Assert
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderExceedsMaxOutflow(address,uint256,uint256)",
+                ark1,
+                rebalanceAmount1 + rebalanceAmount2,
+                maxRebalanceOutflow
+            )
+        );
+        fleetCommander.rebalance(rebalanceData);
+    }
 }
