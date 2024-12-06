@@ -414,6 +414,12 @@ type Vault @entity @regularPolling {
   " Price of input token in USD "
   inputTokenPriceUSD: BigDecimal
 
+  " Total withdrawable assets "
+  withdrawableTotalAssets: BigInt
+
+  " Total withdrawable assets in USD "
+  withdrawableTotalAssetsUSD: BigDecimal
+
   " Amount of input token per full share of output token. Usually corresponds to the value of `pricePerShare` or `pricePerFullShare` in the vault contract. "
   pricePerShare: BigDecimal
 
@@ -456,6 +462,7 @@ type Vault @entity @regularPolling {
   apr365d: BigDecimal!
 
   lastUpdateTimestamp: BigInt!
+  lastUpdatePricePerShare: BigDecimal!
 
   arks: [Ark!]! @derivedFrom(field: "vault")
   arksArray: [Ark!]!
@@ -1110,12 +1117,17 @@ type Ark @entity @regularPolling {
 
   " Calculated APR based on earnings between updates "
   calculatedApr: BigDecimal!
+  # deprecated
+  cumulativeDeposits: BigInt
+  cumulativeWithdrawals: BigInt
+  " Cumulative deposits since last update [ helper field ] "
+  _cumulativeDeposits: BigInt!
 
-  " Cumulative deposits since last update "
-  cumulativeDeposits: BigInt!
+  " Cumulative withdrawals since last update [ helper field ] "
+  _cumulativeWithdrawals: BigInt!
 
-  " Cumulative withdrawals since last update "
-  cumulativeWithdrawals: BigInt!
+  " Last update input token balance [ helper field ] "
+  _lastUpdateInputTokenBalance: BigInt!
 
   " Current total assets in the Ark "
   inputTokenBalance: BigInt!

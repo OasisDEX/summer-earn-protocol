@@ -20,33 +20,35 @@ export function updateVault(
   shouldUpdateApr: boolean,
 ): void {
   const vault = getOrCreateVault(Address.fromString(vaultDetails.vaultId), block)
-  let previousPricePerShare = vault.pricePerShare
-  if (
-    !previousPricePerShare ||
-    (previousPricePerShare && previousPricePerShare.equals(BigDecimalConstants.ZERO))
-  ) {
-    previousPricePerShare = BigDecimalConstants.ONE
-  }
   const deltaTime = block.timestamp.minus(vault.lastUpdateTimestamp).toBigDecimal()
+
+  if (shouldUpdateApr) {
+    const previousLastUpdatePricePerShare = vault.lastUpdatePricePerShare
+    const pricePerShareDiff = vaultDetails.pricePerShare.minus(previousLastUpdatePricePerShare)
+    vault.lastUpdateTimestamp = block.timestamp
+    vault.lastUpdatePricePerShare = vaultDetails.pricePerShare
+    if (
+      !previousLastUpdatePricePerShare.equals(BigDecimalConstants.ZERO) &&
+      deltaTime.gt(BigDecimalConstants.ZERO) &&
+      !pricePerShareDiff.equals(BigDecimalConstants.ZERO) &&
+      vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare) &&
+      pricePerShareDiff.lt(BigDecimalConstants.TEN_PERCENT)
+    ) {
+      vault.calculatedApr = getAprForTimePeriod(
+        previousLastUpdatePricePerShare,
+        vaultDetails.pricePerShare,
+        deltaTime,
+      )
+    }
+  }
   vault.inputTokenBalance = vaultDetails.inputTokenBalance
   vault.outputTokenSupply = vaultDetails.outputTokenSupply
   vault.totalValueLockedUSD = vaultDetails.totalValueLockedUSD
   vault.outputTokenPriceUSD = vaultDetails.outputTokenPriceUSD
   vault.inputTokenPriceUSD = vaultDetails.inputTokenPriceUSD
   vault.pricePerShare = vaultDetails.pricePerShare
-  if (shouldUpdateApr) {
-    vault.lastUpdateTimestamp = block.timestamp
-    if (
-      deltaTime.gt(BigDecimalConstants.ZERO) &&
-      !previousPricePerShare.equals(vaultDetails.pricePerShare)
-    ) {
-      vault.calculatedApr = getAprForTimePeriod(
-        previousPricePerShare,
-        vaultDetails.pricePerShare,
-        deltaTime,
-      )
-    }
-  }
+  vault.withdrawableTotalAssets = vaultDetails.withdrawableTotalAssets
+  vault.withdrawableTotalAssetsUSD = vaultDetails.withdrawableTotalAssetsUSD
   vault.save()
 }
 
@@ -87,7 +89,7 @@ export function updateVaultAndArks(event: ethereum.Event, vault: Vault): void {
       Address.fromString(arks[i]),
       event.block,
     )
-    updateArk(arkDetails, event.block)
+    updateArk(arkDetails, event.block, false)
     getOrCreateArksPostActionSnapshots(
       Address.fromString(vault.id),
       Address.fromString(arks[i]),
@@ -96,9 +98,8 @@ export function updateVaultAndArks(event: ethereum.Event, vault: Vault): void {
   }
 }
 
-export function updateVaultAPRs(vault: Vault): void {
+export function updateVaultAPRs(vault: Vault, currentApr: BigDecimal): void {
   const MAX_APR_VALUES = 365
-  const currentApr = vault.calculatedApr
   let aprValues = vault.aprValues
 
   // Remove oldest value if we've reached max capacity

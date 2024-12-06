@@ -281,7 +281,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
 
-    updateVaultAPRs(vault)
+    updateVaultAPRs(vault, vaultSnapshots.calculatedApr)
     vault.save()
   }
 
@@ -379,6 +379,9 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.pricePerShare = constants.BigDecimalConstants.ZERO
     vault.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
+    vault.withdrawableTotalAssets = constants.BigIntConstants.ZERO
+    vault.withdrawableTotalAssetsUSD = constants.BigDecimalConstants.ZERO
+    vault.lastUpdatePricePerShare = constants.BigDecimalConstants.ZERO
 
     vault.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vault.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
@@ -463,8 +466,9 @@ export function getOrCreateArk(
     ark.calculatedApr = constants.BigDecimalConstants.ZERO
 
     ark.cumulativeEarnings = constants.BigIntConstants.ZERO
-    ark.cumulativeDeposits = constants.BigIntConstants.ZERO
-    ark.cumulativeWithdrawals = constants.BigIntConstants.ZERO
+    ark._cumulativeDeposits = constants.BigIntConstants.ZERO
+    ark._cumulativeWithdrawals = constants.BigIntConstants.ZERO
+    ark._lastUpdateInputTokenBalance = constants.BigIntConstants.ZERO
 
     ark.createdBlockNumber = block.number
     ark.createdTimestamp = block.timestamp

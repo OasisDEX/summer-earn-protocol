@@ -24,7 +24,6 @@ import {
 } from '../common/initializers'
 import { formatAmount } from '../common/utils'
 import { createDepositEventEntity } from './entities/deposit'
-import { createRebalanceEventEntity } from './entities/rebalance'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
 import { getAndUpdateVaultAndPositionDetails, updateVaultAndArks } from './entities/vault'
@@ -33,7 +32,6 @@ import { createWithdrawEventEntity } from './entities/withdraw'
 export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
   updateVaultAndArks(event, vault)
-  createRebalanceEventEntity(event, vault, event.block)
 }
 
 export function handleArkAdded(event: ArkAdded): void {

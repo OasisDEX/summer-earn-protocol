@@ -27,6 +27,12 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
       ? constants.BigDecimalConstants.ONE
       : totalAssets.toBigDecimal().div(totalSupply.toBigDecimal())
   const outputTokenPriceUSD = pricePerShare.times(inputTokenPriceUSD.price)
+  const withdrawableAssets = vaultContract.withdrawableTotalAssets()
+  const withdrawableAssetsNormalized = formatAmount(
+    withdrawableAssets,
+    BigInt.fromI32(inputToken.decimals),
+  )
+  const withdrawableAssetsUSD = withdrawableAssetsNormalized.times(inputTokenPriceUSD.price)
   return new VaultDetails(
     vault.id,
     formatAmount(totalAssets, BigInt.fromI32(inputToken.decimals)).times(inputTokenPriceUSD.price),
@@ -38,5 +44,7 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     inputToken,
     vault.protocol,
     rewardsManager,
+    withdrawableAssets,
+    withdrawableAssetsUSD,
   )
 }

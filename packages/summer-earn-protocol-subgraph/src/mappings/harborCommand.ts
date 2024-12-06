@@ -21,7 +21,7 @@ export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): voi
 
 function updateArkData(vaultAddress: Address, arkAddress: Address, block: ethereum.Block): void {
   const arkDetails = getArkDetails(vaultAddress, arkAddress, block)
-  updateArk(arkDetails, block)
+  updateArk(arkDetails, block, true)
 }
 
 function updateVaultData(vaultAddress: Address, block: ethereum.Block): void {
