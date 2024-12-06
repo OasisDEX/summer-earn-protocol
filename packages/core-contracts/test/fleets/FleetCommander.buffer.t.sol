@@ -65,7 +65,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN + 1);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
 
         // Assert
         assertEq(
@@ -104,7 +104,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         // Act round 2
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceFromData);
+        fleetCommander.rebalance(rebalanceFromData);
 
         // Assert round 2
         assertEq(
@@ -158,7 +158,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("FleetCommanderInsufficientBuffer()")
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
         vm.stopPrank();
     }
 
@@ -184,11 +184,11 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("FleetCommanderNoExcessFunds()")
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
         vm.stopPrank();
     }
 
-    function test_AdjustBufferInvalidSourceArk() public {
+    function test_AdjustBufferAndRebalance() public {
         // Arrange
         uint256 bufferBalance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
@@ -217,21 +217,30 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSignature("FleetCommanderInvalidBufferAdjustment()")
+        fleetCommander.rebalance(rebalanceData);
+
+        assertEq(
+            fleetCommander.totalAssets(),
+            bufferBalance,
+            "Total assets should be equal to bufferBalance - 1000 * 10 ** 6"
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        assertEq(
+            mockArk1.totalAssets(),
+            1000 * 10 ** 6,
+            "Ark1 should have 1000 * 10 ** 6 assets"
+        );
+        assertEq(mockArk2.totalAssets(), 0, "Ark2 should have 0 assets");
     }
 
     function test_AdjustBufferInvalidTargetArk() public {
         // Arrange
-        uint256 bufferBalance = 15000 * 10 ** 6;
+        uint256 ark2Balance = 15000 * 10 ** 6;
         uint256 minBufferBalance = 10000 * 10 ** 6;
 
         // Set buffer balance and min buffer balance
         fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
 
-        mockToken.mint(address(bufferArkAddress), bufferBalance);
+        mockToken.mint(address(ark2), ark2Balance);
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](2);
         rebalanceData[0] = RebalanceData({
@@ -251,10 +260,22 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSignature("FleetCommanderInvalidBufferAdjustment()")
+        fleetCommander.rebalance(rebalanceData);
+        assertEq(
+            fleetCommander.totalAssets(),
+            ark2Balance,
+            "Total assets should be equal to initial ark2Balance"
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        assertEq(
+            mockArk1.totalAssets(),
+            1000 * 10 ** 6,
+            "Ark1 should have 1000 * 10 ** 6 assets"
+        );
+        assertEq(
+            mockArk2.totalAssets(),
+            ark2Balance - 2000 * 10 ** 6,
+            "Ark2 should have ark2Balance - 2000 * 10 ** 6 assets"
+        );
     }
 
     function test_AdjustBufferPartialMove() public {
@@ -284,7 +305,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("FleetCommanderInsufficientBuffer()")
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_AdjustBufferWithMultipleArks() public {
@@ -326,7 +347,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
 
         // Assert
         assertEq(
@@ -364,7 +385,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
 
         // Assert
         assertEq(config.bufferArk.totalAssets(), minBufferBalance);
@@ -394,7 +415,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.expectRevert(
             abi.encodeWithSignature("FleetCommanderNoExcessFunds()")
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_AdjustBufferWithZeroAmount() public {
@@ -423,7 +444,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
                 ark1
             )
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_AdjustBufferAsNonKeeper() public {
@@ -452,7 +473,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
                 address(0xdeadbeef)
             )
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_AdjustBufferWithArkAtMaxAllocation() public {
@@ -487,7 +508,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
                 5000 * 10 ** 6
             )
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_AdjustBufferFromBufferWithMaxUint_ShouldFail() public {
@@ -519,7 +540,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
                 "FleetCommanderCantUseMaxUintMovingFromBuffer()"
             )
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_AdjustBufferToBufferWithMaxUint_ShouldFail() public {
@@ -546,7 +567,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         // Act & Assert
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_AdjustBufferFromMultipleArksToBufferWithMaxUint() public {
@@ -587,12 +608,9 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         // Verify events
         vm.expectEmit(true, true, true, true);
-        emit IFleetCommanderEvents.FleetCommanderBufferAdjusted(
-            keeper,
-            ark1Balance + ark2Balance
-        );
+        emit IFleetCommanderEvents.Rebalanced(keeper, rebalanceData);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
 
         // Assert
         assertEq(
@@ -643,7 +661,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
                 5000 * 10 ** 6
             )
         );
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_AdjustBufferEventEmission() public {
@@ -668,11 +686,8 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
         vm.expectEmit(true, true, true, true);
-        emit IFleetCommanderEvents.FleetCommanderBufferAdjusted(
-            keeper,
-            rebalanceAmount
-        );
-        fleetCommander.adjustBuffer(rebalanceData);
+        emit IFleetCommanderEvents.Rebalanced(keeper, rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
     }
 
     function test_TotalAssetsConsistencyAfterBufferAdjustment() public {
@@ -701,7 +716,7 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
 
         // Assert
         uint256 finalTotalAssets = fleetCommander.totalAssets();

@@ -262,7 +262,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         // Move some funds to different arks
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark1,
@@ -271,7 +271,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         );
 
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark2,
@@ -386,7 +386,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         FleetConfig memory config = fleetCommander.getConfig();
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark1,
@@ -443,7 +443,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark1,

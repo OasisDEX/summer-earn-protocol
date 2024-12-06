@@ -33,11 +33,6 @@ interface IFleetCommanderErrors {
     );
 
     /**
-     * @notice Thrown when an invalid buffer adjustment is attempted.
-     */
-    error FleetCommanderInvalidBufferAdjustment();
-
-    /**
      * @notice Thrown when there is insufficient buffer for an operation.
      */
     error FleetCommanderInsufficientBuffer();

@@ -82,7 +82,7 @@ contract RedeemWithInterestTest is Test, TestHelpers, FleetCommanderTestBase {
 
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark1,

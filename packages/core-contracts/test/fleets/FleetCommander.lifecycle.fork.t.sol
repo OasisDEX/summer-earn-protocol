@@ -472,7 +472,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         // Advance time to move past cooldown window
         vm.warp(block.timestamp + 1 days);
         vm.prank(keeper);
-        fleet.adjustBuffer(rebalanceData);
+        fleet.rebalance(rebalanceData);
     }
 
     function accrueInterestForMorphoMarkets() internal {

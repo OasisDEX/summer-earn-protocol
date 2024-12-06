@@ -116,46 +116,6 @@
   },
   {
     "type": "function",
-    "name": "adjustBuffer",
-    "inputs": [
-      {
-        "name": "rebalanceData",
-        "type": "tuple[]",
-        "internalType": "struct RebalanceData[]",
-        "components": [
-          {
-            "name": "fromArk",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "toArk",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "boardData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "disembarkData",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "allowance",
     "inputs": [
       {
@@ -1618,25 +1578,6 @@
   },
   {
     "type": "event",
-    "name": "FleetCommanderBufferAdjusted",
-    "inputs": [
-      {
-        "name": "keeper",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "totalMoved",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "FleetCommanderDepositCapUpdated",
     "inputs": [
       {
@@ -2574,11 +2515,6 @@
   {
     "type": "error",
     "name": "FleetCommanderInvalidArkAddress",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "FleetCommanderInvalidBufferAdjustment",
     "inputs": []
   },
   {

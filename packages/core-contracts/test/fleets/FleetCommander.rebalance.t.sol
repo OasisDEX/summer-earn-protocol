@@ -421,7 +421,8 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.rebalance(rebalanceData);
     }
 
-    function test_rebalanceToBufferArk_ShouldFail() public {
+    function test_forceRebalanceToBufferArk() public {
+        mockToken.mint(ark1, 1000000000000000);
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
@@ -434,35 +435,26 @@ contract RebalanceTest is Test, TestHelpers, FleetCommanderTestBase {
 
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
-        vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderCantUseRebalanceOnBufferArk()"
-            )
-        );
-        fleetCommander.rebalance(rebalanceData);
+        vm.prank(governor);
+        fleetCommander.forceRebalance(rebalanceData);
     }
 
     function test_rebalanceFromBufferArk() public {
+        mockToken.mint(bufferArkAddress, 1000000000000000);
         // Arrange
         RebalanceData[] memory rebalanceData = new RebalanceData[](1);
         rebalanceData[0] = RebalanceData({
             fromArk: bufferArkAddress,
             toArk: ark1,
-            amount: 1000 * 10 ** 6,
+            amount: 10 * 10 ** 6,
             boardData: bytes(""),
             disembarkData: bytes("")
         });
 
         // Act
         vm.warp(INITIAL_REBALANCE_COOLDOWN);
-        vm.prank(keeper);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "FleetCommanderCantUseRebalanceOnBufferArk()"
-            )
-        );
-        fleetCommander.rebalance(rebalanceData);
+        vm.prank(governor);
+        fleetCommander.forceRebalance(rebalanceData);
     }
 
     function test_ForceRebalance() public {

@@ -404,21 +404,8 @@ contract FleetCommander is
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
         _validateReallocateAllAssets(rebalanceData);
-        // Validate that no operations are moving to or from the bufferArk
-        _validateRebalance(rebalanceData);
-        _reallocateAllAssets(rebalanceData);
-    }
-
-    /// @inheritdoc IFleetCommander
-    function adjustBuffer(
-        RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
-        _validateReallocateAllAssets(rebalanceData);
         _validateAdjustBuffer(rebalanceData);
-
-        uint256 totalMoved = _reallocateAllAssets(rebalanceData);
-
-        emit FleetCommanderBufferAdjusted(_msgSender(), totalMoved);
+        _reallocateAllAssets(rebalanceData);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -453,9 +440,8 @@ contract FleetCommander is
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor collectTip whenNotPaused {
-        // Validate that no operations are moving to or from the bufferArk
         _validateReallocateAllAssets(rebalanceData);
-        _validateRebalance(rebalanceData);
+        _validateAdjustBuffer(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
 
@@ -522,13 +508,12 @@ contract FleetCommander is
     /**
      * @notice Reallocates all assets based on the provided rebalance data
      * @param rebalanceData Array of RebalanceData structs containing information about the reallocation
-     * @return totalMoved The total amount of assets moved during the reallocation
      */
     function _reallocateAllAssets(
         RebalanceData[] calldata rebalanceData
-    ) internal returns (uint256 totalMoved) {
+    ) internal {
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            totalMoved += _reallocateAssets(rebalanceData[i]);
+            _reallocateAssets(rebalanceData[i]);
         }
         emit Rebalanced(_msgSender(), rebalanceData);
     }
@@ -633,13 +618,13 @@ contract FleetCommander is
         );
         return Math.min(pctBasedCap, ark.depositCap());
     }
+
     /**
      * @notice Withdraws assets from multiple arks in a specific order
      * @dev This function attempts to withdraw the requested amount from arks,
      *      that allow such operations, in the order of total assets held
      * @param assets The total amount of assets to withdraw
      */
-
     function _forceDisembarkFromSortedArks(uint256 assets) internal {
         ArkData[] memory withdrawableArks = _getWithdrawableArksDataFromCache();
         for (uint256 i = 0; i < withdrawableArks.length; i++) {
@@ -663,8 +648,6 @@ contract FleetCommander is
      *      the buffer balance remains above the minimum required balance.
      *      When moving to the buffer, using MAX_UINT256 as the amount will move all funds from the source Ark.
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
-     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when operations are inconsistent (all operations need
-     * to move funds in one direction)
      * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
      * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
      * @custom:error FleetCommanderCantUseMaxUintMovingFromBuffer Thrown when trying to use MAX_UINT256 amount when
@@ -673,50 +656,37 @@ contract FleetCommander is
     function _validateAdjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) internal view {
-        bool isMovingToBuffer = rebalanceData[0].toArk ==
-            address(config.bufferArk);
         uint256 initialBufferBalance = config.bufferArk.totalAssets();
-        uint256 totalToMove;
-
+        uint256 totalToMoveFromBuffer;
+        uint256 totalToMoveToBuffer;
+        address _bufferArkAddress = address(config.bufferArk);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _validateBufferAdjustmentDirection(
-                isMovingToBuffer,
-                rebalanceData[i]
-            );
-
-            uint256 amount = rebalanceData[i].amount;
-            if (amount == Constants.MAX_UINT256) {
-                if (!isMovingToBuffer) {
-                    revert FleetCommanderCantUseMaxUintMovingFromBuffer();
+            if (
+                rebalanceData[i].toArk == _bufferArkAddress ||
+                rebalanceData[i].fromArk == _bufferArkAddress
+            ) {
+                bool isMovingToBuffer = rebalanceData[0].toArk ==
+                    _bufferArkAddress;
+                uint256 amount = rebalanceData[i].amount;
+                if (amount == Constants.MAX_UINT256) {
+                    if (!isMovingToBuffer) {
+                        revert FleetCommanderCantUseMaxUintMovingFromBuffer();
+                    }
+                    amount = IArk(rebalanceData[i].fromArk).totalAssets();
                 }
-                amount = IArk(rebalanceData[i].fromArk).totalAssets();
+                if (isMovingToBuffer) {
+                    totalToMoveToBuffer += amount;
+                } else {
+                    totalToMoveFromBuffer += amount;
+                }
             }
-            totalToMove += amount;
         }
 
-        if (!isMovingToBuffer) {
-            _validateBufferExcessFunds(initialBufferBalance, totalToMove);
-        }
-    }
-
-    /**
-     * @notice Validates the direction of buffer adjustment for a single rebalance operation
-     * @dev This function ensures that the rebalance operation is consistent with the overall
-     *      direction of the buffer adjustment (either moving funds to or from the buffer).
-     * @param isMovingToBuffer A boolean indicating whether the overall operation is moving funds to the buffer
-     * @param data The RebalanceData struct containing information about the specific rebalance operation
-     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when the operation direction is inconsistent
-     *               with the overall buffer adjustment direction
-     */
-    function _validateBufferAdjustmentDirection(
-        bool isMovingToBuffer,
-        RebalanceData memory data
-    ) internal view {
-        if (
-            (isMovingToBuffer && data.toArk != address(config.bufferArk)) ||
-            (!isMovingToBuffer && data.fromArk != address(config.bufferArk))
-        ) {
-            revert FleetCommanderInvalidBufferAdjustment();
+        if (totalToMoveFromBuffer > totalToMoveToBuffer) {
+            _validateBufferExcessFunds(
+                initialBufferBalance,
+                totalToMoveFromBuffer - totalToMoveToBuffer
+            );
         }
     }
 
@@ -747,41 +717,9 @@ contract FleetCommander is
     }
 
     /**
-     * @notice Validates the rebalance operations to ensure they meet all required constraints
-     * @dev This function performs a series of checks on each rebalance operation:
-     *      1. Ensures general reallocation constraints are met
-     *      2. Verifies the buffer ark is not directly involved in rebalancing
-     * @param rebalanceData An array of RebalanceData structs, each representing a rebalance operation
-     */
-    function _validateRebalance(
-        RebalanceData[] calldata rebalanceData
-    ) internal view {
-        for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _validateBufferArkNotInvolved(rebalanceData[i]);
-        }
-    }
-
-    /**
-     * @notice Validates that the buffer ark is not directly involved in a rebalance operation
-     * @dev This function checks if either the source or destination ark in a rebalance operation is the buffer ark
-     * @param data The RebalanceData struct containing the source and destination ark addresses
-     * @custom:error FleetCommanderCantUseRebalanceOnBufferArk Thrown if the buffer ark is involved in the rebalance
-     */
-    function _validateBufferArkNotInvolved(
-        RebalanceData memory data
-    ) internal view {
-        address bufferArk = address(config.bufferArk);
-        if (data.toArk == bufferArk || data.fromArk == bufferArk) {
-            revert FleetCommanderCantUseRebalanceOnBufferArk();
-        }
-    }
-
-    /**
      * @notice Validates the asset reallocation data for correctness and consistency
      * @dev This function checks various conditions of the rebalance operations:
      *      - Number of operations is within limits
-     *      - Each operation has valid amounts and addresses
-     *      - Arks involved in the operations are active and have proper allocations
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
      */
     function _validateReallocateAllAssets(
