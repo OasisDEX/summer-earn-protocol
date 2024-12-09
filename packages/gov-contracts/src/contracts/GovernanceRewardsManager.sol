@@ -90,7 +90,7 @@ contract GovernanceRewardsManager is
     function stakeOnBehalfOf(
         address receiver,
         uint256 amount
-    ) external override updateDecay(receiver) {
+    ) external override updateDecay(receiver) updateReward(receiver) {
         _stake(_msgSender(), receiver, amount);
     }
 
@@ -101,7 +101,8 @@ contract GovernanceRewardsManager is
     function unstakeOnBehalfOf(
         address owner,
         address receiver,
-        uint256 amount
+        uint256 amount,
+        bool claimRewards
     ) external override {
         emit UnstakeOnBehalfOfIgnored(owner, receiver, amount);
     }

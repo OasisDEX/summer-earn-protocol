@@ -46,19 +46,19 @@ contract FleetCommanderRewardsManager is
     function unstakeOnBehalfOf(
         address from,
         address receiver,
-        uint256 amount
+        uint256 amount,
+        bool claimRewards
     ) external override updateReward(from) {
-        // Direct unstaking is always allowed
-        if (_msgSender() == from) {
-            _unstake(from, receiver, amount);
-            return;
-        }
-
-        // Only AdmiralsQuarters with role can unstake on behalf
-        if (!hasAdmiralsQuartersRole(_msgSender())) {
+        // Check if the caller is the same as the 'from' address or has the required role
+        if (_msgSender() != from && !hasAdmiralsQuartersRole(_msgSender())) {
             revert CallerNotAdmiralsQuarters();
         }
 
         _unstake(from, receiver, amount);
+
+        if (claimRewards) {
+            // sends claimed rewards directly to `from` address
+            _getReward(from);
+        }
     }
 }

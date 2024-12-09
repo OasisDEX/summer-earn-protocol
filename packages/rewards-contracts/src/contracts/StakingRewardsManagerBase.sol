@@ -150,23 +150,8 @@ abstract contract StakingRewardsManagerBase is
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function getReward()
-        public
-        virtual
-        nonReentrant
-        updateReward(_msgSender())
-    {
-        uint256 rewardTokenCount = _rewardTokensList.length();
-        for (uint256 i = 0; i < rewardTokenCount; i++) {
-            address rewardTokenAddress = _rewardTokensList.at(i);
-            IERC20 rewardToken = IERC20(rewardTokenAddress);
-            uint256 reward = rewards[rewardToken][_msgSender()];
-            if (reward > 0) {
-                rewards[rewardToken][_msgSender()] = 0;
-                rewardToken.safeTransfer(_msgSender(), reward);
-                emit RewardPaid(_msgSender(), address(rewardToken), reward);
-            }
-        }
+    function getReward() public virtual nonReentrant {
+        _getReward(_msgSender());
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -328,6 +313,25 @@ abstract contract StakingRewardsManagerBase is
                 rewards[rewardToken][account] = earned(account, rewardToken);
                 userRewardPerTokenPaid[rewardToken][account] = rewardTokenData
                     .rewardPerTokenStored;
+            }
+        }
+    }
+
+    /**
+     * @notice Internal function to claim rewards for an account
+     * @param account The address to claim rewards for
+     * @dev rewards go straight to the user's wallet
+     */
+    function _getReward(address account) internal updateReward(account) {
+        uint256 rewardTokenCount = _rewardTokensList.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            address rewardTokenAddress = _rewardTokensList.at(i);
+            IERC20 rewardToken = IERC20(rewardTokenAddress);
+            uint256 reward = rewards[rewardToken][account];
+            if (reward > 0) {
+                rewards[rewardToken][account] = 0;
+                rewardToken.safeTransfer(account, reward);
+                emit RewardPaid(account, address(rewardToken), reward);
             }
         }
     }

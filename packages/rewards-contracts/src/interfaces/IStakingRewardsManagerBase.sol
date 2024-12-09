@@ -82,11 +82,13 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param from The address of the account to unstake from
      * @param receiver The address of the account to receive the unstaked tokens
      * @param amount The amount of tokens to unstake
+     * @param claimRewards Whether to claim rewards before unstaking
      */
     function unstakeOnBehalfOf(
         address from,
         address receiver,
-        uint256 amount
+        uint256 amount,
+        bool claimRewards
     ) external;
 
     /* @notice Unstake staked tokens

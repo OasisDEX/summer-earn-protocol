@@ -172,7 +172,8 @@ contract AdmiralsQuarters is
 
     function unstakeAndWithdrawAssets(
         address fleetCommander,
-        uint256 shares
+        uint256 shares,
+        bool claimRewards
     ) external onlyMulticall nonReentrant {
         _validateFleetCommander(fleetCommander);
 
@@ -190,7 +191,8 @@ contract AdmiralsQuarters is
         IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
             _msgSender(),
             address(this),
-            shares
+            shares,
+            claimRewards
         );
         fleet.withdraw(type(uint256).max, _msgSender(), address(this));
 
