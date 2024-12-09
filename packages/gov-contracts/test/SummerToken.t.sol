@@ -582,4 +582,38 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(bSummerToken.balanceOf(user2), amount);
         assertEq(bSummerToken.balanceOf(owner), amount);
     }
+
+    function test_DelegateOnlyAllowedOnHubChain() public {
+        // Setup: Give user1 some tokens using deal
+        deal(address(aSummerToken), user1, 100 ether);
+
+        // Switch to a non-hub chain
+        vm.chainId(999);
+
+        // Get the hubChainId from the token contract
+        uint256 hubChainId = aSummerToken.hubChainId();
+
+        // Attempt to delegate on wrong chain - should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerToken.NotHubChain.selector,
+                999,
+                hubChainId
+            )
+        );
+        vm.prank(user1);
+        aSummerToken.delegate(user2);
+
+        // Restore original chain ID
+        vm.chainId(hubChainId);
+
+        // Verify delegation works on hub chain
+        vm.prank(user1);
+        aSummerToken.delegate(user2);
+        assertEq(
+            aSummerToken.delegates(user1),
+            user2,
+            "Delegation should succeed on hub chain"
+        );
+    }
 }

@@ -343,9 +343,6 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         // Store original chain ID
         uint256 originalChainId = block.chainid;
 
-        // Switch to a non-hub chain
-        vm.chainId(999);
-
         // Setup proposal parameters
         (
             address[] memory targets,
@@ -361,6 +358,9 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
 
         vm.prank(alice);
         aSummerToken.delegate(alice);
+
+        // Switch to a non-hub chain
+        vm.chainId(999);
 
         // Get the hubChainId from the governor contract
         uint256 expectedHubChainId = governorA.hubChainId();

@@ -33,6 +33,7 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
      * @param transferEnableDate The transfer enable date
      * @param maxSupply The maximum supply of the token
      * @param initialSupply The initial supply of the token
+     * @param hubChainId The chain ID of the hub chain
      */
     struct TokenParams {
         string name;
@@ -47,11 +48,19 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
         uint256 transferEnableDate;
         uint256 maxSupply;
         uint256 initialSupply;
+        uint32 hubChainId;
     }
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
+
+    /*
+     * @dev Error thrown when the chain is not the hub chain
+     * @param chainId The chain ID
+     * @param hubChainId The hub chain ID
+     */
+    error NotHubChain(uint256 chainId, uint256 hubChainId);
 
     /**
      * @notice Error thrown when transfers are not allowed
