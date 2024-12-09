@@ -10,6 +10,7 @@ import {
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
   RewardsManager,
+  RewardToken,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
@@ -31,6 +32,7 @@ import { FleetCommander as FleetCommanderContract } from '../../generated/templa
 import { updateVaultAPRs } from '../mappings/entities/vault'
 import { addresses } from './addressProvider'
 import * as constants from './constants'
+import { RewardTokenType } from './constants'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -58,6 +60,18 @@ export function getOrCreateRewardsManager(rewardsManagerAddress: Address): Rewar
     rewardsManager.save()
   }
   return rewardsManager
+}
+
+export function getOrCreateRewardToken(rewardTokenAddress: Address): RewardToken {
+  let rewardToken = RewardToken.load(rewardTokenAddress.toHexString())
+  if (!rewardToken) {
+    rewardToken = new RewardToken(rewardTokenAddress.toHexString())
+    const token = getOrCreateToken(rewardTokenAddress)
+    rewardToken.token = token.id
+    rewardToken.type = RewardTokenType.DEPOSIT
+    rewardToken.save()
+  }
+  return rewardToken
 }
 
 export function getOrCreatePosition(positionId: string, block: ethereum.Block): Position {
@@ -242,8 +256,6 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
-      ? vault.outputTokenSupply!
-      : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
@@ -309,8 +321,6 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
-      ? vault.outputTokenSupply!
-      : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
@@ -416,6 +426,13 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.apr90d = constants.BigDecimalConstants.ZERO
     vault.apr180d = constants.BigDecimalConstants.ZERO
     vault.apr365d = constants.BigDecimalConstants.ZERO
+
+    // Initialize arrays
+    vault.rewardTokens = []
+    vault.rewardTokenEmissionsAmount = []
+    vault.rewardTokenEmissionsUSD = []
+    vault.rewardTokenEmissionsAmountsPerOutputToken = []
+    vault.rewardTokenEmissionsFinish = []
 
     vault.save()
 
@@ -632,8 +649,6 @@ export function getOrCreateVaultsPostActionSnapshots(
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
-      ? vault.outputTokenSupply!
-      : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO

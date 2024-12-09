@@ -1,8 +1,10 @@
 import { Address, BigDecimal, ethereum } from '@graphprotocol/graph-ts'
 import { Account, Vault } from '../../../generated/schema'
-import { BigDecimalConstants } from '../../common/constants'
+import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
+import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
 import {
   getOrCreateArksPostActionSnapshots,
+  getOrCreateRewardToken,
   getOrCreateVault,
   getOrCreateVaultsPostActionSnapshots,
 } from '../../common/initializers'
@@ -49,6 +51,8 @@ export function updateVault(
   vault.pricePerShare = vaultDetails.pricePerShare
   vault.withdrawableTotalAssets = vaultDetails.withdrawableTotalAssets
   vault.withdrawableTotalAssetsUSD = vaultDetails.withdrawableTotalAssetsUSD
+  vault.rewardTokenEmissionsAmountsPerOutputToken =
+    vaultDetails.rewardTokenEmissionsAmountsPerOutputToken
   vault.save()
 }
 
@@ -143,4 +147,94 @@ function calculateAverageAPR(sum: BigDecimal, period: i32, length: i32): BigDeci
   const periodBD = BigDecimal.fromString(period.toString())
   const lengthBD = BigDecimal.fromString(length.toString())
   return length >= period ? sum.div(periodBD) : sum.div(lengthBD)
+}
+
+export function addOrUpdateVaultRewardRates(
+  vault: Vault,
+  rewardsManagerAddress: Address,
+  rewardToken: Address,
+): void {
+  const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(rewardsManagerAddress)
+  const rewardsData = rewardsManagerContract.rewardData(rewardToken)
+  const rewardTokens = vault.rewardTokens
+  const index = rewardTokens.indexOf(rewardToken.toHexString())
+
+  if (index !== -1) {
+    const rewardTokenEmissionsAmounts = vault.rewardTokenEmissionsAmount
+    rewardTokenEmissionsAmounts[index] = rewardsData
+      .getRewardRate()
+      .times(BigIntConstants.SECONDS_PER_DAY)
+    vault.rewardTokenEmissionsAmount = rewardTokenEmissionsAmounts
+
+    const rewardTokenEmissionsAmountsPerOutputToken =
+      vault.rewardTokenEmissionsAmountsPerOutputToken
+    rewardTokenEmissionsAmountsPerOutputToken[index] = vault.outputTokenSupply.gt(
+      BigIntConstants.ZERO,
+    )
+      ? rewardsData
+          .getRewardRate()
+          .times(BigIntConstants.SECONDS_PER_DAY)
+          .div(vault.outputTokenSupply)
+      : BigIntConstants.ZERO
+    vault.rewardTokenEmissionsAmountsPerOutputToken = rewardTokenEmissionsAmountsPerOutputToken
+
+    const rewardTokenEmissionsFinish = vault.rewardTokenEmissionsFinish
+    rewardTokenEmissionsFinish[index] = rewardsData.getPeriodFinish()
+    vault.rewardTokenEmissionsFinish = rewardTokenEmissionsFinish
+
+    vault.save()
+  } else {
+    const rewardTokens = vault.rewardTokens
+    const rewardTokenEntity = getOrCreateRewardToken(rewardToken)
+    rewardTokens.push(rewardTokenEntity.id)
+    vault.rewardTokens = rewardTokens
+
+    const rewardTokenEmissionsAmounts = vault.rewardTokenEmissionsAmount
+    rewardTokenEmissionsAmounts.push(
+      rewardsData.getRewardRate().times(BigIntConstants.SECONDS_PER_DAY),
+    )
+    vault.rewardTokenEmissionsAmount = rewardTokenEmissionsAmounts
+
+    const rewardTokenEmissionsAmountsPerOutputToken =
+      vault.rewardTokenEmissionsAmountsPerOutputToken
+    rewardTokenEmissionsAmountsPerOutputToken.push(
+      vault.outputTokenSupply.gt(BigIntConstants.ZERO)
+        ? rewardsData
+            .getRewardRate()
+            .times(BigIntConstants.SECONDS_PER_DAY)
+            .div(vault.outputTokenSupply)
+        : BigIntConstants.ZERO,
+    )
+    vault.rewardTokenEmissionsAmountsPerOutputToken = rewardTokenEmissionsAmountsPerOutputToken
+
+    const rewardTokenEmissionsFinish = vault.rewardTokenEmissionsFinish
+    rewardTokenEmissionsFinish.push(rewardsData.getPeriodFinish())
+    vault.rewardTokenEmissionsFinish = rewardTokenEmissionsFinish
+
+    vault.save()
+  }
+}
+
+export function removeVaultRewardRates(vault: Vault, rewardToken: Address): void {
+  const rewardTokens = vault.rewardTokens
+  const index = rewardTokens.indexOf(rewardToken.toHexString())
+
+  if (index !== -1) {
+    const rewardTokenEmissionsAmounts = vault.rewardTokenEmissionsAmount
+    const rewardTokenEmissionsAmountsPerOutputToken =
+      vault.rewardTokenEmissionsAmountsPerOutputToken
+    const rewardTokenEmissionsFinish = vault.rewardTokenEmissionsFinish
+
+    rewardTokens.splice(index, 1)
+    rewardTokenEmissionsAmounts.splice(index, 1)
+    rewardTokenEmissionsAmountsPerOutputToken.splice(index, 1)
+    rewardTokenEmissionsFinish.splice(index, 1)
+
+    vault.rewardTokens = rewardTokens
+    vault.rewardTokenEmissionsAmount = rewardTokenEmissionsAmounts
+    vault.rewardTokenEmissionsAmountsPerOutputToken = rewardTokenEmissionsAmountsPerOutputToken
+    vault.rewardTokenEmissionsFinish = rewardTokenEmissionsFinish
+
+    vault.save()
+  }
 }
