@@ -39,7 +39,7 @@ contract FleetCommanderRewardsManager is
     function stakeOnBehalfOf(
         address receiver,
         uint256 amount
-    ) external override {
+    ) external override updateReward(receiver) {
         _stake(_msgSender(), receiver, amount);
     }
 
@@ -47,7 +47,7 @@ contract FleetCommanderRewardsManager is
         address from,
         address receiver,
         uint256 amount
-    ) external override {
+    ) external override updateReward(from) {
         // Direct unstaking is always allowed
         if (_msgSender() == from) {
             _unstake(from, receiver, amount);

@@ -73,6 +73,12 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             address(0),
             address(this)
         );
+        address _stakingRewardsManager = usdcFleet
+            .getConfig()
+            .stakingRewardsManager;
+        deal(USDC_ADDRESS, address(_stakingRewardsManager), 1000e6);
+        IFleetCommanderRewardsManager(_stakingRewardsManager)
+            .notifyRewardAmount(IERC20(USDC_ADDRESS), 1000e6, 10 days);
         vm.stopPrank();
 
         // Mint tokens for users
@@ -1449,6 +1455,50 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             IERC20(USDC_ADDRESS).balanceOf(owner) - ownerBalanceBefore,
             usdcAmount,
             "Owner should have received rescued USDC"
+        );
+    }
+
+    function test_RewardsExploitViaStakeOnBehalfOf() public {
+        // Setup initial conditions
+        uint256 usdcAmount = 1000e6; // 1000 USDC
+        IFleetCommanderRewardsManager rewardsManager = IFleetCommanderRewardsManager(
+                usdcFleet.getConfig().stakingRewardsManager
+            );
+        // Mint initial USDC for testing
+        deal(USDC_ADDRESS, user1, usdcAmount);
+
+        // Advance time to accumulate all the rewards
+        vm.warp(block.timestamp + 11 days);
+
+        // User1 deposits and stakes legitimately
+        vm.startPrank(user1);
+        IERC20(USDC_ADDRESS).approve(address(usdcFleet), usdcAmount);
+        uint256 user1shares = usdcFleet.deposit(usdcAmount, user1);
+        IERC20(address(usdcFleet)).approve(
+            address(rewardsManager),
+            user1shares
+        );
+        rewardsManager.stakeOnBehalfOf(user1, user1shares);
+
+        vm.stopPrank();
+
+        // Record initial balances
+        uint256 user1Rewards = rewardsManager.earned(
+            user1,
+            IERC20(USDC_ADDRESS)
+        );
+
+        uint256 usdcBalanceUser1 = IERC20(USDC_ADDRESS).balanceOf(user1);
+
+        vm.prank(user1);
+        rewardsManager.getReward();
+
+        uint256 usdcBalanceUser1After = IERC20(USDC_ADDRESS).balanceOf(user1);
+
+        assertEq(
+            (usdcBalanceUser1After - usdcBalanceUser1) / 1e6,
+            0,
+            "User1 should have not received any rewards"
         );
     }
 }

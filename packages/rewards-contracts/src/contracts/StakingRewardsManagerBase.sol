@@ -185,10 +185,12 @@ abstract contract StakingRewardsManagerBase is
         uint256 reward,
         uint256 newRewardsDuration
     ) external onlyGovernor updateReward(address(0)) {
+        if (address(rewardToken) == address(stakingToken))
+            revert CantAddStakingTokenAsReward();
         RewardData storage rewardTokenData = rewardData[rewardToken];
 
         // If the reward token doesn't exist, add it
-        if (rewardTokenData.rewardsDuration == 0) {
+        if (!_rewardTokensList.contains(address(rewardToken))) {
             if (newRewardsDuration == 0) revert RewardsDurationCannotBeZero();
             _rewardTokensList.add(address(rewardToken));
             rewardTokenData.rewardsDuration = newRewardsDuration;
@@ -233,6 +235,8 @@ abstract contract StakingRewardsManagerBase is
         IERC20 rewardToken,
         uint256 _rewardsDuration
     ) external onlyGovernor {
+        if (!_rewardTokensList.contains(address(rewardToken)))
+            revert RewardTokenDoesNotExist();
         RewardData storage data = rewardData[rewardToken];
         if (block.timestamp <= data.periodFinish) {
             revert RewardPeriodNotComplete();
@@ -248,9 +252,8 @@ abstract contract StakingRewardsManagerBase is
     /// @notice Removes a reward token from the list of reward tokens
     /// @param rewardToken The address of the reward token to remove
     function removeRewardToken(IERC20 rewardToken) external onlyGovernor {
-        if (rewardData[rewardToken].rewardsDuration == 0) {
+        if (!_rewardTokensList.contains(address(rewardToken)))
             revert RewardTokenDoesNotExist();
-        }
         if (block.timestamp <= rewardData[rewardToken].periodFinish) {
             revert RewardPeriodNotComplete();
         }

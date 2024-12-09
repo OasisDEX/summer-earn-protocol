@@ -110,6 +110,17 @@ contract StakingRewardsManagerBaseTest is Test {
         );
     }
 
+    function test_NotifyRewardAmount_StakingToken() public {
+        vm.expectRevert(
+            abi.encodeWithSignature("CantAddStakingTokenAsReward()")
+        );
+        vm.prank(mockGovernor);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(mockStakingToken)),
+            1000 * 1e18,
+            30 days
+        );
+    }
     function test_NotifyRewardAmount_NewToken() public {
         ERC20Mock newRewardToken = new ERC20Mock();
         uint256 rewardAmount = 1000 * 1e18; // 1000 tokens
@@ -227,6 +238,15 @@ contract StakingRewardsManagerBaseTest is Test {
             rewardToken1
         );
         assertEq(newRewardsDuration, 1209600);
+    }
+
+    function test_SetRewardsDuration_NonExistingToken() public {
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        vm.prank(mockGovernor);
+        stakingRewardsManager.setRewardsDuration(
+            IERC20(address(0x789)),
+            1209600
+        );
     }
 
     function test_Stake() public {
@@ -770,6 +790,12 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(mockGovernor);
         vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
         stakingRewardsManager.removeRewardToken(rewardToken);
+    }
+
+    function test_RemoveRewardToken_RewardTokenNotInitialized() public {
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        vm.prank(mockGovernor);
+        stakingRewardsManager.removeRewardToken(IERC20(address(0)));
     }
 
     function test_Stake_StakingTokenNotInitialized() public {
