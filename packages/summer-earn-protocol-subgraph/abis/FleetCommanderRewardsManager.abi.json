@@ -778,6 +778,11 @@
   },
   {
     "type": "error",
+    "name": "CantAddStakingTokenAsReward",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "DirectGrantIsDisabled",
     "inputs": [
       {
