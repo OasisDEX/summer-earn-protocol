@@ -186,15 +186,8 @@ contract AdmiralsQuarters is
                 _msgSender()
             )
             : shares;
-        // Pass _msgSender() as onBehalfOf to ensure we can only unstake for the caller
-        // unstake to admirals quarters
-        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
-            _msgSender(),
-            address(this),
-            shares,
-            claimRewards
-        );
-        fleet.withdraw(type(uint256).max, _msgSender(), address(this));
+        IFleetCommanderRewardsManager(rewardsManager)
+            .unstakeAndWithdrawOnBehalfOf(_msgSender(), shares, claimRewards);
 
         emit FleetSharesUnstaked(_msgSender(), fleetCommander, shares);
     }

@@ -98,13 +98,12 @@ contract GovernanceRewardsManager is
      * @notice No op function to satisfy interface requirements. Emits an event but performs no state changes.
      * @dev This operation is not supported and will only emit an event
      */
-    function unstakeOnBehalfOf(
+    function unstakeAndWithdrawOnBehalfOf(
         address owner,
-        address receiver,
         uint256 amount,
         bool claimRewards
     ) external override {
-        emit UnstakeOnBehalfOfIgnored(owner, receiver, amount);
+        emit UnstakeOnBehalfOfIgnored(owner, owner, amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase

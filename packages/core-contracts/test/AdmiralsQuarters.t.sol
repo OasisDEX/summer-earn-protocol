@@ -358,12 +358,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         assertGt(stakedAmount, 0, "User should have staked balance");
 
         // Attempt to unstake directly through rewards manager
-        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
-            user1,
-            user1,
-            stakedAmount,
-            false
-        );
+        IFleetCommanderRewardsManager(rewardsManager)
+            .unstakeAndWithdrawOnBehalfOf(user1, stakedAmount, false);
 
         // Verify stake amount remains unchanged
         assertEq(
@@ -377,7 +373,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             "AdmiralsQuarters should have no fleet shares"
         );
         assertEq(
-            IERC20(address(usdcFleet)).balanceOf(address(user1)),
+            IERC20(USDC_ADDRESS).balanceOf(address(user1)),
             stakedAmount,
             "User should have received back their shares"
         );
@@ -743,12 +739,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         vm.expectRevert(
             IFleetCommanderRewardsManager.CallerNotAdmiralsQuarters.selector
         );
-        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
-            user1,
-            address(this),
-            100e6,
-            false
-        );
+        IFleetCommanderRewardsManager(rewardsManager)
+            .unstakeAndWithdrawOnBehalfOf(user1, 100e6, false);
     }
 
     function test_EnterAndExitFleetsX() public {

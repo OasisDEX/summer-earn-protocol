@@ -5,7 +5,7 @@ import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderReward
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
-
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 /**
  * @title FleetCommanderRewardsManager
  * @notice Contract for managing staking rewards specific to the Fleet system
@@ -43,22 +43,23 @@ contract FleetCommanderRewardsManager is
         _stake(_msgSender(), receiver, amount);
     }
 
-    function unstakeOnBehalfOf(
-        address from,
-        address receiver,
+    function unstakeAndWithdrawOnBehalfOf(
+        address owner,
         uint256 amount,
         bool claimRewards
-    ) external override updateReward(from) {
-        // Check if the caller is the same as the 'from' address or has the required role
-        if (_msgSender() != from && !hasAdmiralsQuartersRole(_msgSender())) {
+    ) external override updateReward(owner) {
+        // Check if the caller is the same as the 'owner' address or has the required role
+        if (_msgSender() != owner && !hasAdmiralsQuartersRole(_msgSender())) {
             revert CallerNotAdmiralsQuarters();
         }
 
-        _unstake(from, receiver, amount);
+        _unstake(owner, address(this), amount);
+        IERC20(fleetCommander).approve(fleetCommander, amount);
+        IFleetCommander(fleetCommander).redeem(amount, owner, address(this));
 
         if (claimRewards) {
-            // sends claimed rewards directly to `from` address
-            _getReward(from);
+            // sends claimed rewards directly to `owner` address
+            _getReward(owner);
         }
     }
 }

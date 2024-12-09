@@ -79,14 +79,12 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
     function stakeOnBehalfOf(address receiver, uint256 amount) external;
 
     /* @notice Unstake staked tokens on behalf of another account
-     * @param from The address of the account to unstake from
-     * @param receiver The address of the account to receive the unstaked tokens
+     * @param owner The address of the account to unstake from
      * @param amount The amount of tokens to unstake
      * @param claimRewards Whether to claim rewards before unstaking
      */
-    function unstakeOnBehalfOf(
-        address from,
-        address receiver,
+    function unstakeAndWithdrawOnBehalfOf(
+        address owner,
         uint256 amount,
         bool claimRewards
     ) external;
