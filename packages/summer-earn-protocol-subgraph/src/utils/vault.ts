@@ -33,6 +33,16 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     BigInt.fromI32(inputToken.decimals),
   )
   const withdrawableAssetsUSD = withdrawableAssetsNormalized.times(inputTokenPriceUSD.price)
+
+  const rewardTokenEmissionsAmounts = vault.rewardTokenEmissionsAmount
+  const rewardTokenEmissionsAmountsPerOutputToken = vault.rewardTokenEmissionsAmountsPerOutputToken
+
+  for (let i = 0; i < rewardTokenEmissionsAmounts.length; i++) {
+    rewardTokenEmissionsAmountsPerOutputToken[i] = totalSupply.gt(constants.BigIntConstants.ZERO)
+      ? rewardTokenEmissionsAmounts[i].div(totalSupply)
+      : constants.BigIntConstants.ZERO
+  }
+
   return new VaultDetails(
     vault.id,
     formatAmount(totalAssets, BigInt.fromI32(inputToken.decimals)).times(inputTokenPriceUSD.price),
@@ -46,5 +56,6 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     rewardsManager,
     withdrawableAssets,
     withdrawableAssetsUSD,
+    rewardTokenEmissionsAmountsPerOutputToken,
   )
 }

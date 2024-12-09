@@ -63,6 +63,7 @@ export class VaultDetails {
   rewardsManager: Address
   withdrawableTotalAssets: BigInt
   withdrawableTotalAssetsUSD: BigDecimal
+  rewardTokenEmissionsAmountsPerOutputToken: BigInt[]
   constructor(
     vaultId: string,
     totalValueLockedUSD: BigDecimal,
@@ -76,6 +77,7 @@ export class VaultDetails {
     rewardsManager: Address,
     withdrawableTotalAssets: BigInt,
     withdrawableTotalAssetsUSD: BigDecimal,
+    rewardTokenEmissionsAmountsPerOutputToken: BigInt[],
   ) {
     this.vaultId = vaultId
     this.totalValueLockedUSD = totalValueLockedUSD
@@ -89,6 +91,7 @@ export class VaultDetails {
     this.rewardsManager = rewardsManager
     this.withdrawableTotalAssets = withdrawableTotalAssets
     this.withdrawableTotalAssetsUSD = withdrawableTotalAssetsUSD
+    this.rewardTokenEmissionsAmountsPerOutputToken = rewardTokenEmissionsAmountsPerOutputToken
   }
 }
 

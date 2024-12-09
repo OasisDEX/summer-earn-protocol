@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "0.5.0-withdrawable-assets",
+  "version": "0.5.2-reward-rates",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",

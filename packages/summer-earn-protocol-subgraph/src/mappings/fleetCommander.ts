@@ -1,5 +1,8 @@
 import { Address, BigInt } from '@graphprotocol/graph-ts'
 import {
+  RewardAdded,
+  RewardsDurationUpdated,
+  RewardTokenRemoved,
   Staked,
   Unstaked,
 } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
@@ -26,7 +29,12 @@ import { formatAmount } from '../common/utils'
 import { createDepositEventEntity } from './entities/deposit'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
-import { getAndUpdateVaultAndPositionDetails, updateVaultAndArks } from './entities/vault'
+import {
+  addOrUpdateVaultRewardRates,
+  getAndUpdateVaultAndPositionDetails,
+  removeVaultRewardRates,
+  updateVaultAndArks,
+} from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
 
 export function handleRebalance(event: Rebalanced): void {
@@ -169,4 +177,29 @@ export function handleUnstaked(event: Unstaked): void {
   const normalizedAmountUSD = normalizedAmount.times(result.vaultDetails.inputTokenPriceUSD)
 
   createUnstakedEventEntity(event, amount, normalizedAmountUSD, result.positionDetails)
+}
+
+export function handleRewardTokenRemoved(event: RewardTokenRemoved): void {
+  const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
+
+  removeVaultRewardRates(vault, event.params.rewardToken)
+}
+
+export function handleRewardAdded(event: RewardAdded): void {
+  const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
+
+  addOrUpdateVaultRewardRates(vault, event.address, event.params.rewardToken)
+
+  rewardsManager.save()
+}
+
+export function handleRewardsDurationUpdated(event: RewardsDurationUpdated): void {
+  const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
+
+  addOrUpdateVaultRewardRates(vault, event.address, event.params.rewardToken)
+
+  rewardsManager.save()
 }
