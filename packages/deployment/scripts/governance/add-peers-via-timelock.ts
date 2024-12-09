@@ -401,7 +401,7 @@ async function main() {
 
   // Schedule operation
   console.log('📋 Scheduling operation...')
-  await scheduleSetPeerOperation(publicClient, walletClient, delay, selectedContract.address)
+  // await scheduleSetPeerOperation(publicClient, walletClient, delay, selectedContract.address)
 
   // Confirm execution
   const { confirmExecution } = await inquirer.prompt([
@@ -419,7 +419,7 @@ async function main() {
   }
 
   console.log('\n⏳ Waiting for timelock delay...')
-  await new Promise((resolve) => setTimeout(resolve, Number(delay + 10n) * 1000))
+  // await new Promise((resolve) => setTimeout(resolve, Number(delay + 10n) * 1000))
 
   console.log('🚀 Executing timelock operation...')
   await executeSetPeerOperation(walletClient, selectedContract.address)

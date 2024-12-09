@@ -173,6 +173,14 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   // Get governance rewards manager address from SummerToken
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
 
+  // Transfer SummerToken ownership to timelock
+  const currentOwner = (await summerToken.read.owner()) as Address
+  if (currentOwner.toLowerCase() !== timelock.address.toLowerCase()) {
+    console.log('[SUMMER TOKEN] - Transferring ownership to timelock...')
+    const hash = await summerToken.write.transferOwnership([timelock.address])
+    await publicClient.waitForTransactionReceipt({ hash })
+  }
+
   // Determine if we're on HUB chain (currently BASE chain)
   const isHubChain = (await summerGovernor.read.proposalChainId()) === hre.network.config.chainId
 
