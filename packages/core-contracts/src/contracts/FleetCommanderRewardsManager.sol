@@ -15,7 +15,7 @@ contract FleetCommanderRewardsManager is
     IFleetCommanderRewardsManager,
     StakingRewardsManagerBase
 {
-    address public fleetCommander;
+    address public immutable fleetCommander;
 
     /**
      * @notice Initializes the FleetStakingRewardsManager contract

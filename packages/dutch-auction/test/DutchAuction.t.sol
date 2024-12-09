@@ -328,21 +328,21 @@ contract DutchAuctionLibraryTest is Test {
         }
     }
 
-    function testPriceDecayExponential() public {
+    function testPriceDecayQuadratic() public {
         uint256 auctionId = _createAuction(
             auctionToken1,
-            DecayFunctions.DecayType.Exponential
+            DecayFunctions.DecayType.Quadratic
         );
         string memory json = vm.readFile(EXPECTED_PRICES_PATH);
 
-        string[] memory keys = vm.parseJsonKeys(json, ".exponential");
+        string[] memory keys = vm.parseJsonKeys(json, ".quadratic");
 
         uint256 initialBlockTimestamp = block.timestamp;
         uint256[] memory timeIntervals = getIntervals(keys);
         uint256[] memory expectedPrices = getExpectedPrices(
             json,
             keys,
-            "exponential"
+            "quadratic"
         );
         for (uint256 i = 0; i < keys.length; i++) {
             vm.warp(initialBlockTimestamp + timeIntervals[i]);
@@ -351,7 +351,7 @@ contract DutchAuctionLibraryTest is Test {
             assertEq(
                 currentPrice,
                 expectedPrices[i],
-                "Exponential price incorrect at interval"
+                "Quadratic price incorrect at interval"
             );
         }
     }
@@ -364,10 +364,10 @@ contract DutchAuctionLibraryTest is Test {
         _testAuctionLifecycle(auctionId, true);
     }
 
-    function testAuctionLifecycle_Exponential() public {
+    function testAuctionLifecycle_Quadratic() public {
         uint256 auctionId = _createAuction(
             auctionToken1,
-            DecayFunctions.DecayType.Exponential
+            DecayFunctions.DecayType.Quadratic
         );
         _testAuctionLifecycle(auctionId, false);
     }
@@ -396,7 +396,7 @@ contract DutchAuctionLibraryTest is Test {
         );
         uint256 auctionId2 = _createAuction(
             auctionToken2,
-            DecayFunctions.DecayType.Exponential
+            DecayFunctions.DecayType.Quadratic
         );
 
         vm.warp(block.timestamp + AUCTION_DURATION / 2);

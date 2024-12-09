@@ -7,16 +7,16 @@ import "./DutchAuctionMath.sol";
  * @title DecayFunctions Library
  * @author halaprix
  * @notice This library provides functions to calculate price decay for Dutch auctions
- * @dev Implements both linear and exponential decay functions
+ * @dev Implements both linear and quadratic decay functions
  */
 library DecayFunctions {
     /**
      * @notice Enum representing the types of decay functions available
-     * @dev Used to select between linear and exponential decay in calculations
+     * @dev Used to select between linear and quadratic decay in calculations
      */
     enum DecayType {
         Linear,
-        Exponential
+        Quadratic
     }
 
     /**
@@ -27,7 +27,7 @@ library DecayFunctions {
     /**
      * @notice Calculates the current price based on the specified decay type
      * @dev This function acts as a wrapper for the specific decay calculations in DutchAuctionMath
-     * @param decayType The type of decay function to use (Linear or Exponential)
+     * @param decayType The type of decay function to use (Linear or Quadratic)
      * @param startPrice The starting price of the auction (in token units)
      * @param endPrice The ending price of the auction (in token units)
      * @param timeElapsed The time elapsed since the start of the auction
@@ -41,7 +41,7 @@ library DecayFunctions {
      * 2. If the auction has ended, return the end price
      * 3. If the auction is still active, calculate the current price using the specified decay function
      * 4. For Linear decay, use DutchAuctionMath.linearDecay
-     * 5. For Exponential decay, use DutchAuctionMath.exponentialDecay
+     * 5. For Quadratic decay, use DutchAuctionMath.exponentialDecay
      *
      * @dev Note on precision:
      * - All price calculations are performed with high precision using the DutchAuctionMath library
@@ -76,7 +76,7 @@ library DecayFunctions {
                     decimals,
                     resultDecimals
                 );
-        } else if (decayType == DecayType.Exponential) {
+        } else if (decayType == DecayType.Quadratic) {
             return
                 DutchAuctionMath.exponentialDecay(
                     startPrice,

@@ -75,7 +75,7 @@ contract DutchAuctionFuzzTest is Test {
         assertApproxEqAbs(currentPrice, expectedPrice, 1);
     }
 
-    function testFuzz_GetCurrentPrice_Exponential(
+    function testFuzz_GetCurrentPrice_Quadratic(
         uint256 _duration,
         uint256 _startPrice,
         uint256 _endPrice,
@@ -102,9 +102,9 @@ contract DutchAuctionFuzzTest is Test {
             _totalTokens,
             Percentage.wrap(_kickerRewardPercentage),
             address(this),
-            DecayFunctions.DecayType.Exponential
+            DecayFunctions.DecayType.Quadratic
         );
-        // Exponential decay
+        // Quadratic decay
 
         // Warp to some time within the auction duration
         vm.warp(block.timestamp + _elapsedTime);
