@@ -431,4 +431,38 @@ contract SummerToken is
         }
         return false;
     }
+
+    /**
+     * @dev Override the send function to add whitelist checks with self-transfer allowance
+     */
+    function send(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    )
+        external
+        payable
+        virtual
+        override
+        returns (
+            MessagingReceipt memory msgReceipt,
+            OFTReceipt memory oftReceipt
+        )
+    {
+        // Decode the target address from the _sendParam.to bytes
+        address to = address(bytes20(_sendParam.to[0:20]));
+
+        // Allow transfers if:
+        // 1. Transfers are enabled globally, or
+        // 2. The target address is whitelisted, or
+        // 3. The sender is sending to themselves
+        if (
+            !transfersEnabled && !whitelistedAddresses[to] && to != msg.sender
+        ) {
+            revert TransferNotAllowed();
+        }
+
+        // Call the parent implementation to handle the actual transfer
+        return super.send(_sendParam, _fee, _refundAddress);
+    }
 }
