@@ -48,18 +48,17 @@ contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.deposit(amount, mockUser);
 
         vm.warp(block.timestamp + 10 days);
-        vm.stopPrank();
 
         uint256 previewedShares = fleetCommander.previewDeposit(amount);
-        console.log("previewedShares", previewedShares);
-        vm.prank(mockUser);
+
         mockToken.approve(address(fleetCommander), amount);
 
-        vm.prank(mockUser);
+        uint256 sharesBefore = fleetCommander.balanceOf(mockUser);
         uint256 receivedShares = fleetCommander.deposit(amount, mockUser);
-        console.log("receivedShares", receivedShares);
-
+        uint256 sharesAfter = fleetCommander.balanceOf(mockUser);
+        vm.stopPrank();
         assertEq(receivedShares, previewedShares);
+        assertEq(sharesAfter, sharesBefore + receivedShares);
     }
 
     function test_Deposit() public {
