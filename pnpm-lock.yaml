@@ -549,6 +549,9 @@ importers:
       '@summerfi/access-contracts':
         specifier: workspace:*
         version: link:../access-contracts
+      '@summerfi/constants':
+        specifier: workspace:*
+        version: link:../constants
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies

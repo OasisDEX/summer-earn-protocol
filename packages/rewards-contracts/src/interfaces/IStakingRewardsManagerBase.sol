@@ -122,6 +122,14 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
         uint256 _rewardsDuration
     ) external;
 
+    /* @notice Removes a reward token from the list of reward tokens
+     * @dev Can only be called by governor
+     * @dev Can only be called after reward period is complete
+     * @dev Can only be called if remaining balance is below dust threshold
+     * @param rewardToken The address of the reward token to remove
+     */
+    function removeRewardToken(IERC20 rewardToken) external;
+
     // Events
 
     /* @notice Emitted when a new reward is added

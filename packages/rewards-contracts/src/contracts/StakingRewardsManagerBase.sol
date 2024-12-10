@@ -12,7 +12,9 @@ import {IStakingRewardsManagerBase} from "../interfaces/IStakingRewardsManagerBa
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ReentrancyGuardTransient} from "@summerfi/dependencies/openzeppelin-next/ReentrancyGuardTransient.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 /**
  * @title StakingRewards
@@ -113,7 +115,7 @@ abstract contract StakingRewardsManagerBase is
             (((lastTimeRewardApplicable(rewardToken) -
                 rewardData[rewardToken].lastUpdateTime) *
                 rewardData[rewardToken].rewardRate *
-                1e18) / totalSupply);
+                Constants.WAD) / totalSupply);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -190,23 +192,23 @@ abstract contract StakingRewardsManagerBase is
             revert CannotChangeRewardsDuration();
         }
 
+        uint256 totalReward;
         if (block.timestamp >= rewardTokenData.periodFinish) {
-            rewardTokenData.rewardRate =
-                reward /
-                rewardTokenData.rewardsDuration;
+            totalReward = reward;
         } else {
             uint256 remaining = rewardTokenData.periodFinish - block.timestamp;
             uint256 leftover = remaining * rewardTokenData.rewardRate;
-            rewardTokenData.rewardRate =
-                (reward + leftover) /
-                rewardTokenData.rewardsDuration;
+            totalReward = reward + leftover;
         }
 
+        // Check balance first
         uint256 balance = rewardToken.balanceOf(address(this));
-        if (
-            rewardTokenData.rewardRate >
-            balance / rewardTokenData.rewardsDuration
-        ) revert ProvidedRewardTooHigh();
+        if (totalReward > balance) revert ProvidedRewardTooHigh();
+
+        // Calculate rate only once after validation
+        rewardTokenData.rewardRate =
+            totalReward /
+            rewardTokenData.rewardsDuration;
 
         rewardTokenData.lastUpdateTime = block.timestamp;
         rewardTokenData.periodFinish =
@@ -230,22 +232,36 @@ abstract contract StakingRewardsManagerBase is
         emit RewardsDurationUpdated(address(rewardToken), _rewardsDuration);
     }
 
-    /// @notice Initializes the StakingRewardsManagerBase contract
-    /// @param _stakingToken The address of the staking token
-    function _initialize(IERC20 _stakingToken) internal virtual {}
-
     /// @notice Removes a reward token from the list of reward tokens
     /// @param rewardToken The address of the reward token to remove
     function removeRewardToken(IERC20 rewardToken) external onlyGovernor {
-        if (!_rewardTokensList.contains(address(rewardToken)))
+        if (!_rewardTokensList.contains(address(rewardToken))) {
             revert RewardTokenDoesNotExist();
+        }
+
         if (block.timestamp <= rewardData[rewardToken].periodFinish) {
             revert RewardPeriodNotComplete();
         }
 
-        // Check if all tokens have been claimed
+        // Check if all tokens have been claimed, allowing a small dust balance
         uint256 remainingBalance = rewardToken.balanceOf(address(this));
-        if (remainingBalance > 0) {
+        uint256 dustThreshold;
+
+        try IERC20Metadata(address(rewardToken)).decimals() returns (
+            uint8 decimals
+        ) {
+            // For tokens with 4 or fewer decimals, use a minimum threshold of 1
+            // For tokens with more decimals, use 0.01% of 1 token
+            if (decimals <= 4) {
+                dustThreshold = 1;
+            } else {
+                dustThreshold = 100 * (10 ** (decimals - 4)); // 0.01% of 1 token
+            }
+        } catch {
+            dustThreshold = 1e12; // Default threshold for tokens without decimals
+        }
+
+        if (remainingBalance > dustThreshold) {
             revert RewardTokenStillHasBalance(remainingBalance);
         }
 
@@ -261,6 +277,10 @@ abstract contract StakingRewardsManagerBase is
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Initializes the StakingRewardsManagerBase contract
+    /// @param _stakingToken The address of the staking token
+    function _initialize(IERC20 _stakingToken) internal virtual {}
 
     function _stake(address from, address receiver, uint256 amount) internal {
         if (amount == 0) revert CannotStakeZero();
@@ -295,7 +315,7 @@ abstract contract StakingRewardsManagerBase is
             (_balances[account] *
                 (rewardPerToken(rewardToken) -
                     userRewardPerTokenPaid[rewardToken][account])) /
-            1e18 +
+            Constants.WAD +
             rewards[rewardToken][account];
     }
 

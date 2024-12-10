@@ -11,6 +11,14 @@ import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IPro
 import {IStakingRewardsManagerBase} from "../src/interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
+contract ERC20MockWithoutDecimals is ERC20Mock {
+    constructor() ERC20Mock() {}
+
+    function decimals() public pure override returns (uint8) {
+        revert("decimals() not implemented");
+    }
+}
+
 contract StakingRewardsManagerBaseTest is Test {
     MockStakingRewardsManager public stakingRewardsManager;
     ERC20Mock public stakingToken;
@@ -21,6 +29,8 @@ contract StakingRewardsManagerBaseTest is Test {
     address public alice;
     address public bob;
     ERC20Mock public mockStakingToken;
+    ERC20Mock public rewardTokenWithDecimals;
+    ERC20MockWithoutDecimals public rewardTokenWithoutDecimals;
 
     uint256 constant INITIAL_REWARD_AMOUNT = 1000000 * 1e18;
     uint256 constant INITIAL_STAKE_AMOUNT = 100000 * 1e18;
@@ -34,6 +44,8 @@ contract StakingRewardsManagerBaseTest is Test {
         // Deploy mock tokens
         console.log("Deploying mock tokens");
         mockStakingToken = new ERC20Mock();
+        rewardTokenWithDecimals = new ERC20Mock();
+        rewardTokenWithoutDecimals = new ERC20MockWithoutDecimals();
         for (uint256 i = 0; i < 3; i++) {
             rewardTokens.push(new ERC20Mock());
         }
@@ -69,6 +81,16 @@ contract StakingRewardsManagerBaseTest is Test {
         mockStakingToken.approve(
             address(stakingRewardsManager),
             type(uint256).max
+        );
+
+        // Mint initial tokens for reward tokens
+        rewardTokenWithDecimals.mint(
+            address(stakingRewardsManager),
+            1000 * 1e18
+        );
+        rewardTokenWithoutDecimals.mint(
+            address(stakingRewardsManager),
+            1000 * 1e18
         );
     }
 
@@ -610,7 +632,7 @@ contract StakingRewardsManagerBaseTest is Test {
         (
             uint256 periodFinish,
             uint256 rewardRate,
-            uint256 rewardsDuration,
+            ,
             uint256 lastUpdateTimeBefore,
             uint256 rewardPerTokenStoredBefore
         ) = stakingRewardsManager.rewardData(IERC20(address(rewardTokens[0])));
@@ -816,5 +838,55 @@ contract StakingRewardsManagerBaseTest is Test {
             abi.encodeWithSignature("StakingTokenNotInitialized()")
         );
         uninitializedManager.stake(100);
+    }
+
+    function test_RemoveRewardToken_WithDecimals() public {
+        // Notify reward amount
+        vm.prank(mockGovernor);
+        stakingRewardsManager.notifyRewardAmount(
+            rewardTokenWithDecimals,
+            1000 * 1e18,
+            7 days
+        );
+
+        // Fast forward past reward period
+        vm.warp(block.timestamp + 8 days);
+
+        // Simulate claiming rewards, leaving only dust (0.00001 tokens)
+        vm.startPrank(address(stakingRewardsManager));
+        uint256 balance = rewardTokenWithDecimals.balanceOf(
+            address(stakingRewardsManager)
+        );
+        rewardTokenWithDecimals.transfer(address(1), balance - 1e13); // Leave 0.00001 tokens as dust
+        vm.stopPrank();
+
+        // Should succeed with dust amount
+        vm.prank(mockGovernor);
+        stakingRewardsManager.removeRewardToken(rewardTokenWithDecimals);
+    }
+
+    function test_RemoveRewardToken_WithoutDecimals() public {
+        // Notify reward amount
+        vm.prank(mockGovernor);
+        stakingRewardsManager.notifyRewardAmount(
+            rewardTokenWithoutDecimals,
+            1000 * 1e18,
+            7 days
+        );
+
+        // Fast forward past reward period
+        vm.warp(block.timestamp + 8 days);
+
+        // Simulate claiming rewards, leaving only dust (0.000001 tokens)
+        vm.startPrank(address(stakingRewardsManager));
+        uint256 balance = rewardTokenWithoutDecimals.balanceOf(
+            address(stakingRewardsManager)
+        );
+        rewardTokenWithoutDecimals.transfer(address(1), balance - 1e12); // Leave 0.000001 tokens as dust
+        vm.stopPrank();
+
+        // Should succeed with dust amount
+        vm.prank(mockGovernor);
+        stakingRewardsManager.removeRewardToken(rewardTokenWithoutDecimals);
     }
 }

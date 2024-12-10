@@ -4,3 +4,4 @@
 forge-std/=node_modules/@summerfi/dependencies/lib/forge-std/src/
 @summerfi/voting-decay/=node_modules/@summerfi/voting-decay/src/
 @prb/math/=node_modules/@summerfi/dependencies/lib/prb-math/
+@summerfi/constants/=node_modules/@summerfi/constants/src/

@@ -679,7 +679,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             "Should have no staked balance"
         );
         assertEq(
-            IERC20(USDC_ADDRESS).balanceOf(address(user1)),
+            IERC20(USDC_ADDRESS).balanceOf(user1),
             initialUserBalance,
             "User should have received all USDC"
         );
@@ -704,7 +704,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             0,
             "No rewards should be stuck in AdmiralsQuarters"
         );
-
         vm.stopPrank();
     }
     function test_unstakeAndWithdrawAssets_DirectUnstakeReverts() public {
@@ -1579,5 +1578,246 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             0,
             "User1 should have not received any rewards"
         );
+    }
+
+    function test_unstakeAndWithdrawAssets_Full_ClaimRewards_WithDust() public {
+        vm.prank(governor);
+        accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
+
+        // Wait for first reward period to finish
+        vm.warp(block.timestamp + 10 days + 1);
+
+        // Calculate a safe reward amount based on duration
+        uint256 rewardDuration = 10 days;
+        // We want rewardRate (reward/duration) to be less than balance/duration
+        // So reward needs to be less than balance
+        uint256 rewardAmount = 100e18; // Much smaller amount to ensure rate is acceptable
+
+        // Notify rewards
+        vm.startPrank(governor);
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            // First deal tokens to the rewards manager
+            deal(address(rewardTokens[i]), rewardsManager, rewardAmount);
+
+            // Then notify the reward amount
+            IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
+                rewardTokens[i],
+                rewardAmount,
+                rewardDuration
+            );
+        }
+        vm.stopPrank();
+
+        // User stakes
+        vm.startPrank(user1);
+        uint256 depositAmount = 100e6;
+        uint256 initialUserBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
+        IERC20(USDC_ADDRESS).approve(address(admiralsQuarters), depositAmount);
+
+        // Deposit and stake
+        bytes[] memory calls = new bytes[](3);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), depositAmount)
+        );
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (
+                address(usdcFleet),
+                IERC20(USDC_ADDRESS),
+                depositAmount,
+                address(admiralsQuarters)
+            )
+        );
+        calls[2] = abi.encodeCall(
+            admiralsQuarters.stake,
+            (address(usdcFleet), 0)
+        );
+        admiralsQuarters.multicall(calls);
+
+        // Verify initial staking state
+        assertGt(
+            IFleetCommanderRewardsManager(rewardsManager).balanceOf(user1),
+            0,
+            "User should have staked balance before unstaking"
+        );
+
+        // Let 11 days pass (slightly more than reward period)
+        vm.warp(block.timestamp + 11 days);
+
+        // Verify rewards are available
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            assertGt(
+                IFleetCommanderRewardsManager(rewardsManager).earned(
+                    user1,
+                    rewardTokens[i]
+                ),
+                0,
+                "User should have earned rewards before unstaking"
+            );
+        }
+
+        // Unstake all shares and claim rewards
+        bytes[] memory calls2 = new bytes[](1);
+        calls2[0] = abi.encodeCall(
+            admiralsQuarters.unstakeAndWithdrawAssets,
+            (address(usdcFleet), 0, true)
+        );
+        admiralsQuarters.multicall(calls2);
+
+        // Verify final state
+        assertEq(
+            IFleetCommanderRewardsManager(rewardsManager).balanceOf(user1),
+            0,
+            "Should have no staked balance"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(user1),
+            initialUserBalance,
+            "User should have received all USDC"
+        );
+        assertEq(
+            usdcFleet.balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no shares"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no USDC"
+        );
+
+        // Check rewards balances
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            uint256 userRewardBalance = rewardTokens[i].balanceOf(user1);
+            assertGt(
+                userRewardBalance,
+                90e18, // Should have received most of the 100 tokens
+                "User should have received majority of rewards"
+            );
+
+            uint256 rewardsManagerBalance = rewardTokens[i].balanceOf(
+                rewardsManager
+            );
+            assertGt(
+                rewardsManagerBalance,
+                0,
+                "Some dust should remain in RewardsManager"
+            );
+            assertLt(
+                rewardsManagerBalance,
+                1e16, // Less than 0.01 tokens
+                "Only dust amount should remain in RewardsManager"
+            );
+        }
+
+        vm.stopPrank();
+    }
+
+    function test_RemoveRewardToken_FailsWithTooMuchBalance() public {
+        vm.prank(governor);
+        accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
+
+        // Get rewards manager from fleet config
+        vm.startPrank(governor);
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+
+        // First clear any existing rewards from setup
+        vm.warp(block.timestamp + 10 days + 1); // Wait for existing rewards period to finish
+
+        // Add new rewards with significant balance
+        uint256 rewardAmount = 100e18;
+        uint256 rewardDuration = 10 days;
+
+        // Deal tokens and notify rewards
+        deal(address(rewardTokens[0]), rewardsManager, rewardAmount);
+        IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
+            rewardTokens[0],
+            rewardAmount,
+            rewardDuration
+        );
+
+        vm.warp(block.timestamp + 10 days + 1);
+
+        // Try to remove reward token while significant balance remains
+        // Should fail because balance is above dust threshold
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RewardTokenStillHasBalance(uint256)",
+                rewardAmount
+            )
+        );
+        IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(
+            rewardTokens[0]
+        );
+        vm.stopPrank();
+    }
+
+    function test_RemoveRewardToken_SucceedsWithDust() public {
+        vm.prank(governor);
+        accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
+
+        // First clear any existing rewards from setup
+        vm.warp(block.timestamp + 10 days + 1);
+
+        ERC20 usdc = ERC20(USDC_ADDRESS);
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+
+        // Setup: Give user1 some USDC and approve spending
+        vm.startPrank(user1);
+        deal(address(usdc), user1, 1000e6); // 1000 USDC
+        usdc.approve(address(admiralsQuarters), type(uint256).max);
+        vm.stopPrank();
+
+        // Calculate a reward amount that divides evenly by the duration
+        uint256 rewardDuration = 864000; // 10 days in seconds
+        uint256 rewardRate = 1000e6; // 1000 USDC per second
+        uint256 rewardAmount = rewardRate * rewardDuration; // This will divide evenly
+
+        // First transfer USDC to the rewards manager and setup rewards
+        vm.startPrank(governor);
+        deal(address(usdc), rewardsManager, rewardAmount);
+        IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
+            usdc,
+            rewardAmount,
+            rewardDuration
+        );
+        vm.stopPrank();
+
+        // User stakes into the fleet
+        vm.startPrank(user1);
+        uint256 depositAmount = 100e6;
+        bytes[] memory calls = new bytes[](3);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (usdc, depositAmount)
+        );
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(usdcFleet), usdc, depositAmount, address(admiralsQuarters))
+        );
+        calls[2] = abi.encodeCall(
+            admiralsQuarters.stake,
+            (address(usdcFleet), 0)
+        );
+        admiralsQuarters.multicall(calls);
+
+        // Wait for rewards period
+        vm.warp(block.timestamp + rewardDuration + 1);
+
+        // Unstake and claim rewards
+        bytes[] memory unstakeCalls = new bytes[](1);
+        unstakeCalls[0] = abi.encodeCall(
+            admiralsQuarters.unstakeAndWithdrawAssets,
+            (address(usdcFleet), 0, true)
+        );
+        admiralsQuarters.multicall(unstakeCalls);
+        vm.stopPrank();
+
+        // Now try to remove the reward token as governor
+        vm.startPrank(governor);
+        IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(usdc);
+        vm.stopPrank();
     }
 }
