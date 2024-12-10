@@ -35,7 +35,6 @@ contract FleetCommander is
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
     using Math for uint256;
-    uint256 public counter;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
