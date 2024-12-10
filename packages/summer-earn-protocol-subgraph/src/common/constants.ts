@@ -104,6 +104,7 @@ export const BLACKLISTED_TRANSACTION: Bytes[] = []
 export class BigDecimalConstants {
   static ZERO: BigDecimal = BigDecimal.fromString('0')
   static FIVE_BPS: BigDecimal = BigDecimal.fromString('0.0005')
+  static TEN_PERCENT: BigDecimal = BigDecimal.fromString('0.1')
   static ONE: BigDecimal = BigDecimal.fromString('1')
   static TWO: BigDecimal = BigDecimal.fromString('2')
   static SEVEN: BigDecimal = BigDecimal.fromString('7')

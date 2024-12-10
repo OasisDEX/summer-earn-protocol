@@ -29,6 +29,8 @@ export class BigIntConstants {
   static TEN_MINUTES_IN_SECONDS: BigInt = BigInt.fromI32(600)
   static TWENTY_MINUTES_IN_SECONDS: BigInt = BigInt.fromI32(1200)
   static THIRTY_MINUTES_IN_SECONDS: BigInt = BigInt.fromI32(1800)
+  static WEEK_IN_SECONDS: BigInt = BigInt.fromI32(604800)
+  static EPOCH_WEEK_OFFSET: BigInt = BigInt.fromI32(345600)
   static HOUR_IN_SECONDS: BigInt = BigInt.fromI32(3600)
   static DAY_IN_SECONDS: BigInt = BigInt.fromI32(86400)
   static YEAR_IN_SECONDS: BigInt = BigInt.fromI32(31536000)

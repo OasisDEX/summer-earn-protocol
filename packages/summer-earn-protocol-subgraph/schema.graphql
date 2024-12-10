@@ -362,7 +362,7 @@ type Vault @entity @regularPolling {
   outputToken: Token
 
   " Aditional tokens that are given as reward for position in a protocol, usually in liquidity mining programs. e.g. SUSHI in the Onsen program, MATIC for Aave Polygon "
-  rewardTokens: [RewardToken!]
+  rewardTokens: [RewardToken!]!
 
   " DEPRECATED (use depositCap instead): Some vaults have a deposit cap. This is in input token amount "
   depositLimit: BigInt!
@@ -406,13 +406,19 @@ type Vault @entity @regularPolling {
   inputTokenBalance: BigInt!
 
   " Total supply of output token "
-  outputTokenSupply: BigInt
+  outputTokenSupply: BigInt!
 
   " Price per share of output token in USD "
   outputTokenPriceUSD: BigDecimal
 
   " Price of input token in USD "
   inputTokenPriceUSD: BigDecimal
+
+  " Total withdrawable assets "
+  withdrawableTotalAssets: BigInt
+
+  " Total withdrawable assets in USD "
+  withdrawableTotalAssetsUSD: BigDecimal
 
   " Amount of input token per full share of output token. Usually corresponds to the value of `pricePerShare` or `pricePerFullShare` in the vault contract. "
   pricePerShare: BigDecimal
@@ -421,7 +427,13 @@ type Vault @entity @regularPolling {
   stakedOutputTokenAmount: BigInt
 
   " Per-block reward token emission as of the current block normalized to a day, in token's native amount. This should be ideally calculated as the theoretical rate instead of the realized amount. "
-  rewardTokenEmissionsAmount: [BigInt!]
+  rewardTokenEmissionsAmount: [BigInt!]!
+
+  " Per-block reward token emission as of the current block normalized to a day, in token's native amount. This should be ideally calculated as the theoretical rate instead of the realized amount. "
+  rewardTokenEmissionsAmountsPerOutputToken: [BigInt!]!
+
+  " Duration of the reward token emission in seconds "
+  rewardTokenEmissionsFinish: [BigInt!]!
 
   " Per-block reward token emission as of the current block normalized to a day, in USD value. This should be ideally calculated as the theoretical rate instead of the realized amount. "
   rewardTokenEmissionsUSD: [BigDecimal!]
@@ -456,6 +468,7 @@ type Vault @entity @regularPolling {
   apr365d: BigDecimal!
 
   lastUpdateTimestamp: BigInt!
+  lastUpdatePricePerShare: BigDecimal!
 
   arks: [Ark!]! @derivedFrom(field: "vault")
   arksArray: [Ark!]!
@@ -1110,12 +1123,14 @@ type Ark @entity @regularPolling {
 
   " Calculated APR based on earnings between updates "
   calculatedApr: BigDecimal!
+  " Cumulative deposits since last update [ helper field ] "
+  _cumulativeDeposits: BigInt!
 
-  " Cumulative deposits since last update "
-  cumulativeDeposits: BigInt!
+  " Cumulative withdrawals since last update [ helper field ] "
+  _cumulativeWithdrawals: BigInt!
 
-  " Cumulative withdrawals since last update "
-  cumulativeWithdrawals: BigInt!
+  " Last update input token balance [ helper field ] "
+  _lastUpdateInputTokenBalance: BigInt!
 
   " Current total assets in the Ark "
   inputTokenBalance: BigInt!
