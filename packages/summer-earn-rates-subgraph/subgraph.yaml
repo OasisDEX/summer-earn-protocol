@@ -8,7 +8,7 @@ dataSources:
     network: arbitrum-one
     source:
       abi: Comet
-      startBlock: 159160679
+      startBlock: 270009806
       address: "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3"
     mapping:
       kind: ethereum/events
