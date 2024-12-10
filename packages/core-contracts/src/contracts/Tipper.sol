@@ -154,8 +154,8 @@ abstract contract Tipper is ITipper {
         tippedShares = previewTip(tipJar, totalSupply);
 
         if (tippedShares > 0) {
-            _mintTip(tipJar, tippedShares);
             lastTipTimestamp = block.timestamp;
+            _mintTip(tipJar, tippedShares);
             emit TipAccrued(tippedShares);
         }
     }
