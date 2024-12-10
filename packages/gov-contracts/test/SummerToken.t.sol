@@ -582,4 +582,51 @@ contract SummerTokenTest is SummerTokenTestBase {
         assertEq(bSummerToken.balanceOf(user2), amount);
         assertEq(bSummerToken.balanceOf(owner), amount);
     }
+
+    function test_CrossChainWhitelist() public {
+        uint256 tokensToSend = 1 ether;
+        deal(address(aSummerToken), user1, tokensToSend);
+
+        // Add user2 to the whitelist
+        aSummerToken.addToWhitelist(user2);
+
+        // Prepare SendParam for a whitelisted address
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(200000, 0);
+        SendParam memory sendParam = SendParam(
+            bEid,
+            addressToBytes32(user2),
+            tokensToSend,
+            tokensToSend,
+            options,
+            "",
+            ""
+        );
+        MessagingFee memory fee = aSummerToken.quoteSend(sendParam, false);
+
+        // Attempt to send tokens to a whitelisted address
+        vm.deal(user1, 1 ether);
+        vm.prank(user1);
+        aSummerToken.send{value: fee.nativeFee}(
+            sendParam,
+            fee,
+            payable(address(this))
+        );
+
+        // Verify tokens were sent (only on source chain for testing convenience)
+        assertEq(aSummerToken.balanceOf(user1), 0);
+
+        // Remove user2 from the whitelist
+        aSummerToken.removeFromWhitelist(user2);
+
+        // Attempt to send tokens to a non-whitelisted address should revert
+        vm.prank(user1);
+        vm.expectRevert(ISummerToken.TransferNotAllowed.selector);
+        aSummerToken.send{value: fee.nativeFee}(
+            sendParam,
+            fee,
+            payable(address(this))
+        );
+    }
 }

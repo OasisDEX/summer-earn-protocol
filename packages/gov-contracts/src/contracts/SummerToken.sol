@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {OFT, OFTCore} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -23,6 +23,7 @@ import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 import {DecayController} from "./DecayController.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title SummerToken
@@ -87,6 +88,70 @@ contract SummerToken is
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Override the send function to add whitelist checks with self-transfer allowance
+     */
+    function send(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    )
+        external
+        payable
+        override(IOFT, OFTCore)
+        returns (
+            MessagingReceipt memory msgReceipt,
+            OFTReceipt memory oftReceipt
+        )
+    {
+        // Convert bytes32 to address using uint256 cast
+        address to = address(uint160(uint256(_sendParam.to)));
+
+        // Allow transfers if:
+        // 1. Transfers are enabled globally, or
+        // 2. The target address is whitelisted, or
+        // 3. The sender is sending to themselves
+        if (
+            !transfersEnabled && !whitelistedAddresses[to] && to != msg.sender
+        ) {
+            revert TransferNotAllowed();
+        }
+
+        // Debit the sender's balance
+        (uint256 amountSentLD, uint256 amountReceivedLD) = _debit(
+            msg.sender,
+            _sendParam.amountLD,
+            _sendParam.minAmountLD,
+            _sendParam.dstEid
+        );
+
+        // Build the message and options for LayerZero
+        (bytes memory message, bytes memory options) = _buildMsgAndOptions(
+            _sendParam,
+            amountReceivedLD
+        );
+
+        // Send the message to the LayerZero endpoint
+        msgReceipt = _lzSend(
+            _sendParam.dstEid,
+            message,
+            options,
+            _fee,
+            _refundAddress
+        );
+
+        // Formulate the OFT receipt
+        oftReceipt = OFTReceipt(amountSentLD, amountReceivedLD);
+
+        emit OFTSent(
+            msgReceipt.guid,
+            _sendParam.dstEid,
+            msg.sender,
+            amountSentLD,
+            amountReceivedLD
+        );
+    }
 
     /// @inheritdoc ISummerToken
     function getDecayFreeWindow() external view returns (uint40) {
@@ -430,39 +495,5 @@ contract SummerToken is
             return true;
         }
         return false;
-    }
-
-    /**
-     * @dev Override the send function to add whitelist checks with self-transfer allowance
-     */
-    function send(
-        SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address _refundAddress
-    )
-        external
-        payable
-        virtual
-        override
-        returns (
-            MessagingReceipt memory msgReceipt,
-            OFTReceipt memory oftReceipt
-        )
-    {
-        // Decode the target address from the _sendParam.to bytes
-        address to = address(bytes20(_sendParam.to[0:20]));
-
-        // Allow transfers if:
-        // 1. Transfers are enabled globally, or
-        // 2. The target address is whitelisted, or
-        // 3. The sender is sending to themselves
-        if (
-            !transfersEnabled && !whitelistedAddresses[to] && to != msg.sender
-        ) {
-            revert TransferNotAllowed();
-        }
-
-        // Call the parent implementation to handle the actual transfer
-        return super.send(_sendParam, _fee, _refundAddress);
     }
 }
