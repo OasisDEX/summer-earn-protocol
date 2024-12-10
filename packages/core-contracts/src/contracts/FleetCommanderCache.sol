@@ -47,6 +47,22 @@ contract FleetCommanderCache {
     using StorageSlot for *;
 
     /**
+     * @dev Checks if the FleetCommander is currently performing a trnsaction that includes a tip
+     * @return bool True if collecting tips, false otherwise
+     */
+    function _isCollectingTip() internal view returns (bool) {
+        return StorageSlots.TIP_TAKEN_STORAGE.asBoolean().tload();
+    }
+
+    /**
+     * @dev Sets the isCollectingTip flag
+     * @param value The value to set the flag to
+     */
+    function _setIsCollectingTip(bool value) internal {
+        StorageSlots.TIP_TAKEN_STORAGE.asBoolean().tstore(value);
+    }
+
+    /**
      * @dev Calculates the total assets across all arks
      * @param arks Array of ark addresses
      * @param bufferArk The buffer ark instance

@@ -62,8 +62,11 @@ contract FleetCommander is
      * @dev Modifier to collect the tip before any other action is taken
      */
     modifier collectTip() {
-        _accrueTip(tipJar());
+        _setIsCollectingTip(true);
+        _accrueTip(tipJar(), totalSupply());
+
         _;
+        _setIsCollectingTip(false);
     }
 
     /**
@@ -125,6 +128,7 @@ contract FleetCommander is
     )
         public
         override(ERC4626, IFleetCommander)
+        collectTip
         useWithdrawCache
         whenNotPaused
         returns (uint256 assets)
@@ -178,6 +182,7 @@ contract FleetCommander is
     )
         public
         override(ERC4626, IFleetCommander)
+        collectTip
         useWithdrawCache
         whenNotPaused
         returns (uint256 shares)
@@ -308,12 +313,34 @@ contract FleetCommander is
 
     /// @inheritdoc IFleetCommander
     function tip() public whenNotPaused returns (uint256) {
-        return _accrueTip(tipJar());
+        return _accrueTip(tipJar(), totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Overrides the totalSupply function to include the tip shares
+     * @dev This is done to ensure that the totalSupply is always accurate, even when tips are being accrued
+     * @dev This is done by checking if the _isCollectingTip flag is set, and if it is, return the totalSupply
+     * @dev If the _isCollectingTip flag is not set, then we need to accrue the tips and return the totalSupply + the previewTip
+     * @dev when collecting fee we require totalSupply to be the pre tip totalSupply, after the tip is collected the totalSupply will include the tip shares
+     * @dev when called in view functions we need to return the totalSupply + the previewTip
+     * @return uint256 The total supply of the FleetCommander, including tip shares
+     */
+    function totalSupply()
+        public
+        view
+        override(ERC20, IERC20)
+        returns (uint256)
+    {
+        if (_isCollectingTip()) {
+            return super.totalSupply();
+        }
+        uint256 totalSupply = super.totalSupply();
+        return totalSupply + previewTip(tipJar(), totalSupply);
+    }
 
     /// @inheritdoc IFleetCommander
     function totalAssets()
@@ -419,7 +446,7 @@ contract FleetCommander is
         // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision
         // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
-        _setTipRate(newTipRate, tipJar());
+        _setTipRate(newTipRate, tipJar(), totalSupply());
     }
 
     /// @inheritdoc IFleetCommander

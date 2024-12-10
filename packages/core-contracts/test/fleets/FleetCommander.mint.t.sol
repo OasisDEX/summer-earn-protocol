@@ -226,4 +226,44 @@ contract MintTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(mockUser);
         fleetCommander.mint(excessAmount, mockUser);
     }
+
+    function test_Mint_withTip() public {
+        uint256 shares = MINT_AMOUNT;
+
+        _mockArkTotalAssets(ark1, 0);
+        _mockArkTotalAssets(ark2, 0);
+
+        fleetCommanderStorageWriter.setTipRate(1e18);
+
+        // First mint to establish initial state
+        uint256 assets = fleetCommander.previewMint(shares);
+        mockToken.mint(mockUser, assets * 10);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), assets);
+        fleetCommander.mint(shares, mockUser);
+
+        // Advance time to accrue tip
+        vm.warp(block.timestamp + 10 days);
+
+        // Second mint after tip accrual
+        uint256 previewedAssets = fleetCommander.previewMint(shares);
+
+        mockToken.approve(address(fleetCommander), previewedAssets);
+
+        uint256 sharesBefore = fleetCommander.balanceOf(mockUser);
+        uint256 mintedAssets = fleetCommander.mint(shares, mockUser);
+        uint256 sharesAfter = fleetCommander.balanceOf(mockUser);
+        vm.stopPrank();
+        assertEq(
+            mintedAssets,
+            previewedAssets,
+            "Minted assets should match preview"
+        );
+        assertEq(
+            sharesAfter,
+            sharesBefore + shares,
+            "Shares should increase by minted shares"
+        );
+    }
 }

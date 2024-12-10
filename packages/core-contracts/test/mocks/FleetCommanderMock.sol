@@ -86,11 +86,11 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     }
 
     function setTipRate(Percentage newTipRate) external {
-        _setTipRate(newTipRate, tipJar);
+        _setTipRate(newTipRate, tipJar, totalSupply());
     }
 
     function tip() public returns (uint256) {
-        return _accrueTip(tipJar);
+        return _accrueTip(tipJar, totalSupply());
     }
 
     function addArk(address ark) external {

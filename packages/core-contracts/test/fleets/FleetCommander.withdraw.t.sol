@@ -603,4 +603,178 @@ contract WithdrawTest is Test, TestHelpers, FleetCommanderTestBase {
             "User should receive all assets"
         );
     }
+
+    function test_Withdraw_withTip() public {
+        // Initial setup and deposit
+        fleetCommanderStorageWriter.setTipRate(1e18);
+        mockToken.mint(mockUser, DEPOSIT_AMOUNT * 2);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), DEPOSIT_AMOUNT);
+        uint256 sharesBefore = fleetCommander.balanceOf(mockUser);
+        uint256 receivedShares = fleetCommander.deposit(
+            DEPOSIT_AMOUNT,
+            mockUser
+        );
+        uint256 sharesAfter = fleetCommander.balanceOf(mockUser);
+
+        // Advance time to accrue tip
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 withdrawAmount = DEPOSIT_AMOUNT / 2;
+        uint256 previewedShares = fleetCommander.previewWithdraw(
+            withdrawAmount
+        );
+        uint256 balanceBefore = mockToken.balanceOf(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdraw(
+            withdrawAmount,
+            mockUser,
+            mockUser
+        );
+        uint256 balanceAfter = mockToken.balanceOf(mockUser);
+        uint256 sharesAfterRedemption = fleetCommander.balanceOf(mockUser);
+        vm.stopPrank();
+
+        assertEq(
+            sharesRedeemed,
+            previewedShares,
+            "Redeemed shares should match preview"
+        );
+        assertEq(
+            balanceAfter,
+            balanceBefore + withdrawAmount,
+            "Should receive correct withdrawal amount"
+        );
+        assertEq(
+            sharesAfter,
+            sharesBefore + receivedShares,
+            "User should have remaining shares"
+        );
+        assertEq(
+            sharesAfterRedemption,
+            sharesAfter - sharesRedeemed,
+            "User should have remaining shares after redemption"
+        );
+    }
+
+    function test_WithdrawFromBuffer_withTip() public {
+        // Initial setup and deposit
+        fleetCommanderStorageWriter.setTipRate(1e18);
+        mockToken.mint(mockUser, DEPOSIT_AMOUNT * 2);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), DEPOSIT_AMOUNT);
+        uint256 sharesBefore = fleetCommander.balanceOf(mockUser);
+        uint256 receivedShares = fleetCommander.deposit(
+            DEPOSIT_AMOUNT,
+            mockUser
+        );
+        uint256 sharesAfter = fleetCommander.balanceOf(mockUser);
+
+        // Advance time to accrue tip
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 withdrawAmount = DEPOSIT_AMOUNT / 2;
+        uint256 previewedShares = fleetCommander.previewWithdraw(
+            withdrawAmount
+        );
+        uint256 balanceBefore = mockToken.balanceOf(mockUser);
+        uint256 sharesRedeemed = fleetCommander.withdrawFromBuffer(
+            withdrawAmount,
+            mockUser,
+            mockUser
+        );
+        uint256 balanceAfter = mockToken.balanceOf(mockUser);
+        uint256 sharesAfterRedemption = fleetCommander.balanceOf(mockUser);
+        vm.stopPrank();
+
+        assertEq(
+            sharesRedeemed,
+            previewedShares,
+            "Redeemed shares should match preview"
+        );
+        assertEq(
+            balanceAfter,
+            balanceBefore + withdrawAmount,
+            "Should receive correct withdrawal amount"
+        );
+        assertEq(
+            sharesAfter,
+            sharesBefore + receivedShares,
+            "User should have remaining shares"
+        );
+        assertEq(
+            sharesAfterRedemption,
+            sharesAfter - sharesRedeemed,
+            "User should have remaining shares after redemption"
+        );
+    }
+
+    function test_WithdrawFromArks_withTip() public {
+        // Initial setup and deposit
+        fleetCommanderStorageWriter.setTipRate(1e18);
+        mockToken.mint(mockUser, DEPOSIT_AMOUNT * 2);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), DEPOSIT_AMOUNT);
+        uint256 sharesBefore = fleetCommander.balanceOf(mockUser);
+        uint256 receivedShares = fleetCommander.deposit(
+            DEPOSIT_AMOUNT,
+            mockUser
+        );
+        uint256 sharesAfter = fleetCommander.balanceOf(mockUser);
+        vm.stopPrank();
+
+        // Move funds to arks
+        FleetConfig memory config = fleetCommander.getConfig();
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.rebalance(
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
+        );
+        vm.stopPrank();
+        // Advance time to accrue tip
+        vm.warp(block.timestamp + 10 days);
+        vm.startPrank(mockUser);
+        uint256 withdrawAmount = DEPOSIT_AMOUNT / 2;
+        uint256 previewedShares = fleetCommander.previewWithdraw(
+            withdrawAmount
+        );
+
+        uint256 balanceBefore = mockToken.balanceOf(mockUser);
+
+        uint256 sharesRedeemed = fleetCommander.withdrawFromArks(
+            withdrawAmount,
+            mockUser,
+            mockUser
+        );
+        uint256 balanceAfter = mockToken.balanceOf(mockUser);
+        uint256 sharesAfterRedemption = fleetCommander.balanceOf(mockUser);
+        vm.stopPrank();
+
+        assertEq(
+            sharesRedeemed,
+            previewedShares,
+            "Redeemed shares should match preview"
+        );
+        assertEq(
+            balanceAfter,
+            balanceBefore + withdrawAmount,
+            "Should receive correct withdrawal amount"
+        );
+        assertEq(
+            sharesAfter,
+            sharesBefore + receivedShares,
+            "User should have remaining shares"
+        );
+        assertEq(
+            sharesAfterRedemption,
+            sharesAfter - sharesRedeemed,
+            "User should have remaining shares after redemption"
+        );
+    }
 }

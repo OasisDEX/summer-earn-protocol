@@ -129,4 +129,11 @@ library StorageSlots {
                 ) - 1
             )
         ) & ~bytes32(uint256(0xff));
+    bytes32 public constant TIP_TAKEN_STORAGE =
+        keccak256(
+            abi.encode(
+                uint256(keccak256("fleetCommander.storage._isCollectingTip")) -
+                    1
+            )
+        ) & ~bytes32(uint256(0xff));
 }

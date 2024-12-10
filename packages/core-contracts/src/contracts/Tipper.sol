@@ -75,6 +75,8 @@ abstract contract Tipper is ITipper {
      * @notice Sets a new tip rate
      * @dev Only callable by the FleetCommander. Accrues tips before changing the rate.
      * @param newTipRate The new tip rate to set, as a Percentage type (defined in @Percentage.sol)
+     * @param tipJar The address of the tip jar
+     * @param totalSupply The total supply of the shares
      * @custom:internal-logic
      * - Validates that the new tip rate is within the valid percentage range using @PercentageUtils.sol
      * - Accrues tips based on the current rate before updating
@@ -88,18 +90,45 @@ abstract contract Tipper is ITipper {
      * @custom:note The newTipRate should be sized according to the PERCENTAGE_FACTOR in @Percentage.sol.
      *              For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18).
      */
-    function _setTipRate(Percentage newTipRate, address tipJar) internal {
+    function _setTipRate(
+        Percentage newTipRate,
+        address tipJar,
+        uint256 totalSupply
+    ) internal {
         if (newTipRate > MAX_TIP_RATE) {
             revert TipRateCannotExceedFivePercent();
         }
-        _accrueTip(tipJar); // Accrue tips before changing the rate
+        _accrueTip(tipJar, totalSupply); // Accrue tips before changing the rate
         tipRate = newTipRate;
         emit TipRateUpdated(newTipRate);
     }
 
     /**
+     * @notice Previews the amount of tip that would be accrued if _accrueTip was called
+     * @param tipJar The address of the tip jar
+     * @param totalSupply The total supply of the shares
+     * @return tippedShares The amount of tips that would be accrued in shares
+     */
+    function previewTip(
+        address tipJar,
+        uint256 totalSupply
+    ) public view returns (uint256 tippedShares) {
+        if (tipRate == toPercentage(0)) return 0;
+
+        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
+        if (timeElapsed == 0) return 0;
+
+        uint256 totalShares = totalSupply -
+            IERC20(address(this)).balanceOf(tipJar);
+        uint256 tippedShares = _calculateTip(totalShares, timeElapsed);
+        return tippedShares;
+    }
+
+    /**
      * @notice Accrues tips based on the current tip rate and time elapsed
      * @dev Only callable by the FleetCommander
+     * @param tipJar The address of the tip jar
+     * @param totalSupply The total supply of the tip jar
      * @return tippedShares The amount of tips accrued in shares
      * @custom:internal-logic
      * - Calculates the time elapsed since the last tip accrual
@@ -114,26 +143,19 @@ abstract contract Tipper is ITipper {
      * - Uses a custom power function for precise calculations
      */
     function _accrueTip(
-        address tipJar
+        address tipJar,
+        uint256 totalSupply
     ) internal returns (uint256 tippedShares) {
-        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
-
-        if (timeElapsed == 0) return 0;
-
         if (tipRate == toPercentage(0)) {
             lastTipTimestamp = block.timestamp;
             return 0;
         }
 
-        // Note: This line assumes the contract itself is an ERC20 token
-        uint256 totalShares = IERC20(address(this)).totalSupply() -
-            IERC20(address(this)).balanceOf(tipJar);
-
-        tippedShares = _calculateTip(totalShares, timeElapsed);
+        tippedShares = previewTip(tipJar, totalSupply);
 
         if (tippedShares > 0) {
-            _mintTip(tipJar, tippedShares);
             lastTipTimestamp = block.timestamp;
+            _mintTip(tipJar, tippedShares);
             emit TipAccrued(tippedShares);
         }
     }

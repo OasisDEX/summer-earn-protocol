@@ -884,6 +884,30 @@
   },
   {
     "type": "function",
+    "name": "previewTip",
+    "inputs": [
+      {
+        "name": "tipJar",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "totalSupply",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "tippedShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "previewWithdraw",
     "inputs": [
       {
