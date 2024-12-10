@@ -31,6 +31,37 @@ contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setDepositCap(MAX_DEPOSIT_CAP);
     }
 
+    function test_Deposit_withTip() public {
+        uint256 amount = 1000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
+
+        _mockArkTotalAssets(ark1, 0);
+        _mockArkTotalAssets(ark2, 0);
+
+        fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
+        fleetCommanderStorageWriter.setTipRate(1e18);
+
+        mockToken.mint(mockUser, amount * 10);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+        fleetCommander.deposit(amount, mockUser);
+
+        vm.warp(block.timestamp + 10 days);
+        vm.stopPrank();
+
+        uint256 previewedShares = fleetCommander.previewDeposit(amount);
+        console.log("previewedShares", previewedShares);
+        vm.prank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+
+        vm.prank(mockUser);
+        uint256 receivedShares = fleetCommander.deposit(amount, mockUser);
+        console.log("receivedShares", receivedShares);
+
+        assertEq(receivedShares, previewedShares);
+    }
+
     function test_Deposit() public {
         uint256 amount = 1000 * 10 ** 6;
         uint256 maxDepositCap = 100000 * 10 ** 6;
