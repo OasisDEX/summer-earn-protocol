@@ -159,8 +159,6 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         return;
     }
 
-    // Implement the missing methods from IOFT
-
     function approvalRequired() external pure override returns (bool) {
         // Mock implementation
         return false;
