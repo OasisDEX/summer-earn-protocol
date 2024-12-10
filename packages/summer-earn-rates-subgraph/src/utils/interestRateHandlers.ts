@@ -48,6 +48,7 @@ export function handleInterestRate(
 
   interestRate.dailyRateId = dailyResult.dailyRateId
   interestRate.hourlyRateId = hourlyResult.hourlyRateId
+  interestRate.weeklyRateId = weeklyResult.weeklyRateId
   interestRate.blockNumber = block.number
   interestRate.rate = rate
   interestRate.timestamp = block.timestamp
