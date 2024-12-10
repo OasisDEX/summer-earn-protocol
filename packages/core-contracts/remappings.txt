@@ -6,6 +6,7 @@ metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho/src/
 @summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/
 @summerfi/math-utils/contracts/=node_modules/@summerfi/math-utils/contracts/
 @summerfi/earn-gov-contracts/=node_modules/@summerfi/earn-gov-contracts/src/
+@summerfi/gov-contracts/test/=node_modules/@summerfi/earn-gov-contracts/test/
 @pendle/core-v2/contracts/=node_modules/@summerfi/dependencies/lib/pendle-core-v2-public/contracts/
 @openzeppelin/contracts/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts-upgradeable/contracts/
