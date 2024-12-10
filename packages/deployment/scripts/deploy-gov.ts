@@ -175,10 +175,13 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
 
   // Transfer SummerToken ownership to timelock
   const currentOwner = (await summerToken.read.owner()) as Address
-  if (currentOwner.toLowerCase() !== timelock.address.toLowerCase()) {
-    console.log('[SUMMER TOKEN] - Transferring ownership to timelock...')
+  if (currentOwner.toLowerCase() === deployer.account.address.toLowerCase()) {
+    console.log('[SUMMER TOKEN] - Transferring ownership from deployer to timelock...')
     const hash = await summerToken.write.transferOwnership([timelock.address])
     await publicClient.waitForTransactionReceipt({ hash })
+  } else {
+    console.log('[SUMMER TOKEN] - Current owner is not deployer:', currentOwner)
+    console.log('[SUMMER TOKEN] - Skipping ownership transfer')
   }
 
   // Determine if we're on HUB chain (currently BASE chain)

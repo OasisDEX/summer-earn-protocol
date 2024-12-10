@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 import fs from 'fs'
-import inquirer from 'inquirer'
 import path from 'path'
+import prompts from 'prompts'
 import {
   Address,
   createPublicClient,
@@ -45,30 +45,27 @@ async function promptForChain(): Promise<{
   rpcUrl: string
 }> {
   const chainOptions = Object.keys(chainConfigs).map((key) => ({
-    name: key,
+    title: key,
     value: { name: key, ...chainConfigs[key as keyof typeof chainConfigs] },
   }))
 
-  const { selectedChain } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'selectedChain',
-      message: 'Which chain would you like to execute this operation on?',
-      choices: chainOptions,
-    },
-  ])
+  const { selectedChain } = await prompts({
+    type: 'select',
+    name: 'selectedChain',
+    message: 'Which chain would you like to execute this operation on?',
+    choices: chainOptions,
+  })
 
-  // Confirm chain selection
-  const { confirmChain } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'confirmChain',
-      message: `Please confirm you want to execute on ${selectedChain.name}`,
-      default: false,
-    },
-  ])
+  if (!selectedChain) throw new Error('No chain selected')
 
-  if (!confirmChain) {
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: `Please confirm you want to execute on ${selectedChain.name}`,
+    initial: false,
+  })
+
+  if (!confirmed) {
     throw new Error('Operation cancelled by user')
   }
 
@@ -83,11 +80,10 @@ interface PeerChainOption {
 }
 
 async function promptForPeerChain(currentChain: string): Promise<PeerChainOption> {
-  // Filter out the current chain from options
   const peerChainOptions = Object.entries(chainConfigs)
     .filter(([key]) => key !== currentChain)
     .map(([key, value]) => ({
-      name: key,
+      title: key,
       value: {
         name: key,
         config: value.config,
@@ -95,26 +91,23 @@ async function promptForPeerChain(currentChain: string): Promise<PeerChainOption
       },
     }))
 
-  const { selectedPeerChain } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'selectedPeerChain',
-      message: 'Which chain would you like to add as a peer?',
-      choices: peerChainOptions,
-    },
-  ])
+  const { selectedPeerChain } = await prompts({
+    type: 'select',
+    name: 'selectedPeerChain',
+    message: 'Which chain would you like to add as a peer?',
+    choices: peerChainOptions,
+  })
 
-  // Confirm peer chain selection
-  const { confirmPeerChain } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'confirmPeerChain',
-      message: `Please confirm you want to add ${selectedPeerChain.name} as a peer`,
-      default: false,
-    },
-  ])
+  if (!selectedPeerChain) throw new Error('No peer chain selected')
 
-  if (!confirmPeerChain) {
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: `Please confirm you want to add ${selectedPeerChain.name} as a peer`,
+    initial: false,
+  })
+
+  if (!confirmed) {
     throw new Error('Operation cancelled by user')
   }
 
@@ -304,40 +297,43 @@ async function main() {
   }
 
   async function promptForContract(): Promise<ContractOption> {
-    const contractOptions: ContractOption[] = [
+    const contractOptions = [
       {
-        name: 'Summer Token',
-        address: chainConfig.deployedContracts.gov.summerToken.address as Address,
+        title: 'Summer Token',
+        value: {
+          name: 'Summer Token',
+          address: chainConfig.deployedContracts.gov.summerToken.address as Address,
+        },
       },
       {
-        name: 'Governor',
-        address: chainConfig.deployedContracts.gov.summerGovernor.address as Address,
+        title: 'Governor',
+        value: {
+          name: 'Governor',
+          address: chainConfig.deployedContracts.gov.summerGovernor.address as Address,
+        },
       },
     ]
 
-    const { selectedContract } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'selectedContract',
-        message: 'Which contract would you like to add peers to?',
-        choices: contractOptions.map((contract) => ({
-          name: `${contract.name} (${contract.address})`,
-          value: contract,
-        })),
-      },
-    ])
+    const { selectedContract } = await prompts({
+      type: 'select',
+      name: 'selectedContract',
+      message: 'Which contract would you like to add peers to?',
+      choices: contractOptions.map((contract) => ({
+        title: `${contract.title} (${contract.value.address})`,
+        value: contract.value,
+      })),
+    })
 
-    // Confirm contract selection
-    const { confirmContract } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'confirmContract',
-        message: `Please confirm you want to add a peer to ${selectedContract.name} at ${selectedContract.address}`,
-        default: false,
-      },
-    ])
+    if (!selectedContract) throw new Error('No contract selected')
 
-    if (!confirmContract) {
+    const { confirmed } = await prompts({
+      type: 'confirm',
+      name: 'confirmed',
+      message: `Please confirm you want to add a peer to ${selectedContract.name} at ${selectedContract.address}`,
+      initial: false,
+    })
+
+    if (!confirmed) {
       throw new Error('Operation cancelled by user')
     }
 
@@ -361,24 +357,22 @@ async function main() {
   const TIMELOCK_ADDRESS = chainConfig.deployedContracts.gov.timelock.address as Address
 
   // Show final confirmation with all details
-  const { confirmOperation } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'confirmOperation',
-      message:
-        `📝 Please review the operation details:\n\n` +
-        `Chain: ${name}\n` +
-        `Target Contract: ${selectedContract.name} (${selectedContract.address})\n` +
-        `Peer Chain: ${peerChain.name}\n` +
-        `Peer Address: ${PEER_CONTRACT_ADDRESS}\n` +
-        `Endpoint ID: ${PEER_ENDPOINT_ID}\n` +
-        `Timelock: ${TIMELOCK_ADDRESS}\n\n` +
-        `Would you like to proceed with scheduling this operation?`,
-      default: false,
-    },
-  ])
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message:
+      `📝 Please review the operation details:\n\n` +
+      `Chain: ${name}\n` +
+      `Target Contract: ${selectedContract.name} (${selectedContract.address})\n` +
+      `Peer Chain: ${peerChain.name}\n` +
+      `Peer Address: ${PEER_CONTRACT_ADDRESS}\n` +
+      `Endpoint ID: ${PEER_ENDPOINT_ID}\n` +
+      `Timelock: ${TIMELOCK_ADDRESS}\n\n` +
+      `Would you like to proceed with scheduling this operation?`,
+    initial: false,
+  })
 
-  if (!confirmOperation) {
+  if (!confirmed) {
     throw new Error('Operation cancelled by user')
   }
 
@@ -404,16 +398,14 @@ async function main() {
   // await scheduleSetPeerOperation(publicClient, walletClient, delay, selectedContract.address)
 
   // Confirm execution
-  const { confirmExecution } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'confirmExecution',
-      message: `\nWould you like to wait ${delay} seconds and execute the operation?`,
-      default: false,
-    },
-  ])
+  const { executeNow } = await prompts({
+    type: 'confirm',
+    name: 'executeNow',
+    message: `\nWould you like to wait ${delay} seconds and execute the operation?`,
+    initial: false,
+  })
 
-  if (!confirmExecution) {
+  if (!executeNow) {
     console.log('❌ Operation scheduled but execution cancelled by user')
     return
   }
