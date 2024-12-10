@@ -9,6 +9,7 @@ type InterestRate @entity(immutable: true) {
   productId: String!
   dailyRateId: DailyInterestRate!
   hourlyRateId: HourlyInterestRate!
+  weeklyRateId: WeeklyInterestRate!
 }
 
 type VaultState @entity {
@@ -47,4 +48,16 @@ type HourlyInterestRate @entity {
   token: Bytes!
   productId: String!
   interestRates: [InterestRate!]! @derivedFrom(field: "hourlyRateId")
+}
+
+type WeeklyInterestRate @entity {
+  id: ID!
+  weekTimestamp: BigInt!  # Start of the week timestamp
+  sumRates: BigDecimal!
+  updateCount: BigInt!
+  averageRate: BigDecimal!
+  protocol: String!
+  token: Bytes!
+  productId: String!
+  interestRates: [InterestRate!]! @derivedFrom(field: "weeklyRateId")
 }

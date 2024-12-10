@@ -1,7 +1,33 @@
 import { BigDecimal, BigInt, ByteArray, crypto, ethereum } from '@graphprotocol/graph-ts'
-import { DailyInterestRate, HourlyInterestRate, InterestRate } from '../../generated/schema'
-import { BigDecimalConstants } from '../constants/common'
+import {
+  DailyInterestRate,
+  HourlyInterestRate,
+  InterestRate,
+  WeeklyInterestRate,
+} from '../../generated/schema'
+import { BigDecimalConstants, BigIntConstants } from '../constants/common'
 import { Product } from '../models/Product'
+
+class DailyRateResult {
+  constructor(
+    public dailyRateId: string,
+    public dayTimestamp: BigInt,
+  ) {}
+}
+
+class HourlyRateResult {
+  constructor(
+    public hourlyRateId: string,
+    public hourTimestamp: BigInt,
+  ) {}
+}
+
+class WeeklyRateResult {
+  constructor(
+    public weeklyRateId: string,
+    public weekTimestamp: BigInt,
+  ) {}
+}
 
 export function handleInterestRate(
   block: ethereum.Block,
@@ -15,24 +41,13 @@ export function handleInterestRate(
       block.number.toString() +
       crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString(),
   )
-  const dayTimestamp = block.timestamp.div(BigInt.fromI32(86400)).times(BigInt.fromI32(86400))
 
-  const dailyRateId =
-    protocolName +
-    product.token.id.toHexString() +
-    crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString() +
-    dayTimestamp.toString()
+  const hourlyResult = getHourlyRateIdAndTimestamp(block, protocolName, product)
+  const dailyResult = getDailyRateIdAndTimestamp(block, protocolName, product)
+  const weeklyResult = getWeeklyRateIdAndTimestamp(block, protocolName, product)
 
-  const hourTimestamp = block.timestamp.div(BigInt.fromI32(3600)).times(BigInt.fromI32(3600))
-
-  const hourlyRateId =
-    protocolName +
-    product.token.id.toHexString() +
-    crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString() +
-    hourTimestamp.toString()
-
-  interestRate.dailyRateId = dailyRateId
-  interestRate.hourlyRateId = hourlyRateId
+  interestRate.dailyRateId = dailyResult.dailyRateId
+  interestRate.hourlyRateId = hourlyResult.hourlyRateId
   interestRate.blockNumber = block.number
   interestRate.rate = rate
   interestRate.timestamp = block.timestamp
@@ -42,11 +57,77 @@ export function handleInterestRate(
   interestRate.productId = product.name
   interestRate.save()
 
-  updateDailyAverage(block, protocolName, product, rate, dayTimestamp, dailyRateId)
-  updateHourlyAverage(block, protocolName, product, rate, hourTimestamp, hourlyRateId)
+  updateDailyAverage(protocolName, product, rate, dailyResult.dayTimestamp, dailyResult.dailyRateId)
+  updateHourlyAverage(
+    protocolName,
+    product,
+    rate,
+    hourlyResult.hourTimestamp,
+    hourlyResult.hourlyRateId,
+  )
+  updateWeeklyAverage(
+    protocolName,
+    product,
+    rate,
+    weeklyResult.weekTimestamp,
+    weeklyResult.weeklyRateId,
+  )
 }
-function updateDailyAverage(
+
+function getDailyRateIdAndTimestamp(
   block: ethereum.Block,
+  protocolName: string,
+  product: Product,
+): DailyRateResult {
+  const dayTimestamp = block.timestamp
+    .div(BigIntConstants.DAY_IN_SECONDS)
+    .times(BigIntConstants.DAY_IN_SECONDS)
+
+  const dailyRateId =
+    protocolName +
+    product.token.id.toHexString() +
+    crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString() +
+    dayTimestamp.toString()
+  return new DailyRateResult(dailyRateId, dayTimestamp)
+}
+
+function getHourlyRateIdAndTimestamp(
+  block: ethereum.Block,
+  protocolName: string,
+  product: Product,
+): HourlyRateResult {
+  const hourTimestamp = block.timestamp
+    .div(BigIntConstants.HOUR_IN_SECONDS)
+    .times(BigIntConstants.HOUR_IN_SECONDS)
+
+  const hourlyRateId =
+    protocolName +
+    product.token.id.toHexString() +
+    crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString() +
+    hourTimestamp.toString()
+  return new HourlyRateResult(hourlyRateId, hourTimestamp)
+}
+
+function getWeeklyRateIdAndTimestamp(
+  block: ethereum.Block,
+  protocolName: string,
+  product: Product,
+): WeeklyRateResult {
+  const offsetTimestamp = block.timestamp.plus(BigIntConstants.EPOCH_WEEK_OFFSET)
+  const weekTimestamp = offsetTimestamp
+    .div(BigIntConstants.WEEK_IN_SECONDS)
+    .times(BigIntConstants.WEEK_IN_SECONDS)
+    .minus(BigIntConstants.EPOCH_WEEK_OFFSET)
+
+  const weeklyRateId =
+    protocolName +
+    product.token.id.toHexString() +
+    crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString() +
+    weekTimestamp.toString()
+  return new WeeklyRateResult(weeklyRateId, weekTimestamp)
+}
+
+function updateDailyAverage(
   protocolName: string,
   product: Product,
   newRate: BigDecimal,
@@ -75,7 +156,6 @@ function updateDailyAverage(
 }
 
 function updateHourlyAverage(
-  block: ethereum.Block,
   protocolName: string,
   product: Product,
   newRate: BigDecimal,
@@ -101,4 +181,32 @@ function updateHourlyAverage(
   )
 
   hourlyRate.save()
+}
+
+function updateWeeklyAverage(
+  protocolName: string,
+  product: Product,
+  newRate: BigDecimal,
+  weekTimestamp: BigInt,
+  weeklyRateId: string,
+): void {
+  let weeklyRate = WeeklyInterestRate.load(weeklyRateId)
+  if (weeklyRate === null) {
+    weeklyRate = new WeeklyInterestRate(weeklyRateId)
+    weeklyRate.weekTimestamp = weekTimestamp
+    weeklyRate.sumRates = BigDecimalConstants.ZERO
+    weeklyRate.updateCount = BigInt.fromI32(0)
+    weeklyRate.averageRate = BigDecimalConstants.ZERO
+    weeklyRate.protocol = protocolName
+    weeklyRate.token = product.token.id
+    weeklyRate.productId = product.name
+  }
+
+  weeklyRate.sumRates = weeklyRate.sumRates.plus(newRate)
+  weeklyRate.updateCount = weeklyRate.updateCount.plus(BigInt.fromI32(1))
+  weeklyRate.averageRate = weeklyRate.sumRates.div(
+    BigDecimal.fromString(weeklyRate.updateCount.toString()),
+  )
+
+  weeklyRate.save()
 }
