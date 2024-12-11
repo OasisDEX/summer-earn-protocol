@@ -149,7 +149,7 @@ function updateWeeklyAverage(
   let weeklyRate = WeeklyInterestRate.load(weeklyRateId)
   if (weeklyRate === null) {
     weeklyRate = new WeeklyInterestRate(weeklyRateId)
-    weeklyRate.weekTimestamp = weekTimestamp
+    weeklyRate.date = weekTimestamp
     weeklyRate.sumRates = BigDecimalConstants.ZERO
     weeklyRate.updateCount = BigInt.fromI32(0)
     weeklyRate.averageRate = BigDecimalConstants.ZERO

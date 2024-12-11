@@ -1307,7 +1307,7 @@ type HourlyInterestRate @entity {
 
 type WeeklyInterestRate @entity {
   id: ID!
-  weekTimestamp: BigInt!  # Start of the week timestamp
+  date: BigInt! 
   sumRates: BigDecimal!
   updateCount: BigInt!
   averageRate: BigDecimal!
