@@ -230,6 +230,7 @@ type YieldAggregator implements Protocol @entity @regularPolling {
   vaultsArray: [Vault!]!
   lastDailyUpdateTimestamp: BigInt
   lastHourlyUpdateTimestamp: BigInt
+  lastWeeklyUpdateTimestamp: BigInt
 }
 
 ###############################
@@ -469,6 +470,10 @@ type Vault @entity @regularPolling {
 
   lastUpdateTimestamp: BigInt!
   lastUpdatePricePerShare: BigDecimal!
+
+  weeklyInterestRates: [WeeklyInterestRate!]! @derivedFrom(field: "vault")
+  dailyInterestRates: [DailyInterestRate!]! @derivedFrom(field: "vault")
+  hourlyInterestRates: [HourlyInterestRate!]! @derivedFrom(field: "vault")
 
   arks: [Ark!]! @derivedFrom(field: "vault")
   arksArray: [Ark!]!
@@ -1279,4 +1284,32 @@ type PostActionArkSnapshot @entity @hourlySnapshot {
 type RewardsManager @entity {
   id: ID!
   vault: Vault!
+}
+
+
+type DailyInterestRate @entity {
+  id: ID!
+  date: BigInt!
+  sumRates: BigDecimal!
+  updateCount: BigInt!
+  averageRate: BigDecimal!
+  vault: Vault!
+} 
+
+type HourlyInterestRate @entity {
+  id: ID!
+  date: BigInt!
+  sumRates: BigDecimal!
+  updateCount: BigInt!
+  averageRate: BigDecimal!
+  vault: Vault!
+}
+
+type WeeklyInterestRate @entity {
+  id: ID!
+  weekTimestamp: BigInt!  # Start of the week timestamp
+  sumRates: BigDecimal!
+  updateCount: BigInt!
+  averageRate: BigDecimal!
+  vault: Vault! 
 }

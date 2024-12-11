@@ -337,7 +337,6 @@ export function getOrCreateVaultsHourlySnapshots(
           vault.pricePerShare!,
           constants.BigDecimalConstants.HOUR_IN_SECONDS,
         )
-
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 

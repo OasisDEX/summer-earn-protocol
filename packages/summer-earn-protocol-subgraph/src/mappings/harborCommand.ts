@@ -12,6 +12,7 @@ import {
 } from '../common/initializers'
 import { getArkDetails } from '../utils/ark'
 import { getVaultDetails } from '../utils/vault'
+import { handleVaultRate } from '../utils/vaultRateHandlers'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
 
@@ -47,10 +48,11 @@ function updateVaultSnapshots(
   block: ethereum.Block,
   shouldUpdateDaily: boolean,
 ): void {
-  getOrCreateVaultsHourlySnapshots(vaultAddress, block)
+  const snapshot = getOrCreateVaultsHourlySnapshots(vaultAddress, block)
   if (shouldUpdateDaily) {
     getOrCreateVaultsDailySnapshots(vaultAddress, block)
   }
+  handleVaultRate(block, snapshot.vault, snapshot.calculatedApr)
 }
 
 // Main update orchestration functions
@@ -59,6 +61,7 @@ function processHourlyVaultUpdate(
   block: ethereum.Block,
   protocolLastDailyUpdateTimestamp: BigInt | null,
   protocolLastHourlyUpdateTimestamp: BigInt | null,
+  protocolLastWeeklyUpdateTimestamp: BigInt | null,
 ): void {
   const dayPassed = hasDayPassed(protocolLastDailyUpdateTimestamp, block.timestamp)
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
@@ -91,6 +94,7 @@ export function handleInterval(block: ethereum.Block): void {
       block,
       protocol.lastDailyUpdateTimestamp,
       protocol.lastHourlyUpdateTimestamp,
+      protocol.lastWeeklyUpdateTimestamp,
     )
   }
 
