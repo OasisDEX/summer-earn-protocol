@@ -1,0 +1,14 @@
+{
+  "contract_inspector": {
+    "enabled": true,
+    "scan_directories": [
+      "packages/access-contracts/src",
+      "packages/core-contracts/src",
+      "packages/dutch-auction/src",
+      "packages/gov-contracts/src",
+      "packages/percentage/contracts",
+      "packages/rewards-contracts/src",
+      "packages/voting-decay/src"
+    ]
+  }
+}
