@@ -3,8 +3,12 @@ pragma solidity 0.8.28;
 
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
+import {ISummerTimelockControllerErrors} from "../errors/ISummerTimelockControllerErrors.sol";
 
-contract SummerTimelockController is TimelockController {
+contract SummerTimelockController is
+    TimelockController,
+    ISummerTimelockControllerErrors
+{
     IProtocolAccessManager public immutable accessManager;
 
     // Add mapping to track guardian expiry operations
@@ -33,13 +37,14 @@ contract SummerTimelockController is TimelockController {
      */
     function cancel(bytes32 id) public virtual override {
         if (_isGuardianExpiryProposal(id)) {
-            require(
-                accessManager.hasRole(
+            if (
+                !accessManager.hasRole(
                     accessManager.GOVERNOR_ROLE(),
                     msg.sender
-                ),
-                "Only governors can cancel guardian expiry proposals"
-            );
+                )
+            ) {
+                revert TimelockUnauthorizedGuardianExpiryCancel(msg.sender);
+            }
             super.cancel(id);
             return;
         }
