@@ -5,7 +5,7 @@ import { Address } from 'viem'
 import { deployAaveV3Ark } from './arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from './arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from './arks/deploy-erc4626-ark'
-import { deployMetaMorphoArk } from './arks/deploy-metamorpho-ark'
+import { deployMorphoVaultArk } from './arks/deploy-morpho-vault-ark'
 import { deployMorphoArk } from './arks/deploy-morpho-ark'
 import { deployPendleLPArk } from './arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from './arks/deploy-pendle-pt-ark'
@@ -18,7 +18,7 @@ import { ModuleLogger } from './helpers/module-logger'
 const arkTypes = [
   { title: 'AaveV3Ark', value: deployAaveV3Ark },
   { title: 'MorphoArk', value: deployMorphoArk },
-  { title: 'MetaMorphoArk', value: deployMetaMorphoArk },
+  { title: 'MorphoVaultArk', value: deployMorphoVaultArk },
   { title: 'CompoundV3Ark', value: deployCompoundV3Ark },
   { title: 'ERC4626Ark', value: deployERC4626Ark },
   { title: 'PendleLPArk', value: deployPendleLPArk },
