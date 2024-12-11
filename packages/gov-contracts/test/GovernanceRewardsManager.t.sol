@@ -295,4 +295,51 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             "User should start earning rewards after delegating"
         );
     }
+
+    function test_ClaimReward_WithStakingToken() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup staking and delegation
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        vm.warp(block.timestamp + 30 days + 1);
+
+        // Setup reward with aSummerToken
+        vm.startPrank(address(timelockA));
+        // First transfer tokens to the rewards manager
+        aSummerToken.transfer(address(stakingRewardsManager), rewardAmount);
+        // Then transfer tokens to governor for notification
+        aSummerToken.transfer(address(mockGovernor), rewardAmount);
+        vm.stopPrank();
+
+        vm.startPrank(address(mockGovernor));
+        aSummerToken.approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(aSummerToken)),
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        // Record initial balance
+        uint256 initialBalance = aSummerToken.balanceOf(alice);
+
+        // Claim rewards
+        vm.prank(alice);
+        stakingRewardsManager.getReward();
+
+        // Check that Alice received aSummerToken
+        assertGt(
+            aSummerToken.balanceOf(alice),
+            initialBalance,
+            "Should receive aSummerToken as reward"
+        );
+    }
 }
