@@ -10,6 +10,7 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 /**
  * @title ArkConfigProvider
  * @author SummerFi
@@ -17,12 +18,13 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @dev Inherits from IArkConfigProvider, ArkAccessManaged, and ConfigurationManaged.
  * @custom:see IArkConfigProvider
  */
-
 abstract contract ArkConfigProvider is
     IArkConfigProvider,
     ArkAccessManaged,
     ConfigurationManaged
 {
+    /// @notice The current configuration of the Ark
+    /// @dev Stores all configurable parameters and settings for the Ark system
     ArkConfig public config;
 
     /**
@@ -86,11 +88,12 @@ abstract contract ArkConfigProvider is
         return config.asset;
     }
 
+    /// @inheritdoc IArkConfigProvider
     function maxDepositPercentageOfTVL() external view returns (Percentage) {
         return config.maxDepositPercentageOfTVL;
     }
-    /// @inheritdoc IArkConfigProvider
 
+    /// @inheritdoc IArkConfigProvider
     function commander() public view returns (address) {
         return config.commander;
     }
@@ -145,11 +148,13 @@ abstract contract ArkConfigProvider is
         emit MaxRebalanceInflowUpdated(newMaxRebalanceInflow);
     }
 
+    /// @inheritdoc IArkConfigProvider
     function registerFleetCommander() external onlyCommander {
         config.commander = msg.sender;
         emit FleetCommanderRegistered(msg.sender);
     }
 
+    /// @inheritdoc IArkConfigProvider
     function unregisterFleetCommander() external onlyCommander {
         config.commander = address(0);
         emit FleetCommanderUnregistered(msg.sender);

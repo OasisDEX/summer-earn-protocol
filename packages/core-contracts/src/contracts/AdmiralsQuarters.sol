@@ -68,6 +68,8 @@ contract AdmiralsQuarters is
     using SafeERC20 for IERC20;
     using SafeERC20 for IAToken;
 
+    /// @notice The address of the 1inch Router contract used for token swaps
+    /// @dev This is set during contract construction and cannot be changed
     address public immutable oneInchRouter;
 
     constructor(
@@ -170,6 +172,7 @@ contract AdmiralsQuarters is
         emit FleetSharesStaked(_msgSender(), fleetCommander, shares);
     }
 
+    /// @inheritdoc IAdmiralsQuarters
     function unstakeAndWithdrawAssets(
         address fleetCommander,
         uint256 shares,
@@ -280,6 +283,16 @@ contract AdmiralsQuarters is
         emit ERC4626PositionImported(_msgSender(), vault, shares);
     }
 
+    /// @inheritdoc IAdmiralsQuarters
+    function rescueTokens(
+        IERC20 token,
+        address to,
+        uint256 amount
+    ) external onlyOwner {
+        token.safeTransfer(to, amount);
+        emit TokensRescued(address(token), to, amount);
+    }
+
     /**
      * @dev Internal function to perform a token swap using 1inch
      * @param fromToken The token to swap from
@@ -332,15 +345,5 @@ contract AdmiralsQuarters is
 
     function _validateRewardsManager(address rewardsManager) internal view {
         if (rewardsManager == address(0)) revert InvalidRewardsManager();
-    }
-    /// @inheritdoc IAdmiralsQuarters
-
-    function rescueTokens(
-        IERC20 token,
-        address to,
-        uint256 amount
-    ) external onlyOwner {
-        token.safeTransfer(to, amount);
-        emit TokensRescued(address(token), to, amount);
     }
 }

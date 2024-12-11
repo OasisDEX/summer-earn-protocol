@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.0.1) (utils/Multicall.sol)
-
-pragma solidity 0.8.28
+pragma solidity 0.8.28;
 
 import {Address, Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 import {StorageSlot} from "@summerfi/dependencies/openzeppelin-next/StorageSlot.sol";

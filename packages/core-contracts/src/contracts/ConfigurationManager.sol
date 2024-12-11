@@ -12,6 +12,7 @@ import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/Protoc
  * @custom:see IConfigurationManager
  */
 contract ConfigurationManager is IConfigurationManager, ProtocolAccessManaged {
+    /// @inheritdoc IConfigurationManager
     bool public initialized;
 
     /// @inheritdoc IConfigurationManager

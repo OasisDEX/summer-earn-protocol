@@ -24,6 +24,14 @@ interface IConfigurationManager is
     ) external;
 
     /**
+     * @notice Returns a boolean configuration value
+     * @return A boolean value from the configuration
+     * @dev This is a generic boolean getter - consider renaming it to be more specific
+     *      about what boolean value it's retrieving
+     */
+    function initialized() external view returns (bool);
+
+    /**
      * @notice Get the address of the Raft contract
      * @return The address of the Raft contract
      * @dev This is where rewards and farmed tokens are sent for processing

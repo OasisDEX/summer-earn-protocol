@@ -42,6 +42,8 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
 }
 
 contract ConfigurationManagerImplMock is ConfigurationManagerMock {
+    bool public initialized;
+
     constructor(
         address _tipJar,
         address _treasury,

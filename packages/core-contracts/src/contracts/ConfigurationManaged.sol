@@ -10,6 +10,11 @@ import {IConfigurationManager} from "../interfaces/IConfigurationManager.sol";
  * @custom:see IConfigurationManaged
  */
 abstract contract ConfigurationManaged is IConfigurationManaged {
+    /**
+     * @notice The immutable reference to the ConfigurationManager contract that stores protocol-wide settings
+     * @dev This variable is set during construction and cannot be modified afterwards
+     * @return IConfigurationManager The interface to interact with the configuration manager
+     */
     IConfigurationManager public immutable configurationManager;
 
     /**

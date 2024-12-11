@@ -90,7 +90,7 @@ interface IAdmiralsQuarters is
      * @notice Performs a token swap using 1inch Router
      * @param fromToken The token to swap from
      * @param toToken The token to swap to
-     * @param amount The amount of fromToken to swap
+     * @param assets The amount of fromToken to swap
      * @param minTokensReceived The minimum amount of toToken to receive after the swap
      * @param swapCalldata The calldata for the 1inch swap
      * @return swappedAmount The amount of toToken received after the swap
@@ -99,7 +99,7 @@ interface IAdmiralsQuarters is
     function swap(
         IERC20 fromToken,
         IERC20 toToken,
-        uint256 amount,
+        uint256 assets,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) external returns (uint256 swappedAmount);
