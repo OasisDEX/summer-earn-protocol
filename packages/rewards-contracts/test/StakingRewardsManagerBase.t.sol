@@ -10,6 +10,8 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IStakingRewardsManagerBase} from "../src/interfaces/IStakingRewardsManagerBase.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {ERC20, ERC20Wrapper} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
 contract ERC20MockWithoutDecimals is ERC20Mock {
     constructor() ERC20Mock() {}
@@ -19,9 +21,14 @@ contract ERC20MockWithoutDecimals is ERC20Mock {
     }
 }
 
+contract MockWrappedToken is ERC20Wrapper {
+    constructor(
+        IERC20 _underlying
+    ) ERC20("Wrapped Mock Token", "wMTK") ERC20Wrapper(_underlying) {}
+}
+
 contract StakingRewardsManagerBaseTest is Test {
     MockStakingRewardsManager public stakingRewardsManager;
-    ERC20Mock public stakingToken;
     ERC20Mock[] public rewardTokens;
     address public mockGovernor;
 
@@ -888,5 +895,104 @@ contract StakingRewardsManagerBaseTest is Test {
         // Should succeed with dust amount
         vm.prank(mockGovernor);
         stakingRewardsManager.removeRewardToken(rewardTokenWithoutDecimals);
+    }
+
+    function test_NotifyRewardAmount_WithWrappedStakingToken() public {
+        // Deploy a wrapped version of the staking token
+        MockWrappedToken wrappedStakingToken = new MockWrappedToken(
+            IERC20(address(mockStakingToken))
+        );
+
+        // Setup initial state - mint wrapped tokens to governor
+        uint256 rewardAmount = 100 * 1e18;
+        mockStakingToken.mint(mockGovernor, rewardAmount);
+
+        vm.startPrank(mockGovernor);
+        mockStakingToken.approve(address(wrappedStakingToken), rewardAmount);
+        wrappedStakingToken.depositFor(mockGovernor, rewardAmount);
+        wrappedStakingToken.transfer(
+            address(stakingRewardsManager),
+            rewardAmount
+        );
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(wrappedStakingToken)),
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        // Verify reward token was added
+        (uint256 periodFinish, uint256 rewardRate, , , ) = stakingRewardsManager
+            .rewardData(IERC20(address(wrappedStakingToken)));
+
+        assertTrue(rewardRate > 0, "Reward rate should be set");
+        assertGt(
+            periodFinish,
+            block.timestamp,
+            "Period finish should be in the future"
+        );
+    }
+
+    function test_GetReward_WithWrappedNonStakingToken() public {
+        // Deploy a wrapped version of a different token (not the staking token)
+        ERC20Mock differentToken = new ERC20Mock();
+        MockWrappedToken wrappedDifferentToken = new MockWrappedToken(
+            IERC20(address(differentToken))
+        );
+
+        // Setup initial state
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Give Alice staking tokens and approve
+        mockStakingToken.mint(alice, stakeAmount);
+        vm.prank(alice);
+        mockStakingToken.approve(address(stakingRewardsManager), stakeAmount);
+
+        // Stake tokens with alice
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Setup rewards with wrapped different token
+        differentToken.mint(mockGovernor, rewardAmount);
+
+        vm.startPrank(mockGovernor);
+        differentToken.approve(address(wrappedDifferentToken), rewardAmount);
+        wrappedDifferentToken.depositFor(mockGovernor, rewardAmount);
+        wrappedDifferentToken.transfer(
+            address(stakingRewardsManager),
+            rewardAmount
+        );
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(wrappedDifferentToken)),
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        // Fast forward time to accumulate rewards
+        vm.warp(block.timestamp + 1 days);
+
+        // Get initial balances
+        uint256 aliceInitialWrappedBalance = wrappedDifferentToken.balanceOf(
+            alice
+        );
+        uint256 aliceInitialUnderlyingBalance = differentToken.balanceOf(alice);
+
+        // Claim rewards
+        vm.prank(alice);
+        stakingRewardsManager.getReward();
+
+        // Verify Alice received wrapped tokens (not unwrapped)
+        assertGt(
+            wrappedDifferentToken.balanceOf(alice),
+            aliceInitialWrappedBalance,
+            "Alice should have received wrapped tokens"
+        );
+        assertEq(
+            differentToken.balanceOf(alice),
+            aliceInitialUnderlyingBalance,
+            "Alice's underlying token balance should not change"
+        );
     }
 }

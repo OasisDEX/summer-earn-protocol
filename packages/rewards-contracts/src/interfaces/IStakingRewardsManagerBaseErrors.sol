@@ -56,6 +56,6 @@ interface IStakingRewardsManagerBaseErrors {
     /* @notice Thrown when attempting to unstake zero tokens */
     error CannotUnstakeZero();
 
-    /* @notice Thrown when trying to add a staking token as a reward token */
-    error CantAddStakingTokenAsReward();
+    /* @notice Error thrown when a wrapped token's underlying is not the staking token */
+    error InvalidWrappedToken();
 }

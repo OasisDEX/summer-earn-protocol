@@ -32,14 +32,17 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
 
     /* @notice Get the reward per token for a specific reward token
      * @param rewardToken The address of the reward token
-     * @return The reward amount per staked token
+     * @return The reward amount per staked token (WAD-scaled)
+     * @dev Returns a WAD-scaled value (1e18) to maintain precision in calculations
+     * @dev This value represents: (rewardRate * timeElapsed * WAD) / totalSupply
      */
     function rewardPerToken(IERC20 rewardToken) external view returns (uint256);
 
     /* @notice Calculate the earned reward for an account and a specific reward token
      * @param account The address of the account
      * @param rewardToken The address of the reward token
-     * @return The amount of reward tokens earned
+     * @return The amount of reward tokens earned (not WAD-scaled)
+     * @dev Calculated as: (balance * (rewardPerToken - userRewardPerTokenPaid)) / WAD + rewards
      */
     function earned(
         address account,
@@ -48,7 +51,8 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
 
     /* @notice Get the reward for the entire duration for a specific reward token
      * @param rewardToken The address of the reward token
-     * @return The total reward amount for the duration
+     * @return The total reward amount for the duration (not WAD-scaled)
+     * @dev Calculated as: (rewardRate * rewardsDuration) / WAD
      */
     function getRewardForDuration(
         IERC20 rewardToken
@@ -104,8 +108,9 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
 
     /* @notice Notify the contract about new reward amount
      * @param rewardToken The address of the reward token
-     * @param reward The amount of new reward
+     * @param reward The amount of new reward (not WAD-scaled)
      * @param newRewardsDuration The duration for rewards distribution (only used when adding a new reward token)
+     * @dev Internally sets rewardRate as (reward * WAD) / duration to maintain precision
      */
     function notifyRewardAmount(
         IERC20 rewardToken,
