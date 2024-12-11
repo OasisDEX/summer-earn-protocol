@@ -43,6 +43,23 @@ contract FleetCommanderRewardsManager is
         _stake(_msgSender(), receiver, amount);
     }
 
+    /// @inheritdoc IStakingRewardsManagerBase
+    function notifyRewardAmount(
+        IERC20 rewardToken,
+        uint256 reward,
+        uint256 newRewardsDuration
+    )
+        external
+        override(StakingRewardsManagerBase, IStakingRewardsManagerBase)
+        onlyGovernor
+        updateReward(address(0))
+    {
+        if (address(rewardToken) == address(stakingToken)) {
+            revert CantAddStakingTokenAsReward();
+        }
+        _notifyRewardAmount(rewardToken, reward, newRewardsDuration);
+    }
+
     function unstakeAndWithdrawOnBehalfOf(
         address owner,
         uint256 amount,
