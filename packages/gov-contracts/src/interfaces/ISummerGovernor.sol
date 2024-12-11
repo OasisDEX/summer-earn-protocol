@@ -61,6 +61,18 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
     );
 
     /**
+     * @notice Emitted when trapped funds are rescued from the contract
+     * @param token The address of the token being rescued (address(0) for native currency)
+     * @param to The address receiving the rescued funds
+     * @param amount The amount of tokens/native currency being rescued
+     */
+    event FundsRescued(
+        address indexed token,
+        address indexed to,
+        uint256 amount
+    );
+
+    /**
      * @notice Casts a vote for a proposal
      * @param proposalId The ID of the proposal to vote on
      * @param support The support for the proposal (0 = against, 1 = for, 2 = abstain)

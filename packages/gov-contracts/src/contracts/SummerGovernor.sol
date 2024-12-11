@@ -12,6 +12,7 @@ import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governanc
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {DecayController} from "./DecayController.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
@@ -338,6 +339,29 @@ contract SummerGovernor is
         }
 
         return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    /// @notice Allows the governance to rescue any ERC20 tokens or ETH stuck in the contract
+    /// @param token The address of the token to rescue (address(0) for ETH)
+    /// @param to The address to send the tokens to
+    /// @param amount The amount of tokens to rescue
+    function rescueFunds(
+        address token,
+        address to,
+        uint256 amount
+    ) external onlyGovernance {
+        if (to == address(0)) revert("Invalid recipient");
+
+        if (token == address(0)) {
+            // Rescue ETH
+            (bool success, ) = to.call{value: amount}("");
+            if (!success) revert("ETH transfer failed");
+        } else {
+            // Rescue ERC20
+            IERC20(token).transfer(to, amount);
+        }
+
+        emit FundsRescued(token, to, amount);
     }
 
     /*//////////////////////////////////////////////////////////////

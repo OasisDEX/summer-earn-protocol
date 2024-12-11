@@ -1617,4 +1617,127 @@ contract SummerGovernorTest is SummerGovernorTestBase {
     ) private pure returns (bytes32) {
         return bytes20(addressToSalt) ^ descriptionHash;
     }
+
+    function test_RescueFundsViaGovernance() public {
+        // Setup: Give Alice enough tokens for proposal and quorum
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Send some ETH and tokens to the governor contract
+        uint256 ethAmount = 1 ether;
+        uint256 tokenAmount = 1000 * 10 ** 18;
+
+        // Send ETH to governor
+        vm.deal(address(this), ethAmount);
+        (bool success, ) = address(governorA).call{value: ethAmount}("");
+        require(success, "ETH transfer failed");
+
+        // Send some tokens to governor (accidentally trapped)
+        vm.prank(address(timelockA));
+        aSummerToken.transfer(address(governorA), tokenAmount);
+
+        // Create proposal to rescue both ETH and tokens
+        address[] memory targets = new address[](2);
+        uint256[] memory values = new uint256[](2);
+        bytes[] memory calldatas = new bytes[](2);
+
+        // First action: Rescue ETH
+        targets[0] = address(governorA);
+        values[0] = 0;
+        calldatas[0] = abi.encodeWithSelector(
+            governorA.rescueFunds.selector,
+            address(0), // address(0) represents ETH
+            bob,
+            ethAmount
+        );
+
+        // Second action: Rescue ERC20 tokens
+        targets[1] = address(governorA);
+        values[1] = 0;
+        calldatas[1] = abi.encodeWithSelector(
+            governorA.rescueFunds.selector,
+            address(aSummerToken),
+            bob,
+            tokenAmount
+        );
+
+        string memory description = "Rescue trapped funds";
+
+        // Store initial balances
+        uint256 initialBobEth = address(bob).balance;
+        uint256 initialBobTokens = aSummerToken.balanceOf(bob);
+        uint256 initialGovernorEth = address(governorA).balance;
+        uint256 initialGovernorTokens = aSummerToken.balanceOf(
+            address(governorA)
+        );
+
+        // Create and execute proposal
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        advanceTimeForVotingDelay();
+
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        governorA.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        advanceTimeForTimelockMinDelay();
+
+        // Expect FundsRescued events
+        vm.expectEmit(true, true, true, true);
+        emit ISummerGovernor.FundsRescued(address(0), bob, ethAmount);
+        vm.expectEmit(true, true, true, true);
+        emit ISummerGovernor.FundsRescued(
+            address(aSummerToken),
+            bob,
+            tokenAmount
+        );
+
+        governorA.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        // Verify funds were rescued
+        assertEq(
+            address(bob).balance,
+            initialBobEth + ethAmount,
+            "ETH not rescued correctly"
+        );
+        assertEq(
+            aSummerToken.balanceOf(bob),
+            initialBobTokens + tokenAmount,
+            "Tokens not rescued correctly"
+        );
+        assertEq(
+            address(governorA).balance,
+            initialGovernorEth - ethAmount,
+            "Governor ETH balance not updated correctly"
+        );
+        assertEq(
+            aSummerToken.balanceOf(address(governorA)),
+            initialGovernorTokens - tokenAmount,
+            "Governor token balance not updated correctly"
+        );
+    }
 }
