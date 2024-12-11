@@ -62,7 +62,11 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IArk
-    function totalAssets() external view virtual returns (uint256) {}
+    function totalAssets() external view virtual returns (uint256) {
+        // This function should be overridden by implementing contracts
+        // Default implementation returns 0 as a safeguard
+        return 0;
+    }
 
     /// @inheritdoc IArk
     function harvest(
