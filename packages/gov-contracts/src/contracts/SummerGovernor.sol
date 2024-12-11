@@ -350,12 +350,12 @@ contract SummerGovernor is
         address to,
         uint256 amount
     ) external onlyGovernance {
-        if (to == address(0)) revert("Invalid recipient");
+        if (to == address(0)) revert SummerGovernorInvalidRecipient();
 
         if (token == address(0)) {
             // Rescue ETH
             (bool success, ) = to.call{value: amount}("");
-            if (!success) revert("ETH transfer failed");
+            if (!success) revert SummerGovernorEthTransferFailed();
         } else {
             // Rescue ERC20
             IERC20(token).transfer(to, amount);

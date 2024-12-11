@@ -64,4 +64,10 @@ interface ISummerGovernorErrors {
 
     /* @notice Error thrown when the peer arrays are invalid */
     error SummerGovernorInvalidPeerArrays();
+
+    /* @notice Error thrown when the recipient address is zero */
+    error SummerGovernorInvalidRecipient();
+
+    /* @notice Error thrown when ETH transfer fails */
+    error SummerGovernorEthTransferFailed();
 }
