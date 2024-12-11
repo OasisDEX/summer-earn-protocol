@@ -182,7 +182,7 @@ contract SummerToken is
         return uint48(block.timestamp);
     }
 
-    function CLOCK_MODE() public pure override returns (string memory) {
+    function CLOCK_MODE() public view override returns (string memory) {
         return "mode=timestamp";
     }
 
