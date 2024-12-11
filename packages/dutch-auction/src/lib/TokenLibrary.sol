@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
  * @title Token Library
@@ -26,7 +27,7 @@ library TokenLibrary {
      */
     function getDecimals(IERC20 token) internal view returns (uint8) {
         (bool success, bytes memory data) = address(token).staticcall(
-            abi.encodeWithSignature("decimals()")
+            abi.encodeCall(IERC20Metadata.decimals, ())
         );
 
         // If the call was successful and returned data
