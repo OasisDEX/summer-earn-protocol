@@ -48,11 +48,11 @@ function updateVaultSnapshots(
   block: ethereum.Block,
   shouldUpdateDaily: boolean,
 ): void {
-  const snapshot = getOrCreateVaultsHourlySnapshots(vaultAddress, block)
+  getOrCreateVaultsHourlySnapshots(vaultAddress, block)
   if (shouldUpdateDaily) {
     getOrCreateVaultsDailySnapshots(vaultAddress, block)
   }
-  handleVaultRate(block, snapshot.vault, snapshot.calculatedApr)
+  handleVaultRate(block, vaultAddress.toHexString())
 }
 
 // Main update orchestration functions
@@ -61,7 +61,6 @@ function processHourlyVaultUpdate(
   block: ethereum.Block,
   protocolLastDailyUpdateTimestamp: BigInt | null,
   protocolLastHourlyUpdateTimestamp: BigInt | null,
-  protocolLastWeeklyUpdateTimestamp: BigInt | null,
 ): void {
   const dayPassed = hasDayPassed(protocolLastDailyUpdateTimestamp, block.timestamp)
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
@@ -84,7 +83,7 @@ function processHourlyVaultUpdate(
 }
 
 export function handleInterval(block: ethereum.Block): void {
-  const protocol = getOrCreateYieldAggregator()
+  const protocol = getOrCreateYieldAggregator(block.timestamp)
 
   const vaults = protocol.vaultsArray
   for (let i = 0; i < vaults.length; i++) {
@@ -94,7 +93,6 @@ export function handleInterval(block: ethereum.Block): void {
       block,
       protocol.lastDailyUpdateTimestamp,
       protocol.lastHourlyUpdateTimestamp,
-      protocol.lastWeeklyUpdateTimestamp,
     )
   }
 
@@ -122,12 +120,20 @@ function hasDayPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigI
   if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
     return true // Create initial snapshot if no previous timestamp or if it's zero
   }
-  return currentTimestamp.minus(lastUpdateTimestamp).ge(BigIntConstants.SECONDS_PER_DAY)
+  const currentDayTimestamp = currentTimestamp
+    .div(BigIntConstants.SECONDS_PER_DAY)
+    .times(BigIntConstants.SECONDS_PER_DAY)
+  const previousDayTimestamp = lastUpdateTimestamp
+  return !currentDayTimestamp.equals(previousDayTimestamp)
 }
 
 function hasHourPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigInt): boolean {
   if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
     return true // Create initial snapshot if no previous timestamp or if it's zero
   }
-  return currentTimestamp.minus(lastUpdateTimestamp).ge(BigIntConstants.SECONDS_PER_HOUR)
+  const currentHourTimestamp = currentTimestamp
+    .div(BigIntConstants.SECONDS_PER_HOUR)
+    .times(BigIntConstants.SECONDS_PER_HOUR)
+  const previousHourTimestamp = lastUpdateTimestamp
+  return !currentHourTimestamp.equals(previousHourTimestamp)
 }

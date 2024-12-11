@@ -34,7 +34,7 @@ export function updateVault(
       deltaTime.gt(BigDecimalConstants.ZERO) &&
       !pricePerShareDiff.equals(BigDecimalConstants.ZERO) &&
       vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare) &&
-      pricePerShareDiff.lt(BigDecimalConstants.TEN_PERCENT)
+      pricePerShareDiff.lt(BigDecimalConstants.ONE_PERCENT)
     ) {
       vault.calculatedApr = getAprForTimePeriod(
         previousLastUpdatePricePerShare,

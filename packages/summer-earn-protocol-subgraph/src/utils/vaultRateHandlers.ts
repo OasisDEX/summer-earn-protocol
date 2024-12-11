@@ -1,6 +1,7 @@
-import { BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { DailyInterestRate, HourlyInterestRate, WeeklyInterestRate } from '../../generated/schema'
 import { BigDecimalConstants, BigIntConstants } from '../common/constants'
+import { getOrCreateVault } from '../common/initializers'
 
 class DailyVaultRateResult {
   constructor(
@@ -23,15 +24,31 @@ class WeeklyVaultRateResult {
   ) {}
 }
 
-export function handleVaultRate(block: ethereum.Block, vaultId: string, rate: BigDecimal): void {
+export function handleVaultRate(block: ethereum.Block, vaultId: string): void {
+  const vault = getOrCreateVault(Address.fromString(vaultId), block)
   const hourlyResult = getHourlyVaultRateIdAndTimestamp(block, vaultId)
   const dailyResult = getDailyVaultRateIdAndTimestamp(block, vaultId)
   const weeklyResult = getWeeklyVaultRateIdAndTimestamp(block, vaultId)
 
   // Update averages
-  updateDailyAverage(vaultId, rate, dailyResult.dayTimestamp, dailyResult.dailyRateId)
-  updateHourlyAverage(vaultId, rate, hourlyResult.hourTimestamp, hourlyResult.hourlyRateId)
-  updateWeeklyAverage(vaultId, rate, weeklyResult.weekTimestamp, weeklyResult.weeklyRateId)
+  updateDailyAverage(
+    vaultId,
+    vault.calculatedApr,
+    dailyResult.dayTimestamp,
+    dailyResult.dailyRateId,
+  )
+  updateHourlyAverage(
+    vaultId,
+    vault.calculatedApr,
+    hourlyResult.hourTimestamp,
+    hourlyResult.hourlyRateId,
+  )
+  updateWeeklyAverage(
+    vaultId,
+    vault.calculatedApr,
+    weeklyResult.weekTimestamp,
+    weeklyResult.weeklyRateId,
+  )
 }
 
 function getDailyVaultRateIdAndTimestamp(

@@ -32,7 +32,7 @@ import { FleetCommander as FleetCommanderContract } from '../../generated/templa
 import { updateVaultAPRs } from '../mappings/entities/vault'
 import { addresses } from './addressProvider'
 import * as constants from './constants'
-import { RewardTokenType } from './constants'
+import { BigIntConstants, RewardTokenType } from './constants'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -42,7 +42,7 @@ export function getOrCreateAccount(id: string): Account {
     account = new Account(id)
     account.save()
 
-    const protocol = getOrCreateYieldAggregator()
+    const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
     protocol.cumulativeUniqueUsers += 1
     protocol.save()
   }
@@ -97,7 +97,7 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
   return position
 }
 
-export function getOrCreateYieldAggregator(): YieldAggregator {
+export function getOrCreateYieldAggregator(timestamp: BigInt): YieldAggregator {
   let protocol = YieldAggregator.load(constants.PROTOCOL_ID)
   log.debug('getOrCreateYieldAggregator', [])
   if (!protocol) {
@@ -116,8 +116,12 @@ export function getOrCreateYieldAggregator(): YieldAggregator {
     protocol.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeUniqueUsers = 0
-    protocol.lastDailyUpdateTimestamp = constants.BigIntConstants.ZERO
-    protocol.lastHourlyUpdateTimestamp = constants.BigIntConstants.ZERO
+    protocol.lastDailyUpdateTimestamp = timestamp
+      .div(BigIntConstants.SECONDS_PER_DAY)
+      .times(BigIntConstants.SECONDS_PER_DAY)
+    protocol.lastHourlyUpdateTimestamp = timestamp
+      .div(BigIntConstants.SECONDS_PER_HOUR)
+      .times(BigIntConstants.SECONDS_PER_HOUR)
     protocol.totalPoolCount = 0
     protocol.vaultsArray = []
     protocol.save()
@@ -199,7 +203,7 @@ export function getOrCreateUsageMetricsDailySnapshot(
     usageMetrics.blockNumber = block.number
     usageMetrics.timestamp = block.timestamp
 
-    const protocol = getOrCreateYieldAggregator()
+    const protocol = getOrCreateYieldAggregator(block.timestamp)
     usageMetrics.totalPoolCount = protocol.totalPoolCount
 
     usageMetrics.save()
@@ -435,7 +439,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.save()
 
-    const yeildAggregator = getOrCreateYieldAggregator()
+    const yeildAggregator = getOrCreateYieldAggregator(block.timestamp)
     const vaultsArray = yeildAggregator.vaultsArray
     vaultsArray.push(vault.id)
     yeildAggregator.vaultsArray = vaultsArray
