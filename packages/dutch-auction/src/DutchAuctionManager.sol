@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import "./DecayFunctions.sol";
-import "./DutchAuctionErrors.sol";
-import "./DutchAuctionEvents.sol";
-import "./DutchAuctionLibrary.sol";
+import {DutchAuctionEvents} from "./DutchAuctionEvents.sol";
+import {DutchAuctionLibrary} from "./DutchAuctionLibrary.sol";
+import {DutchAuctionErrors} from "./DutchAuctionErrors.sol";
+import {DecayFunctions} from "./DecayFunctions.sol";
 
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Dutch Auction Manager
