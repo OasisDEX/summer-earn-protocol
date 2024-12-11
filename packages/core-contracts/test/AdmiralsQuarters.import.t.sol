@@ -222,14 +222,8 @@ contract AdmiralsQuartersImportTest is
     function test_ImportFromERC4626() public {
         user1 = USDC_4626_HOLDER;
         uint256 sharesToRedeem = 1000e6; // Assuming same decimals as USDC
-        uint256 assetsToReceive = IERC4626(USDC_4626_VAULT).previewRedeem(
-            sharesToRedeem
-        );
 
         uint256 sharesAmountBefore = IERC4626(USDC_4626_VAULT).balanceOf(user1);
-        uint256 balanceBefore = IERC4626(USDC_4626_VAULT).previewWithdraw(
-            sharesAmountBefore
-        );
 
         vm.startPrank(user1);
 
@@ -374,9 +368,7 @@ contract AdmiralsQuartersImportTest is
 
     function test_ImportZeroAmount() public {
         // Test importing with amount = 0 (should import full balance)
-        uint256 cTokenAmount = 50000e8;
         user1 = CUSDC_HOLDER;
-        uint256 cTokenBalanceBefore = IERC20(CUSDC_ADDRESS).balanceOf(user1);
         vm.startPrank(user1);
         IComet(CUSDC_ADDRESS).allow(address(admiralsQuarters), true);
 
@@ -390,11 +382,6 @@ contract AdmiralsQuartersImportTest is
             (address(usdcFleet), IERC20(USDC_ADDRESS), 0, address(0))
         );
         admiralsQuarters.multicall(importCalls);
-
-        bool hasPermission = IComet(CUSDC_ADDRESS).hasPermission(
-            user1,
-            address(admiralsQuarters)
-        );
 
         assertEq(
             IERC20(CUSDC_ADDRESS).balanceOf(user1),

@@ -211,9 +211,7 @@ contract TipperTest is Test, ITipperEvents {
 }
 
 contract TipperHarness is Tipper {
-    constructor(
-        address configurationManager
-    ) Tipper(PercentageUtils.fromIntegerPercentage(0)) {
+    constructor(address) Tipper(PercentageUtils.fromIntegerPercentage(0)) {
         tipRate = PercentageUtils.fromIntegerPercentage(1); // 1%
     }
 
