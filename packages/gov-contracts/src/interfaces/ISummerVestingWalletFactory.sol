@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ISummerVestingWallet} from "./ISummerVestingWallet.sol";
+
 interface ISummerVestingWalletFactory {
     /**
      * @dev Error thrown when attempting to create a vesting wallet for an address that already has one

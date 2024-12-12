@@ -2,11 +2,10 @@
 pragma solidity 0.8.28;
 
 import {ISummerVestingWallet} from "../interfaces/ISummerVestingWallet.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
-
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 /**
  * @title SummerVestingWallet
@@ -15,7 +14,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract SummerVestingWallet is
     ISummerVestingWallet,
     VestingWallet,
-    AccessControl
+    ProtocolAccessManaged
 {
     //////////////////////////////////////////////
     ///                CONSTANTS               ///
@@ -58,7 +57,6 @@ contract SummerVestingWallet is
      * @param startTimestamp Unix timestamp marking the start of the vesting period
      * @param durationSeconds Duration of the vesting period in seconds
      * @param vestingType Type of vesting schedule (0 for TeamVesting, 1 for InvestorExTeamVesting)
-     * @param guardianAddress Address to be granted the guardian role
      * @param _goalAmounts Array of goal amounts for performance-based vesting
      */
     constructor(
@@ -69,15 +67,16 @@ contract SummerVestingWallet is
         VestingType vestingType,
         uint256 _timeBasedVestingAmount,
         uint256[] memory _goalAmounts,
-        address guardianAddress
-    ) VestingWallet(beneficiaryAddress, startTimestamp, durationSeconds) {
+        address _accessManager
+    )
+        VestingWallet(beneficiaryAddress, startTimestamp, durationSeconds)
+        ProtocolAccessManaged(_accessManager)
+    {
         _vestingType = vestingType;
         timeBasedVestingAmount = _timeBasedVestingAmount;
         goalAmounts = _goalAmounts;
         goalsReached = new bool[](_goalAmounts.length);
         token = _token;
-
-        _grantRole(GUARDIAN_ROLE, guardianAddress);
     }
 
     //////////////////////////////////////////////
@@ -94,7 +93,7 @@ contract SummerVestingWallet is
     //////////////////////////////////////////////
 
     /// @inheritdoc ISummerVestingWallet
-    function addNewGoal(uint256 goalAmount) external onlyRole(GUARDIAN_ROLE) {
+    function addNewGoal(uint256 goalAmount) external onlyFoundation {
         goalAmounts.push(goalAmount);
         goalsReached.push(false);
         SafeERC20.safeTransferFrom(
@@ -106,9 +105,7 @@ contract SummerVestingWallet is
     }
 
     /// @inheritdoc ISummerVestingWallet
-    function markGoalReached(
-        uint256 goalNumber
-    ) external onlyRole(GUARDIAN_ROLE) {
+    function markGoalReached(uint256 goalNumber) external onlyFoundation {
         if (goalNumber < 1 || goalNumber > goalAmounts.length) {
             revert InvalidGoalNumber();
         }
@@ -116,7 +113,7 @@ contract SummerVestingWallet is
     }
 
     /// @inheritdoc ISummerVestingWallet
-    function recallUnvestedTokens() external onlyRole(GUARDIAN_ROLE) {
+    function recallUnvestedTokens() external onlyFoundation {
         if (_vestingType != VestingType.TeamVesting) {
             revert OnlyTeamVesting();
         }

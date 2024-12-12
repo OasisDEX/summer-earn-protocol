@@ -15,6 +15,7 @@ contract ProtocolAccessManagerTest is Test {
     address public commander;
     address public curator;
     address public guardian;
+    address public foundation;
 
     function setUp() public {
         governor = address(0x1);
@@ -24,6 +25,7 @@ contract ProtocolAccessManagerTest is Test {
         user = address(0x4);
         curator = address(0x5);
         commander = address(0x6);
+        foundation = address(0x7);
 
         vm.prank(governor);
         accessManager = new TestProtocolAccessManager(governor);
@@ -299,6 +301,50 @@ contract ProtocolAccessManagerTest is Test {
             )
         );
         vm.stopPrank();
+    }
+
+    function test_FoundationRole() public {
+        // Only governor can grant the role
+        vm.startPrank(governor);
+        accessManager.grantFoundationRole(foundation);
+        assertTrue(
+            accessManager.hasRole(accessManager.FOUNDATION_ROLE(), foundation)
+        );
+        vm.stopPrank();
+
+        // Non-governor cannot grant the role
+        vm.startPrank(user);
+        vm.expectRevert(
+            abi.encodeWithSignature("CallerIsNotGovernor(address)", user)
+        );
+        accessManager.grantFoundationRole(user);
+        vm.stopPrank();
+
+        // Role can be revoked by governor
+        vm.startPrank(governor);
+        accessManager.revokeFoundationRole(foundation);
+        assertFalse(
+            accessManager.hasRole(accessManager.FOUNDATION_ROLE(), foundation)
+        );
+        vm.stopPrank();
+    }
+
+    function test_GrantFoundationRole() public {
+        vm.prank(governor);
+        accessManager.grantFoundationRole(foundation);
+        assertTrue(
+            accessManager.hasRole(accessManager.FOUNDATION_ROLE(), foundation)
+        );
+    }
+
+    function test_RevokeFoundationRole() public {
+        vm.startPrank(governor);
+        accessManager.grantFoundationRole(foundation);
+        accessManager.revokeFoundationRole(foundation);
+        vm.stopPrank();
+        assertFalse(
+            accessManager.hasRole(accessManager.FOUNDATION_ROLE(), foundation)
+        );
     }
 }
 

@@ -3,19 +3,16 @@ pragma solidity 0.8.28;
 
 import {SummerToken} from "../src/contracts/SummerToken.sol";
 import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
-
 import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
 import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
-
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 contract SummerVestingTest is SummerTokenTestBase {
     address public beneficiary;
-    address public nonGovernance;
+    address public foundation;
+    address public nonFoundation;
     uint256[] goalAmounts;
 
     uint256 constant TIME_BASED_AMOUNT = 800000 ether;
@@ -32,15 +29,26 @@ contract SummerVestingTest is SummerTokenTestBase {
 
     function setUp() public override {
         super.setUp();
+
+        // Setup test addresses
+        foundation = address(0x3);
+        nonFoundation = address(0x4);
+        beneficiary = address(0x1);
+
+        // Grant foundation role explicitly for this test suite
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantFoundationRole(foundation);
+        vm.stopPrank();
+
+        // Setup token transfers and approvals
         enableTransfers();
         vm.prank(owner);
-        aSummerToken.transfer(address(this), aSummerToken.cap());
+        aSummerToken.transfer(foundation, aSummerToken.cap());
+        vm.prank(foundation);
         aSummerToken.approve(
             address(vestingWalletFactoryA),
             TOTAL_VESTING_AMOUNT
         );
-        beneficiary = address(0x1);
-        nonGovernance = address(0x2);
 
         // Initialize goalAmounts array
         goalAmounts = new uint256[](4);
@@ -51,6 +59,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_CreateVestingWallet() public {
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -72,8 +81,8 @@ contract SummerVestingTest is SummerTokenTestBase {
         );
     }
 
-    function testFail_NonGovernanceCreateVestingWallet() public {
-        vm.prank(nonGovernance);
+    function testFail_NonFoundationCreateVestingWallet() public {
+        vm.prank(nonFoundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -83,12 +92,14 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function testFail_DuplicateVestingWallet() public {
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -98,6 +109,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function testFail_InvalidVestingType() public {
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -109,6 +121,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_TeamVesting() public {
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -167,6 +180,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_InvestorExTeamVesting() public {
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -225,6 +239,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_PerformanceBasedVesting() public {
+        vm.startPrank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -241,6 +256,7 @@ contract SummerVestingTest is SummerTokenTestBase {
         // Mark goals as reached
         vestingWallet.markGoalReached(1);
         vestingWallet.markGoalReached(3);
+        vm.stopPrank();
 
         // After 1 year
         vm.warp(block.timestamp + 365 days);
@@ -255,6 +271,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_ReleaseVestedTokens() public {
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -282,6 +299,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_RecallUnvestedTokens() public {
+        vm.startPrank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -298,16 +316,17 @@ contract SummerVestingTest is SummerTokenTestBase {
         vm.warp(block.timestamp + 365 days);
         vestingWallet.markGoalReached(1);
         vestingWallet.markGoalReached(3);
-        uint256 initialBalance = aSummerToken.balanceOf(address(this));
+        uint256 initialBalance = aSummerToken.balanceOf(foundation);
 
         vestingWallet.recallUnvestedTokens();
 
-        uint256 finalBalance = aSummerToken.balanceOf(address(this));
+        uint256 finalBalance = aSummerToken.balanceOf(foundation);
         assertEq(
             finalBalance - initialBalance,
             goalAmounts[1] + goalAmounts[3],
-            "Admin should receive unvested tokens"
+            "Foundation should receive unvested tokens"
         );
+        vm.stopPrank();
     }
 
     function test_VariableNumberOfGoals() public {
@@ -316,6 +335,7 @@ contract SummerVestingTest is SummerTokenTestBase {
         customGoalAmounts[1] = 40000 ether;
         customGoalAmounts[2] = 50000 ether;
 
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -330,8 +350,10 @@ contract SummerVestingTest is SummerTokenTestBase {
         );
 
         // Mark goals as reached
+        vm.startPrank(foundation);
         vestingWallet.markGoalReached(1);
         vestingWallet.markGoalReached(3);
+        vm.stopPrank();
 
         // After 1 year
         vm.warp(block.timestamp + 365 days);
@@ -346,6 +368,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_AddNewGoal() public {
+        vm.startPrank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -363,9 +386,10 @@ contract SummerVestingTest is SummerTokenTestBase {
         uint256 newGoalAmount = 60000 ether;
 
         // Add a new goal
-        deal(address(aSummerToken), address(this), newGoalAmount);
+        deal(address(aSummerToken), foundation, newGoalAmount);
         aSummerToken.approve(address(vestingWallet), newGoalAmount);
         vestingWallet.addNewGoal(newGoalAmount);
+        vm.stopPrank();
 
         // Check that the new goal was added
         assertEq(
@@ -380,6 +404,7 @@ contract SummerVestingTest is SummerTokenTestBase {
         );
 
         // Mark the new goal as reached
+        vm.prank(foundation);
         vestingWallet.markGoalReached(initialGoalCount + 1);
 
         // After 1 year
@@ -394,15 +419,14 @@ contract SummerVestingTest is SummerTokenTestBase {
             "Half of time-based tokens plus new goal amount should be vested"
         );
 
-        // Try to add a goal from a non-guardian address
+        // Try to add a goal from a non-foundation address
         vm.expectRevert(
             abi.encodeWithSignature(
-                "AccessControlUnauthorizedAccount(address,bytes32)",
-                nonGovernance,
-                vestingWallet.GUARDIAN_ROLE()
+                "CallerIsNotFoundation(address)",
+                nonFoundation
             )
         );
-        vm.prank(nonGovernance);
+        vm.prank(nonFoundation);
         vestingWallet.addNewGoal(10000 ether);
     }
 }

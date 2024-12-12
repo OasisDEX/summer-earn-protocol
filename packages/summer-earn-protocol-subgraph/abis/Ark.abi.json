@@ -840,6 +840,17 @@
   },
   {
     "type": "error",
+    "name": "CallerIsNotFoundation",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "CallerIsNotGovernor",
     "inputs": [
       {

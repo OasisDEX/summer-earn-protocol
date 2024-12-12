@@ -80,7 +80,10 @@ contract SummerToken is
         _setRewardsManager(address(rewardsManager));
 
         transferEnableDate = params.transferEnableDate;
-        vestingWalletFactory = new SummerVestingWalletFactory(address(this));
+        vestingWalletFactory = new SummerVestingWalletFactory(
+            address(this),
+            params.accessManager
+        );
         _mint(params.owner, params.initialSupply);
     }
 

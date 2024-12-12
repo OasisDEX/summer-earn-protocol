@@ -768,6 +768,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         uint256 directAmount = 1000000 * 10 ** 18;
         console.log("Vesting amount :", vestingAmount);
 
+        // Grant foundation role to timelock
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantFoundationRole(address(timelockA));
+        vm.stopPrank();
+
         vm.startPrank(address(timelockA));
         aSummerToken.approve(address(vestingWalletFactoryA), vestingAmount);
         vestingWalletFactoryA.createVestingWallet(
@@ -1053,6 +1058,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         uint256 directAmount = 1000000 * 10 ** 18;
         uint256 additionalAmount = 100000 * 10 ** 18;
         address _bob = address(0xb0b);
+
+        // Grant foundation role to timelock
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantFoundationRole(address(timelockA));
+        vm.stopPrank();
 
         vm.prank(address(timelockA));
         aSummerToken.setDecayRatePerSecond(0);
