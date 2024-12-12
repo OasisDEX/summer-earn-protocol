@@ -12,6 +12,7 @@ import {
 } from '../common/initializers'
 import { getArkDetails } from '../utils/ark'
 import { getVaultDetails } from '../utils/vault'
+import { handleVaultRate } from '../utils/vaultRateHandlers'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
 
@@ -51,6 +52,7 @@ function updateVaultSnapshots(
   if (shouldUpdateDaily) {
     getOrCreateVaultsDailySnapshots(vaultAddress, block)
   }
+  handleVaultRate(block, vaultAddress.toHexString())
 }
 
 // Main update orchestration functions
@@ -81,7 +83,7 @@ function processHourlyVaultUpdate(
 }
 
 export function handleInterval(block: ethereum.Block): void {
-  const protocol = getOrCreateYieldAggregator()
+  const protocol = getOrCreateYieldAggregator(block.timestamp)
 
   const vaults = protocol.vaultsArray
   for (let i = 0; i < vaults.length; i++) {
@@ -118,12 +120,20 @@ function hasDayPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigI
   if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
     return true // Create initial snapshot if no previous timestamp or if it's zero
   }
-  return currentTimestamp.minus(lastUpdateTimestamp).ge(BigIntConstants.SECONDS_PER_DAY)
+  const currentDayTimestamp = currentTimestamp
+    .div(BigIntConstants.SECONDS_PER_DAY)
+    .times(BigIntConstants.SECONDS_PER_DAY)
+  const previousDayTimestamp = lastUpdateTimestamp
+  return !currentDayTimestamp.equals(previousDayTimestamp)
 }
 
 function hasHourPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigInt): boolean {
   if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
     return true // Create initial snapshot if no previous timestamp or if it's zero
   }
-  return currentTimestamp.minus(lastUpdateTimestamp).ge(BigIntConstants.SECONDS_PER_HOUR)
+  const currentHourTimestamp = currentTimestamp
+    .div(BigIntConstants.SECONDS_PER_HOUR)
+    .times(BigIntConstants.SECONDS_PER_HOUR)
+  const previousHourTimestamp = lastUpdateTimestamp
+  return !currentHourTimestamp.equals(previousHourTimestamp)
 }
