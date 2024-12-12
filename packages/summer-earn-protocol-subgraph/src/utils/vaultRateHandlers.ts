@@ -68,6 +68,7 @@ function getHourlyVaultRateIdAndTimestamp(
   vaultId: string,
 ): HourlyVaultRateResult {
   const hourTimestamp = block.timestamp
+    .minus(BigIntConstants.HOUR_IN_SECONDS)
     .div(BigIntConstants.HOUR_IN_SECONDS)
     .times(BigIntConstants.HOUR_IN_SECONDS)
 

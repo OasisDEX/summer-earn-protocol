@@ -309,8 +309,10 @@ export function getOrCreateVaultsHourlySnapshots(
   block: ethereum.Block,
 ): VaultHourlySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-  const currentHour = block.timestamp.toI64() / constants.SECONDS_PER_HOUR
-  const previousHour = currentHour - 1
+  const currentHour = block.timestamp
+    .minus(BigIntConstants.SECONDS_PER_HOUR)
+    .div(BigIntConstants.SECONDS_PER_DAY)
+  const previousHour = currentHour.minus(BigIntConstants.ONE)
   const id: string = vault.id.concat('-').concat(currentHour.toString())
   const previousId = vault.id.concat('-').concat(previousHour.toString())
 
@@ -352,6 +354,9 @@ export function getOrCreateVaultsHourlySnapshots(
 
     vaultSnapshots.blockNumber = block.number
     vaultSnapshots.timestamp = block.timestamp
+      .minus(BigIntConstants.SECONDS_PER_HOUR)
+      .div(BigIntConstants.SECONDS_PER_DAY)
+      .times(BigIntConstants.SECONDS_PER_DAY)
     vaultSnapshots.save()
   }
 
