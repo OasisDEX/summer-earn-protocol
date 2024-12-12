@@ -15,6 +15,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
+import {ERC20Wrapper} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
 
 /**
  * @title StakingRewards
@@ -57,7 +58,7 @@ abstract contract StakingRewardsManagerBase is
 
     /* @notice Total amount of tokens staked in the contract */
     uint256 public totalSupply;
-    mapping(address account => uint256 balance) private _balances;
+    mapping(address account => uint256 balance) internal _balances;
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
@@ -112,10 +113,10 @@ abstract contract StakingRewardsManagerBase is
         }
         return
             rewardData[rewardToken].rewardPerTokenStored +
-            (((lastTimeRewardApplicable(rewardToken) -
+            ((lastTimeRewardApplicable(rewardToken) -
                 rewardData[rewardToken].lastUpdateTime) *
-                rewardData[rewardToken].rewardRate *
-                Constants.WAD) / totalSupply);
+                rewardData[rewardToken].rewardRate) /
+            totalSupply;
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -171,50 +172,8 @@ abstract contract StakingRewardsManagerBase is
         IERC20 rewardToken,
         uint256 reward,
         uint256 newRewardsDuration
-    ) external onlyGovernor updateReward(address(0)) {
-        if (address(rewardToken) == address(stakingToken))
-            revert CantAddStakingTokenAsReward();
-        RewardData storage rewardTokenData = rewardData[rewardToken];
-
-        // If the reward token doesn't exist, add it
-        if (!_rewardTokensList.contains(address(rewardToken))) {
-            if (newRewardsDuration == 0) revert RewardsDurationCannotBeZero();
-            _rewardTokensList.add(address(rewardToken));
-            rewardTokenData.rewardsDuration = newRewardsDuration;
-            emit RewardTokenAdded(
-                address(rewardToken),
-                rewardTokenData.rewardsDuration
-            );
-        } else if (
-            newRewardsDuration > 0 &&
-            newRewardsDuration != rewardTokenData.rewardsDuration
-        ) {
-            revert CannotChangeRewardsDuration();
-        }
-
-        uint256 totalReward;
-        if (block.timestamp >= rewardTokenData.periodFinish) {
-            totalReward = reward;
-        } else {
-            uint256 remaining = rewardTokenData.periodFinish - block.timestamp;
-            uint256 leftover = remaining * rewardTokenData.rewardRate;
-            totalReward = reward + leftover;
-        }
-
-        // Check balance first
-        uint256 balance = rewardToken.balanceOf(address(this));
-        if (totalReward > balance) revert ProvidedRewardTooHigh();
-
-        // Calculate rate only once after validation
-        rewardTokenData.rewardRate =
-            totalReward /
-            rewardTokenData.rewardsDuration;
-
-        rewardTokenData.lastUpdateTime = block.timestamp;
-        rewardTokenData.periodFinish =
-            block.timestamp +
-            rewardTokenData.rewardsDuration;
-        emit RewardAdded(address(rewardToken), reward);
+    ) external virtual onlyGovernor updateReward(address(0)) {
+        _notifyRewardAmount(rewardToken, reward, newRewardsDuration);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -282,7 +241,11 @@ abstract contract StakingRewardsManagerBase is
     /// @param _stakingToken The address of the staking token
     function _initialize(IERC20 _stakingToken) internal virtual {}
 
-    function _stake(address from, address receiver, uint256 amount) internal {
+    function _stake(
+        address from,
+        address receiver,
+        uint256 amount
+    ) internal virtual {
         if (amount == 0) revert CannotStakeZero();
         if (address(stakingToken) == address(0)) {
             revert StakingTokenNotInitialized();
@@ -293,7 +256,11 @@ abstract contract StakingRewardsManagerBase is
         emit Staked(receiver, amount);
     }
 
-    function _unstake(address from, address receiver, uint256 amount) internal {
+    function _unstake(
+        address from,
+        address receiver,
+        uint256 amount
+    ) internal virtual {
         if (amount == 0) revert CannotUnstakeZero();
         totalSupply -= amount;
         _balances[from] -= amount;
@@ -342,7 +309,9 @@ abstract contract StakingRewardsManagerBase is
      * @param account The address to claim rewards for
      * @dev rewards go straight to the user's wallet
      */
-    function _getReward(address account) internal updateReward(account) {
+    function _getReward(
+        address account
+    ) internal virtual updateReward(account) {
         uint256 rewardTokenCount = _rewardTokensList.length();
         for (uint256 i = 0; i < rewardTokenCount; i++) {
             address rewardTokenAddress = _rewardTokensList.at(i);
@@ -354,5 +323,60 @@ abstract contract StakingRewardsManagerBase is
                 emit RewardPaid(account, address(rewardToken), reward);
             }
         }
+    }
+
+    /**
+     * @dev Internal implementation of notifyRewardAmount
+     * @param rewardToken The token to distribute as rewards
+     * @param reward The amount of reward tokens to distribute
+     * @param newRewardsDuration The duration for new reward tokens (only used for first time)
+     */
+    function _notifyRewardAmount(
+        IERC20 rewardToken,
+        uint256 reward,
+        uint256 newRewardsDuration
+    ) internal {
+        RewardData storage rewardTokenData = rewardData[rewardToken];
+
+        // If the reward token doesn't exist, add it
+        if (!_rewardTokensList.contains(address(rewardToken))) {
+            if (newRewardsDuration == 0) revert RewardsDurationCannotBeZero();
+            _rewardTokensList.add(address(rewardToken));
+            rewardTokenData.rewardsDuration = newRewardsDuration;
+            emit RewardTokenAdded(
+                address(rewardToken),
+                rewardTokenData.rewardsDuration
+            );
+        } else if (
+            newRewardsDuration > 0 &&
+            newRewardsDuration != rewardTokenData.rewardsDuration
+        ) {
+            revert CannotChangeRewardsDuration();
+        }
+
+        uint256 totalReward;
+        if (block.timestamp >= rewardTokenData.periodFinish) {
+            totalReward = reward;
+        } else {
+            uint256 remaining = rewardTokenData.periodFinish - block.timestamp;
+            uint256 leftover = (remaining * rewardTokenData.rewardRate) /
+                Constants.WAD;
+            totalReward = reward + leftover;
+        }
+
+        // Check balance first
+        uint256 balance = rewardToken.balanceOf(address(this));
+        if (totalReward > balance) revert ProvidedRewardTooHigh();
+
+        // Calculate rate only once after validation
+        rewardTokenData.rewardRate =
+            (totalReward * Constants.WAD) /
+            rewardTokenData.rewardsDuration;
+
+        rewardTokenData.lastUpdateTime = block.timestamp;
+        rewardTokenData.periodFinish =
+            block.timestamp +
+            rewardTokenData.rewardsDuration;
+        emit RewardAdded(address(rewardToken), reward);
     }
 }

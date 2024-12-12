@@ -1760,7 +1760,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         // Calculate a reward amount that divides evenly by the duration
         uint256 rewardDuration = 864000; // 10 days in seconds
         uint256 rewardRate = 1000e6; // 1000 USDC per second
-        uint256 rewardAmount = rewardRate * rewardDuration; // This will divide evenly
+        uint256 rewardAmount = rewardRate * rewardDuration;
 
         // First transfer USDC to the rewards manager and setup rewards
         vm.startPrank(governor);

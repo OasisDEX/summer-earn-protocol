@@ -847,6 +847,11 @@
   },
   {
     "type": "error",
+    "name": "InvalidWrappedToken",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NoRewardTokens",
     "inputs": []
   },
