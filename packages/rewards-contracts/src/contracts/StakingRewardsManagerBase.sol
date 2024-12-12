@@ -132,8 +132,8 @@ abstract contract StakingRewardsManagerBase is
         IERC20 rewardToken
     ) external view returns (uint256) {
         return
-            rewardData[rewardToken].rewardRate *
-            rewardData[rewardToken].rewardsDuration;
+            (rewardData[rewardToken].rewardRate *
+                rewardData[rewardToken].rewardsDuration) / Constants.WAD;
     }
 
     /*//////////////////////////////////////////////////////////////

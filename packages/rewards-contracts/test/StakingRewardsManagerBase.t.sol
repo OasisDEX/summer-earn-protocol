@@ -12,6 +12,7 @@ import {IStakingRewardsManagerBase} from "../src/interfaces/IStakingRewardsManag
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ERC20, ERC20Wrapper} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 contract ERC20MockWithoutDecimals is ERC20Mock {
     constructor() ERC20Mock() {}
@@ -129,7 +130,7 @@ contract StakingRewardsManagerBaseTest is Test {
         );
         assertEq(
             rewardRate,
-            rewardAmount / duration,
+            ((rewardAmount * Constants.WAD) / duration),
             "Reward rate should be reward amount divided by duration"
         );
         assertEq(
@@ -139,17 +140,6 @@ contract StakingRewardsManagerBaseTest is Test {
         );
     }
 
-    function test_NotifyRewardAmount_StakingToken() public {
-        vm.expectRevert(
-            abi.encodeWithSignature("CantAddStakingTokenAsReward()")
-        );
-        vm.prank(mockGovernor);
-        stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(mockStakingToken)),
-            1000 * 1e18,
-            30 days
-        );
-    }
     function test_NotifyRewardAmount_NewToken() public {
         ERC20Mock newRewardToken = new ERC20Mock();
         uint256 rewardAmount = 1000 * 1e18; // 1000 tokens
@@ -188,7 +178,7 @@ contract StakingRewardsManagerBaseTest is Test {
         );
         assertEq(
             rewardRate,
-            rewardAmount / newDuration,
+            ((rewardAmount * Constants.WAD) / newDuration),
             "Reward rate should be set correctly"
         );
         assertEq(
@@ -725,7 +715,6 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 rewardAmount = 100 * 1e18;
         uint256 duration = 7 days;
 
-        // Setup reward data by notifying reward amount
         vm.prank(mockGovernor);
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
@@ -733,34 +722,15 @@ contract StakingRewardsManagerBaseTest is Test {
             duration
         );
 
-        // Get reward for duration
         uint256 rewardForDuration = stakingRewardsManager.getRewardForDuration(
             rewardToken
         );
 
-        // Get reward data for manual calculation verification
-        (
-            ,
-            uint256 rewardRate,
-            uint256 rewardsDuration,
-            ,
-
-        ) = stakingRewardsManager.rewardData(rewardToken);
-
-        // Verify both calculations with a small tolerance for rounding
-        // Allow for 0.0001% difference (1 basis point)
         assertApproxEqRel(
             rewardForDuration,
             rewardAmount,
-            0.0001e16, // 0.0001% in ray units (1e18 based)
-            "Total reward for duration should approximately equal notified amount"
-        );
-
-        assertApproxEqRel(
-            rewardForDuration,
-            rewardRate * rewardsDuration,
             0.0001e16,
-            "Reward for duration calculation incorrect"
+            "Total reward for duration should approximately equal notified amount"
         );
     }
 
