@@ -26,21 +26,24 @@ export function updateVault(
 
   if (shouldUpdateApr) {
     const previousLastUpdatePricePerShare = vault.lastUpdatePricePerShare
-    const pricePerShareDiff = vaultDetails.pricePerShare.minus(previousLastUpdatePricePerShare)
     vault.lastUpdateTimestamp = block.timestamp
     vault.lastUpdatePricePerShare = vaultDetails.pricePerShare
-    if (
-      !previousLastUpdatePricePerShare.equals(BigDecimalConstants.ZERO) &&
-      deltaTime.gt(BigDecimalConstants.ZERO) &&
-      !pricePerShareDiff.equals(BigDecimalConstants.ZERO) &&
-      vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare) &&
-      pricePerShareDiff.lt(BigDecimalConstants.TEN_PERCENT)
-    ) {
-      vault.calculatedApr = getAprForTimePeriod(
-        previousLastUpdatePricePerShare,
-        vaultDetails.pricePerShare,
-        deltaTime,
-      )
+    if (!previousLastUpdatePricePerShare.equals(BigDecimalConstants.ZERO)) {
+      const pricePerShareDiff = vaultDetails.pricePerShare
+        .minus(previousLastUpdatePricePerShare)
+        .div(previousLastUpdatePricePerShare)
+      if (
+        deltaTime.gt(BigDecimalConstants.ZERO) &&
+        !pricePerShareDiff.equals(BigDecimalConstants.ZERO) &&
+        pricePerShareDiff.lt(BigDecimalConstants.TEN_BPS) &&
+        vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare)
+      ) {
+        vault.calculatedApr = getAprForTimePeriod(
+          previousLastUpdatePricePerShare,
+          vaultDetails.pricePerShare,
+          deltaTime,
+        )
+      }
     }
   }
   vault.inputTokenBalance = vaultDetails.inputTokenBalance

@@ -5,7 +5,9 @@ import {
   Ark,
   ArkDailySnapshot,
   ArkHourlySnapshot,
+  DailyInterestRate,
   FinancialsDailySnapshot,
+  HourlyInterestRate,
   Position,
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
@@ -30,9 +32,13 @@ import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemp
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 
 import { updateVaultAPRs } from '../mappings/entities/vault'
+import {
+  getDailyVaultRateIdAndTimestamp,
+  getHourlyVaultRateIdAndTimestamp,
+} from '../utils/vaultRateHandlers'
 import { addresses } from './addressProvider'
 import * as constants from './constants'
-import { RewardTokenType } from './constants'
+import { BigIntConstants, RewardTokenType } from './constants'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -42,7 +48,7 @@ export function getOrCreateAccount(id: string): Account {
     account = new Account(id)
     account.save()
 
-    const protocol = getOrCreateYieldAggregator()
+    const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
     protocol.cumulativeUniqueUsers += 1
     protocol.save()
   }
@@ -97,7 +103,7 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
   return position
 }
 
-export function getOrCreateYieldAggregator(): YieldAggregator {
+export function getOrCreateYieldAggregator(timestamp: BigInt): YieldAggregator {
   let protocol = YieldAggregator.load(constants.PROTOCOL_ID)
   log.debug('getOrCreateYieldAggregator', [])
   if (!protocol) {
@@ -116,8 +122,12 @@ export function getOrCreateYieldAggregator(): YieldAggregator {
     protocol.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeUniqueUsers = 0
-    protocol.lastDailyUpdateTimestamp = constants.BigIntConstants.ZERO
-    protocol.lastHourlyUpdateTimestamp = constants.BigIntConstants.ZERO
+    protocol.lastDailyUpdateTimestamp = timestamp
+      .div(BigIntConstants.SECONDS_PER_DAY)
+      .times(BigIntConstants.SECONDS_PER_DAY)
+    protocol.lastHourlyUpdateTimestamp = timestamp
+      .div(BigIntConstants.SECONDS_PER_HOUR)
+      .times(BigIntConstants.SECONDS_PER_HOUR)
     protocol.totalPoolCount = 0
     protocol.vaultsArray = []
     protocol.save()
@@ -199,7 +209,7 @@ export function getOrCreateUsageMetricsDailySnapshot(
     usageMetrics.blockNumber = block.number
     usageMetrics.timestamp = block.timestamp
 
-    const protocol = getOrCreateYieldAggregator()
+    const protocol = getOrCreateYieldAggregator(block.timestamp)
     usageMetrics.totalPoolCount = protocol.totalPoolCount
 
     usageMetrics.save()
@@ -238,10 +248,16 @@ export function getOrCreateVaultsDailySnapshots(
   block: ethereum.Block,
 ): VaultDailySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
+  const dayTimestamp = block.timestamp
+    .div(BigIntConstants.DAY_IN_SECONDS)
+    .times(BigIntConstants.DAY_IN_SECONDS)
   const currentDay = block.timestamp.toI64() / constants.SECONDS_PER_DAY
   const previousDay = currentDay - 1
   const previousId = vault.id.concat('-').concat(previousDay.toString())
   const previousSnapshot = VaultDailySnapshot.load(previousId)
+
+  const dailyRateId = getDailyVaultRateIdAndTimestamp(block, vault.id)
+  const dailyRate = DailyInterestRate.load(dailyRateId.dailyRateId)
 
   const id: string = vault.id
     .concat('-')
@@ -266,13 +282,7 @@ export function getOrCreateVaultsDailySnapshots(
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
 
-    vaultSnapshots.calculatedApr = !previousSnapshot
-      ? constants.BigDecimalConstants.ZERO
-      : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.DAY_IN_SECONDS,
-        )
+    vaultSnapshots.calculatedApr = dailyRate!.averageRate
     log.error('vaultSnapshots.pricePerShare {} previous {} day in seconds {} apr {}', [
       vaultSnapshots.pricePerShare!.toString(),
       previousSnapshot ? previousSnapshot.pricePerShare!.toString() : 'nope',
@@ -293,7 +303,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
 
-    updateVaultAPRs(vault, vaultSnapshots.calculatedApr)
+    updateVaultAPRs(vault, dailyRate!.averageRate)
     vault.save()
   }
 
@@ -305,10 +315,15 @@ export function getOrCreateVaultsHourlySnapshots(
   block: ethereum.Block,
 ): VaultHourlySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-  const currentHour = block.timestamp.toI64() / constants.SECONDS_PER_HOUR
-  const previousHour = currentHour - 1
+  const currentHour = block.timestamp
+    .minus(BigIntConstants.SECONDS_PER_HOUR)
+    .div(BigIntConstants.SECONDS_PER_DAY)
+  const previousHour = currentHour.minus(BigIntConstants.ONE)
   const id: string = vault.id.concat('-').concat(currentHour.toString())
   const previousId = vault.id.concat('-').concat(previousHour.toString())
+
+  const hourlyRateId = getHourlyVaultRateIdAndTimestamp(block, vault.id)
+  const hourlyRate = HourlyInterestRate.load(hourlyRateId.hourlyRateId)
 
   const previousSnapshot = VaultHourlySnapshot.load(previousId)
   let vaultSnapshots = VaultHourlySnapshot.load(id)
@@ -330,14 +345,7 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
-    vaultSnapshots.calculatedApr = !previousSnapshot
-      ? constants.BigDecimalConstants.ZERO
-      : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.HOUR_IN_SECONDS,
-        )
-
+    vaultSnapshots.calculatedApr = hourlyRate!.averageRate
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -349,6 +357,9 @@ export function getOrCreateVaultsHourlySnapshots(
 
     vaultSnapshots.blockNumber = block.number
     vaultSnapshots.timestamp = block.timestamp
+      .minus(BigIntConstants.SECONDS_PER_HOUR)
+      .div(BigIntConstants.SECONDS_PER_DAY)
+      .times(BigIntConstants.SECONDS_PER_DAY)
     vaultSnapshots.save()
   }
 
@@ -436,7 +447,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.save()
 
-    const yeildAggregator = getOrCreateYieldAggregator()
+    const yeildAggregator = getOrCreateYieldAggregator(block.timestamp)
     const vaultsArray = yeildAggregator.vaultsArray
     vaultsArray.push(vault.id)
     yeildAggregator.vaultsArray = vaultsArray

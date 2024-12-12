@@ -34,7 +34,7 @@ export function createFeeType(feeId: string, feeType: string, feePercentage: Big
 }
 
 export function updateProtocolTotalValueLockedUSD(): void {
-  const protocol = getOrCreateYieldAggregator()
+  const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
   const vaultIds = protocol.vaultsArray
 
   let totalValueLockedUSD = constants.BigDecimalConstants.ZERO
