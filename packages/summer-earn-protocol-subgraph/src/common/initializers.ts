@@ -5,7 +5,9 @@ import {
   Ark,
   ArkDailySnapshot,
   ArkHourlySnapshot,
+  DailyInterestRate,
   FinancialsDailySnapshot,
+  HourlyInterestRate,
   Position,
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
@@ -30,6 +32,10 @@ import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemp
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 
 import { updateVaultAPRs } from '../mappings/entities/vault'
+import {
+  getDailyVaultRateIdAndTimestamp,
+  getHourlyVaultRateIdAndTimestamp,
+} from '../utils/vaultRateHandlers'
 import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { BigIntConstants, RewardTokenType } from './constants'
@@ -242,10 +248,16 @@ export function getOrCreateVaultsDailySnapshots(
   block: ethereum.Block,
 ): VaultDailySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
+  const dayTimestamp = block.timestamp
+    .div(BigIntConstants.DAY_IN_SECONDS)
+    .times(BigIntConstants.DAY_IN_SECONDS)
   const currentDay = block.timestamp.toI64() / constants.SECONDS_PER_DAY
   const previousDay = currentDay - 1
   const previousId = vault.id.concat('-').concat(previousDay.toString())
   const previousSnapshot = VaultDailySnapshot.load(previousId)
+
+  const dailyRateId = getDailyVaultRateIdAndTimestamp(block, vault.id)
+  const dailyRate = DailyInterestRate.load(dailyRateId.dailyRateId)
 
   const id: string = vault.id
     .concat('-')
@@ -270,13 +282,7 @@ export function getOrCreateVaultsDailySnapshots(
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
 
-    vaultSnapshots.calculatedApr = !previousSnapshot
-      ? constants.BigDecimalConstants.ZERO
-      : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.DAY_IN_SECONDS,
-        )
+    vaultSnapshots.calculatedApr = dailyRate!.averageRate
     log.error('vaultSnapshots.pricePerShare {} previous {} day in seconds {} apr {}', [
       vaultSnapshots.pricePerShare!.toString(),
       previousSnapshot ? previousSnapshot.pricePerShare!.toString() : 'nope',
@@ -297,7 +303,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
 
-    updateVaultAPRs(vault, vaultSnapshots.calculatedApr)
+    updateVaultAPRs(vault, dailyRate!.averageRate)
     vault.save()
   }
 
@@ -315,6 +321,9 @@ export function getOrCreateVaultsHourlySnapshots(
   const previousHour = currentHour.minus(BigIntConstants.ONE)
   const id: string = vault.id.concat('-').concat(currentHour.toString())
   const previousId = vault.id.concat('-').concat(previousHour.toString())
+
+  const hourlyRateId = getHourlyVaultRateIdAndTimestamp(block, vault.id)
+  const hourlyRate = HourlyInterestRate.load(hourlyRateId.hourlyRateId)
 
   const previousSnapshot = VaultHourlySnapshot.load(previousId)
   let vaultSnapshots = VaultHourlySnapshot.load(id)
@@ -336,13 +345,7 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
-    vaultSnapshots.calculatedApr = !previousSnapshot
-      ? constants.BigDecimalConstants.ZERO
-      : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.HOUR_IN_SECONDS,
-        )
+    vaultSnapshots.calculatedApr = hourlyRate!.averageRate
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 

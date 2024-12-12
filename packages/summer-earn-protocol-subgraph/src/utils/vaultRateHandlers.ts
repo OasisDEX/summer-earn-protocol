@@ -51,7 +51,7 @@ export function handleVaultRate(block: ethereum.Block, vaultId: string): void {
   )
 }
 
-function getDailyVaultRateIdAndTimestamp(
+export function getDailyVaultRateIdAndTimestamp(
   block: ethereum.Block,
   vaultId: string,
 ): DailyVaultRateResult {
@@ -63,7 +63,7 @@ function getDailyVaultRateIdAndTimestamp(
   return new DailyVaultRateResult(dailyRateId, dayTimestamp)
 }
 
-function getHourlyVaultRateIdAndTimestamp(
+export function getHourlyVaultRateIdAndTimestamp(
   block: ethereum.Block,
   vaultId: string,
 ): HourlyVaultRateResult {

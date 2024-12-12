@@ -48,11 +48,11 @@ function updateVaultSnapshots(
   block: ethereum.Block,
   shouldUpdateDaily: boolean,
 ): void {
+  handleVaultRate(block, vaultAddress.toHexString())
   getOrCreateVaultsHourlySnapshots(vaultAddress, block)
   if (shouldUpdateDaily) {
     getOrCreateVaultsDailySnapshots(vaultAddress, block)
   }
-  handleVaultRate(block, vaultAddress.toHexString())
 }
 
 // Main update orchestration functions
