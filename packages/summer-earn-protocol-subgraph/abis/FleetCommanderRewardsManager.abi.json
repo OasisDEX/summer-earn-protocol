@@ -778,6 +778,11 @@
   },
   {
     "type": "error",
+    "name": "CantAddStakingTokenAsReward",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "DirectGrantIsDisabled",
     "inputs": [
       {
@@ -838,11 +843,6 @@
   {
     "type": "error",
     "name": "InvalidUnstakeRecipient",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidWrappedToken",
     "inputs": []
   },
   {
