@@ -337,7 +337,7 @@ contract SummerGovernor is
             );
         }
 
-        return super._cancel(targets, values, calldatas, descriptionHash);
+        return _cancel(targets, values, calldatas, descriptionHash);
     }
 
     /*//////////////////////////////////////////////////////////////
