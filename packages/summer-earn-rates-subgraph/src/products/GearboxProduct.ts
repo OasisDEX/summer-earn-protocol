@@ -4,7 +4,10 @@ import { BigDecimalConstants } from '../constants/common'
 import { Product } from '../models/Product'
 
 export class GearboxProduct extends Product {
-  getRate(currentTimestamp: BigInt): BigDecimal {
+  getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
+    if (currentBlock.lt(this.startBlock)) {
+      return BigDecimalConstants.ZERO
+    }
     const pool = GearboxPool.bind(this.poolAddress)
     const tryRate = pool.try_supplyRate()
     if (tryRate.reverted) {

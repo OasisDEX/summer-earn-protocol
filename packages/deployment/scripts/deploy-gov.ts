@@ -109,7 +109,7 @@ function getPeersFromConfig(currentNetwork: string): PeerConfig[] {
         address: networkConfig.deployedContracts.gov.summerGovernor.address,
       })
     } catch (error) {
-      console.log(kleur.red().bold('Skipping network, alck of config:'), kleur.cyan(network))
+      console.log(kleur.red().bold('Skipping network, lack of config:'), kleur.cyan(network))
       continue
     }
   }
@@ -199,6 +199,16 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     if (!hasGovernorRole) {
       console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to governor contract...')
       const hash = await protocolAccessManager.write.grantGovernorRole([summerGovernor.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+    }
+  }
+
+  // On satellite chains, grant CANCELLER_ROLE to timelock
+  if (!isHubChain) {
+    const hasTimelockCancellerRole = await timelock.read.hasRole([CANCELLER_ROLE, timelock.address])
+    if (!hasTimelockCancellerRole) {
+      console.log('[TIMELOCK] - Granting CANCELLER_ROLE to timelock on satellite chain...')
+      const hash = await timelock.write.grantRole([CANCELLER_ROLE, timelock.address])
       await publicClient.waitForTransactionReceipt({ hash })
     }
   }

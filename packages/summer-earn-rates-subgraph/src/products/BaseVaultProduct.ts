@@ -24,7 +24,10 @@ import { Product } from '../models/Product'
 export abstract class BaseVaultProduct extends Product {
   abstract getSharePrice(): BigDecimal
 
-  getRate(currentTimestamp: BigInt): BigDecimal {
+  getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
+    if (currentBlock.lt(this.startBlock)) {
+      return BigDecimalConstants.ZERO
+    }
     const sharePrice = this.getSharePrice()
     if (sharePrice.equals(BigDecimalConstants.ZERO)) {
       return BigDecimalConstants.ZERO

@@ -9,6 +9,8 @@ import {
   Position,
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
+  RewardsManager,
+  RewardToken,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
@@ -18,12 +20,19 @@ import {
   Vault as VaultStore,
   YieldAggregator,
 } from '../../generated/schema'
-import { ArkTemplate, FleetCommanderTemplate } from '../../generated/templates'
+import {
+  ArkTemplate,
+  FleetCommanderRewardsManagerTemplate,
+  FleetCommanderTemplate,
+} from '../../generated/templates'
+import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+
 import { updateVaultAPRs } from '../mappings/entities/vault'
 import { addresses } from './addressProvider'
 import * as constants from './constants'
+import { BigIntConstants, RewardTokenType } from './constants'
 import * as utils from './utils'
 
 export function getOrCreateAccount(id: string): Account {
@@ -33,12 +42,36 @@ export function getOrCreateAccount(id: string): Account {
     account = new Account(id)
     account.save()
 
-    const protocol = getOrCreateYieldAggregator()
+    const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
     protocol.cumulativeUniqueUsers += 1
     protocol.save()
   }
 
   return account
+}
+
+export function getOrCreateRewardsManager(rewardsManagerAddress: Address): RewardsManager {
+  let rewardsManager = RewardsManager.load(rewardsManagerAddress.toHexString())
+  if (!rewardsManager) {
+    rewardsManager = new RewardsManager(rewardsManagerAddress.toHexString())
+    const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(rewardsManagerAddress)
+    const vaultAddress = rewardsManagerContract.fleetCommander()
+    rewardsManager.vault = vaultAddress.toHexString()
+    rewardsManager.save()
+  }
+  return rewardsManager
+}
+
+export function getOrCreateRewardToken(rewardTokenAddress: Address): RewardToken {
+  let rewardToken = RewardToken.load(rewardTokenAddress.toHexString())
+  if (!rewardToken) {
+    rewardToken = new RewardToken(rewardTokenAddress.toHexString())
+    const token = getOrCreateToken(rewardTokenAddress)
+    rewardToken.token = token.id
+    rewardToken.type = RewardTokenType.DEPOSIT
+    rewardToken.save()
+  }
+  return rewardToken
 }
 
 export function getOrCreatePosition(positionId: string, block: ethereum.Block): Position {
@@ -47,9 +80,13 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
   if (!position) {
     position = new Position(positionId)
     position.inputTokenBalance = constants.BigIntConstants.ZERO
+    position.stakedInputTokenBalance = constants.BigIntConstants.ZERO
     position.outputTokenBalance = constants.BigIntConstants.ZERO
+    position.stakedOutputTokenBalance = constants.BigIntConstants.ZERO
     position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    position.stakedInputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.stakedInputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.account = positionIdDetails[0]
     position.vault = positionIdDetails[1]
     position.createdBlockNumber = block.number
@@ -60,7 +97,7 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
   return position
 }
 
-export function getOrCreateYieldAggregator(): YieldAggregator {
+export function getOrCreateYieldAggregator(timestamp: BigInt): YieldAggregator {
   let protocol = YieldAggregator.load(constants.PROTOCOL_ID)
   log.debug('getOrCreateYieldAggregator', [])
   if (!protocol) {
@@ -79,8 +116,12 @@ export function getOrCreateYieldAggregator(): YieldAggregator {
     protocol.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeUniqueUsers = 0
-    protocol.lastDailyUpdateTimestamp = constants.BigIntConstants.ZERO
-    protocol.lastHourlyUpdateTimestamp = constants.BigIntConstants.ZERO
+    protocol.lastDailyUpdateTimestamp = timestamp
+      .div(BigIntConstants.SECONDS_PER_DAY)
+      .times(BigIntConstants.SECONDS_PER_DAY)
+    protocol.lastHourlyUpdateTimestamp = timestamp
+      .div(BigIntConstants.SECONDS_PER_HOUR)
+      .times(BigIntConstants.SECONDS_PER_HOUR)
     protocol.totalPoolCount = 0
     protocol.vaultsArray = []
     protocol.save()
@@ -162,7 +203,7 @@ export function getOrCreateUsageMetricsDailySnapshot(
     usageMetrics.blockNumber = block.number
     usageMetrics.timestamp = block.timestamp
 
-    const protocol = getOrCreateYieldAggregator()
+    const protocol = getOrCreateYieldAggregator(block.timestamp)
     usageMetrics.totalPoolCount = protocol.totalPoolCount
 
     usageMetrics.save()
@@ -219,8 +260,6 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
-      ? vault.outputTokenSupply!
-      : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
@@ -258,7 +297,7 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.save()
 
-    updateVaultAPRs(vault)
+    updateVaultAPRs(vault, vaultSnapshots.calculatedApr)
     vault.save()
   }
 
@@ -286,8 +325,6 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
-      ? vault.outputTokenSupply!
-      : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO
@@ -304,7 +341,6 @@ export function getOrCreateVaultsHourlySnapshots(
           vault.pricePerShare!,
           constants.BigDecimalConstants.HOUR_IN_SECONDS,
         )
-
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -337,7 +373,10 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance
-    vault.stakingRewardsManager = config.stakingRewardsManager
+    vault.stakingRewardsManager = Address.fromString(
+      getOrCreateRewardsManager(config.stakingRewardsManager).id,
+    )
+
     vault.maxRebalanceOperations = config.maxRebalanceOperations
     vault.details = utils.readValue<string>(vaultContract.try_details(), '')
 
@@ -353,6 +392,9 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.pricePerShare = constants.BigDecimalConstants.ZERO
     vault.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
+    vault.withdrawableTotalAssets = constants.BigIntConstants.ZERO
+    vault.withdrawableTotalAssetsUSD = constants.BigDecimalConstants.ZERO
+    vault.lastUpdatePricePerShare = constants.BigDecimalConstants.ZERO
 
     vault.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vault.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
@@ -388,9 +430,16 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.apr180d = constants.BigDecimalConstants.ZERO
     vault.apr365d = constants.BigDecimalConstants.ZERO
 
+    // Initialize arrays
+    vault.rewardTokens = []
+    vault.rewardTokenEmissionsAmount = []
+    vault.rewardTokenEmissionsUSD = []
+    vault.rewardTokenEmissionsAmountsPerOutputToken = []
+    vault.rewardTokenEmissionsFinish = []
+
     vault.save()
 
-    const yeildAggregator = getOrCreateYieldAggregator()
+    const yeildAggregator = getOrCreateYieldAggregator(block.timestamp)
     const vaultsArray = yeildAggregator.vaultsArray
     vaultsArray.push(vault.id)
     yeildAggregator.vaultsArray = vaultsArray
@@ -398,6 +447,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     yeildAggregator.save()
 
     FleetCommanderTemplate.create(vaultAddress)
+    FleetCommanderRewardsManagerTemplate.create(config.stakingRewardsManager)
   }
 
   return vault
@@ -436,8 +486,9 @@ export function getOrCreateArk(
     ark.calculatedApr = constants.BigDecimalConstants.ZERO
 
     ark.cumulativeEarnings = constants.BigIntConstants.ZERO
-    ark.cumulativeDeposits = constants.BigIntConstants.ZERO
-    ark.cumulativeWithdrawals = constants.BigIntConstants.ZERO
+    ark._cumulativeDeposits = constants.BigIntConstants.ZERO
+    ark._cumulativeWithdrawals = constants.BigIntConstants.ZERO
+    ark._lastUpdateInputTokenBalance = constants.BigIntConstants.ZERO
 
     ark.createdBlockNumber = block.number
     ark.createdTimestamp = block.timestamp
@@ -601,8 +652,6 @@ export function getOrCreateVaultsPostActionSnapshots(
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
-      ? vault.outputTokenSupply!
-      : constants.BigIntConstants.ZERO
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
       : constants.BigDecimalConstants.ZERO

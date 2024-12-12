@@ -14,6 +14,7 @@ import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {DecayController} from "./DecayController.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 /*
  * @title SummerGovernor
@@ -36,40 +37,39 @@ contract SummerGovernor is
 
     uint256 public constant MIN_PROPOSAL_THRESHOLD = 1000e18; // 1,000 Tokens
     uint256 public constant MAX_PROPOSAL_THRESHOLD = 100000e18; // 100,000 Tokens
-    uint32 public immutable proposalChainId;
+    uint32 public immutable hubChainId;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /*
-     * @dev Configuration structure for the governor
-     * @param whitelistAccountExpirations Mapping of account addresses to their whitelist expiration timestamps
-     * @param whitelistGuardian Address of the account with special privileges for managing the whitelist
-     */
-    struct GovernorConfig {
-        mapping(address => uint256) whitelistAccountExpirations;
-        address whitelistGuardian;
-    }
-
-    GovernorConfig public config;
+    IProtocolAccessManager public immutable accessManager;
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Modifier to restrict certain functions to only be called on the proposal chain (hub chain).
+     * @dev Modifier to restrict certain functions to only be called on the hub chain.
      * This ensures that governance actions like proposing, executing, and canceling can only happen
      * on the designated hub chain, while other chains act as spokes that can only receive and execute
      * proposals that have been approved on the hub.
-     *
-     * Note: The proposal chain is also referred to as the hub chain in the system's architecture.
-     * All governance proposals must originate from this chain.
      */
-    modifier onlyProposalChain() {
-        if (block.chainid != proposalChainId) {
-            revert SummerGovernorInvalidChain(block.chainid, proposalChainId);
+    modifier onlyHubChain() {
+        if (block.chainid != hubChainId) {
+            revert SummerGovernorNotHubChain(block.chainid, hubChainId);
+        }
+        _;
+    }
+
+    /**
+     * @dev Modifier to restrict certain functions to only be called on satellite chains (non-hub chains).
+     * This ensures that certain operations can only happen on spoke chains that receive and execute
+     * proposals from the hub chain.
+     */
+    modifier onlySatelliteChain() {
+        if (block.chainid == hubChainId) {
+            revert SummerGovernorCannotExecuteOnHubChain();
         }
         _;
     }
@@ -90,26 +90,16 @@ contract SummerGovernor is
         GovernorVotes(params.token)
         GovernorVotesQuorumFraction(params.quorumFraction)
         GovernorTimelockControl(params.timelock)
-        OApp(
-            params.endpoint,
-            params.proposalChainId == block.chainid
-                ? address(params.timelock)
-                : address(this)
-        )
+        OApp(params.endpoint, address(params.timelock))
         DecayController(address(params.token))
-        // Only set timelock as owner on HUB chain (currently BASE chain)
-        Ownable(
-            params.proposalChainId == block.chainid
-                ? address(params.timelock)
-                : address(this)
-        )
+        Ownable(address(params.timelock))
     {
+        accessManager = IProtocolAccessManager(params.accessManager);
         _setRewardsManager(
             address(ISummerToken(params.token).rewardsManager())
         );
         _validateProposalThreshold(params.proposalThreshold);
-        _setWhitelistGuardian(params.initialWhitelistGuardian);
-        proposalChainId = params.proposalChainId;
+        hubChainId = params.hubChainId;
         _initializePeers(params.peerEndpointIds, params.peerAddresses);
     }
 
@@ -125,7 +115,7 @@ contract SummerGovernor is
         bytes[] memory _dstCalldatas,
         bytes32 _dstDescriptionHash,
         bytes calldata _options
-    ) external onlyGovernance {
+    ) external onlyGovernance onlyHubChain {
         _sendProposalToTargetChain(
             _dstEid,
             _dstTargets,
@@ -185,6 +175,34 @@ contract SummerGovernor is
     receive() external payable override {}
 
     /**
+     * @dev Internal function to queue a proposal received from another chain.
+     * @param proposalId The ID of the proposal to queue.
+     * @param targets The target addresses for the proposal.
+     * @param values The values for the proposal.
+     * @param calldatas The calldata for the proposal.
+     * @param descriptionHash The description hash for the proposal.
+     */
+    function _queueCrossChainProposal(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal onlySatelliteChain returns (uint256) {
+        uint48 eta = _queueOperations(
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+
+        emit ProposalQueued(proposalId, uint256(eta));
+
+        return proposalId;
+    }
+
+    /**
      * @dev Receives a proposal from another chain and executes it.
      * @param _origin The origin of the message.
      * @param // _guid The global packet identifier.
@@ -212,64 +230,7 @@ contract SummerGovernor is
 
         emit ProposalReceivedCrossChain(proposalId, _origin.srcEid);
 
-        _executeCrossChainProposal(
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            descriptionHash
-        );
-    }
-
-    /**
-     * @dev Internal function to execute a proposal.
-     * @param proposalId The ID of the proposal to execute.
-     * @param targets The target addresses for the proposal.
-     * @param values The values for the proposal.
-     * @param calldatas The calldata for the proposal.
-     * @param descriptionHash The description hash for the proposal.
-     */
-    function _executeCrossChainProposal(
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) internal returns (uint256) {
-        _executeCrossChainOperations(
-            proposalId,
-            targets,
-            values,
-            calldatas,
-            descriptionHash
-        );
-
-        emit ProposalExecuted(proposalId);
-
-        return proposalId;
-    }
-
-    /**
-     * @dev Internal function to execute cross-chain proposal operations.
-     * @param proposalId The ID of the proposal.
-     * @param targets The addresses of the contracts to call on the destination chain.
-     * @param values The ETH values to send with the calls on the destination chain.
-     * @param calldatas The call data for each contract call on the destination chain.
-     * @param descriptionHash The hash of the proposal description.
-     *
-     * This function is used for executing proposals that have been received from another chain.
-     * It bypasses the timelock and directly executes the operations using the base Governor's
-     * _executeOperations function. This is necessary because the proposal has already been
-     * executed on the source chain and we want to avoid double-queueing.
-     */
-    function _executeCrossChainOperations(
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) internal {
-        Governor._executeOperations(
+        _queueCrossChainProposal(
             proposalId,
             targets,
             values,
@@ -290,6 +251,7 @@ contract SummerGovernor is
         public
         override(ISummerGovernor, Governor)
         updateDecay(_msgSender())
+        onlyHubChain
         returns (uint256)
     {
         address voter = _msgSender();
@@ -306,17 +268,16 @@ contract SummerGovernor is
         public
         override(Governor, ISummerGovernor)
         updateDecay(_msgSender())
-        onlyProposalChain
+        onlyHubChain
         returns (uint256)
     {
         address proposer = _msgSender();
-        // Use block.timestamp - 1 to get the proposer's voting power from the previous block.
-        // This ensures we're using a finalized state and prevents potential same-block manipulations,
-        // aligning with OpenZeppelin's recommended practice for governance contracts.
         uint256 proposerVotes = getVotes(proposer, block.timestamp - 1);
 
-        if (proposerVotes < proposalThreshold() && !isWhitelisted(proposer)) {
-            revert SummerGovernorProposerBelowThresholdAndNotWhitelisted(
+        if (
+            proposerVotes < proposalThreshold() && !isActiveGuardian(proposer)
+        ) {
+            revert SummerGovernorProposerBelowThresholdAndNotGuardian(
                 proposer,
                 proposerVotes,
                 proposalThreshold()
@@ -336,8 +297,8 @@ contract SummerGovernor is
         public
         payable
         override(Governor, ISummerGovernor)
-        onlyProposalChain
         updateDecay(_msgSender())
+        onlyHubChain
         returns (uint256)
     {
         return super.execute(targets, values, calldatas, descriptionHash);
@@ -353,7 +314,7 @@ contract SummerGovernor is
         public
         override(Governor, ISummerGovernor)
         updateDecay(_msgSender())
-        onlyProposalChain
+        onlyHubChain
         returns (uint256)
     {
         uint256 proposalId = hashProposal(
@@ -366,7 +327,7 @@ contract SummerGovernor is
         if (
             _msgSender() != proposer &&
             getVotes(proposer, block.timestamp - 1) >= proposalThreshold() &&
-            _msgSender() != config.whitelistGuardian
+            !isActiveGuardian(_msgSender())
         ) {
             revert SummerGovernorUnauthorizedCancellation(
                 _msgSender(),
@@ -384,42 +345,8 @@ contract SummerGovernor is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerGovernor
-    function isWhitelisted(
-        address account
-    ) public view override returns (bool) {
-        return (config.whitelistAccountExpirations[account] > block.timestamp);
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function setWhitelistAccountExpiration(
-        address account,
-        uint256 expiration
-    ) external override onlyGovernance {
-        config.whitelistAccountExpirations[account] = expiration;
-        emit WhitelistAccountExpirationSet(account, expiration);
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function setWhitelistGuardian(
-        address _whitelistGuardian
-    ) external override onlyGovernance {
-        _setWhitelistGuardian(_whitelistGuardian);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            GETTER FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @inheritdoc ISummerGovernor
-    function getWhitelistAccountExpiration(
-        address account
-    ) public view returns (uint256) {
-        return config.whitelistAccountExpirations[account];
-    }
-
-    /// @inheritdoc ISummerGovernor
-    function getWhitelistGuardian() public view returns (address) {
-        return config.whitelistGuardian;
+    function isActiveGuardian(address account) public view returns (bool) {
+        return accessManager.isActiveGuardian(account);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -440,14 +367,6 @@ contract SummerGovernor is
         return _nativeFee;
     }
 
-    function _setWhitelistGuardian(address _whitelistGuardian) internal {
-        if (_whitelistGuardian == address(0)) {
-            revert SummerGovernorInvalidWhitelistGuardian(_whitelistGuardian);
-        }
-        config.whitelistGuardian = _whitelistGuardian;
-        emit WhitelistGuardianSet(_whitelistGuardian);
-    }
-
     /**
      * @dev Internal function to initialize peers during construction
      * @param _peerEndpointIds Array of chain IDs for peers
@@ -457,7 +376,7 @@ contract SummerGovernor is
         uint32[] memory _peerEndpointIds,
         address[] memory _peerAddresses
     ) internal {
-        if (_peerEndpointIds.length <= 0) {
+        if (_peerEndpointIds.length == 0) {
             return;
         }
         if (_peerEndpointIds.length != _peerAddresses.length) {

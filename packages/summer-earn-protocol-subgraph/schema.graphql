@@ -230,6 +230,7 @@ type YieldAggregator implements Protocol @entity @regularPolling {
   vaultsArray: [Vault!]!
   lastDailyUpdateTimestamp: BigInt
   lastHourlyUpdateTimestamp: BigInt
+  lastWeeklyUpdateTimestamp: BigInt
 }
 
 ###############################
@@ -362,7 +363,7 @@ type Vault @entity @regularPolling {
   outputToken: Token
 
   " Aditional tokens that are given as reward for position in a protocol, usually in liquidity mining programs. e.g. SUSHI in the Onsen program, MATIC for Aave Polygon "
-  rewardTokens: [RewardToken!]
+  rewardTokens: [RewardToken!]!
 
   " DEPRECATED (use depositCap instead): Some vaults have a deposit cap. This is in input token amount "
   depositLimit: BigInt!
@@ -406,13 +407,19 @@ type Vault @entity @regularPolling {
   inputTokenBalance: BigInt!
 
   " Total supply of output token "
-  outputTokenSupply: BigInt
+  outputTokenSupply: BigInt!
 
   " Price per share of output token in USD "
   outputTokenPriceUSD: BigDecimal
 
   " Price of input token in USD "
   inputTokenPriceUSD: BigDecimal
+
+  " Total withdrawable assets "
+  withdrawableTotalAssets: BigInt
+
+  " Total withdrawable assets in USD "
+  withdrawableTotalAssetsUSD: BigDecimal
 
   " Amount of input token per full share of output token. Usually corresponds to the value of `pricePerShare` or `pricePerFullShare` in the vault contract. "
   pricePerShare: BigDecimal
@@ -421,7 +428,13 @@ type Vault @entity @regularPolling {
   stakedOutputTokenAmount: BigInt
 
   " Per-block reward token emission as of the current block normalized to a day, in token's native amount. This should be ideally calculated as the theoretical rate instead of the realized amount. "
-  rewardTokenEmissionsAmount: [BigInt!]
+  rewardTokenEmissionsAmount: [BigInt!]!
+
+  " Per-block reward token emission as of the current block normalized to a day, in token's native amount. This should be ideally calculated as the theoretical rate instead of the realized amount. "
+  rewardTokenEmissionsAmountsPerOutputToken: [BigInt!]!
+
+  " Duration of the reward token emission in seconds "
+  rewardTokenEmissionsFinish: [BigInt!]!
 
   " Per-block reward token emission as of the current block normalized to a day, in USD value. This should be ideally calculated as the theoretical rate instead of the realized amount. "
   rewardTokenEmissionsUSD: [BigDecimal!]
@@ -456,12 +469,19 @@ type Vault @entity @regularPolling {
   apr365d: BigDecimal!
 
   lastUpdateTimestamp: BigInt!
+  lastUpdatePricePerShare: BigDecimal!
+
+  weeklyInterestRates: [WeeklyInterestRate!]! @derivedFrom(field: "vault")
+  dailyInterestRates: [DailyInterestRate!]! @derivedFrom(field: "vault")
+  hourlyInterestRates: [HourlyInterestRate!]! @derivedFrom(field: "vault")
 
   arks: [Ark!]! @derivedFrom(field: "vault")
   arksArray: [Ark!]!
 
   rebalances: [Rebalance!]! @derivedFrom(field: "vault")
   actionSnapshots: [PostActionVaultSnapshot!]! @derivedFrom(field: "vault")
+
+  rewardsManager: RewardsManager! @derivedFrom(field: "vault")
 }
 
 #################################
@@ -651,7 +671,7 @@ type Deposit implements Event @entity @transaction {
   " The protocol this transaction belongs to "
   protocol: YieldAggregator!
 
-  " Market that tokens are deposited into "
+  " Address that received tokens "
   to: String!
 
   " Address that deposited tokens "
@@ -731,7 +751,98 @@ type Withdraw implements Event @entity @transaction {
   " Position that this withdraw belongs to "
   position: Position!
 }
+type Staked implements Event @entity @transaction {
+  " { Transaction hash }-{ Log index }"
+  id: ID!
 
+  " Transaction hash of the transaction that emitted this event "
+  hash: String!
+
+  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
+  logIndex: Int!
+
+  " The protocol this transaction belongs to "
+  protocol: YieldAggregator!
+
+  " Address that received tokens "
+  to: String!
+
+  " Address that sent tokens "
+  from: String!
+
+  " Block number of this event "
+  blockNumber: BigInt!
+
+  " Timestamp of this event "
+  timestamp: BigInt!
+
+  " Token staked "
+  asset: Token!
+
+  " Amount of token staked in native units "
+  amount: BigInt!
+
+  " Amount of token staked in USD "
+  amountUSD: BigDecimal!
+
+  " Amount of input token in the position "
+  inputTokenBalance: BigInt!
+
+  " Amount of input token in the position in USD "
+  inputTokenBalanceNormalizedUSD: BigDecimal!
+
+  " The vault involving this transaction "
+  vault: Vault!
+
+  " Position that this stake belongs to "
+  position: Position!
+}
+type Unstaked implements Event @entity @transaction {
+  " { Transaction hash }-{ Log index }"
+  id: ID!
+
+  " Transaction hash of the transaction that emitted this event "
+  hash: String!
+
+  " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
+  logIndex: Int!
+
+  " The protocol this transaction belongs to "
+  protocol: YieldAggregator!
+
+  " Address that received tokens "
+  to: String!
+
+  " Address that sent tokens "
+  from: String!
+
+  " Block number of this event "
+  blockNumber: BigInt!
+
+  " Timestamp of this event "
+  timestamp: BigInt!
+
+  " Token withdrawn "
+  asset: Token!
+
+  " Amount of token unstaked in native units "
+  amount: BigInt!
+
+  " Amount of token unstaked in USD "
+  amountUSD: BigDecimal!
+
+  " Amount of input token in the position "
+  inputTokenBalance: BigInt!
+
+  " Amount of input token in the position in USD "
+  inputTokenBalanceNormalizedUSD: BigDecimal!
+
+  " The vault involving this transaction "
+  vault: Vault!
+
+  " Position that this unstake belongs to "
+  position: Position!
+}
 # An account is a unique Ethereum address
 # Helps to accumulate total unique users
 type Account @entity @regularPolling {
@@ -899,11 +1010,23 @@ type Position @entity {
   " Supply of the output token for the position "
   outputTokenBalance: BigInt!
 
+  " Staked balance of the input token for the position "
+  stakedInputTokenBalance: BigInt!
+
+  " Staked balance of the output token for the position "
+  stakedOutputTokenBalance: BigInt!
+
   " Normalized supply of the input token "
   inputTokenBalanceNormalized: BigDecimal!
 
+  " Normalized staked balance of the input token "
+  stakedInputTokenBalanceNormalized: BigDecimal!
+
   " Normalized supply of the input token in USD "
   inputTokenBalanceNormalizedInUSD: BigDecimal!
+
+  " Normalized staked balance of the input token in USD "
+  stakedInputTokenBalanceNormalizedInUSD: BigDecimal!
 
   " Creation timestamp "
   createdTimestamp: BigInt!
@@ -913,6 +1036,8 @@ type Position @entity {
 
   deposits: [Deposit!]! @derivedFrom(field: "position")
   withdrawals: [Withdraw!]! @derivedFrom(field: "position")
+  stakedEvents: [Staked!]! @derivedFrom(field: "position")
+  unstakedEvents: [Unstaked!]! @derivedFrom(field: "position")
 }
 
 type Ark @entity @regularPolling {
@@ -1003,12 +1128,14 @@ type Ark @entity @regularPolling {
 
   " Calculated APR based on earnings between updates "
   calculatedApr: BigDecimal!
+  " Cumulative deposits since last update [ helper field ] "
+  _cumulativeDeposits: BigInt!
 
-  " Cumulative deposits since last update "
-  cumulativeDeposits: BigInt!
+  " Cumulative withdrawals since last update [ helper field ] "
+  _cumulativeWithdrawals: BigInt!
 
-  " Cumulative withdrawals since last update "
-  cumulativeWithdrawals: BigInt!
+  " Last update input token balance [ helper field ] "
+  _lastUpdateInputTokenBalance: BigInt!
 
   " Current total assets in the Ark "
   inputTokenBalance: BigInt!
@@ -1152,4 +1279,37 @@ type PostActionArkSnapshot @entity @hourlySnapshot {
   #  Additional fields
   "Current APR"
   apr: BigDecimal!
+}
+
+type RewardsManager @entity {
+  id: ID!
+  vault: Vault!
+}
+
+
+type DailyInterestRate @entity {
+  id: ID!
+  date: BigInt!
+  sumRates: BigDecimal!
+  updateCount: BigInt!
+  averageRate: BigDecimal!
+  vault: Vault!
+} 
+
+type HourlyInterestRate @entity {
+  id: ID!
+  date: BigInt!
+  sumRates: BigDecimal!
+  updateCount: BigInt!
+  averageRate: BigDecimal!
+  vault: Vault!
+}
+
+type WeeklyInterestRate @entity {
+  id: ID!
+  date: BigInt! 
+  sumRates: BigDecimal!
+  updateCount: BigInt!
+  averageRate: BigDecimal!
+  vault: Vault! 
 }

@@ -18,7 +18,8 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     vaultContract.try_totalSupply(),
     constants.BigIntConstants.ZERO,
   )
-
+  const config = vaultContract.getConfig()
+  const rewardsManager = config.stakingRewardsManager
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(vault.inputToken), block)
   const pricePerShare =
@@ -26,6 +27,22 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
       ? constants.BigDecimalConstants.ONE
       : totalAssets.toBigDecimal().div(totalSupply.toBigDecimal())
   const outputTokenPriceUSD = pricePerShare.times(inputTokenPriceUSD.price)
+  const withdrawableAssets = vaultContract.withdrawableTotalAssets()
+  const withdrawableAssetsNormalized = formatAmount(
+    withdrawableAssets,
+    BigInt.fromI32(inputToken.decimals),
+  )
+  const withdrawableAssetsUSD = withdrawableAssetsNormalized.times(inputTokenPriceUSD.price)
+
+  const rewardTokenEmissionsAmounts = vault.rewardTokenEmissionsAmount
+  const rewardTokenEmissionsAmountsPerOutputToken = vault.rewardTokenEmissionsAmountsPerOutputToken
+
+  for (let i = 0; i < rewardTokenEmissionsAmounts.length; i++) {
+    rewardTokenEmissionsAmountsPerOutputToken[i] = totalSupply.gt(constants.BigIntConstants.ZERO)
+      ? rewardTokenEmissionsAmounts[i].div(totalSupply)
+      : constants.BigIntConstants.ZERO
+  }
+
   return new VaultDetails(
     vault.id,
     formatAmount(totalAssets, BigInt.fromI32(inputToken.decimals)).times(inputTokenPriceUSD.price),
@@ -36,5 +53,9 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     totalSupply,
     inputToken,
     vault.protocol,
+    rewardsManager,
+    withdrawableAssets,
+    withdrawableAssetsUSD,
+    rewardTokenEmissionsAmountsPerOutputToken,
   )
 }

@@ -16,12 +16,12 @@ interface ISummerGovernorErrors {
         uint256 maxThreshold
     );
 
-    /* @notice Error thrown when a proposer is below the threshold and not whitelisted
+    /* @notice Error thrown when a proposer is below the threshold and not a guardian
      * @param proposer The address of the proposer
      * @param votes The number of votes the proposer has
      * @param threshold The required threshold for proposing
      */
-    error SummerGovernorProposerBelowThresholdAndNotWhitelisted(
+    error SummerGovernorProposerBelowThresholdAndNotGuardian(
         address proposer,
         uint256 votes,
         uint256 threshold
@@ -40,11 +40,6 @@ interface ISummerGovernorErrors {
         uint256 threshold
     );
 
-    /* @notice Error thrown when the whitelist guardian is not set
-     * @param whitelistGuardian The address of the whitelist guardian
-     */
-    error SummerGovernorInvalidWhitelistGuardian(address whitelistGuardian);
-
     /* @notice Error thrown when the trusted remote is invalid
      * @param trustedRemote The invalid trusted remote
      */
@@ -52,9 +47,13 @@ interface ISummerGovernorErrors {
 
     /* @notice Error thrown when the chain id is invalid
      * @param chainId The invalid chain id
-     * @param proposalChainId The proposal chain id
+     * @param hubChainId The valid chain id
      */
-    error SummerGovernorInvalidChain(uint256 chainId, uint256 proposalChainId);
+    error SummerGovernorNotHubChain(uint256 chainId, uint256 hubChainId);
+
+    /* @notice Error thrown when an attempt is made to execute on the hub chain
+     */
+    error SummerGovernorCannotExecuteOnHubChain();
 
     /* @notice Error thrown when the governor is not set
      */

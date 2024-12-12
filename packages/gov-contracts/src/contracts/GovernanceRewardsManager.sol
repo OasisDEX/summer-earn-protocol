@@ -95,10 +95,15 @@ contract GovernanceRewardsManager is
     }
 
     /**
-     * @notice No op function to satisfy IGovernanceRewardsManager interface
+     * @notice No op function to satisfy interface requirements. Emits an event but performs no state changes.
+     * @dev This operation is not supported and will only emit an event
      */
-    function unstakeOnBehalfOf(address, address, uint256) external override {
-        /* no op */
+    function unstakeOnBehalfOf(
+        address owner,
+        address receiver,
+        uint256 amount
+    ) external override {
+        emit UnstakeOnBehalfOfIgnored(owner, receiver, amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -161,6 +166,13 @@ contract GovernanceRewardsManager is
         override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
         returns (uint256)
     {
+        address delegate = ISummerToken(address(stakingToken)).delegates(
+            account
+        );
+        if (delegate == address(0)) {
+            return 0; // No rewards if not delegated
+        }
+
         uint256 rawEarned = _earned(account, rewardToken);
         uint256 latestSmoothedDecayFactor = _calculateSmoothedDecayFactor(
             account

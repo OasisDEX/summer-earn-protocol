@@ -5,10 +5,10 @@ import {Origin, SummerGovernor} from "../src/contracts/SummerGovernor.sol";
 import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
 
 import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 import {SummerToken} from "../src/contracts/SummerToken.sol";
-import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
@@ -19,475 +19,19 @@ import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
 import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
-
-contract ExposedSummerGovernor is SummerGovernor {
-    constructor(GovernorParams memory params) SummerGovernor(params) {}
-
-    function exposedLzReceive(
-        Origin calldata _origin,
-        bytes calldata payload,
-        bytes calldata extraData
-    ) public {
-        _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
-    }
-
-    function exposedSendProposalToTargetChain(
-        uint32 _dstEid,
-        address[] memory _dstTargets,
-        uint256[] memory _dstValues,
-        bytes[] memory _dstCalldatas,
-        bytes32 _dstDescriptionHash,
-        bytes calldata _options
-    ) public {
-        _sendProposalToTargetChain(
-            _dstEid,
-            _dstTargets,
-            _dstValues,
-            _dstCalldatas,
-            _dstDescriptionHash,
-            _options
-        );
-    }
-
-    function forceUpdateDecay(address account) public updateDecay(account) {}
-}
+import {ExposedSummerGovernor, SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ExposedSummerTimelockController} from "./SummerTokenTestBase.sol";
 
 /*
  * @title SummerGovernorTest
  * @dev Test contract for SummerGovernor functionality.
  */
-contract SummerGovernorTest is
-    Test,
-    ISummerGovernorErrors,
-    SummerTokenTestBase
-{
-    using OptionsBuilder for bytes;
-
-    ExposedSummerGovernor public governorA;
-    ExposedSummerGovernor public governorB;
-
-    address public alice = address(0x111);
-    address public bob = address(0x112);
-    address public charlie = address(0x113);
-    address public david = address(0x114);
-    address public whitelistGuardian = address(0x115);
-
-    uint48 public constant VOTING_DELAY = 1 days;
-    uint32 public constant VOTING_PERIOD = 1 weeks;
-    uint256 public constant PROPOSAL_THRESHOLD = 100000e18;
-    uint256 public constant QUORUM_FRACTION = 4;
-
-    /*
-     * @dev Sets up the test environment.
-     */
-    function setUp() public override {
-        initializeTokenTests();
-        vm.label(alice, "Alice");
-        vm.label(bob, "Bob");
-        vm.label(charlie, "Charlie");
-        vm.label(david, "David");
-
-        vm.label(address(aSummerToken), "chain a token");
-        vm.label(address(bSummerToken), "chain b token");
-
-        SummerGovernor.GovernorParams memory paramsA = ISummerGovernor
-            .GovernorParams({
-                token: aSummerToken,
-                timelock: timelockA,
-                votingDelay: VOTING_DELAY,
-                votingPeriod: VOTING_PERIOD,
-                proposalThreshold: PROPOSAL_THRESHOLD,
-                quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
-                endpoint: lzEndpointA,
-                proposalChainId: 31337,
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
-            });
-        SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
-            .GovernorParams({
-                token: bSummerToken,
-                timelock: timelockB,
-                votingDelay: VOTING_DELAY,
-                votingPeriod: VOTING_PERIOD,
-                proposalThreshold: PROPOSAL_THRESHOLD,
-                quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
-                endpoint: lzEndpointB,
-                proposalChainId: 31337,
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
-            });
-        governorA = new ExposedSummerGovernor(paramsA);
-        governorB = new ExposedSummerGovernor(paramsB);
-
-        vm.prank(address(timelockA));
-        accessManagerA.grantDecayControllerRole(address(governorA));
-
-        vm.prank(address(timelockB));
-        accessManagerB.grantDecayControllerRole(address(governorB));
-
-        vm.label(address(governorA), "SummerGovernor");
-        vm.label(address(governorB), "SummerGovernor");
-
-        vm.prank(owner);
-        enableTransfers();
-        changeTokensOwnership(address(timelockA), address(timelockB));
-
-        timelockA.grantRole(timelockA.PROPOSER_ROLE(), address(governorA));
-        timelockA.grantRole(timelockA.CANCELLER_ROLE(), address(governorA));
-        timelockB.grantRole(timelockB.PROPOSER_ROLE(), address(governorB));
-        timelockB.grantRole(timelockB.CANCELLER_ROLE(), address(governorB));
-
-        // Wire the governors (if needed)
-        address[] memory governors = new address[](2);
-        governors[0] = address(governorA);
-        governors[1] = address(governorB);
-
-        IOAppSetPeer aOApp = IOAppSetPeer(address(governorA));
-        IOAppSetPeer bOApp = IOAppSetPeer(address(governorB));
-
-        // Connect governorA to governorB
-        // vm.prank(address(governorA));
-        uint32 bEid_ = (bOApp.endpoint()).eid();
-        vm.prank(address(timelockA));
-        aOApp.setPeer(bEid_, addressToBytes32(address(bOApp)));
-
-        // Connect governorB to governorA
-        // vm.prank(address(governorB));
-        uint32 aEid_ = (aOApp.endpoint()).eid();
-        vm.prank(address(timelockB));
-        bOApp.setPeer(aEid_, addressToBytes32(address(aOApp)));
-    }
-    // ===============================================
-    // Cross-Chain Messaging Tests
-    // ===============================================
-
-    /*
-     * @dev Tests cross-chain proposal submission.
-     * Ensures a proposal can be submitted from one chain and received on another.
-     */
-    function test_CrossChainExecutionOnSourceChain() public {
-        // Ensure source governorA have enough ETH for messaging costs
-        vm.deal(address(governorA), 100 ether);
-        vm.startPrank(address(timelockB));
-        bSummerToken.mint(address(governorB), 100 ether);
-        vm.stopPrank();
-
-        // Prepare cross-chain proposal parameters
-        (
-            address[] memory srcTargets,
-            uint256[] memory srcValues,
-            bytes[] memory srcCalldatas,
-            string memory srcDescription,
-            uint256 dstProposalId
-        ) = createCrossChainProposal(bEid, governorA);
-
-        // Ensure Alice has enough tokens on chain A
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
-
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
-
-        advanceTimeAndBlock();
-
-        // Submit proposal on chain A
-        vm.prank(alice);
-        uint256 proposalIdA = governorA.propose(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            srcDescription
-        );
-
-        advanceTimeForVotingDelay();
-
-        // Cast vote
-        vm.prank(alice);
-        governorA.castVote(proposalIdA, 1); // Vote in favor
-
-        advanceTimeForVotingPeriod();
-
-        governorA.queue(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            hashDescription(srcDescription)
-        );
-
-        advanceTimeForTimelockMinDelay();
-
-        vm.expectEmit(true, true, true, true);
-        emit ISummerGovernor.ProposalSentCrossChain(dstProposalId, bEid);
-        governorA.execute(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            hashDescription(srcDescription)
-        );
-
-        verifyPackets(bEid, addressToBytes32(address(governorB)));
-    }
-
-    function test_ReceiveProposalAndExecuteOnTargetChain() public {
-        // Ensure source governorA have enough ETH for messaging costs
-        vm.deal(address(governorA), 100 ether);
-        vm.startPrank(address(timelockB));
-        bSummerToken.mint(address(governorB), 100 ether);
-        vm.stopPrank();
-
-        // Prepare cross-chainproposal parameters
-        (
-            address[] memory srcTargets,
-            uint256[] memory srcValues,
-            bytes[] memory srcCalldatas,
-            string memory srcDescription,
-            uint256 dstProposalId
-        ) = createCrossChainProposal(bEid, governorA);
-
-        // Ensure Alice has enough tokens on chain A
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
-
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
-        advanceTimeAndBlock();
-
-        // Submit proposal on chain A
-        vm.prank(alice);
-        uint256 proposalIdA = governorA.propose(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            srcDescription
-        );
-
-        advanceTimeForVotingDelay();
-
-        // Cast vote
-        vm.prank(alice);
-        governorA.castVote(proposalIdA, 1); // Vote in favor
-
-        advanceTimeForVotingPeriod();
-
-        governorA.queue(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            hashDescription(srcDescription)
-        );
-
-        advanceTimeForTimelockMinDelay();
-
-        governorA.execute(
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            hashDescription(srcDescription)
-        );
-
-        vm.recordLogs();
-        verifyPackets(bEid, addressToBytes32(address(governorB)));
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-
-        // Check for the ProposalSentCrossChain event
-        bool foundEvent = false;
-        for (uint256 i = 0; i < entries.length; i++) {
-            // The first topic is the event signature
-            if (
-                entries[i].topics[0] ==
-                keccak256("ProposalReceivedCrossChain(uint256,uint32)")
-            ) {
-                console.log("ProposalReceivedCrossChain event found");
-
-                uint256 emittedDstProposalId = uint256(entries[i].topics[1]);
-                uint32 emittedSrcEid = uint32(uint256(entries[i].topics[2]));
-                // Decode the event data
-
-                // Verify the event data
-                assertEq(
-                    emittedDstProposalId,
-                    dstProposalId,
-                    "Incorrect proposalId emitted"
-                );
-                assertEq(emittedSrcEid, aEid, "Incorrect srcEid emitted");
-
-                foundEvent = true;
-                break;
-            }
-        }
-
-        assertTrue(foundEvent, "ProposalSentCrossChain event not found");
-    }
-
-    function test_InsufficientNativeFeeForCrossChainMessage() public {
-        // Prepare cross-chain proposal parameters
-        (
-            address[] memory srcTargets,
-            uint256[] memory srcValues,
-            bytes[] memory srcCalldatas,
-            string memory srcDescription,
-
-        ) = createCrossChainProposal(bEid, governorA);
-
-        // Ensure governorA has insufficient ETH
-        vm.deal(address(governorA), 1 wei);
-
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReceiveOption(200000, 0);
-
-        // Attempt to send proposal
-        vm.expectRevert(abi.encodeWithSignature("NotEnoughNative(uint256)", 1));
-        governorA.exposedSendProposalToTargetChain(
-            bEid,
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            keccak256(bytes(srcDescription)),
-            options
-        );
-    }
-
-    function test_NonGovernanceSendCrossChainProposal() public {
-        // Prepare cross-chain proposal parameters
-        (
-            address[] memory srcTargets,
-            uint256[] memory srcValues,
-            bytes[] memory srcCalldatas,
-            string memory srcDescription,
-
-        ) = createCrossChainProposal(bEid, governorA);
-
-        // Attempt to send proposal as non-governance address
-        vm.prank(alice);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "GovernorOnlyExecutor(address)",
-                address(alice)
-            )
-        );
-        governorA.sendProposalToTargetChain(
-            bEid,
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            keccak256(bytes(srcDescription)),
-            ""
-        );
-    }
-
-    function createCrossChainProposal(
-        uint32 dstEid,
-        SummerGovernor srcGovernor
-    )
-        internal
-        view
-        returns (
-            address[] memory,
-            uint256[] memory,
-            bytes[] memory,
-            string memory,
-            uint256
-        )
-    {
-        (
-            address[] memory dstTargets,
-            uint256[] memory dstValues,
-            bytes[] memory dstCalldatas,
-            string memory dstDescription
-        ) = createProposalParams(address(bSummerToken));
-
-        bytes[] memory srcCalldatas = new bytes[](1);
-
-        string memory srcDescription = string(
-            abi.encodePacked("Cross-chain proposal: ", dstDescription)
-        );
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReceiveOption(200000, 0);
-
-        srcCalldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.sendProposalToTargetChain.selector,
-            dstEid,
-            dstTargets,
-            dstValues,
-            dstCalldatas,
-            hashDescription(dstDescription),
-            options
-        );
-
-        address[] memory srcTargets = new address[](1);
-        srcTargets[0] = address(srcGovernor);
-
-        uint256[] memory srcValues = new uint256[](1);
-        srcValues[0] = 0;
-
-        uint256 dstProposalId = srcGovernor.hashProposal(
-            dstTargets,
-            dstValues,
-            dstCalldatas,
-            hashDescription(dstDescription)
-        );
-
-        return (
-            srcTargets,
-            srcValues,
-            srcCalldatas,
-            srcDescription,
-            dstProposalId
-        );
-    }
-
-    /*
-     * @dev Generates a unique message ID for cross-chain proposals.
-     * @param dstChainId The destination chain ID.
-     * @param srcAddress The source contract address.
-     * @param proposalId The ID of the proposal.
-     * @param targets The target addresses for the proposal.
-     * @param values The values for the proposal.
-     * @param calldatas The calldata for the proposal.
-     * @param descriptionHash The description hash for the proposal.
-     * @return A unique bytes32 message ID.
-     */
-    function _generateMessageId(
-        uint256 dstChainId,
-        address srcAddress,
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    dstChainId,
-                    srcAddress,
-                    proposalId,
-                    targets,
-                    values,
-                    calldatas,
-                    descriptionHash
-                )
-            );
-    }
-
-    // ===============================================
-    // Source Chain Governance Tests
-    // ===============================================
-
-    /*
-     * @dev Tests the initial setup of the governorA.
-     * Verifies that the governorA's parameters are set correctly.
-     */
+contract SummerGovernorTest is SummerGovernorTestBase {
     function test_InitialSetup() public {
         address lzEndpointA = address(endpoints[aEid]);
 
@@ -495,30 +39,22 @@ contract SummerGovernorTest is
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: address(0),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
+                hubChainId: 31337,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "SummerGovernorInvalidWhitelistGuardian(address)",
-                address(0)
-            )
-        );
         new SummerGovernor(params);
-        params.initialWhitelistGuardian = whitelistGuardian;
         assertEq(governorA.name(), "SummerGovernor");
         assertEq(governorA.votingDelay(), VOTING_DELAY);
         assertEq(governorA.votingPeriod(), VOTING_PERIOD);
         assertEq(governorA.proposalThreshold(), PROPOSAL_THRESHOLD);
         assertEq(governorA.quorumNumerator(), QUORUM_FRACTION);
-        assertEq(governorA.getWhitelistGuardian(), whitelistGuardian);
     }
 
     /*
@@ -625,164 +161,6 @@ contract SummerGovernorTest is
     }
 
     /*
-     * @dev Tests the whitelisting process through a governance proposal.
-     * Verifies that an account can be whitelisted via a proposal.
-     */
-    function test_Whitelisting() public {
-        address account = address(0x03);
-        uint256 expiration = block.timestamp + 10 days;
-
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
-        vm.stopPrank();
-
-        vm.startPrank(alice);
-        aSummerToken.delegate(alice);
-        advanceTimeAndBlock();
-        vm.stopPrank();
-
-        address[] memory targets = new address[](1);
-        targets[0] = address(governorA);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setWhitelistAccountExpiration.selector,
-            account,
-            expiration
-        );
-        string memory description = "Whitelist account proposal";
-
-        vm.prank(alice);
-        uint256 proposalId = governorA.propose(
-            targets,
-            values,
-            calldatas,
-            description
-        );
-
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1)); // Give Alice enough tokens to meet quorum
-        vm.stopPrank();
-
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
-
-        advanceTimeForVotingDelay();
-
-        vm.prank(alice);
-        governorA.castVote(proposalId, 1);
-
-        vm.startPrank(address(timelockA));
-
-        vm.stopPrank();
-        advanceTimeForVotingPeriod();
-
-        governorA.queue(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        advanceTimeForTimelockMinDelay();
-
-        governorA.execute(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        bool isWhitelisted = governorA.isWhitelisted(account);
-        uint256 actualExpiration = governorA.getWhitelistAccountExpiration(
-            account
-        );
-
-        assertTrue(isWhitelisted, "Account should be whitelisted");
-        assertEq(
-            actualExpiration,
-            expiration,
-            "Expiration timestamp should match"
-        );
-    }
-
-    /*
-     * @dev Tests the proposal cancellation process.
-     * Ensures that a proposal can be canceled by the whitelist guardian.
-     */
-    function test_ProposalCancellation() public {
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(
-            address(alice),
-            governorA.proposalThreshold() * 2
-        );
-        vm.stopPrank();
-
-        vm.startPrank(alice);
-        aSummerToken.delegate(alice);
-        advanceTimeAndBlock();
-
-        // Create proposal to set Bob as whitelist guardian
-        address[] memory targets = new address[](1);
-        targets[0] = address(governorA);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setWhitelistGuardian.selector,
-            bob
-        );
-        string memory description = "Set Bob as whitelist guardian";
-
-        uint256 proposalId = governorA.propose(
-            targets,
-            values,
-            calldatas,
-            description
-        );
-
-        advanceTimeForVotingDelay();
-
-        governorA.castVote(proposalId, 1);
-        vm.stopPrank();
-
-        // Try to cancel with non-guardian (should fail)
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "SummerGovernorUnauthorizedCancellation(address,address,uint256,uint256)",
-                bob,
-                alice,
-                governorA.proposalThreshold() * 2,
-                governorA.proposalThreshold()
-            )
-        );
-        vm.prank(bob);
-        governorA.cancel(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        // Cancel with whitelist guardian (should succeed)
-        vm.startPrank(whitelistGuardian);
-        governorA.cancel(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        assertEq(
-            uint256(governorA.state(proposalId)),
-            uint256(IGovernor.ProposalState.Canceled),
-            "Proposal should be canceled"
-        );
-        vm.stopPrank();
-    }
-
-    /*
      * @dev Tests that a proposal creation fails when the proposer is below threshold and not whitelisted.
      */
     function test_ProposalCreationBelowThresholdAndNotWhitelisted() public {
@@ -804,10 +182,10 @@ contract SummerGovernorTest is
             string memory description
         ) = createProposalParams(address(aSummerToken));
 
-        // Expect the transaction to revert with SummerGovernorProposerBelowThresholdAndNotWhitelisted error
+        // Expect the transaction to revert with SummerGovernorProposerBelowThresholdAndNotGuardian error
         vm.expectRevert(
             abi.encodeWithSelector(
-                SummerGovernorProposerBelowThresholdAndNotWhitelisted.selector,
+                SummerGovernorProposerBelowThresholdAndNotGuardian.selector,
                 charlie,
                 belowThreshold,
                 governorA.proposalThreshold()
@@ -817,10 +195,10 @@ contract SummerGovernorTest is
 
         vm.stopPrank();
     }
+
     /*
      * @dev Tests the proposalNeedsQueuing function.
      */
-
     function test_ProposalNeedsQueuing() public {
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(alice, governorA.proposalThreshold());
@@ -869,11 +247,11 @@ contract SummerGovernorTest is
             "Clock value should match current block number"
         );
     }
+
     /*
      * @dev Tests the supportsInterface function of the governorA.
      * Verifies correct interface support.
      */
-
     function test_SupportsInterface() public view {
         assertTrue(governorA.supportsInterface(type(IGovernor).interfaceId));
         assertFalse(governorA.supportsInterface(0xffffffff));
@@ -901,15 +279,15 @@ contract SummerGovernorTest is
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: belowMin,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: address(0x5),
                 endpoint: lzEndpointA,
-                proposalChainId: 31337,
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
+                hubChainId: 31337,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
 
         vm.expectRevert(
@@ -935,14 +313,22 @@ contract SummerGovernorTest is
     }
 
     /*
-     * @dev Tests proposal creation by a whitelisted account.
-     * Ensures a whitelisted account can create a proposal without meeting the threshold.
+     * @dev Tests proposal creation by a guardian account.
+     * Ensures a guardian account can create a proposal without meeting the threshold.
      */
-    function test_ProposalCreationWhitelisted() public {
-        address whitelistedUser = address(0x1234);
-        uint256 expiration = block.timestamp + 10 days;
+    function test_ProposalCreationByGuardian() public {
+        address guardian = address(0x1234);
 
-        // Ensure Alice has enough voting power
+        // Setup guardian in AccessManager
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantGuardianRole(guardian);
+        accessManagerA.setGuardianExpiration(
+            guardian,
+            block.timestamp + 1000000
+        );
+        vm.stopPrank();
+
+        // Ensure Alice has enough voting power for governance
         vm.startPrank(address(timelockA));
         aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
         vm.stopPrank();
@@ -952,18 +338,17 @@ contract SummerGovernorTest is
         advanceTimeAndBlock();
         vm.stopPrank();
 
-        // Create and execute a proposal to set the whitelist account expiration
+        // Create proposal to grant guardian role through AccessManager
         address[] memory targets = new address[](1);
-        targets[0] = address(governorA);
+        targets[0] = address(accessManagerA);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
         bytes[] memory calldatas = new bytes[](1);
         calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setWhitelistAccountExpiration.selector,
-            whitelistedUser,
-            expiration
+            IProtocolAccessManager.grantGuardianRole.selector,
+            guardian
         );
-        string memory description = "Set whitelist account expiration";
+        string memory description = "Grant guardian role";
 
         vm.prank(alice);
         uint256 proposalId = governorA.propose(
@@ -980,7 +365,6 @@ contract SummerGovernorTest is
 
         advanceTimeForVotingPeriod();
 
-        vm.prank(alice);
         governorA.queue(
             targets,
             values,
@@ -990,7 +374,6 @@ contract SummerGovernorTest is
 
         advanceTimeForTimelockMinDelay();
 
-        vm.prank(bob);
         governorA.execute(
             targets,
             values,
@@ -998,30 +381,40 @@ contract SummerGovernorTest is
             keccak256(bytes(description))
         );
 
-        // Ensure the whitelisted user has no voting power
-        vm.prank(whitelistedUser);
+        // Ensure the guardian has no voting power
+        vm.prank(guardian);
         aSummerToken.delegate(address(0));
 
-        // Verify that the user is whitelisted
+        // Verify that the account has the guardian role
         assertTrue(
-            governorA.isWhitelisted(whitelistedUser),
-            "User should be whitelisted"
+            accessManagerA.hasRole(accessManagerA.GUARDIAN_ROLE(), guardian),
+            "Account should have guardian role"
         );
 
-        // Now create a proposal as the whitelisted user
-        vm.startPrank(whitelistedUser);
-        (uint256 anotherProposalId, ) = createProposal();
+        // Create a proposal as the guardian without meeting threshold
+        vm.startPrank(guardian);
+        (uint256 guardianProposalId, ) = createProposal();
         vm.stopPrank();
 
         // Verify that the proposal was created successfully
         assertTrue(
-            anotherProposalId > 0,
+            guardianProposalId > 0,
             "Proposal should be created successfully"
         );
         assertEq(
-            uint256(governorA.state(anotherProposalId)),
+            uint256(governorA.state(guardianProposalId)),
             uint256(IGovernor.ProposalState.Pending),
             "Proposal should be in Pending state"
+        );
+
+        // Verify guardian can create proposal without meeting threshold
+        uint256 guardianVotes = governorA.getVotes(
+            guardian,
+            block.timestamp - 1
+        );
+        assertTrue(
+            guardianVotes < governorA.proposalThreshold(),
+            "Guardian should have less votes than threshold"
         );
     }
 
@@ -1030,83 +423,53 @@ contract SummerGovernorTest is
      * Verifies that the guardian can cancel a proposal.
      */
     function test_CancelProposalByGuardian() public {
+        address guardian = address(0x115);
+
+        // Setup guardian in AccessManager
         vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        accessManagerA.grantGuardianRole(guardian);
+        accessManagerA.setGuardianExpiration(
+            guardian,
+            block.timestamp + 1000000
+        );
         vm.stopPrank();
+
+        // Setup proposal creation
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold() * 2);
+        vm.stopPrank();
+
         vm.prank(alice);
         aSummerToken.delegate(alice);
 
         advanceTimeAndBlock();
 
+        // Create proposal
         vm.prank(alice);
-        (uint256 proposalId, bytes32 descriptionHash) = createProposal();
+        (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas,
+            string memory description
+        ) = createProposalParams(address(aSummerToken));
 
-        address guardian = address(0x5678);
-
-        // Create and execute a proposal to set the whitelist guardian
-        address[] memory targets = new address[](1);
-        targets[0] = address(governorA);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSelector(
-            SummerGovernor.setWhitelistGuardian.selector,
-            guardian
-        );
-        string memory description = "Set whitelist guardian";
-
-        vm.prank(alice);
-        uint256 guardianProposalId = governorA.propose(
+        uint256 proposalId = governorA.propose(
             targets,
             values,
             calldatas,
             description
         );
 
-        // Give Alice more tokens so we exceed the quorum threshold
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
-        vm.stopPrank();
-
-        advanceTimeForVotingDelay();
-
-        vm.prank(alice);
-        governorA.castVote(guardianProposalId, 1);
-
-        advanceTimeForVotingPeriod();
-
-        governorA.queue(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        advanceTimeForTimelockMinDelay();
-
-        governorA.execute(
-            targets,
-            values,
-            calldatas,
-            keccak256(bytes(description))
-        );
-
-        // Now cancel the original proposal as the guardian
-        (
-            address[] memory cancelTargets,
-            uint256[] memory cancelValues,
-            bytes[] memory cancelCalldatas,
-
-        ) = createProposalParams(address(aSummerToken));
-
+        // Cancel with guardian
         vm.prank(guardian);
         governorA.cancel(
-            cancelTargets,
-            cancelValues,
-            cancelCalldatas,
-            descriptionHash
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
         );
 
+        // Verify proposal is canceled
         assertEq(
             uint256(governorA.state(proposalId)),
             uint256(IGovernor.ProposalState.Canceled)
@@ -1471,15 +834,15 @@ contract SummerGovernorTest is
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
+                accessManager: accessManagerA,
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
-                initialWhitelistGuardian: whitelistGuardian,
                 endpoint: address(endpoints[aEid]),
-                proposalChainId: governanceChainId, // Set to a different chain ID
-                peerEndpointIds: new uint32[](0), // Empty uint32 array
-                peerAddresses: new address[](0) // Empty address array
+                hubChainId: governanceChainId,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
 
         ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(
@@ -1514,7 +877,7 @@ contract SummerGovernorTest is
         vm.prank(alice);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SummerGovernorInvalidChain.selector,
+                SummerGovernorNotHubChain.selector,
                 currentChainId,
                 governanceChainId
             )
@@ -1659,79 +1022,6 @@ contract SummerGovernorTest is
         governorA.castVote(proposalId, davidVote);
 
         return proposalId;
-    }
-
-    /*
-     * @dev Creates a proposal for testing purposes.
-     * @return proposalId The ID of the created proposal.
-     * @return descriptionHash The hash of the proposal description.
-     */
-    function createProposal() internal returns (uint256, bytes32) {
-        (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[] memory calldatas,
-            string memory description
-        ) = createProposalParams(address(aSummerToken));
-
-        // Add a unique identifier to the description to ensure unique proposals
-        description = string(
-            abi.encodePacked(description, " - ", block.number)
-        );
-
-        uint256 proposalId = governorA.propose(
-            targets,
-            values,
-            calldatas,
-            description
-        );
-
-        return (proposalId, hashDescription(description));
-    }
-
-    /*
-     * @dev Creates parameters for a proposal.
-     * @return targets The target addresses for the proposal.
-     * @return values The values to be sent with the proposal.
-     * @return calldatas The function call data for the proposal.
-     * @return description The description of the proposal.
-     */
-    function createProposalParams(
-        address tokenAddress
-    )
-        internal
-        view
-        returns (
-            address[] memory,
-            uint256[] memory,
-            bytes[] memory,
-            string memory
-        )
-    {
-        address[] memory targets = new address[](1);
-        targets[0] = tokenAddress;
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSignature(
-            "transfer(address,uint256)",
-            bob,
-            100
-        );
-        string memory description = "Transfer 100 tokens to Bob";
-
-        return (targets, values, calldatas, description);
-    }
-
-    /*
-     * @dev Hashes the description of a proposal.
-     * @param description The description to hash.
-     * @return The keccak256 hash of the description.
-     */
-    function hashDescription(
-        string memory description
-    ) internal pure returns (bytes32) {
-        return keccak256(bytes(description));
     }
 
     function test_DecayUpdateOnPropose() public {
@@ -1995,7 +1285,7 @@ contract SummerGovernorTest is
         advanceTimeAndBlock();
 
         vm.startPrank(alice);
-        (uint256 proposalId, bytes32 descriptionHash) = createProposal();
+        (, bytes32 descriptionHash) = createProposal();
         (
             address[] memory targets,
             uint256[] memory values,
@@ -2048,29 +1338,283 @@ contract SummerGovernorTest is
         console.log("Decay factor after proposal:", decayFactorAfterProposal);
     }
 
-    // For immediate operations (propose, vote, etc)
-    function advanceTimeAndBlock() internal {
-        vm.warp(block.timestamp + 1);
-        vm.roll(block.number + 1);
+    function test_GetGuardianExpiration() public {
+        address guardian = address(0x1234);
+        uint256 expirationTime = block.timestamp + 8 days; // Set expiration in the future
+
+        // Setup guardian in AccessManager
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantGuardianRole(guardian);
+        accessManagerA.setGuardianExpiration(guardian, expirationTime);
+        vm.stopPrank();
+
+        // Verify expiration was set correctly
+        uint256 storedExpiration = accessManagerA.getGuardianExpiration(
+            guardian
+        );
+        assertEq(
+            storedExpiration,
+            expirationTime,
+            "Guardian expiration not set correctly"
+        );
     }
 
-    function advanceTimeForPeriod(uint256 extraTime) internal {
-        vm.warp(block.timestamp + extraTime);
-        vm.roll(block.number + 1);
+    /*
+     * @dev Tests the guardian role assignment through a governance proposal.
+     * Verifies that an account can be granted the guardian role via a proposal.
+     */
+    function test_GuardianRoleAssignment() public {
+        address account = address(0x03);
+
+        // Give Alice enough tokens to meet proposal threshold
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        advanceTimeAndBlock();
+
+        address[] memory targets = new address[](2); // Changed to 2 targets
+        uint256[] memory values = new uint256[](2); // Changed to 2 values
+        bytes[] memory calldatas = new bytes[](2); // Changed to 2 calldatas
+
+        targets[0] = address(accessManagerA);
+        values[0] = 0;
+        calldatas[0] = abi.encodeWithSelector(
+            IProtocolAccessManager.grantGuardianRole.selector,
+            account
+        );
+
+        targets[1] = address(accessManagerA);
+        values[1] = 0;
+        calldatas[1] = abi.encodeWithSelector(
+            IProtocolAccessManager.setGuardianExpiration.selector,
+            account,
+            block.timestamp + 30 days // Set expiration 30 days in the future
+        );
+
+        string memory description = "Grant guardian role";
+
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Give Alice enough tokens to meet quorum
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        advanceTimeForVotingDelay();
+
+        // Vote on proposal
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        // Queue and execute the proposal
+        governorA.queue(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        advanceTimeForTimelockMinDelay();
+
+        governorA.execute(
+            targets,
+            values,
+            calldatas,
+            keccak256(bytes(description))
+        );
+
+        // Verify the account has been granted the guardian role
+        bool hasGuardianRole = accessManagerA.hasRole(
+            accessManagerA.GUARDIAN_ROLE(),
+            account
+        );
+        assertTrue(hasGuardianRole, "Account should have guardian role");
+
+        // Verify the account can perform guardian actions
+        vm.prank(account);
+        (
+            address[] memory cancelTargets,
+            uint256[] memory cancelValues,
+            bytes[] memory cancelCalldatas,
+            string memory cancelDescription
+        ) = createProposalParams(address(aSummerToken));
+
+        uint256 newProposalId = governorA.propose(
+            cancelTargets,
+            cancelValues,
+            cancelCalldatas,
+            cancelDescription
+        );
+
+        // Guardian should be able to cancel the proposal
+        vm.prank(account);
+        governorA.cancel(
+            cancelTargets,
+            cancelValues,
+            cancelCalldatas,
+            keccak256(bytes(cancelDescription))
+        );
+
+        assertEq(
+            uint256(governorA.state(newProposalId)),
+            uint256(IGovernor.ProposalState.Canceled),
+            "Proposal should be canceled by guardian"
+        );
     }
 
-    function advanceTimeForTimelockMinDelay() internal {
-        vm.warp(block.timestamp + timelockA.getMinDelay() + 1);
-        vm.roll(block.number + 1);
+    function test_GuardianExpiryProposalTracking() public {
+        // Give Alice enough tokens to meet proposal threshold and quorum
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Test single operation
+        address[] memory targets = new address[](1);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+
+        targets[0] = address(accessManagerA);
+        values[0] = 0;
+        calldatas[0] = abi.encodeWithSelector(
+            IProtocolAccessManager.setGuardianExpiration.selector,
+            bob,
+            block.timestamp + 30 days
+        );
+
+        string memory description = "Set guardian expiry";
+        bytes32 singleDescriptionHash = keccak256(bytes(description));
+
+        vm.prank(alice);
+        uint256 singleProposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Test batch operation with mixed operations
+        address[] memory batchTargets = new address[](2);
+        uint256[] memory batchValues = new uint256[](2);
+        bytes[] memory batchCalldatas = new bytes[](2);
+
+        batchTargets[0] = address(accessManagerA);
+        batchValues[0] = 0;
+        batchCalldatas[0] = abi.encodeWithSelector(
+            IProtocolAccessManager.grantGuardianRole.selector,
+            charlie
+        );
+
+        batchTargets[1] = address(accessManagerA);
+        batchValues[1] = 0;
+        batchCalldatas[1] = abi.encodeWithSelector(
+            IProtocolAccessManager.setGuardianExpiration.selector,
+            charlie,
+            block.timestamp + 30 days
+        );
+
+        string memory batchDescription = "batch description";
+        bytes32 batchDescriptionHash = keccak256(bytes(batchDescription));
+
+        vm.prank(alice);
+        uint256 batchProposalId = governorA.propose(
+            batchTargets,
+            batchValues,
+            batchCalldatas,
+            batchDescription
+        );
+
+        // Vote and queue both proposals
+        advanceTimeForVotingDelay();
+
+        vm.startPrank(alice);
+        governorA.castVote(singleProposalId, 1);
+        governorA.castVote(batchProposalId, 1);
+        vm.stopPrank();
+
+        advanceTimeForVotingPeriod();
+
+        governorA.queue(targets, values, calldatas, singleDescriptionHash);
+        governorA.queue(
+            batchTargets,
+            batchValues,
+            batchCalldatas,
+            batchDescriptionHash
+        );
+
+        // Verify that both operations are marked as guardian expiry operations
+        bytes32 singleOpId = timelockA.hashOperationBatch(
+            targets,
+            values,
+            calldatas,
+            0, // predecessor
+            _timelockSalt(address(governorA), singleDescriptionHash) // salt
+        );
+
+        bytes32 batchOpId = timelockA.hashOperationBatch(
+            batchTargets,
+            batchValues,
+            batchCalldatas,
+            0, // predecessor
+            _timelockSalt(address(governorA), batchDescriptionHash) // salt
+        );
+
+        console.log("Batch Op Id");
+        console.logBytes32(batchOpId);
+
+        assertTrue(
+            ExposedSummerTimelockController(payable(address(timelockA)))
+                .exposedIsGuardianExpiryProposal(singleOpId),
+            "Single operation should be marked as guardian expiry"
+        );
+        assertTrue(
+            ExposedSummerTimelockController(payable(address(timelockA)))
+                .exposedIsGuardianExpiryProposal(batchOpId),
+            "Batch operation should be marked as guardian expiry"
+        );
+
+        // Try to cancel the operations with a guardian (should fail)
+        address guardian = address(0x1234);
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantGuardianRole(guardian);
+        accessManagerA.setGuardianExpiration(
+            guardian,
+            block.timestamp + 1000000
+        );
+        timelockA.grantRole(timelockA.CANCELLER_ROLE(), guardian);
+        vm.stopPrank();
+
+        vm.startPrank(guardian);
+        vm.expectRevert("Only governors can cancel guardian expiry proposals");
+        timelockA.cancel(singleOpId);
+
+        vm.expectRevert("Only governors can cancel guardian expiry proposals");
+        timelockA.cancel(batchOpId);
+        vm.stopPrank();
     }
 
-    function advanceTimeForVotingPeriod() internal {
-        vm.warp(block.timestamp + VOTING_PERIOD + 1);
-        vm.roll(block.number + 1);
-    }
-
-    function advanceTimeForVotingDelay() internal {
-        vm.warp(block.timestamp + VOTING_DELAY + 1);
-        vm.roll(block.number + 1);
+    function _timelockSalt(
+        address addressToSalt,
+        bytes32 descriptionHash
+    ) private pure returns (bytes32) {
+        return bytes20(addressToSalt) ^ descriptionHash;
     }
 }

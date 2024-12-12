@@ -38,7 +38,7 @@ export const GovModule = buildModule('GovModule', (m) => {
   const peerAddresses = m.getParameter<string[]>('peerAddresses', [])
 
   /**
-   * @dev Step 1: Deploy TimelockController
+   * @dev Step 1: Deploy SummerTimelockController
    * This contract adds a time delay to governance actions
    * Initially configured with:
    * - deployer as proposer (temporary)
@@ -47,11 +47,12 @@ export const GovModule = buildModule('GovModule', (m) => {
    */
   const MIN_DELAY = 86400n
   const TEMP_MIN_DELAY_DURING_TESTING = 300n // 5 minutes for testing
-  const timelock = m.contract('TimelockController', [
+  const timelock = m.contract('SummerTimelockController', [
     TEMP_MIN_DELAY_DURING_TESTING,
     [deployer],
     [ADDRESS_ZERO],
     deployer,
+    protocolAccessManagerAddress,
   ])
 
   /**
@@ -98,7 +99,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     quorumFraction: 4n,
     initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
-    proposalChainId: 8453n,
+    hubChainId: 8453n,
     peerEndpointIds: peerEndpointIds,
     peerAddresses: peerAddresses,
   }

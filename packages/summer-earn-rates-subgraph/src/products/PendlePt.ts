@@ -15,7 +15,10 @@ export class PendlePtProduct extends Product {
     const expiry = market.expiry()
     this.marketExpiry = expiry
   }
-  getRate(currentTimestamp: BigInt): BigDecimal {
+  getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
+    if (currentBlock.lt(this.startBlock)) {
+      return BigDecimalConstants.ZERO
+    }
     // Get the current exchange rate from PT to underlying asset (WAD)
     const exchangeRate = this._fetchArkTokenToAssetRate()
     if (exchangeRate.isZero()) return BigDecimalConstants.ZERO

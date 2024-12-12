@@ -9,7 +9,6 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
 import {IOFT, OFTReceipt, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 import {OFTComposeMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTComposeMsgCodec.sol";
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
@@ -19,7 +18,7 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol"
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {MockSummerGovernor} from "./MockSummerGovernor.sol";
 import {SummerVestingWalletFactory} from "../src/contracts/SummerVestingWalletFactory.sol";
-
+import {SummerTimelockController} from "../src/contracts/SummerTimelockController.sol";
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
 
@@ -32,8 +31,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
     SummerVestingWalletFactory public vestingWalletFactoryA;
     SummerVestingWalletFactory public vestingWalletFactoryB;
 
-    TimelockController public timelockA;
-    TimelockController public timelockB;
+    ExposedSummerTimelockController public timelockA;
+    ExposedSummerTimelockController public timelockB;
 
     address public lzEndpointA;
     address public lzEndpointB;
@@ -79,23 +78,37 @@ contract SummerTokenTestBase is TestHelperOz5 {
         proposers[0] = address(this);
         address[] memory executors = new address[](1);
         executors[0] = address(0);
-        timelockA = new TimelockController(
+
+        address fakeDeployerKey = address(0x1234);
+        accessManagerA = new ProtocolAccessManager(fakeDeployerKey);
+        accessManagerB = new ProtocolAccessManager(fakeDeployerKey);
+
+        address timelockAdmin = address(this);
+        timelockA = new ExposedSummerTimelockController(
             1 days,
             proposers,
             executors,
-            address(this)
+            timelockAdmin,
+            address(accessManagerA)
         );
-        timelockB = new TimelockController(
+        timelockB = new ExposedSummerTimelockController(
             1 days,
             proposers,
             executors,
-            address(this)
+            timelockAdmin,
+            address(accessManagerB)
         );
 
-        accessManagerA = new ProtocolAccessManager(address(timelockA));
-        accessManagerB = new ProtocolAccessManager(address(timelockB));
-        vm.label(address(timelockA), "TimelockController A");
-        vm.label(address(timelockB), "TimelockController B");
+        vm.startPrank(fakeDeployerKey);
+        accessManagerA.grantGovernorRole(address(timelockA));
+        accessManagerB.grantGovernorRole(address(timelockB));
+
+        accessManagerA.revokeGovernorRole(fakeDeployerKey);
+        accessManagerB.revokeGovernorRole(fakeDeployerKey);
+        vm.stopPrank();
+
+        vm.label(address(timelockA), "SummerTimelockController A");
+        vm.label(address(timelockB), "SummerTimelockController B");
 
         ISummerToken.TokenParams memory tokenParamsA = ISummerToken
             .TokenParams({
@@ -179,6 +192,38 @@ contract SummerTokenTestBase is TestHelperOz5 {
         aSummerToken.transferOwnership(_newOwnerA);
         bSummerToken.transferOwnership(_newOwnerB);
         vm.stopPrank();
+    }
+
+    function useNetworkA() public {
+        vm.chainId(31337);
+    }
+
+    function useNetworkB() public {
+        vm.chainId(31338);
+    }
+}
+
+contract ExposedSummerTimelockController is SummerTimelockController {
+    constructor(
+        uint256 minDelay,
+        address[] memory proposers,
+        address[] memory executors,
+        address admin,
+        address _accessManager
+    )
+        SummerTimelockController(
+            minDelay,
+            proposers,
+            executors,
+            admin,
+            _accessManager
+        )
+    {}
+
+    function exposedIsGuardianExpiryProposal(
+        bytes32 operationId
+    ) external view returns (bool) {
+        return _isGuardianExpiryProposal(operationId);
     }
 }
 
