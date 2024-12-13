@@ -149,6 +149,13 @@ contract SummerToken is
         emit AddressRemovedFromWhitelist(account);
     }
 
+    /// @inheritdoc ISummerToken
+    function getDelegationChainLength(
+        address account
+    ) external view returns (uint256) {
+        return decayState.getDelegationChainLength(account, _getDelegateTo);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/

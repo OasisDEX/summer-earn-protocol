@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
+import {console, Test} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "../src/VotingDecayLibrary.sol";
 
 contract VotingDecayTest is Test {
@@ -118,6 +118,192 @@ contract VotingDecayTest is Test {
         assertLt(
             state.getDecayFactor(user, _getDelegateTo),
             VotingDecayLibrary.WAD
+        );
+    }
+
+    function _mockDelegationChain(
+        address account
+    ) internal pure returns (address) {
+        address delegate1 = address(0x11);
+        address delegate2 = address(0x12);
+        address delegate3 = address(0x13);
+
+        if (account == address(0x1)) return delegate1;
+        if (account == delegate1) return delegate2;
+        if (account == delegate2) return delegate3;
+        return account;
+    }
+
+    function _mockValidDelegationChain(
+        address account
+    ) internal view returns (address) {
+        // Log the input account to see what's being passed
+        console.log("Checking delegation for address:", account);
+
+        if (account == user) {
+            console.log("User delegates to:", delegate);
+            return delegate;
+        }
+        if (account == delegate) {
+            console.log("Delegate self-delegates");
+            return delegate; // delegate self-delegates to end the chain
+        }
+
+        console.log("No delegation found, returning:", account);
+        return account;
+    }
+
+    function test_MaxDelegationDepthExceeded() public {
+        // Setup a delegation chain: user -> delegate1 -> delegate2 -> delegate3
+        address delegate1 = address(0x11);
+        address delegate2 = address(0x12);
+        address delegate3 = address(0x13);
+
+        // Initialize all accounts
+        state.resetDecay(user);
+        state.resetDecay(delegate1);
+        state.resetDecay(delegate2);
+        state.resetDecay(delegate3);
+
+        // Get decay factor for user, which should follow delegation chain:
+        // user -> delegate1 -> delegate2 -> delegate3 (depth of 3, which exceeds max)
+        uint256 decayFactor = state.getDecayFactor(user, _mockDelegationChain);
+
+        assertEq(
+            decayFactor,
+            0,
+            "Decay factor should be 0 for max delegation depth exceeded"
+        );
+    }
+
+    function test_ValidDelegationDepth() public {
+        // Initialize the accounts
+        state.resetDecay(user);
+        state.resetDecay(delegate); // Using the existing delegate address from setUp
+
+        console.log("User address:", user);
+        console.log("Delegate address:", delegate);
+
+        // Get decay factor for user, which should follow delegation chain:
+        // user -> delegate (depth of 1, which is valid)
+        uint256 decayFactor = state.getDecayFactor(
+            user,
+            _mockValidDelegationChain
+        );
+
+        console.log("Resulting decay factor:", decayFactor);
+
+        assertGt(
+            decayFactor,
+            0,
+            "Decay factor should be non-zero for valid delegation depth"
+        );
+    }
+
+    function _mockSelfDelegation(
+        address account
+    ) internal pure returns (address) {
+        return account;
+    }
+
+    function _mockSingleDelegation(
+        address account
+    ) internal view returns (address) {
+        if (account == user) return delegate;
+        return account;
+    }
+
+    function test_DelegationChainLength_NoDelegate() public {
+        state.resetDecay(user);
+        uint256 chainLength = state.getDelegationChainLength(
+            user,
+            _mockSelfDelegation
+        );
+        assertEq(
+            chainLength,
+            0,
+            "Chain length should be 0 for self-delegation"
+        );
+    }
+
+    function test_DelegationChainLength_SingleDelegate() public {
+        state.resetDecay(user);
+        state.resetDecay(delegate);
+        uint256 chainLength = state.getDelegationChainLength(
+            user,
+            _mockSingleDelegation
+        );
+        assertEq(
+            chainLength,
+            1,
+            "Chain length should be 1 for single delegation"
+        );
+    }
+
+    function test_DelegationChainLength_MaxDepth() public {
+        address delegate1 = address(0x11);
+        address delegate2 = address(0x12);
+
+        state.resetDecay(user);
+        state.resetDecay(delegate1);
+        state.resetDecay(delegate2);
+
+        uint256 chainLength = state.getDelegationChainLength(
+            user,
+            _mockDelegationChain
+        );
+        assertEq(
+            chainLength,
+            2,
+            "Chain length should be 2 for max depth delegation"
+        );
+    }
+
+    function test_DelegationChainLength_ExceedsMax() public {
+        address delegate1 = address(0x11);
+        address delegate2 = address(0x12);
+        address delegate3 = address(0x13);
+
+        state.resetDecay(user);
+        state.resetDecay(delegate1);
+        state.resetDecay(delegate2);
+        state.resetDecay(delegate3);
+
+        uint256 chainLength = state.getDelegationChainLength(
+            user,
+            _mockDelegationChain
+        );
+        assertEq(
+            chainLength,
+            2,
+            "Chain length should be capped at MAX_DELEGATION_DEPTH"
+        );
+    }
+
+    function _mockZeroDelegation(
+        address account
+    ) internal pure returns (address) {
+        console.log("Using _mockZeroDelegation for account:", account);
+        return address(0);
+    }
+
+    function test_DelegationChainLength_ZeroAddress() public {
+        state.resetDecay(user);
+
+        console.log("Testing zero address delegation");
+        console.log("User address:", user);
+
+        // Test delegation to zero address
+        uint256 chainLength = state.getDelegationChainLength(
+            user,
+            _mockZeroDelegation
+        );
+        console.log("Chain length:", chainLength);
+
+        assertEq(
+            chainLength,
+            0,
+            "Chain length should be 0 for zero address delegation"
         );
     }
 }

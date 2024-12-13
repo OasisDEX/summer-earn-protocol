@@ -174,4 +174,13 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
      * @return The address of the rewards manager
      */
     function rewardsManager() external view returns (IGovernanceRewardsManager);
+
+    /**
+     * @notice Gets the length of the delegation chain for an account
+     * @param account The address to check delegation chain for
+     * @return The length of the delegation chain (0 for self-delegated or invalid chains)
+     */
+    function getDelegationChainLength(
+        address account
+    ) external view returns (uint256);
 }

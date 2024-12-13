@@ -8,6 +8,7 @@ contract TestVotingDecayManager {
     using VotingDecayLibrary for VotingDecayLibrary.DecayState;
 
     VotingDecayLibrary.DecayState internal state;
+    mapping(address => address) public delegations;
 
     constructor(
         uint40 decayFreeWindow_,
@@ -17,8 +18,12 @@ contract TestVotingDecayManager {
         state.initialize(decayFreeWindow_, decayRatePerSecond_, decayFunction_);
     }
 
-    function _getDelegateTo(address account) internal pure returns (address) {
-        return account;
+    function _getDelegateTo(address account) internal view returns (address) {
+        return delegations[account];
+    }
+
+    function setDelegation(address from, address to) public {
+        delegations[from] = to;
     }
 
     function resetDecay(address account) public {
@@ -330,5 +335,55 @@ contract VotingDecayFuzzTest is Test {
             "Final factor should be less than or equal to initial factor"
         );
         assertGt(finalFactor, 0, "Final factor should be greater than zero");
+    }
+
+    /**
+     * @dev Test delegation depth
+     * @param delegationChain Array of addresses representing the delegation chain
+     */
+    function testFuzz_DelegationDepth(
+        address[] calldata delegationChain
+    ) public {
+        vm.assume(delegationChain.length > 0 && delegationChain.length <= 5);
+
+        // Initialize all accounts in the chain and set up delegation mapping
+        for (uint i = 0; i < delegationChain.length; i++) {
+            vm.assume(delegationChain[i] != address(0));
+            // Ensure unique addresses
+            for (uint j = 0; j < i; j++) {
+                vm.assume(delegationChain[i] != delegationChain[j]);
+            }
+            decayManager.resetDecay(delegationChain[i]);
+
+            // Set up delegation chain
+            if (i < delegationChain.length - 1) {
+                decayManager.setDelegation(
+                    delegationChain[i],
+                    delegationChain[i + 1]
+                );
+            } else {
+                decayManager.setDelegation(
+                    delegationChain[i],
+                    delegationChain[i]
+                );
+            }
+        }
+
+        uint256 decayFactor = decayManager.getDecayFactor(delegationChain[0]);
+
+        // If chain length exceeds MAX_DELEGATION_DEPTH, decay factor should be 0
+        if (delegationChain.length > 2) {
+            assertEq(
+                decayFactor,
+                0,
+                "Decay factor should be 0 when delegation depth exceeded"
+            );
+        } else {
+            assertGt(
+                decayFactor,
+                0,
+                "Decay factor should be non-zero within delegation depth limit"
+            );
+        }
     }
 }

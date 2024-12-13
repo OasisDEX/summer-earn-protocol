@@ -157,4 +157,8 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     function updateDecayFactor(address) external pure {
         return;
     }
+
+    function getDelegationChainLength(address) external pure returns (uint256) {
+        return 0;
+    }
 }

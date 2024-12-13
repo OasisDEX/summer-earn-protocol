@@ -57,6 +57,13 @@ library VotingDecayLibrary {
     error AccountNotInitialized();
     error InvalidDecayRate();
 
+    /**
+     * @notice Maximum allowed depth for delegation chains to prevent recursion attacks
+     * @dev When this depth is exceeded, voting power decays to 0 to maintain EIP-5805 invariants
+     *      Example chain at max depth (2):
+     *      User A -> delegates to B -> delegates to C (ok)
+     *      User A -> delegates to B -> delegates to C -> delegates to D (returns 0)
+     */
     uint256 private constant MAX_DELEGATION_DEPTH = 2;
 
     /*//////////////////////////////////////////////////////////////
@@ -273,12 +280,16 @@ library VotingDecayLibrary {
 
     /**
      * @notice Recursively calculates decay factor considering delegation depth
+     * @dev Returns 0 in the following cases:
+     *      1. When accountAddress is address(0)
+     *      2. When delegation depth exceeds MAX_DELEGATION_DEPTH
+     *      3. When the account or its delegate has no decay info
      * @param self The DecayState storage
      * @param accountAddress Current account being checked
      * @param depth Current delegation depth
      * @param originalAccount The initial account that started the calculation
      * @param getDelegateTo Function to retrieve delegation information
-     * @return The calculated decay factor
+     * @return The calculated decay factor, or 0 if max depth exceeded
      */
     function _getDecayFactorWithDepth(
         DecayState storage self,
@@ -292,7 +303,7 @@ library VotingDecayLibrary {
         }
 
         if (depth >= MAX_DELEGATION_DEPTH) {
-            return _calculateAccountDecayFactor(self, originalAccount);
+            return 0;
         }
 
         address delegateTo = getDelegateTo(accountAddress);
@@ -335,6 +346,7 @@ library VotingDecayLibrary {
     ) private view returns (uint256) {
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
+
         return
             _calculateDecayFactor(
                 account.decayFactor,
@@ -390,5 +402,70 @@ library VotingDecayLibrary {
         } else {
             revert InvalidDecayType();
         }
+    }
+
+    /**
+     * @notice Gets the length of a delegation chain for an account
+     * @dev Counts the number of steps in the delegation chain until:
+     *      1. A self-delegation is found
+     *      2. An address(0) delegation is found
+     *      3. MAX_DELEGATION_DEPTH is reached
+     * @param self The DecayState storage
+     * @param accountAddress The address to check delegation chain for
+     * @param getDelegateTo Function to retrieve delegation information
+     * @return uint256 The length of the delegation chain
+     */
+    function getDelegationChainLength(
+        DecayState storage self,
+        address accountAddress,
+        function(address) view returns (address) getDelegateTo
+    ) internal view returns (uint256) {
+        return
+            _getDelegationChainLengthWithDepth(
+                self,
+                accountAddress,
+                0,
+                getDelegateTo
+            );
+    }
+
+    /**
+     * @notice Internal recursive function to calculate delegation chain length
+     * @param self The DecayState storage
+     * @param accountAddress Current account being checked
+     * @param depth Current depth in the delegation chain
+     * @param getDelegateTo Function to retrieve delegation information
+     * @return uint256 The length of the delegation chain
+     */
+    function _getDelegationChainLengthWithDepth(
+        DecayState storage self,
+        address accountAddress,
+        uint256 depth,
+        function(address) view returns (address) getDelegateTo
+    ) private view returns (uint256) {
+        // Check for invalid conditions first
+        if (accountAddress == address(0)) {
+            return 0; // Return 0 for zero address
+        }
+
+        if (depth >= MAX_DELEGATION_DEPTH) {
+            return depth;
+        }
+
+        address delegateTo = getDelegateTo(accountAddress);
+
+        // Self-delegation or no delegation
+        if (delegateTo == address(0) || delegateTo == accountAddress) {
+            return depth;
+        }
+
+        // Continue counting if there's a valid delegation
+        return
+            _getDelegationChainLengthWithDepth(
+                self,
+                delegateTo,
+                depth + 1,
+                getDelegateTo
+            );
     }
 }
