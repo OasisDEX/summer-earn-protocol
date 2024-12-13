@@ -33,6 +33,7 @@ contract SummerVestingWalletFactory is
         address _token,
         address _accessManager
     ) ProtocolAccessManaged(_accessManager) {
+        if (_token == address(0)) revert ZeroTokenAddress();
         token = _token;
     }
 
@@ -58,6 +59,17 @@ contract SummerVestingWalletFactory is
             totalAmount += goalAmounts[i];
         }
 
+        IERC20 tokenContract = IERC20(token);
+        uint256 allowance = tokenContract.allowance(msg.sender, address(this));
+        if (allowance < totalAmount) {
+            revert InsufficientAllowance(totalAmount, allowance);
+        }
+
+        uint256 senderBalance = tokenContract.balanceOf(msg.sender);
+        if (senderBalance < totalAmount) {
+            revert InsufficientBalance(totalAmount, senderBalance);
+        }
+
         newVestingWallet = address(
             new SummerVestingWallet(
                 token,
@@ -74,8 +86,21 @@ contract SummerVestingWalletFactory is
         vestingWallets[beneficiary] = newVestingWallet;
         vestingWalletOwners[newVestingWallet] = beneficiary;
 
-        // Transfer tokens from sender to the new vesting wallet
-        IERC20(token).transferFrom(msg.sender, newVestingWallet, totalAmount);
+        uint256 preBalance = tokenContract.balanceOf(newVestingWallet);
+        bool success = tokenContract.transferFrom(
+            msg.sender,
+            newVestingWallet,
+            totalAmount
+        );
+        if (!success) revert TokenTransferFailed();
+
+        uint256 postBalance = tokenContract.balanceOf(newVestingWallet);
+        if (postBalance != preBalance + totalAmount) {
+            revert TransferAmountMismatch(
+                preBalance + totalAmount,
+                postBalance
+            );
+        }
 
         emit VestingWalletCreated(
             beneficiary,
