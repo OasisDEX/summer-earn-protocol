@@ -5,14 +5,23 @@ import { BigIntConstants } from '../common/constants'
 import {
   getOrCreateArksDailySnapshots,
   getOrCreateArksHourlySnapshots,
+  getOrCreatePositionDailySnapshot,
+  getOrCreatePositionHourlySnapshot,
+  getOrCreatePositionWeeklySnapshot,
   getOrCreateVault,
   getOrCreateVaultsDailySnapshots,
   getOrCreateVaultsHourlySnapshots,
+  getOrCreateVaultWeeklySnapshots,
   getOrCreateYieldAggregator,
 } from '../common/initializers'
 import { getArkDetails } from '../utils/ark'
 import { getVaultDetails } from '../utils/vault'
-import { handleVaultRate } from '../utils/vaultRateHandlers'
+import {
+  getDailyTimestamp,
+  getHourlyTimestamp,
+  getWeeklyOffsetTimestamp,
+  handleVaultRate,
+} from '../utils/vaultRateHandlers'
 import { updateArk } from './entities/ark'
 import { updateVault } from './entities/vault'
 
@@ -47,11 +56,15 @@ function updateVaultSnapshots(
   vaultAddress: Address,
   block: ethereum.Block,
   shouldUpdateDaily: boolean,
+  shouldUpdateWeekly: boolean,
 ): void {
   handleVaultRate(block, vaultAddress.toHexString())
   getOrCreateVaultsHourlySnapshots(vaultAddress, block)
   if (shouldUpdateDaily) {
     getOrCreateVaultsDailySnapshots(vaultAddress, block)
+  }
+  if (shouldUpdateWeekly) {
+    getOrCreateVaultWeeklySnapshots(vaultAddress, block)
   }
 }
 
@@ -61,16 +74,17 @@ function processHourlyVaultUpdate(
   block: ethereum.Block,
   protocolLastDailyUpdateTimestamp: BigInt | null,
   protocolLastHourlyUpdateTimestamp: BigInt | null,
+  protocolLastWeeklyUpdateTimestamp: BigInt | null,
 ): void {
   const dayPassed = hasDayPassed(protocolLastDailyUpdateTimestamp, block.timestamp)
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
-
+  const weekPassed = hasWeekPassed(protocolLastWeeklyUpdateTimestamp, block.timestamp)
   if (hourPassed) {
     const vault = getOrCreateVault(vaultAddress, block)
 
     // Update main data
     updateVaultData(vaultAddress, block)
-    updateVaultSnapshots(vaultAddress, block, dayPassed)
+    updateVaultSnapshots(vaultAddress, block, dayPassed, weekPassed)
 
     // Update associated arks
     const arks = vault.arksArray
@@ -78,6 +92,18 @@ function processHourlyVaultUpdate(
       const arkAddress = Address.fromString(arks[j])
       updateArkData(vaultAddress, arkAddress, block)
       updateArkSnapshots(vaultAddress, arkAddress, block, dayPassed)
+    }
+
+    const positions = vault.positions // Assuming you have a way to get positions related to the vault
+    for (let k = 0; k < positions.length; k++) {
+      const positionId = positions[k]
+      getOrCreatePositionHourlySnapshot(positionId, vaultAddress, block)
+      if (dayPassed) {
+        getOrCreatePositionDailySnapshot(positionId, vaultAddress, block)
+      }
+      if (weekPassed) {
+        getOrCreatePositionWeeklySnapshot(positionId, vaultAddress, block)
+      }
     }
   }
 }
@@ -93,6 +119,7 @@ export function handleInterval(block: ethereum.Block): void {
       block,
       protocol.lastDailyUpdateTimestamp,
       protocol.lastHourlyUpdateTimestamp,
+      protocol.lastWeeklyUpdateTimestamp,
     )
   }
 
@@ -102,14 +129,17 @@ export function handleInterval(block: ethereum.Block): void {
 
 function updateProtocolTimestamps(protocol: YieldAggregator, block: ethereum.Block): void {
   if (hasHourPassed(protocol.lastHourlyUpdateTimestamp, block.timestamp)) {
-    const firstSecondOfThisHour = block.timestamp
-      .div(BigIntConstants.SECONDS_PER_HOUR)
-      .times(BigIntConstants.SECONDS_PER_HOUR)
-
+    const firstSecondOfThisHour = getHourlyTimestamp(block.timestamp)
     protocol.lastHourlyUpdateTimestamp = firstSecondOfThisHour
 
     if (hasDayPassed(protocol.lastDailyUpdateTimestamp, block.timestamp)) {
-      protocol.lastDailyUpdateTimestamp = firstSecondOfThisHour
+      const dayTimestamp = getDailyTimestamp(firstSecondOfThisHour)
+      protocol.lastDailyUpdateTimestamp = dayTimestamp
+    }
+
+    if (hasWeekPassed(protocol.lastWeeklyUpdateTimestamp, block.timestamp)) {
+      const weekTimestamp = getWeeklyOffsetTimestamp(firstSecondOfThisHour)
+      protocol.lastWeeklyUpdateTimestamp = weekTimestamp
     }
 
     protocol.save()
@@ -120,9 +150,7 @@ function hasDayPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigI
   if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
     return true // Create initial snapshot if no previous timestamp or if it's zero
   }
-  const currentDayTimestamp = currentTimestamp
-    .div(BigIntConstants.SECONDS_PER_DAY)
-    .times(BigIntConstants.SECONDS_PER_DAY)
+  const currentDayTimestamp = getDailyTimestamp(currentTimestamp)
   const previousDayTimestamp = lastUpdateTimestamp
   return !currentDayTimestamp.equals(previousDayTimestamp)
 }
@@ -131,9 +159,18 @@ function hasHourPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: Big
   if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
     return true // Create initial snapshot if no previous timestamp or if it's zero
   }
-  const currentHourTimestamp = currentTimestamp
-    .div(BigIntConstants.SECONDS_PER_HOUR)
-    .times(BigIntConstants.SECONDS_PER_HOUR)
+  const currentHourTimestamp = getHourlyTimestamp(currentTimestamp)
   const previousHourTimestamp = lastUpdateTimestamp
   return !currentHourTimestamp.equals(previousHourTimestamp)
+}
+
+function hasWeekPassed(lastUpdateTimestamp: BigInt | null, currentTimestamp: BigInt): boolean {
+  if (!lastUpdateTimestamp || lastUpdateTimestamp.equals(BigIntConstants.ZERO)) {
+    return true // Create initial snapshot if no previous timestamp or if it's zero
+  }
+
+  const currentWeekTimestamp = getWeeklyOffsetTimestamp(currentTimestamp)
+  const previousWeekTimestamp = getWeeklyOffsetTimestamp(lastUpdateTimestamp)
+
+  return !currentWeekTimestamp.equals(previousWeekTimestamp)
 }
