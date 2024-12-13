@@ -108,15 +108,20 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Act & Assert
         vm.expectRevert(abi.encodeWithSignature("InvalidMorphoAddress()"));
-        new MorphoArk(address(0), Id.wrap(0), params);
+        new MorphoArk(address(0), Id.wrap(0), MORPHO_URD_FACTORY, params);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidMorphoAddress()"));
-        new MorphoArk(address(0), MARKET_ID, params);
+        new MorphoArk(address(0), MARKET_ID, MORPHO_URD_FACTORY, params);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidMarketId()"));
-        new MorphoArk(MORPHO_ADDRESS, Id.wrap(0), params);
+        new MorphoArk(MORPHO_ADDRESS, Id.wrap(0), MORPHO_URD_FACTORY, params);
 
-        MorphoArk newArk = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
+        MorphoArk newArk = new MorphoArk(
+            MORPHO_ADDRESS,
+            MARKET_ID,
+            MORPHO_URD_FACTORY,
+            params
+        );
         assertTrue(newArk.depositCap() == 1000, "Max allocation should be set");
         assertTrue(
             Id.unwrap(newArk.marketId()) == Id.unwrap(MARKET_ID),
