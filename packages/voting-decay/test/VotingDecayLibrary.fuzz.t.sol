@@ -386,4 +386,82 @@ contract VotingDecayFuzzTest is Test {
             );
         }
     }
+
+    /**
+     * @dev Test uninitialized account decay
+     * @param elapsedTime Random time period to test decay
+     */
+    function testFuzz_UninitializedAccountDecay(uint256 elapsedTime) public {
+        vm.assume(elapsedTime > 0 && elapsedTime <= YEAR_IN_SECONDS);
+
+        // Don't initialize the user account
+        uint256 initialFactor = decayManager.getDecayFactor(user);
+        assertEq(initialFactor, WAD, "Initial factor should be WAD");
+
+        vm.warp(block.timestamp + elapsedTime);
+        uint256 finalFactor = decayManager.getDecayFactor(user);
+
+        assertLe(
+            finalFactor,
+            initialFactor,
+            "Final factor should be less than initial"
+        );
+        if (elapsedTime > decayManager.decayFreeWindow()) {
+            assertLt(
+                finalFactor,
+                initialFactor,
+                "Final factor should decay after free window"
+            );
+        } else {
+            assertEq(finalFactor, initialFactor, "No decay within free window");
+        }
+    }
+
+    /**
+     * @dev Test uninitialized then initialized account decay
+     * @param preInitTime Random time period to test decay before initialization
+     * @param postInitTime Random time period to test decay after initialization
+     */
+    function testFuzz_UninitializedThenInitialized(
+        uint256 preInitTime,
+        uint256 postInitTime
+    ) public {
+        vm.assume(preInitTime > 0 && preInitTime <= YEAR_IN_SECONDS);
+        vm.assume(postInitTime > 0 && postInitTime <= YEAR_IN_SECONDS);
+
+        // Advance time while uninitialized
+        vm.warp(block.timestamp + preInitTime);
+
+        // Initialize the account
+        decayManager.resetDecay(user);
+        uint256 resetFactor = decayManager.getDecayFactor(user);
+        assertEq(resetFactor, WAD, "Reset should set factor to WAD");
+
+        // Check decay after initialization
+        vm.warp(block.timestamp + postInitTime);
+        uint256 postInitFactor = decayManager.getDecayFactor(user);
+
+        if (postInitTime > decayManager.decayFreeWindow()) {
+            assertLt(
+                postInitFactor,
+                resetFactor,
+                "Should decay after initialization"
+            );
+        } else {
+            assertEq(
+                postInitFactor,
+                resetFactor,
+                "Should not decay within free window after init"
+            );
+        }
+    }
+
+    function test_UninitializedAccountVotingPower() public {
+        // Fast forward 1 year
+        vm.warp(block.timestamp + 365 days);
+
+        uint256 votingPower = decayManager.getVotingPower(user, 1000e18);
+        uint256 expectedVotingPower = 908.219178e18; // ~90.82% of 1000e18
+        assertApproxEqAbs(votingPower, expectedVotingPower, 1e18);
+    }
 }

@@ -38,6 +38,7 @@ library VotingDecayLibrary {
         uint40 decayFreeWindow;
         uint256 decayRatePerSecond;
         DecayFunction decayFunction;
+        uint40 originTimestamp;
     }
 
     /**
@@ -207,6 +208,7 @@ library VotingDecayLibrary {
         self.decayFreeWindow = decayFreeWindow_;
         self.decayRatePerSecond = decayRatePerSecond_;
         self.decayFunction = decayFunction_;
+        self.originTimestamp = uint40(block.timestamp);
     }
 
     /**
@@ -324,10 +326,16 @@ library VotingDecayLibrary {
                 );
         }
 
-        // Has Delegate + Delegate does not have Decay Info
-        // OR No Delegate + Does not have Decay Info
+        // For uninitialized accounts, calculate decay from contract origin
         if (!_hasDecayInfo(self, accountAddress)) {
-            return 0;
+            return
+                _calculateDecayFactor(
+                    WAD,
+                    block.timestamp - self.originTimestamp,
+                    self.decayRatePerSecond,
+                    self.decayFreeWindow,
+                    self.decayFunction
+                );
         }
 
         // No Delegate + Has Decay Info

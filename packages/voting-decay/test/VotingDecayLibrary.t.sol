@@ -306,4 +306,38 @@ contract VotingDecayTest is Test {
             "Chain length should be 0 for zero address delegation"
         );
     }
+
+    function test_UninitializedAccountDecay() public {
+        // Don't initialize the user account
+
+        // Get decay factor immediately after contract deployment
+        uint256 initialDecayFactor = state.getDecayFactor(user, _getDelegateTo);
+        assertEq(
+            initialDecayFactor,
+            VotingDecayLibrary.WAD,
+            "Initial decay factor should be WAD"
+        );
+
+        // Fast forward 1 year
+        vm.warp(block.timestamp + 365 days);
+
+        uint256 decayedFactor = state.getDecayFactor(user, _getDelegateTo);
+        uint256 expectedDecayedFactor = 0.9e18; // 90% of initial after one year
+        assertApproxEqAbs(decayedFactor, expectedDecayedFactor, 1e16);
+    }
+
+    function test_UninitializedAccountVotingPower() public {
+        // Don't initialize the user account
+
+        // Fast forward 1 year
+        vm.warp(block.timestamp + 365 days);
+
+        uint256 votingPower = state.getVotingPower(
+            user,
+            INITIAL_VALUE,
+            _getDelegateTo
+        );
+        uint256 expectedVotingPower = 908.219178e18; // ~90.82% of INITIAL_VALUE
+        assertApproxEqAbs(votingPower, expectedVotingPower, 1e18);
+    }
 }
