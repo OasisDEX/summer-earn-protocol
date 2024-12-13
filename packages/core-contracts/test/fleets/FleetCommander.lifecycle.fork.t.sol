@@ -88,7 +88,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     address public constant FLUID_USDC_VAULT_ADDRESS =
         0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33;
     address public constant MORPHO_URD_FACTORY =
-        0x330eefa8a787552DC5cAd3C3cA644844B1E61Ddb;
+        0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D;
 
     Id public constant USDC_MORPHO_MARKET_ID =
         Id.wrap(

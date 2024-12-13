@@ -22,7 +22,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     address public constant METAMORPHO_ADDRESS =
         0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB;
     address public constant MORPHO_URD_FACTORY =
-        0x330eefa8a787552DC5cAd3C3cA644844B1E61Ddb;
+        0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D;
 
     IMetaMorpho public metaMorpho;
     IERC20 public asset;
