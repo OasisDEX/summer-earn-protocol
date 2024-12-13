@@ -339,6 +339,8 @@ contract FleetCommanderCache {
      * - Resizes the array to remove empty slots
      * - Sorts the withdrawable arks by total assets
      * - Caches the processed data
+     * - checks if the arks are cached, if yes skips the rest of the function
+     * - cache check is important for nested calls e.g. withdraw (withdrawFromArks)
      * @custom:effects
      * - Modifies storage by caching withdrawable arks data
      * - Updates the total assets of withdrawable arks in storage
@@ -353,6 +355,14 @@ contract FleetCommanderCache {
         IArk bufferArk,
         mapping(address => bool) storage isArkWithdrawable
     ) internal {
+        if (
+            StorageSlots
+                .IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
+                .asBoolean()
+                .tload()
+        ) {
+            return;
+        }
         ArkData[] memory _arksData = _getArksData(arks, bufferArk);
         // Initialize data for withdrawable arks
         ArkData[] memory _withdrawableArksData = new ArkData[](
