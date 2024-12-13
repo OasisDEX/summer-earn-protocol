@@ -354,29 +354,19 @@ abstract contract StakingRewardsManagerBase is
             revert CannotChangeRewardsDuration();
         }
 
-        uint256 totalReward;
-        if (block.timestamp >= rewardTokenData.periodFinish) {
-            totalReward = reward;
-        } else {
-            uint256 remaining = rewardTokenData.periodFinish - block.timestamp;
-            uint256 leftover = (remaining * rewardTokenData.rewardRate) /
-                Constants.WAD;
-            totalReward = reward + leftover;
-        }
+        // Transfer exact amount needed for new rewards
+        rewardToken.safeTransferFrom(msg.sender, address(this), reward);
 
-        // Check balance first
-        uint256 balance = rewardToken.balanceOf(address(this));
-        if (totalReward > balance) revert ProvidedRewardTooHigh();
-
-        // Calculate rate only once after validation
+        // Calculate new reward rate
         rewardTokenData.rewardRate =
-            (totalReward * Constants.WAD) /
+            (reward * Constants.WAD) /
             rewardTokenData.rewardsDuration;
 
         rewardTokenData.lastUpdateTime = block.timestamp;
         rewardTokenData.periodFinish =
             block.timestamp +
             rewardTokenData.rewardsDuration;
+
         emit RewardAdded(address(rewardToken), reward);
     }
 }

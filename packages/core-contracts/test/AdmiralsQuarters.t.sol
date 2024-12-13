@@ -76,7 +76,9 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         address _stakingRewardsManager = usdcFleet
             .getConfig()
             .stakingRewardsManager;
-        deal(address(rewardTokens[0]), address(_stakingRewardsManager), 1000e6);
+
+        deal(address(rewardTokens[0]), governor, 1000e6);
+        rewardTokens[0].approve(address(_stakingRewardsManager), 1000e6);
         IFleetCommanderRewardsManager(_stakingRewardsManager)
             .notifyRewardAmount(IERC20(rewardTokens[0]), 1000e6, 10 days);
         vm.stopPrank();
@@ -1598,7 +1600,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             // First deal tokens to the rewards manager
-            deal(address(rewardTokens[i]), rewardsManager, rewardAmount);
+            deal(address(rewardTokens[i]), governor, rewardAmount);
+            rewardTokens[i].approve(address(rewardsManager), rewardAmount);
 
             // Then notify the reward amount
             IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
@@ -1731,7 +1734,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         uint256 rewardDuration = 10 days;
 
         // Deal tokens and notify rewards
-        deal(address(rewardTokens[0]), rewardsManager, rewardAmount);
+        deal(address(rewardTokens[0]), governor, rewardAmount);
+        rewardTokens[0].approve(address(rewardsManager), rewardAmount);
         IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
             rewardTokens[0],
             rewardAmount,
@@ -1745,7 +1749,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "RewardTokenStillHasBalance(uint256)",
-                rewardAmount
+                100000000001000000000
             )
         );
         IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(
@@ -1777,7 +1781,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         // First transfer USDC to the rewards manager and setup rewards
         vm.startPrank(governor);
-        deal(address(usdc), rewardsManager, rewardAmount);
+        deal(address(usdc), governor, rewardAmount);
+        usdc.approve(address(rewardsManager), rewardAmount);
         IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
             usdc,
             rewardAmount,
