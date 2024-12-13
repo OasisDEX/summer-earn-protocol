@@ -726,4 +726,55 @@ contract BufferTest is Test, TestHelpers, FleetCommanderTestBase {
             "Total assets should remain consistent after buffer adjustment"
         );
     }
+
+    function test_AdjustBufferMoveToArkAndBackToBuffer() public {
+        // Arrange
+        uint256 initialBufferBalance = 15000 * 10 ** 6;
+        uint256 minBufferBalance = 10000 * 10 ** 6;
+        uint256 rebalanceAmount = 6500 * 10 ** 6;
+
+        FleetConfig memory config = fleetCommander.getConfig();
+
+        fleetCommanderStorageWriter.setminimumBufferBalance(minBufferBalance);
+        mockToken.mint(address(config.bufferArk), initialBufferBalance);
+
+        // Prepare rebalance data to move from buffer to ark1 and back
+        RebalanceData[] memory rebalanceData = new RebalanceData[](2);
+        rebalanceData[0] = RebalanceData({
+            fromArk: address(config.bufferArk),
+            toArk: ark1,
+            amount: rebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
+        });
+        rebalanceData[1] = RebalanceData({
+            fromArk: ark1,
+            toArk: address(config.bufferArk),
+            amount: rebalanceAmount,
+            boardData: bytes(""),
+            disembarkData: bytes("")
+        });
+
+        // Act
+        vm.warp(INITIAL_REBALANCE_COOLDOWN);
+        vm.prank(keeper);
+        fleetCommander.rebalance(rebalanceData);
+
+        // Assert
+        assertEq(
+            config.bufferArk.totalAssets(),
+            initialBufferBalance,
+            "Buffer balance should be back to initial amount"
+        );
+        assertEq(
+            IArk(ark1).totalAssets(),
+            0,
+            "Ark1 should have no assets after moving funds back"
+        );
+        assertEq(
+            fleetCommander.totalAssets(),
+            initialBufferBalance,
+            "Total assets should remain unchanged"
+        );
+    }
 }

@@ -692,7 +692,7 @@ contract FleetCommander is
                 rebalanceData[i].toArk == _bufferArkAddress ||
                 rebalanceData[i].fromArk == _bufferArkAddress
             ) {
-                bool isMovingToBuffer = rebalanceData[0].toArk ==
+                bool isMovingToBuffer = rebalanceData[i].toArk ==
                     _bufferArkAddress;
                 uint256 amount = rebalanceData[i].amount;
                 if (amount == Constants.MAX_UINT256) {
