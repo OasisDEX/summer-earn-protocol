@@ -316,7 +316,7 @@ export function getOrCreateVaultsHourlySnapshots(
   const hourTimestamp = getHourlyOffsetTimestamp(block.timestamp)
   const currentHour = block.timestamp
     .minus(BigIntConstants.SECONDS_PER_HOUR)
-    .div(BigIntConstants.SECONDS_PER_DAY)
+    .div(BigIntConstants.SECONDS_PER_HOUR)
   const id: string = vault.id.concat('-').concat(currentHour.toString())
 
   const hourlyRateId = getHourlyVaultRateIdAndTimestamp(block, vault.id)
