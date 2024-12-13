@@ -147,6 +147,7 @@ async function deployMorphoVaultArkContract(
     parameters: {
       [moduleName]: {
         strategyVault: userInput.vaultId,
+        urdFactory: config.protocolSpecific.morpho.urdFactory,
         arkParams: {
           name: `MorphoVault-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`,
           details: JSON.stringify({

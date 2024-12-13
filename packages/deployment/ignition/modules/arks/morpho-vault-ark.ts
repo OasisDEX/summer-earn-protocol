@@ -11,9 +11,10 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 export function createMorphoVaultArkModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
     const strategyVault = m.getParameter('strategyVault')
+    const urdFactory = m.getParameter('urdFactory')
     const arkParams = m.getParameter('arkParams')
 
-    const morphoVaultArk = m.contract('MorphoVaultArk', [strategyVault, arkParams])
+    const morphoVaultArk = m.contract('MorphoVaultArk', [strategyVault, urdFactory, arkParams])
 
     return { morphoVaultArk }
   })
