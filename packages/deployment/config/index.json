@@ -65,6 +65,7 @@
       },
       "morpho": {
         "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+        "urdFactory": "0x7276454fc1cf9C408deeed722fd6b5E7A4CA25D8",
         "vaults": {
           "usdc": {
             "Moonwell_Flagship_USDC": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
@@ -325,6 +326,7 @@
       },
       "morpho": {
         "blue": "0x0000000000000000000000000000000000000000",
+        "urdFactory": "0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D",
         "vaults": {
           "usdc": {},
           "dai": {},

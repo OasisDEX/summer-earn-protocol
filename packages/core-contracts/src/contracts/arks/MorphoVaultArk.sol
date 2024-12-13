@@ -4,6 +4,10 @@ pragma solidity 0.8.28;
 import {IUniversalRewardsDistributor} from "../../interfaces/morpho/IUniversalRewardsDistributor.sol";
 import "../Ark.sol";
 import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
+import {IUrdFactory} from "morpho-blue/interfaces/IUrdFactory.sol";
+
+error InvalidUrdAddress();
+error InvalidUrdFactoryAddress();
 
 /**
  * @title MorphoVaultArk
@@ -33,6 +37,9 @@ contract MorphoVaultArk is Ark {
     /// @notice The MetaMorpho vault this Ark interacts with
     IMetaMorpho public immutable metaMorpho;
 
+    /// @notice The URD factory this Ark interacts with
+    IUrdFactory public immutable URD_FACTORY;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -40,12 +47,21 @@ contract MorphoVaultArk is Ark {
     /**
      * @notice Constructor to set up the MorphoVaultArk
      * @param _metaMorpho Address of the MetaMorpho vault
+     * @param _urdFactory Address of the URD factory
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
-    constructor(address _metaMorpho, ArkParams memory _params) Ark(_params) {
+    constructor(
+        address _metaMorpho,
+        address _urdFactory,
+        ArkParams memory _params
+    ) Ark(_params) {
         if (_metaMorpho == address(0)) {
             revert InvalidVaultAddress();
         }
+        if (_urdFactory == address(0)) {
+            revert InvalidUrdFactoryAddress();
+        }
+        URD_FACTORY = IUrdFactory(_urdFactory);
         metaMorpho = IMetaMorpho(_metaMorpho);
     }
 
@@ -115,6 +131,9 @@ contract MorphoVaultArk is Ark {
         rewardTokens = new address[](claimData.rewards.length);
         rewardAmounts = new uint256[](claimData.rewards.length);
         for (uint256 i = 0; i < claimData.rewards.length; i++) {
+            if (!URD_FACTORY.isUrd(claimData.urd[i])) {
+                revert InvalidUrdAddress();
+            }
             /**
              * @dev Claims rewards from the Universal Rewards Distributor
              * @param address(this) The address of the contract claiming the rewards (this MorphoVaultArk)

@@ -11,9 +11,7 @@ import {UtilsLib} from "morpho-blue/libraries/UtilsLib.sol";
 import {IUniversalRewardsDistributor} from "../../interfaces/morpho/IUniversalRewardsDistributor.sol";
 import {MorphoBalancesLib} from "morpho-blue/libraries/periphery/MorphoBalancesLib.sol";
 import {MorphoLib} from "morpho-blue/libraries/periphery/MorphoLib.sol";
-
-error InvalidMorphoAddress();
-error InvalidMarketId();
+import {IUrdFactory} from "morpho-blue/interfaces/IUrdFactory.sol";
 
 /**
  * @title MorphoArk
@@ -27,6 +25,11 @@ contract MorphoArk is Ark {
     using MarketParamsLib for MarketParams;
     using MorphoLib for IMorpho;
     using MorphoBalancesLib for IMorpho;
+
+    error InvalidMorphoAddress();
+    error InvalidMarketId();
+    error InvalidUrdFactoryAddress();
+    error InvalidUrdAddress();
 
     /**
      * @notice Struct to hold data for claiming rewards
@@ -47,6 +50,9 @@ contract MorphoArk is Ark {
     //////////////////////////////////////////////////////////////*/
     /// @notice The Morpho protocol contract
     IMorpho public immutable MORPHO;
+
+    IUrdFactory public immutable URD_FACTORY;
+
     /// @notice The market ID for the Morpho market this Ark interacts with
     Id public marketId;
     /// @notice The market parameters for the Morpho market
@@ -60,11 +66,13 @@ contract MorphoArk is Ark {
      * @notice Constructor for MorphoArk
      * @param _morpho The Morpho protocol address
      * @param _marketId The market ID for the Morpho market
+     * @param _urdFactory The address of the Universal Rewards Distributor factory
      * @param _arkParams ArkParams struct containing initialization parameters
      */
     constructor(
         address _morpho,
         Id _marketId,
+        address _urdFactory,
         ArkParams memory _arkParams
     ) Ark(_arkParams) {
         if (_morpho == address(0)) {
@@ -73,6 +81,10 @@ contract MorphoArk is Ark {
         if (Id.unwrap(_marketId) == 0) {
             revert InvalidMarketId();
         }
+        if (_urdFactory == address(0)) {
+            revert InvalidUrdFactoryAddress();
+        }
+        URD_FACTORY = IUrdFactory(_urdFactory);
         MORPHO = IMorpho(_morpho);
         marketId = _marketId;
         marketParams = MORPHO.idToMarketParams(_marketId);
@@ -153,6 +165,9 @@ contract MorphoArk is Ark {
         rewardTokens = new address[](claimData.rewards.length);
         rewardAmounts = new uint256[](claimData.rewards.length);
         for (uint256 i = 0; i < claimData.rewards.length; i++) {
+            if (!URD_FACTORY.isUrd(claimData.urd[i])) {
+                revert InvalidUrdAddress();
+            }
             /**
              * @dev Claims rewards from the Universal Rewards Distributor
              * @param address(this) The address of the contract claiming the rewards (this MorphoArk)

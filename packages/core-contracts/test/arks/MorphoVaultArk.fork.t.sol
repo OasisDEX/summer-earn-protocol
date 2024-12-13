@@ -21,6 +21,8 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
     address public constant METAMORPHO_ADDRESS =
         0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB;
+    address public constant MORPHO_URD_FACTORY =
+        0x330eefa8a787552DC5cAd3C3cA644844B1E61Ddb;
 
     IMetaMorpho public metaMorpho;
     IERC20 public asset;
@@ -48,7 +50,11 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new MorphoVaultArk(METAMORPHO_ADDRESS, params);
+        ark = new MorphoVaultArk(
+            METAMORPHO_ADDRESS,
+            MORPHO_URD_FACTORY,
+            params
+        );
 
         // Permissioning
         vm.startPrank(governor);
@@ -178,6 +184,6 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Act
         vm.expectRevert(abi.encodeWithSignature("InvalidVaultAddress()"));
-        new MorphoVaultArk(address(0), params);
+        new MorphoVaultArk(address(0), address(0), params);
     }
 }

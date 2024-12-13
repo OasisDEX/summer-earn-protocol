@@ -87,6 +87,8 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         0xda00000035fef4082F78dEF6A8903bee419FbF8E;
     address public constant FLUID_USDC_VAULT_ADDRESS =
         0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33;
+    address public constant MORPHO_URD_FACTORY =
+        0x330eefa8a787552DC5cAd3C3cA644844B1E61Ddb;
 
     Id public constant USDC_MORPHO_MARKET_ID =
         Id.wrap(
@@ -198,10 +200,12 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         usdcMorphoArk = new MorphoArk(
             MORPHO_ADDRESS,
             USDC_MORPHO_MARKET_ID,
+            MORPHO_URD_FACTORY,
             usdcArkParams
         );
         usdcMetaMorphoArk = new MorphoVaultArk(
             USDC_METAMORPHO_ADDRESS,
+            MORPHO_URD_FACTORY,
             usdcArkParams
         );
         usdcGearboxERC4626Ark = new ERC4626Ark(
@@ -221,10 +225,12 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         daiMorphoArk = new MorphoArk(
             MORPHO_ADDRESS,
             DAI_MORPHO_MARKET_ID,
+            MORPHO_URD_FACTORY,
             daiArkParams
         );
         daiMetaMorphoArk = new MorphoVaultArk(
             DAI_METAMORPHO_ADDRESS,
+            MORPHO_URD_FACTORY,
             daiArkParams
         );
         sDAIArk = new ERC4626Ark(SDAI_ADDRESS, daiArkParams);
