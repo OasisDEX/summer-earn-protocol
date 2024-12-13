@@ -6,11 +6,11 @@ import "../Ark.sol";
 import {IMetaMorpho} from "metamorpho/interfaces/IMetaMorpho.sol";
 
 /**
- * @title MetaMorphoArk
+ * @title MorphoVaultArk
  * @notice Ark contract for managing token supply and yield generation through MetaMorpho vaults.
  * @dev Implements strategy for depositing tokens, withdrawing tokens, and claiming rewards from MetaMorpho vaults.
  */
-contract MetaMorphoArk is Ark {
+contract MorphoVaultArk is Ark {
     using SafeERC20 for IERC20;
 
     /**
@@ -38,7 +38,7 @@ contract MetaMorphoArk is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Constructor to set up the MetaMorphoArk
+     * @notice Constructor to set up the MorphoVaultArk
      * @param _metaMorpho Address of the MetaMorpho vault
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
@@ -117,7 +117,7 @@ contract MetaMorphoArk is Ark {
         for (uint256 i = 0; i < claimData.rewards.length; i++) {
             /**
              * @dev Claims rewards from the Universal Rewards Distributor
-             * @param address(this) The address of the contract claiming the rewards (this MetaMorphoArk)
+             * @param address(this) The address of the contract claiming the rewards (this MorphoVaultArk)
              * @param claimData.rewards[i] The address of the reward token to claim
              * @param claimData.claimable[i] The amount of rewards to claim
              * @param claimData.proofs[i] The Merkle proof required to claim the rewards
