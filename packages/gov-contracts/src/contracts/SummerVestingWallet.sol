@@ -142,13 +142,15 @@ contract SummerVestingWallet is
      * @return uint256 The amount of tokens already vested
      * @custom:override Overrides the _vestingSchedule function from VestingWallet
      * @custom:internal-logic
-     * - Checks if the timestamp is before the start of vesting, after the end, or during the vesting period
-     * - Combines time-based and performance-based vesting calculations
+     * - Checks if the timestamp is before the start of vesting
+     * - Combines time-based vesting (capped at timeBasedVestingAmount) and performance-based vesting (only for reached goals)
+     * - Performance goals must be explicitly marked as reached to vest, regardless of time elapsed
      * @custom:effects
      * - Does not modify any state, view function only
      * @custom:security-considerations
      * - Ensure that the totalAllocation parameter accurately reflects the total vesting amount
-     * - The function assumes that start() and duration() are correctly set
+     * - The function assumes that start() is correctly set
+     * - Performance-based tokens never vest unless their goals are explicitly reached
      * @custom:gas-considerations
      * - This function calls two other internal functions, which may impact gas usage
      * - Consider gas costs when frequently querying vested amounts
@@ -159,8 +161,6 @@ contract SummerVestingWallet is
     ) internal view override returns (uint256) {
         if (timestamp < start()) {
             return 0;
-        } else if (timestamp > start() + duration()) {
-            return totalAllocation;
         } else {
             uint256 timeBasedVested = _calculateTimeBasedVesting(timestamp);
             uint256 performanceBasedVested = _calculatePerformanceBasedVesting();
