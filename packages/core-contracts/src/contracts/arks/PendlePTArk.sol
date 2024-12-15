@@ -112,7 +112,7 @@ contract PendlePTArk is BasePendleArk {
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
-        _redeemFleetAssetFromPtPostExpiry(amount, minTokenOut);
+        _redeemMarketAssetFromPtPostExpiry(amount, minTokenOut);
     }
 
     /**
@@ -124,7 +124,7 @@ contract PendlePTArk is BasePendleArk {
      * 2. Redeem SY to underlying token
      * No slippage is applied as the exchange rate is fixed post-expiry
      */
-    function _redeemFleetAssetFromPtPostExpiry(
+    function _redeemMarketAssetFromPtPostExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
     ) internal {
@@ -188,7 +188,7 @@ contract PendlePTArk is BasePendleArk {
      */
     function _redeemAllFleetAssetsFromExpiredMarket() internal override {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        _redeemFleetAssetFromPtPostExpiry(ptBalance, ptBalance);
+        _redeemMarketAssetFromPtPostExpiry(ptBalance, ptBalance);
     }
 
     /*//////////////////////////////////////////////////////////////

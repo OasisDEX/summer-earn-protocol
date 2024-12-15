@@ -336,7 +336,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     function withdrawExpiredMarket() public onlyGovernor {
         if (this.isMarketExpired()) {
             uint256 amount = IERC20(PT).balanceOf(address(this));
-            _redeemFleetAssetFromPtPostExpiry(amount, amount);
+            _redeemMarketAssetFromPtPostExpiry(amount, amount);
             IERC20(marketAsset).transfer(
                 msg.sender,
                 IERC20(marketAsset).balanceOf(address(this))
@@ -641,7 +641,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             return;
         }
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        _redeemFleetAssetFromPtPostExpiry(ptBalance, ptBalance);
+        _redeemMarketAssetFromPtPostExpiry(ptBalance, ptBalance);
         _updateMarketAndTokens(newMarket);
         _depositMarketAssetForPt(ptBalance);
 
@@ -667,7 +667,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @param ptAmount Amount of PT to redeem
      * @param minTokenOut Minimum amount of tokens to receive
      */
-    function _redeemFleetAssetFromPtPostExpiry(
+    function _redeemMarketAssetFromPtPostExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
     ) internal {

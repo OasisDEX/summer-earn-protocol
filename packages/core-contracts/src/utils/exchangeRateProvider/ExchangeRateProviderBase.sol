@@ -128,7 +128,5 @@ abstract contract ExchangeRateProvider {
      * @param price The input price to adjust
      * @return The price after applying the EMA range
      */
-    function _applyEmaRange(
-        uint256 price
-    ) internal view virtual returns (uint256);
+    function _applyRange(uint256 price) internal view virtual returns (uint256);
 }
