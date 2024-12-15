@@ -74,7 +74,7 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
      * @return price The EMA of the exchange rate
      */
     function getExchangeRateEma() public view override returns (uint256 price) {
-        price = curveSwap.ema_price(0);
+        price = curveSwap.price_oracle(0);
         if (_shouldInvertExchangeRate()) {
             price = 1e36 / price;
         }
