@@ -405,4 +405,75 @@ contract SummerVestingTest is SummerTokenTestBase {
         vm.prank(nonGovernance);
         vestingWallet.addNewGoal(10000 ether);
     }
+
+    function test_RecallUnvestedTokens_CantRecallTwice() public {
+        // Create a vesting wallet with team vesting type
+        vestingWalletFactoryA.createVestingWallet(
+            beneficiary,
+            TIME_BASED_AMOUNT,
+            goalAmounts,
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
+        SummerVestingWallet vestingWallet = SummerVestingWallet(
+            payable(vestingWalletAddress)
+        );
+
+        // Warp time and mark some goals as reached (goals 1 and 3)
+        vm.warp(block.timestamp + 365 days);
+        vestingWallet.markGoalReached(1);
+        vestingWallet.markGoalReached(3);
+
+        // Calculate expected unvested amount (goals 2 and 4 are not reached)
+        uint256 expectedUnvestedAmount = goalAmounts[1] + goalAmounts[3];
+
+        // First recall of unvested tokens
+        uint256 initialBalance = aSummerToken.balanceOf(address(this));
+        vestingWallet.recallUnvestedTokens();
+        uint256 firstRecallBalance = aSummerToken.balanceOf(address(this));
+
+        // Verify first recall worked as expected
+        assertEq(
+            firstRecallBalance - initialBalance,
+            expectedUnvestedAmount,
+            "First recall should receive unvested tokens"
+        );
+
+        // Second recall of unvested tokens should return 0
+        vestingWallet.recallUnvestedTokens();
+        uint256 secondRecallBalance = aSummerToken.balanceOf(address(this));
+
+        // Verify that the second recall didn't transfer any tokens
+        assertEq(
+            secondRecallBalance,
+            firstRecallBalance,
+            "Second recall should not transfer any tokens"
+        );
+
+        // Verify that unreached goal amounts were reset to 0
+        assertEq(
+            vestingWallet.goalAmounts(1),
+            0,
+            "Unreached goal 2 should be reset to 0"
+        );
+        assertEq(
+            vestingWallet.goalAmounts(3),
+            0,
+            "Unreached goal 4 should be reset to 0"
+        );
+
+        // Verify that reached goal amounts remain unchanged
+        assertEq(
+            vestingWallet.goalAmounts(0),
+            goalAmounts[0],
+            "Reached goal 1 should remain unchanged"
+        );
+        assertEq(
+            vestingWallet.goalAmounts(2),
+            goalAmounts[2],
+            "Reached goal 3 should remain unchanged"
+        );
+    }
 }

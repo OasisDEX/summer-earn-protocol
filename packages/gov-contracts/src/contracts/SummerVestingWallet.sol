@@ -121,6 +121,13 @@ contract SummerVestingWallet is
             revert OnlyTeamVesting();
         }
         uint256 unvestedPerformanceTokens = _calculateUnvestedPerformanceTokens();
+
+        for (uint256 i = 0; i < goalAmounts.length; i++) {
+            if (!goalsReached[i]) {
+                goalAmounts[i] = 0;
+            }
+        }
+
         IERC20(token).transfer(msg.sender, unvestedPerformanceTokens);
     }
 
