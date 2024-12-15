@@ -26,6 +26,9 @@ contract SummerVestingWallet is
     /// @dev Duration of the cliff period in seconds
     uint256 private constant CLIFF = 180 days;
 
+    /// @dev Duration of the vesting period in seconds
+    uint64 private constant DURATION_SECONDS = 730 days; // 2 years for both vesting types
+
     /// @inheritdoc ISummerVestingWallet
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
@@ -56,7 +59,6 @@ contract SummerVestingWallet is
      * @dev Constructor that sets up the vesting wallet with a specific vesting type
      * @param beneficiaryAddress Address of the beneficiary to whom vested tokens are transferred
      * @param startTimestamp Unix timestamp marking the start of the vesting period
-     * @param durationSeconds Duration of the vesting period in seconds
      * @param vestingType Type of vesting schedule (0 for TeamVesting, 1 for InvestorExTeamVesting)
      * @param guardianAddress Address to be granted the guardian role
      * @param _goalAmounts Array of goal amounts for performance-based vesting
@@ -65,12 +67,11 @@ contract SummerVestingWallet is
         address _token,
         address beneficiaryAddress,
         uint64 startTimestamp,
-        uint64 durationSeconds,
         VestingType vestingType,
         uint256 _timeBasedVestingAmount,
         uint256[] memory _goalAmounts,
         address guardianAddress
-    ) VestingWallet(beneficiaryAddress, startTimestamp, durationSeconds) {
+    ) VestingWallet(beneficiaryAddress, startTimestamp, DURATION_SECONDS) {
         _vestingType = vestingType;
         timeBasedVestingAmount = _timeBasedVestingAmount;
         goalAmounts = _goalAmounts;
