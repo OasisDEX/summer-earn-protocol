@@ -15,12 +15,12 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
     position.inputTokenBalanceNormalizedInUSD = positionDetails.inputTokenBalanceNormalizedUSD
     position.stakedInputTokenBalanceNormalizedInUSD =
       positionDetails.stakedInputTokenBalanceNormalizedUSD
-    if (positionDetails.totalUnderlyingDelta.gt(BigIntConstants.ZERO)) {
+    if (positionDetails.totalInputTokenDelta.gt(BigIntConstants.ZERO)) {
       position.inputTokenDeposits = position.inputTokenDeposits.plus(
-        positionDetails.totalUnderlyingDelta,
+        positionDetails.totalInputTokenDelta,
       )
       position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD.plus(
-        positionDetails.totalUnderlyingDeltaNormalizedUSD,
+        positionDetails.totalInputTokenDeltaNormalizedUSD,
       )
       position.inputTokenWithdrawals = BigIntConstants.ZERO
       position.inputTokenWithdrawalsNormalizedInUSD = BigDecimalConstants.ZERO
@@ -28,11 +28,11 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
       position.inputTokenDeposits = BigIntConstants.ZERO
       position.inputTokenDepositsNormalizedInUSD = BigDecimalConstants.ZERO
       position.inputTokenWithdrawals = position.inputTokenWithdrawals.plus(
-        positionDetails.totalUnderlyingDelta,
+        positionDetails.totalInputTokenDelta,
       )
       position.inputTokenWithdrawalsNormalizedInUSD =
         position.inputTokenWithdrawalsNormalizedInUSD.plus(
-          positionDetails.totalUnderlyingDeltaNormalizedUSD,
+          positionDetails.totalInputTokenDeltaNormalizedUSD,
         )
     }
     position.save()

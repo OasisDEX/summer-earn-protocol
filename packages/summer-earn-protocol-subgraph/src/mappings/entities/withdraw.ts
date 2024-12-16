@@ -1,18 +1,16 @@
-import { BigDecimal } from '@graphprotocol/graph-ts'
+import { ethereum } from '@graphprotocol/graph-ts'
 import { Withdraw } from '../../../generated/schema'
-import { Withdraw as WithdrawEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { PositionDetails } from '../../types'
 
 export function createWithdrawEventEntity(
-  event: WithdrawEvent,
-  normalizedAmountUSD: BigDecimal,
+  event: ethereum.Event,
   positionDetails: PositionDetails,
 ): void {
   const withdraw = new Withdraw(
     `${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`,
   )
-  withdraw.amount = event.params.assets
-  withdraw.amountUSD = normalizedAmountUSD
+  withdraw.amount = positionDetails.inputTokenDelta
+  withdraw.amountUSD = positionDetails.inputTokenDeltaNormalizedUSD
   withdraw.from = positionDetails.account
   withdraw.to = positionDetails.vault
   withdraw.blockNumber = event.block.number

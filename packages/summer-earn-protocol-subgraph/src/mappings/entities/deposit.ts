@@ -1,19 +1,22 @@
-import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
-import { Deposit } from '../../../generated/schema'
-import { Deposit as DepositEvent } from '../../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import { BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Deposit, Staked } from '../../../generated/schema'
 import { PositionDetails } from '../../types'
 
 export function createDepositEventEntity(
-  event: DepositEvent,
-  amount: BigInt,
-  normalizedAmountUSD: BigDecimal,
+  event: ethereum.Event,
   positionDetails: PositionDetails,
 ): void {
-  const deposit = new Deposit(
-    `${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`,
-  )
-  deposit.amount = amount
-  deposit.amountUSD = normalizedAmountUSD
+  let staked = Staked.load(`${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`)
+  let deposit: Deposit | null = null
+  if (staked) {
+    deposit = new Deposit(
+      `${event.transaction.hash.toHexString()}-${event.logIndex.minus(BigInt.fromI32(1)).toString()}`,
+    )
+  } else {
+    deposit = new Deposit(`${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`)
+  }
+  deposit.amount = positionDetails.totalInputTokenDelta
+  deposit.amountUSD = positionDetails.totalInputTokenDeltaNormalizedUSD
   deposit.from = positionDetails.account
   deposit.to = positionDetails.vault
   deposit.blockNumber = event.block.number

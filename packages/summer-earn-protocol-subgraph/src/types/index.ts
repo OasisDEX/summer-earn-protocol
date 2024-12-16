@@ -16,9 +16,15 @@ export class PositionDetails {
   stakedInputTokenBalance: BigInt
   stakedInputTokenBalanceNormalized: BigDecimal
   stakedInputTokenBalanceNormalizedUSD: BigDecimal
-  totalUnderlyingDelta: BigInt
-  totalUnderlyingDeltaNormalized: BigDecimal
-  totalUnderlyingDeltaNormalizedUSD: BigDecimal
+  inputTokenDelta: BigInt
+  inputTokenDeltaNormalized: BigDecimal
+  inputTokenDeltaNormalizedUSD: BigDecimal
+  stakedInputTokenDelta: BigInt
+  stakedInputTokenDeltaNormalized: BigDecimal
+  stakedInputTokenDeltaNormalizedUSD: BigDecimal
+  totalInputTokenDelta: BigInt
+  totalInputTokenDeltaNormalized: BigDecimal
+  totalInputTokenDeltaNormalizedUSD: BigDecimal
   vault: string
   account: string
   inputToken: Token
@@ -33,9 +39,15 @@ export class PositionDetails {
     stakedInputTokenBalance: BigInt,
     stakedInputTokenBalanceNormalized: BigDecimal,
     stakedInputTokenBalanceNormalizedUSD: BigDecimal,
-    totalUnderlyingDelta: BigInt,
-    totalUnderlyingDeltaNormalized: BigDecimal,
-    totalUnderlyingDeltaNormalizedUSD: BigDecimal,
+    inputTokenDelta: BigInt,
+    inputTokenDeltaNormalized: BigDecimal,
+    inputTokenDeltaNormalizedUSD: BigDecimal,
+    stakedInputTokenDelta: BigInt,
+    stakedInputTokenDeltaNormalized: BigDecimal,
+    stakedInputTokenDeltaNormalizedUSD: BigDecimal,
+    totalInputTokenDelta: BigInt,
+    totalInputTokenDeltaNormalized: BigDecimal,
+    totalInputTokenDeltaNormalizedUSD: BigDecimal,
     vault: string,
     account: string,
     inputToken: Token,
@@ -50,9 +62,15 @@ export class PositionDetails {
     this.stakedInputTokenBalance = stakedInputTokenBalance
     this.stakedInputTokenBalanceNormalized = stakedInputTokenBalanceNormalized
     this.stakedInputTokenBalanceNormalizedUSD = stakedInputTokenBalanceNormalizedUSD
-    this.totalUnderlyingDelta = totalUnderlyingDelta
-    this.totalUnderlyingDeltaNormalized = totalUnderlyingDeltaNormalized
-    this.totalUnderlyingDeltaNormalizedUSD = totalUnderlyingDeltaNormalizedUSD
+    this.inputTokenDelta = inputTokenDelta
+    this.inputTokenDeltaNormalized = inputTokenDeltaNormalized
+    this.inputTokenDeltaNormalizedUSD = inputTokenDeltaNormalizedUSD
+    this.stakedInputTokenDelta = stakedInputTokenDelta
+    this.stakedInputTokenDeltaNormalized = stakedInputTokenDeltaNormalized
+    this.stakedInputTokenDeltaNormalizedUSD = stakedInputTokenDeltaNormalizedUSD
+    this.totalInputTokenDelta = totalInputTokenDelta
+    this.totalInputTokenDeltaNormalized = totalInputTokenDeltaNormalized
+    this.totalInputTokenDeltaNormalizedUSD = totalInputTokenDeltaNormalizedUSD
     this.vault = vault
     this.account = account
     this.inputToken = inputToken

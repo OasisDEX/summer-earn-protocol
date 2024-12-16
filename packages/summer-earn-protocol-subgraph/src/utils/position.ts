@@ -26,53 +26,75 @@ export function getPositionDetails(
     rewardsManagerContract.try_balanceOf(Address.fromString(account.id)),
     constants.BigIntConstants.ZERO,
   )
-  const underlying = utils.readValue<BigInt>(
+  const inputToken = utils.readValue<BigInt>(
     vaultContract.try_convertToAssets(shares),
     constants.BigIntConstants.ZERO,
   )
-  const stakedUnderlying = utils.readValue<BigInt>(
+  const stakedInputToken = utils.readValue<BigInt>(
     vaultContract.try_convertToAssets(stakedShares),
     constants.BigIntConstants.ZERO,
   )
-  const underlyingNormalized = formatAmount(
-    underlying,
+  const inputTokenNormalized = formatAmount(
+    inputToken,
     BigInt.fromI32(vaultDetails.inputToken.decimals),
   )
-  const stakedUnderlyingNormalized = formatAmount(
-    stakedUnderlying,
+  const stakedInputTokenNormalized = formatAmount(
+    stakedInputToken,
     BigInt.fromI32(vaultDetails.inputToken.decimals),
   )
+
+  // this shoul be accurate since all positions are updated on hourly basis as well as deposits withdrawals
   const priceInUSD = vaultDetails.inputTokenPriceUSD
-  const underlyingNormalizedUSD = underlyingNormalized.times(priceInUSD)
-  const stakedUnderlyingNormalizedUSD = stakedUnderlyingNormalized.times(priceInUSD)
+  const inputTokenNormalizedUSD = inputTokenNormalized.times(priceInUSD)
+  const stakedInputTokenNormalizedUSD = stakedInputTokenNormalized.times(priceInUSD)
   const position = getOrCreatePosition(
     utils.formatPositionId(account.id, vaultDetails.vaultId),
     block,
   )
-  const totalUnderlyingBeforeUpdate = position.inputTokenBalance.plus(
+  const totalInputTokenBeforeUpdate = position.inputTokenBalance.plus(
     position.stakedInputTokenBalance,
   )
-  const totalUnderlyingAfterUpdate = underlying.plus(stakedUnderlying)
-  const totalUnderlyingDelta = totalUnderlyingAfterUpdate.minus(totalUnderlyingBeforeUpdate)
-  const totalUnderlyingDeltaNormalized = formatAmount(
-    totalUnderlyingDelta,
+  const totalInputTokenAfterUpdate = inputToken.plus(stakedInputToken)
+  const totalInputTokenDelta = totalInputTokenAfterUpdate.minus(totalInputTokenBeforeUpdate)
+  const totalInputTokenDeltaNormalized = formatAmount(
+    totalInputTokenDelta,
     BigInt.fromI32(vaultDetails.inputToken.decimals),
   )
-  const totalUnderlyingDeltaNormalizedUSD = totalUnderlyingDeltaNormalized.times(priceInUSD)
+  const totalInputTokenDeltaNormalizedUSD = totalInputTokenDeltaNormalized.times(priceInUSD)
+
+  const stakedInputTokenDelta = stakedInputToken.minus(inputToken)
+  const stakedInputTokenDeltaNormalized = formatAmount(
+    stakedInputTokenDelta,
+    BigInt.fromI32(vaultDetails.inputToken.decimals),
+  )
+  const stakedInputTokenDeltaNormalizedUSD = stakedInputTokenDeltaNormalized.times(priceInUSD)
+
+  const inputTokenDelta = inputToken.minus(position.inputTokenBalance)
+  const inputTokenDeltaNormalized = formatAmount(
+    inputTokenDelta,
+    BigInt.fromI32(vaultDetails.inputToken.decimals),
+  )
+  const inputTokenDeltaNormalizedUSD = inputTokenDeltaNormalized.times(priceInUSD)
 
   return new PositionDetails(
     utils.formatPositionId(account.id, vaultDetails.vaultId),
     shares,
     stakedShares,
-    underlying,
-    underlyingNormalized,
-    underlyingNormalizedUSD,
-    stakedUnderlying,
-    stakedUnderlyingNormalized,
-    stakedUnderlyingNormalizedUSD,
-    totalUnderlyingDelta,
-    totalUnderlyingDeltaNormalized,
-    totalUnderlyingDeltaNormalizedUSD,
+    inputToken,
+    inputTokenNormalized,
+    inputTokenNormalizedUSD,
+    stakedInputToken,
+    stakedInputTokenNormalized,
+    stakedInputTokenNormalizedUSD,
+    inputTokenDelta,
+    inputTokenDeltaNormalized,
+    inputTokenDeltaNormalizedUSD,
+    stakedInputTokenDelta,
+    stakedInputTokenDeltaNormalized,
+    stakedInputTokenDeltaNormalizedUSD,
+    totalInputTokenDelta,
+    totalInputTokenDeltaNormalized,
+    totalInputTokenDeltaNormalizedUSD,
     vaultDetails.vaultId,
     account.id,
     vaultDetails.inputToken,
