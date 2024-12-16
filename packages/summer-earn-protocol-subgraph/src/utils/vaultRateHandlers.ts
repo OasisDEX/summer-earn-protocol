@@ -7,21 +7,21 @@ class DailyVaultRateResult {
   constructor(
     public dailyRateId: string,
     public dayTimestamp: BigInt,
-  ) { }
+  ) {}
 }
 
 class HourlyVaultRateResult {
   constructor(
     public hourlyRateId: string,
     public hourTimestamp: BigInt,
-  ) { }
+  ) {}
 }
 
 class WeeklyVaultRateResult {
   constructor(
     public weeklyRateId: string,
     public weekTimestamp: BigInt,
-  ) { }
+  ) {}
 }
 
 export function handleVaultRate(block: ethereum.Block, vaultId: string): void {
