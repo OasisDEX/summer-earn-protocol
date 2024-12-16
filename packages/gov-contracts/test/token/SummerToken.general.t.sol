@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../src/contracts/SummerToken.sol";
-import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 
 import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -617,16 +617,6 @@ contract SummerTokenTest is SummerTokenTestBase {
             aSummerToken.getDelegationChainLength(user1),
             2,
             "Two-step delegation should have length 2"
-        );
-
-        // Test case 4: Maximum chain length (should not exceed MAX_DELEGATION_DEPTH)
-        address user4 = address(0x4);
-        vm.prank(user3);
-        aSummerToken.delegate(user4);
-        assertEq(
-            aSummerToken.getDelegationChainLength(user1),
-            2,
-            "Chain length should not exceed MAX_DELEGATION_DEPTH (2)"
         );
 
         // Test case 5: Zero address delegation

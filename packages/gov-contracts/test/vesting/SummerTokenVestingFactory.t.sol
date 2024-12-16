@@ -2,9 +2,9 @@
 pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {SummerVestingWalletFactory} from "../src/contracts/SummerVestingWalletFactory.sol";
-import {ISummerVestingWalletFactory} from "../src/interfaces/ISummerVestingWalletFactory.sol";
-import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
+import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
+import {ISummerVestingWalletFactory} from "../../src/interfaces/ISummerVestingWalletFactory.sol";
+import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 

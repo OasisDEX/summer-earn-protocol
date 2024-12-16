@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {VotingDecayMath} from "./VotingDecayMath.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 /*
  * @title VotingDecayLibrary
@@ -10,6 +11,7 @@ import {VotingDecayMath} from "./VotingDecayMath.sol";
  */
 library VotingDecayLibrary {
     using VotingDecayMath for uint256;
+    using Checkpoints for Checkpoints.Trace224;
 
     /* @notice Constant representing 1 in the system's fixed-point arithmetic (18 decimal places) */
     uint256 public constant WAD = 1e18;
@@ -39,6 +41,7 @@ library VotingDecayLibrary {
         uint256 decayRatePerSecond;
         DecayFunction decayFunction;
         uint40 originTimestamp;
+        mapping(address => Checkpoints.Trace224) decayFactorCheckpoints;
     }
 
     /**
@@ -149,7 +152,7 @@ library VotingDecayLibrary {
     }
 
     /**
-     * @notice Updates the decay factor for an account, considering the decay-free window
+     * @notice Updates the decay factor for an account and creates a checkpoint
      * @param self The DecayState storage
      * @param accountAddress The address of the account to update
      * @param getDelegateTo Function to retrieve delegation information
@@ -163,17 +166,26 @@ library VotingDecayLibrary {
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
 
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
+        uint256 newDecayFactor = WAD; // Default to WAD
+
         if (decayPeriod > self.decayFreeWindow) {
-            uint256 newDecayFactor = getDecayFactor(
+            newDecayFactor = getDecayFactor(
                 self,
                 accountAddress,
                 getDelegateTo
             );
-            account.decayFactor = newDecayFactor;
         }
+
+        // Create checkpoint with current timestamp and new decay factor
+        self.decayFactorCheckpoints[accountAddress].push(
+            uint32(block.timestamp),
+            uint224(newDecayFactor)
+        );
+
+        account.decayFactor = newDecayFactor;
         account.lastUpdateTimestamp = uint40(block.timestamp);
 
-        emit DecayUpdated(accountAddress, account.decayFactor);
+        emit DecayUpdated(accountAddress, newDecayFactor);
     }
 
     /**
@@ -230,6 +242,7 @@ library VotingDecayLibrary {
             accountAddress,
             getDelegateTo
         );
+
         return applyDecay(originalValue, decayFactor);
     }
 
@@ -456,10 +469,6 @@ library VotingDecayLibrary {
             return 0; // Return 0 for zero address
         }
 
-        if (depth >= MAX_DELEGATION_DEPTH) {
-            return depth;
-        }
-
         address delegateTo = getDelegateTo(accountAddress);
 
         // Self-delegation or no delegation
@@ -475,5 +484,54 @@ library VotingDecayLibrary {
                 depth + 1,
                 getDelegateTo
             );
+    }
+
+    /**
+     * @notice Gets the historical decay factor for an account at a specific timestamp
+     * @param self The DecayState storage
+     * @param accountAddress The address to check
+     * @param timestamp The timestamp to check at
+     * @return The decay factor at that timestamp
+     */
+    function getHistoricalDecayFactor(
+        DecayState storage self,
+        address accountAddress,
+        uint256 timestamp
+    ) internal view returns (uint256) {
+        uint224 checkpointValue = self
+            .decayFactorCheckpoints[accountAddress]
+            .upperLookup(uint32(timestamp));
+
+        // No checkpoint found - calculate from origin
+        if (checkpointValue == 0) {
+            uint256 decayPeriod = timestamp - self.originTimestamp;
+
+            if (decayPeriod <= self.decayFreeWindow) {
+                return WAD;
+            }
+
+            // Apply decay from origin with WAD as base
+            if (self.decayFunction == DecayFunction.Linear) {
+                return
+                    VotingDecayMath.linearDecay(
+                        WAD,
+                        self.decayRatePerSecond,
+                        decayPeriod - self.decayFreeWindow
+                    );
+            } else if (self.decayFunction == DecayFunction.Exponential) {
+                return
+                    VotingDecayMath.exponentialDecay(
+                        WAD,
+                        self.decayRatePerSecond,
+                        decayPeriod - self.decayFreeWindow
+                    );
+            } else {
+                revert InvalidDecayType();
+            }
+        }
+        // Checkpoint found - use it as base
+        else {
+            return uint256(checkpointValue);
+        }
     }
 }

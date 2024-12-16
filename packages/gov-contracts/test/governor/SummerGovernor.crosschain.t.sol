@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Origin, SummerGovernor} from "../src/contracts/SummerGovernor.sol";
-import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
-import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
+import {Origin, SummerGovernor} from "../../src/contracts/SummerGovernor.sol";
+import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
+import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {IOAppSetPeer} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";

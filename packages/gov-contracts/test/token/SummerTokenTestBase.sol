@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SupplyControlSummerToken} from "./SupplyControlSummerToken.sol";
-import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
+import {SupplyControlSummerToken} from "../utils/SupplyControlSummerToken.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 
 import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -16,9 +16,9 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {MockSummerGovernor} from "./MockSummerGovernor.sol";
-import {SummerVestingWalletFactory} from "../src/contracts/SummerVestingWalletFactory.sol";
-import {SummerTimelockController} from "../src/contracts/SummerTimelockController.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
+import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
+import {SummerTimelockController} from "../../src/contracts/SummerTimelockController.sol";
 
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;

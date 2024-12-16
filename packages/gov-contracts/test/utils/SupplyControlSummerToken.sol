@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../src/contracts/SummerToken.sol";
-import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 
 contract SupplyControlSummerToken is SummerToken {
     constructor(TokenParams memory params) SummerToken(params) {}

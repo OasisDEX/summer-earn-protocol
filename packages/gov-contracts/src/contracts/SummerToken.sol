@@ -23,6 +23,7 @@ import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 import {DecayController} from "./DecayController.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 /**
  * @title SummerToken
@@ -88,7 +89,7 @@ contract SummerToken is
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
+                            VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerToken
@@ -97,9 +98,25 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
+    function getDecayRatePerSecond() public view returns (uint256) {
+        return decayState.decayRatePerSecond;
+    }
+
+    /// @inheritdoc ISummerToken
     function getDecayFactor(address account) external view returns (uint256) {
         return decayState.getDecayFactor(account, _getDelegateTo);
     }
+
+    /// @inheritdoc ISummerToken
+    function getDelegationChainLength(
+        address account
+    ) external view returns (uint256) {
+        return decayState.getDelegationChainLength(account, _getDelegateTo);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerToken
     function setDecayRatePerSecond(
@@ -147,13 +164,6 @@ contract SummerToken is
     function removeFromWhitelist(address account) external onlyGovernor {
         whitelistedAddresses[account] = false;
         emit AddressRemovedFromWhitelist(account);
-    }
-
-    /// @inheritdoc ISummerToken
-    function getDelegationChainLength(
-        address account
-    ) external view returns (uint256) {
-        return decayState.getDelegationChainLength(account, _getDelegateTo);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -225,12 +235,13 @@ contract SummerToken is
         address account,
         uint256 timepoint
     ) public view override(IVotes, Votes) returns (uint256) {
-        return
-            decayState.getVotingPower(
-                account,
-                super.getPastVotes(account, timepoint),
-                _getDelegateTo
-            );
+        uint256 pastVotingUnits = super.getPastVotes(account, timepoint);
+        uint256 historicalDecayFactor = decayState.getHistoricalDecayFactor(
+            account,
+            timepoint
+        );
+
+        return (pastVotingUnits * historicalDecayFactor) / Constants.WAD;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -371,15 +382,19 @@ contract SummerToken is
         address to,
         uint256 amount
     ) internal override {
-        if (_handleRewardsManagerVotingTransfer(from, to)) {
-            return;
-        }
+        bool isRewardsManagerTransfer = _handleRewardsManagerVotingTransfer(
+            from,
+            to
+        );
+        bool isVestingWalletTransfer = _handleVestingWalletVotingTransfer(
+            from,
+            to,
+            amount
+        );
 
-        if (_handleVestingWalletVotingTransfer(from, to, amount)) {
-            return;
+        if (!isRewardsManagerTransfer && !isVestingWalletTransfer) {
+            super._transferVotingUnits(from, to, amount);
         }
-
-        super._transferVotingUnits(from, to, amount);
     }
 
     /**

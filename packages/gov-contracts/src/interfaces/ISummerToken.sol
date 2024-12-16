@@ -100,6 +100,12 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
     function getDecayFreeWindow() external view returns (uint40);
 
     /**
+     * @notice Returns the decay rate per second
+     * @return The decay rate per second
+     */
+    function getDecayRatePerSecond() external view returns (uint256);
+
+    /**
      * @notice Returns the decay factor for an account
      * @param account The address to get the decay factor for
      * @return The decay factor for the account
