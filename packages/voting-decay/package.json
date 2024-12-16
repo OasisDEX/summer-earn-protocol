@@ -27,7 +27,7 @@
     "prettier:check": "prettier --check \"**/*.{json,md,yml}\" --ignore-path \".prettierignore\"",
     "prettier:write": "prettier --write \"**/*.{json,md,yml}\" --ignore-path \".prettierignore\"",
     "test": "forge test",
-    "coverage": "forge coverage --no-match-coverage 'test/' --ir-minimum",
+    "coverage": "forge coverage --no-match-coverage 'test/' --ir-minimum --report debug",
     "coverage:lcov": "forge coverage --no-match-coverage 'test/' --report lcov --ir-minimum",
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info"
   }

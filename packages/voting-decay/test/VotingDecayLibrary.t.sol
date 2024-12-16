@@ -4,6 +4,9 @@ pragma solidity 0.8.28;
 import {console, Test} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "../src/VotingDecayLibrary.sol";
 
+using VotingDecayLibrary for VotingDecayLibrary.DecayState;
+using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
+
 contract VotingDecayTest is Test {
     using VotingDecayLibrary for VotingDecayLibrary.DecayState;
 
@@ -454,6 +457,7 @@ contract VotingDecayTest is Test {
         // Reduce the time period to something more reasonable, like 10 years
         vm.warp(block.timestamp + (10 * 365 days));
         uint256 lowDecay = state.getDecayFactor(user, _getDelegateTo);
+        assertLt(lowDecay, VotingDecayLibrary.WAD);
 
         // Reset and check recovery
         state.resetDecay(user);
@@ -463,5 +467,121 @@ contract VotingDecayTest is Test {
             VotingDecayLibrary.WAD,
             "Should fully recover after reset"
         );
+    }
+
+    function test_GetDecayInfo() public {
+        // Setup initial state
+        state.setDecayRatePerSecond(0.1e18);
+        state.setDecayFreeWindow(1 days);
+
+        // Get decay info
+        VotingDecayLibrary.DecayInfo memory info = state.getDecayInfo(user);
+
+        assertEq(
+            info.lastUpdateTimestamp,
+            0,
+            "Timestamp should be 0 for uninitialized account"
+        );
+        assertEq(
+            info.decayFactor,
+            0,
+            "Decay factor should be 0 for uninitialized account"
+        );
+
+        // Now initialize the account
+        state.resetDecay(user);
+
+        info = state.getDecayInfo(user);
+
+        // Verify returned values
+        assertEq(info.lastUpdateTimestamp, 1);
+        assertEq(info.decayFactor, VotingDecayLibrary.WAD); // Should be WAD for uninitialized account
+    }
+
+    function test_DelegationChainWithZeroAddress() public view {
+        function(address)
+            pure
+            returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
+
+        uint256 chainLength = state.getDelegationChainLength(
+            user,
+            mockGetDelegateTo
+        );
+        assertEq(chainLength, 0);
+    }
+
+    function test_ComplexDelegationScenario() public view {
+        address user1 = address(1);
+
+        // Mock delegation chain
+        function(address)
+            view
+            returns (address) mockGetDelegateTo = _mockComplexDelegation;
+
+        // Test chain length
+        uint256 chainLength = state.getDelegationChainLength(
+            user1,
+            mockGetDelegateTo
+        );
+        assertEq(chainLength, 2, "Chain length should be 2");
+
+        // Test decay factor
+        uint256 decayFactor = state.getDecayFactor(user1, mockGetDelegateTo);
+        assertGt(decayFactor, 0, "Decay factor should be greater than 0");
+    }
+
+    function _mockComplexDelegation(
+        address account
+    ) internal pure returns (address) {
+        if (account == address(1)) return address(2);
+        if (account == address(2)) return address(3);
+        if (account == address(3)) return address(0); // End of chain
+        return account;
+    }
+
+    function test_DelegationToZeroAddress() public {
+        state.resetDecay(address(0));
+
+        // Create a helper function that always returns address(0)
+        function(address)
+            view
+            returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
+
+        uint256 decayFactor = state.getDecayFactor(
+            address(0),
+            mockGetDelegateTo
+        );
+        assertEq(decayFactor, 0, "Decay factor should be 0 for zero address");
+    }
+
+    function _mockZeroAddressDelegate(address) internal pure returns (address) {
+        return address(0);
+    }
+
+    function test_DelegationChainWithMaxDepthAndZeroAddress() public {
+        address user1 = address(1);
+
+        // Create a helper function for the delegation chain
+        function(address)
+            view
+            returns (address) mockGetDelegateTo = _mockChainToZeroDelegate;
+
+        uint256 chainLength = state.getDelegationChainLength(
+            user1,
+            mockGetDelegateTo
+        );
+        assertEq(
+            chainLength,
+            1,
+            "Chain length should be 1 when ending in zero address"
+        );
+    }
+
+    function _mockChainToZeroDelegate(
+        address account
+    ) internal pure returns (address) {
+        if (account == address(1)) return address(2);
+        if (account == address(2)) return address(0);
+        return account;
     }
 }
