@@ -558,7 +558,7 @@ contract VotingDecayTest is Test {
         return address(0);
     }
 
-    function test_DelegationChainWithMaxDepthAndZeroAddress() public {
+    function test_DelegationChainWithMaxDepthAndZeroAddress() public view {
         address user1 = address(1);
 
         // Create a helper function for the delegation chain

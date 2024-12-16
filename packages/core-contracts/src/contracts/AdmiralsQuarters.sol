@@ -266,16 +266,11 @@ contract AdmiralsQuarters is
         uint256 shares
     ) external onlyMulticall nonReentrant {
         IERC4626 vaultToken = IERC4626(vault);
-        IERC20 underlying = IERC20(vaultToken.asset());
 
         // Get actual shares if 0 was passed
         shares = shares == 0 ? vaultToken.balanceOf(_msgSender()) : shares;
 
-        uint256 underlyingAmount = vaultToken.redeem(
-            shares,
-            address(this),
-            _msgSender()
-        );
+        vaultToken.redeem(shares, address(this), _msgSender());
 
         emit ERC4626PositionImported(_msgSender(), vault, shares);
     }
@@ -322,15 +317,15 @@ contract AdmiralsQuarters is
         }
     }
 
-    function _validateToken(IERC20 token) internal view {
+    function _validateToken(IERC20 token) internal pure {
         if (address(token) == address(0)) revert InvalidToken();
     }
 
-    function _validateAmount(uint256 amount) internal view {
+    function _validateAmount(uint256 amount) internal pure {
         if (amount == 0) revert ZeroAmount();
     }
 
-    function _validateRewardsManager(address rewardsManager) internal view {
+    function _validateRewardsManager(address rewardsManager) internal pure {
         if (rewardsManager == address(0)) revert InvalidRewardsManager();
     }
     /// @inheritdoc IAdmiralsQuarters
