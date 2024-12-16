@@ -76,6 +76,7 @@ contract SummerVestingWallet is
         timeBasedVestingAmount = _timeBasedVestingAmount;
         goalAmounts = _goalAmounts;
         goalsReached = new bool[](_goalAmounts.length);
+        if (_token == address(0)) revert InvalidToken();
         token = _token;
     }
 

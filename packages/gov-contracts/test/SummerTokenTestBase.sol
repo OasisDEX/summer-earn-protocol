@@ -117,7 +117,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 symbol: "SUMMERA",
                 lzEndpoint: lzEndpointA,
                 // Changed in inheriting test suites
-                owner: owner,
+                initialOwner: owner,
                 accessManager: address(accessManagerA),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
@@ -133,7 +133,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 symbol: "SUMMERB",
                 lzEndpoint: lzEndpointB,
                 // Changed in inheriting test suites
-                owner: owner,
+                initialOwner: owner,
                 accessManager: address(accessManagerB),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,

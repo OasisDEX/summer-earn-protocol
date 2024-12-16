@@ -92,4 +92,7 @@ interface ISummerVestingWallet {
 
     /// @dev Thrown when the goal array length is invalid
     error InvalidGoalArrayLength();
+
+    /// @dev Thrown when the token is invalid
+    error InvalidToken();
 }

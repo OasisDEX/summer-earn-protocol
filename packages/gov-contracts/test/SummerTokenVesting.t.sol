@@ -429,4 +429,22 @@ contract SummerVestingTest is SummerTokenTestBase {
         vm.prank(nonFoundation);
         vestingWallet.addNewGoal(10000 ether);
     }
+
+    function test_ZeroAddressToken() public {
+        // Deploy a new SummerVestingWallet directly with zero address token
+        uint64 startTimestamp = uint64(block.timestamp);
+        uint64 durationSeconds = uint64(2 * 365 days); // 2 years
+
+        vm.expectRevert(ISummerVestingWallet.InvalidToken.selector);
+        new SummerVestingWallet(
+            address(0), // zero address token
+            beneficiary,
+            startTimestamp,
+            durationSeconds,
+            ISummerVestingWallet.VestingType.TeamVesting,
+            TIME_BASED_AMOUNT,
+            goalAmounts,
+            address(accessManagerA)
+        );
+    }
 }

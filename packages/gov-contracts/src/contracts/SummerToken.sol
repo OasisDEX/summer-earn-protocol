@@ -59,7 +59,7 @@ contract SummerToken is
     constructor(
         TokenParams memory params
     )
-        OFT(params.name, params.symbol, params.lzEndpoint, params.owner)
+        OFT(params.name, params.symbol, params.lzEndpoint, params.initialOwner)
         ERC20Permit(params.name)
         ERC20Capped(params.maxSupply)
         ProtocolAccessManaged(params.accessManager)
