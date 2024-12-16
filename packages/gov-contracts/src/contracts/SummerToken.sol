@@ -64,7 +64,7 @@ contract SummerToken is
         ERC20Capped(params.maxSupply)
         ProtocolAccessManaged(params.accessManager)
         DecayController(address(this))
-        Ownable(params.owner)
+        Ownable(params.initialOwner)
     {
         decayState.initialize(
             params.initialDecayFreeWindow,
@@ -84,7 +84,7 @@ contract SummerToken is
             address(this),
             params.accessManager
         );
-        _mint(params.owner, params.initialSupply);
+        _mint(params.initialOwner, params.initialSupply);
     }
 
     /*//////////////////////////////////////////////////////////////

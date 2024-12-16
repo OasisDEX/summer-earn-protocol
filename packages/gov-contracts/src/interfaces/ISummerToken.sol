@@ -39,7 +39,7 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
         string symbol;
         address lzEndpoint;
         // Update from deployer address after deployment
-        address owner;
+        address initialOwner;
         address accessManager;
         uint40 initialDecayFreeWindow;
         uint256 initialDecayRate;
