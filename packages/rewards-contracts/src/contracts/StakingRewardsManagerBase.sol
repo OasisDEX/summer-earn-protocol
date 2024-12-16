@@ -75,9 +75,9 @@ abstract contract StakingRewardsManagerBase is
 
     /**
      * @notice Initializes the StakingRewards contract
-     * @param _accessManager The address of the access manager
+     * @param accessManager The address of the access manager
      */
-    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
+    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                                 VIEWS

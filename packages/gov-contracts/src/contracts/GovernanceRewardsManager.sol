@@ -69,12 +69,12 @@ contract GovernanceRewardsManager is
     /**
      * @notice Initializes the contract with the protocol access manager
      * @param _stakingToken Address of the staking token
-     * @param _accessManager Address of the ProtocolAccessManager contract
+     * @param accessManager Address of the ProtocolAccessManager contract
      */
     constructor(
         address _stakingToken,
-        address _accessManager
-    ) StakingRewardsManagerBase(_accessManager) DecayController(_stakingToken) {
+        address accessManager
+    ) StakingRewardsManagerBase(accessManager) DecayController(_stakingToken) {
         stakingToken = IERC20(_stakingToken);
         wrappedStakingToken = new WrappedStakingToken(stakingToken);
         _setRewardsManager(address(this));
