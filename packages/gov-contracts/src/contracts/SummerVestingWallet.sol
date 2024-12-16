@@ -16,6 +16,8 @@ contract SummerVestingWallet is
     VestingWallet,
     ProtocolAccessManaged
 {
+    using SafeERC20 for IERC20;
+
     //////////////////////////////////////////////
     ///                CONSTANTS               ///
     //////////////////////////////////////////////
@@ -119,7 +121,7 @@ contract SummerVestingWallet is
             revert OnlyTeamVesting();
         }
         uint256 unvestedPerformanceTokens = _calculateUnvestedPerformanceTokens();
-        IERC20(token).transfer(msg.sender, unvestedPerformanceTokens);
+        IERC20(token).safeTransfer(msg.sender, unvestedPerformanceTokens);
     }
 
     //////////////////////////////////////////////

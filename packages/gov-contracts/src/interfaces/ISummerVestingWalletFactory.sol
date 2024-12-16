@@ -8,7 +8,6 @@ interface ISummerVestingWalletFactory {
     error ZeroTokenAddress();
     error InsufficientAllowance(uint256 required, uint256 actual);
     error InsufficientBalance(uint256 required, uint256 actual);
-    error TokenTransferFailed();
     error TransferAmountMismatch(uint256 expected, uint256 actual);
     error VestingWalletAlreadyExists(address beneficiary);
 

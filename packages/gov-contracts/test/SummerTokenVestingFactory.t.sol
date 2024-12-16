@@ -175,36 +175,6 @@ contract SummerVestingWalletFactoryTest is Test {
         vm.stopPrank();
     }
 
-    function test_RevertIf_TransferFails() public {
-        // Deploy factory with failing token
-        MockFailingERC20 failingToken = new MockFailingERC20();
-        SummerVestingWalletFactory failingFactory = new SummerVestingWalletFactory(
-                address(failingToken),
-                address(accessManager)
-            );
-
-        uint256 timeBasedAmount = 100 ether;
-        uint256[] memory goalAmounts = new uint256[](0);
-        ISummerVestingWallet.VestingType vestingType = ISummerVestingWallet
-            .VestingType
-            .TeamVesting;
-
-        failingToken.mint(foundation, 200 ether);
-        vm.startPrank(foundation);
-        failingToken.approve(address(failingFactory), 200 ether);
-
-        vm.expectRevert(
-            ISummerVestingWalletFactory.TokenTransferFailed.selector
-        );
-        failingFactory.createVestingWallet(
-            beneficiary,
-            timeBasedAmount,
-            goalAmounts,
-            vestingType
-        );
-        vm.stopPrank();
-    }
-
     function test_RevertIf_IncorrectTransferAmount() public {
         // Deploy factory with incorrect balance token
         MockIncorrectBalanceERC20 incorrectToken = new MockIncorrectBalanceERC20();

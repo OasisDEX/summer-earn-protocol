@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISummerVestingWalletFactory} from "../interfaces/ISummerVestingWalletFactory.sol";
 import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
@@ -15,6 +16,8 @@ contract SummerVestingWalletFactory is
     ISummerVestingWalletFactory,
     ProtocolAccessManaged
 {
+    using SafeERC20 for IERC20;
+
     /** @notice The ERC20 token that will be vested */
     address public immutable token;
 
@@ -87,12 +90,11 @@ contract SummerVestingWalletFactory is
         vestingWalletOwners[newVestingWallet] = beneficiary;
 
         uint256 preBalance = tokenContract.balanceOf(newVestingWallet);
-        bool success = tokenContract.transferFrom(
+        tokenContract.safeTransferFrom(
             msg.sender,
             newVestingWallet,
             totalAmount
         );
-        if (!success) revert TokenTransferFailed();
 
         uint256 postBalance = tokenContract.balanceOf(newVestingWallet);
         if (postBalance != preBalance + totalAmount) {
