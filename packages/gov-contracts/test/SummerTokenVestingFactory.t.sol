@@ -44,6 +44,8 @@ contract SummerVestingWalletFactoryTest is Test {
         );
     }
 
+    function test() public {}
+
     function test_RevertIf_ZeroTokenAddress() public {
         vm.expectRevert(ISummerVestingWalletFactory.ZeroTokenAddress.selector);
         new SummerVestingWalletFactory(address(0), address(accessManager));

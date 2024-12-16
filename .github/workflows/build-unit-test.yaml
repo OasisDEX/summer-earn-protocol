@@ -56,28 +56,37 @@ jobs:
         env:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+
       - name: Lint
         run: pnpm lint
 
       - name: Format
         run: pnpm format
 
-      - name: Generate coverage report
-        run: pnpm coverage:lcov
-        working-directory: packages/core-contracts
+      - name: Generate coverage reports
         env:
           MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+        run: |
+          cd packages/core-contracts && pnpm coverage:lcov
+          cd ../access-contracts && pnpm coverage:lcov
+          cd ../rewards-contracts && pnpm coverage:lcov
+          cd ../gov-contracts && pnpm coverage:lcov
+          cd ../voting-decay && pnpm coverage:lcov
 
-      - name: Upload coverage report to Codecov
+      - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./packages/core-contracts/lcov.info
+          files: |
+            ./packages/core-contracts/lcov.info
+            ./packages/access-contracts/lcov.info
+            ./packages/rewards-contracts/lcov.info
+            ./packages/gov-contracts/lcov.info
+            ./packages/voting-decay/lcov.info
           flags: unittests
           name: codecov-umbrella
 
-      # New step to explicitly checkout to the PR branch
       - name: Checkout to PR Branch
         if: github.event_name == 'pull_request'
         run: |

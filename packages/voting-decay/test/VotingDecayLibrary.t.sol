@@ -340,4 +340,128 @@ contract VotingDecayTest is Test {
         uint256 expectedVotingPower = 908.219178e18; // ~90.82% of INITIAL_VALUE
         assertApproxEqAbs(votingPower, expectedVotingPower, 1e18);
     }
+
+    function _mockCyclicDelegation(
+        address account
+    ) internal pure returns (address) {
+        address delegate1 = address(0x11);
+        address delegate2 = address(0x12);
+
+        if (account == address(0x1)) return delegate1;
+        if (account == delegate1) return delegate2;
+        if (account == delegate2) return address(0x1); // Creates cycle back to original user
+        return account;
+    }
+
+    function test_DelegationCycles() public {
+        address delegate1 = address(0x11);
+        address delegate2 = address(0x12);
+
+        // Initialize all accounts in the cycle
+        state.resetDecay(user);
+        state.resetDecay(delegate1);
+        state.resetDecay(delegate2);
+
+        // Get decay factor using cyclic delegation
+        uint256 decayFactor = state.getDecayFactor(user, _mockCyclicDelegation);
+
+        // Verify that cyclic delegation results in zero decay factor
+        assertEq(
+            decayFactor,
+            0,
+            "Cyclic delegation should result in zero decay factor"
+        );
+
+        // Also verify the chain length
+        uint256 chainLength = state.getDelegationChainLength(
+            user,
+            _mockCyclicDelegation
+        );
+        assertEq(
+            chainLength,
+            2,
+            "Chain length should be capped at MAX_DELEGATION_DEPTH"
+        );
+    }
+
+    function test_DecayFunctionTransition() public {
+        state.resetDecay(user);
+
+        // Set initial linear decay and advance time
+        vm.warp(block.timestamp + 30 days);
+        uint256 linearDecay = state.getDecayFactor(user, _getDelegateTo);
+
+        // Switch to exponential decay
+        state.setDecayFunction(VotingDecayLibrary.DecayFunction.Exponential);
+
+        // Advance more time
+        vm.warp(block.timestamp + 30 days);
+        uint256 mixedDecay = state.getDecayFactor(user, _getDelegateTo);
+
+        assertLt(
+            mixedDecay,
+            linearDecay,
+            "Mixed decay should be less than pure linear"
+        );
+    }
+
+    function test_DecayBoundaryConditions() public {
+        state.resetDecay(user);
+
+        // Test extremely small decay rates
+        state.setDecayRatePerSecond(1);
+
+        // Test extremely large time periods (100 years in days)
+        vm.warp(block.timestamp + (100 * 365 days));
+        uint256 longTermDecay = state.getDecayFactor(user, _getDelegateTo);
+        assertGt(
+            longTermDecay,
+            0,
+            "Even long-term decay should not reach zero"
+        );
+
+        // Test decay free window edge cases
+        state.setDecayFreeWindow(0);
+        uint256 noWindowDecay = state.getDecayFactor(user, _getDelegateTo);
+        assertLt(
+            noWindowDecay,
+            VotingDecayLibrary.WAD,
+            "Should decay immediately without window"
+        );
+    }
+
+    function test_ConcurrentDecayOperations() public {
+        state.resetDecay(user);
+        state.resetDecay(delegate);
+
+        // Simulate multiple operations in same block
+        vm.warp(block.timestamp + 1 days);
+
+        uint256 decay1 = state.getDecayFactor(user, _getDelegateTo);
+        state.updateDecayFactor(user, _getDelegateTo);
+        uint256 decay2 = state.getDecayFactor(user, _getDelegateTo);
+
+        assertEq(
+            decay1,
+            decay2,
+            "Multiple operations in same block should be consistent"
+        );
+    }
+
+    function test_StateRecovery() public {
+        state.resetDecay(user);
+
+        // Reduce the time period to something more reasonable, like 10 years
+        vm.warp(block.timestamp + (10 * 365 days));
+        uint256 lowDecay = state.getDecayFactor(user, _getDelegateTo);
+
+        // Reset and check recovery
+        state.resetDecay(user);
+        uint256 recoveredDecay = state.getDecayFactor(user, _getDelegateTo);
+        assertEq(
+            recoveredDecay,
+            VotingDecayLibrary.WAD,
+            "Should fully recover after reset"
+        );
+    }
 }

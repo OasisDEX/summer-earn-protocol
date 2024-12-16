@@ -294,5 +294,8 @@ contract ExposedSummerGovernor is SummerGovernor {
         );
     }
 
+    // Test skipper function
+    function test() public {}
+
     function forceUpdateDecay(address account) public updateDecay(account) {}
 }

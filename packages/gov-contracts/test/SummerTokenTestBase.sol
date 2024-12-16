@@ -202,6 +202,9 @@ contract SummerTokenTestBase is TestHelperOz5 {
     function useNetworkB() public {
         vm.chainId(31338);
     }
+
+    // Test skipper function
+    function test() public {}
 }
 
 contract ExposedSummerTimelockController is SummerTimelockController {
