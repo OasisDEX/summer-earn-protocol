@@ -393,17 +393,17 @@ contract SummerGovernor is
 
     /**
      * @dev Internal function to validate the proposal threshold
-     * @param _proposalThreshold The threshold to validate
+     * @param thresholdToValidate The threshold value to validate against min/max bounds
      */
     function _validateProposalThreshold(
-        uint256 _proposalThreshold
+        uint256 thresholdToValidate
     ) internal pure {
         if (
-            _proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
-            _proposalThreshold > MAX_PROPOSAL_THRESHOLD
+            thresholdToValidate < MIN_PROPOSAL_THRESHOLD ||
+            thresholdToValidate > MAX_PROPOSAL_THRESHOLD
         ) {
             revert SummerGovernorInvalidProposalThreshold(
-                _proposalThreshold,
+                thresholdToValidate,
                 MIN_PROPOSAL_THRESHOLD,
                 MAX_PROPOSAL_THRESHOLD
             );
