@@ -128,7 +128,7 @@ contract FleetCommanderCache {
         for (uint256 i = 0; i < allArks.length; i++) {
             uint256 withdrawableAssets = IArk(allArks[i])
                 .withdrawableTotalAssets();
-            if (i == allArks.length - 1 || withdrawableAssets > 0) {
+            if (withdrawableAssets > 0) {
                 withdrawableTotalAssets += withdrawableAssets;
             }
         }
@@ -444,7 +444,7 @@ contract FleetCommanderCache {
         for (uint256 i = 0; i < _arksData.length; i++) {
             uint256 withdrawableAssets = IArk(_arksData[i].arkAddress)
                 .withdrawableTotalAssets();
-            if (i == _arksData.length - 1 || withdrawableAssets > 0) {
+            if (withdrawableAssets > 0) {
                 // overwrite the ArkData struct with the withdrawable assets
                 _withdrawableArksData[withdrawableCount] = ArkData(
                     _arksData[i].arkAddress,
