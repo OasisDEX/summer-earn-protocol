@@ -239,9 +239,9 @@ contract RedeemWithInterestTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_RedeemZeroShares() public {
         vm.prank(mockUser);
-        uint256 assetsReceived = fleetCommander.redeem(0, mockUser, mockUser);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        fleetCommander.redeem(0, mockUser, mockUser);
 
-        assertEq(assetsReceived, 0, "Should redeem zero assets");
         assertEq(
             fleetCommander.balanceOf(mockUser),
             depositShares,

@@ -42,8 +42,8 @@ contract MintTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_MintZeroShares() public {
         vm.prank(mockUser);
-        uint256 assets = fleetCommander.mint(0, mockUser);
-        assertEq(assets, 0, "Minting zero shares should result in zero assets");
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        fleetCommander.mint(0, mockUser);
     }
 
     function test_MintToOtherReceiver() public {

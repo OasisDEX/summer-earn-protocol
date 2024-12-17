@@ -113,6 +113,7 @@ contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_DepositZeroAmount() public {
         vm.prank(mockUser);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
         fleetCommander.deposit(0, mockUser);
     }
 

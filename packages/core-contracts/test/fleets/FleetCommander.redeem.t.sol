@@ -81,9 +81,9 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_RedeemZero() public {
         vm.prank(mockUser);
-        uint256 redeemedAmount = fleetCommander.redeem(0, mockUser, mockUser);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        fleetCommander.redeem(0, mockUser, mockUser);
 
-        assertEq(redeemedAmount, 0, "Should redeem zero amount");
         assertEq(
             fleetCommander.balanceOf(mockUser),
             DEPOSIT_AMOUNT,

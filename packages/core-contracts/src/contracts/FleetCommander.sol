@@ -238,7 +238,7 @@ contract FleetCommander is
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
-        _validateForceRedeem(shares, owner);
+        _validateRedeemFromArks(shares, owner);
 
         totalAssetsToWithdraw = previewRedeem(shares);
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
@@ -338,8 +338,8 @@ contract FleetCommander is
         if (_isCollectingTip()) {
             return super.totalSupply();
         }
-        uint256 totalSupply = super.totalSupply();
-        return totalSupply + previewTip(tipJar(), totalSupply);
+        uint256 _totalSupply = super.totalSupply();
+        return _totalSupply + previewTip(tipJar(), _totalSupply);
     }
 
     /// @inheritdoc IFleetCommander
@@ -831,12 +831,16 @@ contract FleetCommander is
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
      * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error FleetCommanderZeroAmount Thrown when the withdrawal amount is zero
      */
     function _validateBufferWithdraw(
         uint256 assets,
         uint256 shares,
         address owner
     ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares
@@ -858,11 +862,15 @@ contract FleetCommander is
      * @param owner The address of the owner of the shares
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
      * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error FleetCommanderZeroAmount Thrown when the redemption amount is zero
      */
     function _validateBufferRedeem(
         uint256 shares,
         address owner
     ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares
@@ -881,9 +889,13 @@ contract FleetCommander is
      * @dev This function checks if the requested deposit amount exceeds the maximum allowed
      * @param assets The amount of assets to deposit
      * @param owner The address of the account making the deposit
+     * @custom:error FleetCommanderZeroAmount Thrown when the deposit amount is zero
      * @custom:error IERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
      */
     function _validateDeposit(uint256 assets, address owner) internal view {
+        if (assets == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         uint256 maxAssets = maxDeposit(owner);
         if (assets > maxAssets) {
             revert ERC4626ExceededMaxDeposit(owner, assets, maxAssets);
@@ -895,9 +907,13 @@ contract FleetCommander is
      * @dev This function checks if the requested mint amount exceeds the maximum allowed
      * @param shares The number of shares to mint
      * @param owner The address of the account minting the shares
+     * @custom:error FleetCommanderZeroAmount Thrown when the mint amount is zero
      * @custom:error IERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
      */
     function _validateMint(uint256 shares, address owner) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         uint256 maxShares = maxMint(owner);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxMint(owner, shares, maxShares);
@@ -914,12 +930,16 @@ contract FleetCommander is
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
      * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error FleetCommanderZeroAmount Thrown when the withdrawal amount is zero
      */
     function _validateWithdrawFromArks(
         uint256 assets,
         uint256 shares,
         address owner
     ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares
@@ -942,8 +962,15 @@ contract FleetCommander is
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
      * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error FleetCommanderZeroAmount Thrown when the redemption amount is zero
      */
-    function _validateForceRedeem(uint256 shares, address owner) internal view {
+    function _validateRedeemFromArks(
+        uint256 shares,
+        address owner
+    ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares

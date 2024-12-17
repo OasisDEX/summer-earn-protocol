@@ -138,4 +138,9 @@ interface IFleetCommanderErrors {
      * @notice Thrown when the staking rewards manager is not set.
      */
     error FleetCommanderStakingRewardsManagerNotSet();
+
+    /**
+     * @notice Thrown when user attempts to deposit/mint or withdraw/redeem 0 units
+     */
+    error FleetCommanderZeroAmount();
 }

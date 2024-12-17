@@ -120,9 +120,9 @@ contract WithdrawTest is Test, TestHelpers, FleetCommanderTestBase {
     function test_WithdrawZero() public {
         uint256 depositShares = fleetCommander.balanceOf(mockUser);
         vm.prank(mockUser);
-        uint256 sharesRedeemed = fleetCommander.withdraw(0, mockUser, mockUser);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        fleetCommander.withdraw(0, mockUser, mockUser);
 
-        assertEq(sharesRedeemed, 0, "Should withdraw zero amount");
         assertEq(
             fleetCommander.balanceOf(mockUser),
             depositShares,
