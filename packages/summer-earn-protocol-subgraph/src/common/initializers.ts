@@ -714,9 +714,33 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.outputTokenBalance = position.outputTokenBalance.plus(
       position.stakedOutputTokenBalance,
     )
+
+    position.inputTokenBalance = position.outputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+    position.stakedInputTokenBalance = position.stakedOutputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+
     snapshot.inputTokenBalance = snapshot.outputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
+
+    // Update normalized values
+    position.inputTokenBalanceNormalized = utils.formatAmount(
+      position.inputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
+    position.stakedInputTokenBalanceNormalized = utils.formatAmount(
+      position.stakedInputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
+    position.inputTokenBalanceNormalizedInUSD = position.inputTokenBalanceNormalized.times(
+      vault.inputTokenPriceUSD!,
+    )
+    position.stakedInputTokenBalanceNormalizedInUSD =
+      position.stakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
+
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
       .times(vault.inputTokenPriceUSD!)
@@ -724,6 +748,7 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
     snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
     snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+    position.save()
   }
 
   snapshot.save()
