@@ -83,7 +83,7 @@ contract FleetCommanderConfigProvider is
      * @custom:internal-logic
      * - Checks if the provided arkAddress is in the _activeArks set
      * - If not found, reverts with FleetCommanderArkNotFound error
-     * - If the arkAddress is the buffer ark, it will not revert, due to the buffer ark being a special case
+     * - If the arkAddress is the buffer ark, it will revert, due to the buffer ark being a special case
      * @custom:effects
      * - No direct state changes, but may revert the transaction
      * @custom:security-considerations

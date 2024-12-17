@@ -18,7 +18,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  * 2. KEEPER_ROLE: Routine maintenance operators
  * 3. SUPER_KEEPER_ROLE: Advanced maintenance operators
  * 4. COMMANDER_ROLE: Managers of specific protocol components (Arks)
- *
+ * 5. ADMIRALS_QUARTERS_ROLE: Specific role for admirals quarters bundler contract
  * Role Hierarchy and Management:
  * - The GOVERNOR_ROLE is at the top of the hierarchy and can manage all other roles.
  * - Other roles cannot manage roles directly due to LimitedAccessControl restrictions.
@@ -61,9 +61,18 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
      */
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
+    /**
+     * @notice Role identifier for decay controller
+     * @dev This role allows the decay controller to manage the decay of user voting power
+     */
     bytes32 public constant DECAY_CONTROLLER_ROLE =
         keccak256("DECAY_CONTROLLER_ROLE");
 
+    /**
+     * @notice Role identifier for admirals quarters bundler contract
+     * @dev This role allows Admirals Quarters to unstake and withdraw assets from fleets, on behalf of users
+     * @dev Withdrawn tokens go straight to users wallet, lowering the risk of manipulation if the role is compromised
+     */
     bytes32 public constant ADMIRALS_QUARTERS_ROLE =
         keccak256("ADMIRALS_QUARTERS_ROLE");
 

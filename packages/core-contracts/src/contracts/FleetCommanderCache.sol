@@ -106,7 +106,7 @@ contract FleetCommanderCache {
      * - No state changes
      * @custom:security-considerations
      * - Relies on accurate reporting of total assets by individual arks
-     * - Depends on the correctness of the isWithdrawable function
+     * - Depends on the correctness of the withdrawableTotalAssets function
      */
     function _withdrawableTotalAssets(
         address[] memory arks,
@@ -213,7 +213,6 @@ contract FleetCommanderCache {
      * @custom:internal-logic
      * - Initializes data for all arks including the buffer ark
      * - Populates data for regular arks and buffer ark
-     * - Sorts the array by total assets
      * - Caches the total assets and ark data
      * - buffer ark is always at the end of the array
      * @custom:effects
@@ -221,7 +220,6 @@ contract FleetCommanderCache {
      * - Modifies storage slots related to ark data
      * @custom:security-considerations
      * - Relies on accurate reporting of total assets by individual arks
-     * - Sorting mechanism must be efficient and correct
      */
     function _getArksData(
         address[] memory arks,
@@ -415,7 +413,7 @@ contract FleetCommanderCache {
      * - Modifies storage by caching withdrawable arks data
      * - Updates the total assets of withdrawable arks in storage
      * @custom:security-considerations
-     * - Assumes the isWithdrawable function is correctly implemented by Ark contracts
+     * - Assumes the withdrawableTotalAssets function is correctly implemented by Ark contracts
      * - Uses assembly for array resizing, which bypasses Solidity's safety checks
      * - Relies on the correctness of _getArksData, _cacheWithdrawableArksTotalAssets,
      *   _sortArkDataByTotalAssets, and _cacheWithdrawableArksTotalAssetsArray functions

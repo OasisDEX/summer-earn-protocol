@@ -23,6 +23,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  * 4. CURATOR_ROLE: Fleet-specific managers
  * 5. GUARDIAN_ROLE: Emergency response operators
  * 6. DECAY_CONTROLLER_ROLE: Specific role for decay management
+ * 7. ADMIRALS_QUARTERS_ROLE: Specific role for admirals quarters bundler contract
  *
  * Usage:
  * - Inherit from this contract to gain access to role-checking modifiers
@@ -246,6 +247,11 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         return keccak256(abi.encodePacked(roleName, roleTargetContract));
     }
 
+    /**
+     * @notice Checks if an account has the Admirals Quarters role
+     * @param account The address to check
+     * @return bool True if the account has the Admirals Quarters role
+     */
     function hasAdmiralsQuartersRole(
         address account
     ) public view returns (bool) {
