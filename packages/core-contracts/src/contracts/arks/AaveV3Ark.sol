@@ -84,11 +84,10 @@ contract AaveV3Ark is Ark {
             .getReserveData(address(config.asset))
             .configuration
             .data;
-        if (
-            !(_isActive(configData) &&
-                !_isFrozen(configData) &&
-                !_isPaused(configData))
-        ) {
+        // We dont check if asset is frozen as
+        // Withdrawals and repayments on the assets frozen are completely active, together with liquidations.
+        // Only “additive” actions like supplying and borrowing them are halted.
+        if (!(_isActive(configData) && !_isPaused(configData))) {
             return 0;
         }
         uint256 _totalAssets = totalAssets();
@@ -160,11 +159,6 @@ contract AaveV3Ark is Ark {
     function _isActive(uint256 configData) internal pure returns (bool) {
         return configData & ~Constants.ACTIVE_MASK != 0;
     }
-
-    function _isFrozen(uint256 configData) internal pure returns (bool) {
-        return configData & ~Constants.FROZEN_MASK != 0;
-    }
-
     function _isPaused(uint256 configData) internal pure returns (bool) {
         return configData & ~Constants.PAUSED_MASK != 0;
     }
