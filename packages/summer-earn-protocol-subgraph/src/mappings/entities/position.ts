@@ -1,5 +1,5 @@
 import { Address, ethereum } from '@graphprotocol/graph-ts'
-import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
+import { BigIntConstants } from '../../common/constants'
 import { getOrCreatePosition, getOrCreateVault } from '../../common/initializers'
 import { PositionDetails } from '../../types'
 
@@ -22,11 +22,11 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
       position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD.plus(
         positionDetails.totalInputTokenDeltaNormalizedUSD,
       )
-      position.inputTokenWithdrawals = BigIntConstants.ZERO
-      position.inputTokenWithdrawalsNormalizedInUSD = BigDecimalConstants.ZERO
+      position.inputTokenWithdrawals = position.inputTokenWithdrawals
+      position.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
     } else {
-      position.inputTokenDeposits = BigIntConstants.ZERO
-      position.inputTokenDepositsNormalizedInUSD = BigDecimalConstants.ZERO
+      position.inputTokenDeposits = position.inputTokenDeposits
+      position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
       position.inputTokenWithdrawals = position.inputTokenWithdrawals.plus(
         positionDetails.totalInputTokenDelta,
       )
