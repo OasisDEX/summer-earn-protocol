@@ -10,21 +10,25 @@ export class PositionDetails {
   positionId: string
   outputTokenBalance: BigInt
   stakedOutputTokenBalance: BigInt
+  unstakedOutputTokenBalance: BigInt
   inputTokenBalance: BigInt
   inputTokenBalanceNormalized: BigDecimal
   inputTokenBalanceNormalizedUSD: BigDecimal
   stakedInputTokenBalance: BigInt
   stakedInputTokenBalanceNormalized: BigDecimal
   stakedInputTokenBalanceNormalizedUSD: BigDecimal
-  inputTokenDelta: BigInt
-  inputTokenDeltaNormalized: BigDecimal
-  inputTokenDeltaNormalizedUSD: BigDecimal
+  unstakedInputTokenBalance: BigInt
+  unstakedInputTokenBalanceNormalized: BigDecimal
+  unstakedInputTokenBalanceNormalizedUSD: BigDecimal
+  unstakedInputTokenDelta: BigInt
+  unstakedInputTokenDeltaNormalized: BigDecimal
+  unstakedInputTokenDeltaNormalizedUSD: BigDecimal
   stakedInputTokenDelta: BigInt
   stakedInputTokenDeltaNormalized: BigDecimal
   stakedInputTokenDeltaNormalizedUSD: BigDecimal
-  totalInputTokenDelta: BigInt
-  totalInputTokenDeltaNormalized: BigDecimal
-  totalInputTokenDeltaNormalizedUSD: BigDecimal
+  inputTokenDelta: BigInt
+  inputTokenDeltaNormalized: BigDecimal
+  inputTokenDeltaNormalizedUSD: BigDecimal
   vault: string
   account: string
   inputToken: Token
@@ -33,21 +37,25 @@ export class PositionDetails {
     positionId: string,
     outputTokenBalance: BigInt,
     stakedOutputTokenBalance: BigInt,
+    unstakedOutputTokenBalance: BigInt,
     inputTokenBalance: BigInt,
     inputTokenBalanceNormalized: BigDecimal,
     inputTokenBalanceNormalizedUSD: BigDecimal,
     stakedInputTokenBalance: BigInt,
     stakedInputTokenBalanceNormalized: BigDecimal,
     stakedInputTokenBalanceNormalizedUSD: BigDecimal,
-    inputTokenDelta: BigInt,
-    inputTokenDeltaNormalized: BigDecimal,
-    inputTokenDeltaNormalizedUSD: BigDecimal,
+    unstakedInputTokenBalance: BigInt,
+    unstakedInputTokenBalanceNormalized: BigDecimal,
+    unstakedInputTokenBalanceNormalizedUSD: BigDecimal,
+    unstakedInputTokenDelta: BigInt,
+    unstakedInputTokenDeltaNormalized: BigDecimal,
+    unstakedInputTokenDeltaNormalizedUSD: BigDecimal,
     stakedInputTokenDelta: BigInt,
     stakedInputTokenDeltaNormalized: BigDecimal,
     stakedInputTokenDeltaNormalizedUSD: BigDecimal,
-    totalInputTokenDelta: BigInt,
-    totalInputTokenDeltaNormalized: BigDecimal,
-    totalInputTokenDeltaNormalizedUSD: BigDecimal,
+    inputTokenDelta: BigInt,
+    inputTokenDeltaNormalized: BigDecimal,
+    inputTokenDeltaNormalizedUSD: BigDecimal,
     vault: string,
     account: string,
     inputToken: Token,
@@ -56,21 +64,25 @@ export class PositionDetails {
     this.positionId = positionId
     this.outputTokenBalance = outputTokenBalance
     this.stakedOutputTokenBalance = stakedOutputTokenBalance
+    this.unstakedOutputTokenBalance = unstakedOutputTokenBalance
     this.inputTokenBalance = inputTokenBalance
     this.inputTokenBalanceNormalized = inputTokenBalanceNormalized
     this.inputTokenBalanceNormalizedUSD = inputTokenBalanceNormalizedUSD
     this.stakedInputTokenBalance = stakedInputTokenBalance
     this.stakedInputTokenBalanceNormalized = stakedInputTokenBalanceNormalized
     this.stakedInputTokenBalanceNormalizedUSD = stakedInputTokenBalanceNormalizedUSD
+    this.unstakedInputTokenBalance = unstakedInputTokenBalance
+    this.unstakedInputTokenBalanceNormalized = unstakedInputTokenBalanceNormalized
+    this.unstakedInputTokenBalanceNormalizedUSD = unstakedInputTokenBalanceNormalizedUSD
     this.inputTokenDelta = inputTokenDelta
     this.inputTokenDeltaNormalized = inputTokenDeltaNormalized
     this.inputTokenDeltaNormalizedUSD = inputTokenDeltaNormalizedUSD
     this.stakedInputTokenDelta = stakedInputTokenDelta
     this.stakedInputTokenDeltaNormalized = stakedInputTokenDeltaNormalized
     this.stakedInputTokenDeltaNormalizedUSD = stakedInputTokenDeltaNormalizedUSD
-    this.totalInputTokenDelta = totalInputTokenDelta
-    this.totalInputTokenDeltaNormalized = totalInputTokenDeltaNormalized
-    this.totalInputTokenDeltaNormalizedUSD = totalInputTokenDeltaNormalizedUSD
+    this.unstakedInputTokenDelta = unstakedInputTokenDelta
+    this.unstakedInputTokenDeltaNormalized = unstakedInputTokenDeltaNormalized
+    this.unstakedInputTokenDeltaNormalizedUSD = unstakedInputTokenDeltaNormalizedUSD
     this.vault = vault
     this.account = account
     this.inputToken = inputToken

@@ -18,7 +18,7 @@ export function getPositionDetails(
   const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(
     vaultDetails.rewardsManager,
   )
-  const shares = utils.readValue<BigInt>(
+  const unstakedShares = utils.readValue<BigInt>(
     vaultContract.try_balanceOf(Address.fromString(account.id)),
     constants.BigIntConstants.ZERO,
   )
@@ -26,78 +26,98 @@ export function getPositionDetails(
     rewardsManagerContract.try_balanceOf(Address.fromString(account.id)),
     constants.BigIntConstants.ZERO,
   )
-  const inputToken = utils.readValue<BigInt>(
-    vaultContract.try_convertToAssets(shares),
+  const unstakedInputToken = utils.readValue<BigInt>(
+    vaultContract.try_convertToAssets(unstakedShares),
     constants.BigIntConstants.ZERO,
   )
   const stakedInputToken = utils.readValue<BigInt>(
     vaultContract.try_convertToAssets(stakedShares),
     constants.BigIntConstants.ZERO,
   )
-  const inputTokenNormalized = formatAmount(
-    inputToken,
+  const unstakedInputTokenNormalized = formatAmount(
+    unstakedInputToken,
     BigInt.fromI32(vaultDetails.inputToken.decimals),
   )
   const stakedInputTokenNormalized = formatAmount(
     stakedInputToken,
     BigInt.fromI32(vaultDetails.inputToken.decimals),
   )
-
+  const totalInputTokenNormalized = unstakedInputTokenNormalized.plus(stakedInputTokenNormalized)
   // this shoul be accurate since all positions are updated on hourly basis as well as deposits withdrawals
   const priceInUSD = vaultDetails.inputTokenPriceUSD
-  const inputTokenNormalizedUSD = inputTokenNormalized.times(priceInUSD)
+  const unstakedInputTokenNormalizedUSD = unstakedInputTokenNormalized.times(priceInUSD)
   const stakedInputTokenNormalizedUSD = stakedInputTokenNormalized.times(priceInUSD)
+  const totalInputTokenNormalizedUSD = totalInputTokenNormalized.times(priceInUSD)
   const position = getOrCreatePosition(
     utils.formatPositionId(account.id, vaultDetails.vaultId),
     block,
   )
-  const totalInputTokenBeforeUpdate = position.inputTokenBalance.plus(
-    position.stakedInputTokenBalance,
-  )
-  const totalInputTokenAfterUpdate = inputToken.plus(stakedInputToken)
-  const totalInputTokenDelta = totalInputTokenAfterUpdate.minus(totalInputTokenBeforeUpdate)
-  const totalInputTokenDeltaNormalized = formatAmount(
-    totalInputTokenDelta,
-    BigInt.fromI32(vaultDetails.inputToken.decimals),
-  )
-  const totalInputTokenDeltaNormalizedUSD = totalInputTokenDeltaNormalized.times(priceInUSD)
 
-  const stakedInputTokenDelta = stakedInputToken.minus(inputToken)
+  const stakedInputTokenBalanceBeforeUpdate = position.stakedInputTokenBalance
+  const unstakedInputTokenBalanceBeforeUpdate = position.unstakedInputTokenBalance
+  const totalInputTokenBeforeUpdate = stakedInputTokenBalanceBeforeUpdate.plus(
+    unstakedInputTokenBalanceBeforeUpdate,
+  )
+
+  const stakedInputTokenBalanceAfterUpdate = stakedInputToken
+  const unstakedInputTokenBalanceAfterUpdate = unstakedInputToken
+  const totalInputTokenAfterUpdate = stakedInputTokenBalanceAfterUpdate.plus(
+    unstakedInputTokenBalanceAfterUpdate,
+  )
+
+  const stakedInputTokenDelta = stakedInputTokenBalanceAfterUpdate.minus(
+    stakedInputTokenBalanceBeforeUpdate,
+  )
+  const unstakedInputTokenDelta = unstakedInputTokenBalanceAfterUpdate.minus(
+    unstakedInputTokenBalanceBeforeUpdate,
+  )
+  const totalInputTokenDelta = totalInputTokenAfterUpdate.minus(totalInputTokenBeforeUpdate)
+
   const stakedInputTokenDeltaNormalized = formatAmount(
     stakedInputTokenDelta,
     BigInt.fromI32(vaultDetails.inputToken.decimals),
   )
-  const stakedInputTokenDeltaNormalizedUSD = stakedInputTokenDeltaNormalized.times(priceInUSD)
 
-  const inputTokenDelta = inputToken.minus(position.inputTokenBalance)
-  const inputTokenDeltaNormalized = formatAmount(
-    inputTokenDelta,
+  const unstakedInputTokenDeltaNormalized = formatAmount(
+    unstakedInputTokenDelta,
     BigInt.fromI32(vaultDetails.inputToken.decimals),
   )
-  const inputTokenDeltaNormalizedUSD = inputTokenDeltaNormalized.times(priceInUSD)
+
+  const totalInputTokenDeltaNormalized = formatAmount(
+    totalInputTokenDelta,
+    BigInt.fromI32(vaultDetails.inputToken.decimals),
+  )
+
+  const stakedInputTokenDeltaNormalizedUSD = stakedInputTokenDeltaNormalized.times(priceInUSD)
+  const unstakedInputTokenDeltaNormalizedUSD = unstakedInputTokenDeltaNormalized.times(priceInUSD)
+  const totalInputTokenDeltaNormalizedUSD = totalInputTokenDeltaNormalized.times(priceInUSD)
 
   return new PositionDetails(
     utils.formatPositionId(account.id, vaultDetails.vaultId),
-    shares,
-    stakedShares,
-    inputToken,
-    inputTokenNormalized,
-    inputTokenNormalizedUSD,
-    stakedInputToken,
-    stakedInputTokenNormalized,
-    stakedInputTokenNormalizedUSD,
-    inputTokenDelta,
-    inputTokenDeltaNormalized,
-    inputTokenDeltaNormalizedUSD,
-    stakedInputTokenDelta,
-    stakedInputTokenDeltaNormalized,
-    stakedInputTokenDeltaNormalizedUSD,
-    totalInputTokenDelta,
-    totalInputTokenDeltaNormalized,
-    totalInputTokenDeltaNormalizedUSD,
-    vaultDetails.vaultId,
-    account.id,
-    vaultDetails.inputToken,
-    vaultDetails.protocol,
+    unstakedShares.plus(stakedShares), // outputTokenBalance
+    stakedShares, // stakedOutputTokenBalance
+    unstakedShares, // unstakedOutputTokenBalance
+    totalInputTokenAfterUpdate, // inputTokenBalance
+    totalInputTokenNormalized, // inputTokenBalanceNormalized
+    totalInputTokenNormalizedUSD, // inputTokenBalanceNormalizedUSD
+    stakedInputToken, // stakedInputTokenBalance
+    stakedInputTokenNormalized, // stakedInputTokenBalanceNormalized
+    stakedInputTokenNormalizedUSD, // stakedInputTokenBalanceNormalizedUSD
+    unstakedInputToken, // unstakedInputTokenBalance
+    unstakedInputTokenNormalized, // unstakedInputTokenBalanceNormalized
+    unstakedInputTokenNormalizedUSD, // unstakedInputTokenBalanceNormalizedUSD
+    unstakedInputTokenDelta, // unstakedInputTokenDelta
+    unstakedInputTokenDeltaNormalized, // unstakedInputTokenDeltaNormalized
+    unstakedInputTokenDeltaNormalizedUSD, // unstakedInputTokenDeltaNormalizedUSD
+    stakedInputTokenDelta, // stakedInputTokenDelta
+    stakedInputTokenDeltaNormalized, // stakedInputTokenDeltaNormalized
+    stakedInputTokenDeltaNormalizedUSD, // stakedInputTokenDeltaNormalizedUSD
+    totalInputTokenDelta, // inputTokenDelta
+    totalInputTokenDeltaNormalized, // inputTokenDeltaNormalized
+    totalInputTokenDeltaNormalizedUSD, // inputTokenDeltaNormalizedUSD
+    vaultDetails.vaultId, // vault
+    account.id, // account
+    vaultDetails.inputToken, // inputToken
+    vaultDetails.protocol, // protocol
   )
 }

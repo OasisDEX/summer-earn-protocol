@@ -153,6 +153,7 @@ export function handleUnstaked(event: Unstaked): void {
   )
 
   createUnstakedEventEntity(event, result.positionDetails)
+  createWithdrawEventEntity(event, result.positionDetails)
 }
 
 export function handleRewardTokenRemoved(event: RewardTokenRemoved): void {

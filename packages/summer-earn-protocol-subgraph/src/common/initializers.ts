@@ -103,6 +103,10 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.stakedInputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.stakedInputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.unstakedInputTokenBalance = constants.BigIntConstants.ZERO
+    position.unstakedOutputTokenBalance = constants.BigIntConstants.ZERO
+    position.unstakedInputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    position.unstakedInputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.account = positionIdDetails[0]
     position.vault = positionIdDetails[1]
     position.createdBlockNumber = block.number
@@ -711,9 +715,7 @@ export function getOrCreatePositionHourlySnapshot(
   // Update balances
   const position = Position.load(positionId)
   if (position) {
-    snapshot.outputTokenBalance = position.outputTokenBalance.plus(
-      position.stakedOutputTokenBalance,
-    )
+    snapshot.outputTokenBalance = position.outputTokenBalance
 
     position.inputTokenBalance = position.outputTokenBalance
       .times(vault.inputTokenBalance)
@@ -777,9 +779,8 @@ export function getOrCreatePositionDailySnapshot(
   // Update balances
   const position = Position.load(positionId)
   if (position) {
-    snapshot.outputTokenBalance = position.outputTokenBalance.plus(
-      position.stakedOutputTokenBalance,
-    )
+    snapshot.outputTokenBalance = position.outputTokenBalance
+
     snapshot.inputTokenBalance = snapshot.outputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
@@ -818,9 +819,8 @@ export function getOrCreatePositionWeeklySnapshot(
   // Update balances
   const position = Position.load(positionId)
   if (position) {
-    snapshot.outputTokenBalance = position.outputTokenBalance.plus(
-      position.stakedOutputTokenBalance,
-    )
+    snapshot.outputTokenBalance = position.outputTokenBalance
+
     snapshot.inputTokenBalance = snapshot.outputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)

@@ -8,19 +8,25 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
   if (position) {
     position.inputTokenBalance = positionDetails.inputTokenBalance
     position.stakedInputTokenBalance = positionDetails.stakedInputTokenBalance
+    position.unstakedInputTokenBalance = positionDetails.unstakedInputTokenBalance
     position.outputTokenBalance = positionDetails.outputTokenBalance
     position.stakedOutputTokenBalance = positionDetails.stakedOutputTokenBalance
+    position.unstakedOutputTokenBalance = positionDetails.unstakedOutputTokenBalance
     position.inputTokenBalanceNormalized = positionDetails.inputTokenBalanceNormalized
     position.stakedInputTokenBalanceNormalized = positionDetails.stakedInputTokenBalanceNormalized
+    position.unstakedInputTokenBalanceNormalized =
+      positionDetails.unstakedInputTokenBalanceNormalized
     position.inputTokenBalanceNormalizedInUSD = positionDetails.inputTokenBalanceNormalizedUSD
     position.stakedInputTokenBalanceNormalizedInUSD =
       positionDetails.stakedInputTokenBalanceNormalizedUSD
-    if (positionDetails.totalInputTokenDelta.gt(BigIntConstants.ZERO)) {
+    position.unstakedInputTokenBalanceNormalizedInUSD =
+      positionDetails.unstakedInputTokenBalanceNormalizedUSD
+    if (positionDetails.inputTokenDelta.gt(BigIntConstants.ZERO)) {
       position.inputTokenDeposits = position.inputTokenDeposits.plus(
-        positionDetails.totalInputTokenDelta,
+        positionDetails.inputTokenDelta,
       )
       position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD.plus(
-        positionDetails.totalInputTokenDeltaNormalizedUSD,
+        positionDetails.inputTokenDeltaNormalizedUSD,
       )
       position.inputTokenWithdrawals = position.inputTokenWithdrawals
       position.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
@@ -28,11 +34,11 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
       position.inputTokenDeposits = position.inputTokenDeposits
       position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
       position.inputTokenWithdrawals = position.inputTokenWithdrawals.plus(
-        positionDetails.totalInputTokenDelta,
+        positionDetails.inputTokenDelta,
       )
       position.inputTokenWithdrawalsNormalizedInUSD =
         position.inputTokenWithdrawalsNormalizedInUSD.plus(
-          positionDetails.totalInputTokenDeltaNormalizedUSD,
+          positionDetails.inputTokenDeltaNormalizedUSD,
         )
     }
     position.save()

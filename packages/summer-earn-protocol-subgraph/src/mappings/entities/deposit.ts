@@ -15,8 +15,8 @@ export function createDepositEventEntity(
   } else {
     deposit = new Deposit(`${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`)
   }
-  deposit.amount = positionDetails.totalInputTokenDelta
-  deposit.amountUSD = positionDetails.totalInputTokenDeltaNormalizedUSD
+  deposit.amount = positionDetails.inputTokenDelta
+  deposit.amountUSD = positionDetails.inputTokenDeltaNormalizedUSD
   deposit.from = positionDetails.account
   deposit.to = positionDetails.vault
   deposit.blockNumber = event.block.number

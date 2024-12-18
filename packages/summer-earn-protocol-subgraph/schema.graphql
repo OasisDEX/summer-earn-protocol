@@ -1099,17 +1099,29 @@ type Position @entity {
   " Staked balance of the output token for the position "
   stakedOutputTokenBalance: BigInt!
 
+  " Unstaked balance of the input token for the position "
+  unstakedInputTokenBalance: BigInt!
+
+  " Unstaked balance of the output token for the position " 
+  unstakedOutputTokenBalance: BigInt!
+
   " Normalized supply of the input token "
   inputTokenBalanceNormalized: BigDecimal!
 
   " Normalized staked balance of the input token "
   stakedInputTokenBalanceNormalized: BigDecimal!
 
+  " Normalized unstaked balance of the input token "
+  unstakedInputTokenBalanceNormalized: BigDecimal!
+
   " Normalized supply of the input token in USD "
   inputTokenBalanceNormalizedInUSD: BigDecimal!
 
   " Normalized staked balance of the input token in USD "
   stakedInputTokenBalanceNormalizedInUSD: BigDecimal!
+
+  " Normalized unstaked balance of the input token in USD "
+  unstakedInputTokenBalanceNormalizedInUSD: BigDecimal!
 
   " Creation timestamp "
   createdTimestamp: BigInt!
