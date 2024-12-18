@@ -143,18 +143,14 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     //////////////////////////////////////////////////////////////*/
 
     error MarketExpired();
-    error InvalidSwapType();
     error InvalidParamsLength();
     error InvalidFunctionSelector();
     error InvalidReceiver();
     error InvalidMarket();
     error EmaOutOfRange();
     error MarketExpirationTooClose();
-    error LowerEmaNotLessThanUpperEma();
-    error UpperEmaNotGreaterThanLowerEma();
     error InsufficientOutputAmount();
     error InvalidNextMarket();
-    error InvalidMarketExpiry();
     error SlippagePercentageTooHigh(
         Percentage slippagePercentage,
         Percentage maxSlippagePercentage
