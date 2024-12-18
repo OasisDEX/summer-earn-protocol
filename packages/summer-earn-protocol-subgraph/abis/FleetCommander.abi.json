@@ -2664,6 +2664,11 @@
   },
   {
     "type": "error",
+    "name": "FleetCommanderZeroAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidAccessManagerAddress",
     "inputs": [
       {
