@@ -27,10 +27,10 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
     using PercentageUtils for uint256;
 
     /// @notice The Curve swap pool interface
-    ICurveSwap public curveSwap;
+    ICurveSwap public immutable curveSwap;
 
     /// @notice The base token address for the exchange rate
-    address public baseToken;
+    address public immutable baseToken;
 
     /// @notice Error thrown when an invalid base token is provided
     /// @param baseToken The invalid base token address

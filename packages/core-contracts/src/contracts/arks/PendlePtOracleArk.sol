@@ -87,13 +87,13 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
-    address public marketAsset;
+    address public immutable marketAsset;
     address public market;
-    address public router;
+    address public immutable router;
     address public nextMarket;
     address public immutable oracle;
-    uint8 public configTokenDecimals;
-    uint8 public marketAssetDecimals;
+    uint8 public immutable configTokenDecimals;
+    uint8 public immutable marketAssetDecimals;
     uint8 public ptDecimals;
     uint32 public oracleDuration;
     IStandardizedYield public SY;
@@ -204,15 +204,13 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (_pendlePtArkConstructorParams.market == address(0)) {
             revert InvalidMarketAddress(_pendlePtArkConstructorParams.market);
         }
-        market = _pendlePtArkConstructorParams.market;
-
         oracleDuration = 30 minutes;
         slippagePercentage = PercentageUtils.fromFraction(50, 10000); // 0.5% default
-        curveSwap = ICurveSwap(_curveSwapArkConstructorParams.curvePool);
         marketAsset = _getSyAssetAddress(_pendlePtArkConstructorParams.market);
+        configTokenDecimals = IERC20Extended(address(config.asset)).decimals();
+        marketAssetDecimals = IERC20Extended(marketAsset).decimals();
         _setupRouterParams();
-        _updateMarketAndTokens(market);
-        _updateMarketData();
+        _updateMarketAndTokens(_pendlePtArkConstructorParams.market);
     }
 
     /**
@@ -435,10 +433,6 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         bytes calldata data
     ) internal shouldBuy {
         BoardData memory boardData = abi.decode(data, (BoardData));
-        if (this.isMarketExpired()) {
-            revert MarketExpired();
-        }
-
         (
             address receiver,
             address swapMarket,
@@ -521,6 +515,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @param data Additional data for boarding
      */
     function _board(uint256 amount, bytes calldata data) internal override {
+        console.log("marketExpiry xx", marketExpiry);
         _rolloverIfNeeded();
         _swapFleetAssetForPt(amount, data);
     }
@@ -607,8 +602,6 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         ) {
             revert InvalidAssetForSY();
         }
-        configTokenDecimals = IERC20Extended(address(config.asset)).decimals();
-        marketAssetDecimals = IERC20Extended(marketAsset).decimals();
         ptDecimals = PT.decimals();
         _updateMarketData();
     }
@@ -786,8 +779,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * current block timestamp.
      */
     modifier shouldBuy() {
+        console.log("marketExpiry xx", marketExpiry);
         _shouldTrade();
+        console.log("block.timestamp", block.timestamp);
         if (marketExpiry <= block.timestamp + 20 days) {
+            console.log("Market expiration is too close");
             revert MarketExpirationTooClose();
         }
         _;

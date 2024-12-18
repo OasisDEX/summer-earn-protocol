@@ -51,6 +51,9 @@ contract SummerVestingWallet is
     // Time-based vesting amount
     uint256 public timeBasedVestingAmount;
 
+    /// @dev The total amount of performance-based tokens (cached)
+    uint256 private _totalPerformanceTokens;
+
     //////////////////////////////////////////////
     ///              CONSTRUCTOR               ///
     //////////////////////////////////////////////
@@ -121,6 +124,7 @@ contract SummerVestingWallet is
     }
 
     function _addNewGoal(uint256 goalAmount) internal {
+        _totalPerformanceTokens += goalAmount;
         goalAmounts.push(goalAmount);
         goalsReached.push(false);
         emit NewGoalAdded(goalAmount, goalAmounts.length);
@@ -146,6 +150,7 @@ contract SummerVestingWallet is
 
         for (uint256 i = 0; i < goalAmounts.length; i++) {
             if (!goalsReached[i]) {
+                _totalPerformanceTokens -= goalAmounts[i];
                 goalAmounts[i] = 0;
             }
         }
@@ -182,13 +187,12 @@ contract SummerVestingWallet is
         uint256 totalAllocation,
         uint64 timestamp
     ) internal view override returns (uint256) {
-        if (timestamp < start()) {
+        if (timestamp < start() + CLIFF) {
             return 0;
-        } else {
-            uint256 timeBasedVested = _calculateTimeBasedVesting(timestamp);
-            uint256 performanceBasedVested = _calculatePerformanceBasedVesting();
-            return timeBasedVested + performanceBasedVested;
         }
+        uint256 timeBasedVested = _calculateTimeBasedVesting(timestamp);
+        uint256 performanceBasedVested = _calculatePerformanceBasedVesting();
+        return timeBasedVested + performanceBasedVested;
     }
 
     //////////////////////////////////////////////
@@ -215,13 +219,7 @@ contract SummerVestingWallet is
     function _calculateTimeBasedVesting(
         uint64 timestamp
     ) private view returns (uint256) {
-        if (timestamp < start() + CLIFF) {
-            return 0;
-        }
-        uint256 quartersDuringCliff = (CLIFF) / QUARTER;
-        uint256 elapsedQuarters = (timestamp - start() - CLIFF) /
-            QUARTER +
-            quartersDuringCliff;
+        uint256 elapsedQuarters = (timestamp - start()) / QUARTER;
         return (timeBasedVestingAmount * elapsedQuarters) / 8;
     }
 
@@ -240,12 +238,13 @@ contract SummerVestingWallet is
         view
         returns (uint256)
     {
-        uint256 totalPerformanceTokens = 0;
+        uint256 unvestedAmount = 0;
         for (uint256 i = 0; i < goalAmounts.length; i++) {
-            totalPerformanceTokens += goalAmounts[i];
+            if (!goalsReached[i]) {
+                unvestedAmount += goalAmounts[i];
+            }
         }
-        uint256 vestedPerformanceTokens = _calculatePerformanceBasedVesting();
-        return totalPerformanceTokens - vestedPerformanceTokens;
+        return unvestedAmount;
     }
 
     /**
