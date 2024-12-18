@@ -440,7 +440,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         console.log("User shares:", userShares);
         console.log("User assets:", userAssets);
         uint256 gas = gasleft();
-        fleet.withdrawFromArks(userAssets, user, user);
+        fleet.withdraw(userAssets, user, user);
         console.log("Gas used for withdraw:", gas - gasleft());
         assertEq(fleet.balanceOf(user), 0, "User balance should be 0");
         assertGe(

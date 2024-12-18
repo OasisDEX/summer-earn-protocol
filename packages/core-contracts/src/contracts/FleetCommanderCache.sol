@@ -225,6 +225,9 @@ contract FleetCommanderCache {
         address[] memory arks,
         IArk bufferArk
     ) internal returns (ArkData[] memory _arksData) {
+        if (StorageSlots.IS_TOTAL_ASSETS_CACHED_STORAGE.asBoolean().tload()) {
+            return _getAllArksDataFromCache();
+        }
         // Initialize data for all arks
         _arksData = new ArkData[](arks.length + 1); // +1 for buffer ark
         uint256 totalAssets = 0;
@@ -346,6 +349,28 @@ contract FleetCommanderCache {
         }
     }
 
+    function _getAllArksDataFromCache()
+        internal
+        view
+        returns (ArkData[] memory arksData)
+    {
+        uint256 arksLength = StorageSlots
+            .ARKS_LENGTH_STORAGE
+            .asUint256()
+            .tload();
+        arksData = new ArkData[](arksLength);
+        for (uint256 i = 0; i < arksLength; i++) {
+            address arkAddress = _getStorageSlot(
+                StorageSlots.ARKS_ADDRESS_ARRAY_STORAGE,
+                i
+            ).asAddress().tload();
+            uint256 totalAssets = _getStorageSlot(
+                StorageSlots.ARKS_TOTAL_ASSETS_ARRAY_STORAGE,
+                i
+            ).asUint256().tload();
+            arksData[i] = ArkData(arkAddress, totalAssets);
+        }
+    }
     /**
      * @notice Caches the data for all arks in the specified storage slots
      * @param arksData The array of ArkData structs containing the ark addresses and their total assets

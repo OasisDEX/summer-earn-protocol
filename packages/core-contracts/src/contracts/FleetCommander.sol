@@ -76,7 +76,7 @@ contract FleetCommander is
      * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
      *         those calls migh be gas expensive for some arks.
      */
-    modifier useDepositCache() {
+    modifier useCache() {
         _getArksData(getActiveArks(), config.bufferArk);
         _;
         _flushCache();
@@ -104,7 +104,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused collectTip returns (uint256 shares) {
+    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -152,13 +152,7 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    )
-        public
-        collectTip
-        useWithdrawCache
-        whenNotPaused
-        returns (uint256 assets)
-    {
+    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -183,7 +177,7 @@ contract FleetCommander is
         public
         override(ERC4626, IFleetCommander)
         collectTip
-        useWithdrawCache
+        useCache
         whenNotPaused
         returns (uint256 shares)
     {
@@ -255,7 +249,7 @@ contract FleetCommander is
         public
         override(ERC4626, IERC4626)
         collectTip
-        useDepositCache
+        useCache
         whenNotPaused
         returns (uint256 shares)
     {
@@ -292,7 +286,7 @@ contract FleetCommander is
         public
         override(ERC4626, IERC4626)
         collectTip
-        useDepositCache
+        useCache
         whenNotPaused
         returns (uint256 assets)
     {
