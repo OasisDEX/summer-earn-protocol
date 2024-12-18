@@ -160,7 +160,10 @@ abstract contract ArkConfigProvider is
         emit MaxRebalanceInflowUpdated(newMaxRebalanceInflow);
     }
 
-    function registerFleetCommander() external onlyCommander {
+    function registerFleetCommander() external {
+        if (!_hasCommanderRole()) {
+            revert CallerIsNotCommander(msg.sender);
+        }
         if (config.commander != address(0)) {
             revert FleetCommanderAlreadyRegistered();
         }
@@ -174,5 +177,12 @@ abstract contract ArkConfigProvider is
         }
         config.commander = address(0);
         emit FleetCommanderUnregistered(msg.sender);
+    }
+
+    modifier onlyCommander() {
+        if (_msgSender() != config.commander) {
+            revert CallerIsNotCommander(_msgSender());
+        }
+        _;
     }
 }

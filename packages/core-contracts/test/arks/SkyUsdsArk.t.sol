@@ -58,6 +58,10 @@ contract USDSArkTestFork is Test, IArkEvents, ArkTestBase {
         accessManager.grantCommanderRole(address(ark), address(commander));
         vm.stopPrank();
 
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
+
         vm.makePersistent(address(ark));
         vm.makePersistent(USDC);
         vm.makePersistent(USDS);

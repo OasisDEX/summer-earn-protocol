@@ -28,7 +28,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
      * @dev This modifier allows the Commander, RAFT contract, or active Arks to proceed.
      * @param commander The address of the FleetCommander contract.
      * @custom:internal-logic
-     * - Checks if the caller has the Commander role
+     * - Checks if the caller is the registered commander
      * - If not, checks if the caller is the RAFT contract
      * - If not, checks if the caller is an active Ark in the FleetCommander
      * @custom:effects
@@ -39,7 +39,7 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
      * - Relies on the correct setup of the FleetCommander and RAFT contracts
      */
     modifier onlyAuthorizedToBoard(address commander) {
-        if (!_hasCommanderRole()) {
+        if (commander != _msgSender()) {
             address msgSender = _msgSender();
             bool isRaft = msgSender ==
                 IConfigurationManaged(address(this)).raft();
@@ -72,25 +72,6 @@ contract ArkAccessManaged is IArkAccessManaged, ProtocolAccessManaged {
     modifier onlyRaft() {
         if (_msgSender() != IConfigurationManaged(address(this)).raft()) {
             revert CallerIsNotRaft(_msgSender());
-        }
-        _;
-    }
-
-    /**
-     * @notice Restricts access to only the Commander role.
-     * @dev Modifier to check that the caller has the Commander role
-     * @custom:internal-logic
-     * - Calls the internal _hasCommanderRole function to check the caller's role
-     * @custom:effects
-     * - Reverts if the caller doesn't have the Commander role
-     * - Allows the function to proceed if the caller has the Commander role
-     * @custom:security-considerations
-     * - Ensures that only the designated Commander can call certain functions
-     * - Relies on the correct setup of the access control system
-     */
-    modifier onlyCommander() {
-        if (!_hasCommanderRole()) {
-            revert CallerIsNotCommander(_msgSender());
         }
         _;
     }

@@ -46,6 +46,10 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
             address(address(ark)),
             address(commander)
         );
+
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
     }
 
     function test_Constructor() public {

@@ -81,6 +81,10 @@ contract PendlePTArkTestFork is Test, IArkEvents, ArkTestBase {
         );
         vm.stopPrank();
 
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
+
         vm.label(USDE, "USDE");
         vm.label(MARKET, "MARKET");
         vm.label(NEXT_MARKET, "NEXT_MARKET");

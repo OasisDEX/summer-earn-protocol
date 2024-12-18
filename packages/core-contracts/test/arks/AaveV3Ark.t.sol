@@ -89,6 +89,11 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             address(commander)
         );
         vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        nextArk.registerFleetCommander();
+        vm.stopPrank();
     }
 
     function test_Constructor() public {

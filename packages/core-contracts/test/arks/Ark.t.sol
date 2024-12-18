@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ConfigurationManager} from "../../src/contracts/ConfigurationManager.sol";
+import {ContractSpecificRoles} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 import {AaveV3Ark, ArkParams} from "../../src/contracts/arks/AaveV3Ark.sol";
 import {IArkEvents} from "../../src/events/IArkEvents.sol";
@@ -48,6 +49,22 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
 
         params.requiresKeeperData = true;
         unrestrictedArk = new RestictedWithdrawalArkMock(params);
+
+        vm.startPrank(governor);
+        accessManager.grantCommanderRole(address(ark), address(commander));
+        accessManager.grantCommanderRole(
+            address(unrestrictedArk),
+            address(commander)
+        );
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
+
+        vm.startPrank(commander);
+        unrestrictedArk.registerFleetCommander();
+        vm.stopPrank();
     }
 
     function test_Constructor() public {
@@ -103,15 +120,24 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
     }
 
     function test_GrantRoleDirectly_ShouldFail() public {
+        address someAddress = address(5);
         // Act
         vm.expectRevert(
             abi.encodeWithSignature("DirectGrantIsDisabled(address)", governor)
         );
         vm.prank(governor);
-        accessManager.grantRole(keccak256("COMMANDER_ROLE"), commander);
+        accessManager.grantRole(keccak256("COMMANDER_ROLE"), someAddress);
 
-        // Assert
-        assertTrue(ark.commander() != commander, "Commander role granted");
+        assertFalse(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(ark)
+                ),
+                someAddress
+            ),
+            "Commander role not revoked"
+        );
     }
 
     function test_RevokeRoleDirectly_ShouldFail() public {
@@ -131,8 +157,16 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
         vm.prank(governor);
         accessManager.revokeRole(keccak256("COMMANDER_ROLE"), commander);
 
-        // Assert
-        assertTrue(ark.commander() == commander, "Commander role not granted");
+        assertTrue(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(ark)
+                ),
+                commander
+            ),
+            "Commander role not revoked"
+        );
     }
 
     function test_RevokeCommanderRole_ShouldSucceed() public {
@@ -148,7 +182,16 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
         accessManager.revokeCommanderRole(address(address(ark)), commander);
 
         // Assert
-        assertFalse(ark.commander() == commander, "Commander role not revoked");
+        assertFalse(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(ark)
+                ),
+                commander
+            ),
+            "Commander role not revoked"
+        );
     }
 
     function test_BoardByCommander_ShouldSucceed() public {
@@ -358,5 +401,24 @@ contract ArkTest is Test, IArkEvents, ArkTestBase {
         vm.expectRevert(abi.encodeWithSignature("KeeperDataRequired()"));
         vm.prank(commander);
         unrestrictedArk.board(0, bytes(""));
+    }
+
+    function test_GrantCommanderRole_ShouldSucceed() public {
+        address someAddress = address(5);
+        // Act
+        vm.prank(governor);
+        accessManager.grantCommanderRole(address(ark), someAddress);
+
+        // Assert
+        assertTrue(
+            accessManager.hasRole(
+                accessManager.generateRole(
+                    ContractSpecificRoles.COMMANDER_ROLE,
+                    address(ark)
+                ),
+                someAddress
+            ),
+            "Commander role not granted"
+        );
     }
 }
