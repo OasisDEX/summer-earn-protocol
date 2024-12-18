@@ -78,6 +78,10 @@ contract SummerVestingWallet is
         goalsReached = new bool[](_goalAmounts.length);
         token = _token;
 
+        if (token == address(0)) {
+            revert InvalidToken(_token);
+        }
+
         _grantRole(GUARDIAN_ROLE, guardianAddress);
     }
 
@@ -96,6 +100,9 @@ contract SummerVestingWallet is
 
     /// @inheritdoc ISummerVestingWallet
     function addNewGoal(uint256 goalAmount) external onlyRole(GUARDIAN_ROLE) {
+        if (_vestingType != VestingType.TeamVesting) {
+            revert OnlyTeamVesting();
+        }
         goalAmounts.push(goalAmount);
         goalsReached.push(false);
         SafeERC20.safeTransferFrom(

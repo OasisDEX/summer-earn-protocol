@@ -54,6 +54,10 @@ abstract contract ExchangeRateProvider {
      */
     error EmaRangeTooHigh(Percentage emaRange);
 
+    /// @notice Error thrown when the provided base price is zero
+    /// @param basePrice The invalid base price value
+    error InvalidBasePrice(uint256 basePrice);
+
     /**
      * @dev Constructor to initialize the ExchangeRateProvider
      * @param _lowerPercentageRange Lower EMA range for price smoothing
@@ -118,6 +122,9 @@ abstract contract ExchangeRateProvider {
     }
 
     function _setBasePrice(uint256 _basePrice) internal virtual {
+        if (_basePrice == 0) {
+            revert InvalidBasePrice(_basePrice);
+        }
         basePrice = _basePrice;
         emit BasePriceUpdated(_basePrice);
     }

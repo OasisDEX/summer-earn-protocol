@@ -36,6 +36,10 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
     /// @param baseToken The invalid base token address
     error InvalidBaseToken(address baseToken);
 
+    /// @notice Error thrown when an invalid curve swap is provided
+    /// @param curveSwap The invalid curve swap address
+    error InvalidCurveSwap(address curveSwap);
+
     constructor(
         address _curveSwap,
         address _baseToken,
@@ -49,8 +53,16 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
             _basePrice
         )
     {
+        if (_curveSwap == address(0)) {
+            revert InvalidCurveSwap(_curveSwap);
+        }
         curveSwap = ICurveSwap(_curveSwap);
         if (_baseToken == address(0)) {
+            revert InvalidBaseToken(_baseToken);
+        }
+        if (
+            _baseToken != curveSwap.coins(0) && _baseToken != curveSwap.coins(1)
+        ) {
             revert InvalidBaseToken(_baseToken);
         }
         baseToken = _baseToken;

@@ -20,7 +20,7 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
+import {console} from "forge-std/console.sol";
 interface IERC20Extended is IERC20 {
     function decimals() external view returns (uint8);
 }
@@ -81,6 +81,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
     Percentage public constant MAX_SLIPPAGE_PERCENTAGE = PERCENTAGE_100;
     uint256 public constant MIN_ORACLE_DURATION = 15 minutes;
+    uint256 public constant MAX_ORACLE_DURATION = 1 hours;
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
@@ -162,8 +163,16 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         uint32 oracleDuration,
         uint256 minOracleDuration
     );
+    error OracleDurationTooHigh(
+        uint32 oracleDuration,
+        uint256 maxOracleDuration
+    );
     error InvalidAssetForSY();
-
+    error InvalidRouterAddress(address router);
+    error InvalidOracleAddress(address oracle);
+    error InvalidMarketAddress(address market);
+    error InvalidAsset(address asset);
+    error InvalidAmount();
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -188,8 +197,17 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             _curveSwapArkConstructorParams.basePrice
         )
     {
+        if (_pendlePtArkConstructorParams.router == address(0)) {
+            revert InvalidRouterAddress(_pendlePtArkConstructorParams.router);
+        }
         router = _pendlePtArkConstructorParams.router;
+        if (_pendlePtArkConstructorParams.oracle == address(0)) {
+            revert InvalidOracleAddress(_pendlePtArkConstructorParams.oracle);
+        }
         oracle = _pendlePtArkConstructorParams.oracle;
+        if (_pendlePtArkConstructorParams.market == address(0)) {
+            revert InvalidMarketAddress(_pendlePtArkConstructorParams.market);
+        }
         market = _pendlePtArkConstructorParams.market;
 
         oracleDuration = 30 minutes;
@@ -399,6 +417,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (_oracleDuration < MIN_ORACLE_DURATION) {
             revert OracleDurationTooLow(_oracleDuration, MIN_ORACLE_DURATION);
         }
+        if (_oracleDuration > MAX_ORACLE_DURATION) {
+            revert OracleDurationTooHigh(_oracleDuration, MAX_ORACLE_DURATION);
+        }
         oracleDuration = _oracleDuration;
         emit OracleDurationUpdated(_oracleDuration);
     }
@@ -408,8 +429,8 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Internal function to swap market asset for Principal Tokens (PT)
-     * @param _amount Amount of market asset to swap
+     * @notice Internal function to swap fleet asset for Principal Tokens (PT)
+     * @param _amount Amount of fleet asset to swap for PT
      * @param data Additional data for the swap
      * @dev This function is called during the boarding process
      */
@@ -431,6 +452,10 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             LimitOrderData memory limit
         ) = this.validateAndDecodeSwapForPtParams(boardData.swapForPtParams);
 
+        if (input.tokenIn != address(config.asset))
+            revert InvalidAsset(address(config.asset));
+        if (input.netTokenIn != _amount) revert InvalidAmount();
+
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
         IERC20(config.asset).approve(address(router), _amount);
@@ -445,8 +470,8 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     }
 
     /**
-     * @notice Internal function to swap Principal Tokens (PT) for market asset
-     * @param _amount Amount of PT to swap
+     * @notice Internal function to swap Principal Tokens (PT) for fleet asset
+     * @param _amount Minimum amount of fleet asset to receive from swap
      * @param data Additional data for the swap
      * @dev This function is called during the disembarking process
      */
@@ -470,6 +495,19 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
         if (_amount < output.minTokenOut) revert InsufficientOutputAmount();
+        if (output.tokenOut != address(config.asset))
+            revert InvalidAsset(address(config.asset));
+
+        uint256 expectedPtAmount = _fleetAssetToPt(_amount);
+        uint256 minPtAmount = expectedPtAmount.subtractPercentage(
+            slippagePercentage
+        );
+        uint256 maxPtAmount = expectedPtAmount.addPercentage(
+            slippagePercentage
+        );
+
+        if (exactPtIn < minPtAmount || exactPtIn > maxPtAmount)
+            revert InvalidAmount();
 
         IERC20(PT).approve(address(router), exactPtIn);
         IPAllActionV3(router).swapExactPtForToken(
@@ -596,6 +634,21 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     function _marketAssetToPt(uint256 amount) internal view returns (uint256) {
         uint256 scaleFactor = 10 ** (18 + ptDecimals - marketAssetDecimals);
         return (amount * scaleFactor) / _ptToMarketAssetRate();
+    }
+
+    /**
+     * @notice Converts fleet asset amount to PT amount
+     * @param fleetAssetAmount Amount of fleet assets to convert
+     * @return ptAmount The equivalent amount of Principal Tokens
+     */
+    function _fleetAssetToPt(
+        uint256 fleetAssetAmount
+    ) internal view returns (uint256) {
+        uint256 marketAssetToArkTokenExchangeRate = getSafeExchangeRateEma();
+        uint256 marketAssetAmount = (fleetAssetAmount *
+            marketAssetToArkTokenExchangeRate) / (10 ** configTokenDecimals);
+
+        return _marketAssetToPt(marketAssetAmount);
     }
 
     /**
