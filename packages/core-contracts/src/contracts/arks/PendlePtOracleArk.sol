@@ -458,7 +458,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
-        IERC20(config.asset).approve(address(router), _amount);
+        IERC20(config.asset).approve(router, _amount);
         IPAllActionV3(router).swapExactTokenForPt(
             receiver,
             swapMarket,
@@ -509,7 +509,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (exactPtIn < minPtAmount || exactPtIn > maxPtAmount)
             revert InvalidAmount();
 
-        IERC20(PT).approve(address(router), exactPtIn);
+        IERC20(PT).approve(router, exactPtIn);
         IPAllActionV3(router).swapExactPtForToken(
             receiver,
             swapMarket,
@@ -606,8 +606,8 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         (SY, PT, YT) = IPMarketV3(newMarket).readTokens();
 
         if (
-            !IStandardizedYield(SY).isValidTokenIn(address(marketAsset)) ||
-            !IStandardizedYield(SY).isValidTokenOut(address(marketAsset))
+            !IStandardizedYield(SY).isValidTokenIn(marketAsset) ||
+            !IStandardizedYield(SY).isValidTokenOut(marketAsset)
         ) {
             revert InvalidAssetForSY();
         }
@@ -668,7 +668,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             swapData: emptySwap
         });
 
-        IERC20(marketAsset).approve(address(router), _amount);
+        IERC20(marketAsset).approve(router, _amount);
         IPAllActionV3(router).swapExactTokenForPt(
             address(this),
             market,
@@ -725,7 +725,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         uint256 minTokenOut
     ) internal {
         if (ptAmount > 0) {
-            IERC20(PT).approve(address(router), ptAmount);
+            IERC20(PT).approve(router, ptAmount);
             IPAllActionV3(router).redeemPyToSy(
                 address(this),
                 address(YT),
@@ -737,13 +737,13 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         uint256 syBalance = IERC20(SY).balanceOf(address(this));
         if (syBalance > 0) {
             uint256 tokensToRedeem = IStandardizedYield(SY).previewRedeem(
-                address(marketAsset),
+                marketAsset,
                 syBalance
             );
             IStandardizedYield(SY).redeem(
                 address(this),
                 syBalance,
-                address(marketAsset),
+                marketAsset,
                 tokensToRedeem,
                 false
             );
