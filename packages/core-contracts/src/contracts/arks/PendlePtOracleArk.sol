@@ -20,7 +20,7 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
+
 interface IERC20Extended is IERC20 {
     function decimals() external view returns (uint8);
 }
@@ -528,7 +528,6 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @param data Additional data for boarding
      */
     function _board(uint256 amount, bytes calldata data) internal override {
-        console.log("marketExpiry xx", marketExpiry);
         _rolloverIfNeeded();
         _swapFleetAssetForPt(amount, data);
     }
@@ -784,11 +783,8 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * current block timestamp.
      */
     modifier shouldBuy() {
-        console.log("marketExpiry xx", marketExpiry);
         _shouldTrade();
-        console.log("block.timestamp", block.timestamp);
         if (marketExpiry <= block.timestamp + 20 days) {
-            console.log("Market expiration is too close");
             revert MarketExpirationTooClose();
         }
         _;
