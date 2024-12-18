@@ -251,7 +251,8 @@ contract TipJar is
 
         uint256 shares = fleetCommander.balanceOf(address(this));
         if (shares == 0) {
-            revert NoSharesToRedeem();
+            emit TipJarShaken(address(fleetCommander), 0);
+            return;
         }
 
         uint256 withdrawnAssets = fleetCommander.redeem(
@@ -261,7 +262,8 @@ contract TipJar is
         );
 
         if (withdrawnAssets == 0) {
-            revert NoAssetsToDistribute();
+            emit TipJarShaken(address(fleetCommander), 0);
+            return;
         }
 
         IERC20 underlyingAsset = IERC20(fleetCommander.asset());

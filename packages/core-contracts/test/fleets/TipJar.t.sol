@@ -455,7 +455,7 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(fromPercentage(totalAllocation), 45);
     }
 
-    function test_FailShakeWithNoShares() public {
+    function test_ShakeWithNoShares() public {
         // Ensure the TipJar has no assets in the FleetCommander
         assertEq(
             fleetCommander.convertToAssets(
@@ -464,14 +464,16 @@ contract TipJarTest is Test, ITipJarEvents {
             0
         );
 
-        vm.expectRevert(abi.encodeWithSignature("NoSharesToRedeem()"));
+        vm.expectEmit(true, true, true, true);
+        emit TipJarShaken(address(fleetCommander), 0);
         tipJar.shake(address(fleetCommander));
     }
 
-    function test_FailShakeWithNoAssets() public {
+    function test_ShakeWithNoAssets() public {
         fleetCommander.testMint(address(tipJar), 1 ether);
 
-        vm.expectRevert(abi.encodeWithSignature("NoAssetsToDistribute()"));
+        vm.expectEmit(true, true, true, true);
+        emit TipJarShaken(address(fleetCommander), 0);
         tipJar.shake(address(fleetCommander));
     }
 

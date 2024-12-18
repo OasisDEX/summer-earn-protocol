@@ -45,16 +45,6 @@ interface ITipJarErrors {
     error TipStreamLocked(address recipient);
 
     /**
-     * @notice Thrown when attempting to redeem shares when there are none available.
-     */
-    error NoSharesToRedeem();
-
-    /**
-     * @notice Thrown when attempting to distribute assets when there are none available.
-     */
-    error NoAssetsToDistribute();
-
-    /**
      * @notice Thrown when an invalid treasury address is provided.
      */
     error InvalidTreasuryAddress();
