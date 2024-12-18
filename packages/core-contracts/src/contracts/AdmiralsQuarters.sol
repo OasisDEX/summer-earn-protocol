@@ -200,12 +200,10 @@ contract AdmiralsQuarters is
         uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) external onlyMulticall nonReentrant returns (uint256 swappedAmount) {
-        if (
-            address(fromToken) == address(0) || address(toToken) == address(0)
-        ) {
-            revert InvalidToken();
-        }
-        if (assets == 0) revert ZeroAmount();
+        _validateToken(fromToken);
+        _validateToken(toToken);
+        _validateAmount(assets);
+
         if (address(fromToken) == address(toToken)) {
             revert AssetMismatch();
         }
