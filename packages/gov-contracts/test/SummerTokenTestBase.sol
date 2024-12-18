@@ -19,6 +19,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {MockSummerGovernor} from "./MockSummerGovernor.sol";
 import {SummerVestingWalletFactory} from "../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerTimelockController} from "../src/contracts/SummerTimelockController.sol";
+
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
 

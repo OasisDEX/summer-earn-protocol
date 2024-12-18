@@ -26,6 +26,9 @@ contract SummerVestingWallet is
     /// @dev Duration of the cliff period in seconds
     uint256 private constant CLIFF = 180 days;
 
+    /// @dev Duration of the vesting period in seconds
+    uint64 private constant DURATION_SECONDS = 730 days; // 2 years for both vesting types
+
     /// @inheritdoc ISummerVestingWallet
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
@@ -48,6 +51,9 @@ contract SummerVestingWallet is
     // Time-based vesting amount
     uint256 public timeBasedVestingAmount;
 
+    /// @dev The total amount of performance-based tokens (cached)
+    uint256 private _totalPerformanceTokens;
+
     //////////////////////////////////////////////
     ///              CONSTRUCTOR               ///
     //////////////////////////////////////////////
@@ -56,7 +62,6 @@ contract SummerVestingWallet is
      * @dev Constructor that sets up the vesting wallet with a specific vesting type
      * @param beneficiaryAddress Address of the beneficiary to whom vested tokens are transferred
      * @param startTimestamp Unix timestamp marking the start of the vesting period
-     * @param durationSeconds Duration of the vesting period in seconds
      * @param vestingType Type of vesting schedule (0 for TeamVesting, 1 for InvestorExTeamVesting)
      * @param guardianAddress Address to be granted the guardian role
      * @param _goalAmounts Array of goal amounts for performance-based vesting
@@ -65,17 +70,28 @@ contract SummerVestingWallet is
         address _token,
         address beneficiaryAddress,
         uint64 startTimestamp,
-        uint64 durationSeconds,
         VestingType vestingType,
         uint256 _timeBasedVestingAmount,
         uint256[] memory _goalAmounts,
         address guardianAddress
-    ) VestingWallet(beneficiaryAddress, startTimestamp, durationSeconds) {
+    ) VestingWallet(beneficiaryAddress, startTimestamp, DURATION_SECONDS) {
         _vestingType = vestingType;
         timeBasedVestingAmount = _timeBasedVestingAmount;
-        goalAmounts = _goalAmounts;
-        goalsReached = new bool[](_goalAmounts.length);
+        if (_vestingType == VestingType.TeamVesting) {
+            for (uint256 i = 0; i < _goalAmounts.length; i++) {
+                _addNewGoal(_goalAmounts[i]);
+            }
+        } else if (
+            _goalAmounts.length > 0 &&
+            _vestingType != VestingType.InvestorExTeamVesting
+        ) {
+            revert OnlyTeamVesting();
+        }
         token = _token;
+
+        if (token == address(0)) {
+            revert InvalidToken(_token);
+        }
 
         _grantRole(GUARDIAN_ROLE, guardianAddress);
     }
@@ -95,14 +111,23 @@ contract SummerVestingWallet is
 
     /// @inheritdoc ISummerVestingWallet
     function addNewGoal(uint256 goalAmount) external onlyRole(GUARDIAN_ROLE) {
-        goalAmounts.push(goalAmount);
-        goalsReached.push(false);
+        if (_vestingType != VestingType.TeamVesting) {
+            revert OnlyTeamVesting();
+        }
+        _addNewGoal(goalAmount);
         SafeERC20.safeTransferFrom(
             IERC20(token),
             msg.sender,
             address(this),
             goalAmount
         );
+    }
+
+    function _addNewGoal(uint256 goalAmount) internal {
+        _totalPerformanceTokens += goalAmount;
+        goalAmounts.push(goalAmount);
+        goalsReached.push(false);
+        emit NewGoalAdded(goalAmount, goalAmounts.length);
     }
 
     /// @inheritdoc ISummerVestingWallet
@@ -113,6 +138,7 @@ contract SummerVestingWallet is
             revert InvalidGoalNumber();
         }
         goalsReached[goalNumber - 1] = true;
+        emit GoalReached(goalNumber);
     }
 
     /// @inheritdoc ISummerVestingWallet
@@ -121,7 +147,16 @@ contract SummerVestingWallet is
             revert OnlyTeamVesting();
         }
         uint256 unvestedPerformanceTokens = _calculateUnvestedPerformanceTokens();
+
+        for (uint256 i = 0; i < goalAmounts.length; i++) {
+            if (!goalsReached[i]) {
+                _totalPerformanceTokens -= goalAmounts[i];
+                goalAmounts[i] = 0;
+            }
+        }
+
         IERC20(token).transfer(msg.sender, unvestedPerformanceTokens);
+        emit UnvestedTokensRecalled(unvestedPerformanceTokens);
     }
 
     //////////////////////////////////////////////
@@ -135,13 +170,15 @@ contract SummerVestingWallet is
      * @return uint256 The amount of tokens already vested
      * @custom:override Overrides the _vestingSchedule function from VestingWallet
      * @custom:internal-logic
-     * - Checks if the timestamp is before the start of vesting, after the end, or during the vesting period
-     * - Combines time-based and performance-based vesting calculations
+     * - Checks if the timestamp is before the start of vesting
+     * - Combines time-based vesting (capped at timeBasedVestingAmount) and performance-based vesting (only for reached goals)
+     * - Performance goals must be explicitly marked as reached to vest, regardless of time elapsed
      * @custom:effects
      * - Does not modify any state, view function only
      * @custom:security-considerations
      * - Ensure that the totalAllocation parameter accurately reflects the total vesting amount
-     * - The function assumes that start() and duration() are correctly set
+     * - The function assumes that start() is correctly set
+     * - Performance-based tokens never vest unless their goals are explicitly reached
      * @custom:gas-considerations
      * - This function calls two other internal functions, which may impact gas usage
      * - Consider gas costs when frequently querying vested amounts
@@ -150,15 +187,12 @@ contract SummerVestingWallet is
         uint256 totalAllocation,
         uint64 timestamp
     ) internal view override returns (uint256) {
-        if (timestamp < start()) {
+        if (timestamp < start() + CLIFF) {
             return 0;
-        } else if (timestamp > start() + duration()) {
-            return totalAllocation;
-        } else {
-            uint256 timeBasedVested = _calculateTimeBasedVesting(timestamp);
-            uint256 performanceBasedVested = _calculatePerformanceBasedVesting();
-            return timeBasedVested + performanceBasedVested;
         }
+        uint256 timeBasedVested = _calculateTimeBasedVesting(timestamp);
+        uint256 performanceBasedVested = _calculatePerformanceBasedVesting();
+        return timeBasedVested + performanceBasedVested;
     }
 
     //////////////////////////////////////////////
@@ -185,13 +219,7 @@ contract SummerVestingWallet is
     function _calculateTimeBasedVesting(
         uint64 timestamp
     ) private view returns (uint256) {
-        if (timestamp < start() + CLIFF) {
-            return 0;
-        }
-        uint256 quartersDuringCliff = (CLIFF) / QUARTER;
-        uint256 elapsedQuarters = (timestamp - start() - CLIFF) /
-            QUARTER +
-            quartersDuringCliff;
+        uint256 elapsedQuarters = (timestamp - start()) / QUARTER;
         return (timeBasedVestingAmount * elapsedQuarters) / 8;
     }
 
@@ -210,12 +238,13 @@ contract SummerVestingWallet is
         view
         returns (uint256)
     {
-        uint256 totalPerformanceTokens = 0;
+        uint256 unvestedAmount = 0;
         for (uint256 i = 0; i < goalAmounts.length; i++) {
-            totalPerformanceTokens += goalAmounts[i];
+            if (!goalsReached[i]) {
+                unvestedAmount += goalAmounts[i];
+            }
         }
-        uint256 vestedPerformanceTokens = _calculatePerformanceBasedVesting();
-        return totalPerformanceTokens - vestedPerformanceTokens;
+        return unvestedAmount;
     }
 
     /**

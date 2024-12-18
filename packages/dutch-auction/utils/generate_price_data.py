@@ -11,8 +11,8 @@ def calculate_linear_price(time_elapsed):
     price_difference = START_PRICE - END_PRICE
     return START_PRICE - (price_difference * time_elapsed) // AUCTION_DURATION
 
-# Function to calculate exponential decay price
-def calculate_exponential_price(time_elapsed):
+# Function to calculate quadratic decay price
+def calculate_quadratic_price(time_elapsed):
     price_difference = START_PRICE - END_PRICE
     return END_PRICE + (price_difference * (AUCTION_DURATION - time_elapsed) ** 2) // AUCTION_DURATION ** 2
 
@@ -23,12 +23,12 @@ def generate_price_data(num_intervals):
     intervals = generate_intervals(num_intervals)
     price_data = {
         "linear": {},
-        "exponential": {}
+        "quadratic": {}
     }
 
     for time in intervals:
         price_data["linear"][time] = int(calculate_linear_price(time))
-        price_data["exponential"][time] = int(calculate_exponential_price(time))
+        price_data["quadratic"][time] = int(calculate_quadratic_price(time))
 
     return price_data
 
@@ -39,18 +39,18 @@ def write_price_data_to_json(price_data, filename='expected_prices.json'):
 def plot_price_decays(price_data):
     intervals = list(price_data["linear"].keys())
     linear_prices = list(price_data["linear"].values())
-    exponential_prices = list(price_data["exponential"].values())
+    quadratic_prices = list(price_data["quadratic"].values())
 
     # Convert prices from Wei to Ether for easier visualization
     linear_prices_ether = [price / 10**18 for price in linear_prices]
-    exponential_prices_ether = [price / 10**18 for price in exponential_prices]
+    quadratic_prices_ether = [price / 10**18 for price in quadratic_prices]
 
     # Convert time from seconds to hours for better readability
     intervals_hours = [t / 3600 for t in intervals]
 
     plt.figure(figsize=(10, 6))
     plt.plot(intervals_hours, linear_prices_ether, label="Linear Decay", marker='o')
-    plt.plot(intervals_hours, exponential_prices_ether, label="Exponential Decay", marker='x')
+    plt.plot(intervals_hours, quadratic_prices_ether, label="Quadratic Decay", marker='x')
     
     plt.title("Price Decay in Dutch Auction")
     plt.xlabel("Time (hours)")

@@ -14,6 +14,18 @@ interface IGovernanceRewardsManager is
     IGovernanceRewardsManagerErrors
 {
     /**
+     * @notice Emitted when unstakeAndWithdrawOnBehalfOf is called (operation not supported)
+     * @param owner The address that owns the staked tokens
+     * @param receiver The address that would have received the unstaked tokens
+     * @param amount The amount of tokens that was attempted to be unstaked
+     */
+    event UnstakeOnBehalfOfIgnored(
+        address indexed owner,
+        address indexed receiver,
+        uint256 amount
+    );
+
+    /**
      * @notice Returns the balance of staked tokens for an account
      * @param account The address of the staker
      * @return The amount of tokens staked by the account

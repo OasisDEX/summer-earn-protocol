@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@summerfi/access-contracts": "workspace:*",
+    "@summerfi/constants": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
     "@summerfi/voting-decay": "workspace:*"
   }

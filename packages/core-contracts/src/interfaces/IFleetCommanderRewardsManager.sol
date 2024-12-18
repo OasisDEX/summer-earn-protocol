@@ -26,4 +26,7 @@ interface IFleetCommanderRewardsManager is IStakingRewardsManagerBase {
      * someone other than msg.sender
      */
     error InvalidUnstakeRecipient();
+
+    /* @notice Thrown when trying to add a staking token as a reward token */
+    error CantAddStakingTokenAsReward();
 }

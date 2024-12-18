@@ -55,7 +55,7 @@ library DutchAuctionMath {
     }
 
     /**
-     * @notice Calculates the current price based on exponential decay
+     * @notice Calculates the current price based on quadratic decay
      * @dev The price decreases exponentially from startPrice to endPrice over the duration
      * @param startPrice The starting price of the auction
      * @param endPrice The ending price of the auction
@@ -63,7 +63,7 @@ library DutchAuctionMath {
      * @param totalDuration The total duration of the auction
      * @param priceDecimals The number of decimals for the price values
      * @param resultDecimals The desired number of decimals for the result
-     * @return The current price based on exponential decay
+     * @return The current price based on quadratic decay
      *
      * @dev Process:
      * 1. Convert start and end prices to 18 decimals for precise calculation

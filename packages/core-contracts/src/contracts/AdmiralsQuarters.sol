@@ -108,19 +108,15 @@ contract AdmiralsQuarters is
     /// @inheritdoc IAdmiralsQuarters
     function enterFleet(
         address fleetCommander,
-        IERC20 inputToken,
         uint256 assets,
         address receiver
     ) external onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
-        _validateToken(inputToken);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         IERC20 fleetAsset = IERC20(fleet.asset());
 
-        if (address(inputToken) != address(fleetAsset)) revert TokenMismatch();
-
-        uint256 balance = inputToken.balanceOf(address(this));
+        uint256 balance = fleetAsset.balanceOf(address(this));
         assets = assets == 0 ? balance : assets;
         receiver = receiver == address(0) ? _msgSender() : receiver;
         if (assets > balance) revert InsufficientOutputAmount();
@@ -156,7 +152,6 @@ contract AdmiralsQuarters is
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         address rewardsManager = fleet.getConfig().stakingRewardsManager;
-        _validateRewardsManager(rewardsManager);
 
         uint256 balance = IERC20(fleetCommander).balanceOf(address(this));
         shares = shares == 0 ? balance : shares;
@@ -173,27 +168,21 @@ contract AdmiralsQuarters is
 
     function unstakeAndWithdrawAssets(
         address fleetCommander,
-        uint256 shares
+        uint256 shares,
+        bool claimRewards
     ) external onlyMulticall nonReentrant {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
         address rewardsManager = fleet.getConfig().stakingRewardsManager;
-        _validateRewardsManager(rewardsManager);
 
         shares = shares == 0
             ? IFleetCommanderRewardsManager(rewardsManager).balanceOf(
                 _msgSender()
             )
             : shares;
-        // Pass _msgSender() as onBehalfOf to ensure we can only unstake for the caller
-        // unstake to admirals quarters
-        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
-            _msgSender(),
-            address(this),
-            shares
-        );
-        fleet.withdraw(Constants.MAX_UINT256, _msgSender(), address(this));
+        IFleetCommanderRewardsManager(rewardsManager)
+            .unstakeAndWithdrawOnBehalfOf(_msgSender(), shares, claimRewards);
 
         emit FleetSharesUnstaked(_msgSender(), fleetCommander, shares);
     }
@@ -206,12 +195,10 @@ contract AdmiralsQuarters is
         uint256 minTokensReceived,
         bytes calldata swapCalldata
     ) external onlyMulticall nonReentrant returns (uint256 swappedAmount) {
-        if (
-            address(fromToken) == address(0) || address(toToken) == address(0)
-        ) {
-            revert InvalidToken();
-        }
-        if (assets == 0) revert ZeroAmount();
+        _validateToken(fromToken);
+        _validateToken(toToken);
+        _validateAmount(assets);
+
         if (address(fromToken) == address(toToken)) {
             revert AssetMismatch();
         }
@@ -272,16 +259,11 @@ contract AdmiralsQuarters is
         uint256 shares
     ) external onlyMulticall nonReentrant {
         IERC4626 vaultToken = IERC4626(vault);
-        IERC20 underlying = IERC20(vaultToken.asset());
 
         // Get actual shares if 0 was passed
         shares = shares == 0 ? vaultToken.balanceOf(_msgSender()) : shares;
 
-        uint256 underlyingAmount = vaultToken.redeem(
-            shares,
-            address(this),
-            _msgSender()
-        );
+        vaultToken.redeem(shares, address(this), _msgSender());
 
         emit ERC4626PositionImported(_msgSender(), vault, shares);
     }
@@ -336,11 +318,7 @@ contract AdmiralsQuarters is
         if (amount == 0) revert ZeroAmount();
     }
 
-    function _validateRewardsManager(address rewardsManager) internal pure {
-        if (rewardsManager == address(0)) revert InvalidRewardsManager();
-    }
     /// @inheritdoc IAdmiralsQuarters
-
     function rescueTokens(
         IERC20 token,
         address to,

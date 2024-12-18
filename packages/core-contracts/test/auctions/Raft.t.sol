@@ -716,7 +716,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             startPrice: 2e18,
             endPrice: 2,
             kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(10),
-            decayType: DecayFunctions.DecayType.Exponential
+            decayType: DecayFunctions.DecayType.Quadratic
         });
 
         vm.prank(governor);

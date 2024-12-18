@@ -207,7 +207,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
             startPrice: 2e18,
             endPrice: 5e17,
             kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(5),
-            decayType: DecayFunctions.DecayType.Exponential
+            decayType: DecayFunctions.DecayType.Quadratic
         });
 
         vm.prank(governor);
