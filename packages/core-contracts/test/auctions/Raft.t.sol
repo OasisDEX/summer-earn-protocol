@@ -121,7 +121,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
 
         assertEq(
-            raftContract.getObtainedTokens(
+            raftContract.obtainedTokens(
                 address(mockArk1),
                 address(mockRewardToken)
             ),
@@ -827,28 +827,30 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
     }
 
-    function test_GetAuctionInfo() public {
+    function test_auctions() public {
         // Setup the auction
         _setupAuction();
 
         // Get the auction info
-        DutchAuctionLibrary.Auction memory auctionInfo = raftContract
-            .getAuctionInfo(address(mockArk1), address(mockRewardToken));
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory state
+        ) = raftContract.auctions(address(mockArk1), address(mockRewardToken));
 
         // Verify the auction config
-        assertEq(auctionInfo.config.id, 1, "Auction ID should be 1");
+        assertEq(config.id, 1, "Auction ID should be 1");
         assertEq(
-            address(auctionInfo.config.auctionToken),
+            address(config.auctionToken),
             address(mockRewardToken),
             "Auction token should be mockRewardToken"
         );
         assertEq(
-            address(auctionInfo.config.paymentToken),
+            address(config.paymentToken),
             address(mockPaymentToken),
             "Payment token should be mockPaymentToken"
         );
         assertEq(
-            auctionInfo.config.totalTokens,
+            config.totalTokens,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -856,44 +858,37 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             "Total tokens should be correct"
         );
         assertEq(
-            auctionInfo.config.startTime,
+            config.startTime,
             block.timestamp,
             "Start time should be current block timestamp"
         );
         assertEq(
-            auctionInfo.config.endTime,
+            config.endTime,
             block.timestamp + AUCTION_DURATION,
             "End time should be start time + duration"
         );
         assertEq(
-            auctionInfo.config.startPrice,
+            config.startPrice,
             START_PRICE,
             "Start price should be correct"
         );
+        assertEq(config.endPrice, END_PRICE, "End price should be correct");
         assertEq(
-            auctionInfo.config.endPrice,
-            END_PRICE,
-            "End price should be correct"
-        );
-        assertEq(
-            uint8(auctionInfo.config.decayType),
+            uint8(config.decayType),
             uint8(DecayFunctions.DecayType.Linear),
             "Decay type should be Linear"
         );
 
         // Verify the auction state
         assertEq(
-            auctionInfo.state.remainingTokens,
+            state.remainingTokens,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
                 ),
             "Remaining tokens should be total tokens"
         );
-        assertFalse(
-            auctionInfo.state.isFinalized,
-            "Auction should not be finalized"
-        );
+        assertFalse(state.isFinalized, "Auction should not be finalized");
 
         // Buy some tokens
         uint256 buyAmount = 1000;
@@ -913,14 +908,14 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.stopPrank();
 
         // Get the updated auction info
-        auctionInfo = raftContract.getAuctionInfo(
+        (config, state) = raftContract.auctions(
             address(mockArk1),
             address(mockRewardToken)
         );
 
         // Verify the updated state
         assertEq(
-            auctionInfo.state.remainingTokens,
+            state.remainingTokens,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -928,10 +923,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
                 buyAmount,
             "Remaining tokens should be updated"
         );
-        assertFalse(
-            auctionInfo.state.isFinalized,
-            "Auction should still not be finalized"
-        );
+        assertFalse(state.isFinalized, "Auction should still not be finalized");
 
         // Finalize the auction
         vm.warp(block.timestamp + AUCTION_DURATION + 1);
@@ -941,16 +933,13 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
 
         // Get the final auction info
-        auctionInfo = raftContract.getAuctionInfo(
+        (config, state) = raftContract.auctions(
             address(mockArk1),
             address(mockRewardToken)
         );
 
         // Verify the final state
-        assertTrue(
-            auctionInfo.state.isFinalized,
-            "Auction should be finalized"
-        );
+        assertTrue(state.isFinalized, "Auction should be finalized");
     }
 
     function _setupAuction() internal {
@@ -1134,14 +1123,14 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         // Verify that obtainedTokens are reset after starting the auction
         assertEq(
-            raftContract.getObtainedTokens(
+            raftContract.obtainedTokens(
                 address(mockArk1),
                 address(mockRewardToken)
             ),
             0
         );
         assertEq(
-            raftContract.getObtainedTokens(
+            raftContract.obtainedTokens(
                 address(mockArk1),
                 address(mockRewardToken2)
             ),

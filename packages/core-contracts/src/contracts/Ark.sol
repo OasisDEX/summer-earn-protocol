@@ -103,10 +103,7 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
         );
 
         if (asset.balanceOf(address(this)) > 0 && address(this) != bufferArk) {
-            asset.forceApprove(
-                bufferArk,
-                config.asset.balanceOf(address(this))
-            );
+            asset.forceApprove(bufferArk, asset.balanceOf(address(this)));
             IArk(bufferArk).board(asset.balanceOf(address(this)), bytes(""));
         }
         for (uint256 i = 0; i < tokens.length; i++) {

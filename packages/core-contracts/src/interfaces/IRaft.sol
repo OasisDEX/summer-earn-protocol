@@ -88,23 +88,6 @@ interface IRaft is IRaftEvents, IRaftErrors {
     ) external;
 
     /**
-     * @dev Retrieves the amount of harvested rewards for a specific Ark and reward token
-     * @param ark The address of the Ark contract
-     * @param rewardToken The address of the reward token
-     * @return The amount of harvested rewards for the specified Ark and token
-     * @custom:internal-logic
-     * - Retrieves the value from the obtainedTokens mapping
-     * @custom:effects
-     * - No state changes (view function)
-     * @custom:security-considerations
-     * - Ensure the returned data doesn't expose sensitive information
-     */
-    function getObtainedTokens(
-        address ark,
-        address rewardToken
-    ) external view returns (uint256);
-
-    /**
      * @dev Starts a Dutch auction for the harvested rewards of a specific Ark and reward token
      * @param ark The address of the Ark contract
      * @param rewardToken The address of the reward token to be auctioned
@@ -163,23 +146,6 @@ interface IRaft is IRaftEvents, IRaftErrors {
      * - Handle potential edge cases with unsold tokens
      */
     function finalizeAuction(address ark, address rewardToken) external;
-
-    /**
-     * @dev Retrieves information about a specific auction
-     * @param ark The address of the Ark contract
-     * @param rewardToken The address of the reward token
-     * @return The Auction struct containing auction details
-     * @custom:internal-logic
-     * - Retrieves the auction data from the auctions mapping
-     * @custom:effects
-     * - No state changes (view function)
-     * @custom:security-considerations
-     * - Ensure the returned data doesn't expose sensitive information
-     */
-    function getAuctionInfo(
-        address ark,
-        address rewardToken
-    ) external view returns (DutchAuctionLibrary.Auction memory);
 
     /**
      * @dev Gets the current price of tokens in an ongoing auction
