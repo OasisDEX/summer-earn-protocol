@@ -728,26 +728,18 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     ) internal {
         if (ptAmount > 0) {
             IERC20(PT).approve(router, ptAmount);
-            IPAllActionV3(router).redeemPyToSy(
+            TokenOutput memory tokenOutput = TokenOutput({
+                tokenOut: address(marketAsset),
+                minTokenOut: minTokenOut,
+                tokenRedeemSy: address(marketAsset),
+                pendleSwap: address(0),
+                swapData: emptySwap
+            });
+            IPAllActionV3(router).redeemPyToToken(
                 address(this),
                 address(YT),
                 ptAmount,
-                minTokenOut
-            );
-        }
-
-        uint256 syBalance = IERC20(SY).balanceOf(address(this));
-        if (syBalance > 0) {
-            uint256 tokensToRedeem = IStandardizedYield(SY).previewRedeem(
-                marketAsset,
-                syBalance
-            );
-            IStandardizedYield(SY).redeem(
-                address(this),
-                syBalance,
-                marketAsset,
-                tokensToRedeem,
-                false
+                tokenOutput
             );
         }
     }
