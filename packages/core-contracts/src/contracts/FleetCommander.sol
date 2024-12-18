@@ -684,8 +684,7 @@ contract FleetCommander is
         RebalanceData[] calldata rebalanceData
     ) internal view {
         uint256 initialBufferBalance = config.bufferArk.totalAssets();
-        uint256 totalToMoveFromBuffer;
-        uint256 totalToMoveToBuffer;
+        int256 netBufferChange;
         address _bufferArkAddress = address(config.bufferArk);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
             if (
@@ -702,17 +701,16 @@ contract FleetCommander is
                     amount = IArk(rebalanceData[i].fromArk).totalAssets();
                 }
                 if (isMovingToBuffer) {
-                    totalToMoveToBuffer += amount;
+                    netBufferChange += int256(amount);
                 } else {
-                    totalToMoveFromBuffer += amount;
+                    netBufferChange -= int256(amount);
                 }
             }
         }
-
-        if (totalToMoveFromBuffer > totalToMoveToBuffer) {
+        if (netBufferChange < 0) {
             _validateBufferExcessFunds(
                 initialBufferBalance,
-                totalToMoveFromBuffer - totalToMoveToBuffer
+                uint256(-netBufferChange)
             );
         }
     }
