@@ -177,7 +177,8 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     /**
      * @notice Internal function to get the total assets that are withdrawable
      * @dev This function should be implemented by derived contracts to define specific withdrawability logic
-     * @dev The Ark is withdrawable if it doesnt require keeper data and _withdrawableTotalAssets returns a non-zero value
+     * @dev The Ark is withdrawable if it doesnt require keeper data and _withdrawableTotalAssets returns a non-zero
+     * value
      * @return uint256 The total assets that are withdrawable
      */
     function _withdrawableTotalAssets() internal view virtual returns (uint256);

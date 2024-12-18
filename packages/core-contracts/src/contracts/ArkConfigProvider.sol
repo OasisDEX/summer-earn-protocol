@@ -18,7 +18,6 @@ import {Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contrac
  * @dev Inherits from IArkConfigProvider, ArkAccessManaged, and ConfigurationManaged.
  * @custom:see IArkConfigProvider
  */
-
 abstract contract ArkConfigProvider is
     IArkConfigProvider,
     ArkAccessManaged,

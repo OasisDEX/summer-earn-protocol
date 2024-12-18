@@ -12,15 +12,17 @@ import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+
+import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage, fromPercentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-
 /**
  * @title TipJar
  * @notice Manages tip streams for distributing rewards from FleetCommanders
  * @dev Implements ITipJar interface and inherits from ProtocolAccessManaged and ConfigurationManaged
  * @custom:see ITipJar
  */
+
 contract TipJar is
     ITipJar,
     ProtocolAccessManaged,
@@ -256,7 +258,7 @@ contract TipJar is
         }
 
         uint256 withdrawnAssets = fleetCommander.redeem(
-            type(uint256).max,
+            Constants.MAX_UINT256,
             address(this),
             address(this)
         );

@@ -119,7 +119,7 @@ contract AaveV3Ark is Ark {
 
         rewardAmounts[0] = rewardsController.claimRewardsToSelf(
             incentivizedAssets,
-            type(uint256).max,
+            Constants.MAX_UINT256,
             rewardsData.rewardToken
         );
         IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
@@ -159,6 +159,7 @@ contract AaveV3Ark is Ark {
     function _isActive(uint256 configData) internal pure returns (bool) {
         return configData & ~Constants.ACTIVE_MASK != 0;
     }
+
     function _isPaused(uint256 configData) internal pure returns (bool) {
         return configData & ~Constants.PAUSED_MASK != 0;
     }

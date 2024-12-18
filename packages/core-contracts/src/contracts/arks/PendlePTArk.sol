@@ -61,9 +61,9 @@ contract PendlePTArk is BasePendleArk {
      * @notice Set up token approvals for Pendle interactions
      */
     function _setupApprovals() internal override {
-        config.asset.forceApprove(address(router), type(uint256).max);
-        IERC20(SY).forceApprove(router, type(uint256).max);
-        IERC20(PT).forceApprove(router, type(uint256).max);
+        config.asset.forceApprove(address(router), Constants.MAX_UINT256);
+        IERC20(SY).forceApprove(router, Constants.MAX_UINT256);
+        IERC20(PT).forceApprove(router, Constants.MAX_UINT256);
     }
 
     /**

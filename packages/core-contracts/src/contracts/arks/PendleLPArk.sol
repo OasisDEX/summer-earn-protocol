@@ -52,10 +52,10 @@ contract PendleLPArk is BasePendleArk {
      * @notice Set up token approvals for Pendle interactions
      */
     function _setupApprovals() internal override {
-        config.asset.forceApprove(address(SY), type(uint256).max);
-        config.asset.forceApprove(router, type(uint256).max);
-        IERC20(market).forceApprove(router, type(uint256).max);
-        IERC20(market).forceApprove(market, type(uint256).max);
+        config.asset.forceApprove(address(SY), Constants.MAX_UINT256);
+        config.asset.forceApprove(router, Constants.MAX_UINT256);
+        IERC20(market).forceApprove(router, Constants.MAX_UINT256);
+        IERC20(market).forceApprove(market, Constants.MAX_UINT256);
     }
 
     /**

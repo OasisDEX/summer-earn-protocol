@@ -12,12 +12,13 @@ import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
+
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-
+import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /**
  * @title FleetCommanderConfigProvider
@@ -54,9 +55,9 @@ contract FleetCommanderConfigProvider is
                 accessManager: address(params.accessManager),
                 asset: params.asset,
                 configurationManager: address(params.configurationManager),
-                depositCap: type(uint256).max,
-                maxRebalanceOutflow: type(uint256).max,
-                maxRebalanceInflow: type(uint256).max,
+                depositCap: Constants.MAX_UINT256,
+                maxRebalanceOutflow: Constants.MAX_UINT256,
+                maxRebalanceInflow: Constants.MAX_UINT256,
                 requiresKeeperData: false,
                 maxDepositPercentageOfTVL: PERCENTAGE_100
             }),

@@ -113,6 +113,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         );
         fleetCommander.removeArk(address(mockArk1));
     }
+
     function test_RemoveBufferArk() public {
         address bufferArkAddress = fleetCommander.bufferArk();
         vm.expectRevert(
@@ -125,6 +126,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.removeArk(bufferArkAddress);
         vm.stopPrank();
     }
+
     function test_RemoveSuccessful() public {
         // First, set max allocation to 0
         uint256 initialArksCount = fleetCommander.getActiveArks().length;

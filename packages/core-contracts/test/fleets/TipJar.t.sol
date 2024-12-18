@@ -14,12 +14,13 @@ import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import "../../src/errors/ITipJarErrors.sol";
 
 import {ConfigurationManagerImplMock, ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
+
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Percentage, fromPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract TipJarTest is Test, ITipJarEvents {
     using PercentageUtils for uint256;
@@ -167,6 +168,7 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(fromPercentage(stream.allocation), 0);
         assertEq(stream.lockedUntilEpoch, 0);
     }
+
     function test_FailAddTipStreamWithZeroAddress() public {
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("InvalidTipStreamRecipient()"));

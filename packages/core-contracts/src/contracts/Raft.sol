@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {IArk} from "../interfaces/IArk.sol";
 import {IRaft} from "../interfaces/IRaft.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import {BaseAuctionParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
+import {AuctionManagerBase, BaseAuctionParameters, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**

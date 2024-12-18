@@ -324,8 +324,10 @@ contract FleetCommander is
      * @dev Overrides the totalSupply function to include the tip shares
      * @dev This is done to ensure that the totalSupply is always accurate, even when tips are being accrued
      * @dev This is done by checking if the _isCollectingTip flag is set, and if it is, return the totalSupply
-     * @dev If the _isCollectingTip flag is not set, then we need to accrue the tips and return the totalSupply + the previewTip
-     * @dev when collecting fee we require totalSupply to be the pre tip totalSupply, after the tip is collected the totalSupply will include the tip shares
+     * @dev If the _isCollectingTip flag is not set, then we need to accrue the tips and return the totalSupply + the
+     * previewTip
+     * @dev when collecting fee we require totalSupply to be the pre tip totalSupply, after the tip is collected the
+     * totalSupply will include the tip shares
      * @dev when called in view functions we need to return the totalSupply + the previewTip
      * @return uint256 The total supply of the FleetCommander, including tip shares
      */
