@@ -74,8 +74,16 @@ contract SummerVestingWallet is
     ) VestingWallet(beneficiaryAddress, startTimestamp, DURATION_SECONDS) {
         _vestingType = vestingType;
         timeBasedVestingAmount = _timeBasedVestingAmount;
-        goalAmounts = _goalAmounts;
-        goalsReached = new bool[](_goalAmounts.length);
+        if (_vestingType == VestingType.TeamVesting) {
+            for (uint256 i = 0; i < _goalAmounts.length; i++) {
+                _addNewGoal(_goalAmounts[i]);
+            }
+        } else if (
+            _goalAmounts.length > 0 &&
+            _vestingType != VestingType.InvestorExTeamVesting
+        ) {
+            revert OnlyTeamVesting();
+        }
         token = _token;
 
         if (token == address(0)) {
@@ -103,14 +111,19 @@ contract SummerVestingWallet is
         if (_vestingType != VestingType.TeamVesting) {
             revert OnlyTeamVesting();
         }
-        goalAmounts.push(goalAmount);
-        goalsReached.push(false);
+        _addNewGoal(goalAmount);
         SafeERC20.safeTransferFrom(
             IERC20(token),
             msg.sender,
             address(this),
             goalAmount
         );
+    }
+
+    function _addNewGoal(uint256 goalAmount) internal {
+        goalAmounts.push(goalAmount);
+        goalsReached.push(false);
+        emit NewGoalAdded(goalAmount, goalAmounts.length);
     }
 
     /// @inheritdoc ISummerVestingWallet
@@ -121,6 +134,7 @@ contract SummerVestingWallet is
             revert InvalidGoalNumber();
         }
         goalsReached[goalNumber - 1] = true;
+        emit GoalReached(goalNumber);
     }
 
     /// @inheritdoc ISummerVestingWallet
@@ -137,6 +151,7 @@ contract SummerVestingWallet is
         }
 
         IERC20(token).transfer(msg.sender, unvestedPerformanceTokens);
+        emit UnvestedTokensRecalled(unvestedPerformanceTokens);
     }
 
     //////////////////////////////////////////////

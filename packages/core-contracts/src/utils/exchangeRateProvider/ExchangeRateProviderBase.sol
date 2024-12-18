@@ -70,6 +70,7 @@ abstract contract ExchangeRateProvider {
     ) {
         _setEmaRange(_lowerPercentageRange, _upperPercentageRange);
         basePrice = _basePrice;
+        emit BasePriceUpdated(_basePrice);
     }
 
     /**

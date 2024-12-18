@@ -96,4 +96,13 @@ interface ISummerVestingWallet is IAccessControl {
 
     /// @dev Thrown when the token address is invalid
     error InvalidToken(address token);
+
+    /// @dev Emitted when a new goal is added
+    event NewGoalAdded(uint256 goalAmount, uint256 goalNumber);
+
+    /// @dev Emitted when a goal is reached
+    event GoalReached(uint256 goalNumber);
+
+    /// @dev Emitted when unvested tokens are recalled
+    event UnvestedTokensRecalled(uint256 unvestedTokens);
 }
