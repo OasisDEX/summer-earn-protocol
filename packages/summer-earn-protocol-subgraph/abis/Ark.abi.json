@@ -129,6 +129,19 @@
   },
   {
     "type": "function",
+    "name": "details",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "disembark",
     "inputs": [
       {
@@ -537,6 +550,19 @@
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawableTotalAssets",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "event",
@@ -984,6 +1010,16 @@
   },
   {
     "type": "error",
+    "name": "FleetCommanderAlreadyRegistered",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderNotRegistered",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidAccessManagerAddress",
     "inputs": [
       {
@@ -1011,6 +1047,11 @@
   {
     "type": "error",
     "name": "KeeperDataRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MaxDepositPercentageOfTVLTooHigh",
     "inputs": []
   },
   {

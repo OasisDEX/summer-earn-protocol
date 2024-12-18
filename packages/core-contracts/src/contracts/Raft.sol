@@ -4,12 +4,12 @@ pragma solidity 0.8.28;
 import {IArk} from "../interfaces/IArk.sol";
 import {IRaft} from "../interfaces/IRaft.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
-import {AuctionDefaultParameters, AuctionManagerBase, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
+import {AuctionManagerBase, BaseAuctionParameters, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Raft
- * @notice Manages auctions for harvested rewards from Arks and handles the buy-and-burn mechanism
+ * @notice Manages auctions for harvested rewards from Arks and handles the auction mechanism
  * @dev Implements IRaft interface and inherits from ArkAccessManaged and AuctionManagerBase
  * @custom:see IRaft
  */
@@ -36,6 +36,14 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     mapping(address ark => mapping(address rewardToken => uint256 paymentTokensToBoard))
         public paymentTokensToBoard;
 
+    /// @notice Mapping of tokens that are allowed to be swept for each Ark
+    mapping(address ark => mapping(address token => bool isSweepable))
+        public sweepableTokens;
+
+    /// @notice Mapping of custom auction parameters for each Ark and reward token
+    mapping(address ark => mapping(address rewardToken => BaseAuctionParameters))
+        public arkAuctionParameters;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -43,12 +51,10 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     /**
      * @notice Initializes the Raft contract
      * @param _accessManager Address of the access manager contract
-     * @param defaultParameters Default parameters for auctions
      */
     constructor(
-        address _accessManager,
-        AuctionDefaultParameters memory defaultParameters
-    ) ArkAccessManaged(_accessManager) AuctionManagerBase(defaultParameters) {}
+        address _accessManager
+    ) ArkAccessManaged(_accessManager) AuctionManagerBase() {}
 
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL GOVERNOR FUNCTIONS
@@ -57,38 +63,35 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     /// @inheritdoc IRaft
     function harvestAndStartAuction(
         address ark,
-        address paymentToken,
         bytes calldata rewardData
     ) external onlyGovernor {
         (address[] memory harvestedTokens, ) = _harvest(ark, rewardData);
         for (uint256 i = 0; i < harvestedTokens.length; i++) {
-            _startAuction(ark, harvestedTokens[i], paymentToken);
+            _startAuction(ark, harvestedTokens[i]);
         }
     }
 
     /// @inheritdoc IRaft
     function sweepAndStartAuction(
         address ark,
-        address[] calldata tokens,
-        address paymentToken
+        address[] calldata tokens
     ) external {
         (address[] memory sweptTokens, ) = _sweep(ark, tokens);
         for (uint256 i = 0; i < sweptTokens.length; i++) {
-            _startAuction(ark, sweptTokens[i], paymentToken);
+            _startAuction(ark, sweptTokens[i]);
         }
     }
 
     /// @inheritdoc IRaft
-    function startAuction(
-        address ark,
-        address rewardToken,
-        address paymentToken
-    ) public onlyGovernor {
-        _startAuction(ark, rewardToken, paymentToken);
+    function startAuction(address ark, address rewardToken) public {
+        _startAuction(ark, rewardToken);
     }
 
     /// @inheritdoc IRaft
-    function harvest(address ark, bytes calldata rewardData) external {
+    function harvest(
+        address ark,
+        bytes calldata rewardData
+    ) external onlyGovernor {
         _harvest(ark, rewardData);
     }
 
@@ -131,22 +134,38 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /// @inheritdoc IRaft
-    function updateAuctionDefaultParameters(
-        AuctionDefaultParameters calldata newConfig
-    ) external onlyGovernor {
-        _updateAuctionDefaultParameters(newConfig);
-    }
-
-    /// @inheritdoc IRaft
     function board(
         address ark,
         address rewardToken,
         bytes calldata data
-    ) external onlyGovernor {
+    ) external {
         if (!IArk(ark).requiresKeeperData()) {
             revert RaftArkDoesntRequireKeeperData(ark);
         }
         _board(rewardToken, ark, data);
+    }
+
+    /// @inheritdoc IRaft
+    function setSweepableToken(
+        address ark,
+        address token,
+        bool isSweepable
+    ) external onlyCurator(IArk(ark).commander()) {
+        sweepableTokens[ark][token] = isSweepable;
+        emit SweepableTokenSet(ark, token, isSweepable);
+    }
+
+    /// @inheritdoc IRaft
+    function setArkAuctionParameters(
+        address ark,
+        address rewardToken,
+        BaseAuctionParameters calldata parameters
+    ) external onlyCurator(IArk(ark).commander()) {
+        if (parameters.duration == 0) {
+            revert RaftInvalidAuctionParameters(ark, rewardToken);
+        }
+        arkAuctionParameters[ark][rewardToken] = parameters;
+        emit ArkAuctionParametersSet(ark, rewardToken, parameters);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -230,9 +249,14 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         address[] calldata tokens
     )
         internal
-        onlyGovernor
         returns (address[] memory sweptTokens, uint256[] memory sweptAmounts)
     {
+        // Add validation for sweepable tokens
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (!sweepableTokens[ark][tokens[i]]) {
+                revert RaftTokenNotSweepable(ark, tokens[i]);
+            }
+        }
         (sweptTokens, sweptAmounts) = IArk(ark).sweep(tokens);
         for (uint256 i = 0; i < sweptTokens.length; i++) {
             obtainedTokens[ark][sweptTokens[i]] += sweptAmounts[i];
@@ -243,7 +267,6 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
      * @notice Starts a new auction for a specific Ark and reward token
      * @param ark The address of the Ark
      * @param rewardToken The address of the reward token to be auctioned
-     * @param paymentToken The address of the token used for payment in the auction
      * @custom:internal-logic
      * - Checks if there's an existing, unfinalized auction for the given Ark and reward token
      * - Calculates the total tokens to be auctioned (obtained + unsold)
@@ -257,11 +280,12 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
      * - Ensure that there's no existing unfinalized auction before starting a new one
      * - Validate that the total tokens to be auctioned is greater than zero
      */
-    function _startAuction(
-        address ark,
-        address rewardToken,
-        address paymentToken
-    ) internal {
+    function _startAuction(address ark, address rewardToken) internal {
+        // Check if parameters are set by checking duration
+        if (arkAuctionParameters[ark][rewardToken].duration == 0) {
+            revert RaftAuctionParametersNotSet(ark, rewardToken);
+        }
+
         DutchAuctionLibrary.Auction storage existingAuction = auctions[ark][
             rewardToken
         ];
@@ -275,12 +299,14 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         uint256 totalTokens = obtainedTokens[ark][rewardToken] +
             unsoldTokens[ark][rewardToken];
 
-        DutchAuctionLibrary.Auction memory newAuction = _createAuction(
-            IERC20(rewardToken),
-            IERC20(paymentToken),
-            totalTokens,
-            address(this)
-        );
+        DutchAuctionLibrary.Auction
+            memory newAuction = _createAuctionWithParams(
+                IERC20(rewardToken),
+                IERC20(IArk(ark).getConfig().asset),
+                totalTokens,
+                address(this),
+                arkAuctionParameters[ark][rewardToken]
+            );
         auctions[ark][rewardToken] = newAuction;
 
         obtainedTokens[ark][rewardToken] = 0;
@@ -350,7 +376,6 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
 
         uint256 balance = paymentTokensToBoard[ark][rewardToken];
         if (balance > 0) {
-            IArk(ark).requiresKeeperData();
             paymentToken.approve(ark, balance);
             IArk(ark).board(balance, data);
 

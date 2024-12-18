@@ -475,18 +475,10 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         uint256 initialUserBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
 
         // Unstake all, exit fleet, and withdraw
-        bytes[] memory withdrawCalls = new bytes[](3);
+        bytes[] memory withdrawCalls = new bytes[](1);
         withdrawCalls[0] = abi.encodeCall(
             admiralsQuarters.unstakeAndWithdrawAssets,
             (address(usdcFleet), 0, false) // 0 amount means unstake all
-        );
-        withdrawCalls[1] = abi.encodeCall(
-            admiralsQuarters.exitFleet,
-            (address(usdcFleet), 0) // 0 amount means withdraw all
-        );
-        withdrawCalls[2] = abi.encodeCall(
-            admiralsQuarters.withdrawTokens,
-            (IERC20(USDC_ADDRESS), 0) // 0 amount means withdraw all
         );
         admiralsQuarters.multicall(withdrawCalls);
 
@@ -565,9 +557,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         // Get initial balances
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
-        uint256 initialStakedBalance = IFleetCommanderRewardsManager(
-            rewardsManager
-        ).balanceOf(user1);
 
         // Unstake all shares (using 0 amount)
         bytes[] memory calls2 = new bytes[](1);

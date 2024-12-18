@@ -455,7 +455,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         IFleetCommander fleet,
         uint256 amountPerArk
     ) internal {
-        address[] memory arks = fleet.getArks();
+        address[] memory arks = fleet.getActiveArks();
         FleetConfig memory config = fleet.getConfig();
 
         RebalanceData[] memory rebalanceData = new RebalanceData[](arks.length);
@@ -472,7 +472,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         // Advance time to move past cooldown window
         vm.warp(block.timestamp + 1 days);
         vm.prank(keeper);
-        fleet.adjustBuffer(rebalanceData);
+        fleet.rebalance(rebalanceData);
     }
 
     function accrueInterestForMorphoMarkets() internal {
@@ -488,7 +488,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         IFleetCommander fleet,
         string memory fleetName
     ) internal view {
-        address[] memory arks = fleet.getArks();
+        address[] memory arks = fleet.getActiveArks();
         for (uint256 i = 0; i < arks.length; i++) {
             IArk ark = IArk(arks[i]);
             console.log(
@@ -592,7 +592,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     }
 
     function secondRebalanceWithMaxUint(IFleetCommander fleet) internal {
-        address[] memory arks = fleet.getArks();
+        address[] memory arks = fleet.getActiveArks();
         uint256[] memory arkRates = new uint256[](arks.length);
         uint256[] memory arkTotalAssets = new uint256[](arks.length);
 

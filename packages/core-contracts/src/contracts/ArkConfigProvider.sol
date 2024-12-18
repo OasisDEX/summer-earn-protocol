@@ -9,7 +9,8 @@ import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
 /**
  * @title ArkConfigProvider
  * @author SummerFi
@@ -17,7 +18,6 @@ import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol
  * @dev Inherits from IArkConfigProvider, ArkAccessManaged, and ConfigurationManaged.
  * @custom:see IArkConfigProvider
  */
-
 abstract contract ArkConfigProvider is
     IArkConfigProvider,
     ArkAccessManaged,
@@ -36,9 +36,6 @@ abstract contract ArkConfigProvider is
         ArkAccessManaged(_params.accessManager)
         ConfigurationManaged(_params.configurationManager)
     {
-        if (_params.configurationManager == address(0)) {
-            revert CannotDeployArkWithoutConfigurationManager();
-        }
         if (_params.asset == address(0)) {
             revert CannotDeployArkWithoutToken();
         }
@@ -47,6 +44,13 @@ abstract contract ArkConfigProvider is
         }
         if (raft() == address(0)) {
             revert CannotDeployArkWithoutRaft();
+        }
+        if (
+            !PercentageUtils.isPercentageInRange(
+                _params.maxDepositPercentageOfTVL
+            )
+        ) {
+            revert MaxDepositPercentageOfTVLTooHigh();
         }
 
         config = ArkConfig({
@@ -74,6 +78,11 @@ abstract contract ArkConfigProvider is
     /// @inheritdoc IArkConfigProvider
     function name() external view returns (string memory) {
         return config.name;
+    }
+
+    /// @inheritdoc IArkConfigProvider
+    function details() external view returns (string memory) {
+        return config.details;
     }
 
     /// @inheritdoc IArkConfigProvider
@@ -125,6 +134,11 @@ abstract contract ArkConfigProvider is
     function setMaxDepositPercentageOfTVL(
         Percentage newMaxDepositPercentageOfTVL
     ) external onlyCommander {
+        if (
+            !PercentageUtils.isPercentageInRange(newMaxDepositPercentageOfTVL)
+        ) {
+            revert MaxDepositPercentageOfTVLTooHigh();
+        }
         config.maxDepositPercentageOfTVL = newMaxDepositPercentageOfTVL;
         emit MaxDepositPercentageOfTVLUpdated(newMaxDepositPercentageOfTVL);
     }
@@ -145,13 +159,29 @@ abstract contract ArkConfigProvider is
         emit MaxRebalanceInflowUpdated(newMaxRebalanceInflow);
     }
 
-    function registerFleetCommander() external onlyCommander {
+    function registerFleetCommander() external {
+        if (!_hasCommanderRole()) {
+            revert CallerIsNotCommander(msg.sender);
+        }
+        if (config.commander != address(0)) {
+            revert FleetCommanderAlreadyRegistered();
+        }
         config.commander = msg.sender;
         emit FleetCommanderRegistered(msg.sender);
     }
 
-    function unregisterFleetCommander() external onlyCommander {
+    function unregisterFleetCommander() external {
+        if (_msgSender() != config.commander) {
+            revert FleetCommanderNotRegistered();
+        }
         config.commander = address(0);
         emit FleetCommanderUnregistered(msg.sender);
+    }
+
+    modifier onlyCommander() {
+        if (_msgSender() != config.commander) {
+            revert CallerIsNotCommander(_msgSender());
+        }
+        _;
     }
 }

@@ -91,36 +91,18 @@ contract TipperTest is Test, ITipperEvents {
         vm.warp(block.timestamp + 365 days);
 
         vm.expectEmit(true, true, false, true);
-        emit TipAccrued(10050167082308619770000); // Approximately 1% of 1,000,000 over 1 year
+        emit TipAccrued(10000000000000000000000); // Approximately 1% of 1,000,000 over 1 year
         uint256 accruedTip = fleetCommander.tip();
 
         assertApproxEqRel(accruedTip, 10050 ether, 0.01e18);
         assertEq(fleetCommander.lastTipTimestamp(), block.timestamp);
     }
 
-    function test_EstimateAccruedTip() public {
-        uint256 initialDepositByUser = 1000000 ether;
-        underlyingToken.mint(mockUser, initialDepositByUser);
-
-        vm.startPrank(mockUser);
-        underlyingToken.approve(address(fleetCommander), initialDepositByUser);
-        fleetCommander.deposit(initialDepositByUser, mockUser);
-        vm.stopPrank();
-
-        // Warp time forward by 6 months
-        vm.warp(block.timestamp + 182.5 days);
-
-        uint256 estimatedTipAfter2000minutes = fleetCommander
-            .estimateAccruedTip();
-        assertApproxEqRel(estimatedTipAfter2000minutes, 4978 ether, 0.01e18); // Approximately 0.4978% of 1,000,000 over
-        // 6 months
-    }
-
-    function test_TipRateCannotExceedOneHundredPercent() public {
+    function test_TipRateCannotExceedFivePercent() public {
         vm.expectRevert(
-            abi.encodeWithSignature("TipRateCannotExceedOneHundredPercent()")
+            abi.encodeWithSignature("TipRateCannotExceedFivePercent()")
         );
-        fleetCommander.setTipRate(PercentageUtils.fromIntegerPercentage(101));
+        fleetCommander.setTipRate(PercentageUtils.fromIntegerPercentage(6));
     }
 
     function test_CompoundingEffect() public {
@@ -200,8 +182,7 @@ contract TipperTest is Test, ITipperEvents {
         vm.warp(block.timestamp + 1000 minutes);
 
         // Ensure that estimateAccruedTip returns a non-zero value
-        uint256 estimatedTipAfter2000minutes = fleetCommander
-            .estimateAccruedTip();
+        uint256 estimatedTipAfter2000minutes = fleetCommander.tip();
         assertEq(
             estimatedTipAfter2000minutes,
             tipExpectedAfter2000minutes,
@@ -211,9 +192,7 @@ contract TipperTest is Test, ITipperEvents {
 }
 
 contract TipperHarness is Tipper {
-    constructor(
-        address configurationManager
-    ) Tipper(PercentageUtils.fromIntegerPercentage(0)) {
+    constructor(address) Tipper(PercentageUtils.fromIntegerPercentage(0)) {
         tipRate = PercentageUtils.fromIntegerPercentage(1); // 1%
     }
 

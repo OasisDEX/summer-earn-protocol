@@ -27,4 +27,25 @@ interface IRaftErrors {
      * @param ark The address of the Ark
      */
     error RaftArkDoesntRequireKeeperData(address ark);
+
+    /**
+     * @notice Thrown when attempting to sweep a token that is not sweepable for an Ark
+     * @param ark The address of the Ark
+     * @param token The address of the token
+     */
+    error RaftTokenNotSweepable(address ark, address token);
+
+    /**
+     * @notice Thrown when attempting to start an auction for an Ark and reward token pair that has no parameters set
+     * @param ark The address of the Ark
+     * @param rewardToken The address of the reward token
+     */
+    error RaftAuctionParametersNotSet(address ark, address rewardToken);
+
+    /**
+     * @notice Thrown when attempting to set invalid auction parameters
+     * @param ark The address of the Ark
+     * @param rewardToken The address of the reward token
+     */
+    error RaftInvalidAuctionParameters(address ark, address rewardToken);
 }

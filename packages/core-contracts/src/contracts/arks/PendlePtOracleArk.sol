@@ -214,6 +214,19 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     }
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev PendlePtOracleArk is not withdrawable by default
+     */
+    function _withdrawableTotalAssets()
+        internal
+        pure
+        override
+        returns (uint256)
+    {
+        return 0;
+    }
+
+    /**
      * @notice Helper function to get the SY asset address from a market
      * @param _market The market address to query
      * @return assetAddress The asset address from the SY contract

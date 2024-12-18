@@ -14,6 +14,8 @@ import {HarborCommand} from "../../src/contracts/HarborCommand.sol";
 import "../../src/errors/ITipJarErrors.sol";
 
 import {ConfigurationManagerImplMock, ConfigurationManagerMock} from "../mocks/ConfigurationManagerMock.sol";
+
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
@@ -167,6 +169,18 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(stream.lockedUntilEpoch, 0);
     }
 
+    function test_FailAddTipStreamWithZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("InvalidTipStreamRecipient()"));
+        tipJar.addTipStream(
+            ITipJar.TipStream({
+                recipient: address(0),
+                allocation: PercentageUtils.fromIntegerPercentage(20),
+                lockedUntilEpoch: block.timestamp + 1 days
+            })
+        );
+    }
+
     function test_GetAllTipStreams() public {
         address anotherMockTipStreamParticipant = address(5);
         vm.startPrank(governor);
@@ -224,7 +238,7 @@ contract TipJarTest is Test, ITipJarEvents {
 
         // Shake the jar
         tipJar.shake(address(fleetCommander));
-
+        assertEq(IERC20(fleetCommander).balanceOf(address(tipJar)), 0 ether);
         // Check balances
         assertEq(underlyingToken.balanceOf(mockTipStreamRecipient), 600 ether);
         assertEq(
@@ -443,7 +457,7 @@ contract TipJarTest is Test, ITipJarEvents {
         assertEq(fromPercentage(totalAllocation), 45);
     }
 
-    function test_FailShakeWithNoShares() public {
+    function test_ShakeWithNoShares() public {
         // Ensure the TipJar has no assets in the FleetCommander
         assertEq(
             fleetCommander.convertToAssets(
@@ -452,14 +466,16 @@ contract TipJarTest is Test, ITipJarEvents {
             0
         );
 
-        vm.expectRevert(abi.encodeWithSignature("NoSharesToRedeem()"));
+        vm.expectEmit(true, true, true, true);
+        emit TipJarShaken(address(fleetCommander), 0);
         tipJar.shake(address(fleetCommander));
     }
 
-    function test_FailShakeWithNoAssets() public {
+    function test_ShakeWithNoAssets() public {
         fleetCommander.testMint(address(tipJar), 1 ether);
 
-        vm.expectRevert(abi.encodeWithSignature("NoAssetsToDistribute()"));
+        vm.expectEmit(true, true, true, true);
+        emit TipJarShaken(address(fleetCommander), 0);
         tipJar.shake(address(fleetCommander));
     }
 

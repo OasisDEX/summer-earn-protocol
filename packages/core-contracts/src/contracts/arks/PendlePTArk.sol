@@ -44,12 +44,26 @@ contract PendlePTArk is BasePendleArk {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev PendlePTArk is always withdrawable
+     * @dev TODO:  add logic to check for pause etc
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return totalAssets();
+    }
+
+    /**
      * @notice Set up token approvals for Pendle interactions
      */
     function _setupApprovals() internal override {
-        config.asset.forceApprove(address(router), type(uint256).max);
-        IERC20(SY).forceApprove(router, type(uint256).max);
-        IERC20(PT).forceApprove(router, type(uint256).max);
+        config.asset.forceApprove(address(router), Constants.MAX_UINT256);
+        IERC20(SY).forceApprove(router, Constants.MAX_UINT256);
+        IERC20(PT).forceApprove(router, Constants.MAX_UINT256);
     }
 
     /**

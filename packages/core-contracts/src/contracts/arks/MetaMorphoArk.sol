@@ -67,6 +67,19 @@ contract MetaMorphoArk is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev MetaMorphoArk is always withdrawable
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return metaMorpho.maxWithdraw(address(this));
+    }
+
+    /**
      * @notice Deposits assets into the MetaMorpho vault
      * @param amount The amount of assets to deposit
      * @param /// data Additional data (unused in this implementation)

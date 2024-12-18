@@ -15,6 +15,7 @@ contract FleetCommanderStorageWriter is Test {
     address public fleetCommander;
 
     uint256 public configSlot;
+    uint256 public tipRateSlot;
 
     constructor(address fleetCommander_) {
         fleetCommander = fleetCommander_;
@@ -22,6 +23,11 @@ contract FleetCommanderStorageWriter is Test {
         configSlot = stdstore
             .target(fleetCommander)
             .sig(FleetCommander(fleetCommander).config.selector)
+            .find();
+
+        tipRateSlot = stdstore
+            .target(fleetCommander)
+            .sig(FleetCommander(fleetCommander).tipRate.selector)
             .find();
     }
 
@@ -35,6 +41,11 @@ contract FleetCommanderStorageWriter is Test {
         bytes32 slot = bytes32(configSlot);
         bytes32 depositCapSlot = bytes32(uint256(slot) + 2); // Offset for depositCap in the struct
         vm.store(fleetCommander, depositCapSlot, bytes32(value));
+    }
+
+    function setTipRate(uint256 value) public {
+        bytes32 slot = bytes32(tipRateSlot);
+        vm.store(fleetCommander, slot, bytes32(value));
     }
 
     function test() public {}

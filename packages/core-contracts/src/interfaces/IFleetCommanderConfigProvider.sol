@@ -24,9 +24,9 @@ interface IFleetCommanderConfigProvider is
     function arks(uint256 index) external view returns (address);
 
     /**
-     * @notice Retrieves the arks currently linked to fleet
+     * @notice Retrieves the arks currently linked to fleet (excluding the buffer ark)
      */
-    function getArks() external view returns (address[] memory);
+    function getActiveArks() external view returns (address[] memory);
 
     /**
      * @notice Retrieves the current fleet config
@@ -39,11 +39,11 @@ interface IFleetCommanderConfigProvider is
     function bufferArk() external view returns (address);
 
     /**
-     * @notice Checks if the ark is part of the fleet
+     * @notice Checks if the ark is part of the fleet or is the buffer ark
      * @param ark The address of the Ark
-     * @return bool Returns true if the ark is active, false otherwise.
+     * @return bool Returns true if the ark is active or the buffer ark, false otherwise.
      */
-    function isArkActive(address ark) external view returns (bool);
+    function isArkActiveOrBufferArk(address ark) external view returns (bool);
 
     /* FUNCTIONS - EXTERNAL - GOVERNANCE */
 
@@ -125,10 +125,7 @@ interface IFleetCommanderConfigProvider is
     ) external;
 
     /**
-     * @notice Sets the staking rewards manager contract address
-     * @param newStakingRewardsManager The address  of the new staking rewards manager contract
+     * @notice Deploys and sets the staking rewards manager contract address
      */
-    function setStakingRewardsManager(
-        address newStakingRewardsManager
-    ) external;
+    function updateStakingRewardsManager() external;
 }

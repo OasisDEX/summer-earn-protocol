@@ -14,6 +14,7 @@ import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 import {ProtectedMulticall} from "./ProtectedMulticall.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
@@ -135,7 +136,7 @@ contract AdmiralsQuarters is
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
 
-        assets = assets == 0 ? type(uint256).max : assets;
+        assets = assets == 0 ? Constants.MAX_UINT256 : assets;
 
         shares = fleet.withdraw(assets, address(this), _msgSender());
 
@@ -309,11 +310,11 @@ contract AdmiralsQuarters is
         }
     }
 
-    function _validateToken(IERC20 token) internal view {
+    function _validateToken(IERC20 token) internal pure {
         if (address(token) == address(0)) revert InvalidToken();
     }
 
-    function _validateAmount(uint256 amount) internal view {
+    function _validateAmount(uint256 amount) internal pure {
         if (amount == 0) revert ZeroAmount();
     }
 

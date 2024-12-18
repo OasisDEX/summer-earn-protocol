@@ -13,6 +13,9 @@ abstract contract FleetCommanderPausable is Pausable {
     /// @notice The timestamp when the contract was last paused
     uint256 public pauseStartTime;
 
+    /// @notice The minimum duration that the contract must remain paused
+    uint256 constant MINIMUM_PAUSE_TIME_SECONDS = 2 days;
+
     /// @notice Emitted when the minimum pause time is updated
     /// @param newMinimumPauseTime The new minimum pause time value
     event MinimumPauseTimeUpdated(uint256 newMinimumPauseTime);
@@ -20,12 +23,19 @@ abstract contract FleetCommanderPausable is Pausable {
     /// @notice Error thrown when trying to unpause before the minimum pause time has elapsed
     error FleetCommanderPausableMinimumPauseTimeNotElapsed();
 
+    /// @notice Error thrown when trying to set a minimum pause time that is too short
+    error FleetCommanderPausableMinimumPauseTimeTooShort();
+
     /**
      * @notice Initializes the FleetCommanderPausable contract with a specified minimum pause time
      * @param _initialMinimumPauseTime The initial minimum pause time in seconds
      */
     constructor(uint256 _initialMinimumPauseTime) {
+        if (_initialMinimumPauseTime < MINIMUM_PAUSE_TIME_SECONDS) {
+            revert FleetCommanderPausableMinimumPauseTimeTooShort();
+        }
         minimumPauseTime = _initialMinimumPauseTime;
+        emit MinimumPauseTimeUpdated(_initialMinimumPauseTime);
     }
 
     /**
@@ -55,6 +65,9 @@ abstract contract FleetCommanderPausable is Pausable {
      * @dev Emits a MinimumPauseTimeUpdated event
      */
     function _setMinimumPauseTime(uint256 _newMinimumPauseTime) internal {
+        if (_newMinimumPauseTime < MINIMUM_PAUSE_TIME_SECONDS) {
+            revert FleetCommanderPausableMinimumPauseTimeTooShort();
+        }
         minimumPauseTime = _newMinimumPauseTime;
         emit MinimumPauseTimeUpdated(_newMinimumPauseTime);
     }

@@ -78,10 +78,10 @@ contract ArkTestHelpers is Test {
     }
 
     /**
-     * @notice Mocks the `isArkActive` function of the `IFleetCommander` contract.
+     * @notice Mocks the `isArkActiveOrBufferArk` function of the `IFleetCommander` contract.
      * @param commanderAddress The address of the `IFleetCommander` contract.
      * @param arkAddress The address of the Ark contract.
-     * @param isActive The value to be passed to the `isArkActive` function.
+     * @param isActive The value to be passed to the `isArkActiveOrBufferArk` function.
      */
     function _mockIsArkActive(
         address commanderAddress,
@@ -91,7 +91,7 @@ contract ArkTestHelpers is Test {
         vm.mockCall(
             commanderAddress,
             abi.encodeWithSelector(
-                IFleetCommanderConfigProvider.isArkActive.selector,
+                IFleetCommanderConfigProvider.isArkActiveOrBufferArk.selector,
                 arkAddress
             ),
             abi.encode(isActive)

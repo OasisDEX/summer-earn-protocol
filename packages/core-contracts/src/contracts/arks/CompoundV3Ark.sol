@@ -70,6 +70,20 @@ contract CompoundV3Ark is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev CompoundV3Ark is always withdrawable
+     * @dev TODO:  add logic to check if the comet is in liquidation mode or not
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return totalAssets();
+    }
+
+    /**
      * @notice Deposits assets into Compound V3
      * @param amount Amount of assets to deposit
      * @param /// boardData Additional data for boarding (unused in this implementation)
