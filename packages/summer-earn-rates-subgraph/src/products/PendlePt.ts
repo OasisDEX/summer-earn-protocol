@@ -19,7 +19,7 @@ export class PendlePtProduct extends Product {
     if (currentBlock.lt(this.startBlock)) {
       return BigDecimalConstants.ZERO
     }
-    // Get the current exchange rate from PT to underlying asset (WAD)
+    // Get the current exchange rate from PT to inputToken asset (WAD)
     const exchangeRate = this._fetchArkTokenToAssetRate()
     if (exchangeRate.isZero()) return BigDecimalConstants.ZERO
 

@@ -1075,6 +1075,18 @@ type Position @entity {
   " Vault where the position is held "
   vault: Vault!
 
+  " Sum of deposits in the position - in input token precision"
+  inputTokenDeposits: BigInt!
+
+  " Sum of deposits in the position - in input token precision normalized to USD"
+  inputTokenDepositsNormalizedInUSD: BigDecimal!
+
+  " Sum of withdrawals in the position - in input token precision"
+  inputTokenWithdrawals: BigInt!
+
+  " Sum of withdrawals in the position - in input token precision normalized to USD"
+  inputTokenWithdrawalsNormalizedInUSD: BigDecimal!
+
   " Balance of the input token for the position "
   inputTokenBalance: BigInt!
 
@@ -1087,17 +1099,29 @@ type Position @entity {
   " Staked balance of the output token for the position "
   stakedOutputTokenBalance: BigInt!
 
+  " Unstaked balance of the input token for the position "
+  unstakedInputTokenBalance: BigInt!
+
+  " Unstaked balance of the output token for the position " 
+  unstakedOutputTokenBalance: BigInt!
+
   " Normalized supply of the input token "
   inputTokenBalanceNormalized: BigDecimal!
 
   " Normalized staked balance of the input token "
   stakedInputTokenBalanceNormalized: BigDecimal!
 
+  " Normalized unstaked balance of the input token "
+  unstakedInputTokenBalanceNormalized: BigDecimal!
+
   " Normalized supply of the input token in USD "
   inputTokenBalanceNormalizedInUSD: BigDecimal!
 
   " Normalized staked balance of the input token in USD "
   stakedInputTokenBalanceNormalizedInUSD: BigDecimal!
+
+  " Normalized unstaked balance of the input token in USD "
+  unstakedInputTokenBalanceNormalizedInUSD: BigDecimal!
 
   " Creation timestamp "
   createdTimestamp: BigInt!
@@ -1122,6 +1146,18 @@ type PositionHourlySnapshot @entity @hourlySnapshot {
   " The position this snapshot belongs to "
   position: Position!
 
+  " Sum of deposits in the position - in input token precision"
+  inputTokenDeposits: BigInt!
+
+  " Sum of deposits in the position - in input token precision normalized to USD"
+  inputTokenDepositsNormalizedInUSD: BigDecimal!
+
+  " Sum of withdrawals in the position - in input token precision"
+  inputTokenWithdrawals: BigInt!
+
+  " Sum of withdrawals in the position - in input token precision normalized to USD"
+  inputTokenWithdrawalsNormalizedInUSD: BigDecimal!
+
   " Amount of input token in the position "
   inputTokenBalance: BigInt!
 
@@ -1142,6 +1178,18 @@ type PositionDailySnapshot @entity @dailySnapshot {
   " The position this snapshot belongs to "
   position: Position!
 
+  " Sum of deposits in the position - in input token precision"
+  inputTokenDeposits: BigInt!
+
+  " Sum of deposits in the position - in input token precision normalized to USD"
+  inputTokenDepositsNormalizedInUSD: BigDecimal!
+
+  " Sum of withdrawals in the position - in input token precision"
+  inputTokenWithdrawals: BigInt!
+
+  " Sum of withdrawals in the position - in input token precision normalized to USD"
+  inputTokenWithdrawalsNormalizedInUSD: BigDecimal!
+
   " Amount of input token in the position "
   inputTokenBalance: BigInt!
 
@@ -1161,6 +1209,18 @@ type PositionWeeklySnapshot @entity @weeklySnapshot {
 
   " The position this snapshot belongs to "
   position: Position!
+
+  " Sum of deposits in the position - in input token precision"
+  inputTokenDeposits: BigInt!
+
+  " Sum of deposits in the position - in input token precision normalized to USD"
+  inputTokenDepositsNormalizedInUSD: BigDecimal!
+
+  " Sum of withdrawals in the position - in input token precision"
+  inputTokenWithdrawals: BigInt!
+
+  " Sum of withdrawals in the position - in input token precision normalized to USD"
+  inputTokenWithdrawalsNormalizedInUSD: BigDecimal!
 
   " Amount of input token in the position "
   inputTokenBalance: BigInt!

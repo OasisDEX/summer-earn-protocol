@@ -103,10 +103,18 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.stakedInputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.stakedInputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.unstakedInputTokenBalance = constants.BigIntConstants.ZERO
+    position.unstakedOutputTokenBalance = constants.BigIntConstants.ZERO
+    position.unstakedInputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    position.unstakedInputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.account = positionIdDetails[0]
     position.vault = positionIdDetails[1]
     position.createdBlockNumber = block.number
     position.createdTimestamp = block.timestamp
+    position.inputTokenDeposits = constants.BigIntConstants.ZERO
+    position.inputTokenWithdrawals = constants.BigIntConstants.ZERO
+    position.inputTokenDepositsNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.save()
   }
 
@@ -263,9 +271,7 @@ export function getOrCreateVaultsDailySnapshots(
   const dailyRateId = getDailyVaultRateIdAndTimestamp(block, vault.id)
   const dailyRate = DailyInterestRate.load(dailyRateId.dailyRateId)
 
-  const id: string = vault.id
-    .concat('-')
-    .concat((currentDay).toString())
+  const id: string = vault.id.concat('-').concat(currentDay.toString())
   let vaultSnapshots = VaultDailySnapshot.load(id)
 
   if (!vaultSnapshots) {
@@ -709,15 +715,42 @@ export function getOrCreatePositionHourlySnapshot(
   // Update balances
   const position = Position.load(positionId)
   if (position) {
-    snapshot.outputTokenBalance = position.outputTokenBalance.plus(
-      position.stakedOutputTokenBalance,
-    )
+    snapshot.outputTokenBalance = position.outputTokenBalance
+
+    position.inputTokenBalance = position.outputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+    position.stakedInputTokenBalance = position.stakedOutputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+
     snapshot.inputTokenBalance = snapshot.outputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
+
+    // Update normalized values
+    position.inputTokenBalanceNormalized = utils.formatAmount(
+      position.inputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
+    position.stakedInputTokenBalanceNormalized = utils.formatAmount(
+      position.stakedInputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
+    position.inputTokenBalanceNormalizedInUSD = position.inputTokenBalanceNormalized.times(
+      vault.inputTokenPriceUSD!,
+    )
+    position.stakedInputTokenBalanceNormalizedInUSD =
+      position.stakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
+
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
       .times(vault.inputTokenPriceUSD!)
+    snapshot.inputTokenDeposits = position.inputTokenDeposits
+    snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
+    snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+    snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+    position.save()
   }
 
   snapshot.save()
@@ -746,15 +779,18 @@ export function getOrCreatePositionDailySnapshot(
   // Update balances
   const position = Position.load(positionId)
   if (position) {
-    snapshot.outputTokenBalance = position.outputTokenBalance.plus(
-      position.stakedOutputTokenBalance,
-    )
+    snapshot.outputTokenBalance = position.outputTokenBalance
+
     snapshot.inputTokenBalance = snapshot.outputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
       .times(vault.inputTokenPriceUSD!)
+    snapshot.inputTokenDeposits = position.inputTokenDeposits
+    snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
+    snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+    snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
   }
 
   snapshot.save()
@@ -783,15 +819,18 @@ export function getOrCreatePositionWeeklySnapshot(
   // Update balances
   const position = Position.load(positionId)
   if (position) {
-    snapshot.outputTokenBalance = position.outputTokenBalance.plus(
-      position.stakedOutputTokenBalance,
-    )
+    snapshot.outputTokenBalance = position.outputTokenBalance
+
     snapshot.inputTokenBalance = snapshot.outputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
       .times(vault.inputTokenPriceUSD!)
+    snapshot.inputTokenDeposits = position.inputTokenDeposits
+    snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
+    snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+    snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
   }
 
   snapshot.save()
@@ -849,8 +888,8 @@ export function getOrCreateVaultWeeklySnapshots(
   // Update cumulative and weekly revenues
   const previousSnapshot = VaultWeeklySnapshot.load(
     vaultAddress.toHexString() +
-    '-' +
-    weekTimestamp.minus(BigIntConstants.SECONDS_PER_WEEK).toString(),
+      '-' +
+      weekTimestamp.minus(BigIntConstants.SECONDS_PER_WEEK).toString(),
   )
 
   if (previousSnapshot) {

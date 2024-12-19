@@ -1,19 +1,16 @@
-import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { ethereum } from '@graphprotocol/graph-ts'
 import { Unstaked } from '../../../generated/schema'
-import { Unstaked as UnstakedEvent } from '../../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { PositionDetails } from '../../types'
 
 export function createUnstakedEventEntity(
-  event: UnstakedEvent,
-  amount: BigInt,
-  normalizedAmountUSD: BigDecimal,
+  event: ethereum.Event,
   positionDetails: PositionDetails,
 ): void {
   const unstake = new Unstaked(
     `${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`,
   )
-  unstake.amount = amount
-  unstake.amountUSD = normalizedAmountUSD
+  unstake.amount = positionDetails.stakedInputTokenDelta
+  unstake.amountUSD = positionDetails.stakedInputTokenDeltaNormalizedUSD
   unstake.from = positionDetails.account
   unstake.to = positionDetails.vault
   unstake.blockNumber = event.block.number

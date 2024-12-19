@@ -65,7 +65,7 @@ export function getVaultAndPositionDetails(
   block: ethereum.Block,
 ): VaultAndPositionDetails {
   const vaultDetails = getVaultDetails(vaultAddress, block)
-  const positionDetails = getPositionDetails(vaultAddress, account, vaultDetails)
+  const positionDetails = getPositionDetails(vaultAddress, account, vaultDetails, block)
   return { vaultDetails: vaultDetails, positionDetails: positionDetails }
 }
 
