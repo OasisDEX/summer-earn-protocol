@@ -129,7 +129,7 @@ contract FleetCommander is
         public
         override(ERC4626, IFleetCommander)
         collectTip
-        useWithdrawCache
+        useCache
         whenNotPaused
         returns (uint256 assets)
     {
