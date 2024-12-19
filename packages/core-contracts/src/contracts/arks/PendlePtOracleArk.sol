@@ -21,6 +21,7 @@ import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapA
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 import {console} from "forge-std/console.sol";
+
 interface IERC20Extended is IERC20 {
     function decimals() external view returns (uint8);
 }
@@ -455,8 +456,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             LimitOrderData memory limit
         ) = this.validateAndDecodeSwapForPtParams(boardData.swapForPtParams);
 
-        if (input.tokenIn != address(config.asset))
+        if (input.tokenIn != address(config.asset)) {
             revert InvalidAsset(address(config.asset));
+        }
         if (input.netTokenIn != _amount) revert InvalidAmount();
 
         if (receiver != address(this)) revert InvalidReceiver();
@@ -498,8 +500,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
         if (_amount < output.minTokenOut) revert InsufficientOutputAmount();
-        if (output.tokenOut != address(config.asset))
+        if (output.tokenOut != address(config.asset)) {
             revert InvalidAsset(address(config.asset));
+        }
 
         uint256 expectedPtAmount = _fleetAssetToPt(_amount);
         uint256 minPtAmount = expectedPtAmount.subtractPercentage(
@@ -509,8 +512,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             slippagePercentage
         );
 
-        if (exactPtIn < minPtAmount || exactPtIn > maxPtAmount)
+        if (exactPtIn < minPtAmount || exactPtIn > maxPtAmount) {
             revert InvalidAmount();
+        }
 
         IERC20(PT).approve(router, exactPtIn);
         IPAllActionV3(router).swapExactPtForToken(

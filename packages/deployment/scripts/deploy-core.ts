@@ -30,6 +30,7 @@ async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
         swapProvider: config.common.swapProvider,
         treasury: config.common.treasury,
         lzEndpoint: config.common.layerZero.lzEndpoint,
+        weth: config.tokens.weth,
       },
     },
   })

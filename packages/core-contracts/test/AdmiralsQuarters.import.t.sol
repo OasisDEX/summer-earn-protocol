@@ -31,6 +31,7 @@ contract AdmiralsQuartersImportTest is
         0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address public constant UNISWAP_USDC_DAI_V3_POOL =
         0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168;
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     address public constant CUSDC_ADDRESS =
         0xc3d688B66703497DAA19211EEdff47f25384cdc3;
@@ -79,7 +80,8 @@ contract AdmiralsQuartersImportTest is
 
         admiralsQuarters = new AdmiralsQuarters(
             ONE_INCH_ROUTER,
-            address(configurationManager)
+            address(configurationManager),
+            WETH
         );
 
         // Grant roles
