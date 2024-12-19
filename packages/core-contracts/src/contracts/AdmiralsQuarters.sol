@@ -110,13 +110,17 @@ contract AdmiralsQuarters is
         uint256 amount
     ) external payable onlyMulticall nonReentrant noNativeToken {
         _validateToken(asset);
-        if (amount == 0) {
-            amount = asset.balanceOf(address(this));
-        }
+
         if (address(asset) == NATIVE_PSEUDO_ADDRESS) {
+            if (amount == 0) {
+                amount = IWETH(WRAPPED_NATIVE).balanceOf(address(this));
+            }
             IWETH(WRAPPED_NATIVE).withdraw(amount);
             payable(_msgSender()).transfer(amount);
         } else {
+            if (amount == 0) {
+                amount = asset.balanceOf(address(this));
+            }
             asset.safeTransfer(_msgSender(), amount);
         }
 
@@ -373,6 +377,11 @@ contract AdmiralsQuarters is
         token.safeTransfer(to, amount);
         emit TokensRescued(address(token), to, amount);
     }
+
+    /**
+     * @dev Required to receive ETH when unwrapping WETH
+     */
+    receive() external payable {}
 
     /**
      * @dev Modifier to prevent native token usage

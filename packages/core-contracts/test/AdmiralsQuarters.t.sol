@@ -428,7 +428,168 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         vm.stopPrank();
     }
+    function test_EnterWithETH_ExitToETH() public {
+        uint256 ethAmount = 1e18; // 1 ETH
 
+        // Deal ETH to user1
+        deal(user1, ethAmount);
+        uint256 userEthBalanceBefore = user1.balance;
+        uint256 userWethBalanceBefore = IERC20(WETH).balanceOf(user1);
+
+        vm.startPrank(user1);
+
+        // First multicall: deposit ETH and enter WETH fleet
+        bytes[] memory enterCalls = new bytes[](2);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(ETH_PSEUDO_ADDRESS), ethAmount)
+        );
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(wethFleet), ethAmount, user1)
+        );
+        admiralsQuarters.multicall{value: ethAmount}(enterCalls);
+
+        // Verify initial state after entering fleet
+        uint256 userFleetShares = wethFleet.balanceOf(user1);
+        assertGt(userFleetShares, 0, "User should have WETH fleet shares");
+        assertEq(
+            address(admiralsQuarters).balance,
+            0,
+            "AdmiralsQuarters should have no ETH balance"
+        );
+
+        // Second multicall: exit fleet and withdraw as ETH
+        wethFleet.approve(address(admiralsQuarters), userFleetShares);
+        bytes[] memory exitCalls = new bytes[](2);
+        exitCalls[0] = abi.encodeCall(
+            admiralsQuarters.exitFleet,
+            (address(wethFleet), type(uint256).max)
+        );
+        exitCalls[1] = abi.encodeCall(
+            admiralsQuarters.withdrawTokens,
+            (IERC20(ETH_PSEUDO_ADDRESS), 0) // 0 means withdraw all
+        );
+        admiralsQuarters.multicall(exitCalls);
+
+        // Verify final state
+        uint256 userEthBalanceAfter = user1.balance;
+        uint256 userWethBalanceAfter = IERC20(WETH).balanceOf(user1);
+
+        // User should have received ETH back (minus gas costs)
+        assertGt(
+            userEthBalanceAfter,
+            userEthBalanceBefore - ethAmount,
+            "User should have received ETH back (minus gas costs)"
+        );
+
+        // WETH balances should be unchanged
+        assertEq(
+            userWethBalanceAfter,
+            userWethBalanceBefore,
+            "User WETH balance should be unchanged"
+        );
+
+        // Contract balances should be 0
+        assertEq(
+            address(admiralsQuarters).balance,
+            0,
+            "AdmiralsQuarters should have no ETH balance"
+        );
+        assertEq(
+            IERC20(WETH).balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no WETH balance"
+        );
+        assertEq(
+            wethFleet.balanceOf(user1),
+            0,
+            "User should have no fleet shares"
+        );
+
+        vm.stopPrank();
+    }
+    function test_EnterWithETH_ExitToWETH() public {
+        uint256 ethAmount = 1e18; // 1 ETH
+
+        // Deal ETH to user1
+        deal(user1, ethAmount);
+        uint256 userEthBalanceBefore = user1.balance;
+        uint256 userWethBalanceBefore = IERC20(WETH).balanceOf(user1);
+
+        vm.startPrank(user1);
+
+        // First multicall: deposit ETH and enter WETH fleet
+        bytes[] memory enterCalls = new bytes[](2);
+        enterCalls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(ETH_PSEUDO_ADDRESS), ethAmount)
+        );
+        enterCalls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(wethFleet), ethAmount, user1)
+        );
+        admiralsQuarters.multicall{value: ethAmount}(enterCalls);
+
+        // Verify initial state after entering fleet
+        uint256 userFleetShares = wethFleet.balanceOf(user1);
+        assertGt(userFleetShares, 0, "User should have WETH fleet shares");
+        assertEq(
+            address(admiralsQuarters).balance,
+            0,
+            "AdmiralsQuarters should have no ETH balance"
+        );
+
+        // Second multicall: exit fleet and withdraw as ETH
+        wethFleet.approve(address(admiralsQuarters), userFleetShares);
+        bytes[] memory exitCalls = new bytes[](2);
+        exitCalls[0] = abi.encodeCall(
+            admiralsQuarters.exitFleet,
+            (address(wethFleet), type(uint256).max)
+        );
+        exitCalls[1] = abi.encodeCall(
+            admiralsQuarters.withdrawTokens,
+            (IERC20(WETH), 0) // 0 means withdraw all
+        );
+        admiralsQuarters.multicall(exitCalls);
+
+        // Verify final state
+        uint256 userEthBalanceAfter = user1.balance;
+        uint256 userWethBalanceAfter = IERC20(WETH).balanceOf(user1);
+
+        // User should have received ETH back (minus gas costs)
+        assertEq(
+            userEthBalanceAfter,
+            userEthBalanceBefore - ethAmount,
+            "User should have received ETH back (minus gas costs)"
+        );
+
+        // WETH balances should be unchanged
+        assertEq(
+            userWethBalanceAfter,
+            userWethBalanceBefore + ethAmount,
+            "User WETH balance should increased by ethAmount"
+        );
+
+        // Contract balances should be 0
+        assertEq(
+            address(admiralsQuarters).balance,
+            0,
+            "AdmiralsQuarters should have no ETH balance"
+        );
+        assertEq(
+            IERC20(WETH).balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no WETH balance"
+        );
+        assertEq(
+            wethFleet.balanceOf(user1),
+            0,
+            "User should have no fleet shares"
+        );
+
+        vm.stopPrank();
+    }
     function test_Deposit_ETH_Swap_EnterFleet() public {
         uint256 ethAmount = 1e18; // 1 ETH
         uint256 minUsdcAmount = 1500e6; // Expecting at least 1500 USDC for 1 ETH
