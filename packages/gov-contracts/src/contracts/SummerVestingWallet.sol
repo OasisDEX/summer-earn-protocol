@@ -21,8 +21,8 @@ contract SummerVestingWallet is
     ///                CONSTANTS               ///
     //////////////////////////////////////////////
 
-    /// @dev Duration of a quarter in seconds
-    uint256 private constant QUARTER = 90 days;
+    /// @dev Duration of a month in seconds
+    uint256 private constant MONTH = 30 days;
     /// @dev Duration of the cliff period in seconds
     uint256 private constant CLIFF = 180 days;
 
@@ -205,12 +205,12 @@ contract SummerVestingWallet is
      * @return uint256 The amount of tokens already vested based on time
      * @custom:internal-logic
      * - Checks if the timestamp is before the cliff period
-     * - Calculates the number of quarters that have passed, including the cliff period
-     * - Determines the vested amount based on elapsed quarters
+     * - Calculates the number of months that have passed, including the cliff period
+     * - Determines the vested amount based on elapsed months
      * @custom:effects
      * - Does not modify any state, view function only
      * @custom:security-considerations
-     * - Ensure that the CLIFF and QUARTER constants are correctly set
+     * - Ensure that the CLIFF and MONTH constants are correctly set
      * - The function assumes that start() is correctly set
      * @custom:gas-considerations
      * - This function performs several mathematical operations, which may impact gas usage
@@ -219,8 +219,8 @@ contract SummerVestingWallet is
     function _calculateTimeBasedVesting(
         uint64 timestamp
     ) private view returns (uint256) {
-        uint256 elapsedQuarters = (timestamp - start()) / QUARTER;
-        return (timeBasedVestingAmount * elapsedQuarters) / 8;
+        uint256 elapsedMonths = (timestamp - start()) / MONTH;
+        return (timeBasedVestingAmount * elapsedMonths) / 24;
     }
 
     /**

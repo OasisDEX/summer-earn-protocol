@@ -143,8 +143,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             "1/4 of time-based tokens should be vested after cliff"
         );
 
-        // After 1 year
-        vm.warp(block.timestamp + 185 days);
+        // After 1 year (12 months)
+        vm.warp(block.timestamp + 180 days);
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
@@ -154,8 +154,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             "Half of time-based tokens should be vested after 1 year"
         );
 
-        // After 2 years
-        vm.warp(block.timestamp + 365 days);
+        // After 2 years (24 months)
+        vm.warp(block.timestamp + 360 days);
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
@@ -201,8 +201,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             "1/4 of tokens should be vested after cliff"
         );
 
-        // After 1 year
-        vm.warp(block.timestamp + 185 days);
+        // After 1 year (12 months)
+        vm.warp(block.timestamp + 180 days);
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
@@ -212,8 +212,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             "Half of tokens should be vested after 1 year"
         );
 
-        // After 2 years
-        vm.warp(block.timestamp + 365 days);
+        // After 2 years (24 months)
+        vm.warp(block.timestamp + 360 days);
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
