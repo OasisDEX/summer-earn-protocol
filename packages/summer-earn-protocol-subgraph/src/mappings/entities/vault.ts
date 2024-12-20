@@ -1,8 +1,10 @@
 import { Address, BigDecimal, ethereum } from '@graphprotocol/graph-ts'
 import { Account, Vault } from '../../../generated/schema'
-import { BigDecimalConstants } from '../../common/constants'
+import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
+import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
 import {
   getOrCreateArksPostActionSnapshots,
+  getOrCreateRewardToken,
   getOrCreateVault,
   getOrCreateVaultsPostActionSnapshots,
 } from '../../common/initializers'
@@ -20,33 +22,40 @@ export function updateVault(
   shouldUpdateApr: boolean,
 ): void {
   const vault = getOrCreateVault(Address.fromString(vaultDetails.vaultId), block)
-  let previousPricePerShare = vault.pricePerShare
-  if (
-    !previousPricePerShare ||
-    (previousPricePerShare && previousPricePerShare.equals(BigDecimalConstants.ZERO))
-  ) {
-    previousPricePerShare = BigDecimalConstants.ONE
-  }
   const deltaTime = block.timestamp.minus(vault.lastUpdateTimestamp).toBigDecimal()
+
+  if (shouldUpdateApr) {
+    const previousLastUpdatePricePerShare = vault.lastUpdatePricePerShare
+    vault.lastUpdateTimestamp = block.timestamp
+    vault.lastUpdatePricePerShare = vaultDetails.pricePerShare
+    if (!previousLastUpdatePricePerShare.equals(BigDecimalConstants.ZERO)) {
+      const pricePerShareDiff = vaultDetails.pricePerShare
+        .minus(previousLastUpdatePricePerShare)
+        .div(previousLastUpdatePricePerShare)
+      if (
+        deltaTime.gt(BigDecimalConstants.ZERO) &&
+        !pricePerShareDiff.equals(BigDecimalConstants.ZERO) &&
+        pricePerShareDiff.lt(BigDecimalConstants.TEN_BPS) &&
+        vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare)
+      ) {
+        vault.calculatedApr = getAprForTimePeriod(
+          previousLastUpdatePricePerShare,
+          vaultDetails.pricePerShare,
+          deltaTime,
+        )
+      }
+    }
+  }
   vault.inputTokenBalance = vaultDetails.inputTokenBalance
   vault.outputTokenSupply = vaultDetails.outputTokenSupply
   vault.totalValueLockedUSD = vaultDetails.totalValueLockedUSD
   vault.outputTokenPriceUSD = vaultDetails.outputTokenPriceUSD
   vault.inputTokenPriceUSD = vaultDetails.inputTokenPriceUSD
   vault.pricePerShare = vaultDetails.pricePerShare
-  if (shouldUpdateApr) {
-    vault.lastUpdateTimestamp = block.timestamp
-    if (
-      deltaTime.gt(BigDecimalConstants.ZERO) &&
-      !previousPricePerShare.equals(vaultDetails.pricePerShare)
-    ) {
-      vault.calculatedApr = getAprForTimePeriod(
-        previousPricePerShare,
-        vaultDetails.pricePerShare,
-        deltaTime,
-      )
-    }
-  }
+  vault.withdrawableTotalAssets = vaultDetails.withdrawableTotalAssets
+  vault.withdrawableTotalAssetsUSD = vaultDetails.withdrawableTotalAssetsUSD
+  vault.rewardTokenEmissionsAmountsPerOutputToken =
+    vaultDetails.rewardTokenEmissionsAmountsPerOutputToken
   vault.save()
 }
 
@@ -87,7 +96,7 @@ export function updateVaultAndArks(event: ethereum.Event, vault: Vault): void {
       Address.fromString(arks[i]),
       event.block,
     )
-    updateArk(arkDetails, event.block)
+    updateArk(arkDetails, event.block, false)
     getOrCreateArksPostActionSnapshots(
       Address.fromString(vault.id),
       Address.fromString(arks[i]),
@@ -96,9 +105,8 @@ export function updateVaultAndArks(event: ethereum.Event, vault: Vault): void {
   }
 }
 
-export function updateVaultAPRs(vault: Vault): void {
+export function updateVaultAPRs(vault: Vault, currentApr: BigDecimal): void {
   const MAX_APR_VALUES = 365
-  const currentApr = vault.calculatedApr
   let aprValues = vault.aprValues
 
   // Remove oldest value if we've reached max capacity
@@ -142,4 +150,94 @@ function calculateAverageAPR(sum: BigDecimal, period: i32, length: i32): BigDeci
   const periodBD = BigDecimal.fromString(period.toString())
   const lengthBD = BigDecimal.fromString(length.toString())
   return length >= period ? sum.div(periodBD) : sum.div(lengthBD)
+}
+
+export function addOrUpdateVaultRewardRates(
+  vault: Vault,
+  rewardsManagerAddress: Address,
+  rewardToken: Address,
+): void {
+  const rewardsManagerContract = FleetCommanderRewardsManagerContract.bind(rewardsManagerAddress)
+  const rewardsData = rewardsManagerContract.rewardData(rewardToken)
+  const rewardTokens = vault.rewardTokens
+  const index = rewardTokens.indexOf(rewardToken.toHexString())
+
+  if (index !== -1) {
+    const rewardTokenEmissionsAmounts = vault.rewardTokenEmissionsAmount
+    rewardTokenEmissionsAmounts[index] = rewardsData
+      .getRewardRate()
+      .times(BigIntConstants.SECONDS_PER_DAY)
+    vault.rewardTokenEmissionsAmount = rewardTokenEmissionsAmounts
+
+    const rewardTokenEmissionsAmountsPerOutputToken =
+      vault.rewardTokenEmissionsAmountsPerOutputToken
+    rewardTokenEmissionsAmountsPerOutputToken[index] = vault.outputTokenSupply.gt(
+      BigIntConstants.ZERO,
+    )
+      ? rewardsData
+          .getRewardRate()
+          .times(BigIntConstants.SECONDS_PER_DAY)
+          .div(vault.outputTokenSupply)
+      : BigIntConstants.ZERO
+    vault.rewardTokenEmissionsAmountsPerOutputToken = rewardTokenEmissionsAmountsPerOutputToken
+
+    const rewardTokenEmissionsFinish = vault.rewardTokenEmissionsFinish
+    rewardTokenEmissionsFinish[index] = rewardsData.getPeriodFinish()
+    vault.rewardTokenEmissionsFinish = rewardTokenEmissionsFinish
+
+    vault.save()
+  } else {
+    const rewardTokens = vault.rewardTokens
+    const rewardTokenEntity = getOrCreateRewardToken(rewardToken)
+    rewardTokens.push(rewardTokenEntity.id)
+    vault.rewardTokens = rewardTokens
+
+    const rewardTokenEmissionsAmounts = vault.rewardTokenEmissionsAmount
+    rewardTokenEmissionsAmounts.push(
+      rewardsData.getRewardRate().times(BigIntConstants.SECONDS_PER_DAY),
+    )
+    vault.rewardTokenEmissionsAmount = rewardTokenEmissionsAmounts
+
+    const rewardTokenEmissionsAmountsPerOutputToken =
+      vault.rewardTokenEmissionsAmountsPerOutputToken
+    rewardTokenEmissionsAmountsPerOutputToken.push(
+      vault.outputTokenSupply.gt(BigIntConstants.ZERO)
+        ? rewardsData
+            .getRewardRate()
+            .times(BigIntConstants.SECONDS_PER_DAY)
+            .div(vault.outputTokenSupply)
+        : BigIntConstants.ZERO,
+    )
+    vault.rewardTokenEmissionsAmountsPerOutputToken = rewardTokenEmissionsAmountsPerOutputToken
+
+    const rewardTokenEmissionsFinish = vault.rewardTokenEmissionsFinish
+    rewardTokenEmissionsFinish.push(rewardsData.getPeriodFinish())
+    vault.rewardTokenEmissionsFinish = rewardTokenEmissionsFinish
+
+    vault.save()
+  }
+}
+
+export function removeVaultRewardRates(vault: Vault, rewardToken: Address): void {
+  const rewardTokens = vault.rewardTokens
+  const index = rewardTokens.indexOf(rewardToken.toHexString())
+
+  if (index !== -1) {
+    const rewardTokenEmissionsAmounts = vault.rewardTokenEmissionsAmount
+    const rewardTokenEmissionsAmountsPerOutputToken =
+      vault.rewardTokenEmissionsAmountsPerOutputToken
+    const rewardTokenEmissionsFinish = vault.rewardTokenEmissionsFinish
+
+    rewardTokens.splice(index, 1)
+    rewardTokenEmissionsAmounts.splice(index, 1)
+    rewardTokenEmissionsAmountsPerOutputToken.splice(index, 1)
+    rewardTokenEmissionsFinish.splice(index, 1)
+
+    vault.rewardTokens = rewardTokens
+    vault.rewardTokenEmissionsAmount = rewardTokenEmissionsAmounts
+    vault.rewardTokenEmissionsAmountsPerOutputToken = rewardTokenEmissionsAmountsPerOutputToken
+    vault.rewardTokenEmissionsFinish = rewardTokenEmissionsFinish
+
+    vault.save()
+  }
 }

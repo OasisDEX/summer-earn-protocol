@@ -120,18 +120,18 @@ class ProtocolConfig {
           'AaveV3',
         ),
       ]),
-      new Protocol('Metamorpho', [
+      new Protocol('MorphoVault', [
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
           Address.fromString('0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB'),
           BigInt.fromI32(18928285),
-          'Metamorpho',
+          'MorphoVault',
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.DAI),
           Address.fromString('0x83f20f44975d03b1b09e64809b757c47f942beea'),
           BigInt.fromI32(16428133),
-          'Metamorpho',
+          'MorphoVault',
         ),
       ]),
       new Protocol('Pendle', [

@@ -99,7 +99,7 @@
       },
       "erc4626": {
         "usdc": {
-          "fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+          "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
         }
       }
     }
@@ -166,10 +166,10 @@
     "protocolSpecific": {
       "erc4626": {
         "usdc": {
-          "gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6"
+          "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6"
         },
         "usdce": {
-          "gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
+          "Gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
         }
       },
       "pendle": {
