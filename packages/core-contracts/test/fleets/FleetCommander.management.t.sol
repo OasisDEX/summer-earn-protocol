@@ -535,4 +535,43 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertNotEq(config.stakingRewardsManager, initialStakingRewardsManager);
         assertNotEq(config.stakingRewardsManager, address(0));
     }
+
+    function test_TransfersEnabledByDefault() public {
+        assertEq(
+            fleetCommander.transfersEnabled(),
+            false,
+            "Transfers should be disabled by default"
+        );
+    }
+
+    function test_SetTransfersEnabled() public {
+        vm.prank(governor);
+        fleetCommander.setTransfersEnabled(true);
+
+        assertEq(
+            fleetCommander.transfersEnabled(),
+            true,
+            "Transfers should be enabled after setting"
+        );
+    }
+
+    function test_SetTransfersEnabled_EmitsEvent() public {
+        vm.prank(governor);
+
+        vm.expectEmit(true, true, true, true);
+        emit IFleetCommanderConfigProviderEvents.TransfersEnabledUpdated(true);
+        fleetCommander.setTransfersEnabled(true);
+    }
+
+    function test_SetTransfersEnabled_OnlyGovernor() public {
+        // Test non-governor cannot enable transfers
+        vm.prank(address(0x123));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGovernor(address)",
+                address(0x123)
+            )
+        );
+        fleetCommander.setTransfersEnabled(true);
+    }
 }
