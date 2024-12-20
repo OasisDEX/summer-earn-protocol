@@ -263,9 +263,7 @@ export function getOrCreateVaultsDailySnapshots(
   const dailyRateId = getDailyVaultRateIdAndTimestamp(block, vault.id)
   const dailyRate = DailyInterestRate.load(dailyRateId.dailyRateId)
 
-  const id: string = vault.id
-    .concat('-')
-    .concat((currentDay).toString())
+  const id: string = vault.id.concat('-').concat(currentDay.toString())
   let vaultSnapshots = VaultDailySnapshot.load(id)
 
   if (!vaultSnapshots) {
@@ -849,8 +847,8 @@ export function getOrCreateVaultWeeklySnapshots(
   // Update cumulative and weekly revenues
   const previousSnapshot = VaultWeeklySnapshot.load(
     vaultAddress.toHexString() +
-    '-' +
-    weekTimestamp.minus(BigIntConstants.SECONDS_PER_WEEK).toString(),
+      '-' +
+      weekTimestamp.minus(BigIntConstants.SECONDS_PER_WEEK).toString(),
   )
 
   if (previousSnapshot) {
