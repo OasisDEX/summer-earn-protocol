@@ -242,7 +242,7 @@ abstract contract StakingRewardsManagerBase is
     function _initialize(IERC20 _stakingToken) internal virtual {}
 
     function _stake(
-        address from,
+        address staker,
         address receiver,
         uint256 amount
     ) internal virtual {
@@ -252,20 +252,20 @@ abstract contract StakingRewardsManagerBase is
         }
         totalSupply += amount;
         _balances[receiver] += amount;
-        stakingToken.safeTransferFrom(from, address(this), amount);
-        emit Staked(receiver, amount);
+        stakingToken.safeTransferFrom(staker, address(this), amount);
+        emit Staked(staker, receiver, amount);
     }
 
     function _unstake(
-        address from,
+        address staker,
         address receiver,
         uint256 amount
     ) internal virtual {
         if (amount == 0) revert CannotUnstakeZero();
         totalSupply -= amount;
-        _balances[from] -= amount;
+        _balances[staker] -= amount;
         stakingToken.safeTransfer(receiver, amount);
-        emit Unstaked(from, amount);
+        emit Unstaked(staker, receiver, amount);
     }
 
     /*

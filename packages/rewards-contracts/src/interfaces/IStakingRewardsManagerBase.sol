@@ -144,16 +144,26 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
     event RewardAdded(address indexed rewardToken, uint256 reward);
 
     /* @notice Emitted when tokens are staked
-     * @param account The address of the account that staked
+     * @param staker The address of the account that staked
+     * @param receiver The address of the account that received the staked tokens
      * @param amount The amount of tokens staked
      */
-    event Staked(address indexed account, uint256 amount);
+    event Staked(
+        address indexed staker,
+        address indexed receiver,
+        uint256 amount
+    );
 
     /* @notice Emitted when tokens are unstaked
-     * @param account The address of the account that unstaked
+     * @param staker The address of the account that unstaked
+     * @param receiver The address of the account that received the unstaked tokens
      * @param amount The amount of tokens unstaked
      */
-    event Unstaked(address indexed account, uint256 amount);
+    event Unstaked(
+        address indexed staker,
+        address indexed receiver,
+        uint256 amount
+    );
 
     /* @notice Emitted when tokens are withdrawn
      * @param user The address of the user that withdrew
