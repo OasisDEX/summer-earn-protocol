@@ -5,16 +5,47 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {console} from "forge-std/console.sol";
+
+/**
+ * @title SummerRewardsRedeemer
+ * @author Summer.fi
+ * @notice Contract for managing and distributing token rewards using Merkle proofs
+ * @dev This contract enables efficient distribution of rewards to multiple users
+ *      using Merkle trees. Each distribution is identified by an index and has its
+ *      own Merkle root. Users can claim their rewards by providing proofs of inclusion.
+ *
+ *      Security features:
+ *      - Double-hashed leaves to prevent second preimage attacks
+ *      - Bitmap-based claim tracking
+ *      - Safe ERC20 transfers
+ *      - Governance-controlled root management
+ */
 contract SummerRewardsRedeemer is ProtocolAccessManaged {
     using BitMaps for BitMaps.BitMap;
     using SafeERC20 for IERC20;
 
-    /// STORAGE
+    /**
+     * @notice Timestamp when the contract was deployed
+     * @dev Used for tracking contract age and potential migrations
+     */
     uint256 public deployedAt;
+
+    /**
+     * @notice Token being distributed as rewards
+     * @dev Set at deployment and cannot be changed
+     */
     IERC20 public immutable rewardsToken;
 
+    /**
+     * @notice Mapping of distribution indices to their Merkle roots
+     * @dev Each distribution has a unique index and corresponding root hash
+     */
     mapping(uint256 index => bytes32 rootHash) public roots;
+
+    /**
+     * @notice Tracks which distributions have been claimed by each user
+     * @dev Uses bitmap for gas-efficient storage
+     */
     mapping(address user => BitMaps.BitMap claimedRoots) private claimedRoots;
 
     /// EVENTS
@@ -62,6 +93,13 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
 
     /// EXTERNAL FUNCTIONS
 
+    /**
+     * @notice Adds a new Merkle root for a distribution
+     * @param index Unique identifier for the distribution
+     * @param root Merkle root hash of the distribution
+     * @dev Only callable by governance
+     * @dev Reverts if root already exists for the given index
+     */
     function addRoot(uint256 index, bytes32 root) external onlyGovernor {
         if (roots[index] != bytes32(0)) {
             revert RootAlreadyAdded(index, root);
@@ -70,6 +108,12 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
         emit RootAdded(index, root);
     }
 
+    /**
+     * @notice Removes a Merkle root
+     * @param index Distribution index to remove
+     * @dev Only callable by governance
+     * @dev Used for correcting errors or updating distributions
+     */
     function removeRoot(uint256 index) external onlyGovernor {
         delete roots[index];
         emit RootRemoved(index);
@@ -79,13 +123,14 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
         return roots[index];
     }
 
-    function hasClaimed(
-        address user,
-        uint256 index
-    ) public view returns (bool) {
-        return claimedRoots[user].get(index);
-    }
-
+    /**
+     * @notice Checks if a user can claim from a distribution
+     * @param index Distribution index to check
+     * @param amount Amount attempting to claim
+     * @param proof Merkle proof to verify
+     * @return bool True if claim is possible, false otherwise
+     * @dev Returns false if already claimed or proof is invalid
+     */
     function canClaim(
         uint256 index,
         uint256 amount,
@@ -96,6 +141,13 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
             !hasClaimed(_msgSender(), index);
     }
 
+    /**
+     * @notice Claims rewards for a single distribution
+     * @param index Distribution index to claim from
+     * @param amount Amount of tokens to claim
+     * @param proof Merkle proof verifying the claim
+     * @dev Verifies proof, marks claim as processed, and transfers tokens
+     */
     function claim(
         uint256 index,
         uint256 amount,
@@ -107,6 +159,14 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
         _sendRewards(_msgSender(), amount);
     }
 
+    /**
+     * @notice Claims rewards from multiple distributions at once
+     * @param indices Array of distribution indices to claim from
+     * @param amounts Array of amounts to claim from each distribution
+     * @param proofs Array of Merkle proofs for each claim
+     * @dev Processes multiple claims in a single transaction
+     * @dev All arrays must be equal length and non-empty
+     */
     function claimMultiple(
         uint256[] calldata indices,
         uint256[] calldata amounts,
@@ -133,6 +193,14 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
         _sendRewards(_msgSender(), total);
     }
 
+    /**
+     * @notice Emergency withdrawal of tokens
+     * @param token Address of token to withdraw
+     * @param to Address to send tokens to
+     * @param amount Amount of tokens to withdraw
+     * @dev Only callable by governance
+     * @dev Used for recovering stuck tokens or handling emergencies
+     */
     function emergencyWithdraw(
         address token,
         address to,
@@ -183,5 +251,18 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
 
     function _sendRewards(address to, uint256 amount) internal {
         rewardsToken.safeTransfer(to, amount);
+    }
+
+    /**
+     * @notice Checks if a user has already claimed from a distribution
+     * @param user Address to check
+     * @param index Distribution index to check
+     * @return bool True if already claimed, false otherwise
+     */
+    function hasClaimed(
+        address user,
+        uint256 index
+    ) public view returns (bool) {
+        return claimedRoots[user].get(index);
     }
 }
