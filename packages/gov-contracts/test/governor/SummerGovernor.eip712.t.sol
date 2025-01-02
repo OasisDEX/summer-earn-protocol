@@ -85,16 +85,13 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
 
         // Create vote signature
         uint8 support = 1;
+
+        // Create the digest that needs to be signed
         bytes32 structHash = keccak256(
-            abi.encode(
-                BALLOT_TYPEHASH,
-                proposalId,
-                support,
-                alice, // voter
-                nonce // nonce
-            )
+            abi.encode(BALLOT_TYPEHASH, proposalId, support, alice, nonce)
         );
 
+        // Use _calculateDomainSeparator() helper function
         bytes32 domainSeparator = _calculateDomainSeparator();
         bytes32 digest = keccak256(
             abi.encodePacked("\x19\x01", domainSeparator, structHash)
@@ -112,6 +109,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
             uint256 forVotes,
             uint256 abstainVotes
         ) = governorA.proposalVotes(proposalId);
+
         assertEq(forVotes, governorA.proposalThreshold());
         assertEq(againstVotes, 0);
         assertEq(abstainVotes, 0);
@@ -141,33 +139,19 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
         string memory reason = "I support this proposal";
         bytes memory params = "";
 
-        // Calculate domain separator
-        bytes32 domainSeparator = keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                ),
-                keccak256(bytes("SummerGovernor")),
-                keccak256(bytes("1")),
-                block.chainid,
-                address(governorA)
-            )
-        );
-
-        // Calculate struct hash
         bytes32 structHash = keccak256(
             abi.encode(
                 EXTENDED_BALLOT_TYPEHASH,
                 proposalId,
                 support,
-                alice,
+                alice, // voter
                 nonce,
                 keccak256(bytes(reason)),
                 keccak256(params)
             )
         );
 
-        // Calculate final digest
+        bytes32 domainSeparator = _calculateDomainSeparator();
         bytes32 digest = keccak256(
             abi.encodePacked("\x19\x01", domainSeparator, structHash)
         );
@@ -176,7 +160,7 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         // Cast vote with reason and params using signature
-        governorA.castVoteWithReasonAndParamsBySig(
+        uint256 weight = governorA.castVoteWithReasonAndParamsBySig(
             proposalId,
             support,
             alice,
@@ -191,9 +175,11 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
             uint256 forVotes,
             uint256 abstainVotes
         ) = governorA.proposalVotes(proposalId);
-        assertEq(forVotes, governorA.proposalThreshold());
+
+        assertEq(forVotes, weight);
         assertEq(againstVotes, 0);
         assertEq(abstainVotes, 0);
+        assertTrue(governorA.hasVoted(proposalId, alice));
     }
 
     function testRevert_InvalidSignature() public {
@@ -295,5 +281,377 @@ contract SummerGovernorEIP712Test is SummerGovernorTestBase {
                     address(governorA)
                 )
             );
+    }
+
+    function test_CastVoteWithReasonBySig() public {
+        // Setup proposal and voter
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+
+        advanceTimeForVotingDelay();
+
+        // Get current nonce for the voter
+        uint256 nonce = governorA.nonces(alice);
+
+        // Create vote signature with reason
+        uint8 support = 1;
+        string memory reason = "I support this proposal";
+        bytes memory params = "";
+
+        bytes32 structHash = keccak256(
+            abi.encode(
+                EXTENDED_BALLOT_TYPEHASH,
+                proposalId,
+                support,
+                alice, // voter
+                nonce,
+                keccak256(bytes(reason)),
+                keccak256(params)
+            )
+        );
+
+        bytes32 domainSeparator = _calculateDomainSeparator();
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_PRIVATE_KEY, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Cast vote with reason using signature
+        governorA.castVoteWithReasonAndParamsBySig(
+            proposalId,
+            support,
+            alice,
+            reason,
+            params,
+            signature
+        );
+
+        // Verify vote was counted
+        (
+            uint256 againstVotes,
+            uint256 forVotes,
+            uint256 abstainVotes
+        ) = governorA.proposalVotes(proposalId);
+        assertEq(forVotes, governorA.proposalThreshold());
+        assertEq(againstVotes, 0);
+        assertEq(abstainVotes, 0);
+
+        // Verify vote was recorded
+        assertTrue(governorA.hasVoted(proposalId, alice));
+    }
+
+    function test_CastVoteWithReason() public {
+        // Setup proposal and voter
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+
+        advanceTimeForVotingDelay();
+
+        // Cast vote with reason
+        string memory reason = "I support this proposal";
+        vm.prank(alice);
+        governorA.castVoteWithReason(proposalId, 1, reason);
+
+        // Verify vote was counted
+        (
+            uint256 againstVotes,
+            uint256 forVotes,
+            uint256 abstainVotes
+        ) = governorA.proposalVotes(proposalId);
+        assertEq(forVotes, governorA.proposalThreshold());
+        assertEq(againstVotes, 0);
+        assertEq(abstainVotes, 0);
+
+        // Verify vote was recorded
+        assertTrue(governorA.hasVoted(proposalId, alice));
+    }
+
+    function test_CastVoteWithReasonAndParams() public {
+        // Setup proposal and voter
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+
+        advanceTimeForVotingDelay();
+
+        // Cast vote with reason and params
+        string memory reason = "I support this proposal";
+        bytes memory params = abi.encode(uint256(123)); // Example params
+        vm.prank(alice);
+        governorA.castVoteWithReasonAndParams(proposalId, 1, reason, params);
+
+        // Verify vote was counted
+        (
+            uint256 againstVotes,
+            uint256 forVotes,
+            uint256 abstainVotes
+        ) = governorA.proposalVotes(proposalId);
+        assertEq(forVotes, governorA.proposalThreshold());
+        assertEq(againstVotes, 0);
+        assertEq(abstainVotes, 0);
+
+        // Verify vote was recorded
+        assertTrue(governorA.hasVoted(proposalId, alice));
+    }
+
+    function test_GetVotes() public {
+        // Setup voter with tokens
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, 100e18);
+        vm.stopPrank();
+
+        // Self-delegate to activate voting power
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        // Advance block to ensure delegation is active
+        advanceTimeAndBlock();
+        // Check votes
+        uint256 votes = governorA.getVotes(alice, block.timestamp - 1);
+        assertEq(votes, 100e18);
+    }
+
+    function test_GetVotesWithParams() public {
+        // Setup voter with tokens
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, 100e18);
+        vm.stopPrank();
+
+        // Self-delegate to activate voting power
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        // Advance block to ensure delegation is active
+        advanceTimeAndBlock();
+
+        // Check votes with params (empty params in this case)
+        uint256 votes = governorA.getVotesWithParams(
+            alice,
+            block.timestamp - 1,
+            ""
+        );
+        assertEq(votes, 100e18);
+    }
+
+    function test_HasVoted() public {
+        // Setup proposal and voter
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+
+        advanceTimeForVotingDelay();
+
+        // Verify hasn't voted
+        assertFalse(governorA.hasVoted(proposalId, alice));
+
+        // Cast vote
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        // Verify has voted
+        assertTrue(governorA.hasVoted(proposalId, alice));
+    }
+
+    function test_Version() public view {
+        assertEq(governorA.version(), "1");
+    }
+
+    function test_Name() public view {
+        assertEq(governorA.name(), "SummerGovernor");
+    }
+
+    function testRevert_InvalidSignatureLength() public {
+        // Setup proposal and voter
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+
+        advanceTimeForVotingDelay();
+
+        // Try to cast vote with invalid signature length
+        bytes memory invalidSignature = new bytes(63); // Valid signature is 65 bytes
+
+        // Update the expected revert message to match the actual error
+        vm.expectRevert(
+            abi.encodeWithSignature("GovernorInvalidSignature(address)", alice)
+        );
+        governorA.castVoteBySig(proposalId, 1, alice, invalidSignature);
+    }
+
+    function test_PreventSignatureReplay() public {
+        // Setup proposal and voter
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+        advanceTimeForVotingDelay();
+
+        // Create vote signature
+        uint8 support = 1;
+        uint256 nonce = governorA.nonces(alice);
+        bytes32 structHash = keccak256(
+            abi.encode(BALLOT_TYPEHASH, proposalId, support, alice, nonce)
+        );
+        bytes32 domainSeparator = _calculateDomainSeparator();
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_PRIVATE_KEY, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // First vote should succeed
+        governorA.castVoteBySig(proposalId, support, alice, signature);
+
+        // Second attempt with same signature should fail with GovernorInvalidSignature
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IGovernor.GovernorInvalidSignature.selector,
+                alice
+            )
+        );
+        governorA.castVoteBySig(proposalId, support, alice, signature);
+    }
+
+    function test_NonceIncrement() public {
+        // Setup proposal and voter
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+        advanceTimeForVotingDelay();
+
+        // Get initial nonce
+        uint256 initialNonce = governorA.nonces(alice);
+
+        // Create and submit first vote
+        uint8 support = 1;
+        bytes32 structHash = keccak256(
+            abi.encode(
+                BALLOT_TYPEHASH,
+                proposalId,
+                support,
+                alice,
+                initialNonce
+            )
+        );
+        bytes32 domainSeparator = _calculateDomainSeparator();
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_PRIVATE_KEY, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        governorA.castVoteBySig(proposalId, support, alice, signature);
+
+        // Verify nonce was incremented
+        assertEq(
+            governorA.nonces(alice),
+            initialNonce + 1,
+            "Nonce should increment after vote"
+        );
+    }
+
+    function test_VotingPowerIntegration() public {
+        // Setup proposal and voter with specific voting power
+        uint256 votingPower = governorA.proposalThreshold(); // Use the actual required threshold
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, votingPower);
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        (uint256 proposalId, ) = createProposal();
+        advanceTimeForVotingDelay();
+
+        // Create vote signature
+        uint8 support = 1;
+        uint256 nonce = governorA.nonces(alice);
+        bytes32 structHash = keccak256(
+            abi.encode(BALLOT_TYPEHASH, proposalId, support, alice, nonce)
+        );
+        bytes32 domainSeparator = _calculateDomainSeparator();
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_PRIVATE_KEY, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Cast vote
+        governorA.castVoteBySig(proposalId, support, alice, signature);
+
+        // Verify votes were counted according to voting power
+        (
+            uint256 againstVotes,
+            uint256 forVotes,
+            uint256 abstainVotes
+        ) = governorA.proposalVotes(proposalId);
+        assertEq(forVotes, votingPower, "Votes should match voting power");
+        assertEq(againstVotes, 0);
+        assertEq(abstainVotes, 0);
     }
 }

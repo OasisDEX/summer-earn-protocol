@@ -77,6 +77,9 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
         vm.label(address(governorA), "SummerGovernor");
         vm.label(address(governorB), "SummerGovernor");
 
+        vm.label(address(timelockA), "Timelock A");
+        vm.label(address(timelockB), "Timelock B");
+
         vm.prank(owner);
         enableTransfers();
         changeTokensOwnership(address(timelockA), address(timelockB));
@@ -267,14 +270,6 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
 
 contract ExposedSummerGovernor is SummerGovernor {
     constructor(GovernorParams memory params) SummerGovernor(params) {}
-
-    function exposedLzReceive(
-        Origin calldata _origin,
-        bytes calldata payload,
-        bytes calldata extraData
-    ) public {
-        _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
-    }
 
     function exposedSendProposalToTargetChain(
         uint32 _dstEid,
