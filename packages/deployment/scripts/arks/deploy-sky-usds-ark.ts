@@ -133,15 +133,15 @@ async function deploySkyUsdsArkContract(
       [moduleName]: {
         litePsm:
           config.protocolSpecific.sky.psmLite[userInput.token.symbol.toLowerCase() as TokenType],
-        usds: config.protocolSpecific.sky.psmLite.usds,
-        stakedUsds: config.protocolSpecific.sky.psmLite.stakedUsds,
+        usds: config.tokens.usds,
+        stakedUsds: config.tokens.stakedUsds,
         arkParams: {
           name: arkName,
           details: JSON.stringify({
             protocol: 'Sky',
             type: 'Staking',
             asset: userInput.token.address,
-            marketAsset: config.protocolSpecific.sky.psmLite.usds,
+            marketAsset: config.tokens.usds,
             psmLite:
               config.protocolSpecific.sky.psmLite[
                 userInput.token.symbol.toLowerCase() as TokenType
