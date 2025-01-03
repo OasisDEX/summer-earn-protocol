@@ -220,6 +220,7 @@ contract SummerGovernorGovernorTest is SummerGovernorTestBase {
         vm.deal(address(this), 1 ether);
         vm.deal(alice, 1 ether);
         vm.deal(address(lzEndpointA), 1 ether);
+        vm.deal(address(timelockA), 1 ether);
 
         // Test 1: Direct transfer should revert
         vm.expectRevert(IGovernor.GovernorDisabledDeposit.selector);
@@ -239,6 +240,17 @@ contract SummerGovernorGovernorTest is SummerGovernorTestBase {
             address(governorA).balance,
             initialBalance + 0.1 ether,
             "Balance should increase when sent from endpoint"
+        );
+
+        // Test 4: Transfer from timelock should succeed
+        initialBalance = address(governorA).balance;
+        vm.prank(address(timelockA));
+        (success, ) = address(governorA).call{value: 0.1 ether}("");
+        assertTrue(success, "Transfer from timelock should succeed");
+        assertEq(
+            address(governorA).balance,
+            initialBalance + 0.1 ether,
+            "Balance should increase when sent from timelock"
         );
     }
 }

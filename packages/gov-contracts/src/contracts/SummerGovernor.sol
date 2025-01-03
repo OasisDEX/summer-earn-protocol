@@ -173,11 +173,9 @@ contract SummerGovernor is
 
     // Receive function to allow the contract to receive ETH from LayerZero
     receive() external payable override {
-        // Only allow deposits from LayerZero endpoint
-        if (msg.sender != address(endpoint)) {
-            if (_executor() != address(this)) {
-                revert GovernorDisabledDeposit();
-            }
+        // Allow deposits from LayerZero endpoint or timelock
+        if (msg.sender != address(endpoint) && msg.sender != timelock()) {
+            revert GovernorDisabledDeposit();
         }
     }
 
