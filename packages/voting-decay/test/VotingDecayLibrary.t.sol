@@ -243,46 +243,6 @@ contract VotingDecayTest is Test {
         );
     }
 
-    function test_DelegationChainLength_MaxDepth() public {
-        address delegate1 = address(0x11);
-        address delegate2 = address(0x12);
-
-        state.resetDecay(user);
-        state.resetDecay(delegate1);
-        state.resetDecay(delegate2);
-
-        uint256 chainLength = state.getDelegationChainLength(
-            user,
-            _mockDelegationChain
-        );
-        assertEq(
-            chainLength,
-            2,
-            "Chain length should be 2 for max depth delegation"
-        );
-    }
-
-    function test_DelegationChainLength_ExceedsMax() public {
-        address delegate1 = address(0x11);
-        address delegate2 = address(0x12);
-        address delegate3 = address(0x13);
-
-        state.resetDecay(user);
-        state.resetDecay(delegate1);
-        state.resetDecay(delegate2);
-        state.resetDecay(delegate3);
-
-        uint256 chainLength = state.getDelegationChainLength(
-            user,
-            _mockDelegationChain
-        );
-        assertEq(
-            chainLength,
-            2,
-            "Chain length should be capped at MAX_DELEGATION_DEPTH"
-        );
-    }
-
     function _mockZeroDelegation(
         address account
     ) internal pure returns (address) {
@@ -558,17 +518,12 @@ contract VotingDecayTest is Test {
         return address(0);
     }
 
-    function test_DelegationChainWithMaxDepthAndZeroAddress() public view {
+    function test_DelegationChainLength_EndsInZeroAddress() public view {
         address user1 = address(1);
-
-        // Create a helper function for the delegation chain
-        function(address)
-            view
-            returns (address) mockGetDelegateTo = _mockChainToZeroDelegate;
 
         uint256 chainLength = state.getDelegationChainLength(
             user1,
-            mockGetDelegateTo
+            _mockChainToZeroDelegate
         );
         assertEq(
             chainLength,
@@ -583,5 +538,37 @@ contract VotingDecayTest is Test {
         if (account == address(1)) return address(2);
         if (account == address(2)) return address(0);
         return account;
+    }
+
+    function test_DelegationChainLength_DeepStructure() public {
+        // Setup a deep delegation chain: user -> delegate1 -> delegate2 -> delegate3
+        address delegate1 = address(0x11);
+        address delegate2 = address(0x12);
+        address delegate3 = address(0x13);
+
+        // Initialize all accounts in the chain
+        state.resetDecay(user);
+        state.resetDecay(delegate1);
+        state.resetDecay(delegate2);
+        state.resetDecay(delegate3);
+
+        // Test chain length
+        uint256 chainLength = state.getDelegationChainLength(
+            user,
+            _mockDelegationChain
+        );
+        assertEq(
+            chainLength,
+            3,
+            "Chain length should reflect full delegation depth"
+        );
+
+        // Test decay factor (should be 0 since it exceeds MAX_DELEGATION_DEPTH)
+        uint256 decayFactor = state.getDecayFactor(user, _mockDelegationChain);
+        assertEq(
+            decayFactor,
+            0,
+            "Decay factor should be 0 when exceeding MAX_DELEGATION_DEPTH"
+        );
     }
 }

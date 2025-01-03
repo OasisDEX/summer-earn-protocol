@@ -446,6 +446,7 @@ library VotingDecayLibrary {
                 self,
                 accountAddress,
                 0,
+                accountAddress,
                 getDelegateTo
             );
     }
@@ -455,6 +456,7 @@ library VotingDecayLibrary {
      * @param self The DecayState storage
      * @param accountAddress Current account being checked
      * @param depth Current depth in the delegation chain
+     * @param originalAccount The initial account that started the calculation
      * @param getDelegateTo Function to retrieve delegation information
      * @return uint256 The length of the delegation chain
      */
@@ -462,14 +464,19 @@ library VotingDecayLibrary {
         DecayState storage self,
         address accountAddress,
         uint256 depth,
+        address originalAccount,
         function(address) view returns (address) getDelegateTo
     ) private view returns (uint256) {
-        // Check for invalid conditions first
         if (accountAddress == address(0)) {
-            return 0; // Return 0 for zero address
+            return 0;
         }
 
         address delegateTo = getDelegateTo(accountAddress);
+
+        // Detect cycles by checking if we're back to the original account
+        if (delegateTo == originalAccount) {
+            return depth;
+        }
 
         // Self-delegation or no delegation
         if (delegateTo == address(0) || delegateTo == accountAddress) {
@@ -482,6 +489,7 @@ library VotingDecayLibrary {
                 self,
                 delegateTo,
                 depth + 1,
+                originalAccount,
                 getDelegateTo
             );
     }
