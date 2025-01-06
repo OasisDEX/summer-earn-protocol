@@ -68,11 +68,18 @@ library VotingDecayLibrary {
      *      User A -> delegates to B -> delegates to C (ok)
      *      User A -> delegates to B -> delegates to C -> delegates to D (returns 0)
      */
-    uint256 private constant MAX_DELEGATION_DEPTH = 2;
+    uint256 public constant MAX_DELEGATION_DEPTH = 2;
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function initializeAccount(
+        DecayState storage self,
+        address accountAddress
+    ) internal {
+        _initializeAccount(self, accountAddress);
+    }
 
     /**
      * @notice Gets the current decay factor for an account, considering delegation
@@ -162,7 +169,7 @@ library VotingDecayLibrary {
         address accountAddress,
         function(address) view returns (address) getDelegateTo
     ) internal {
-        _initializeAccountIfNew(self, accountAddress);
+        _initializeAccount(self, accountAddress);
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
 
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
@@ -197,7 +204,7 @@ library VotingDecayLibrary {
         DecayState storage self,
         address accountAddress
     ) internal {
-        _initializeAccountIfNew(self, accountAddress);
+        _initializeAccount(self, accountAddress);
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
         account.lastUpdateTimestamp = uint40(block.timestamp);
         account.decayFactor = WAD;
@@ -279,7 +286,7 @@ library VotingDecayLibrary {
      * @param accountAddress The address of the account to initialize
      * @custom:emits AccountInitialized when a new account is initialized
      */
-    function _initializeAccountIfNew(
+    function _initializeAccount(
         DecayState storage self,
         address accountAddress
     ) private {
@@ -332,7 +339,7 @@ library VotingDecayLibrary {
         if (
             delegateTo != address(0) &&
             delegateTo != accountAddress &&
-            _hasDecayInfo(self, delegateTo)
+            hasDecayInfo(self, delegateTo)
         ) {
             return
                 _getDecayFactorWithDepth(
@@ -345,7 +352,7 @@ library VotingDecayLibrary {
         }
 
         // For uninitialized accounts, calculate decay from contract origin
-        if (!_hasDecayInfo(self, accountAddress)) {
+        if (!hasDecayInfo(self, accountAddress)) {
             return
                 _calculateDecayFactor(
                     WAD,
@@ -389,10 +396,10 @@ library VotingDecayLibrary {
      * @param accountAddress The address to check
      * @return bool True if the account has decay info, false otherwise
      */
-    function _hasDecayInfo(
+    function hasDecayInfo(
         DecayState storage self,
         address accountAddress
-    ) private view returns (bool) {
+    ) public view returns (bool) {
         return self.decayInfoByAccount[accountAddress].lastUpdateTimestamp != 0;
     }
 

@@ -25,7 +25,7 @@ import {DecayController} from "./DecayController.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title SummerToken
  * @dev Implementation of the Summer governance token with vesting, cross-chain, and voting decay capabilities.
@@ -199,6 +199,10 @@ contract SummerToken is
     function delegate(
         address delegatee
     ) public override(IVotes, Votes) updateDecay(_msgSender()) {
+        // Only initialize delegatee if they don't have decay info yet
+        if (delegatee != address(0) && !decayState.hasDecayInfo(delegatee)) {
+            decayState.initializeAccount(delegatee);
+        }
         super.delegate(delegatee);
     }
 
@@ -231,12 +235,10 @@ contract SummerToken is
     function getVotes(
         address account
     ) public view override(ISummerToken, Votes) returns (uint256) {
+        uint256 rawVotingPower = super.getVotes(account);
+
         return
-            decayState.getVotingPower(
-                account,
-                super.getVotes(account),
-                _getDelegateTo
-            );
+            decayState.getVotingPower(account, rawVotingPower, _getDelegateTo);
     }
 
     /**
@@ -484,11 +486,12 @@ contract SummerToken is
         return false;
     }
 
-    /// @dev Validates that the decay rate is not greater than 50%
+    /// @dev Validates that the decay rate is between 1% and 50%
     /// @param rate The yearly decay rate to validate
     function _validateDecayRate(Percentage rate) internal pure {
-        if (Percentage.unwrap(rate) > Constants.WAD / 2) {
-            revert DecayRateTooHigh(Percentage.unwrap(rate));
+        uint256 unwrappedRate = Percentage.unwrap(rate);
+        if (unwrappedRate > Constants.WAD / 2) {
+            revert DecayRateTooHigh(unwrappedRate);
         }
     }
 }

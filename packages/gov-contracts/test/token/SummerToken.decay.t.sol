@@ -18,6 +18,7 @@ contract SummerTokenDecayTest is SummerTokenTestBase {
     Percentage constant YEARLY_DECAY_RATE = Percentage.wrap(0.1e18); // 10% per year
     Percentage constant EXCESSIVE_DECAY_RATE = Percentage.wrap(0.51e18); // 51% per year
     Percentage constant ALMOST_MAX_DECAY_RATE = Percentage.wrap(0.50e18); // 50% per year
+    Percentage constant TOO_LOW_DECAY_RATE = Percentage.wrap(0.009e18); // 0.9% per year
 
     event DecayUpdated(address account, uint256 newDecayFactor);
     event DelegateChanged(
@@ -187,6 +188,35 @@ contract SummerTokenDecayTest is SummerTokenTestBase {
 
         // Verify no underflow occurred and votes are still positive
         assertGt(aSummerToken.getVotes(user2), 0);
+    }
+
+    function test_MinimumValidDecayRate() public {
+        // Set decay rate to exactly 1%
+        Percentage minRate = Percentage.wrap(1e16);
+        vm.prank(address(this));
+        aSummerToken.setDecayRatePerYear(minRate);
+
+        vm.prank(user1);
+        aSummerToken.delegate(user2);
+
+        // Move past decay free window and add significant time
+        vm.warp(block.timestamp + INITIAL_DECAY_FREE_WINDOW + 180 days);
+
+        // Force decay update
+        vm.prank(address(aSummerToken));
+        aSummerToken.updateDecayFactor(user1);
+
+        // Calculate expected decay using 1% yearly rate over 180 days
+        uint256 expectedVotes = (TRANSFER_AMOUNT *
+            (Constants.WAD -
+                (Percentage.unwrap(minRate) * 180 days) /
+                (365.25 days))) / Constants.WAD;
+
+        // Should be approximately 99.5% of original amount (1% decay over half a year)
+        assertApproxEqRel(aSummerToken.getVotes(user2), expectedVotes, 1e16); // 1% tolerance
+
+        // Verify votes are still very close to original amount
+        assertGt(aSummerToken.getVotes(user2), (TRANSFER_AMOUNT * 99) / 100); // > 99% remaining
     }
 
     // ======== Event tests ========
