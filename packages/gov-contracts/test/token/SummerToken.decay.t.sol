@@ -3,17 +3,21 @@ pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
+import {ISummerTokenErrors} from "../../src/errors/ISummerTokenErrors.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {console} from "forge-std/console.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 contract SummerTokenDecayTest is SummerTokenTestBase {
     address public user1 = address(0x1);
     address public user2 = address(0x2);
     address public user3 = address(0x3);
 
     uint256 constant TRANSFER_AMOUNT = 1000 ether;
-    uint256 internal constant DECAY_RATE = 3.1709792e9; // ~10% per year
-    uint40 constant DECAY_FREE_WINDOW = 7 days;
+    Percentage constant YEARLY_DECAY_RATE = Percentage.wrap(0.1e18); // 10% per year
+    Percentage constant EXCESSIVE_DECAY_RATE = Percentage.wrap(0.51e18); // 51% per year
+    Percentage constant ALMOST_MAX_DECAY_RATE = Percentage.wrap(0.50e18); // 50% per year
 
     event DecayUpdated(address account, uint256 newDecayFactor);
     event DelegateChanged(
@@ -94,54 +98,95 @@ contract SummerTokenDecayTest is SummerTokenTestBase {
         aSummerToken.delegate(user2);
 
         // Move past decay free window
-        vm.warp(block.timestamp + DECAY_FREE_WINDOW + 1 days);
+        vm.warp(block.timestamp + INITIAL_DECAY_FREE_WINDOW + 1 days);
 
         // Force decay update
         vm.prank(address(aSummerToken));
         aSummerToken.updateDecayFactor(user1);
 
-        // Calculate expected decay
+        // Calculate expected decay using yearly rate
         uint256 expectedVotes = (TRANSFER_AMOUNT *
-            (Constants.WAD - (DECAY_RATE * 1 days) / Constants.WAD)) /
-            Constants.WAD;
+            (Constants.WAD -
+                (Percentage.unwrap(YEARLY_DECAY_RATE) * 1 days) /
+                (365.25 days))) / Constants.WAD;
+
         assertApproxEqRel(aSummerToken.getVotes(user2), expectedVotes, 1e16); // 1% tolerance
     }
 
+    function test_RevertWhenDecayRateTooHigh() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerTokenErrors.DecayRateTooHigh.selector,
+                Percentage.unwrap(EXCESSIVE_DECAY_RATE)
+            )
+        );
+        vm.prank(address(this));
+        aSummerToken.setDecayRatePerYear(EXCESSIVE_DECAY_RATE);
+    }
+
     function test_HistoricalVotingPower() public {
+        // User 2 self-delegates because they intend to be a delegate
+        // Also creates an initial checkpoint
+        vm.prank(user2);
+        aSummerToken.delegate(user2);
+
         vm.prank(user1);
         aSummerToken.delegate(user2);
 
-        // Store current timestamp
-        uint256 checkpoint1 = block.timestamp;
-
-        // Move time forward
-        uint256 newTimestamp = block.timestamp + DECAY_FREE_WINDOW + 1 days;
+        uint256 newTimestamp = block.timestamp +
+            INITIAL_DECAY_FREE_WINDOW +
+            1 days;
         vm.warp(newTimestamp);
 
-        // Create a checkpoint by doing a delegation
-        vm.prank(user1);
-        aSummerToken.delegate(user2); // Re-delegate to create checkpoint
-
-        // Move to next block before updating decay
-        vm.warp(block.timestamp + 1);
-
-        // Now update decay factor
         vm.prank(address(aSummerToken));
         aSummerToken.updateDecayFactor(user1);
 
-        // Check historical voting power
+        assertLt(aSummerToken.getVotes(user2), TRANSFER_AMOUNT * 2);
+
         assertEq(
             aSummerToken.getPastVotes(user2, block.timestamp - 1000),
-            TRANSFER_AMOUNT
+            TRANSFER_AMOUNT * 2 // User 1 and User 2 both delegate to User 2
         );
-        uint256 expectedDecayedVotes = (TRANSFER_AMOUNT *
-            (Constants.WAD - (DECAY_RATE * 1 days) / Constants.WAD)) /
-            Constants.WAD;
+
+        // Calculate expected decay using yearly rate
+        uint256 expectedDecayedVotes = ((TRANSFER_AMOUNT * 2) *
+            (Constants.WAD -
+                (Percentage.unwrap(YEARLY_DECAY_RATE) * 1 days) /
+                (365.25 days))) / Constants.WAD;
+
         assertApproxEqRel(
             aSummerToken.getPastVotes(user2, block.timestamp - 1),
             expectedDecayedVotes,
             1e16
         );
+    }
+
+    function test_HighButValidDecayRate() public {
+        // Set decay rate to 50%
+        vm.prank(address(this));
+        aSummerToken.setDecayRatePerYear(ALMOST_MAX_DECAY_RATE);
+
+        vm.prank(user1);
+        aSummerToken.delegate(user2);
+
+        // Move past decay free window and add significant time
+        vm.warp(block.timestamp + INITIAL_DECAY_FREE_WINDOW + 180 days);
+
+        // Force decay update
+        vm.prank(address(aSummerToken));
+        aSummerToken.updateDecayFactor(user1);
+
+        // Calculate expected decay using 50% yearly rate over 180 days
+        uint256 expectedVotes = (TRANSFER_AMOUNT *
+            (Constants.WAD -
+                (Percentage.unwrap(ALMOST_MAX_DECAY_RATE) * 180 days) /
+                (365.25 days))) / Constants.WAD;
+
+        // Should be approximately 75% of original amount (50% decay over half a year)
+        assertApproxEqRel(aSummerToken.getVotes(user2), expectedVotes, 1e16); // 1% tolerance
+
+        // Verify no underflow occurred and votes are still positive
+        assertGt(aSummerToken.getVotes(user2), 0);
     }
 
     // ======== Event tests ========
@@ -161,13 +206,13 @@ contract SummerTokenDecayTest is SummerTokenTestBase {
         vm.prank(user1);
         aSummerToken.delegate(user2);
 
-        vm.warp(block.timestamp + DECAY_FREE_WINDOW + 1 days);
+        vm.warp(block.timestamp + INITIAL_DECAY_FREE_WINDOW + 1 days);
+        vm.roll(block.number + 1);
+
+        uint256 expectedDecayFactor = aSummerToken.getDecayFactor(user1);
 
         vm.expectEmit(true, true, true, true);
-        emit DecayUpdated(
-            user1,
-            (Constants.WAD - (DECAY_RATE * 1 days) / Constants.WAD)
-        );
+        emit DecayUpdated(user1, expectedDecayFactor);
 
         vm.prank(address(aSummerToken));
         aSummerToken.updateDecayFactor(user1);

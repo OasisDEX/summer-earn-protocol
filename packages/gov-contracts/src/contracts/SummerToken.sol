@@ -24,6 +24,7 @@ import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 import {DecayController} from "./DecayController.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title SummerToken
@@ -53,6 +54,8 @@ contract SummerToken is
     bool public transfersEnabled;
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
 
+    uint256 private constant SECONDS_PER_YEAR = 365.25 days;
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -67,9 +70,16 @@ contract SummerToken is
         DecayController(address(this))
         Ownable(params.initialOwner)
     {
+        _validateDecayRate(params.initialYearlyDecayRate);
+
+        // Convert yearly rate to per-second rate
+        uint256 perSecondRate = Percentage.unwrap(
+            params.initialYearlyDecayRate
+        ) / SECONDS_PER_YEAR;
+
         decayState.initialize(
             params.initialDecayFreeWindow,
-            params.initialDecayRate,
+            perSecondRate,
             params.initialDecayFunction
         );
 
@@ -98,11 +108,6 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function getDecayRatePerSecond() public view returns (uint256) {
-        return decayState.decayRatePerSecond;
-    }
-
-    /// @inheritdoc ISummerToken
     function getDecayFactor(address account) external view returns (uint256) {
         return decayState.getDecayFactor(account, _getDelegateTo);
     }
@@ -114,15 +119,31 @@ contract SummerToken is
         return decayState.getDelegationChainLength(account, _getDelegateTo);
     }
 
+    /// @inheritdoc ISummerToken
+    function getDecayRatePerYear() external view returns (Percentage) {
+        // Convert per-second rate to yearly rate using simple multiplication
+        // Note: We use simple multiplication rather than compound rate calculation
+        // because:
+        // 1. It's more intuitive for governance participants
+        // 2. The decay rate is meant to be a simple linear reduction
+        // 3. For typical decay rates, the difference is minimal
+        uint256 yearlyRate = _getDecayRatePerSecond() * SECONDS_PER_YEAR;
+        return Percentage.wrap(yearlyRate);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ISummerToken
-    function setDecayRatePerSecond(
-        uint256 newRatePerSecond
+    function setDecayRatePerYear(
+        Percentage newYearlyRate
     ) external onlyGovernor {
-        decayState.setDecayRatePerSecond(newRatePerSecond);
+        _validateDecayRate(newYearlyRate);
+        // Convert yearly rate to per-second rate
+        uint256 perSecondRate = Percentage.unwrap(newYearlyRate) /
+            SECONDS_PER_YEAR;
+        decayState.setDecayRatePerSecond(perSecondRate);
     }
 
     /// @inheritdoc ISummerToken
@@ -247,6 +268,12 @@ contract SummerToken is
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @dev Internal helper to get the per-second decay rate
+    /// @return The decay rate per second
+    function _getDecayRatePerSecond() internal view returns (uint256) {
+        return decayState.decayRatePerSecond;
+    }
 
     /**
      * @dev Returns the delegate address for a given account, implementing VotingDecayLibrary's abstract method
@@ -455,5 +482,13 @@ contract SummerToken is
             return true;
         }
         return false;
+    }
+
+    /// @dev Validates that the decay rate is not greater than 50%
+    /// @param rate The yearly decay rate to validate
+    function _validateDecayRate(Percentage rate) internal pure {
+        if (Percentage.unwrap(rate) > Constants.WAD / 2) {
+            revert DecayRateTooHigh(Percentage.unwrap(rate));
+        }
     }
 }

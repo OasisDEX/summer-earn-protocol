@@ -14,7 +14,7 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
         uint256 newProposalThreshold
     );
 
-    function test_InitialSettings() public {
+    function test_InitialSettings() public view {
         assertEq(governorA.votingDelay(), VOTING_DELAY);
         assertEq(governorA.votingPeriod(), VOTING_PERIOD);
         assertEq(governorA.proposalThreshold(), PROPOSAL_THRESHOLD);
@@ -90,8 +90,48 @@ contract SummerGovernorSettingsTest is SummerGovernorTestBase {
         );
         string memory description = "Update voting period";
 
-        // Setup and execute proposal (similar to voting delay test)
-        // ... (proposal execution logic)
+        // Setup proposer
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.proposalThreshold());
+        vm.stopPrank();
+
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        advanceTimeAndBlock();
+
+        // Create proposal
+        vm.prank(alice);
+        uint256 proposalId = governorA.propose(
+            targets,
+            values,
+            calldatas,
+            description
+        );
+
+        // Give enough tokens for quorum
+        vm.startPrank(address(timelockA));
+        aSummerToken.transfer(alice, governorA.quorum(block.timestamp - 1));
+        vm.stopPrank();
+
+        advanceTimeForVotingDelay();
+
+        // Vote
+        vm.prank(alice);
+        governorA.castVote(proposalId, 1);
+
+        advanceTimeForVotingPeriod();
+
+        bytes32 descriptionHash = keccak256(bytes(description));
+
+        // Queue the proposal
+        governorA.queue(targets, values, calldatas, descriptionHash);
+
+        advanceTimeForTimelockMinDelay();
+
+        // Execute the proposal
+        vm.expectEmit(true, true, true, true);
+        emit VotingPeriodSet(VOTING_PERIOD, newVotingPeriod);
+        governorA.execute(targets, values, calldatas, descriptionHash);
 
         assertEq(governorA.votingPeriod(), newVotingPeriod);
     }

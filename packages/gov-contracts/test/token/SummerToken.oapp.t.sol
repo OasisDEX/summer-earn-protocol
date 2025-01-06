@@ -488,7 +488,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
                 initialOwner: owner,
                 accessManager: address(accessManagerA),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,

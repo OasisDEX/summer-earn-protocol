@@ -289,6 +289,11 @@ library VotingDecayLibrary {
                 lastUpdateTimestamp: uint40(block.timestamp)
             });
 
+            self.decayFactorCheckpoints[accountAddress].push(
+                uint32(block.timestamp),
+                uint224(WAD)
+            );
+
             emit AccountInitialized(accountAddress);
         }
     }

@@ -8,6 +8,7 @@ import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {IGovernanceRewardsManager} from "./IGovernanceRewardsManager.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
  * @title ISummerToken
@@ -42,7 +43,7 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
         address initialOwner;
         address accessManager;
         uint40 initialDecayFreeWindow;
-        uint256 initialDecayRate;
+        Percentage initialYearlyDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
         uint256 transferEnableDate;
         uint256 maxSupply;
@@ -100,10 +101,12 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
     function getDecayFreeWindow() external view returns (uint40);
 
     /**
-     * @notice Returns the decay rate per second
-     * @return The decay rate per second
+     * @notice Returns the yearly decay rate as a percentage
+     * @return The yearly decay rate as a Percentage type
+     * @dev This returns the annualized rate using simple multiplication rather than
+     * compound interest calculation for clarity and predictability
      */
-    function getDecayRatePerSecond() external view returns (uint256);
+    function getDecayRatePerYear() external view returns (Percentage);
 
     /**
      * @notice Returns the decay factor for an account
@@ -136,11 +139,12 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
     function updateDecayFactor(address account) external;
 
     /**
-     * @notice Sets the decay rate per second for voting power decay
-     * @param newRatePerSecond The new decay rate per second
+     * @notice Sets the yearly decay rate for voting power decay
+     * @param newYearlyRate The new decay rate per year as a Percentage
      * @dev Can only be called by the governor
+     * @dev The rate is converted internally to a per-second rate using simple division
      */
-    function setDecayRatePerSecond(uint256 newRatePerSecond) external;
+    function setDecayRatePerYear(Percentage newYearlyRate) external;
 
     /**
      * @notice Sets the decay-free window duration

@@ -24,4 +24,9 @@ interface ISummerTokenErrors {
      * @param caller The address of the caller
      */
     error CallerIsNotDecayManager(address caller);
+
+    /**
+     * @dev Error thrown when the decay rate is too high
+     */
+    error DecayRateTooHigh(uint256 rate);
 }

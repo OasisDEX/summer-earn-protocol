@@ -350,7 +350,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         (
             bool foundReceivedEvent,
             bool foundQueuedEvent,
-            uint256 queuedEta
+
         ) = _verifyProposalEvents(expectedDstProposalId);
 
         assertTrue(
@@ -374,7 +374,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         );
     }
 
-    function test_AllowInitializePath() public {
+    function test_AllowInitializePath() public view {
         Origin memory origin = Origin({
             srcEid: aEid,
             sender: addressToBytes32(address(governorA)),
@@ -397,7 +397,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         );
     }
 
-    function test_LzEndpoint() public {
+    function test_LzEndpoint() public view {
         assertEq(
             address(governorA.endpoint()),
             address(lzEndpointA),
@@ -410,7 +410,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
         );
     }
 
-    function test_Peers() public {
+    function test_Peers() public view {
         // Check peer configuration for governor A
         bytes32 peerB = governorA.peers(bEid);
         assertEq(

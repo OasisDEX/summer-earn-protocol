@@ -8,7 +8,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {ISummerToken, SummerVestingWallet} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
-
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     uint256 private constant INITIAL_SUPPLY = 1e9;
 
@@ -105,6 +105,10 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
+    function getDecayRatePerYear() external pure returns (Percentage) {
+        revert("Not implemented");
+    }
+
     function setDecayManager(address, bool) external pure {
         revert("Not implemented");
     }
@@ -137,7 +141,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function setDecayRatePerSecond(uint256) external pure {
+    function setDecayRatePerYear(Percentage) external pure {
         revert("Not implemented");
     }
 

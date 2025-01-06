@@ -26,6 +26,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor, SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ExposedSummerTimelockController} from "../token/SummerTokenTestBase.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /*
  * @title SummerGovernorTest
@@ -958,7 +959,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         vm.stopPrank();
 
         vm.prank(address(timelockA));
-        aSummerToken.setDecayRatePerSecond(0);
+        aSummerToken.setDecayRatePerYear(Percentage.wrap(0));
 
         vm.prank(_bob);
         // Bob delegates to himself - even if he has no tokens yet, he will have voting power after Cas 5 test is

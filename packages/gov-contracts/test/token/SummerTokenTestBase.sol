@@ -19,6 +19,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
 import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 import {SummerTimelockController} from "../../src/contracts/SummerTimelockController.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
@@ -44,9 +45,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
     ProtocolAccessManager public accessManagerB;
     MockSummerGovernor public mockGovernor;
 
-    /// @notice Initial decay rate per second (approximately 10% per year)
-    /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
-    uint256 internal constant INITIAL_DECAY_RATE_PER_SECOND = 3.1709792e9;
+    Percentage internal constant INITIAL_DECAY_RATE_PER_YEAR =
+        Percentage.wrap(0.1e18);
     uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
 
     uint256 constant INITIAL_SUPPLY = 1000000000;
@@ -120,7 +120,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialOwner: owner,
                 accessManager: address(accessManagerA),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
@@ -136,7 +136,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialOwner: owner,
                 accessManager: address(accessManagerB),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
