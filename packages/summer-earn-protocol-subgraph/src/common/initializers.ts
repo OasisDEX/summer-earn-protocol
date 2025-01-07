@@ -456,6 +456,9 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     FleetCommanderTemplate.create(vaultAddress)
     FleetCommanderRewardsManagerTemplate.create(config.stakingRewardsManager)
+
+    const bufferArk = vaultContract.bufferArk()
+    getOrCreateArk(vaultAddress, bufferArk, block)
   }
 
   return vault
