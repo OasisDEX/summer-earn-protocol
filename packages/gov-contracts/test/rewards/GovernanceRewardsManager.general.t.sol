@@ -342,4 +342,179 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             "Should receive aSummerToken as reward"
         );
     }
+
+    function test_Exit() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup delegation first
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        // Alice stakes
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Setup reward
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            7 days
+        );
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        // Record balances before exit
+        uint256 stakingTokenBalanceBefore = aSummerToken.balanceOf(alice);
+        uint256 rewardTokenBalanceBefore = rewardTokens[0].balanceOf(alice);
+
+        // Exit
+        vm.prank(alice);
+        stakingRewardsManager.exit();
+
+        // Verify balances
+        assertEq(
+            aSummerToken.balanceOf(alice),
+            stakingTokenBalanceBefore + stakeAmount,
+            "Staking tokens should be returned"
+        );
+        assertGt(
+            rewardTokens[0].balanceOf(alice),
+            rewardTokenBalanceBefore,
+            "Rewards should be claimed"
+        );
+        assertEq(
+            stakingRewardsManager.balanceOf(alice),
+            0,
+            "Staked balance should be zero"
+        );
+    }
+
+    function test_NotifyRewardAmount() public {
+        uint256 rewardAmount = 100 * 1e18;
+        uint256 duration = 7 days;
+
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            duration
+        );
+
+        (
+            uint256 periodFinish,
+            uint256 rewardRate,
+            uint256 rewardsDuration,
+            ,
+
+        ) = stakingRewardsManager.rewardData(IERC20(address(rewardTokens[0])));
+
+        assertEq(rewardsDuration, duration, "Duration should be set correctly");
+        assertEq(
+            periodFinish,
+            block.timestamp + duration,
+            "Period finish should be set correctly"
+        );
+        assertGt(rewardRate, 0, "Reward rate should be greater than 0");
+    }
+
+    function test_RemoveRewardToken() public {
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup reward token
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            7 days
+        );
+
+        // Fast forward past reward period
+        vm.warp(block.timestamp + 8 days);
+
+        // Transfer out ALL rewards to simulate them being claimed
+        uint256 remainingBalance = rewardTokens[0].balanceOf(
+            address(stakingRewardsManager)
+        );
+        vm.prank(address(stakingRewardsManager));
+        rewardTokens[0].transfer(address(1), remainingBalance);
+
+        // Remove reward token
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.removeRewardToken(
+            IERC20(address(rewardTokens[0]))
+        );
+
+        // Verify token was removed
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        stakingRewardsManager.removeRewardToken(
+            IERC20(address(rewardTokens[0]))
+        );
+    }
+
+    function test_SetRewardsDuration() public {
+        uint256 rewardAmount = 100 * 1e18;
+        uint256 initialDuration = 7 days;
+        uint256 newDuration = 14 days;
+
+        // Setup initial reward
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            initialDuration
+        );
+
+        // Fast forward past initial period
+        vm.warp(block.timestamp + 8 days);
+
+        // Set new duration
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.setRewardsDuration(
+            IERC20(address(rewardTokens[0])),
+            newDuration
+        );
+
+        // Verify new duration
+        (, , uint256 duration, , ) = stakingRewardsManager.rewardData(
+            IERC20(address(rewardTokens[0]))
+        );
+        assertEq(duration, newDuration, "Duration should be updated");
+    }
+
+    function test_UnstakeByDelegate() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 unstakeAmount = 500 * 1e18;
+
+        // Setup delegation
+        vm.prank(alice);
+        aSummerToken.delegate(bob);
+
+        // Stake tokens
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        uint256 initialBalance = aSummerToken.balanceOf(alice);
+
+        // Bob tries to unstake Alice's tokens - this should fail because delegation
+        // only gives voting power, not control over staked tokens
+        vm.prank(bob);
+        vm.expectRevert(); // or a specific error if one is defined
+        stakingRewardsManager.unstake(unstakeAmount);
+
+        // Verify balances haven't changed
+        assertEq(
+            aSummerToken.balanceOf(alice),
+            initialBalance,
+            "Token balance should not change"
+        );
+        assertEq(
+            stakingRewardsManager.balanceOf(alice),
+            stakeAmount,
+            "Staked balance should not change"
+        );
+    }
 }
