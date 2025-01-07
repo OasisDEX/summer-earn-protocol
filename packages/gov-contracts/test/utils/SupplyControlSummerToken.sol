@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
-
+import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 contract SupplyControlSummerToken is SummerToken {
     constructor(TokenParams memory params) SummerToken(params) {}
 
@@ -30,5 +30,20 @@ contract SupplyControlSummerToken is SummerToken {
 
     function testSkipper() external pure {
         revert("Not implemented");
+    }
+
+    /// @notice Exposes the decay function type for testing
+    /// @return The current decay function type (Linear or Exponential)
+    function getDecayFunction()
+        external
+        view
+        returns (VotingDecayLibrary.DecayFunction)
+    {
+        return decayState.decayFunction;
+    }
+
+    /// @notice Exposes the decay rate per second for testing
+    function getDecayRatePerSecond() external view returns (uint256) {
+        return decayState.decayRatePerSecond;
     }
 }

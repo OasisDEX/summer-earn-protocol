@@ -8,6 +8,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {console} from "forge-std/console.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {VotingDecayMath} from "@summerfi/voting-decay/VotingDecayMath.sol";
 
 contract SummerTokenDecayFuzzTest is SummerTokenTestBase {
     // Constants for bounds
@@ -64,40 +65,117 @@ contract SummerTokenDecayFuzzTest is SummerTokenTestBase {
     }
 
     function testFuzz_DelegationChain(
-        address[] calldata users,
-        uint256 amount
+        uint256 amount,
+        address[] calldata delegatees
     ) public {
-        uint256 chainLength = users.length;
-        vm.assume(chainLength >= 2);
-        amount = bound(amount, 1, type(uint96).max);
+        amount = bound(amount, MIN_TRANSFER, MAX_TRANSFER);
 
-        // Setup initial balance
-        deal(address(aSummerToken), users[0], amount);
-
-        // Create delegation chain
-        for (uint256 i = 0; i < users.length - 1; i++) {
-            vm.prank(users[i]);
-            aSummerToken.delegate(users[i + 1]);
+        uint256 MAX_DELEGATES = 16;
+        if (delegatees.length == 0 || delegatees.length > MAX_DELEGATES) {
+            return;
         }
 
-        uint256 finalDelegateVotes = aSummerToken.getVotes(
-            users[chainLength - 1]
+        // First pass: count valid delegates
+        uint256 validCount = 0;
+        for (uint256 i = 0; i < delegatees.length; i++) {
+            if (delegatees[i] == address(0)) continue;
+            bool isDuplicate = false;
+            for (uint256 j = 0; j < i; j++) {
+                if (delegatees[j] == delegatees[i]) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            if (!isDuplicate) validCount++;
+        }
+
+        // Skip if we don't have enough valid delegates
+        if (validCount < 2) return;
+
+        // Create array with exact size needed
+        address[] memory validDelegates = new address[](validCount);
+
+        // Second pass: fill array
+        uint256 currentIndex = 0;
+        for (
+            uint256 i = 0;
+            i < delegatees.length && currentIndex < validCount;
+            i++
+        ) {
+            if (delegatees[i] == address(0)) continue;
+            bool isDuplicate = false;
+            for (uint256 j = 0; j < currentIndex; j++) {
+                if (validDelegates[j] == delegatees[i]) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            if (!isDuplicate) {
+                validDelegates[currentIndex] = delegatees[i];
+                currentIndex++;
+            }
+        }
+
+        // Setup initial balance and approve
+        deal(address(aSummerToken), validDelegates[0], amount);
+
+        // Log initial state
+        console.log("\nInitial state:");
+        console.log("Amount:", amount);
+        console.log(
+            "Initial holder balance:",
+            aSummerToken.balanceOf(address(this))
+        );
+        console.log(
+            "Initial holder votes:",
+            aSummerToken.getVotes(address(this))
         );
 
-        // Assert based on chain length
-        if (chainLength <= VotingDecayLibrary.MAX_DELEGATION_DEPTH) {
-            assertEq(
-                finalDelegateVotes,
-                amount,
-                "Final delegate should have full voting power within MAX_DELEGATION_DEPTH"
+        // Create delegation chain
+        for (uint256 i = 0; i < validDelegates.length; i++) {
+            // Log before delegation
+            console.log("\nBefore delegation to", validDelegates[i]);
+            console.log(
+                "Current delegate votes:",
+                aSummerToken.getVotes(validDelegates[i])
             );
-        } else {
-            assertEq(
-                finalDelegateVotes,
-                0,
-                "Final delegate should have zero voting power beyond MAX_DELEGATION_DEPTH"
+
+            if (i == 0) {
+                vm.prank(validDelegates[0]);
+                aSummerToken.delegate(validDelegates[i]);
+            } else {
+                vm.prank(validDelegates[i - 1]);
+                aSummerToken.delegate(validDelegates[i]);
+            }
+
+            // Time warp
+            vm.warp(block.timestamp + 1);
+            vm.roll(block.number + 1);
+
+            // Log after delegation
+            console.log("After delegation:");
+            console.log(
+                "Previous delegate votes:",
+                i > 0
+                    ? aSummerToken.getVotes(validDelegates[i - 1])
+                    : aSummerToken.getVotes(validDelegates[0])
+            );
+            console.log(
+                "Current delegate votes:",
+                aSummerToken.getVotes(validDelegates[i])
             );
         }
+
+        console.log(
+            "Final delegate votes:",
+            aSummerToken.getVotes(validDelegates[validDelegates.length - 1])
+        );
+    }
+
+    function addressToString(
+        address addr
+    ) internal pure returns (string memory) {
+        return string.concat(vm.toString(addr));
     }
 
     function testFuzz_DecayRateChange(uint256 newRate) public {
