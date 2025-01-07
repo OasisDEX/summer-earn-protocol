@@ -80,7 +80,7 @@ contract SkyUsdsPsm3Ark is Ark {
         returns (uint256)
     {
         uint256 _totalAssets = totalAssets();
-        uint256 psmUsdcBalance = usdc.balanceOf(psm.pocket());
+        uint256 psmUsdcBalance = config.asset.balanceOf(psm.pocket());
         return _totalAssets < psmUsdcBalance ? _totalAssets : psmUsdcBalance;
     }
 
