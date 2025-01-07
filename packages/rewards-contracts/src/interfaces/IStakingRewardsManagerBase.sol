@@ -98,8 +98,13 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      */
     function unstake(uint256 amount) external;
 
-    /* @notice Claim accumulated rewards */
+    /* @notice Claim accumulated rewards for all reward tokens */
     function getReward() external;
+
+    /* @notice Claim accumulated rewards for a specific reward token
+     * @param rewardToken The address of the reward token to claim
+     */
+    function getReward(address rewardToken) external;
 
     /* @notice Withdraw all staked tokens and claim rewards */
     function exit() external;

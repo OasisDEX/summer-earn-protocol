@@ -337,6 +337,43 @@ contract StakingRewardsManagerBaseTest is Test {
         );
     }
 
+    function test_GetReward_SpecificToken() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        vm.startPrank(mockGovernor);
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 balanceBefore = rewardTokens[0].balanceOf(alice);
+
+        vm.prank(alice);
+        stakingRewardsManager.getReward(address(rewardTokens[0]));
+
+        uint256 balanceAfter = rewardTokens[0].balanceOf(alice);
+        assertGt(
+            balanceAfter,
+            balanceBefore,
+            "Alice should have received rewards"
+        );
+    }
+
+    function test_GetReward_SpecificToken_NonExistingToken() public {
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        vm.prank(alice);
+        stakingRewardsManager.getReward(address(0x789));
+    }
+
     function test_Exit() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 rewardAmount = 100 * 1e18;

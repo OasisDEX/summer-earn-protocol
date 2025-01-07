@@ -56,7 +56,7 @@ library DutchAuctionMath {
 
     /**
      * @notice Calculates the current price based on quadratic decay
-     * @dev The price decreases exponentially from startPrice to endPrice over the duration
+     * @dev The price decreases quadratically from startPrice to endPrice over the duration
      * @param startPrice The starting price of the auction
      * @param endPrice The ending price of the auction
      * @param timeElapsed The time elapsed since the start of the auction
@@ -72,7 +72,7 @@ library DutchAuctionMath {
      * 4. Add the decay amount to the end price
      * 5. Convert the result back to the desired number of decimals
      */
-    function exponentialDecay(
+    function quadraticDecay(
         uint256 startPrice,
         uint256 endPrice,
         uint256 timeElapsed,
