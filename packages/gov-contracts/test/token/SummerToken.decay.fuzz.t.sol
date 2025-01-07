@@ -114,4 +114,81 @@ contract SummerTokenDecayFuzzTest is SummerTokenTestBase {
             1e16 // 1% tolerance
         );
     }
+
+    function testFuzz_SetDecayFreeWindow(uint40 newWindow) public {
+        // Bound the window between MIN_DECAY_FREE_WINDOW and MAX_DECAY_FREE_WINDOW
+        newWindow = uint40(
+            bound(newWindow, MIN_DECAY_FREE_WINDOW, MAX_DECAY_FREE_WINDOW)
+        );
+
+        vm.prank(address(this));
+        aSummerToken.setDecayFreeWindow(newWindow);
+
+        assertEq(aSummerToken.getDecayFreeWindow(), newWindow);
+    }
+
+    function testFuzz_SetDecayFunctionWithValidValues(
+        bool useLinearDecay
+    ) public {
+        VotingDecayLibrary.DecayFunction newFunction = useLinearDecay
+            ? VotingDecayLibrary.DecayFunction.Linear
+            : VotingDecayLibrary.DecayFunction.Exponential;
+
+        vm.prank(address(this));
+        aSummerToken.setDecayFunction(newFunction);
+
+        // Test decay behavior
+        address user = address(0x1234);
+        uint256 amount = 1000 ether;
+
+        deal(address(aSummerToken), user, amount);
+
+        vm.prank(user);
+        aSummerToken.delegate(address(0x5678));
+
+        vm.warp(block.timestamp + INITIAL_DECAY_FREE_WINDOW + 1 days);
+
+        vm.prank(address(aSummerToken));
+        aSummerToken.updateDecayFactor(user);
+
+        // Verify votes are never negative
+        assertGt(aSummerToken.getVotes(address(0x5678)), 0);
+    }
+
+    function testFuzz_DecayBehaviorWithDifferentFunctions(
+        address user,
+        address delegate,
+        uint256 amount,
+        bool useLinearDecay
+    ) public {
+        // Bound inputs
+        amount = bound(amount, MIN_TRANSFER, MAX_TRANSFER);
+        vm.assume(user != address(0) && delegate != address(0));
+        vm.assume(user != delegate);
+
+        // Set decay function
+        VotingDecayLibrary.DecayFunction decayFunction = useLinearDecay
+            ? VotingDecayLibrary.DecayFunction.Linear
+            : VotingDecayLibrary.DecayFunction.Exponential;
+
+        vm.prank(address(this));
+        aSummerToken.setDecayFunction(decayFunction);
+
+        // Setup initial balance
+        deal(address(aSummerToken), user, amount);
+
+        // Delegate tokens
+        vm.prank(user);
+        aSummerToken.delegate(delegate);
+
+        // Move time past decay free window
+        vm.warp(block.timestamp + INITIAL_DECAY_FREE_WINDOW + 1 days);
+
+        // Force decay update
+        vm.prank(address(aSummerToken));
+        aSummerToken.updateDecayFactor(user);
+
+        // Verify votes are never negative
+        assertGe(aSummerToken.getVotes(delegate), 0);
+    }
 }

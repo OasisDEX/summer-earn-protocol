@@ -8,6 +8,8 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {console} from "forge-std/console.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {SupplyControlSummerToken} from "../utils/SupplyControlSummerToken.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 contract SummerTokenDecayTest is SummerTokenTestBase {
     address public user1 = address(0x1);
@@ -246,5 +248,118 @@ contract SummerTokenDecayTest is SummerTokenTestBase {
 
         vm.prank(address(aSummerToken));
         aSummerToken.updateDecayFactor(user1);
+    }
+
+    // ======== Decay Window tests ========
+
+    function test_SetDecayFreeWindow() public {
+        uint40 newWindow = 30 days;
+
+        vm.prank(address(this));
+        aSummerToken.setDecayFreeWindow(newWindow);
+
+        assertEq(aSummerToken.getDecayFreeWindow(), newWindow);
+    }
+
+    function test_RevertWhenUnauthorizedSetDecayFreeWindow() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user1
+            )
+        );
+        vm.prank(user1);
+        aSummerToken.setDecayFreeWindow(30 days);
+    }
+
+    function test_RevertWhenZeroDecayFreeWindow() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerTokenErrors.InvalidDecayFreeWindow.selector,
+                0
+            )
+        );
+        vm.prank(address(this));
+        aSummerToken.setDecayFreeWindow(0);
+    }
+
+    // ======== Decay Function tests ========
+
+    function test_SetDecayFunction() public {
+        VotingDecayLibrary.DecayFunction newFunction = VotingDecayLibrary
+            .DecayFunction
+            .Linear;
+
+        vm.prank(address(this));
+        aSummerToken.setDecayFunction(newFunction);
+
+        // Test decay behavior with linear function
+        vm.prank(user1);
+        aSummerToken.delegate(user2);
+
+        vm.warp(block.timestamp + INITIAL_DECAY_FREE_WINDOW + 1 days);
+
+        vm.prank(address(aSummerToken));
+        aSummerToken.updateDecayFactor(user1);
+
+        // With linear decay, we expect a straight-line reduction
+        uint256 expectedVotes = (TRANSFER_AMOUNT *
+            (Constants.WAD -
+                (Percentage.unwrap(YEARLY_DECAY_RATE) * 1 days) /
+                (365.25 days))) / Constants.WAD;
+
+        assertApproxEqRel(aSummerToken.getVotes(user2), expectedVotes, 1e16);
+    }
+
+    function test_RevertWhenUnauthorizedSetDecayFunction() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user1
+            )
+        );
+        vm.prank(user1);
+        aSummerToken.setDecayFunction(VotingDecayLibrary.DecayFunction.Linear);
+    }
+
+    function test_SetDecayFunctionBothTypes() public {
+        // Test Linear
+        vm.prank(address(this));
+        aSummerToken.setDecayFunction(VotingDecayLibrary.DecayFunction.Linear);
+
+        // Test Exponential
+        vm.prank(address(this));
+        aSummerToken.setDecayFunction(
+            VotingDecayLibrary.DecayFunction.Exponential
+        );
+
+        // Both should work without reverting
+        assertTrue(true);
+    }
+
+    function test_RevertWhenConstructorDecayFreeWindowTooLow() public {
+        ISummerToken.TokenParams memory params = _getDefaultTokenParams();
+        params.initialDecayFreeWindow = MIN_DECAY_FREE_WINDOW - 1;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerTokenErrors.InvalidDecayFreeWindow.selector,
+                params.initialDecayFreeWindow
+            )
+        );
+        new SupplyControlSummerToken(params);
+    }
+
+    function test_RevertWhenConstructorDecayFreeWindowTooHigh() public {
+        ISummerToken.TokenParams memory params = _getDefaultTokenParams();
+        params.initialDecayFreeWindow = MAX_DECAY_FREE_WINDOW + 1;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISummerTokenErrors.InvalidDecayFreeWindow.selector,
+                params.initialDecayFreeWindow
+            )
+        );
+        new SupplyControlSummerToken(params);
     }
 }

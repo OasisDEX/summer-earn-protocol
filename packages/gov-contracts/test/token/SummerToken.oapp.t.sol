@@ -29,6 +29,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
     // Add missing events
     event EnforcedOptionSet(EnforcedOptionParam[] options);
     event PreCrimeSet(address preCrime);
+    event PeerSet(uint32 targetEid, bytes32 newPeer);
 
     function setUp() public virtual override {
         super.setUp();
@@ -635,6 +636,65 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
 
         aSummerToken.setPreCrime(newPreCrime);
         assertEq(aSummerToken.preCrime(), newPreCrime);
+    }
+
+    function test_SetPeer() public {
+        bytes32 newPeer = bytes32(uint256(uint160(address(0xBEEF))));
+        uint32 targetEid = 123;
+
+        // Only owner can set peer
+        address nonOwner = address(0xdead);
+        vm.prank(nonOwner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                nonOwner
+            )
+        );
+        aSummerToken.setPeer(targetEid, newPeer);
+
+        // Owner can set peer
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit PeerSet(targetEid, newPeer);
+        aSummerToken.setPeer(targetEid, newPeer);
+
+        // Verify peer was set correctly
+        assertEq(aSummerToken.peers(targetEid), newPeer);
+
+        // Can set peer to zero to remove it
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit PeerSet(targetEid, bytes32(0));
+        aSummerToken.setPeer(targetEid, bytes32(0));
+
+        // Verify peer was removed
+        assertEq(aSummerToken.peers(targetEid), bytes32(0));
+    }
+
+    function test_GetPeerOrRevert() public {
+        uint32 targetEid = 123;
+        bytes32 newPeer = bytes32(uint256(uint160(address(0xBEEF))));
+
+        // Should revert when peer is not set
+        vm.expectRevert(abi.encodeWithSignature("NoPeer(uint32)", targetEid));
+        aSummerToken.exposed_getPeerOrRevert(targetEid);
+
+        // Set the peer
+        vm.prank(owner);
+        aSummerToken.setPeer(targetEid, newPeer);
+
+        // Should return peer when set
+        bytes32 retrievedPeer = aSummerToken.exposed_getPeerOrRevert(targetEid);
+        assertEq(retrievedPeer, newPeer);
+
+        // Remove the peer
+        vm.prank(owner);
+        aSummerToken.setPeer(targetEid, bytes32(0));
+
+        // Should revert again after peer is removed
+        vm.expectRevert(abi.encodeWithSignature("NoPeer(uint32)", targetEid));
+        aSummerToken.exposed_getPeerOrRevert(targetEid);
     }
 }
 

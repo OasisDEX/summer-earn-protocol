@@ -25,7 +25,7 @@ import {DecayController} from "./DecayController.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {console} from "forge-std/console.sol";
+
 /**
  * @title SummerToken
  * @dev Implementation of the Summer governance token with vesting, cross-chain, and voting decay capabilities.
@@ -55,6 +55,8 @@ contract SummerToken is
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
 
     uint256 private constant SECONDS_PER_YEAR = 365.25 days;
+    uint40 private constant MIN_DECAY_FREE_WINDOW = 30 days;
+    uint40 private constant MAX_DECAY_FREE_WINDOW = 365.25 days;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -71,6 +73,7 @@ contract SummerToken is
         Ownable(params.initialOwner)
     {
         _validateDecayRate(params.initialYearlyDecayRate);
+        _validateDecayFreeWindow(params.initialDecayFreeWindow);
 
         // Convert yearly rate to per-second rate
         uint256 perSecondRate = Percentage.unwrap(
@@ -148,6 +151,7 @@ contract SummerToken is
 
     /// @inheritdoc ISummerToken
     function setDecayFreeWindow(uint40 newWindow) external onlyGovernor {
+        _validateDecayFreeWindow(newWindow);
         decayState.setDecayFreeWindow(newWindow);
     }
 
@@ -492,6 +496,14 @@ contract SummerToken is
         uint256 unwrappedRate = Percentage.unwrap(rate);
         if (unwrappedRate > Constants.WAD / 2) {
             revert DecayRateTooHigh(unwrappedRate);
+        }
+    }
+
+    /// @dev Validates that the decay free window is between 30 days and 365.25 days
+    /// @param window The window duration to validate
+    function _validateDecayFreeWindow(uint40 window) internal pure {
+        if (window < MIN_DECAY_FREE_WINDOW || window > MAX_DECAY_FREE_WINDOW) {
+            revert InvalidDecayFreeWindow(window);
         }
     }
 }

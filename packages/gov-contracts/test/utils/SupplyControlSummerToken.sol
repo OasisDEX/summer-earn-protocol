@@ -22,6 +22,12 @@ contract SupplyControlSummerToken is SummerToken {
         _mint(to, amount);
     }
 
+    function exposed_getPeerOrRevert(
+        uint32 _eid
+    ) external view returns (bytes32) {
+        return _getPeerOrRevert(_eid);
+    }
+
     function testSkipper() external pure {
         revert("Not implemented");
     }

@@ -45,10 +45,11 @@ contract SummerTokenTestBase is TestHelperOz5 {
     ProtocolAccessManager public accessManagerB;
     MockSummerGovernor public mockGovernor;
 
+    uint40 public constant MIN_DECAY_FREE_WINDOW = 30 days;
+    uint40 public constant MAX_DECAY_FREE_WINDOW = 365.25 days;
     Percentage internal constant INITIAL_DECAY_RATE_PER_YEAR =
         Percentage.wrap(0.1e18);
     uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
-
     uint256 constant INITIAL_SUPPLY = 1000000000;
 
     function setUp() public virtual override {
@@ -205,6 +206,27 @@ contract SummerTokenTestBase is TestHelperOz5 {
 
     // Test skipper function
     function test() public {}
+
+    function _getDefaultTokenParams()
+        internal
+        view
+        returns (ISummerToken.TokenParams memory)
+    {
+        return
+            ISummerToken.TokenParams({
+                name: "SummerToken Test",
+                symbol: "SUMMER",
+                lzEndpoint: lzEndpointA,
+                initialOwner: owner,
+                accessManager: address(accessManagerA),
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                transferEnableDate: block.timestamp + 1 days,
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                initialSupply: INITIAL_SUPPLY * 10 ** 18
+            });
+    }
 }
 
 contract ExposedSummerTimelockController is SummerTimelockController {
