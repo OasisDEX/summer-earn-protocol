@@ -36,6 +36,12 @@ dataSources:
           file: ./abis/PendleMarket.json
         - name: IRateProvider
           file: ./abis/IRateProvider.json
+        - name: SkyPSM3
+          file: ./abis/SkyPSM3.json
+        - name: SkySSRAuthOracle
+          file: ./abis/SkySSRAuthOracle.json
+        - name: SkySUSDS
+          file: ./abis/SkySUSDS.json
       blockHandlers:
         - handler: handleBlock
           filter:
