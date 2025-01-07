@@ -54,7 +54,8 @@ async function getUserInput(config: BaseConfig): Promise<SkyUsdsPsm3ArkUserInput
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as TokenType]
     // Only add tokens that have a corresponding PSM3 configuration
-    if (config.protocolSpecific.sky.psm3[tokenSymbol as TokenType] !== ADDRESS_ZERO) {
+    const psm3Address = config.protocolSpecific.sky.psm3[tokenSymbol as TokenType]
+    if (psm3Address && psm3Address != ADDRESS_ZERO) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
         value: { address: tokenAddress, symbol: tokenSymbol.toUpperCase() },
@@ -124,7 +125,7 @@ async function deploySkyUsdsPsm3ArkContract(
 ): Promise<SkyUsdsPsm3ArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const arkName = `SkyUsdsPsm3-${userInput.token.symbol}-${chainId}`
+  const arkName = `SkyUsds-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
   return (await hre.ignition.deploy(createSkyUsdsPsm3ArkModule(moduleName), {
@@ -139,7 +140,7 @@ async function deploySkyUsdsPsm3ArkContract(
             type: 'Staking',
             asset: userInput.token.address,
             marketAsset: config.tokens.stakedUsds,
-            psm3: config.protocolSpecific.sky.psm3[
+            pool: config.protocolSpecific.sky.psm3[
               userInput.token.symbol.toLowerCase() as TokenType
             ],
             chainId: chainId,

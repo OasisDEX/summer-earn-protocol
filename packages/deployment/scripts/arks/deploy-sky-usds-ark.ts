@@ -54,7 +54,8 @@ async function getUserInput(config: BaseConfig): Promise<SkyUsdsArkUserInput> {
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as TokenType]
     // Only add tokens that have a corresponding PSM Lite configuration
-    if (config.protocolSpecific.sky.psmLite[tokenSymbol as TokenType] !== ADDRESS_ZERO) {
+    const psmLiteAddress = config.protocolSpecific.sky.psmLite[tokenSymbol as TokenType]
+    if (psmLiteAddress && psmLiteAddress != ADDRESS_ZERO) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
         value: { address: tokenAddress, symbol: tokenSymbol.toUpperCase() },
@@ -142,10 +143,9 @@ async function deploySkyUsdsArkContract(
             type: 'Staking',
             asset: userInput.token.address,
             marketAsset: config.tokens.usds,
-            psmLite:
-              config.protocolSpecific.sky.psmLite[
-                userInput.token.symbol.toLowerCase() as TokenType
-              ],
+            pool: config.protocolSpecific.sky.psmLite[
+              userInput.token.symbol.toLowerCase() as TokenType
+            ],
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
