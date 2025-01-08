@@ -33,6 +33,8 @@ export class ServiceAddresses {
   ENS_REVERSE_REGISTRY: Address
   ENS_REGISTRY: Address
   PENDLE_ORACLE: Address
+  SKY_USDS_PSM3: Address
+  SUSDS: Address
 }
 
 //   export class Services {
@@ -101,6 +103,8 @@ export function getAddressesProvider(): ServiceAddresses {
       ENS_REVERSE_REGISTRY: Address.fromString('0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb'),
       ENS_REGISTRY: Address.fromString('0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'),
       PENDLE_ORACLE: Address.fromString('0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2'),
+      SKY_USDS_PSM3: Address.fromString('0x0000000000000000000000000000000000000000'),
+      SUSDS: Address.fromString('0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD'),
     }
     return addresses
   } else if (network == 'optimism') {
@@ -137,6 +141,8 @@ export function getAddressesProvider(): ServiceAddresses {
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       PENDLE_ORACLE: Address.fromString('0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2'),
+      SKY_USDS_PSM3: Address.fromString('0x0000000000000000000000000000000000000000'),
+      SUSDS: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'base') {
@@ -173,6 +179,8 @@ export function getAddressesProvider(): ServiceAddresses {
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       PENDLE_ORACLE: Address.fromString('0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2'),
+      SKY_USDS_PSM3: Address.fromString('0x1601843c5E9bC251A3272907010AFa41Fa18347E'),
+      SUSDS: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   } else if (network == 'arbitrum-one') {
@@ -209,6 +217,8 @@ export function getAddressesProvider(): ServiceAddresses {
       ENS_REVERSE_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       ENS_REGISTRY: Address.fromString('0x0000000000000000000000000000000000000000'),
       PENDLE_ORACLE: Address.fromString('0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2'),
+      SKY_USDS_PSM3: Address.fromString('0x0000000000000000000000000000000000000000'),
+      SUSDS: Address.fromString('0x0000000000000000000000000000000000000000'),
     }
     return addresses
   }
