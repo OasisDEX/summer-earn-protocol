@@ -21,6 +21,10 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
+import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
+
 /**
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
@@ -217,6 +221,90 @@ contract AdmiralsQuarters is
             assets,
             swappedAmount
         );
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function claimAllRewards(
+        address user,
+        RewardClaimParams calldata params
+    ) external onlyMulticall nonReentrant {
+        _claimMerkleRewards(user, params.merkleData, params.rewardsRedeemer);
+        _claimGovernanceRewards(params.govRewardsManager);
+        _claimFleetRewards(params.fleetCommanders, params.rewardToken);
+    }
+
+    /**
+     * @dev Claims rewards from merkle distributor
+     * @param user Address to claim rewards for
+     * @param merkleData Array of merkle proof data
+     * @param rewardsRedeemer Address of the rewards redeemer contract
+     */
+    function _claimMerkleRewards(
+        address user,
+        MerkleClaimData[] calldata merkleData,
+        address rewardsRedeemer
+    ) internal {
+        if (merkleData.length == 0 || rewardsRedeemer == address(0)) return;
+
+        // Create arrays to store the merkle data
+        uint256[] memory indices = new uint256[](merkleData.length);
+        uint256[] memory amounts = new uint256[](merkleData.length);
+        bytes32[][] memory proofs = new bytes32[][](merkleData.length);
+
+        // Map struct array to separate arrays
+        for (uint256 i = 0; i < merkleData.length; ) {
+            indices[i] = merkleData[i].index;
+            amounts[i] = merkleData[i].amount;
+            proofs[i] = merkleData[i].proof;
+            unchecked {
+                ++i;
+            }
+        }
+
+        ISummerRewardsRedeemer(rewardsRedeemer).claimMultipleOnBehalf(
+            user,
+            indices,
+            amounts,
+            proofs
+        );
+    }
+
+    /**
+     * @dev Claims rewards from governance rewards manager
+     * @param govRewardsManager Address of the governance rewards manager
+     */
+    function _claimGovernanceRewards(address govRewardsManager) internal {
+        if (govRewardsManager == address(0)) return;
+        IGovernanceRewardsManager(govRewardsManager).getReward();
+    }
+
+    /**
+     * @dev Claims rewards from fleet commanders
+     * @param fleetCommanders Array of FleetCommander addresses
+     * @param rewardToken Address of the reward token to claim
+     */
+    function _claimFleetRewards(
+        address[] calldata fleetCommanders,
+        address rewardToken
+    ) internal {
+        for (uint256 i = 0; i < fleetCommanders.length; ) {
+            address fleetCommander = fleetCommanders[i];
+            if (fleetCommander != address(0)) {
+                // Validate FleetCommander through HarborCommand
+                _validateFleetCommander(fleetCommander);
+
+                // Get rewards manager from FleetCommander and claim
+                address rewardsManager = IFleetCommander(fleetCommander)
+                    .getConfig()
+                    .stakingRewardsManager;
+                IFleetCommanderRewardsManager(rewardsManager).getReward(
+                    rewardToken
+                );
+            }
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /// @inheritdoc IAdmiralsQuarters

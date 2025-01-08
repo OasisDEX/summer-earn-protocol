@@ -90,7 +90,7 @@ contract RewardsRedeemerTest is Test {
         ] = hex"59bfd8b8aa058effb68dc5d8dadc75a6af9069ec03a5e3e4081284366d553c72";
     }
 
-    function test_Constructor() public {
+    function test_Constructor() public view {
         assertEq(address(redeemer.rewardsToken()), address(rewardsToken));
         assertTrue(redeemer.deployedAt() > 0);
         assertTrue(redeemer.deployedAt() <= block.timestamp);
@@ -268,7 +268,7 @@ contract RewardsRedeemerTest is Test {
         redeemer.emergencyWithdraw(address(rewardsToken), alice, 1 ether);
     }
 
-    function test_DeployTime() public {
+    function test_DeployTime() public view {
         assertTrue(redeemer.deployedAt() > 0);
         assertTrue(redeemer.deployedAt() <= block.timestamp);
     }

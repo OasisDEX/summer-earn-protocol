@@ -155,4 +155,40 @@ interface IAdmiralsQuarters is
         address cToken,
         uint256 amount
     ) external;
+
+    /**
+     * @notice Struct containing parameters for claiming rewards
+     * @param fleetCommanders Array of FleetCommander addresses
+     * @param rewardToken Address of the reward token
+     * @param merkleData Array of merkle proof data for claiming from RewardsRedeemer
+     */
+    struct RewardClaimParams {
+        address[] fleetCommanders;
+        address rewardToken;
+        MerkleClaimData[] merkleData;
+        address rewardsRedeemer;
+        address govRewardsManager;
+    }
+
+    /**
+     * @notice Claims all available rewards from multiple sources
+     * @param user Address to claim rewards for
+     * @param params Struct containing all necessary parameters for claiming
+     */
+    function claimAllRewards(
+        address user,
+        RewardClaimParams calldata params
+    ) external;
+
+    /**
+     * @notice Struct containing merkle proof data for claiming rewards
+     * @param index Index of the merkle distribution
+     * @param amount Amount of governance tokens to claim
+     * @param proof Merkle proof verifying the claim
+     */
+    struct MerkleClaimData {
+        uint256 index;
+        uint256 amount;
+        bytes32[] proof;
+    }
 }

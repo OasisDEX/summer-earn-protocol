@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {AdmiralsQuarters} from "../src/contracts/AdmiralsQuarters.sol";
+import {AdmiralsQuarters} from "../../src/contracts/AdmiralsQuarters.sol";
 
-import {FleetCommander} from "../src/contracts/FleetCommander.sol";
-import {IAdmiralsQuartersErrors} from "../src/errors/IAdmiralsQuartersErrors.sol";
-import {IAdmiralsQuartersEvents} from "../src/events/IAdmiralsQuartersEvents.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {IAdmiralsQuartersErrors} from "../../src/errors/IAdmiralsQuartersErrors.sol";
+import {IAdmiralsQuartersEvents} from "../../src/events/IAdmiralsQuartersEvents.sol";
 
-import {IAggregationRouterV6} from "../src/interfaces/1inch/IAggregationRouterV6.sol";
-import {IAdmiralsQuarters} from "../src/interfaces/IAdmiralsQuarters.sol";
-import {IFleetCommanderRewardsManager} from "../src/interfaces/IFleetCommanderRewardsManager.sol";
-import {FleetCommanderTestBase} from "./fleets/FleetCommanderTestBase.sol";
-import {OneInchTestHelpers} from "./helpers/OneInchTestHelpers.sol";
+import {IAggregationRouterV6} from "../../src/interfaces/1inch/IAggregationRouterV6.sol";
+import {IAdmiralsQuarters} from "../../src/interfaces/IAdmiralsQuarters.sol";
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
+import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
+import {OneInchTestHelpers} from "../helpers/OneInchTestHelpers.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
@@ -579,7 +579,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         vm.stopPrank();
     }
-
     function test_unstakeAndWithdrawAssets_Full_ClaimRewards() public {
         vm.prank(governor);
         accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
@@ -654,7 +653,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         vm.stopPrank();
     }
-
     function test_unstakeAndWithdrawAssets_DirectUnstakeReverts() public {
         // First setup: stake some shares
         vm.startPrank(user1);
