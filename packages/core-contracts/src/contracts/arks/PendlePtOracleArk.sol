@@ -665,9 +665,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         );
 
         TokenInput memory tokenInput = TokenInput({
-            tokenIn: address(marketAsset),
+            tokenIn: marketAsset,
             netTokenIn: _amount,
-            tokenMintSy: address(marketAsset),
+            tokenMintSy: marketAsset,
             pendleSwap: address(0),
             swapData: emptySwap
         });
@@ -731,9 +731,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (ptAmount > 0) {
             IERC20(PT).approve(router, ptAmount);
             TokenOutput memory tokenOutput = TokenOutput({
-                tokenOut: address(marketAsset),
+                tokenOut: marketAsset,
                 minTokenOut: minTokenOut,
-                tokenRedeemSy: address(marketAsset),
+                tokenRedeemSy: marketAsset,
                 pendleSwap: address(0),
                 swapData: emptySwap
             });
