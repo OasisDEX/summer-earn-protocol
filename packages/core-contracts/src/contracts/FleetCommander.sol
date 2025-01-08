@@ -77,7 +77,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useCache() {
-        _getArksData(getActiveArks, config.bufferArk);
+        _getArksData(config.bufferArk);
         _;
         _flushCache();
     }
@@ -90,7 +90,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(getActiveArks, config.bufferArk);
+        _getWithdrawableArksData(config.bufferArk);
         _;
         _flushCache();
     }
@@ -345,12 +345,19 @@ contract FleetCommander is
         override(IFleetCommander, ERC4626)
         returns (uint256)
     {
-        return _totalAssets(getActiveArks, config.bufferArk);
+        return _totalAssets(config.bufferArk);
     }
-
+    function _getActiveArksAddresses()
+        internal
+        view
+        override(FleetCommanderCache)
+        returns (address[] memory)
+    {
+        return getActiveArks();
+    }
     /// @inheritdoc IFleetCommander
     function withdrawableTotalAssets() public view returns (uint256) {
-        return _withdrawableTotalAssets(getActiveArks, config.bufferArk);
+        return _withdrawableTotalAssets(config.bufferArk);
     }
 
     /// @inheritdoc IERC4626
