@@ -176,6 +176,19 @@
   },
   {
     "type": "function",
+    "name": "getReward",
+    "inputs": [
+      {
+        "name": "rewardToken",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "getRewardForDuration",
     "inputs": [
       {
