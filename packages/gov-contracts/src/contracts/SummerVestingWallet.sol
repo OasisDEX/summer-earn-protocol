@@ -81,10 +81,7 @@ contract SummerVestingWallet is
             for (uint256 i = 0; i < _goalAmounts.length; i++) {
                 _addNewGoal(_goalAmounts[i]);
             }
-        } else if (
-            _goalAmounts.length > 0 &&
-            _vestingType != VestingType.InvestorExTeamVesting
-        ) {
+        } else if (_goalAmounts.length > 0) {
             revert OnlyTeamVesting();
         }
         token = _token;
@@ -207,6 +204,7 @@ contract SummerVestingWallet is
      * - Checks if the timestamp is before the cliff period
      * - Calculates the number of quarters that have passed, including the cliff period
      * - Determines the vested amount based on elapsed quarters
+     * - Caps the vested amount at the timeBasedVestingAmount
      * @custom:effects
      * - Does not modify any state, view function only
      * @custom:security-considerations
@@ -220,7 +218,11 @@ contract SummerVestingWallet is
         uint64 timestamp
     ) private view returns (uint256) {
         uint256 elapsedQuarters = (timestamp - start()) / QUARTER;
-        return (timeBasedVestingAmount * elapsedQuarters) / 8;
+        uint256 _vestedAmount = (timeBasedVestingAmount * elapsedQuarters) / 8;
+        return
+            _vestedAmount < timeBasedVestingAmount
+                ? _vestedAmount
+                : timeBasedVestingAmount;
     }
 
     /**
