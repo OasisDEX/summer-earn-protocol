@@ -224,21 +224,21 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         vm.stopPrank();
 
         vm.startPrank(user1);
-        // Setup claim parameters
-        IAdmiralsQuarters.MerkleClaimData[]
-            memory merkleData = new IAdmiralsQuarters.MerkleClaimData[](1);
-        merkleData[0] = IAdmiralsQuarters.MerkleClaimData({
-            index: 0,
-            amount: 100e6,
-            proof: new bytes32[](0)
-        });
+        // Setup claim parameters - updated to use separate arrays
+        uint256[] memory indices = new uint256[](1);
+        uint256[] memory amounts = new uint256[](1);
+        bytes32[][] memory proofs = new bytes32[][](1);
+
+        indices[0] = 0;
+        amounts[0] = 100e6;
+        proofs[0] = new bytes32[](0);
 
         uint256 initialRewardBalance = rewardTokens[0].balanceOf(user1);
 
         bytes[] memory claimCalls = new bytes[](1);
         claimCalls[0] = abi.encodeCall(
             admiralsQuarters.claimMerkleRewards,
-            (user1, merkleData, address(mockRewardsRedeemer))
+            (user1, indices, amounts, proofs, address(mockRewardsRedeemer))
         );
         admiralsQuarters.multicall(claimCalls);
 
@@ -401,14 +401,14 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         vm.warp(block.timestamp + 5 days);
         vm.roll(block.number + 1000);
 
-        // Setup claim parameters
-        IAdmiralsQuarters.MerkleClaimData[]
-            memory merkleData = new IAdmiralsQuarters.MerkleClaimData[](1);
-        merkleData[0] = IAdmiralsQuarters.MerkleClaimData({
-            index: 0,
-            amount: 100e6,
-            proof: new bytes32[](0)
-        });
+        // Setup claim parameters - updated to use separate arrays
+        uint256[] memory indices = new uint256[](1);
+        uint256[] memory amounts = new uint256[](1);
+        bytes32[][] memory proofs = new bytes32[][](1);
+
+        indices[0] = 0;
+        amounts[0] = 100e6;
+        proofs[0] = new bytes32[](0);
 
         address[] memory fleetCommanders = new address[](1);
         fleetCommanders[0] = address(usdcFleet);
@@ -419,7 +419,7 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         bytes[] memory claimCalls = new bytes[](3);
         claimCalls[0] = abi.encodeCall(
             admiralsQuarters.claimMerkleRewards,
-            (user1, merkleData, address(mockRewardsRedeemer))
+            (user1, indices, amounts, proofs, address(mockRewardsRedeemer))
         );
         claimCalls[1] = abi.encodeCall(
             admiralsQuarters.claimGovernanceRewards,

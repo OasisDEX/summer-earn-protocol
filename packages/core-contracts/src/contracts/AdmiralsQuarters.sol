@@ -223,21 +223,18 @@ contract AdmiralsQuarters is
         );
     }
 
-    /// @notice Claims merkle rewards for a user
-    /// @param user Address to claim rewards for
-    /// @param merkleData Array of merkle proof data
-    /// @param rewardsRedeemer Address of the rewards redeemer contract
+    /// @inheritdoc IAdmiralsQuarters
     function claimMerkleRewards(
         address user,
-        MerkleClaimData[] calldata merkleData,
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs,
         address rewardsRedeemer
     ) external onlyMulticall nonReentrant {
-        _claimMerkleRewards(user, merkleData, rewardsRedeemer);
+        _claimMerkleRewards(user, indices, amounts, proofs, rewardsRedeemer);
     }
 
-    /// @notice Claims governance rewards
-    /// @param govRewardsManager Address of the governance rewards manager
-    /// @param rewardToken Address of the reward token to claim
+    /// @inheritdoc IAdmiralsQuarters
     function claimGovernanceRewards(
         address govRewardsManager,
         address rewardToken
@@ -245,9 +242,7 @@ contract AdmiralsQuarters is
         _claimGovernanceRewards(govRewardsManager, rewardToken);
     }
 
-    /// @notice Claims rewards from fleet commanders
-    /// @param fleetCommanders Array of FleetCommander addresses
-    /// @param rewardToken Address of the reward token to claim
+    /// @inheritdoc IAdmiralsQuarters
     function claimFleetRewards(
         address[] calldata fleetCommanders,
         address rewardToken
@@ -318,31 +313,21 @@ contract AdmiralsQuarters is
     /**
      * @dev Claims rewards from merkle distributor
      * @param user Address to claim rewards for
-     * @param merkleData Array of merkle proof data
+     * @param indices Array of merkle proof indices
+     * @param amounts Array of merkle proof amounts
+     * @param proofs Array of merkle proof data
      * @param rewardsRedeemer Address of the rewards redeemer contract
      */
     function _claimMerkleRewards(
         address user,
-        MerkleClaimData[] calldata merkleData,
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs,
         address rewardsRedeemer
     ) internal {
-        if (merkleData.length == 0 || rewardsRedeemer == address(0)) return;
+        if (rewardsRedeemer == address(0)) return;
 
-        // Create arrays to store the merkle data
-        uint256[] memory indices = new uint256[](merkleData.length);
-        uint256[] memory amounts = new uint256[](merkleData.length);
-        bytes32[][] memory proofs = new bytes32[][](merkleData.length);
-
-        // Map struct array to separate arrays
-        for (uint256 i = 0; i < merkleData.length; ) {
-            indices[i] = merkleData[i].index;
-            amounts[i] = merkleData[i].amount;
-            proofs[i] = merkleData[i].proof;
-            unchecked {
-                ++i;
-            }
-        }
-
+        // We can now directly pass the arrays to the redeemer
         ISummerRewardsRedeemer(rewardsRedeemer).claimMultiple(
             user,
             indices,

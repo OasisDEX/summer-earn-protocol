@@ -157,26 +157,18 @@ interface IAdmiralsQuarters is
     ) external;
 
     /**
-     * @notice Struct containing merkle proof data for claiming rewards
-     * @param index Index of the merkle distribution
-     * @param amount Amount of governance tokens to claim
-     * @param proof Merkle proof verifying the claim
-     */
-    struct MerkleClaimData {
-        uint256 index;
-        uint256 amount;
-        bytes32[] proof;
-    }
-
-    /**
      * @notice Claims merkle rewards for a user
      * @param user Address to claim rewards for
-     * @param merkleData Array of merkle proof data
+     * @param indices Array of merkle proof indices
+     * @param amounts Array of merkle proof amounts
+     * @param proofs Array of merkle proof data
      * @param rewardsRedeemer Address of the rewards redeemer contract
      */
     function claimMerkleRewards(
         address user,
-        MerkleClaimData[] calldata merkleData,
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs,
         address rewardsRedeemer
     ) external;
 

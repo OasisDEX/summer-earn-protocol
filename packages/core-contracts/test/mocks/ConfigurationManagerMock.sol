@@ -11,9 +11,6 @@ abstract contract ConfigurationManagerMock is IConfigurationManager {
     uint256 public tipRate;
     address public harborCommand;
     address public fleetCommanderRewardsManagerFactory;
-    address public governanceRewardsManagerAddress;
-    address public summerRewardsRedeemerAddress;
-    address public summerTokenAddress;
 
     constructor(
         address _tipJar,
