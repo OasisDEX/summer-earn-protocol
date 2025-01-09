@@ -1106,11 +1106,6 @@
   },
   {
     "type": "error",
-    "name": "InvalidHarvestData",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "InvalidVaultAddress",
     "inputs": []
   },
