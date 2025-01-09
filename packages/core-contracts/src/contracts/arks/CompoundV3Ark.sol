@@ -14,12 +14,6 @@ contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event ValidRewardTokenUpdated(address indexed token, bool isValid);
-
-    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -35,9 +29,6 @@ contract CompoundV3Ark is Ark {
     struct RewardsData {
         address rewardToken;
     }
-
-    /// @notice Mapping to track which reward tokens are valid for claiming rewards
-    mapping(address token => bool isValid) public validRewardTokens;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR

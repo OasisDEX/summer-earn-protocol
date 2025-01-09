@@ -15,12 +15,6 @@ contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
-                                EVENTS
-    //////////////////////////////////////////////////////////////*/
-
-    event ValidRewardTokenUpdated(address indexed token, bool isValid);
-
-    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     /// @notice The Aave V3 aToken address
@@ -29,9 +23,6 @@ contract AaveV3Ark is Ark {
     IPoolV3 public immutable aaveV3Pool;
     /// @notice The Aave V3 rewards controller address
     IRewardsController public immutable rewardsController;
-
-    // Add this state mapping to track valid reward tokens
-    mapping(address => bool) public validRewardTokens;
 
     /**
      * @notice Struct to hold reward token information

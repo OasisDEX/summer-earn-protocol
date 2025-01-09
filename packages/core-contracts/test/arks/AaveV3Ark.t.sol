@@ -14,7 +14,6 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
-import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
