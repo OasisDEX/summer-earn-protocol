@@ -21,12 +21,6 @@ contract AaveV3Ark is Ark {
     event ValidRewardTokenUpdated(address indexed token, bool isValid);
 
     /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error InvalidRewardToken(address token);
-
-    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     /// @notice The Aave V3 aToken address
@@ -82,25 +76,6 @@ contract AaveV3Ark is Ark {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        EXTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Updates the validity status of a reward token
-     * @dev Only callable by the governor
-     * @param token The address of the reward token to update
-     * @param isValid The new validity status (true = valid, false = invalid)
-     * @custom:emits ValidRewardTokenUpdated event with token address and new status
-     */
-    function setValidRewardToken(
-        address token,
-        bool isValid
-    ) external onlyGovernor {
-        validRewardTokens[token] = isValid;
-        emit ValidRewardTokenUpdated(token, isValid);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -130,20 +105,6 @@ contract AaveV3Ark is Ark {
     }
 
     /**
-     * @notice Validates the harvest data
-     * @param data The harvest data to validate
-     */
-    function _validateHarvestData(bytes calldata data) internal view override {
-        if (data.length == 0) revert InvalidHarvestData();
-
-        RewardsData memory rewardsData = abi.decode(data, (RewardsData));
-        if (rewardsData.rewardToken == address(0)) revert InvalidHarvestData();
-        if (!validRewardTokens[rewardsData.rewardToken]) {
-            revert InvalidRewardToken(rewardsData.rewardToken);
-        }
-    }
-
-    /**
      * @notice Harvests rewards from the Aave V3 pool
      * @param data Additional data for the harvest operation
      * @return rewardTokens Array of reward tokens
@@ -156,8 +117,6 @@ contract AaveV3Ark is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        _validateHarvestData(data);
-
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
 

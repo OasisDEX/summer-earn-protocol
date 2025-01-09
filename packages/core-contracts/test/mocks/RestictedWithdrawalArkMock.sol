@@ -106,11 +106,5 @@ contract RestictedWithdrawalArkMock is Ark {
         // Additional validation can be added here if needed
     }
 
-    function _validateHarvestData(bytes calldata data) internal pure override {
-        if (data.length == 0) {
-            revert InvalidHarvestData();
-        }
-    }
-
     function testSkipper() public {}
 }

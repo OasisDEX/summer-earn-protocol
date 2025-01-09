@@ -220,10 +220,6 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         address mockRewardToken = address(10);
         uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
 
-        // Set the reward token as valid first
-        vm.prank(governor);
-        ark.setValidRewardToken(mockRewardToken, true);
-
         // Mock the call to claimRewardsToSelf
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = mockAToken;
@@ -268,61 +264,5 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         // Act
         vm.prank(address(raft));
         ark.harvest(abi.encode(mockRewardToken));
-    }
-
-    function test_Harvest_Reverts_InvalidRewardToken() public {
-        address invalidRewardToken = address(10);
-        uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
-
-        // Mock the rewards controller calls
-        vm.mockCall(
-            address(rewardsController),
-            abi.encodeWithSelector(IRewardsController.claimRewards.selector),
-            abi.encode(mockClaimedRewardsBalance)
-        );
-
-        vm.mockCall(
-            invalidRewardToken,
-            abi.encodeWithSelector(IERC20.balanceOf.selector),
-            abi.encode(mockClaimedRewardsBalance)
-        );
-
-        vm.mockCall(
-            invalidRewardToken,
-            abi.encodeWithSelector(IERC20.transfer.selector),
-            abi.encode(true)
-        );
-
-        bytes memory harvestData = abi.encode(
-            AaveV3Ark.RewardsData({rewardToken: invalidRewardToken})
-        );
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AaveV3Ark.InvalidRewardToken.selector,
-                invalidRewardToken
-            )
-        );
-
-        vm.prank(raft);
-        ark.harvest(harvestData);
-    }
-
-    function test_Harvest_Reverts_EmptyData() public {
-        vm.expectRevert(IArkErrors.InvalidHarvestData.selector);
-
-        vm.prank(raft);
-        ark.harvest("");
-    }
-
-    function test_Harvest_Reverts_ZeroAddressRewardToken() public {
-        bytes memory harvestData = abi.encode(
-            AaveV3Ark.RewardsData({rewardToken: address(0)})
-        );
-
-        vm.expectRevert(IArkErrors.InvalidHarvestData.selector);
-
-        vm.prank(raft);
-        ark.harvest(harvestData);
     }
 }

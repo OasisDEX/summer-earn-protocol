@@ -576,12 +576,6 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     function _validateBoardData(bytes calldata data) internal view override {}
 
     /**
-     * @notice Validate harvest data
-     * @param /// data Data to validate (unused in this implementation)
-     */
-    function _validateHarvestData(bytes calldata) internal pure override {}
-
-    /**
      * @notice Validate disembark data
      * @param data Data to validate
      */

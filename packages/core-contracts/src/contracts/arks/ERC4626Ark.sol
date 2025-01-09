@@ -109,13 +109,6 @@ contract ERC4626Ark is Ark {
     }
 
     /**
-     * @notice Validates the harvest data
-     * @dev This Ark does not require any validation for harvest data
-     * @param /// data Additional data to validate (unused in this implementation)
-     */
-    function _validateHarvestData(bytes calldata) internal view override {}
-
-    /**
      * @notice Validates the board data
      * @dev This Ark does not require any validation for board data
      * @param /// data Additional data to validate (unused in this implementation)

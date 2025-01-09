@@ -14,12 +14,6 @@ contract CompoundV3Ark is Ark {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
-                            ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error InvalidRewardToken(address token);
-
-    /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
@@ -81,24 +75,6 @@ contract CompoundV3Ark is Ark {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        EXTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Updates the validity status of a reward token
-     * @dev Only callable by the governor
-     * @param token The address of the reward token to update
-     * @param isValid The new validity status (true = valid, false = invalid)
-     */
-    function setValidRewardToken(
-        address token,
-        bool isValid
-    ) external onlyGovernor {
-        validRewardTokens[token] = isValid;
-        emit ValidRewardTokenUpdated(token, isValid);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -148,8 +124,6 @@ contract CompoundV3Ark is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        _validateHarvestData(data);
-
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
 
@@ -163,20 +137,6 @@ contract CompoundV3Ark is Ark {
         IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
-    }
-
-    /**
-     * @notice Validates the harvest data
-     * @param data The harvest data to validate
-     */
-    function _validateHarvestData(bytes calldata data) internal view override {
-        if (data.length == 0) revert InvalidHarvestData();
-
-        RewardsData memory rewardsData = abi.decode(data, (RewardsData));
-        if (rewardsData.rewardToken == address(0)) revert InvalidHarvestData();
-        if (!validRewardTokens[rewardsData.rewardToken]) {
-            revert InvalidRewardToken(rewardsData.rewardToken);
-        }
     }
 
     /**

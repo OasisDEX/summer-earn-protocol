@@ -199,11 +199,4 @@ contract PendleLPArk is BasePendleArk {
      * @param /// data Additional data to validate (unused in this implementation)
      */
     function _validateDisembarkData(bytes calldata) internal override {}
-
-    /**
-     * @notice Validates the harvest data
-     * @dev This Ark does not require any validation for harvest data
-     * @param /// data Additional data to validate (unused in this implementation)
-     */
-    function _validateHarvestData(bytes calldata) internal view override {}
 }
