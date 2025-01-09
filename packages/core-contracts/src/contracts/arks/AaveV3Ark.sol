@@ -62,8 +62,8 @@ contract AaveV3Ark is Ark {
     /**
      * @inheritdoc IArk
      */
-    function totalAssets() public view override returns (uint256) {
-        return IERC20(aToken).balanceOf(address(this));
+    function totalAssets() public view override returns (uint256 assets) {
+        assets = IERC20(aToken).balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ contract AaveV3Ark is Ark {
         internal
         view
         override
-        returns (uint256)
+        returns (uint256 withdrawableAssets)
     {
         uint256 configData = aaveV3Pool
             .getReserveData(address(config.asset))
@@ -91,8 +91,13 @@ contract AaveV3Ark is Ark {
             return 0;
         }
         uint256 _totalAssets = totalAssets();
+        if (_totalAssets == 0) {
+            return 0;
+        }
         uint256 assetsInAToken = config.asset.balanceOf(aToken);
-        return assetsInAToken < _totalAssets ? assetsInAToken : _totalAssets;
+        withdrawableAssets = assetsInAToken < _totalAssets
+            ? assetsInAToken
+            : _totalAssets;
     }
 
     /**

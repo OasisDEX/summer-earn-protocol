@@ -39,14 +39,13 @@ contract SkyUsdsArk is Ark {
         stakedUsds = IERC4626(_stakedUsds);
     }
 
-    function totalAssets() public view override returns (uint256) {
+    function totalAssets() public view override returns (uint256 assets) {
         uint256 balance = stakedUsds.balanceOf(address(this));
         if (balance > 0) {
-            return
+            assets =
                 stakedUsds.convertToAssets(balance) /
                 TO_18_DECIMALS_CONVERSION_FACTOR;
         }
-        return 0;
     }
 
     /**
@@ -58,15 +57,14 @@ contract SkyUsdsArk is Ark {
         internal
         view
         override
-        returns (uint256)
+        returns (uint256 withdrawableAssets)
     {
         uint256 shares = stakedUsds.balanceOf(address(this));
         if (shares > 0) {
-            return
+            withdrawableAssets =
                 stakedUsds.maxWithdraw(address(this)) /
                 TO_18_DECIMALS_CONVERSION_FACTOR;
         }
-        return 0;
     }
 
     function _board(uint256 amount, bytes calldata) internal override {

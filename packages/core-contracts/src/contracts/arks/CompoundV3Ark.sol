@@ -56,13 +56,8 @@ contract CompoundV3Ark is Ark {
     /**
      * @inheritdoc IArk
      */
-    function totalAssets()
-        public
-        view
-        override
-        returns (uint256 suppliedAssets)
-    {
-        suppliedAssets = comet.balanceOf(address(this));
+    function totalAssets() public view override returns (uint256 assets) {
+        assets = comet.balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -78,9 +73,9 @@ contract CompoundV3Ark is Ark {
         internal
         view
         override
-        returns (uint256)
+        returns (uint256 withdrawableAssets)
     {
-        return totalAssets();
+        withdrawableAssets = totalAssets();
     }
 
     /**

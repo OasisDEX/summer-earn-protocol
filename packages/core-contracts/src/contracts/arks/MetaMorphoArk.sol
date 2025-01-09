@@ -63,7 +63,6 @@ contract MetaMorphoArk is Ark {
         if (shares > 0) {
             assets = metaMorpho.convertToAssets(shares);
         }
-        return assets;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -78,14 +77,12 @@ contract MetaMorphoArk is Ark {
         internal
         view
         override
-        returns (uint256)
+        returns (uint256 withdrawableAssets)
     {
         uint256 shares = metaMorpho.balanceOf(address(this));
         if (shares > 0) {
-            uint256 maxWithdraw = metaMorpho.maxWithdraw(address(this));
-            return maxWithdraw;
+            withdrawableAssets = metaMorpho.maxWithdraw(address(this));
         }
-        return 0;
     }
 
     /**
