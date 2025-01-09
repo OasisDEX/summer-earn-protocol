@@ -79,90 +79,36 @@ contract SummerRewardsRedeemer is
 
     /// @inheritdoc ISummerRewardsRedeemer
     function canClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] memory proof
     ) external view returns (bool) {
         return
-            _couldClaim(index, amount, proof) &&
-            !hasClaimed(_msgSender(), index);
+            _couldClaim(user, index, amount, proof) && !hasClaimed(user, index);
     }
 
     /// @inheritdoc ISummerRewardsRedeemer
     function claim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] calldata proof
     ) external {
-        BitMaps.BitMap storage userClaimedRoots = claimedRoots[_msgSender()];
+        BitMaps.BitMap storage userClaimedRoots = claimedRoots[user];
 
-        _processClaim(index, amount, proof, userClaimedRoots);
-        _sendRewards(_msgSender(), amount);
+        _processClaim(user, index, amount, proof, userClaimedRoots);
+        _sendRewards(user, amount);
     }
 
     /// @inheritdoc ISummerRewardsRedeemer
     function claimMultiple(
-        uint256[] calldata indices,
-        uint256[] calldata amounts,
-        bytes32[][] calldata proofs
-    ) external {
-        if (
-            indices.length != amounts.length || amounts.length != proofs.length
-        ) {
-            revert ClaimMultipleLengthMismatch(indices, amounts, proofs);
-        }
-        if (indices.length == 0) {
-            revert ClaimMultipleEmpty(indices, amounts, proofs);
-        }
-
-        uint256 total;
-        BitMaps.BitMap storage userClaimedRoots = claimedRoots[_msgSender()];
-
-        for (uint256 i = 0; i < indices.length; i += 1) {
-            _processClaim(indices[i], amounts[i], proofs[i], userClaimedRoots);
-
-            total += amounts[i];
-        }
-
-        _sendRewards(_msgSender(), total);
-    }
-
-    /// @inheritdoc ISummerRewardsRedeemer
-    function claimMultipleOnBehalf(
         address user,
         uint256[] calldata indices,
         uint256[] calldata amounts,
         bytes32[][] calldata proofs
     ) external {
-        // Check if caller is the user or has AdmiralsQuarters role
-        if (_msgSender() != user && !hasAdmiralsQuartersRole(_msgSender())) {
-            revert CallerNotAdmiralsQuarters();
-        }
-
-        if (
-            indices.length != amounts.length || amounts.length != proofs.length
-        ) {
-            revert ClaimMultipleLengthMismatch(indices, amounts, proofs);
-        }
-        if (indices.length == 0) {
-            revert ClaimMultipleEmpty(indices, amounts, proofs);
-        }
-
-        uint256 total;
-        BitMaps.BitMap storage userClaimedRoots = claimedRoots[user];
-
-        for (uint256 i = 0; i < indices.length; i += 1) {
-            _processClaimOnBehalf(
-                user,
-                indices[i],
-                amounts[i],
-                proofs[i],
-                userClaimedRoots
-            );
-            total += amounts[i];
-        }
-
-        _sendRewards(user, total);
+        _claimMultiple(user, indices, amounts, proofs);
     }
 
     /// @inheritdoc ISummerRewardsRedeemer
@@ -177,41 +123,44 @@ contract SummerRewardsRedeemer is
     /// INTERNALS
 
     function _couldClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] memory proof
     ) internal view returns (bool) {
         bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(_msgSender(), amount)))
+            bytes.concat(keccak256(abi.encode(user, amount)))
         );
         return MerkleProof.verify(proof, roots[index], leaf);
     }
 
     function _verifyClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] memory proof
     ) internal view {
-        if (!_couldClaim(index, amount, proof)) {
-            revert UserCannotClaim(_msgSender(), index, amount, proof);
+        if (!_couldClaim(user, index, amount, proof)) {
+            revert UserCannotClaim(user, index, amount, proof);
         }
 
-        if (hasClaimed(_msgSender(), index)) {
-            revert UserAlreadyClaimed(_msgSender(), index, amount, proof);
+        if (hasClaimed(user, index)) {
+            revert UserAlreadyClaimed(user, index, amount, proof);
         }
     }
 
     function _processClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] calldata proof,
         BitMaps.BitMap storage userClaimedRoots
     ) internal {
-        _verifyClaim(index, amount, proof);
+        _verifyClaim(user, index, amount, proof);
 
         userClaimedRoots.set(index);
 
-        emit Claimed(_msgSender(), index, amount);
+        emit Claimed(user, index, amount);
     }
 
     function _sendRewards(address to, uint256 amount) internal {
@@ -226,42 +175,36 @@ contract SummerRewardsRedeemer is
         return claimedRoots[user].get(index);
     }
 
-    function _processClaimOnBehalf(
+    function _claimMultiple(
         address user,
-        uint256 index,
-        uint256 amount,
-        bytes32[] calldata proof,
-        BitMaps.BitMap storage userClaimedRoots
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
     ) internal {
-        _verifyClaimOnBehalf(user, index, amount, proof);
-        userClaimedRoots.set(index);
-        emit Claimed(user, index, amount);
-    }
-
-    function _verifyClaimOnBehalf(
-        address user,
-        uint256 index,
-        uint256 amount,
-        bytes32[] memory proof
-    ) internal view {
-        if (!_couldClaimOnBehalf(user, index, amount, proof)) {
-            revert UserCannotClaim(user, index, amount, proof);
+        if (
+            indices.length != amounts.length || amounts.length != proofs.length
+        ) {
+            revert ClaimMultipleLengthMismatch(indices, amounts, proofs);
+        }
+        if (indices.length == 0) {
+            revert ClaimMultipleEmpty(indices, amounts, proofs);
         }
 
-        if (hasClaimed(user, index)) {
-            revert UserAlreadyClaimed(user, index, amount, proof);
-        }
-    }
+        uint256 total;
+        BitMaps.BitMap storage userClaimedRoots = claimedRoots[user];
 
-    function _couldClaimOnBehalf(
-        address user,
-        uint256 index,
-        uint256 amount,
-        bytes32[] memory proof
-    ) internal view returns (bool) {
-        bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(user, amount)))
-        );
-        return MerkleProof.verify(proof, roots[index], leaf);
+        for (uint256 i = 0; i < indices.length; i += 1) {
+            _processClaim(
+                user,
+                indices[i],
+                amounts[i],
+                proofs[i],
+                userClaimedRoots
+            );
+
+            total += amounts[i];
+        }
+
+        _sendRewards(user, total);
     }
 }

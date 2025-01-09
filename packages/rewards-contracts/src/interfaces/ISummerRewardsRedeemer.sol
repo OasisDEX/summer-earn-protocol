@@ -66,12 +66,14 @@ interface ISummerRewardsRedeemer {
 
     /**
      * @notice Checks if a user can claim from a distribution
+     * @param user Address of the user to check
      * @param index Distribution index to check
      * @param amount Amount attempting to claim
      * @param proof Merkle proof to verify
      * @return bool True if claim is possible, false otherwise
      */
     function canClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] memory proof
@@ -79,11 +81,13 @@ interface ISummerRewardsRedeemer {
 
     /**
      * @notice Claims rewards for a single distribution
+     * @param user Address of the user to claim for
      * @param index Distribution index to claim from
      * @param amount Amount of tokens to claim
      * @param proof Merkle proof verifying the claim
      */
     function claim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] calldata proof
@@ -91,24 +95,12 @@ interface ISummerRewardsRedeemer {
 
     /**
      * @notice Claims rewards from multiple distributions at once
-     * @param indices Array of distribution indices to claim from
-     * @param amounts Array of amounts to claim from each distribution
-     * @param proofs Array of Merkle proofs for each claim
-     */
-    function claimMultiple(
-        uint256[] calldata indices,
-        uint256[] calldata amounts,
-        bytes32[][] calldata proofs
-    ) external;
-
-    /**
-     * @notice Claims rewards from multiple distributions on behalf of a user
      * @param user Address of the user to claim for
      * @param indices Array of distribution indices to claim from
      * @param amounts Array of amounts to claim from each distribution
      * @param proofs Array of Merkle proofs for each claim
      */
-    function claimMultipleOnBehalf(
+    function claimMultiple(
         address user,
         uint256[] calldata indices,
         uint256[] calldata amounts,
