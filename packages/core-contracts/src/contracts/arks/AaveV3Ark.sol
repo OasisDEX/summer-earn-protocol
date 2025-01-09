@@ -15,6 +15,18 @@ contract AaveV3Ark is Ark {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    event ValidRewardTokenUpdated(address indexed token, bool isValid);
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error InvalidRewardToken(address token);
+
+    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     /// @notice The Aave V3 aToken address
@@ -23,6 +35,9 @@ contract AaveV3Ark is Ark {
     IPoolV3 public immutable aaveV3Pool;
     /// @notice The Aave V3 rewards controller address
     IRewardsController public immutable rewardsController;
+
+    // Add this state mapping to track valid reward tokens
+    mapping(address => bool) public validRewardTokens;
 
     /**
      * @notice Struct to hold reward token information
@@ -64,6 +79,25 @@ contract AaveV3Ark is Ark {
      */
     function totalAssets() public view override returns (uint256) {
         return IERC20(aToken).balanceOf(address(this));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Updates the validity status of a reward token
+     * @dev Only callable by the governor
+     * @param token The address of the reward token to update
+     * @param isValid The new validity status (true = valid, false = invalid)
+     * @custom:emits ValidRewardTokenUpdated event with token address and new status
+     */
+    function setValidRewardToken(
+        address token,
+        bool isValid
+    ) external onlyGovernor {
+        validRewardTokens[token] = isValid;
+        emit ValidRewardTokenUpdated(token, isValid);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -112,6 +146,12 @@ contract AaveV3Ark is Ark {
         rewardAmounts = new uint256[](1);
 
         RewardsData memory rewardsData = abi.decode(data, (RewardsData));
+
+        // Add validation check
+        if (!validRewardTokens[rewardsData.rewardToken]) {
+            revert InvalidRewardToken(rewardsData.rewardToken);
+        }
+
         rewardTokens[0] = rewardsData.rewardToken;
 
         address[] memory incentivizedAssets = new address[](1);
