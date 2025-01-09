@@ -99,6 +99,13 @@ contract BufferArk is Ark {
     {}
 
     /**
+     * @notice Validates the harvest data
+     * @dev This Ark does not require any validation for harvest data
+     * @param /// data Additional data to validate (unused in this implementation)
+     */
+    function _validateHarvestData(bytes calldata) internal view override {}
+
+    /**
      * @notice No-op for validateBoardData function
      * @dev This function is intentionally left empty because the BufferArk doesn't require any
      * specific validation for boarding data. It accepts any data without validation.

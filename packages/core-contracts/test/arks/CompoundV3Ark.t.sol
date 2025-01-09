@@ -13,7 +13,7 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-
+import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
     CompoundV3Ark public ark;
 
@@ -143,6 +143,10 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
         address mockRewardToken = address(10);
         uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
 
+        // Set the reward token as valid first
+        vm.prank(governor);
+        ark.setValidRewardToken(mockRewardToken, true);
+
         // Mock the call to claim
         vm.mockCall(
             address(cometRewards),
@@ -187,13 +191,51 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
 
         // Act
         vm.prank(address(raft));
-        ark.harvest(abi.encode(address(mockRewardToken)));
+        ark.harvest(
+            abi.encode(
+                CompoundV3Ark.RewardsData({rewardToken: mockRewardToken})
+            )
+        );
 
         // Assert
         assertEq(
             rewardAmounts[0],
             mockClaimedRewardsBalance,
             "Harvested amount should match mocked balance"
+        );
+    }
+
+    function test_Harvest_Reverts_InvalidRewardToken() public {
+        address invalidRewardToken = address(10);
+
+        vm.prank(address(raft));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CompoundV3Ark.InvalidRewardToken.selector,
+                invalidRewardToken
+            )
+        );
+
+        ark.harvest(
+            abi.encode(
+                CompoundV3Ark.RewardsData({rewardToken: invalidRewardToken})
+            )
+        );
+    }
+
+    function test_Harvest_Reverts_EmptyData() public {
+        vm.prank(address(raft));
+        vm.expectRevert(IArkErrors.InvalidHarvestData.selector);
+
+        ark.harvest("");
+    }
+
+    function test_Harvest_Reverts_ZeroAddressRewardToken() public {
+        vm.prank(address(raft));
+        vm.expectRevert(IArkErrors.InvalidHarvestData.selector);
+
+        ark.harvest(
+            abi.encode(CompoundV3Ark.RewardsData({rewardToken: address(0)}))
         );
     }
 }

@@ -64,7 +64,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     function harvestAndStartAuction(
         address ark,
         bytes calldata rewardData
-    ) external onlyGovernor {
+    ) external {
         (address[] memory harvestedTokens, ) = _harvest(ark, rewardData);
         for (uint256 i = 0; i < harvestedTokens.length; i++) {
             _startAuction(ark, harvestedTokens[i]);
@@ -88,10 +88,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     }
 
     /// @inheritdoc IRaft
-    function harvest(
-        address ark,
-        bytes calldata rewardData
-    ) external onlyGovernor {
+    function harvest(address ark, bytes calldata rewardData) external {
         _harvest(ark, rewardData);
     }
 
@@ -223,7 +220,6 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
      * - Updates the obtainedTokens mapping for each swept token
      * - Transfers swept tokens from the Ark to this contract
      * @custom:security-considerations
-     * - Ensure only the governor can call this function (enforced by onlyGovernor modifier)
      * - Validate the Ark address and token addresses
      * - Handle potential failures in the Ark's sweep function
      * - Be aware of potential gas limitations when sweeping a large number of tokens

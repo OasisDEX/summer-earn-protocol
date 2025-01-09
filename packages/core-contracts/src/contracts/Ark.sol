@@ -218,6 +218,13 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
     function _validateBoardData(bytes calldata data) internal virtual;
 
     /**
+     * @notice Internal function to validate harvest data
+     * @dev This function should be implemented by derived contracts to define specific harvest data validation
+     * @param data The harvest data to validate
+     */
+    function _validateHarvestData(bytes calldata data) internal view virtual;
+
+    /**
      * @notice Internal function to validate disembarking data
      * @dev This function should be implemented by derived contracts to define specific disembarking data validation
      * @param data The disembarking data to validate

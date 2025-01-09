@@ -14,6 +14,7 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 import {ArkTestBase} from "./ArkTestBase.sol";
+import {IArkErrors} from "../../src/errors/IArkErrors.sol";
 import "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
@@ -302,6 +303,24 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
                 invalidRewardToken
             )
         );
+
+        vm.prank(raft);
+        ark.harvest(harvestData);
+    }
+
+    function test_Harvest_Reverts_EmptyData() public {
+        vm.expectRevert(IArkErrors.InvalidHarvestData.selector);
+
+        vm.prank(raft);
+        ark.harvest("");
+    }
+
+    function test_Harvest_Reverts_ZeroAddressRewardToken() public {
+        bytes memory harvestData = abi.encode(
+            AaveV3Ark.RewardsData({rewardToken: address(0)})
+        );
+
+        vm.expectRevert(IArkErrors.InvalidHarvestData.selector);
 
         vm.prank(raft);
         ark.harvest(harvestData);

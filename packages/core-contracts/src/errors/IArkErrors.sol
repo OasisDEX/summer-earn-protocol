@@ -37,4 +37,9 @@ interface IArkErrors {
      * @notice Thrown when invalid disembark data is provided.
      */
     error InvalidDisembarkData();
+
+    /**
+     * @notice Thrown when invalid harvest data is provided.
+     */
+    error InvalidHarvestData();
 }

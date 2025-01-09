@@ -50,5 +50,8 @@ contract ArkMock is Ark {
     }
 
     function _validateBoardData(bytes calldata data) internal override {}
+
+    function _validateHarvestData(bytes calldata data) internal view override {}
+
     function _validateDisembarkData(bytes calldata data) internal override {}
 }

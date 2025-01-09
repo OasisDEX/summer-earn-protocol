@@ -130,6 +130,20 @@ contract AaveV3Ark is Ark {
     }
 
     /**
+     * @notice Validates the harvest data
+     * @param data The harvest data to validate
+     */
+    function _validateHarvestData(bytes calldata data) internal view override {
+        if (data.length == 0) revert InvalidHarvestData();
+
+        RewardsData memory rewardsData = abi.decode(data, (RewardsData));
+        if (rewardsData.rewardToken == address(0)) revert InvalidHarvestData();
+        if (!validRewardTokens[rewardsData.rewardToken]) {
+            revert InvalidRewardToken(rewardsData.rewardToken);
+        }
+    }
+
+    /**
      * @notice Harvests rewards from the Aave V3 pool
      * @param data Additional data for the harvest operation
      * @return rewardTokens Array of reward tokens
@@ -142,16 +156,12 @@ contract AaveV3Ark is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
+        _validateHarvestData(data);
+
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
 
         RewardsData memory rewardsData = abi.decode(data, (RewardsData));
-
-        // Add validation check
-        if (!validRewardTokens[rewardsData.rewardToken]) {
-            revert InvalidRewardToken(rewardsData.rewardToken);
-        }
-
         rewardTokens[0] = rewardsData.rewardToken;
 
         address[] memory incentivizedAssets = new address[](1);

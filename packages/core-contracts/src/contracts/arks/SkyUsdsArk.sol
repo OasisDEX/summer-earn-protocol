@@ -77,6 +77,7 @@ contract SkyUsdsArk is Ark {
 
     function _validateBoardData(bytes calldata) internal pure override {}
     function _validateDisembarkData(bytes calldata) internal pure override {}
+    function _validateHarvestData(bytes calldata) internal pure override {}
 
     // No harvest function needed as rewards are automatically compounded in stakedUSDS
     function _harvest(
