@@ -157,30 +157,6 @@ interface IAdmiralsQuarters is
     ) external;
 
     /**
-     * @notice Struct containing parameters for claiming rewards
-     * @param fleetCommanders Array of FleetCommander addresses
-     * @param rewardToken Address of the reward token
-     * @param merkleData Array of merkle proof data for claiming from RewardsRedeemer
-     */
-    struct RewardClaimParams {
-        address[] fleetCommanders;
-        address rewardToken;
-        MerkleClaimData[] merkleData;
-        address rewardsRedeemer;
-        address govRewardsManager;
-    }
-
-    /**
-     * @notice Claims all available rewards from multiple sources
-     * @param user Address to claim rewards for
-     * @param params Struct containing all necessary parameters for claiming
-     */
-    function claimAllRewards(
-        address user,
-        RewardClaimParams calldata params
-    ) external;
-
-    /**
      * @notice Struct containing merkle proof data for claiming rewards
      * @param index Index of the merkle distribution
      * @param amount Amount of governance tokens to claim
@@ -191,4 +167,36 @@ interface IAdmiralsQuarters is
         uint256 amount;
         bytes32[] proof;
     }
+
+    /**
+     * @notice Claims merkle rewards for a user
+     * @param user Address to claim rewards for
+     * @param merkleData Array of merkle proof data
+     * @param rewardsRedeemer Address of the rewards redeemer contract
+     */
+    function claimMerkleRewards(
+        address user,
+        MerkleClaimData[] calldata merkleData,
+        address rewardsRedeemer
+    ) external;
+
+    /**
+     * @notice Claims governance rewards
+     * @param govRewardsManager Address of the governance rewards manager
+     * @param rewardToken Address of the reward token to claim
+     */
+    function claimGovernanceRewards(
+        address govRewardsManager,
+        address rewardToken
+    ) external;
+
+    /**
+     * @notice Claims rewards from fleet commanders
+     * @param fleetCommanders Array of FleetCommander addresses
+     * @param rewardToken Address of the reward token to claim
+     */
+    function claimFleetRewards(
+        address[] calldata fleetCommanders,
+        address rewardToken
+    ) external;
 }
