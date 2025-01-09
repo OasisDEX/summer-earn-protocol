@@ -61,12 +61,16 @@ contract SkyUsdsPsm3Ark is Ark {
     }
 
     function totalAssets() public view override returns (uint256) {
-        return
-            psm.previewSwapExactIn(
-                address(susds),
-                address(config.asset),
-                susds.balanceOf(address(this))
-            );
+        uint256 balance = susds.balanceOf(address(this));
+        if (balance > 0) {
+            return
+                psm.previewSwapExactIn(
+                    address(susds),
+                    address(config.asset),
+                    balance
+                );
+        }
+        return 0;
     }
 
     /**
@@ -80,8 +84,12 @@ contract SkyUsdsPsm3Ark is Ark {
         returns (uint256)
     {
         uint256 _totalAssets = totalAssets();
-        uint256 psmUsdcBalance = config.asset.balanceOf(psm.pocket());
-        return _totalAssets < psmUsdcBalance ? _totalAssets : psmUsdcBalance;
+        if (_totalAssets > 0) {
+            uint256 psmUsdcBalance = config.asset.balanceOf(psm.pocket());
+            return
+                _totalAssets < psmUsdcBalance ? _totalAssets : psmUsdcBalance;
+        }
+        return 0;
     }
 
     function _board(uint256 amount, bytes calldata) internal override {

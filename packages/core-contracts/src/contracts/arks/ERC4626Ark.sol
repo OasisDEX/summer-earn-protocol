@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import "../Ark.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-
+import {console2} from "forge-std/console2.sol";
 /**
  * @title ERC4626Ark
  * @notice Ark contract for managing token supply and yield generation through any ERC4626-compliant vault.
@@ -49,7 +49,12 @@ contract ERC4626Ark is Ark {
      * @return The total balance of underlying assets held in the vault for this Ark
      */
     function totalAssets() public view override returns (uint256) {
-        return vault.convertToAssets(vault.balanceOf(address(this)));
+        uint256 shares = vault.balanceOf(address(this));
+        if (shares > 0) {
+            uint256 assets = vault.convertToAssets(shares);
+            return assets;
+        }
+        return 0;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -66,7 +71,12 @@ contract ERC4626Ark is Ark {
         override
         returns (uint256)
     {
-        return vault.maxWithdraw(address(this));
+        uint256 shares = vault.balanceOf(address(this));
+        if (shares > 0) {
+            uint256 maxWithdraw = vault.maxWithdraw(address(this));
+            return maxWithdraw;
+        }
+        return 0;
     }
 
     /**

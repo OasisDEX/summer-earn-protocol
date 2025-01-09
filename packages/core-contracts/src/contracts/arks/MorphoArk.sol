@@ -90,12 +90,14 @@ contract MorphoArk is Ark {
     function totalAssets() public view override returns (uint256) {
         Position memory position = MORPHO.position(marketId, address(this));
         Market memory market = MORPHO.market(marketId);
-
-        return
-            position.supplyShares.toAssetsDown(
-                market.totalSupplyAssets,
-                market.totalSupplyShares
-            );
+        if (position.supplyShares > 0) {
+            return
+                position.supplyShares.toAssetsDown(
+                    market.totalSupplyAssets,
+                    market.totalSupplyShares
+                );
+        }
+        return 0;
     }
 
     /*//////////////////////////////////////////////////////////////

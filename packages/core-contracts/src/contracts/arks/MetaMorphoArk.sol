@@ -59,7 +59,11 @@ contract MetaMorphoArk is Ark {
      * @return assets The total balance of underlying assets held in the vault for this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        return metaMorpho.convertToAssets(metaMorpho.balanceOf(address(this)));
+        uint256 shares = metaMorpho.balanceOf(address(this));
+        if (shares > 0) {
+            assets = metaMorpho.convertToAssets(shares);
+        }
+        return assets;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -76,7 +80,12 @@ contract MetaMorphoArk is Ark {
         override
         returns (uint256)
     {
-        return metaMorpho.maxWithdraw(address(this));
+        uint256 shares = metaMorpho.balanceOf(address(this));
+        if (shares > 0) {
+            uint256 maxWithdraw = metaMorpho.maxWithdraw(address(this));
+            return maxWithdraw;
+        }
+        return 0;
     }
 
     /**
