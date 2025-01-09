@@ -89,8 +89,8 @@ contract MorphoArk is Ark {
      */
     function totalAssets() public view override returns (uint256 assets) {
         Position memory position = MORPHO.position(marketId, address(this));
-        Market memory market = MORPHO.market(marketId);
         if (position.supplyShares > 0) {
+            Market memory market = MORPHO.market(marketId);
             assets = position.supplyShares.toAssetsDown(
                 market.totalSupplyAssets,
                 market.totalSupplyShares
@@ -105,7 +105,6 @@ contract MorphoArk is Ark {
     /**
      * @notice Internal function to get the total assets that are withdrawable
      * @dev MorphoArk is always withdrawable
-     * @dev TODO: add logic to check for pause etc
      */
     function _withdrawableTotalAssets()
         internal
@@ -113,7 +112,17 @@ contract MorphoArk is Ark {
         override
         returns (uint256 withdrawableAssets)
     {
-        withdrawableAssets = totalAssets();
+        uint256 _totalAssets = totalAssets();
+        if (_totalAssets > 0) {
+            Market memory market = MORPHO.market(marketId);
+            uint256 availableAssets = market.totalBorrowAssets <=
+                market.totalSupplyAssets
+                ? market.totalSupplyAssets - market.totalBorrowAssets
+                : 0;
+            withdrawableAssets = _totalAssets < availableAssets
+                ? _totalAssets
+                : availableAssets;
+        }
     }
 
     /**

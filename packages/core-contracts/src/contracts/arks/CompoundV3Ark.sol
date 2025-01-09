@@ -67,7 +67,6 @@ contract CompoundV3Ark is Ark {
     /**
      * @notice Internal function to get the total assets that are withdrawable
      * @dev CompoundV3Ark is always withdrawable
-     * @dev TODO:  add logic to check if the comet is in liquidation mode or not
      */
     function _withdrawableTotalAssets()
         internal
@@ -75,7 +74,9 @@ contract CompoundV3Ark is Ark {
         override
         returns (uint256 withdrawableAssets)
     {
-        withdrawableAssets = totalAssets();
+        if (!comet.isWithdrawPaused()) {
+            withdrawableAssets = totalAssets();
+        }
     }
 
     /**
