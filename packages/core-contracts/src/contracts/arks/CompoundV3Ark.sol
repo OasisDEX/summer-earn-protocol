@@ -22,14 +22,6 @@ contract CompoundV3Ark is Ark {
     /// @notice The Compound V3 CometRewards contract
     ICometRewards public cometRewards;
 
-    /**
-     * @notice Struct to hold reward token information
-     * @param rewardToken The address of the reward token
-     */
-    struct RewardsData {
-        address rewardToken;
-    }
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -104,12 +96,11 @@ contract CompoundV3Ark is Ark {
 
     /**
      * @notice Harvests rewards from Compound V3
-     * @param data Encoded RewardsData struct containing reward token information
      * @return rewardTokens Array of reward token addresses
      * @return rewardAmounts Array of reward token amounts
      */
     function _harvest(
-        bytes calldata data
+        bytes calldata
     )
         internal
         override
@@ -118,14 +109,11 @@ contract CompoundV3Ark is Ark {
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
 
-        RewardsData memory rewardsData = abi.decode(data, (RewardsData));
-        rewardTokens[0] = rewardsData.rewardToken;
-        cometRewards.claim(address(comet), address(this), true);
+        rewardTokens[0] = cometRewards.rewardConfig(address(comet)).token;
 
-        rewardAmounts[0] = IERC20(rewardsData.rewardToken).balanceOf(
-            address(this)
-        );
-        IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
+        cometRewards.claimTo(address(comet), address(this), raft(), true);
+
+        rewardAmounts[0] = IERC20(rewardTokens[0]).balanceOf(raft());
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }

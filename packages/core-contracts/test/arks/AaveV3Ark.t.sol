@@ -216,52 +216,32 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
     }
 
     function test_Harvest() public {
-        address mockRewardToken = address(10);
-        uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
+        // Setup mock reward token and amount
+        address[] memory rewardTokens = new address[](1);
+        uint256[] memory rewardAmounts = new uint256[](1);
+        rewardTokens[0] = address(10);
+        rewardAmounts[0] = 1000 * 10 ** 18;
 
-        // Mock the call to claimRewardsToSelf
+        // Mock the claimAllRewards call
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = mockAToken;
+
         vm.mockCall(
             address(rewardsController),
             abi.encodeWithSelector(
-                IRewardsController(rewardsController).claimRewards.selector,
+                IRewardsController.claimAllRewards.selector,
                 incentivizedAssets,
-                type(uint256).max,
-                address(raft),
-                mockRewardToken
+                address(raft)
             ),
-            abi.encode(mockClaimedRewardsBalance)
+            abi.encode(rewardTokens, rewardAmounts)
         );
 
-        vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSelector(
-                IERC20(mockRewardToken).balanceOf.selector,
-                address(ark)
-            ),
-            abi.encode(mockClaimedRewardsBalance)
-        );
-
-        vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSignature(
-                "transfer(address,uint256)",
-                raft,
-                mockClaimedRewardsBalance
-            ),
-            abi.encode(true)
-        );
-
-        vm.expectEmit(false, false, false, true);
-        address[] memory rewardTokens = new address[](1);
-        uint256[] memory rewardAmounts = new uint256[](1);
-        rewardTokens[0] = mockRewardToken;
-        rewardAmounts[0] = mockClaimedRewardsBalance;
+        // Expect the ArkHarvested event with correct parameters
+        vm.expectEmit();
         emit ArkHarvested(rewardTokens, rewardAmounts);
 
-        // Act
+        // Execute harvest as raft
         vm.prank(address(raft));
-        ark.harvest(abi.encode(mockRewardToken));
+        ark.harvest("");
     }
 }

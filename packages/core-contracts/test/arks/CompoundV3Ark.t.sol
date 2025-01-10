@@ -143,13 +143,31 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
         address mockRewardToken = address(10);
         uint256 mockClaimedRewardsBalance = 1000 * 10 ** 18;
 
-        // Mock the call to claim
+        // Mock the rewardConfig call
         vm.mockCall(
             address(cometRewards),
             abi.encodeWithSelector(
-                ICometRewards(cometRewards).claim.selector,
+                ICometRewards.rewardConfig.selector,
+                address(comet)
+            ),
+            abi.encode(
+                ICometRewards.RewardConfig({
+                    token: mockRewardToken,
+                    rescaleFactor: 0,
+                    shouldUpscale: false,
+                    multiplier: 0
+                })
+            )
+        );
+
+        // Mock the claimTo call instead of claim
+        vm.mockCall(
+            address(cometRewards),
+            abi.encodeWithSelector(
+                ICometRewards.claimTo.selector,
                 address(comet),
                 address(ark),
+                address(raft),
                 true
             ),
             abi.encode()
@@ -158,22 +176,8 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
         // Mock the balance of reward token after claiming
         vm.mockCall(
             mockRewardToken,
-            abi.encodeWithSelector(
-                IERC20(mockRewardToken).balanceOf.selector,
-                address(ark)
-            ),
+            abi.encodeWithSelector(IERC20.balanceOf.selector, address(raft)),
             abi.encode(mockClaimedRewardsBalance)
-        );
-
-        // Mock the transfer of reward token to raft
-        vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSignature(
-                "transfer(address,uint256)",
-                raft,
-                mockClaimedRewardsBalance
-            ),
-            abi.encode(true)
         );
 
         // Expect the Harvested event to be emitted
@@ -187,11 +191,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
 
         // Act
         vm.prank(address(raft));
-        ark.harvest(
-            abi.encode(
-                CompoundV3Ark.RewardsData({rewardToken: mockRewardToken})
-            )
-        );
+        ark.harvest("");
 
         // Assert
         assertEq(
