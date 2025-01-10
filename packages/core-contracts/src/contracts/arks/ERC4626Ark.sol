@@ -46,10 +46,13 @@ contract ERC4626Ark is Ark {
     /**
      * @inheritdoc IArk
      * @notice Returns the total assets managed by this Ark in the ERC4626 vault
-     * @return The total balance of underlying assets held in the vault for this Ark
+     * @return assets The total balance of underlying assets held in the vault for this Ark
      */
-    function totalAssets() public view override returns (uint256) {
-        return vault.convertToAssets(vault.balanceOf(address(this)));
+    function totalAssets() public view override returns (uint256 assets) {
+        uint256 shares = vault.balanceOf(address(this));
+        if (shares > 0) {
+            assets = vault.convertToAssets(shares);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -64,9 +67,12 @@ contract ERC4626Ark is Ark {
         internal
         view
         override
-        returns (uint256)
+        returns (uint256 withdrawableAssets)
     {
-        return vault.maxWithdraw(address(this));
+        uint256 shares = vault.balanceOf(address(this));
+        if (shares > 0) {
+            withdrawableAssets = vault.maxWithdraw(address(this));
+        }
     }
 
     /**
