@@ -180,7 +180,7 @@ contract SummerVestingWallet is
      * - Consider gas costs when frequently querying vested amounts
      */
     function _vestingSchedule(
-        uint256 /* totalAllocation */,
+        uint256,
         uint64 timestamp
     ) internal view override returns (uint256) {
         if (timestamp < start() + CLIFF) {

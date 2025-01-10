@@ -112,6 +112,15 @@ contract SummerRewardsRedeemer is
     }
 
     /// @inheritdoc ISummerRewardsRedeemer
+    function claimMultiple(
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external {
+        _claimMultiple(_msgSender(), indices, amounts, proofs);
+    }
+
+    /// @inheritdoc ISummerRewardsRedeemer
     function emergencyWithdraw(
         address token,
         address to,

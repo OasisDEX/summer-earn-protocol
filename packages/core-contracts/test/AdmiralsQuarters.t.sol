@@ -1752,4 +1752,46 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(usdc);
         vm.stopPrank();
     }
+
+    function test_ClaimMerkleRewards_RevertInvalidRewardsRedeemer() public {
+        uint256[] memory indices = new uint256[](1);
+        uint256[] memory amounts = new uint256[](1);
+        bytes32[][] memory proofs = new bytes32[][](1);
+
+        vm.startPrank(user1);
+        vm.expectRevert(
+            IAdmiralsQuartersErrors.InvalidRewardsRedeemer.selector
+        );
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.claimMerkleRewards,
+            (user1, indices, amounts, proofs, address(0))
+        );
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+    }
+
+    function test_ClaimGovernanceRewards_RevertInvalidRewardsManager() public {
+        vm.startPrank(user1);
+        vm.expectRevert(IAdmiralsQuartersErrors.InvalidRewardsManager.selector);
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.claimGovernanceRewards,
+            (address(0), USDC_ADDRESS)
+        );
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+    }
+
+    function test_ClaimGovernanceRewards_RevertInvalidToken() public {
+        vm.startPrank(user1);
+        vm.expectRevert(IAdmiralsQuartersErrors.InvalidToken.selector);
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.claimGovernanceRewards,
+            (address(usdcFleet), address(0))
+        );
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+    }
 }

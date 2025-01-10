@@ -457,4 +457,40 @@ contract RewardsRedeemerTest is Test {
         );
         redeemer.claimMultiple(alice, indices, amounts, proofs);
     }
+
+    function test_ClaimMultiple_MsgSender() public {
+        // Mint tokens to redeemer
+        rewardsToken.mint(address(redeemer), 1000 ether);
+
+        uint256[] memory indices = new uint256[](2);
+        indices[0] = TEST_INDEX;
+        indices[1] = TEST_INDEX_2;
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = TEST_AMOUNT_ALICE;
+        amounts[1] = TEST_AMOUNT_ALICE_2;
+
+        bytes32[][] memory proofs = new bytes32[][](2);
+        proofs[0] = TEST_PROOF_ALICE;
+        proofs[1] = TEST_PROOF_ALICE_2;
+
+        vm.startPrank(governor);
+        redeemer.addRoot(TEST_INDEX, TEST_ROOT);
+        redeemer.addRoot(TEST_INDEX_2, TEST_ROOT_2);
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        uint256 balanceBefore = rewardsToken.balanceOf(alice);
+
+        // Call the overloaded version without user parameter
+        redeemer.claimMultiple(indices, amounts, proofs);
+
+        assertEq(
+            rewardsToken.balanceOf(alice),
+            balanceBefore + TEST_AMOUNT_ALICE + TEST_AMOUNT_ALICE_2
+        );
+        assertTrue(redeemer.hasClaimed(alice, TEST_INDEX));
+        assertTrue(redeemer.hasClaimed(alice, TEST_INDEX_2));
+        vm.stopPrank();
+    }
 }

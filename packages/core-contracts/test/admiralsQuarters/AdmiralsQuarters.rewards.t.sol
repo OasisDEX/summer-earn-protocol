@@ -120,6 +120,14 @@ contract MockSummerRewardsRedeemer is ISummerRewardsRedeemer {
         rewardsToken.transfer(user, total);
     }
 
+    function claimMultiple(
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external {
+        this.claimMultiple(msg.sender, indices, amounts, proofs);
+    }
+
     // Other required interface functions
     function addRoot(uint256 index, bytes32 root) external {}
     function removeRoot(uint256 index) external {}
@@ -342,6 +350,12 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
             finalRewardBalance,
             initialRewardBalance,
             "Should have received fleet rewards"
+        );
+
+        assertEq(
+            rewardTokens[0].balanceOf(address(admiralsQuarters)),
+            0,
+            "Should have no tokens leftover in AdmiralsQuarters"
         );
         vm.stopPrank();
     }

@@ -108,6 +108,18 @@ interface ISummerRewardsRedeemer {
     ) external;
 
     /**
+     * @notice Claims rewards for multiple distributions at once
+     * @param indices Array of distribution indices to claim from
+     * @param amounts Array of amounts to claim from each distribution
+     * @param proofs Array of Merkle proofs for each claim
+     */
+    function claimMultiple(
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external;
+
+    /**
      * @notice Emergency withdrawal of tokens
      * @param token Address of token to withdraw
      * @param to Address to send tokens to

@@ -325,7 +325,9 @@ contract AdmiralsQuarters is
         bytes32[][] calldata proofs,
         address rewardsRedeemer
     ) internal {
-        if (rewardsRedeemer == address(0)) return;
+        if (rewardsRedeemer == address(0)) {
+            revert InvalidRewardsRedeemer();
+        }
 
         // We can now directly pass the arrays to the redeemer
         ISummerRewardsRedeemer(rewardsRedeemer).claimMultiple(
@@ -345,8 +347,11 @@ contract AdmiralsQuarters is
         address govRewardsManager,
         address rewardToken
     ) internal {
-        if (govRewardsManager == address(0) || rewardToken == address(0))
-            return;
+        if (govRewardsManager == address(0)) {
+            revert InvalidRewardsManager();
+        }
+
+        _validateToken(IERC20(rewardToken));
 
         // Claim rewards
         IGovernanceRewardsManager(govRewardsManager).getRewardFor(
@@ -366,19 +371,19 @@ contract AdmiralsQuarters is
     ) internal {
         for (uint256 i = 0; i < fleetCommanders.length; ) {
             address fleetCommander = fleetCommanders[i];
-            if (fleetCommander != address(0)) {
-                // Validate FleetCommander through HarborCommand
-                _validateFleetCommander(fleetCommander);
 
-                // Get rewards manager from FleetCommander and claim
-                address rewardsManager = IFleetCommander(fleetCommander)
-                    .getConfig()
-                    .stakingRewardsManager;
-                IFleetCommanderRewardsManager(rewardsManager).getRewardFor(
-                    _msgSender(),
-                    rewardToken
-                );
-            }
+            // Validate FleetCommander through HarborCommand
+            _validateFleetCommander(fleetCommander);
+
+            // Get rewards manager from FleetCommander and claim
+            address rewardsManager = IFleetCommander(fleetCommander)
+                .getConfig()
+                .stakingRewardsManager;
+            IFleetCommanderRewardsManager(rewardsManager).getRewardFor(
+                _msgSender(),
+                rewardToken
+            );
+
             unchecked {
                 ++i;
             }
