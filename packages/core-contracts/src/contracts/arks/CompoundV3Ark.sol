@@ -109,11 +109,17 @@ contract CompoundV3Ark is Ark {
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
 
-        rewardTokens[0] = cometRewards.rewardConfig(address(comet)).token;
+        ICometRewards.RewardConfig memory config = ICometRewards(
+            address(cometRewards)
+        ).rewardConfig(address(comet));
 
+        rewardTokens[0] = config.token;
+
+        uint256 balanceBefore = IERC20(rewardTokens[0]).balanceOf(raft());
         cometRewards.claimTo(address(comet), address(this), raft(), true);
+        uint256 balanceAfter = IERC20(rewardTokens[0]).balanceOf(raft());
 
-        rewardAmounts[0] = IERC20(rewardTokens[0]).balanceOf(raft());
+        rewardAmounts[0] = balanceAfter - balanceBefore;
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }

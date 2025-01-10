@@ -154,8 +154,7 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
                 ICometRewards.RewardConfig({
                     token: mockRewardToken,
                     rescaleFactor: 0,
-                    shouldUpscale: false,
-                    multiplier: 0
+                    shouldUpscale: false
                 })
             )
         );
