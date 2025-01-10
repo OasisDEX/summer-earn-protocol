@@ -115,9 +115,10 @@ contract CompoundV3Ark is Ark {
 
         rewardTokens[0] = config.token;
 
-        uint256 balanceBefore = IERC20(rewardTokens[0]).balanceOf(raft());
-        cometRewards.claimTo(address(comet), address(this), raft(), true);
-        uint256 balanceAfter = IERC20(rewardTokens[0]).balanceOf(raft());
+        address raft = raft();
+        uint256 balanceBefore = IERC20(rewardTokens[0]).balanceOf(raft);
+        cometRewards.claimTo(address(comet), address(this), raft, true);
+        uint256 balanceAfter = IERC20(rewardTokens[0]).balanceOf(raft);
 
         rewardAmounts[0] = balanceAfter - balanceBefore;
 

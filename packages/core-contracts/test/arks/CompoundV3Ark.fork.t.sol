@@ -31,12 +31,9 @@ contract CompoundV3ArkTest is Test, IArkEvents, ArkTestBase {
     uint256 forkBlock = 20276596;
     uint256 forkId;
 
-    // Network-specific addresses
     address constant MAINNET_COMET = 0xc3d688B66703497DAA19211EEdff47f25384cdc3;
     address constant MAINNET_REWARDS =
         0x1B0e765F6224C21223AeA2af16c1C46E38885a40;
-    address constant ARB_COMET = 0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA;
-    address constant ARB_REWARDS = 0x88730d254A2f7e6AC8388c3198aFd694bA9f7fae;
 
     function setUp() public {
         initializeCoreContracts();
