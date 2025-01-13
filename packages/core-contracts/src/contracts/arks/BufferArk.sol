@@ -46,6 +46,19 @@ contract BufferArk is Ark {
     }
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev For Buffer Ark, the total assets are always withdrawable
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return totalAssets();
+    }
+
+    /**
      * @notice No-op for board function
      * @dev This function is intentionally left empty because the BufferArk doesn't need to perform any
      * additional actions when boarding tokens. The actual token transfer is handled by the Ark.board() function,

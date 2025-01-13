@@ -31,6 +31,36 @@ contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommanderStorageWriter.setDepositCap(MAX_DEPOSIT_CAP);
     }
 
+    function test_Deposit_withTip() public {
+        uint256 amount = 1000 * 10 ** 6;
+        uint256 maxDepositCap = 100000 * 10 ** 6;
+
+        _mockArkTotalAssets(ark1, 0);
+        _mockArkTotalAssets(ark2, 0);
+
+        fleetCommanderStorageWriter.setDepositCap(maxDepositCap);
+        fleetCommanderStorageWriter.setTipRate(1e18);
+
+        mockToken.mint(mockUser, amount * 10);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), amount);
+        fleetCommander.deposit(amount, mockUser);
+
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 previewedShares = fleetCommander.previewDeposit(amount);
+
+        mockToken.approve(address(fleetCommander), amount);
+
+        uint256 sharesBefore = fleetCommander.balanceOf(mockUser);
+        uint256 receivedShares = fleetCommander.deposit(amount, mockUser);
+        uint256 sharesAfter = fleetCommander.balanceOf(mockUser);
+        vm.stopPrank();
+        assertEq(receivedShares, previewedShares);
+        assertEq(sharesAfter, sharesBefore + receivedShares);
+    }
+
     function test_Deposit() public {
         uint256 amount = 1000 * 10 ** 6;
         uint256 maxDepositCap = 100000 * 10 ** 6;
@@ -83,6 +113,7 @@ contract DepositTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_DepositZeroAmount() public {
         vm.prank(mockUser);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
         fleetCommander.deposit(0, mockUser);
     }
 

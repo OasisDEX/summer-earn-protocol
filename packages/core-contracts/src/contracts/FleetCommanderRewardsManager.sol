@@ -3,9 +3,9 @@ pragma solidity 0.8.28;
 
 import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
+import {StakingRewardsManagerBase, EnumerableSet} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
-
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 /**
  * @title FleetCommanderRewardsManager
  * @notice Contract for managing staking rewards specific to the Fleet system
@@ -15,7 +15,8 @@ contract FleetCommanderRewardsManager is
     IFleetCommanderRewardsManager,
     StakingRewardsManagerBase
 {
-    address public fleetCommander;
+    using EnumerableSet for EnumerableSet.AddressSet;
+    address public immutable fleetCommander;
 
     /**
      * @notice Initializes the FleetStakingRewardsManager contract
@@ -39,26 +40,46 @@ contract FleetCommanderRewardsManager is
     function stakeOnBehalfOf(
         address receiver,
         uint256 amount
-    ) external override {
+    ) external override updateReward(receiver) {
         _stake(_msgSender(), receiver, amount);
     }
 
-    function unstakeOnBehalfOf(
-        address from,
-        address receiver,
-        uint256 amount
-    ) external override {
-        // Direct unstaking is always allowed
-        if (_msgSender() == from) {
-            _unstake(from, receiver, amount);
-            return;
+    /// @inheritdoc IStakingRewardsManagerBase
+    function notifyRewardAmount(
+        IERC20 rewardToken,
+        uint256 reward,
+        uint256 newRewardsDuration
+    )
+        external
+        override(StakingRewardsManagerBase, IStakingRewardsManagerBase)
+        onlyGovernor
+        updateReward(address(0))
+    {
+        if (address(rewardToken) == address(stakingToken)) {
+            revert CantAddStakingTokenAsReward();
         }
+        _notifyRewardAmount(rewardToken, reward, newRewardsDuration);
+    }
 
-        // Only AdmiralsQuarters with role can unstake on behalf
-        if (!hasAdmiralsQuartersRole(_msgSender())) {
+    function unstakeAndWithdrawOnBehalfOf(
+        address owner,
+        uint256 amount,
+        bool claimRewards
+    ) external override updateReward(owner) {
+        // Check if the caller is the same as the 'owner' address or has the required role
+        if (_msgSender() != owner && !hasAdmiralsQuartersRole(_msgSender())) {
             revert CallerNotAdmiralsQuarters();
         }
 
-        _unstake(from, receiver, amount);
+        _unstake(owner, address(this), amount);
+        IFleetCommander(fleetCommander).redeem(amount, owner, address(this));
+
+        if (claimRewards) {
+            uint256 rewardTokenCount = _rewardTokensList.length();
+            for (uint256 i = 0; i < rewardTokenCount; i++) {
+                address rewardTokenAddress = _rewardTokensList.at(i);
+                _getReward(owner, rewardTokenAddress);
+            }
+        }
     }
 }

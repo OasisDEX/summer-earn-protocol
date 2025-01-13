@@ -11,6 +11,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {DecayController} from "./DecayController.sol";
+import {WrappedStakingToken} from "./WrappedStakingToken.sol";
 
 /**
  * @title GovernanceRewardsManager
@@ -47,6 +48,11 @@ contract GovernanceRewardsManager is
         public userSmoothedDecayFactor;
 
     /**
+     * @notice Wrapped version of staking token for rewards
+     */
+    WrappedStakingToken public immutable wrappedStakingToken;
+
+    /**
      * @notice Updates rewards for an account before executing a function
      * @param account The address of the account to update rewards for
      * @dev Updates reward data for all reward tokens
@@ -70,6 +76,7 @@ contract GovernanceRewardsManager is
         address _accessManager
     ) StakingRewardsManagerBase(_accessManager) DecayController(_stakingToken) {
         stakingToken = IERC20(_stakingToken);
+        wrappedStakingToken = new WrappedStakingToken(stakingToken);
         _setRewardsManager(address(this));
     }
 
@@ -90,7 +97,7 @@ contract GovernanceRewardsManager is
     function stakeOnBehalfOf(
         address receiver,
         uint256 amount
-    ) external override updateDecay(receiver) {
+    ) external override updateDecay(receiver) updateReward(receiver) {
         _stake(_msgSender(), receiver, amount);
     }
 
@@ -98,12 +105,12 @@ contract GovernanceRewardsManager is
      * @notice No op function to satisfy interface requirements. Emits an event but performs no state changes.
      * @dev This operation is not supported and will only emit an event
      */
-    function unstakeOnBehalfOf(
+    function unstakeAndWithdrawOnBehalfOf(
         address owner,
-        address receiver,
-        uint256 amount
+        uint256 amount,
+        bool
     ) external override {
-        emit UnstakeOnBehalfOfIgnored(owner, receiver, amount);
+        emit UnstakeOnBehalfOfIgnored(owner, owner, amount);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -221,5 +228,59 @@ contract GovernanceRewardsManager is
                 (userSmoothedDecayFactor[account] *
                     (DECAY_SMOOTHING_FACTOR_BASE - DECAY_SMOOTHING_FACTOR))) /
             DECAY_SMOOTHING_FACTOR_BASE;
+    }
+
+    /**
+     * @notice Override _stake to wrap tokens
+     * @param from The address to transfer tokens from
+     * @param receiver The address to receive tokens
+     * @param amount The amount of tokens to transfer
+     */
+    function _stake(
+        address from,
+        address receiver,
+        uint256 amount
+    ) internal override {
+        if (amount == 0) revert CannotStakeZero();
+        if (address(stakingToken) == address(0)) {
+            revert StakingTokenNotInitialized();
+        }
+
+        // Pull tokens and wrap them
+        stakingToken.safeTransferFrom(from, address(this), amount);
+        stakingToken.approve(address(wrappedStakingToken), amount);
+        wrappedStakingToken.depositFor(address(this), amount);
+
+        // Update balances with wrapped token amount
+        totalSupply += amount;
+        _balances[receiver] += amount;
+
+        emit Staked(receiver, amount);
+    }
+
+    /**
+     * @notice Override _unstake to unwrap tokens
+     * @param from The address to transfer tokens from
+     * @param receiver The address to receive tokens
+     * @param amount The amount of tokens to transfer
+     */
+    function _unstake(
+        address from,
+        address receiver,
+        uint256 amount
+    ) internal override {
+        if (amount == 0) revert CannotUnstakeZero();
+
+        totalSupply -= amount;
+        _balances[from] -= amount;
+
+        // Unwrap tokens to this contract first to ensure proper voting power accounting
+        // This prevents any interim state where voting units might be incorrectly calculated
+        wrappedStakingToken.withdrawTo(address(this), amount);
+
+        // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
+        stakingToken.transfer(receiver, amount);
+
+        emit Unstaked(from, amount);
     }
 }

@@ -47,8 +47,24 @@ contract FleetCommanderCache {
     using StorageSlot for *;
 
     /**
+     * @dev Checks if the FleetCommander is currently performing a trnsaction that includes a tip
+     * @return bool True if collecting tips, false otherwise
+     */
+    function _isCollectingTip() internal view returns (bool) {
+        return StorageSlots.TIP_TAKEN_STORAGE.asBoolean().tload();
+    }
+
+    /**
+     * @dev Sets the isCollectingTip flag
+     * @param value The value to set the flag to
+     */
+    function _setIsCollectingTip(bool value) internal {
+        StorageSlots.TIP_TAKEN_STORAGE.asBoolean().tstore(value);
+    }
+
+    /**
      * @dev Calculates the total assets across all arks
-     * @param arks Array of ark addresses
+     * @param getActiveArks The getter function for ark addresses
      * @param bufferArk The buffer ark instance
      * @return total The sum of total assets across all arks
      * @custom:internal-logic
@@ -63,7 +79,7 @@ contract FleetCommanderCache {
      * - Assumes no changes in total assets throughout the execution of function that use this cache
      */
     function _totalAssets(
-        address[] memory arks,
+        function() view returns (address[] memory) getActiveArks,
         IArk bufferArk
     ) internal view returns (uint256 total) {
         bool isTotalAssetsCached = StorageSlots
@@ -73,14 +89,13 @@ contract FleetCommanderCache {
         if (isTotalAssetsCached) {
             return StorageSlots.TOTAL_ASSETS_STORAGE.asUint256().tload();
         }
-        return _sumTotalAssets(_getAllArks(arks, bufferArk));
+        return _sumTotalAssets(_getAllArks(getActiveArks(), bufferArk));
     }
 
     /**
      * @dev Calculates the total assets of withdrawable arks
-     * @param arks Array of ark addresses
+     * @param getActiveArks The getter function for ark addresses
      * @param bufferArk The buffer ark instance
-     * @param isArkWithdrawable Mapping to check if an ark is withdrawable
      * @return withdrawableTotalAssets The sum of total assets across withdrawable arks
      *  - arks that don't require additional data to be boarded or disembarked from.
      * @custom:internal-logic
@@ -91,12 +106,11 @@ contract FleetCommanderCache {
      * - No state changes
      * @custom:security-considerations
      * - Relies on accurate reporting of total assets by individual arks
-     * - Depends on the correctness of the isArkWithdrawable mapping
+     * - Depends on the correctness of the withdrawableTotalAssets function
      */
     function _withdrawableTotalAssets(
-        address[] memory arks,
-        IArk bufferArk,
-        mapping(address => bool) storage isArkWithdrawable
+        function() view returns (address[] memory) getActiveArks,
+        IArk bufferArk
     ) internal view returns (uint256 withdrawableTotalAssets) {
         bool isWithdrawableTotalAssetsCached = StorageSlots
             .IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
@@ -110,13 +124,12 @@ contract FleetCommanderCache {
                     .tload();
         }
 
-        IArk[] memory allArks = _getAllArks(arks, bufferArk);
+        IArk[] memory allArks = _getAllArks(getActiveArks(), bufferArk);
         for (uint256 i = 0; i < allArks.length; i++) {
-            if (
-                i == allArks.length - 1 ||
-                isArkWithdrawable[address(allArks[i])]
-            ) {
-                withdrawableTotalAssets += allArks[i].totalAssets();
+            uint256 withdrawableAssets = IArk(allArks[i])
+                .withdrawableTotalAssets();
+            if (withdrawableAssets > 0) {
+                withdrawableTotalAssets += withdrawableAssets;
             }
         }
     }
@@ -194,25 +207,29 @@ contract FleetCommanderCache {
 
     /**
      * @dev Retrieves the data (address, totalAssets) for all arks and the buffer ark
-     * @param arks Array of regular ark addresses
+     * @param getActiveArks The getter function for ark addresses
      * @param bufferArk The buffer ark instance
      * @return _arksData An array of ArkData structs containing the ark addresses and their total assets
      * @custom:internal-logic
      * - Initializes data for all arks including the buffer ark
      * - Populates data for regular arks and buffer ark
-     * - Sorts the array by total assets
      * - Caches the total assets and ark data
+     * - buffer ark is always at the end of the array
      * @custom:effects
      * - Caches total assets and ark data
      * - Modifies storage slots related to ark data
      * @custom:security-considerations
      * - Relies on accurate reporting of total assets by individual arks
-     * - Sorting mechanism must be efficient and correct
      */
     function _getArksData(
-        address[] memory arks,
+        function() view returns (address[] memory) getActiveArks,
         IArk bufferArk
     ) internal returns (ArkData[] memory _arksData) {
+        if (StorageSlots.IS_TOTAL_ASSETS_CACHED_STORAGE.asBoolean().tload()) {
+            return _getAllArksDataFromCache();
+        }
+
+        address[] memory arks = getActiveArks();
         // Initialize data for all arks
         _arksData = new ArkData[](arks.length + 1); // +1 for buffer ark
         uint256 totalAssets = 0;
@@ -229,8 +246,6 @@ contract FleetCommanderCache {
         _arksData[arks.length] = ArkData(address(bufferArk), bufferArkAssets);
         totalAssets += bufferArkAssets;
 
-        // Sort array by total assets
-        _sortArkDataByTotalAssets(_arksData);
         _cacheAllArksTotalAssets(totalAssets);
         _cacheAllArks(_arksData);
     }
@@ -246,6 +261,67 @@ contract FleetCommanderCache {
         uint256 index
     ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(prefix, index));
+    }
+
+    /**
+     * @dev Caches the inflow and outflow balances for the specified Ark addresses.
+     *      Updates the maximum inflow and outflow balances if they are not set.
+     * @param outflowArkAddress The address of the Ark from which the outflow is occurring.
+     * @param inflowArkAddress The address of the Ark to which the inflow is occurring.
+     * @param amount The amount to be added to both inflow and outflow balances.
+     * @return newInflowBalance The updated inflow balance for the inflow Ark.
+     * @return newOutflowBalance The updated outflow balance for the outflow Ark.
+     * @return maxInflow The maximum inflow balance for the inflow Ark.
+     * @return maxOutflow The maximum outflow balance for the outflow Ark.
+     */
+    function _cacheArkFlow(
+        address outflowArkAddress,
+        address inflowArkAddress,
+        uint256 amount
+    )
+        internal
+        returns (
+            uint256 newInflowBalance,
+            uint256 newOutflowBalance,
+            uint256 maxInflow,
+            uint256 maxOutflow
+        )
+    {
+        bytes32 inflowSlot = _getStorageSlot(
+            StorageSlots.ARK_INFLOW_BALANCE_STORAGE,
+            uint256(uint160(inflowArkAddress))
+        );
+        bytes32 outflowSlot = _getStorageSlot(
+            StorageSlots.ARK_OUTFLOW_BALANCE_STORAGE,
+            uint256(uint160(outflowArkAddress))
+        );
+        bytes32 maxInflowSlot = _getStorageSlot(
+            StorageSlots.ARK_MAX_INFLOW_BALANCE_STORAGE,
+            uint256(uint160(inflowArkAddress))
+        );
+        bytes32 maxOutflowSlot = _getStorageSlot(
+            StorageSlots.ARK_MAX_OUTFLOW_BALANCE_STORAGE,
+            uint256(uint160(outflowArkAddress))
+        );
+
+        maxInflow = maxInflowSlot.asUint256().tload();
+        maxOutflow = maxOutflowSlot.asUint256().tload();
+
+        if (maxInflow == 0) {
+            maxInflow = IArk(inflowArkAddress).maxRebalanceInflow();
+            maxInflowSlot.asUint256().tstore(maxInflow);
+        }
+        if (maxOutflow == 0) {
+            maxOutflow = IArk(outflowArkAddress).maxRebalanceOutflow();
+            maxOutflowSlot.asUint256().tstore(maxOutflow);
+        }
+
+        // Load current balance (if it's the first time, it will be 0)
+        newInflowBalance = inflowSlot.asUint256().tload() + amount;
+        newOutflowBalance = outflowSlot.asUint256().tload() + amount;
+
+        inflowSlot.asUint256().tstore(newInflowBalance);
+        outflowSlot.asUint256().tstore(newOutflowBalance);
     }
 
     /**
@@ -275,6 +351,28 @@ contract FleetCommanderCache {
         }
     }
 
+    function _getAllArksDataFromCache()
+        internal
+        view
+        returns (ArkData[] memory arksData)
+    {
+        uint256 arksLength = StorageSlots
+            .ARKS_LENGTH_STORAGE
+            .asUint256()
+            .tload();
+        arksData = new ArkData[](arksLength);
+        for (uint256 i = 0; i < arksLength; i++) {
+            address arkAddress = _getStorageSlot(
+                StorageSlots.ARKS_ADDRESS_ARRAY_STORAGE,
+                i
+            ).asAddress().tload();
+            uint256 totalAssets = _getStorageSlot(
+                StorageSlots.ARKS_TOTAL_ASSETS_ARRAY_STORAGE,
+                i
+            ).asUint256().tload();
+            arksData[i] = ArkData(arkAddress, totalAssets);
+        }
+    }
     /**
      * @notice Caches the data for all arks in the specified storage slots
      * @param arksData The array of ArkData structs containing the ark addresses and their total assets
@@ -329,9 +427,8 @@ contract FleetCommanderCache {
 
     /**
      * @dev Retrieves and processes data for withdrawable arks
-     * @param arks Array of ark addresses
+     * @param getActiveArks The getter function for ark addresses
      * @param bufferArk The buffer ark instance
-     * @param isArkWithdrawable Mapping to check if an ark is withdrawable
      * @custom:internal-logic
      * - Fetches data for all arks using _getArksData
      * - Filters arks based on withdrawability
@@ -339,21 +436,30 @@ contract FleetCommanderCache {
      * - Resizes the array to remove empty slots
      * - Sorts the withdrawable arks by total assets
      * - Caches the processed data
+     * - checks if the arks are cached, if yes skips the rest of the function
+     * - cache check is important for nested calls e.g. withdraw (withdrawFromArks)
      * @custom:effects
      * - Modifies storage by caching withdrawable arks data
      * - Updates the total assets of withdrawable arks in storage
      * @custom:security-considerations
-     * - Assumes the isArkWithdrawable mapping is correctly maintained
+     * - Assumes the withdrawableTotalAssets function is correctly implemented by Ark contracts
      * - Uses assembly for array resizing, which bypasses Solidity's safety checks
      * - Relies on the correctness of _getArksData, _cacheWithdrawableArksTotalAssets,
      *   _sortArkDataByTotalAssets, and _cacheWithdrawableArksTotalAssetsArray functions
      */
     function _getWithdrawableArksData(
-        address[] memory arks,
-        IArk bufferArk,
-        mapping(address => bool) storage isArkWithdrawable
+        function() view returns (address[] memory) getActiveArks,
+        IArk bufferArk
     ) internal {
-        ArkData[] memory _arksData = _getArksData(arks, bufferArk);
+        if (
+            StorageSlots
+                .IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
+                .asBoolean()
+                .tload()
+        ) {
+            return;
+        }
+        ArkData[] memory _arksData = _getArksData(getActiveArks, bufferArk);
         // Initialize data for withdrawable arks
         ArkData[] memory _withdrawableArksData = new ArkData[](
             _arksData.length
@@ -363,13 +469,16 @@ contract FleetCommanderCache {
 
         // Populate data for withdrawable arks
         for (uint256 i = 0; i < _arksData.length; i++) {
-            if (
-                i == _arksData.length - 1 ||
-                isArkWithdrawable[_arksData[i].arkAddress]
-            ) {
-                _withdrawableArksData[withdrawableCount] = _arksData[i];
+            uint256 withdrawableAssets = IArk(_arksData[i].arkAddress)
+                .withdrawableTotalAssets();
+            if (withdrawableAssets > 0) {
+                // overwrite the ArkData struct with the withdrawable assets
+                _withdrawableArksData[withdrawableCount] = ArkData(
+                    _arksData[i].arkAddress,
+                    withdrawableAssets
+                );
 
-                withdrawableTotalAssets += _arksData[i].totalAssets;
+                withdrawableTotalAssets += withdrawableAssets;
                 withdrawableCount++;
             }
         }

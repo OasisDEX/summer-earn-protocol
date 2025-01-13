@@ -78,7 +78,7 @@ contract WithdrawWithInterestTest is Test, TestHelpers, FleetCommanderTestBase {
         FleetConfig memory config = fleetCommander.getConfig();
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark1,

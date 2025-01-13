@@ -30,8 +30,7 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             address(accessManager),
-            address(configurationManager),
-            defaultParams
+            address(configurationManager)
         );
 
         tokenToAuction6Dec = createMockToken("Auction Token 6 Dec", "AT6", 6);
@@ -41,7 +40,20 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
             "AT18",
             18
         );
-
+        vm.startPrank(governor);
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction6Dec),
+            defaultParams
+        );
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction8Dec),
+            defaultParams
+        );
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction18Dec),
+            defaultParams
+        );
+        vm.stopPrank();
         mintTokens(
             address(tokenToAuction6Dec),
             address(buyAndBurn),

@@ -36,7 +36,7 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    - There's no minimum purchase amount enforced by the contract.
  *
  * 4. Price Calculation and Rounding:
- *    - The current price is calculated using the specified decay function (linear or exponential).
+ *    - The current price is calculated using the specified decay function (linear or quadratic).
  *    - Rounding is done towards zero (floor) to ensure the contract never overcharges.
  *    - For utmost precision, all calculations use the PRBMath library for fixed-point arithmetic.
  *

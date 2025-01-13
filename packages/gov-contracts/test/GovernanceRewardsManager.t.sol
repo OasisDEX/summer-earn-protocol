@@ -52,6 +52,9 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         aSummerToken.approve(address(stakingRewardsManager), type(uint256).max);
         vm.prank(bob);
         aSummerToken.approve(address(stakingRewardsManager), type(uint256).max);
+
+        // In the test setup
+        rewardTokens[0].mint(address(mockGovernor), 100000000000000000000); // Mint 100 tokens
     }
 
     function test_StakeOnBehalfOfUpdatesBalancesCorrectly() public {
@@ -121,13 +124,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stake(stakeAmount);
 
         // Notify reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
-
+        vm.stopPrank();
         // Fast forward time
         vm.warp(block.timestamp + 3 days);
 
@@ -151,6 +155,9 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 rewardAmount = 100 * 1e18;
 
+        // Mint reward tokens to the governor first
+        rewardTokens[0].mint(address(mockGovernor), rewardAmount);
+
         // Setup delegate (bob) and delegator (alice)
         vm.startPrank(bob);
         aSummerToken.delegate(bob); // Bob self-delegates first
@@ -163,13 +170,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.stopPrank();
 
         // Notify reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
-
+        vm.stopPrank();
         // Fast forward past decay-free window
         vm.warp(block.timestamp + 30 days);
 
@@ -254,13 +262,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stake(stakeAmount);
 
         // Notify reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
-
+        vm.stopPrank();
         // Fast forward time
         vm.warp(block.timestamp + 3 days);
 
@@ -293,6 +302,53 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             earnedAfterDelegation,
             0,
             "User should start earning rewards after delegating"
+        );
+    }
+
+    function test_ClaimReward_WithStakingToken() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup staking and delegation
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        vm.warp(block.timestamp + 30 days + 1);
+
+        // Setup reward with aSummerToken
+        vm.startPrank(address(timelockA));
+        // First transfer tokens to the rewards manager
+        aSummerToken.transfer(address(stakingRewardsManager), rewardAmount);
+        // Then transfer tokens to governor for notification
+        aSummerToken.transfer(address(mockGovernor), rewardAmount);
+        vm.stopPrank();
+
+        vm.startPrank(address(mockGovernor));
+        aSummerToken.approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(aSummerToken)),
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        // Record initial balance
+        uint256 initialBalance = aSummerToken.balanceOf(alice);
+
+        // Claim rewards
+        vm.prank(alice);
+        stakingRewardsManager.getReward();
+
+        // Check that Alice received aSummerToken
+        assertGt(
+            aSummerToken.balanceOf(alice),
+            initialBalance,
+            "Should receive aSummerToken as reward"
         );
     }
 }

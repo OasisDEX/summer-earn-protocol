@@ -38,12 +38,20 @@ interface IFleetCommanderConfigProviderErrors {
     error FleetCommanderInvalidArkAddress();
 
     /**
-     * @notice Thrown when trying to add a commander to an Ark that already has a commander
-     */
-    error FleetCommanderArkAlreadyHasCommander();
-
-    /**
      * @notice Thrown when trying to set a StakingRewardsManager to the zero address
      */
     error FleetCommanderInvalidStakingRewardsManager();
+
+    /**
+     * @notice Thrown when trying to set a max rebalance operations to a value greater than the max allowed
+     * @param newMaxRebalanceOperations The new max rebalance operations value
+     */
+    error FleetCommanderMaxRebalanceOperationsTooHigh(
+        uint256 newMaxRebalanceOperations
+    );
+
+    /**
+     * @notice Thrown when the asset of the Ark does not match the asset of the FleetCommander
+     */
+    error FleetCommanderAssetMismatch();
 }

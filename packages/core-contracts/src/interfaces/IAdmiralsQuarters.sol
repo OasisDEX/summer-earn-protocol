@@ -38,7 +38,6 @@ interface IAdmiralsQuarters is
     /**
      * @notice Enters a FleetCommander by depositing tokens
      * @param fleetCommander The address of the FleetCommander contract
-     * @param inputToken The token to be deposited
      * @param assets The amount of inputToken to be deposited (0 for all)
      * @param receiver The address to receive the shares
      * @return shares The number of shares received from the FleetCommander
@@ -46,7 +45,6 @@ interface IAdmiralsQuarters is
      */
     function enterFleet(
         address fleetCommander,
-        IERC20 inputToken,
         uint256 assets,
         address receiver
     ) external returns (uint256 shares);
@@ -65,11 +63,13 @@ interface IAdmiralsQuarters is
      * @dev If zero shares are provided, the full balance of the FleetCommander is unstaked
      * @param fleetCommander The address of the FleetCommander contract
      * @param shares The amount of shares to unstake
+     * @param claimRewards Whether to claim rewards before unstaking
      * @dev Emits a FleetSharesUnstaked event
      */
     function unstakeAndWithdrawAssets(
         address fleetCommander,
-        uint256 shares
+        uint256 shares,
+        bool claimRewards
     ) external;
 
     /**

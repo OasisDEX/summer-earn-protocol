@@ -13,13 +13,15 @@ import {IStandardizedYield} from "@pendle/core-v2/contracts/interfaces/IStandard
 import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOracle.sol";
 import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLib.sol";
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
-import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 
+import {Constants} from "@summerfi/constants/Constants.sol";
+import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
 /**
  * @title BasePendleArk
  * @notice Base contract for Pendle-based Ark strategies
  * @dev This contract contains common functionality for Pendle LP and PT Arks
  */
+
 abstract contract BasePendleArk is Ark, IPendleBaseArk {
     using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
@@ -189,7 +191,7 @@ abstract contract BasePendleArk is Ark, IPendleBaseArk {
      * @notice Internal function to set up router parameters
      */
     function _setupRouterParams() internal {
-        routerParams.guessMax = type(uint256).max;
+        routerParams.guessMax = Constants.MAX_UINT256;
         routerParams.maxIteration = 256;
         routerParams.eps = 1e15; // 0.1% precision
     }

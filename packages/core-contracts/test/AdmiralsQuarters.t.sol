@@ -73,6 +73,14 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             address(0),
             address(this)
         );
+        address _stakingRewardsManager = usdcFleet
+            .getConfig()
+            .stakingRewardsManager;
+
+        deal(address(rewardTokens[0]), governor, 1000e6);
+        rewardTokens[0].approve(address(_stakingRewardsManager), 1000e6);
+        IFleetCommanderRewardsManager(_stakingRewardsManager)
+            .notifyRewardAmount(IERC20(rewardTokens[0]), 1000e6, 10 days);
         vm.stopPrank();
 
         // Mint tokens for users
@@ -183,16 +191,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         bytes[] memory calls = new bytes[](1);
         calls[0] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(0), IERC20(USDC_ADDRESS), 1000e6, user1)
-        );
-        admiralsQuarters.multicall(calls);
-        vm.stopPrank();
-        // RevertsOnInvalidToken
-        vm.startPrank(user1);
-        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
-        calls[0] = abi.encodeCall(
-            admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(address(0)), 1000e6, user1)
+            (address(0), 1000e6, user1)
         );
         admiralsQuarters.multicall(calls);
         vm.stopPrank();
@@ -201,7 +200,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         vm.expectRevert(abi.encodeWithSignature("InsufficientOutputAmount()"));
         calls[0] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), 1000e6, user1)
+            (address(usdcFleet), 1000e6, user1)
         );
         admiralsQuarters.multicall(calls);
         vm.stopPrank();
@@ -298,12 +297,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         enterCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                usdcAmount / 2,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), usdcAmount / 2, address(admiralsQuarters))
         );
         enterCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -333,12 +327,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         enterCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                usdcAmount,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), usdcAmount, address(admiralsQuarters))
         );
         enterCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -352,11 +341,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         assertGt(stakedAmount, 0, "User should have staked balance");
 
         // Attempt to unstake directly through rewards manager
-        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
-            user1,
-            user1,
-            stakedAmount
-        );
+        IFleetCommanderRewardsManager(rewardsManager)
+            .unstakeAndWithdrawOnBehalfOf(user1, stakedAmount, false);
 
         // Verify stake amount remains unchanged
         assertEq(
@@ -370,7 +356,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             "AdmiralsQuarters should have no fleet shares"
         );
         assertEq(
-            IERC20(address(usdcFleet)).balanceOf(address(user1)),
+            IERC20(USDC_ADDRESS).balanceOf(address(user1)),
             stakedAmount,
             "User should have received back their shares"
         );
@@ -389,12 +375,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         enterCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                usdcAmount / 2,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), usdcAmount / 2, address(admiralsQuarters))
         );
         enterCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -423,12 +404,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         calls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                depositAmount,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), depositAmount, address(admiralsQuarters))
         );
         calls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -447,7 +423,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         bytes[] memory calls2 = new bytes[](1);
         calls2[0] = abi.encodeCall(
             admiralsQuarters.unstakeAndWithdrawAssets,
-            (address(usdcFleet), unstakeAmount)
+            (address(usdcFleet), unstakeAmount, false)
         );
         admiralsQuarters.multicall(calls2);
 
@@ -482,12 +458,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         calls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                0,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), 0, address(admiralsQuarters))
         );
         calls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -504,18 +475,10 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         uint256 initialUserBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
 
         // Unstake all, exit fleet, and withdraw
-        bytes[] memory withdrawCalls = new bytes[](3);
+        bytes[] memory withdrawCalls = new bytes[](1);
         withdrawCalls[0] = abi.encodeCall(
             admiralsQuarters.unstakeAndWithdrawAssets,
-            (address(usdcFleet), 0) // 0 amount means unstake all
-        );
-        withdrawCalls[1] = abi.encodeCall(
-            admiralsQuarters.exitFleet,
-            (address(usdcFleet), 0) // 0 amount means withdraw all
-        );
-        withdrawCalls[2] = abi.encodeCall(
-            admiralsQuarters.withdrawTokens,
-            (IERC20(USDC_ADDRESS), 0) // 0 amount means withdraw all
+            (address(usdcFleet), 0, false) // 0 amount means unstake all
         );
         admiralsQuarters.multicall(withdrawCalls);
 
@@ -546,7 +509,11 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
     function test_unstakeAndWithdrawAssetsRevert_NotStaked() public {
         vm.startPrank(user1);
         vm.expectRevert(); // Will revert due to insufficient balance
-        admiralsQuarters.unstakeAndWithdrawAssets(address(usdcFleet), 100e6);
+        admiralsQuarters.unstakeAndWithdrawAssets(
+            address(usdcFleet),
+            100e6,
+            false
+        );
         vm.stopPrank();
     }
 
@@ -556,7 +523,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         bytes[] memory calls = new bytes[](1);
         calls[0] = abi.encodeCall(
             admiralsQuarters.unstakeAndWithdrawAssets,
-            (address(0x123), 100e6)
+            (address(0x123), 100e6, false)
         );
         admiralsQuarters.multicall(calls);
         vm.stopPrank();
@@ -580,12 +547,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         calls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                depositAmount,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), depositAmount, address(admiralsQuarters))
         );
         calls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -595,15 +557,12 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         // Get initial balances
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
-        uint256 initialStakedBalance = IFleetCommanderRewardsManager(
-            rewardsManager
-        ).balanceOf(user1);
 
         // Unstake all shares (using 0 amount)
         bytes[] memory calls2 = new bytes[](1);
         calls2[0] = abi.encodeCall(
             admiralsQuarters.unstakeAndWithdrawAssets,
-            (address(usdcFleet), 0)
+            (address(usdcFleet), 0, false)
         );
         admiralsQuarters.multicall(calls2);
 
@@ -620,7 +579,80 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         vm.stopPrank();
     }
+    function test_unstakeAndWithdrawAssets_Full_ClaimRewards() public {
+        vm.prank(governor);
+        accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
 
+        // First setup: stake some shares
+        vm.startPrank(user1);
+        uint256 depositAmount = 100e6;
+        uint256 initialUserBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
+        IERC20(USDC_ADDRESS).approve(address(admiralsQuarters), depositAmount);
+
+        // Deposit and stake
+        bytes[] memory calls = new bytes[](3);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), depositAmount)
+        );
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(usdcFleet), depositAmount, address(admiralsQuarters))
+        );
+        calls[2] = abi.encodeCall(
+            admiralsQuarters.stake,
+            (address(usdcFleet), 0)
+        );
+        admiralsQuarters.multicall(calls);
+
+        // Get initial balances
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+        uint256 initialStakedBalance = IFleetCommanderRewardsManager(
+            rewardsManager
+        ).balanceOf(user1);
+        vm.warp(block.timestamp + 10 days);
+        // Unstake all shares (using 0 amount) and claim rewards
+        bytes[] memory calls2 = new bytes[](1);
+        calls2[0] = abi.encodeCall(
+            admiralsQuarters.unstakeAndWithdrawAssets,
+            (address(usdcFleet), 0, true)
+        );
+        admiralsQuarters.multicall(calls2);
+
+        // Verify balances after unstaking
+        assertEq(
+            IFleetCommanderRewardsManager(rewardsManager).balanceOf(user1),
+            0,
+            "Should have no staked balance"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(user1),
+            initialUserBalance,
+            "User should have received all USDC"
+        );
+        assertEq(
+            usdcFleet.balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no shares"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no USDC"
+        );
+
+        // Check rewards balance
+        uint256 rewardsBalance = rewardTokens[0].balanceOf(user1);
+        assertGt(rewardsBalance, 0, "User should have received rewards");
+
+        // Ensure no tokens are stuck in AdmiralsQuarters
+        assertEq(
+            rewardTokens[0].balanceOf(address(admiralsQuarters)),
+            0,
+            "No rewards should be stuck in AdmiralsQuarters"
+        );
+        vm.stopPrank();
+    }
     function test_unstakeAndWithdrawAssets_DirectUnstakeReverts() public {
         // First setup: stake some shares
         vm.startPrank(user1);
@@ -635,12 +667,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         calls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                depositAmount,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), depositAmount, address(admiralsQuarters))
         );
         calls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -653,11 +680,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         vm.expectRevert(
             IFleetCommanderRewardsManager.CallerNotAdmiralsQuarters.selector
         );
-        IFleetCommanderRewardsManager(rewardsManager).unstakeOnBehalfOf(
-            user1,
-            address(this),
-            100e6
-        );
+        IFleetCommanderRewardsManager(rewardsManager)
+            .unstakeAndWithdrawOnBehalfOf(user1, 100e6, false);
     }
 
     function test_EnterAndExitFleetsX() public {
@@ -687,7 +711,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         enterCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount / 2, user1)
+            (address(usdcFleet), usdcAmount / 2, user1)
         );
         enterCalls[2] = abi.encodeCall(
             admiralsQuarters.swap,
@@ -701,7 +725,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         enterCalls[3] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), 0, user1)
+            (address(daiFleet), 0, user1)
         );
 
         admiralsQuarters.multicall(enterCalls);
@@ -831,7 +855,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         moveCalls[2] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), 0, user1)
+            (address(daiFleet), 0, user1)
         );
 
         admiralsQuarters.multicall(moveCalls);
@@ -873,7 +897,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         depositCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), daiAmount, user1)
+            (address(daiFleet), daiAmount, user1)
         );
         admiralsQuarters.multicall(depositCalls);
 
@@ -916,7 +940,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         withdrawAndSwapCalls[2] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), 0, user1)
+            (address(usdcFleet), 0, user1)
         );
         withdrawAndSwapCalls[3] = abi.encodeCall(
             admiralsQuarters.withdrawTokens,
@@ -962,7 +986,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         depositCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount, user1)
+            (address(usdcFleet), usdcAmount, user1)
         );
         admiralsQuarters.multicall(depositCalls);
 
@@ -1005,11 +1029,11 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         withdrawSwapAndDepositCalls[2] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), halfUsdcAmount, user1)
+            (address(usdcFleet), halfUsdcAmount, user1)
         );
         withdrawSwapAndDepositCalls[3] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), 0, user1)
+            (address(daiFleet), 0, user1)
         );
         withdrawSwapAndDepositCalls[4] = abi.encodeCall(
             admiralsQuarters.withdrawTokens,
@@ -1048,7 +1072,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         depositCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), usdcAmount, user1)
+            (address(usdcFleet), usdcAmount, user1)
         );
         depositCalls[2] = abi.encodeCall(
             admiralsQuarters.depositTokens,
@@ -1056,7 +1080,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         depositCalls[3] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), daiAmount, user1)
+            (address(daiFleet), daiAmount, user1)
         );
         admiralsQuarters.multicall(depositCalls);
 
@@ -1116,7 +1140,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         swapCalls[2] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), 0, user1)
+            (address(daiFleet), 0, user1)
         );
         swapCalls[3] = abi.encodeCall(
             admiralsQuarters.exitFleet,
@@ -1134,7 +1158,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         );
         swapCalls[5] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), 0, user1)
+            (address(usdcFleet), 0, user1)
         );
 
         admiralsQuarters.multicall(swapCalls);
@@ -1291,7 +1315,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         admiralsQuarters.multicall(calls);
         calls[0] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), user1UsdcAmount, user1)
+            (address(usdcFleet), user1UsdcAmount, user1)
         );
         admiralsQuarters.multicall(calls);
         vm.stopPrank();
@@ -1305,7 +1329,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         admiralsQuarters.multicall(calls);
         calls[0] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(daiFleet), IERC20(DAI_ADDRESS), user2DaiAmount, user2)
+            (address(daiFleet), user2DaiAmount, user2)
         );
         admiralsQuarters.multicall(calls);
         vm.stopPrank();
@@ -1450,5 +1474,290 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             usdcAmount,
             "Owner should have received rescued USDC"
         );
+    }
+
+    function test_RewardsExploitViaStakeOnBehalfOf() public {
+        // Setup initial conditions
+        uint256 usdcAmount = 1000e6; // 1000 USDC
+        IFleetCommanderRewardsManager rewardsManager = IFleetCommanderRewardsManager(
+                usdcFleet.getConfig().stakingRewardsManager
+            );
+        // Mint initial USDC for testing
+        deal(address(rewardTokens[0]), user1, usdcAmount);
+
+        // Advance time to accumulate all the rewards
+        vm.warp(block.timestamp + 11 days);
+
+        // User1 deposits and stakes legitimately
+        vm.startPrank(user1);
+        IERC20(USDC_ADDRESS).approve(address(usdcFleet), usdcAmount);
+        uint256 user1shares = usdcFleet.deposit(usdcAmount, user1);
+        IERC20(address(usdcFleet)).approve(
+            address(rewardsManager),
+            user1shares
+        );
+        rewardsManager.stakeOnBehalfOf(user1, user1shares);
+
+        vm.stopPrank();
+
+        // Record initial balances
+        uint256 user1Rewards = rewardsManager.earned(
+            user1,
+            IERC20(rewardTokens[0])
+        );
+
+        uint256 rewardsBalanceUser1 = IERC20(rewardTokens[0]).balanceOf(user1);
+
+        vm.prank(user1);
+        rewardsManager.getReward();
+
+        uint256 rewardsBalanceUser1After = IERC20(rewardTokens[0]).balanceOf(
+            user1
+        );
+
+        assertEq(
+            (rewardsBalanceUser1After - rewardsBalanceUser1) / 1e6,
+            0,
+            "User1 should have not received any rewards"
+        );
+    }
+
+    function test_unstakeAndWithdrawAssets_Full_ClaimRewards_WithDust() public {
+        vm.prank(governor);
+        accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
+
+        // Wait for first reward period to finish
+        vm.warp(block.timestamp + 10 days + 1);
+
+        // Calculate a safe reward amount based on duration
+        uint256 rewardDuration = 10 days;
+        // We want rewardRate (reward/duration) to be less than balance/duration
+        // So reward needs to be less than balance
+        uint256 rewardAmount = 100e18; // Much smaller amount to ensure rate is acceptable
+
+        // Notify rewards
+        vm.startPrank(governor);
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            // First deal tokens to the rewards manager
+            deal(address(rewardTokens[i]), governor, rewardAmount);
+            rewardTokens[i].approve(address(rewardsManager), rewardAmount);
+
+            // Then notify the reward amount
+            IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
+                rewardTokens[i],
+                rewardAmount,
+                rewardDuration
+            );
+        }
+        vm.stopPrank();
+
+        // User stakes
+        vm.startPrank(user1);
+        uint256 depositAmount = 100e6;
+        uint256 initialUserBalance = IERC20(USDC_ADDRESS).balanceOf(user1);
+        IERC20(USDC_ADDRESS).approve(address(admiralsQuarters), depositAmount);
+
+        // Deposit and stake
+        bytes[] memory calls = new bytes[](3);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (IERC20(USDC_ADDRESS), depositAmount)
+        );
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(usdcFleet), depositAmount, address(admiralsQuarters))
+        );
+        calls[2] = abi.encodeCall(
+            admiralsQuarters.stake,
+            (address(usdcFleet), 0)
+        );
+        admiralsQuarters.multicall(calls);
+
+        // Verify initial staking state
+        assertGt(
+            IFleetCommanderRewardsManager(rewardsManager).balanceOf(user1),
+            0,
+            "User should have staked balance before unstaking"
+        );
+
+        // Let 11 days pass (slightly more than reward period)
+        vm.warp(block.timestamp + 11 days);
+
+        // Verify rewards are available
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            assertGt(
+                IFleetCommanderRewardsManager(rewardsManager).earned(
+                    user1,
+                    rewardTokens[i]
+                ),
+                0,
+                "User should have earned rewards before unstaking"
+            );
+        }
+
+        // Unstake all shares and claim rewards
+        bytes[] memory calls2 = new bytes[](1);
+        calls2[0] = abi.encodeCall(
+            admiralsQuarters.unstakeAndWithdrawAssets,
+            (address(usdcFleet), 0, true)
+        );
+        admiralsQuarters.multicall(calls2);
+
+        // Verify final state
+        assertEq(
+            IFleetCommanderRewardsManager(rewardsManager).balanceOf(user1),
+            0,
+            "Should have no staked balance"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(user1),
+            initialUserBalance,
+            "User should have received all USDC"
+        );
+        assertEq(
+            usdcFleet.balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no shares"
+        );
+        assertEq(
+            IERC20(USDC_ADDRESS).balanceOf(address(admiralsQuarters)),
+            0,
+            "AdmiralsQuarters should have no USDC"
+        );
+
+        // Check rewards balances
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            uint256 userRewardBalance = rewardTokens[i].balanceOf(user1);
+            assertGt(
+                userRewardBalance,
+                90e18, // Should have received most of the 100 tokens
+                "User should have received majority of rewards"
+            );
+
+            uint256 rewardsManagerBalance = rewardTokens[i].balanceOf(
+                rewardsManager
+            );
+            assertGt(
+                rewardsManagerBalance,
+                0,
+                "Some dust should remain in RewardsManager"
+            );
+            assertLt(
+                rewardsManagerBalance,
+                1e16, // Less than 0.01 tokens
+                "Only dust amount should remain in RewardsManager"
+            );
+        }
+
+        vm.stopPrank();
+    }
+
+    function test_RemoveRewardToken_FailsWithTooMuchBalance() public {
+        vm.prank(governor);
+        accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
+
+        // Get rewards manager from fleet config
+        vm.startPrank(governor);
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+
+        // First clear any existing rewards from setup
+        vm.warp(block.timestamp + 10 days + 1); // Wait for existing rewards period to finish
+
+        // Add new rewards with significant balance
+        uint256 rewardAmount = 100e18;
+        uint256 rewardDuration = 10 days;
+
+        // Deal tokens and notify rewards
+        deal(address(rewardTokens[0]), governor, rewardAmount);
+        rewardTokens[0].approve(address(rewardsManager), rewardAmount);
+        IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
+            rewardTokens[0],
+            rewardAmount,
+            rewardDuration
+        );
+
+        vm.warp(block.timestamp + 10 days + 1);
+
+        // Try to remove reward token while significant balance remains
+        // Should fail because balance is above dust threshold
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RewardTokenStillHasBalance(uint256)",
+                100000000001000000000
+            )
+        );
+        IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(
+            rewardTokens[0]
+        );
+        vm.stopPrank();
+    }
+
+    function test_RemoveRewardToken_SucceedsWithDust() public {
+        vm.prank(governor);
+        accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
+
+        // First clear any existing rewards from setup
+        vm.warp(block.timestamp + 10 days + 1);
+
+        ERC20 usdc = ERC20(USDC_ADDRESS);
+        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
+
+        // Setup: Give user1 some USDC and approve spending
+        vm.startPrank(user1);
+        deal(address(usdc), user1, 1000e6); // 1000 USDC
+        usdc.approve(address(admiralsQuarters), type(uint256).max);
+        vm.stopPrank();
+
+        // Calculate a reward amount that divides evenly by the duration
+        uint256 rewardDuration = 864000; // 10 days in seconds
+        uint256 rewardRate = 1000e6; // 1000 USDC per second
+        uint256 rewardAmount = rewardRate * rewardDuration;
+
+        // First transfer USDC to the rewards manager and setup rewards
+        vm.startPrank(governor);
+        deal(address(usdc), governor, rewardAmount);
+        usdc.approve(address(rewardsManager), rewardAmount);
+        IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
+            usdc,
+            rewardAmount,
+            rewardDuration
+        );
+        vm.stopPrank();
+
+        // User stakes into the fleet
+        vm.startPrank(user1);
+        uint256 depositAmount = 100e6;
+        bytes[] memory calls = new bytes[](3);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.depositTokens,
+            (usdc, depositAmount)
+        );
+        calls[1] = abi.encodeCall(
+            admiralsQuarters.enterFleet,
+            (address(usdcFleet), depositAmount, address(admiralsQuarters))
+        );
+        calls[2] = abi.encodeCall(
+            admiralsQuarters.stake,
+            (address(usdcFleet), 0)
+        );
+        admiralsQuarters.multicall(calls);
+
+        // Wait for rewards period
+        vm.warp(block.timestamp + rewardDuration + 1);
+
+        // Unstake and claim rewards
+        bytes[] memory unstakeCalls = new bytes[](1);
+        unstakeCalls[0] = abi.encodeCall(
+            admiralsQuarters.unstakeAndWithdrawAssets,
+            (address(usdcFleet), 0, true)
+        );
+        admiralsQuarters.multicall(unstakeCalls);
+        vm.stopPrank();
+
+        // Now try to remove the reward token as governor
+        vm.startPrank(governor);
+        IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(usdc);
+        vm.stopPrank();
     }
 }

@@ -38,12 +38,22 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             address(accessManager),
-            address(configurationManager),
-            defaultParams
+            address(configurationManager)
         );
 
         tokenToAuction1 = createMockToken("Token1", "TKN1", 18);
         tokenToAuction2 = createMockToken("Token2", "TKN2", 18);
+
+        vm.startPrank(governor);
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction1),
+            defaultParams
+        );
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction2),
+            defaultParams
+        );
+        vm.stopPrank();
 
         mintTokens(
             address(tokenToAuction1),
@@ -67,16 +77,21 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
         BuyAndBurn newBuyAndBurn = new BuyAndBurn(
             address(summerToken),
             address(accessManager),
-            address(configurationManager),
+            address(configurationManager)
+        );
+        vm.startPrank(governor);
+        newBuyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction1),
             defaultParams
         );
+        vm.stopPrank();
         (
             uint40 duration,
             uint256 startPrice,
             uint256 endPrice,
             Percentage kickerRewardPercentage,
             DecayFunctions.DecayType decayType
-        ) = newBuyAndBurn.auctionDefaultParameters();
+        ) = newBuyAndBurn.tokenAuctionParameters(address(tokenToAuction1));
         assertEq(duration, AUCTION_DURATION);
         assertEq(startPrice, START_PRICE);
         assertEq(endPrice, END_PRICE);
@@ -187,20 +202,24 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
     }
 
     function test_UpdateAuctionDefaultParameters() public {
-        defaultParams = AuctionDefaultParameters({
+        defaultParams = BaseAuctionParameters({
             duration: 5 days,
             startPrice: 2e18,
             endPrice: 5e17,
             kickerRewardPercentage: PercentageUtils.fromIntegerPercentage(5),
-            decayType: DecayFunctions.DecayType.Exponential
+            decayType: DecayFunctions.DecayType.Quadratic
         });
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IAuctionManagerBaseEvents.AuctionDefaultParametersUpdated(
+        emit IBuyAndBurnEvents.TokenAuctionParametersSet(
+            address(tokenToAuction1),
             defaultParams
         );
-        buyAndBurn.updateAuctionDefaultParameters(defaultParams);
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction1),
+            defaultParams
+        );
 
         (
             uint40 duration,
@@ -208,7 +227,7 @@ contract BuyAndBurnTest is AuctionTestBase, IBuyAndBurnEvents {
             uint256 endPrice,
             Percentage kickerRewardPercentage,
             DecayFunctions.DecayType decayType
-        ) = buyAndBurn.auctionDefaultParameters();
+        ) = buyAndBurn.tokenAuctionParameters(address(tokenToAuction1));
         assertEq(duration, defaultParams.duration);
         assertEq(startPrice, defaultParams.startPrice);
         assertEq(endPrice, defaultParams.endPrice);

@@ -13,7 +13,7 @@ interface ITipJarErrors {
     /**
      * @notice Thrown when an invalid recipient address is provided.
      */
-    error InvalidRecipientAddress();
+    error InvalidTipStreamRecipient();
 
     /**
      * @notice Thrown when attempting to create a tip stream for a recipient that already has one.
@@ -45,16 +45,6 @@ interface ITipJarErrors {
     error TipStreamLocked(address recipient);
 
     /**
-     * @notice Thrown when attempting to redeem shares when there are none available.
-     */
-    error NoSharesToRedeem();
-
-    /**
-     * @notice Thrown when attempting to distribute assets when there are none available.
-     */
-    error NoAssetsToDistribute();
-
-    /**
      * @notice Thrown when an invalid treasury address is provided.
      */
     error InvalidTreasuryAddress();
@@ -63,4 +53,10 @@ interface ITipJarErrors {
      * @notice Thrown when an invalid FleetCommander address is provided.
      */
     error InvalidFleetCommanderAddress();
+
+    /**
+     * @notice Thrown when a tip stream is locked for too long.
+     * @param recipient The address of the recipient with the locked tip stream.
+     */
+    error TipStreamLockedForTooLong(address recipient);
 }

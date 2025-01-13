@@ -71,6 +71,31 @@ contract AaveV3Ark is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev AaveV3Ark is withdrawable if the asset is active, not frozen, and not paused
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        uint256 configData = aaveV3Pool
+            .getReserveData(address(config.asset))
+            .configuration
+            .data;
+        // We dont check if asset is frozen as
+        // Withdrawals and repayments on the assets frozen are completely active, together with liquidations.
+        // Only “additive” actions like supplying and borrowing them are halted.
+        if (!(_isActive(configData) && !_isPaused(configData))) {
+            return 0;
+        }
+        uint256 _totalAssets = totalAssets();
+        uint256 assetsInAToken = config.asset.balanceOf(aToken);
+        return assetsInAToken < _totalAssets ? assetsInAToken : _totalAssets;
+    }
+
+    /**
      * @notice Harvests rewards from the Aave V3 pool
      * @param data Additional data for the harvest operation
      * @return rewardTokens Array of reward tokens
@@ -92,12 +117,12 @@ contract AaveV3Ark is Ark {
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = aToken;
 
-        rewardAmounts[0] = rewardsController.claimRewardsToSelf(
+        rewardAmounts[0] = rewardsController.claimRewards(
             incentivizedAssets,
-            type(uint256).max,
+            Constants.MAX_UINT256,
+            raft(),
             rewardsData.rewardToken
         );
-        IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }
@@ -130,4 +155,12 @@ contract AaveV3Ark is Ark {
      * @dev Aave V3 Ark does not require any validation for board or disembark data
      */
     function _validateDisembarkData(bytes calldata) internal override {}
+
+    function _isActive(uint256 configData) internal pure returns (bool) {
+        return configData & ~Constants.ACTIVE_MASK != 0;
+    }
+
+    function _isPaused(uint256 configData) internal pure returns (bool) {
+        return configData & ~Constants.PAUSED_MASK != 0;
+    }
 }

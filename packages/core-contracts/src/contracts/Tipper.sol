@@ -5,9 +5,9 @@ import {ITipper} from "../interfaces/ITipper.sol";
 import {IERC20, IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {MathUtils} from "@summerfi/math-utils/contracts/MathUtils.sol";
 import {PERCENTAGE_100, Percentage, toPercentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
+
 /**
  * @title Tipper
  * @notice Contract implementing tip accrual functionality
@@ -22,10 +22,11 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
  *    assuming it represents shares in the system.
  * @custom:see ITipper
  */
-
 abstract contract Tipper is ITipper {
     using PercentageUtils for uint256;
-    using MathUtils for Percentage;
+
+    /// @notice The maximum tip rate is 5%
+    Percentage immutable MAX_TIP_RATE = Percentage.wrap(5 * 1e18);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -47,6 +48,9 @@ abstract contract Tipper is ITipper {
      * @param initialTipRate The initial tip rate for the Fleet
      */
     constructor(Percentage initialTipRate) {
+        if (initialTipRate > MAX_TIP_RATE) {
+            revert TipRateCannotExceedFivePercent();
+        }
         tipRate = initialTipRate;
         lastTipTimestamp = block.timestamp;
     }
@@ -70,6 +74,8 @@ abstract contract Tipper is ITipper {
      * @notice Sets a new tip rate
      * @dev Only callable by the FleetCommander. Accrues tips before changing the rate.
      * @param newTipRate The new tip rate to set, as a Percentage type (defined in @Percentage.sol)
+     * @param tipJar The address of the tip jar
+     * @param totalSupply The total supply of the shares
      * @custom:internal-logic
      * - Validates that the new tip rate is within the valid percentage range using @PercentageUtils.sol
      * - Accrues tips based on the current rate before updating
@@ -83,18 +89,45 @@ abstract contract Tipper is ITipper {
      * @custom:note The newTipRate should be sized according to the PERCENTAGE_FACTOR in @Percentage.sol.
      *              For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18).
      */
-    function _setTipRate(Percentage newTipRate, address tipJar) internal {
-        if (!PercentageUtils.isPercentageInRange(newTipRate)) {
-            revert TipRateCannotExceedOneHundredPercent();
+    function _setTipRate(
+        Percentage newTipRate,
+        address tipJar,
+        uint256 totalSupply
+    ) internal {
+        if (newTipRate > MAX_TIP_RATE) {
+            revert TipRateCannotExceedFivePercent();
         }
-        _accrueTip(tipJar); // Accrue tips before changing the rate
+        _accrueTip(tipJar, totalSupply); // Accrue tips before changing the rate
         tipRate = newTipRate;
         emit TipRateUpdated(newTipRate);
     }
 
     /**
+     * @notice Previews the amount of tip that would be accrued if _accrueTip was called
+     * @param tipJar The address of the tip jar
+     * @param totalSupply The total supply of the shares
+     * @return tippedShares The amount of tips that would be accrued in shares
+     */
+    function previewTip(
+        address tipJar,
+        uint256 totalSupply
+    ) public view returns (uint256 tippedShares) {
+        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
+        if (timeElapsed == 0) return 0;
+
+        if (tipRate == toPercentage(0)) return 0;
+
+        uint256 totalShares = totalSupply -
+            IERC20(address(this)).balanceOf(tipJar);
+        tippedShares = _calculateTip(totalShares, timeElapsed);
+        return tippedShares;
+    }
+
+    /**
      * @notice Accrues tips based on the current tip rate and time elapsed
      * @dev Only callable by the FleetCommander
+     * @param tipJar The address of the tip jar
+     * @param totalSupply The total supply of the tip jar
      * @return tippedShares The amount of tips accrued in shares
      * @custom:internal-logic
      * - Calculates the time elapsed since the last tip accrual
@@ -109,25 +142,19 @@ abstract contract Tipper is ITipper {
      * - Uses a custom power function for precise calculations
      */
     function _accrueTip(
-        address tipJar
+        address tipJar,
+        uint256 totalSupply
     ) internal returns (uint256 tippedShares) {
         if (tipRate == toPercentage(0)) {
             lastTipTimestamp = block.timestamp;
             return 0;
         }
 
-        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
-
-        if (timeElapsed == 0) return 0;
-
-        // Note: This line assumes the contract itself is an ERC20 token
-        uint256 totalShares = IERC20(address(this)).totalSupply();
-
-        tippedShares = _calculateTip(totalShares, timeElapsed);
+        tippedShares = previewTip(tipJar, totalSupply);
 
         if (tippedShares > 0) {
-            _mintTip(tipJar, tippedShares);
             lastTipTimestamp = block.timestamp;
+            _mintTip(tipJar, tippedShares);
             emit TipAccrued(tippedShares);
         }
     }
@@ -138,59 +165,20 @@ abstract contract Tipper is ITipper {
      * @param timeElapsed The time elapsed since the last tip accrual
      * @return The amount of new shares to be minted as tip
      * @custom:internal-logic
-     * - Calculates the rate per second based on the annual tip rate
-     * - Computes the compound interest factor using a custom power function
-     * - Applies the compound interest factor to the total shares
-     * - Returns the difference between the final and initial share amounts
+     * - Calculates a time-adjusted rate by scaling the annual tip rate by the elapsed time
+     * - Applies this adjusted rate to the total shares to determine tip amount
      * @custom:effects
      * - Does not modify any state, pure function
-     * @custom:security-considerations
-     * - Uses high-precision calculations to minimize rounding errors
-     * - Relies on a custom power function for accurate compound interest calculation
      */
     function _calculateTip(
         uint256 totalShares,
         uint256 timeElapsed
     ) internal view returns (uint256) {
-        Percentage ratePerSecond = Percentage.wrap(
-            (Percentage.unwrap(tipRate) / Constants.SECONDS_PER_YEAR)
+        Percentage timeAdjustedRate = Percentage.wrap(
+            ((timeElapsed * Percentage.unwrap(tipRate)) /
+                Constants.SECONDS_PER_YEAR)
         );
 
-        // Calculate (1 + r)^t using a custom power function
-        Percentage factor = MathUtils.rpow(
-            PERCENTAGE_100 + ratePerSecond,
-            timeElapsed,
-            PERCENTAGE_100
-        );
-
-        // Calculate S = P * (1 + r)^t
-        uint256 finalShares = totalShares.applyPercentage(factor);
-
-        // Return the difference (S - P)
-        // This represents the total interest (tip) earned
-        return finalShares - totalShares;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @notice Estimates the amount of tips accrued since the last tip accrual
-     * @return The estimated amount of accrued tips
-     * @custom:internal-logic
-     * - Calculates the time elapsed since the last tip accrual
-     * - Retrieves the current total supply of shares
-     * - Calls _calculateTip to estimate the accrued tip amount
-     * @custom:effects
-     * - Does not modify any state, view function
-     * @custom:security-considerations
-     * - This is an estimate and may slightly differ from the actual accrued amount
-     *   due to potential changes in totalSupply between estimation and actual accrual
-     */
-    function estimateAccruedTip() public view returns (uint256) {
-        uint256 timeElapsed = block.timestamp - lastTipTimestamp;
-        uint256 totalShares = IERC20(address(this)).totalSupply();
-        return _calculateTip(totalShares, timeElapsed);
+        return totalShares.applyPercentage(timeAdjustedRate);
     }
 }

@@ -13,4 +13,16 @@ interface IBuyAndBurnErrors {
      * @param tokenToAuction The address of the token for which an auction is already running.
      */
     error BuyAndBurnAuctionAlreadyRunning(address tokenToAuction);
+
+    /**
+     * @notice Error thrown when trying to start an auction without setting parameters
+     * @param token The address of the token for which the auction is being started
+     */
+    error BuyAndBurnAuctionParametersNotSet(address token);
+
+    /**
+     * @notice Error thrown when trying to set invalid auction parameters
+     * @param token The address of the token for which the auction is being started
+     */
+    error BuyAndBurnInvalidAuctionParameters(address token);
 }

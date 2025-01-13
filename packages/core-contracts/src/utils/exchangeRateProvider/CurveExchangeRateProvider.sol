@@ -27,14 +27,18 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
     using PercentageUtils for uint256;
 
     /// @notice The Curve swap pool interface
-    ICurveSwap public curveSwap;
+    ICurveSwap public immutable curveSwap;
 
     /// @notice The base token address for the exchange rate
-    address public baseToken;
+    address public immutable baseToken;
 
     /// @notice Error thrown when an invalid base token is provided
     /// @param baseToken The invalid base token address
     error InvalidBaseToken(address baseToken);
+
+    /// @notice Error thrown when an invalid curve swap is provided
+    /// @param curveSwap The invalid curve swap address
+    error InvalidCurveSwap(address curveSwap);
 
     constructor(
         address _curveSwap,
@@ -49,8 +53,16 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
             _basePrice
         )
     {
+        if (_curveSwap == address(0)) {
+            revert InvalidCurveSwap(_curveSwap);
+        }
         curveSwap = ICurveSwap(_curveSwap);
         if (_baseToken == address(0)) {
+            revert InvalidBaseToken(_baseToken);
+        }
+        if (
+            _baseToken != curveSwap.coins(0) && _baseToken != curveSwap.coins(1)
+        ) {
             revert InvalidBaseToken(_baseToken);
         }
         baseToken = _baseToken;
@@ -74,7 +86,7 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
      * @return price The EMA of the exchange rate
      */
     function getExchangeRateEma() public view override returns (uint256 price) {
-        price = curveSwap.ema_price(0);
+        price = curveSwap.price_oracle(0);
         if (_shouldInvertExchangeRate()) {
             price = 1e36 / price;
         }
@@ -87,7 +99,7 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
      */
     function getSafeExchangeRate() public view returns (uint256 price) {
         price = getExchangeRate();
-        price = _applyEmaRange(price);
+        price = _applyRange(price);
     }
 
     /**
@@ -97,16 +109,16 @@ contract CurveExchangeRateProvider is ExchangeRateProvider {
      */
     function getSafeExchangeRateEma() public view returns (uint256 price) {
         price = getExchangeRateEma();
-        price = _applyEmaRange(price);
+        price = _applyRange(price);
     }
 
     /**
-     * @notice Apply the EMA range to the given price
-     * @dev Ensures the price stays within the defined EMA range
+     * @notice Apply range to the given price
+     * @dev Ensures the price stays within the defined range
      * @param price The input price to adjust
-     * @return The price after applying the EMA range
+     * @return The price after applying the range
      */
-    function _applyEmaRange(
+    function _applyRange(
         uint256 price
     ) internal view override returns (uint256) {
         uint256 lowerBound = getLowerBound();

@@ -15,12 +15,12 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     FleetConfig public config;
     address[] public arks;
-    mapping(address => bool) public isArkActive;
+    mapping(address => bool) public isArkActiveOrBufferArk;
     address public tipJar;
 
     constructor(
         address underlying,
-        address configurationManager,
+        address,
         Percentage initialTipRate
     ) ERC4626Mock(underlying) Tipper(initialTipRate) {
         tipJar = address(0x123);
@@ -79,31 +79,32 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
         address receiver,
         address owner
     ) public override(IFleetCommander, ERC4626) returns (uint256) {
+        if (assets == type(uint256).max) {
+            assets = balanceOf(owner);
+        }
         return super.redeem(assets, receiver, owner);
     }
 
     function setTipRate(Percentage newTipRate) external {
-        _setTipRate(newTipRate, tipJar);
+        _setTipRate(newTipRate, tipJar, totalSupply());
     }
 
     function tip() public returns (uint256) {
-        return _accrueTip(tipJar);
+        return _accrueTip(tipJar, totalSupply());
     }
 
     function addArk(address ark) external {
-        isArkActive[ark] = true;
+        isArkActiveOrBufferArk[ark] = true;
         arks.push(ark);
     }
 
-    function getArks() external view returns (address[] memory) {
+    function getActiveArks() external view returns (address[] memory) {
         return arks;
     }
 
     function removeArk(address ark) external {}
 
     function addArks(address[] memory _arks) external {}
-
-    function adjustBuffer(RebalanceData[] calldata data) external {}
 
     function emergencyShutdown() external {}
 
@@ -130,9 +131,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function setMinimumBufferBalance(uint256 newMinimumBalance) external {}
 
-    function setStakingRewardsManager(
-        address newStakingRewardsManager
-    ) external {}
+    function updateStakingRewardsManager() external {}
 
     function rebalance(RebalanceData[] calldata data) external {}
 

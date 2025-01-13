@@ -96,4 +96,44 @@ library StorageSlots {
                 ) - 1
             )
         ) & ~bytes32(uint256(0xff));
+    bytes32 public constant ARK_INFLOW_BALANCE_STORAGE =
+        keccak256(
+            abi.encode(
+                uint256(keccak256("fleetCommander.storage.arkInflowBalance")) -
+                    1
+            )
+        ) & ~bytes32(uint256(0xff));
+
+    bytes32 public constant ARK_OUTFLOW_BALANCE_STORAGE =
+        keccak256(
+            abi.encode(
+                uint256(keccak256("fleetCommander.storage.arkOutflowBalance")) -
+                    1
+            )
+        ) & ~bytes32(uint256(0xff));
+
+    bytes32 public constant ARK_MAX_INFLOW_BALANCE_STORAGE =
+        keccak256(
+            abi.encode(
+                uint256(
+                    keccak256("fleetCommander.storage.arkMaxInflowBalance")
+                ) - 1
+            )
+        ) & ~bytes32(uint256(0xff));
+
+    bytes32 public constant ARK_MAX_OUTFLOW_BALANCE_STORAGE =
+        keccak256(
+            abi.encode(
+                uint256(
+                    keccak256("fleetCommander.storage.arkMaxOutflowBalance")
+                ) - 1
+            )
+        ) & ~bytes32(uint256(0xff));
+    bytes32 public constant TIP_TAKEN_STORAGE =
+        keccak256(
+            abi.encode(
+                uint256(keccak256("fleetCommander.storage._isCollectingTip")) -
+                    1
+            )
+        ) & ~bytes32(uint256(0xff));
 }

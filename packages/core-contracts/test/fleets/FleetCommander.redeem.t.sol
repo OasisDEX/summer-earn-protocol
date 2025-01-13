@@ -81,9 +81,9 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_RedeemZero() public {
         vm.prank(mockUser);
-        uint256 redeemedAmount = fleetCommander.redeem(0, mockUser, mockUser);
+        vm.expectRevert(abi.encodeWithSignature("FleetCommanderZeroAmount()"));
+        fleetCommander.redeem(0, mockUser, mockUser);
 
-        assertEq(redeemedAmount, 0, "Should redeem zero amount");
         assertEq(
             fleetCommander.balanceOf(mockUser),
             DEPOSIT_AMOUNT,
@@ -262,7 +262,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         // Move some funds to different arks
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         vm.startPrank(keeper);
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark1,
@@ -271,7 +271,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         );
 
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark2,
@@ -386,7 +386,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
         FleetConfig memory config = fleetCommander.getConfig();
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark1,
@@ -443,7 +443,7 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
         // Move some funds to arks
         vm.startPrank(keeper);
         vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
-        fleetCommander.adjustBuffer(
+        fleetCommander.rebalance(
             generateRebalanceData(
                 address(config.bufferArk),
                 ark1,
@@ -535,6 +535,129 @@ contract RedeemTest is Test, TestHelpers, FleetCommanderTestBase {
             withdrawnAmount,
             DEPOSIT_AMOUNT,
             "Should force redeem full amount"
+        );
+    }
+
+    function test_Redeem_withTip() public {
+        // Initial setup with tip rate
+        fleetCommanderStorageWriter.setTipRate(1e18);
+        mockToken.mint(mockUser, DEPOSIT_AMOUNT * 2);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), DEPOSIT_AMOUNT);
+        uint256 redeemShares = fleetCommander.deposit(DEPOSIT_AMOUNT, mockUser);
+
+        // Advance time to accrue tip
+        vm.warp(block.timestamp + 10 days);
+
+        // uint256 redeemShares = fleetCommander.balanceOf(mockUser) / 2;
+        uint256 previewedAssets = fleetCommander.previewRedeem(redeemShares);
+
+        uint256 balanceBefore = mockToken.balanceOf(mockUser);
+        uint256 assets = fleetCommander.redeem(
+            redeemShares,
+            mockUser,
+            mockUser
+        );
+        uint256 balanceAfter = mockToken.balanceOf(mockUser);
+
+        vm.stopPrank();
+
+        assertEq(
+            assets,
+            previewedAssets,
+            "Redeemed assets should match preview"
+        );
+        assertEq(
+            balanceAfter,
+            balanceBefore + assets,
+            "Should receive correct asset amount"
+        );
+    }
+
+    function test_RedeemFromBuffer_withTip() public {
+        // Initial setup with tip rate
+        fleetCommanderStorageWriter.setTipRate(1e18);
+        mockToken.mint(mockUser, DEPOSIT_AMOUNT * 2);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), DEPOSIT_AMOUNT);
+        fleetCommander.deposit(DEPOSIT_AMOUNT, mockUser);
+
+        // Advance time to accrue tip
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 redeemShares = fleetCommander.balanceOf(mockUser) / 2;
+        uint256 previewedAssets = fleetCommander.previewRedeem(redeemShares);
+        uint256 balanceBefore = mockToken.balanceOf(mockUser);
+        uint256 assets = fleetCommander.redeemFromBuffer(
+            redeemShares,
+            mockUser,
+            mockUser
+        );
+        uint256 balanceAfter = mockToken.balanceOf(mockUser);
+        vm.stopPrank();
+
+        assertEq(
+            assets,
+            previewedAssets,
+            "Redeemed assets should match preview"
+        );
+        assertEq(
+            balanceAfter,
+            balanceBefore + assets,
+            "Should receive correct asset amount"
+        );
+    }
+
+    function test_RedeemFromArks_withTip() public {
+        // Initial setup with tip rate
+        fleetCommanderStorageWriter.setTipRate(1e18);
+        mockToken.mint(mockUser, DEPOSIT_AMOUNT * 2);
+
+        vm.startPrank(mockUser);
+        mockToken.approve(address(fleetCommander), DEPOSIT_AMOUNT);
+        fleetCommander.deposit(DEPOSIT_AMOUNT, mockUser);
+        vm.stopPrank();
+
+        // Move funds to arks
+        FleetConfig memory config = fleetCommander.getConfig();
+        vm.startPrank(keeper);
+        vm.warp(block.timestamp + INITIAL_REBALANCE_COOLDOWN);
+        fleetCommander.rebalance(
+            generateRebalanceData(
+                address(config.bufferArk),
+                ark1,
+                DEPOSIT_AMOUNT / 2
+            )
+        );
+        vm.stopPrank();
+
+        // Advance time to accrue tip
+        vm.warp(block.timestamp + 10 days);
+
+        uint256 redeemShares = fleetCommander.balanceOf(mockUser) / 2;
+        uint256 previewedAssets = fleetCommander.previewRedeem(redeemShares);
+
+        vm.startPrank(mockUser);
+        uint256 balanceBefore = mockToken.balanceOf(mockUser);
+        uint256 assets = fleetCommander.redeemFromArks(
+            redeemShares,
+            mockUser,
+            mockUser
+        );
+        uint256 balanceAfter = mockToken.balanceOf(mockUser);
+        vm.stopPrank();
+
+        assertEq(
+            assets,
+            previewedAssets,
+            "Redeemed assets should match preview"
+        );
+        assertEq(
+            balanceAfter,
+            balanceBefore + assets,
+            "Should receive correct asset amount"
         );
     }
 }
