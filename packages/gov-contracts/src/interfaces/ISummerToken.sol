@@ -9,6 +9,8 @@ import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol"
 import {IGovernanceRewardsManager} from "./IGovernanceRewardsManager.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+
 /**
  * @title ISummerToken
  * @dev Interface for the Summer governance token, combining ERC20, permit functionality,
@@ -48,10 +50,10 @@ interface ISummerToken is
         string symbol;
         address lzEndpoint;
         // Update from deployer address after deployment
-        address owner;
+        address initialOwner;
         address accessManager;
         uint40 initialDecayFreeWindow;
-        uint256 initialDecayRate;
+        Percentage initialYearlyDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
         uint256 transferEnableDate;
         uint256 maxSupply;
@@ -129,6 +131,14 @@ interface ISummerToken is
     function getDecayFreeWindow() external view returns (uint40);
 
     /**
+     * @notice Returns the yearly decay rate as a percentage
+     * @return The yearly decay rate as a Percentage type
+     * @dev This returns the annualized rate using simple multiplication rather than
+     * compound interest calculation for clarity and predictability
+     */
+    function getDecayRatePerYear() external view returns (Percentage);
+
+    /**
      * @notice Returns the decay factor for an account
      * @param account The address to get the decay factor for
      * @return The decay factor for the account
@@ -159,11 +169,12 @@ interface ISummerToken is
     function updateDecayFactor(address account) external;
 
     /**
-     * @notice Sets the decay rate per second for voting power decay
-     * @param newRatePerSecond The new decay rate per second
+     * @notice Sets the yearly decay rate for voting power decay
+     * @param newYearlyRate The new decay rate per year as a Percentage
      * @dev Can only be called by the governor
+     * @dev The rate is converted internally to a per-second rate using simple division
      */
-    function setDecayRatePerSecond(uint256 newRatePerSecond) external;
+    function setDecayRatePerYear(Percentage newYearlyRate) external;
 
     /**
      * @notice Sets the decay-free window duration
@@ -203,4 +214,13 @@ interface ISummerToken is
      * @return The address of the rewards manager
      */
     function rewardsManager() external view returns (IGovernanceRewardsManager);
+
+    /**
+     * @notice Gets the length of the delegation chain for an account
+     * @param account The address to check delegation chain for
+     * @return The length of the delegation chain (0 for self-delegated or invalid chains)
+     */
+    function getDelegationChainLength(
+        address account
+    ) external view returns (uint256);
 }

@@ -22,6 +22,12 @@ Restart your terminal after running the above commands.
 ### Packages
 
 - `contracts-protocol`: Core contracts for the Summer Earn Protocol
+- `gov-contracts`: Governance contracts for the Summer Earn Protocol
+- `voting-decay`: Voting Decay library
+- `access-control`: Access control contracts for the Summer Earn Protocol
+- `rewards-contracts`: Rewards contracts for the Summer Earn Protocol
+- `dutch-auction`: Dutch Auction contracts for the Summer Earn Protocol
+- `external-dependencies`: External dependencies for the Summer Earn Protocol
 - `eslint-config`: Base `eslint` configurations
 - `jest-config`: Base `jest` configurations
 - `tenderly-utils`: Utility functions for interacting with Tenderly API

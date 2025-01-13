@@ -350,16 +350,6 @@ contract AdmiralsQuarters is
         if (amount != msgValue) revert InvalidNativeAmount();
     }
 
-    /// @inheritdoc IAdmiralsQuarters
-    function rescueTokens(
-        IERC20 token,
-        address to,
-        uint256 amount
-    ) external onlyOwner {
-        token.safeTransfer(to, amount);
-        emit TokensRescued(address(token), to, amount);
-    }
-
     /**
      * @dev Claims rewards from merkle distributor
      * @param user Address to claim rewards for
@@ -438,6 +428,16 @@ contract AdmiralsQuarters is
                 ++i;
             }
         }
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function rescueTokens(
+        IERC20 token,
+        address to,
+        uint256 amount
+    ) external onlyOwner {
+        token.safeTransfer(to, amount);
+        emit TokensRescued(address(token), to, amount);
     }
 
     /// @inheritdoc IAdmiralsQuarters

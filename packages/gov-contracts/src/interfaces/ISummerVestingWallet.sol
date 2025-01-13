@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
@@ -20,7 +19,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * The guardian role can mark performance goals as reached for team vesting and recall unvested
  * performance-based tokens if necessary.
  */
-interface ISummerVestingWallet is IAccessControl {
+interface ISummerVestingWallet {
     /// @dev Enum representing the types of vesting schedules
     enum VestingType {
         TeamVesting,

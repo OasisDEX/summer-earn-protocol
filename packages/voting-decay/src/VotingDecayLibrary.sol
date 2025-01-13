@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {VotingDecayMath} from "./VotingDecayMath.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 /*
  * @title VotingDecayLibrary
@@ -10,6 +11,7 @@ import {VotingDecayMath} from "./VotingDecayMath.sol";
  */
 library VotingDecayLibrary {
     using VotingDecayMath for uint256;
+    using Checkpoints for Checkpoints.Trace224;
 
     /* @notice Constant representing 1 in the system's fixed-point arithmetic (18 decimal places) */
     uint256 public constant WAD = 1e18;
@@ -38,6 +40,8 @@ library VotingDecayLibrary {
         uint40 decayFreeWindow;
         uint256 decayRatePerSecond;
         DecayFunction decayFunction;
+        uint40 originTimestamp;
+        mapping(address => Checkpoints.Trace224) decayFactorCheckpoints;
     }
 
     /**
@@ -57,11 +61,25 @@ library VotingDecayLibrary {
     error AccountNotInitialized();
     error InvalidDecayRate();
 
-    uint256 private constant MAX_DELEGATION_DEPTH = 2;
+    /**
+     * @notice Maximum allowed depth for delegation chains to prevent recursion attacks
+     * @dev When this depth is exceeded, voting power decays to 0 to maintain EIP-5805 invariants
+     *      Example chain at max depth (2):
+     *      User A -> delegates to B -> delegates to C (ok)
+     *      User A -> delegates to B -> delegates to C -> delegates to D (returns 0)
+     */
+    uint256 public constant MAX_DELEGATION_DEPTH = 2;
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function initializeAccount(
+        DecayState storage self,
+        address accountAddress
+    ) internal {
+        _initializeAccount(self, accountAddress);
+    }
 
     /**
      * @notice Gets the current decay factor for an account, considering delegation
@@ -141,7 +159,7 @@ library VotingDecayLibrary {
     }
 
     /**
-     * @notice Updates the decay factor for an account, considering the decay-free window
+     * @notice Updates the decay factor for an account and creates a checkpoint
      * @param self The DecayState storage
      * @param accountAddress The address of the account to update
      * @param getDelegateTo Function to retrieve delegation information
@@ -151,21 +169,30 @@ library VotingDecayLibrary {
         address accountAddress,
         function(address) view returns (address) getDelegateTo
     ) internal {
-        _initializeAccountIfNew(self, accountAddress);
+        _initializeAccount(self, accountAddress);
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
 
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
+        uint256 newDecayFactor = WAD; // Default to WAD
+
         if (decayPeriod > self.decayFreeWindow) {
-            uint256 newDecayFactor = getDecayFactor(
+            newDecayFactor = getDecayFactor(
                 self,
                 accountAddress,
                 getDelegateTo
             );
-            account.decayFactor = newDecayFactor;
         }
+
+        // Create checkpoint with current timestamp and new decay factor
+        self.decayFactorCheckpoints[accountAddress].push(
+            uint32(block.timestamp),
+            uint224(newDecayFactor)
+        );
+
+        account.decayFactor = newDecayFactor;
         account.lastUpdateTimestamp = uint40(block.timestamp);
 
-        emit DecayUpdated(accountAddress, account.decayFactor);
+        emit DecayUpdated(accountAddress, newDecayFactor);
     }
 
     /**
@@ -177,7 +204,7 @@ library VotingDecayLibrary {
         DecayState storage self,
         address accountAddress
     ) internal {
-        _initializeAccountIfNew(self, accountAddress);
+        _initializeAccount(self, accountAddress);
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
         account.lastUpdateTimestamp = uint40(block.timestamp);
         account.decayFactor = WAD;
@@ -200,6 +227,7 @@ library VotingDecayLibrary {
         self.decayFreeWindow = decayFreeWindow_;
         self.decayRatePerSecond = decayRatePerSecond_;
         self.decayFunction = decayFunction_;
+        self.originTimestamp = uint40(block.timestamp);
     }
 
     /**
@@ -221,6 +249,7 @@ library VotingDecayLibrary {
             accountAddress,
             getDelegateTo
         );
+
         return applyDecay(originalValue, decayFactor);
     }
 
@@ -257,7 +286,7 @@ library VotingDecayLibrary {
      * @param accountAddress The address of the account to initialize
      * @custom:emits AccountInitialized when a new account is initialized
      */
-    function _initializeAccountIfNew(
+    function _initializeAccount(
         DecayState storage self,
         address accountAddress
     ) private {
@@ -267,18 +296,27 @@ library VotingDecayLibrary {
                 lastUpdateTimestamp: uint40(block.timestamp)
             });
 
+            self.decayFactorCheckpoints[accountAddress].push(
+                uint32(block.timestamp),
+                uint224(WAD)
+            );
+
             emit AccountInitialized(accountAddress);
         }
     }
 
     /**
      * @notice Recursively calculates decay factor considering delegation depth
+     * @dev Returns 0 in the following cases:
+     *      1. When accountAddress is address(0)
+     *      2. When delegation depth exceeds MAX_DELEGATION_DEPTH
+     *      3. When the account or its delegate has no decay info
      * @param self The DecayState storage
      * @param accountAddress Current account being checked
      * @param depth Current delegation depth
      * @param originalAccount The initial account that started the calculation
      * @param getDelegateTo Function to retrieve delegation information
-     * @return The calculated decay factor
+     * @return The calculated decay factor, or 0 if max depth exceeded
      */
     function _getDecayFactorWithDepth(
         DecayState storage self,
@@ -292,7 +330,7 @@ library VotingDecayLibrary {
         }
 
         if (depth >= MAX_DELEGATION_DEPTH) {
-            return _calculateAccountDecayFactor(self, originalAccount);
+            return 0;
         }
 
         address delegateTo = getDelegateTo(accountAddress);
@@ -301,7 +339,7 @@ library VotingDecayLibrary {
         if (
             delegateTo != address(0) &&
             delegateTo != accountAddress &&
-            _hasDecayInfo(self, delegateTo)
+            hasDecayInfo(self, delegateTo)
         ) {
             return
                 _getDecayFactorWithDepth(
@@ -313,10 +351,16 @@ library VotingDecayLibrary {
                 );
         }
 
-        // Has Delegate + Delegate does not have Decay Info
-        // OR No Delegate + Does not have Decay Info
-        if (!_hasDecayInfo(self, accountAddress)) {
-            return 0;
+        // For uninitialized accounts, calculate decay from contract origin
+        if (!hasDecayInfo(self, accountAddress)) {
+            return
+                _calculateDecayFactor(
+                    WAD,
+                    block.timestamp - self.originTimestamp,
+                    self.decayRatePerSecond,
+                    self.decayFreeWindow,
+                    self.decayFunction
+                );
         }
 
         // No Delegate + Has Decay Info
@@ -335,6 +379,7 @@ library VotingDecayLibrary {
     ) private view returns (uint256) {
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
+
         return
             _calculateDecayFactor(
                 account.decayFactor,
@@ -351,10 +396,10 @@ library VotingDecayLibrary {
      * @param accountAddress The address to check
      * @return bool True if the account has decay info, false otherwise
      */
-    function _hasDecayInfo(
+    function hasDecayInfo(
         DecayState storage self,
         address accountAddress
-    ) private view returns (bool) {
+    ) public view returns (bool) {
         return self.decayInfoByAccount[accountAddress].lastUpdateTimestamp != 0;
     }
 
@@ -389,6 +434,124 @@ library VotingDecayLibrary {
                 );
         } else {
             revert InvalidDecayType();
+        }
+    }
+
+    /**
+     * @notice Gets the length of a delegation chain for an account
+     * @dev Counts the number of steps in the delegation chain until:
+     *      1. A self-delegation is found
+     *      2. An address(0) delegation is found
+     *      3. MAX_DELEGATION_DEPTH is reached
+     * @param self The DecayState storage
+     * @param accountAddress The address to check delegation chain for
+     * @param getDelegateTo Function to retrieve delegation information
+     * @return uint256 The length of the delegation chain
+     */
+    function getDelegationChainLength(
+        DecayState storage self,
+        address accountAddress,
+        function(address) view returns (address) getDelegateTo
+    ) internal view returns (uint256) {
+        return
+            _getDelegationChainLengthWithDepth(
+                self,
+                accountAddress,
+                0,
+                accountAddress,
+                getDelegateTo
+            );
+    }
+
+    /**
+     * @notice Internal recursive function to calculate delegation chain length
+     * @param self The DecayState storage
+     * @param accountAddress Current account being checked
+     * @param depth Current depth in the delegation chain
+     * @param originalAccount The initial account that started the calculation
+     * @param getDelegateTo Function to retrieve delegation information
+     * @return uint256 The length of the delegation chain
+     */
+    function _getDelegationChainLengthWithDepth(
+        DecayState storage self,
+        address accountAddress,
+        uint256 depth,
+        address originalAccount,
+        function(address) view returns (address) getDelegateTo
+    ) private view returns (uint256) {
+        if (accountAddress == address(0)) {
+            return 0;
+        }
+
+        address delegateTo = getDelegateTo(accountAddress);
+
+        // Detect cycles by checking if we're back to the original account
+        if (delegateTo == originalAccount) {
+            return depth;
+        }
+
+        // Self-delegation or no delegation
+        if (delegateTo == address(0) || delegateTo == accountAddress) {
+            return depth;
+        }
+
+        // Continue counting if there's a valid delegation
+        return
+            _getDelegationChainLengthWithDepth(
+                self,
+                delegateTo,
+                depth + 1,
+                originalAccount,
+                getDelegateTo
+            );
+    }
+
+    /**
+     * @notice Gets the historical decay factor for an account at a specific timestamp
+     * @param self The DecayState storage
+     * @param accountAddress The address to check
+     * @param timestamp The timestamp to check at
+     * @return The decay factor at that timestamp
+     */
+    function getHistoricalDecayFactor(
+        DecayState storage self,
+        address accountAddress,
+        uint256 timestamp
+    ) internal view returns (uint256) {
+        uint224 checkpointValue = self
+            .decayFactorCheckpoints[accountAddress]
+            .upperLookup(uint32(timestamp));
+
+        // No checkpoint found - calculate from origin
+        if (checkpointValue == 0) {
+            uint256 decayPeriod = timestamp - self.originTimestamp;
+
+            if (decayPeriod <= self.decayFreeWindow) {
+                return WAD;
+            }
+
+            // Apply decay from origin with WAD as base
+            if (self.decayFunction == DecayFunction.Linear) {
+                return
+                    VotingDecayMath.linearDecay(
+                        WAD,
+                        self.decayRatePerSecond,
+                        decayPeriod - self.decayFreeWindow
+                    );
+            } else if (self.decayFunction == DecayFunction.Exponential) {
+                return
+                    VotingDecayMath.exponentialDecay(
+                        WAD,
+                        self.decayRatePerSecond,
+                        decayPeriod - self.decayFreeWindow
+                    );
+            } else {
+                revert InvalidDecayType();
+            }
+        }
+        // Checkpoint found - use it as base
+        else {
+            return uint256(checkpointValue);
         }
     }
 }

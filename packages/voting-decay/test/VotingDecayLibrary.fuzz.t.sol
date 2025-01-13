@@ -8,6 +8,7 @@ contract TestVotingDecayManager {
     using VotingDecayLibrary for VotingDecayLibrary.DecayState;
 
     VotingDecayLibrary.DecayState internal state;
+    mapping(address => address) public delegations;
 
     constructor(
         uint40 decayFreeWindow_,
@@ -17,8 +18,12 @@ contract TestVotingDecayManager {
         state.initialize(decayFreeWindow_, decayRatePerSecond_, decayFunction_);
     }
 
-    function _getDelegateTo(address account) internal pure returns (address) {
-        return account;
+    function _getDelegateTo(address account) internal view returns (address) {
+        return delegations[account];
+    }
+
+    function setDelegation(address from, address to) public {
+        delegations[from] = to;
     }
 
     function resetDecay(address account) public {
@@ -330,5 +335,133 @@ contract VotingDecayFuzzTest is Test {
             "Final factor should be less than or equal to initial factor"
         );
         assertGt(finalFactor, 0, "Final factor should be greater than zero");
+    }
+
+    /**
+     * @dev Test delegation depth
+     * @param delegationChain Array of addresses representing the delegation chain
+     */
+    function testFuzz_DelegationDepth(
+        address[] calldata delegationChain
+    ) public {
+        vm.assume(delegationChain.length > 0 && delegationChain.length <= 5);
+
+        // Initialize all accounts in the chain and set up delegation mapping
+        for (uint i = 0; i < delegationChain.length; i++) {
+            vm.assume(delegationChain[i] != address(0));
+            // Ensure unique addresses
+            for (uint j = 0; j < i; j++) {
+                vm.assume(delegationChain[i] != delegationChain[j]);
+            }
+            decayManager.resetDecay(delegationChain[i]);
+
+            // Set up delegation chain
+            if (i < delegationChain.length - 1) {
+                decayManager.setDelegation(
+                    delegationChain[i],
+                    delegationChain[i + 1]
+                );
+            } else {
+                decayManager.setDelegation(
+                    delegationChain[i],
+                    delegationChain[i]
+                );
+            }
+        }
+
+        uint256 decayFactor = decayManager.getDecayFactor(delegationChain[0]);
+
+        // If chain length exceeds MAX_DELEGATION_DEPTH, decay factor should be 0
+        if (delegationChain.length > 2) {
+            assertEq(
+                decayFactor,
+                0,
+                "Decay factor should be 0 when delegation depth exceeded"
+            );
+        } else {
+            assertGt(
+                decayFactor,
+                0,
+                "Decay factor should be non-zero within delegation depth limit"
+            );
+        }
+    }
+
+    /**
+     * @dev Test uninitialized account decay
+     * @param elapsedTime Random time period to test decay
+     */
+    function testFuzz_UninitializedAccountDecay(uint256 elapsedTime) public {
+        vm.assume(elapsedTime > 0 && elapsedTime <= YEAR_IN_SECONDS);
+
+        // Don't initialize the user account
+        uint256 initialFactor = decayManager.getDecayFactor(user);
+        assertEq(initialFactor, WAD, "Initial factor should be WAD");
+
+        vm.warp(block.timestamp + elapsedTime);
+        uint256 finalFactor = decayManager.getDecayFactor(user);
+
+        assertLe(
+            finalFactor,
+            initialFactor,
+            "Final factor should be less than initial"
+        );
+        if (elapsedTime > decayManager.decayFreeWindow()) {
+            assertLt(
+                finalFactor,
+                initialFactor,
+                "Final factor should decay after free window"
+            );
+        } else {
+            assertEq(finalFactor, initialFactor, "No decay within free window");
+        }
+    }
+
+    /**
+     * @dev Test uninitialized then initialized account decay
+     * @param preInitTime Random time period to test decay before initialization
+     * @param postInitTime Random time period to test decay after initialization
+     */
+    function testFuzz_UninitializedThenInitialized(
+        uint256 preInitTime,
+        uint256 postInitTime
+    ) public {
+        vm.assume(preInitTime > 0 && preInitTime <= YEAR_IN_SECONDS);
+        vm.assume(postInitTime > 0 && postInitTime <= YEAR_IN_SECONDS);
+
+        // Advance time while uninitialized
+        vm.warp(block.timestamp + preInitTime);
+
+        // Initialize the account
+        decayManager.resetDecay(user);
+        uint256 resetFactor = decayManager.getDecayFactor(user);
+        assertEq(resetFactor, WAD, "Reset should set factor to WAD");
+
+        // Check decay after initialization
+        vm.warp(block.timestamp + postInitTime);
+        uint256 postInitFactor = decayManager.getDecayFactor(user);
+
+        if (postInitTime > decayManager.decayFreeWindow()) {
+            assertLt(
+                postInitFactor,
+                resetFactor,
+                "Should decay after initialization"
+            );
+        } else {
+            assertEq(
+                postInitFactor,
+                resetFactor,
+                "Should not decay within free window after init"
+            );
+        }
+    }
+
+    function test_UninitializedAccountVotingPower() public {
+        // Fast forward 1 year
+        vm.warp(block.timestamp + 365 days);
+
+        uint256 votingPower = decayManager.getVotingPower(user, 1000e18);
+        uint256 expectedVotingPower = 908.219178e18; // ~90.82% of 1000e18
+        assertApproxEqAbs(votingPower, expectedVotingPower, 1e18);
     }
 }

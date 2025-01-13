@@ -14,12 +14,12 @@
     }
   },
   "scripts": {
-    "test": "FOUNDRY_PROFILE=test forge test",
     "start:node": "hardhat node",
     "build": "forge build && bash ./abi.sh",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
-    "coverage": "forge coverage --ir-minimum",
-    "coverage:lcov": "forge coverage --report lcov --ir-minimum",
+    "test": "FOUNDRY_PROFILE=test forge test",
+    "coverage": "forge coverage --no-match-coverage 'test/' --via-ir --ir-minimum",
+    "coverage:lcov": "forge coverage --no-match-coverage 'test/'--via-ir --report lcov --ir-minimum",
     "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",
     "deploy:list": "hardhat ignition deployments",
     "deploy:status:arbitrum": "hardhat ignition status chain-42161",

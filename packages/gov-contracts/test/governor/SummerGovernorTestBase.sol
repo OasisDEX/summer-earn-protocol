@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Origin, SummerGovernor} from "../src/contracts/SummerGovernor.sol";
-import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
-import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
+import {Origin, SummerGovernor} from "../../src/contracts/SummerGovernor.sol";
+import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
+import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {IOAppSetPeer, TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
-import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
+import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 
 contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
     using OptionsBuilder for bytes;
@@ -76,6 +76,9 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
 
         vm.label(address(governorA), "SummerGovernor");
         vm.label(address(governorB), "SummerGovernor");
+
+        vm.label(address(timelockA), "Timelock A");
+        vm.label(address(timelockB), "Timelock B");
 
         vm.prank(owner);
         enableTransfers();
@@ -268,14 +271,6 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
 contract ExposedSummerGovernor is SummerGovernor {
     constructor(GovernorParams memory params) SummerGovernor(params) {}
 
-    function exposedLzReceive(
-        Origin calldata _origin,
-        bytes calldata payload,
-        bytes calldata extraData
-    ) public {
-        _lzReceive(_origin, bytes32(0), payload, address(0), extraData);
-    }
-
     function exposedSendProposalToTargetChain(
         uint32 _dstEid,
         address[] memory _dstTargets,
@@ -293,6 +288,9 @@ contract ExposedSummerGovernor is SummerGovernor {
             _options
         );
     }
+
+    // Test skipper function
+    function test() public {}
 
     function forceUpdateDecay(address account) public updateDecay(account) {}
 }

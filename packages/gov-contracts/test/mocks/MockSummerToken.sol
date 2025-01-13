@@ -3,11 +3,12 @@ pragma solidity 0.8.28;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {ISummerToken, SummerVestingWallet} from "../src/interfaces/ISummerToken.sol";
+import {ISummerToken, SummerVestingWallet} from "../../src/interfaces/ISummerToken.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
-import {IGovernanceRewardsManager} from "../src/interfaces/IGovernanceRewardsManager.sol";
 import {IOFT, SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     uint256 private constant INITIAL_SUPPLY = 1e9;
@@ -124,7 +125,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function getDecayRatePerSecond() external pure returns (uint256) {
+    function getDecayRatePerYear() external pure returns (Percentage) {
         revert("Not implemented");
     }
 
@@ -136,7 +137,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function setDecayRatePerSecond(uint256) external pure {
+    function setDecayRatePerYear(Percentage) external pure {
         revert("Not implemented");
     }
 
@@ -219,5 +220,9 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     function token() external view override returns (address) {
         // Mock implementation
         return address(this);
+    }
+
+    function getDelegationChainLength(address) external pure returns (uint256) {
+        return 0;
     }
 }
