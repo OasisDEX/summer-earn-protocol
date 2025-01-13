@@ -21,8 +21,8 @@ contract SummerVestingWallet is
     ///                CONSTANTS               ///
     //////////////////////////////////////////////
 
-    /// @dev Duration of a quarter in seconds
-    uint256 private constant QUARTER = 90 days;
+    /// @dev Duration of a month in seconds
+    uint256 private constant MONTH = 30 days;
     /// @dev Duration of the cliff period in seconds
     uint256 private constant CLIFF = 180 days;
 
@@ -202,7 +202,7 @@ contract SummerVestingWallet is
      * @custom:effects
      * - Does not modify any state, view function only
      * @custom:security-considerations
-     * - Ensure that the CLIFF and QUARTER constants are correctly set
+     * - Ensure that the CLIFF and MONTH constants are correctly set
      * - The function assumes that start() is correctly set
      * @custom:gas-considerations
      * - This function performs several mathematical operations, which may impact gas usage
