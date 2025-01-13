@@ -134,11 +134,5 @@ interface IFleetCommanderConfigProvider is
      * @dev Only callable by the governor when not paused
      * @param enabled True to enable transfers, false to disable them
      */
-    function setTransfersEnabled(bool enabled) external;
-
-    /**
-     * @notice Returns whether transfers are currently enabled
-     * @return bool True if transfers are enabled, false otherwise
-     */
-    function transfersEnabled() external view returns (bool);
+    function setFleetTokenTransferability(bool enabled) external;
 }

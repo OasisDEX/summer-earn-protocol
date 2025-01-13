@@ -227,11 +227,13 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function setTransfersEnabled(
+    function setFleetTokenTransferability(
         bool enabled
     ) external onlyGovernor whenNotPaused {
-        transfersEnabled = enabled;
-        emit TransfersEnabledUpdated(enabled);
+        if (enabled && !transfersEnabled) {
+            transfersEnabled = enabled;
+            emit TransfersEnabledUpdated(enabled);
+        }
     }
 
     // INTERNAL FUNCTIONS
