@@ -9,7 +9,7 @@ import {ConfigurationManagerParams} from "../../src/types/ConfigurationManagerTy
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
-import "../../src/contracts/arks/MetaMorphoArk.sol";
+import "../../src/contracts/arks/MorphoVaultArk.sol";
 import "../../src/events/IArkEvents.sol";
 
 import {IArk} from "../../src/interfaces/IArk.sol";
@@ -17,7 +17,7 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
-    MetaMorphoArk public ark;
+    MorphoVaultArk public ark;
 
     address public constant METAMORPHO_ADDRESS =
         0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB;
@@ -48,7 +48,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new MetaMorphoArk(METAMORPHO_ADDRESS, params);
+        ark = new MorphoVaultArk(METAMORPHO_ADDRESS, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -182,6 +182,6 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Act
         vm.expectRevert(abi.encodeWithSignature("InvalidVaultAddress()"));
-        new MetaMorphoArk(address(0), params);
+        new MorphoVaultArk(address(0), params);
     }
 }
