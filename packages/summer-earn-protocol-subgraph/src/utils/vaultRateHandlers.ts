@@ -55,38 +55,50 @@ export function getDailyVaultRateIdAndTimestamp(
   block: ethereum.Block,
   vaultId: string,
 ): DailyVaultRateResult {
-  const dayTimestamp = block.timestamp
-    .div(BigIntConstants.DAY_IN_SECONDS)
-    .times(BigIntConstants.DAY_IN_SECONDS)
-
+  const dayTimestamp = getDailyTimestamp(block.timestamp)
   const dailyRateId = vaultId + dayTimestamp.toString()
   return new DailyVaultRateResult(dailyRateId, dayTimestamp)
+}
+
+export function getDailyTimestamp(timestamp: BigInt): BigInt {
+  return timestamp.div(BigIntConstants.DAY_IN_SECONDS).times(BigIntConstants.DAY_IN_SECONDS)
+}
+
+export function getHourlyTimestamp(timestamp: BigInt): BigInt {
+  return timestamp.div(BigIntConstants.HOUR_IN_SECONDS).times(BigIntConstants.HOUR_IN_SECONDS)
+}
+
+export function getHourlyOffsetTimestamp(timestamp: BigInt): BigInt {
+  return timestamp
+    .minus(BigIntConstants.HOUR_IN_SECONDS)
+    .div(BigIntConstants.HOUR_IN_SECONDS)
+    .times(BigIntConstants.HOUR_IN_SECONDS)
 }
 
 export function getHourlyVaultRateIdAndTimestamp(
   block: ethereum.Block,
   vaultId: string,
 ): HourlyVaultRateResult {
-  const hourTimestamp = block.timestamp
-    .minus(BigIntConstants.HOUR_IN_SECONDS)
-    .div(BigIntConstants.HOUR_IN_SECONDS)
-    .times(BigIntConstants.HOUR_IN_SECONDS)
+  const hourTimestamp = getHourlyOffsetTimestamp(block.timestamp)
 
   const hourlyRateId = vaultId + hourTimestamp.toString()
   return new HourlyVaultRateResult(hourlyRateId, hourTimestamp)
 }
 
-function getWeeklyVaultRateIdAndTimestamp(
-  block: ethereum.Block,
-  vaultId: string,
-): WeeklyVaultRateResult {
-  // Adjust the timestamp to account for the week offset
-  const offsetTimestamp = block.timestamp.plus(BigIntConstants.EPOCH_WEEK_OFFSET)
+export function getWeeklyOffsetTimestamp(timestamp: BigInt): BigInt {
+  const offsetTimestamp = timestamp.plus(BigIntConstants.EPOCH_WEEK_OFFSET)
   const weekTimestamp = offsetTimestamp
     .div(BigIntConstants.WEEK_IN_SECONDS)
     .times(BigIntConstants.WEEK_IN_SECONDS)
     .minus(BigIntConstants.EPOCH_WEEK_OFFSET)
+  return weekTimestamp
+}
 
+export function getWeeklyVaultRateIdAndTimestamp(
+  block: ethereum.Block,
+  vaultId: string,
+): WeeklyVaultRateResult {
+  const weekTimestamp = getWeeklyOffsetTimestamp(block.timestamp)
   const weeklyRateId = vaultId + weekTimestamp.toString()
   return new WeeklyVaultRateResult(weeklyRateId, weekTimestamp)
 }

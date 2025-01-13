@@ -8,6 +8,7 @@ import { GearboxProduct } from '../products/GearboxProduct'
 import { GenericVaultProduct } from '../products/GenericVault'
 import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
+import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { getOrCreateToken } from '../utils/initializers'
 
 /**
@@ -202,6 +203,14 @@ class ProtocolConfig {
           Address.fromString('0x3A244e6B3cfed21593a5E5B347B593C0B48C7dA1'),
         ),
       ]),
+      new Protocol('Sky', [
+        new SkySUSDSProduct(
+          getOrCreateToken(addresses.USDC),
+          addresses.SUSDS,
+          BigInt.fromI32(18928285),
+          'Sky',
+        ),
+      ]),
     ]
   }
 
@@ -321,6 +330,14 @@ class ProtocolConfig {
           Address.fromString('0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183'),
           BigInt.fromI32(15183452),
           'Morpho',
+        ),
+      ]),
+      new Protocol('Sky', [
+        new SkySUSDSProduct(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x1601843c5E9bC251A3272907010AFa41Fa18347E'),
+          BigInt.fromI32(15183452),
+          'Sky',
         ),
       ]),
     ]

@@ -82,6 +82,33 @@ contract SummerToken is
         transferEnableDate = params.transferEnableDate;
         vestingWalletFactory = new SummerVestingWalletFactory(address(this));
         _mint(params.owner, params.initialSupply);
+
+        // Initialize peers if provided
+        _initializePeers(params.peerEndpointIds, params.peerAddresses);
+    }
+
+    /**
+     * @dev Internal function to initialize peers during construction
+     * @param _peerEndpointIds Array of chain IDs for peers
+     * @param _peerAddresses Array of peer addresses corresponding to chainIds
+     */
+    function _initializePeers(
+        uint32[] memory _peerEndpointIds,
+        address[] memory _peerAddresses
+    ) internal {
+        if (_peerEndpointIds.length == 0) {
+            return;
+        }
+        if (_peerEndpointIds.length != _peerAddresses.length) {
+            revert SummerTokenInvalidPeerArrays();
+        }
+
+        for (uint256 i = 0; i < _peerEndpointIds.length; i++) {
+            _setPeer(
+                _peerEndpointIds[i],
+                bytes32(uint256(uint160(_peerAddresses[i])))
+            );
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
