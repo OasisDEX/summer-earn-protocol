@@ -28,6 +28,7 @@ import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@laye
 /**
  * @title SummerToken
  * @dev Implementation of the Summer governance token with vesting, cross-chain, and voting decay capabilities.
+ * Delegation of voting power is restricted to the hub chain only.
  * @custom:security-contact security@summer.fi
  */
 contract SummerToken is
@@ -46,6 +47,8 @@ contract SummerToken is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The chain ID of the hub chain where governance actions are permitted
+    uint32 public immutable hubChainId;
     IGovernanceRewardsManager public rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
     SummerVestingWalletFactory public vestingWalletFactory;
@@ -54,9 +57,41 @@ contract SummerToken is
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
 
     /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Modifier to restrict certain functions to only be called on the hub chain.
+     * This ensures that governance actions like delegation can only happen on the
+     * designated hub chain.
+     */
+    modifier onlyHubChain() {
+        if (block.chainid != hubChainId) {
+            revert NotHubChain(block.chainid, hubChainId);
+        }
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Initializes the Summer token with the specified parameters
+     * @param params TokenParams struct containing:
+     *        - name: Token name
+     *        - symbol: Token symbol
+     *        - lzEndpoint: LayerZero endpoint address
+     *        - owner: Initial owner address
+     *        - accessManager: Protocol access manager address
+     *        - maxSupply: Maximum token supply cap
+     *        - initialSupply: Initial token supply to mint
+     *        - transferEnableDate: Timestamp when transfers become enabled
+     *        - initialDecayRate: Initial voting power decay rate
+     *        - initialDecayFreeWindow: Initial decay-free window duration
+     *        - initialDecayFunction: Initial decay function type
+     *        - hubChainId: ID of the chain where governance actions are permitted
+     */
     constructor(
         TokenParams memory params
     )
@@ -67,6 +102,8 @@ contract SummerToken is
         DecayController(address(this))
         Ownable(params.owner)
     {
+        hubChainId = params.hubChainId;
+
         decayState.initialize(
             params.initialDecayFreeWindow,
             params.initialDecayRate,
@@ -243,13 +280,14 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Delegates voting power to a specified address
+     * @dev Delegates voting power to a specified address. Can only be called on the hub chain.
      * @param delegatee The address to delegate voting power to
      * @dev Updates the decay factor for the caller
+     * @custom:restriction This function can only be called on the hub chain
      */
     function delegate(
         address delegatee
-    ) public override(IVotes, Votes) updateDecay(_msgSender()) {
+    ) public override(IVotes, Votes) updateDecay(_msgSender()) onlyHubChain {
         super.delegate(delegatee);
     }
 

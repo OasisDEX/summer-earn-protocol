@@ -9,6 +9,8 @@ enum DecayType {
   Exponential,
 }
 
+const HUB_CHAIN_ID = 8453n // BASE
+
 /**
  * @title Governance Module Deployment Script
  * @notice This module handles the deployment and initialization of the governance system
@@ -74,6 +76,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     transferEnableDate: 1731667188n,
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
     initialSupply: initialSupply,
+    hubChainId: HUB_CHAIN_ID,
     peerEndpointIds: peerEndpointIds,
     peerAddresses: peerAddresses,
   }
@@ -101,7 +104,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     quorumFraction: 4n,
     initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
-    hubChainId: 8453n,
+    hubChainId: HUB_CHAIN_ID,
     peerEndpointIds: peerEndpointIds,
     peerAddresses: peerAddresses,
   }
