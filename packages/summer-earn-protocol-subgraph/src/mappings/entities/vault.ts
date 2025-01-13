@@ -83,25 +83,18 @@ export function getAndUpdateVaultAndPositionDetails(
   return { vaultDetails: result.vaultDetails, positionDetails: result.positionDetails }
 }
 
-export function updateVaultAndArks(event: ethereum.Event, vault: Vault): void {
-  const vaultDetails = getVaultDetails(event.address, event.block)
+export function updateVaultAndArks(event: ethereum.Event, vaultId: string): void {
+  const vaultAddress = Address.fromString(vaultId)
+  const vaultDetails = getVaultDetails(vaultAddress, event.block)
 
   updateVault(vaultDetails, event.block, false)
   getOrCreateVaultsPostActionSnapshots(event.address, event.block)
 
-  const arks = vault.arksArray
+  const arks = vaultDetails.arks
   for (let i = 0; i < arks.length; i++) {
-    const arkDetails = getArkDetails(
-      Address.fromString(vault.id),
-      Address.fromString(arks[i]),
-      event.block,
-    )
+    const arkDetails = getArkDetails(vaultAddress, arks[i], event.block)
     updateArk(arkDetails, event.block, false)
-    getOrCreateArksPostActionSnapshots(
-      Address.fromString(vault.id),
-      Address.fromString(arks[i]),
-      event.block,
-    )
+    getOrCreateArksPostActionSnapshots(vaultAddress, arks[i], event.block)
   }
 }
 

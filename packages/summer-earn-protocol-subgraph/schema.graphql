@@ -482,6 +482,7 @@ type Vault @entity @regularPolling {
   arksArray: [Ark!]!
 
   rebalances: [Rebalance!]! @derivedFrom(field: "vault")
+  rebalanceCount: BigInt!
   actionSnapshots: [PostActionVaultSnapshot!]! @derivedFrom(field: "vault")
 
   rewardsManager: RewardsManager! @derivedFrom(field: "vault")
