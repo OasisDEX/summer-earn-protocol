@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../src/contracts/SummerToken.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";

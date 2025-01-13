@@ -487,6 +487,9 @@ contract AdmiralsQuarters is
         vaultToken.redeem(shares, address(this), _msgSender());
 
         emit ERC4626PositionImported(_msgSender(), vault, shares);
+    }
+
+    /**
      * @dev Required to receive ETH when unwrapping WETH
      */
     receive() external payable {}

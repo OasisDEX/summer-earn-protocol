@@ -197,6 +197,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
     }
 
     function test_LzReceive() public {
+        enableTransfers();
         // First transfer some tokens from A to B to reduce A's supply
         vm.startPrank(owner);
 
@@ -493,7 +494,10 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialSupply: INITIAL_SUPPLY * 10 ** 18
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                hubChainId: uint32(block.chainid),
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             })
         );
 

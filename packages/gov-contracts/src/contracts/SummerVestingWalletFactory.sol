@@ -80,7 +80,7 @@ contract SummerVestingWalletFactory is
                 vestingType,
                 timeBasedAmount,
                 goalAmounts,
-                address(_accessManager) // Pass access manager instead of admin
+                address(_accessManager)
             )
         );
 

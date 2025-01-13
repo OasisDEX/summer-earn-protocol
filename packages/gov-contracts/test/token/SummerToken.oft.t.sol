@@ -8,10 +8,13 @@ import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oft-evm/contracts/O
 import {IOFT, SendParam, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {OFTMsgCodec} from "@layerzerolabs/oft-evm/contracts/libs/OFTMsgCodec.sol";
+
 contract SummerTokenOFTTest is SummerTokenTestBase {
     using OptionsBuilder for bytes;
 
     function test_SendTokens() public {
+        enableTransfers();
+
         uint256 amount = 100 ether;
         bytes memory options = OptionsBuilder
             .newOptions()

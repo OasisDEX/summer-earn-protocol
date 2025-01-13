@@ -30,9 +30,6 @@ contract SummerVestingWallet is
     /// @dev Duration of the vesting period in seconds
     uint64 private constant DURATION_SECONDS = 730 days; // 2 years for both vesting types
 
-    /// @inheritdoc ISummerVestingWallet
-    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-
     //////////////////////////////////////////////
     ///             STATE VARIABLES            ///
     //////////////////////////////////////////////
@@ -61,7 +58,9 @@ contract SummerVestingWallet is
      * @param beneficiaryAddress Address of the beneficiary to whom vested tokens are transferred
      * @param startTimestamp Unix timestamp marking the start of the vesting period
      * @param vestingType Type of vesting schedule (0 for TeamVesting, 1 for InvestorExTeamVesting)
+     * @param _timeBasedVestingAmount Amount of tokens to vest over time
      * @param _goalAmounts Array of goal amounts for performance-based vesting
+     * @param _accessManager Address of the access manager
      */
     constructor(
         address _token,
@@ -70,8 +69,11 @@ contract SummerVestingWallet is
         VestingType vestingType,
         uint256 _timeBasedVestingAmount,
         uint256[] memory _goalAmounts,
-        address guardianAddress
-    ) VestingWallet(beneficiaryAddress, startTimestamp, DURATION_SECONDS) {
+        address _accessManager
+    )
+        VestingWallet(beneficiaryAddress, startTimestamp, DURATION_SECONDS)
+        ProtocolAccessManaged(_accessManager)
+    {
         _vestingType = vestingType;
         timeBasedVestingAmount = _timeBasedVestingAmount;
         if (_vestingType == VestingType.TeamVesting) {
@@ -86,8 +88,6 @@ contract SummerVestingWallet is
         if (token == address(0)) {
             revert InvalidToken(_token);
         }
-
-        _grantRole(GUARDIAN_ROLE, guardianAddress);
     }
 
     //////////////////////////////////////////////
@@ -104,7 +104,7 @@ contract SummerVestingWallet is
     //////////////////////////////////////////////
 
     /// @inheritdoc ISummerVestingWallet
-    function addNewGoal(uint256 goalAmount) external onlyRole(GUARDIAN_ROLE) {
+    function addNewGoal(uint256 goalAmount) external onlyFoundation {
         if (_vestingType != VestingType.TeamVesting) {
             revert OnlyTeamVesting();
         }
@@ -194,8 +194,8 @@ contract SummerVestingWallet is
      * @return uint256 The amount of tokens already vested based on time
      * @custom:internal-logic
      * - Checks if the timestamp is before the cliff period
-     * - Calculates the number of quarters that have passed, including the cliff period
-     * - Determines the vested amount based on elapsed quarters
+     * - Calculates the number of months that have passed, including the cliff period
+     * - Determines the vested amount based on elapsed months
      * - Caps the vested amount at the timeBasedVestingAmount
      * @custom:effects
      * - Does not modify any state, view function only
@@ -209,8 +209,10 @@ contract SummerVestingWallet is
     function _calculateTimeBasedVesting(
         uint64 timestamp
     ) private view returns (uint256) {
-        uint256 elapsedQuarters = (timestamp - start()) / QUARTER;
-        uint256 _vestedAmount = (timeBasedVestingAmount * elapsedQuarters) / 8;
+        uint256 elapsedMonths = (timestamp - start()) / MONTH;
+        uint256 _vestedAmount = (timeBasedVestingAmount * elapsedMonths) /
+            (DURATION_SECONDS / MONTH);
+
         return
             _vestedAmount < timeBasedVestingAmount
                 ? _vestedAmount

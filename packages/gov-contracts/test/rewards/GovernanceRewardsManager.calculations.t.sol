@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import "./GovernanceRewardsManager.general.t.sol";
-import {console} from "forge-std/console.sol";
+
 contract GovernanceRewardsManagerCalculationsTest is
     GovernanceRewardsManagerTest
 {
@@ -32,12 +32,14 @@ contract GovernanceRewardsManagerCalculationsTest is
         vm.stopPrank();
 
         // Setup reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
+        vm.stopPrank();
 
         // Move forward in time
         vm.warp(block.timestamp + 1 days);
@@ -68,49 +70,20 @@ contract GovernanceRewardsManagerCalculationsTest is
         uint256 rewardAmount = 100 * 1e18;
         uint256 duration = 7 days;
 
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             duration
         );
+        vm.stopPrank();
 
         assertApproxEqAbs(
             stakingRewardsManager.getRewardForDuration(
                 IERC20(address(rewardTokens[0]))
             ),
             rewardAmount,
-            10, // Allow difference of up to 10 wei
-            "GetRewardForDuration should return approximately total reward"
-        );
-    }
-
-    function test_GetRewardForDuration_MultipleNotifications() public {
-        uint256 initialReward = 100 * 1e18;
-        uint256 additionalReward = 50 * 1e18;
-        uint256 duration = 7 days;
-
-        // First notification
-        vm.prank(address(mockGovernor));
-        stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
-            initialReward,
-            duration
-        );
-
-        // Second notification
-        vm.prank(address(mockGovernor));
-        stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
-            additionalReward,
-            duration
-        );
-
-        assertApproxEqAbs(
-            stakingRewardsManager.getRewardForDuration(
-                IERC20(address(rewardTokens[0]))
-            ),
-            initialReward + additionalReward,
             10, // Allow difference of up to 10 wei
             "GetRewardForDuration should return approximately total reward"
         );

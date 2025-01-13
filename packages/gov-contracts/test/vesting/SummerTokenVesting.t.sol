@@ -382,7 +382,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             payable(vestingWalletAddress)
         );
 
-        uint256 initialGoalCount = goalAmounts.length;
+        uint256 goalCount = goalAmounts.length;
         uint256 newGoalAmount = 60000 ether;
 
         // Add a new goal
@@ -393,23 +393,23 @@ contract SummerVestingTest is SummerTokenTestBase {
 
         // Check that the new goal was added
         assertEq(
-            vestingWallet.goalAmounts(initialGoalCount),
+            vestingWallet.goalAmounts(goalCount),
             newGoalAmount,
             "New goal amount should be added"
         );
         assertEq(
-            vestingWallet.goalsReached(initialGoalCount),
+            vestingWallet.goalsReached(goalCount),
             false,
             "New goal should not be reached"
         );
 
         // Mark the new goal as reached
         vm.prank(foundation);
-        vestingWallet.markGoalReached(initialGoalCount + 1);
+        vestingWallet.markGoalReached(goalCount + 1);
 
         // After 1 year
         vm.warp(block.timestamp + 365 days);
-        uint256 expectedVestedAmount = TIME_BASED_AMOUNT / 2 + newGoalAmount;
+        uint256 expectedVestedAmount = (TIME_BASED_AMOUNT / 2) + newGoalAmount;
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
@@ -432,6 +432,7 @@ contract SummerVestingTest is SummerTokenTestBase {
 
     function test_RecallUnvestedTokens_CantRecallTwice() public {
         // Create a vesting wallet with team vesting type
+        vm.prank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
@@ -447,16 +448,21 @@ contract SummerVestingTest is SummerTokenTestBase {
 
         // Warp time and mark some goals as reached (goals 1 and 3)
         vm.warp(block.timestamp + 365 days);
+        vm.startPrank(foundation);
         vestingWallet.markGoalReached(1);
         vestingWallet.markGoalReached(3);
+        vm.stopPrank();
 
         // Calculate expected unvested amount (goals 2 and 4 are not reached)
         uint256 expectedUnvestedAmount = goalAmounts[1] + goalAmounts[3];
 
         // First recall of unvested tokens
-        uint256 initialBalance = aSummerToken.balanceOf(address(this));
+        uint256 initialBalance = aSummerToken.balanceOf(foundation);
+
+        vm.prank(foundation);
         vestingWallet.recallUnvestedTokens();
-        uint256 firstRecallBalance = aSummerToken.balanceOf(address(this));
+
+        uint256 firstRecallBalance = aSummerToken.balanceOf(foundation);
 
         // Verify first recall worked as expected
         assertEq(
@@ -466,8 +472,9 @@ contract SummerVestingTest is SummerTokenTestBase {
         );
 
         // Second recall of unvested tokens should return 0
+        vm.prank(foundation);
         vestingWallet.recallUnvestedTokens();
-        uint256 secondRecallBalance = aSummerToken.balanceOf(address(this));
+        uint256 secondRecallBalance = aSummerToken.balanceOf(foundation);
 
         // Verify that the second recall didn't transfer any tokens
         assertEq(
@@ -502,6 +509,7 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_TimeBasedVestingCap() public {
+        vm.startPrank(foundation);
         // Create vesting wallet with team vesting type
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
@@ -509,6 +517,7 @@ contract SummerVestingTest is SummerTokenTestBase {
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
+        vm.stopPrank();
         address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
             beneficiary
         );
@@ -536,6 +545,7 @@ contract SummerVestingTest is SummerTokenTestBase {
         uint256 initialBalance = aSummerToken.balanceOf(beneficiary);
 
         // Release tokens
+        vm.prank(foundation);
         vestingWallet.release(address(aSummerToken));
 
         // Verify released amount
@@ -556,7 +566,8 @@ contract SummerVestingTest is SummerTokenTestBase {
 
     function test_InvestorExTeamVestingWithGoals() public {
         assertGt(goalAmounts.length, 0, "Goal amount should be greater than 0");
-        // Try to create an InvestorExTeamVesting wallet with goals
+
+        vm.prank(foundation);
         vm.expectRevert(abi.encodeWithSignature("OnlyTeamVesting()"));
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,

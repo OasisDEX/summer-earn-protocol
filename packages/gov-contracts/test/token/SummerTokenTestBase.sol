@@ -230,7 +230,10 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialSupply: INITIAL_SUPPLY * 10 ** 18
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                hubChainId: uint32(block.chainid),
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
     }
 }
