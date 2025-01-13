@@ -80,6 +80,7 @@ export const BIGDECIMAL_NEGATIVE_ONE = BigDecimal.fromString('-1')
 export const USDC_DECIMALS = 6
 export const SECONDS_PER_HOUR = 60 * 60
 export const SECONDS_PER_DAY = 60 * 60 * 24
+export const SECONDS_PER_WEEK = 60 * 60 * 24 * 7
 export const DEFAULT_DECIMALS = BigInt.fromI32(18)
 export const DEGRADATION_COEFFICIENT = BIGINT_TEN.pow(18)
 export const USDC_DENOMINATOR = BigDecimal.fromString('1000000')
@@ -104,6 +105,10 @@ export const BLACKLISTED_TRANSACTION: Bytes[] = []
 export class BigDecimalConstants {
   static ZERO: BigDecimal = BigDecimal.fromString('0')
   static FIVE_BPS: BigDecimal = BigDecimal.fromString('0.0005')
+  static ONE_BPS: BigDecimal = BigDecimal.fromString('0.0001')
+  static TEN_BPS: BigDecimal = BigDecimal.fromString('0.001')
+  static ONE_PERCENT: BigDecimal = BigDecimal.fromString('0.01')
+  static TEN_PERCENT: BigDecimal = BigDecimal.fromString('0.1')
   static ONE: BigDecimal = BigDecimal.fromString('1')
   static TWO: BigDecimal = BigDecimal.fromString('2')
   static SEVEN: BigDecimal = BigDecimal.fromString('7')
@@ -127,6 +132,7 @@ export class BigDecimalConstants {
   static YEAR_IN_SECONDS: BigDecimal = BigDecimal.fromString('31536000')
   static HOUR_IN_SECONDS: BigDecimal = BigDecimal.fromString('3600')
   static DAY_IN_SECONDS: BigDecimal = BigDecimal.fromString('86400')
+  static WEEK_IN_SECONDS: BigDecimal = BigDecimal.fromString('604800')
 }
 export class BigIntConstants {
   static MINUS_ONE: BigInt = BigInt.fromI32(-1)
@@ -149,4 +155,6 @@ export class BigIntConstants {
   static SECONDS_PER_DAY: BigInt = BigInt.fromI32(86400)
   static SECONDS_PER_HOUR: BigInt = BigInt.fromI32(3600)
   static SECONDS_PER_MINUTE: BigInt = BigInt.fromI32(60)
+  static SECONDS_PER_WEEK: BigInt = BigInt.fromI32(604800)
+  static EPOCH_WEEK_OFFSET: BigInt = BigInt.fromI32(345600)
 }

@@ -273,7 +273,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     function test_updateRebalanceCooldown_ShouldFail() public {
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotGovernor(address)", keeper)
+            abi.encodeWithSignature("CallerIsNotCurator(address)", keeper)
         );
         fleetCommander.updateRebalanceCooldown(0);
     }

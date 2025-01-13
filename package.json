@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "postinstall": "git submodule update --init && git submodule update --init --recursive packages/external-dependencies/lib/metamorpho",
+    "postinstall": "git submodule update --init",
     "typecheck:ark-rebalancer": "cd packages/ark-rebalancer && venv/bin/mypy ark_rebalancer.py",
     "start:ark-rebalancer": "cd packages/ark-rebalancer && venv/bin/python ark_rebalancer.py",
     "dev": "turbo run dev --concurrency=100",

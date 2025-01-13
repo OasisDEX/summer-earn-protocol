@@ -1,5 +1,8 @@
-import { Address, BigInt } from '@graphprotocol/graph-ts'
+import { Address } from '@graphprotocol/graph-ts'
 import {
+  RewardAdded,
+  RewardsDurationUpdated,
+  RewardTokenRemoved,
   Staked,
   Unstaked,
 } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
@@ -22,18 +25,20 @@ import {
   getOrCreateRewardsManager,
   getOrCreateVault,
 } from '../common/initializers'
-import { formatAmount } from '../common/utils'
 import { createDepositEventEntity } from './entities/deposit'
-import { createRebalanceEventEntity } from './entities/rebalance'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
-import { getAndUpdateVaultAndPositionDetails, updateVaultAndArks } from './entities/vault'
+import {
+  addOrUpdateVaultRewardRates,
+  getAndUpdateVaultAndPositionDetails,
+  removeVaultRewardRates,
+  updateVaultAndArks,
+} from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
 
 export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
   updateVaultAndArks(event, vault)
-  createRebalanceEventEntity(event, vault, event.block)
 }
 
 export function handleArkAdded(event: ArkAdded): void {
@@ -58,28 +63,16 @@ export function handleDeposit(event: DepositEvent): void {
   const account = getOrCreateAccount(event.params.owner.toHexString())
 
   const result = getAndUpdateVaultAndPositionDetails(event, event.address, account, event.block)
-  const amount = event.params.assets
-  const normalizedAmount = formatAmount(
-    amount,
-    BigInt.fromI32(result.vaultDetails.inputToken.decimals),
-  )
-  const normalizedAmountUSD = normalizedAmount.times(result.vaultDetails.inputTokenPriceUSD)
 
-  createDepositEventEntity(event, amount, normalizedAmountUSD, result.positionDetails)
+  createDepositEventEntity(event, result.positionDetails)
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
   const account = getOrCreateAccount(event.params.owner.toHexString())
 
   const result = getAndUpdateVaultAndPositionDetails(event, event.address, account, event.block)
-  const amount = event.params.assets
-  const normalizedAmount = formatAmount(
-    amount,
-    BigInt.fromI32(result.vaultDetails.inputToken.decimals),
-  )
-  const normalizedAmountUSD = normalizedAmount.times(result.vaultDetails.inputTokenPriceUSD)
 
-  createWithdrawEventEntity(event, normalizedAmountUSD, result.positionDetails)
+  createWithdrawEventEntity(event, result.positionDetails)
 }
 
 // withdaraw already handled in handleWithdraw
@@ -142,14 +135,9 @@ export function handleStaked(event: Staked): void {
     account,
     event.block,
   )
-  const amount = event.params.amount
-  const normalizedAmount = formatAmount(
-    amount,
-    BigInt.fromI32(result.vaultDetails.inputToken.decimals),
-  )
-  const normalizedAmountUSD = normalizedAmount.times(result.vaultDetails.inputTokenPriceUSD)
-
-  createStakedEventEntity(event, amount, normalizedAmountUSD, result.positionDetails)
+  // todo ; add check if the staker was the admirals quarters when it becomes available in the event
+  createStakedEventEntity(event, result.positionDetails)
+  createDepositEventEntity(event, result.positionDetails)
 }
 
 export function handleUnstaked(event: Unstaked): void {
@@ -163,12 +151,32 @@ export function handleUnstaked(event: Unstaked): void {
     account,
     event.block,
   )
-  const amount = event.params.amount
-  const normalizedAmount = formatAmount(
-    amount,
-    BigInt.fromI32(result.vaultDetails.inputToken.decimals),
-  )
-  const normalizedAmountUSD = normalizedAmount.times(result.vaultDetails.inputTokenPriceUSD)
 
-  createUnstakedEventEntity(event, amount, normalizedAmountUSD, result.positionDetails)
+  createUnstakedEventEntity(event, result.positionDetails)
+  createWithdrawEventEntity(event, result.positionDetails)
+}
+
+export function handleRewardTokenRemoved(event: RewardTokenRemoved): void {
+  const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
+
+  removeVaultRewardRates(vault, event.params.rewardToken)
+}
+
+export function handleRewardAdded(event: RewardAdded): void {
+  const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
+
+  addOrUpdateVaultRewardRates(vault, event.address, event.params.rewardToken)
+
+  rewardsManager.save()
+}
+
+export function handleRewardsDurationUpdated(event: RewardsDurationUpdated): void {
+  const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
+
+  addOrUpdateVaultRewardRates(vault, event.address, event.params.rewardToken)
+
+  rewardsManager.save()
 }
