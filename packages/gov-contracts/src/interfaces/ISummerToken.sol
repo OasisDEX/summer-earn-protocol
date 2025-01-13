@@ -34,6 +34,8 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
      * @param maxSupply The maximum supply of the token
      * @param initialSupply The initial supply of the token
      * @param hubChainId The chain ID of the hub chain
+     * @param peerEndpointIds Array of chain IDs for peers
+     * @param peerAddresses Array of peer addresses corresponding to chainIds
      */
     struct TokenParams {
         string name;
@@ -49,6 +51,8 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
         uint256 maxSupply;
         uint256 initialSupply;
         uint32 hubChainId;
+        uint32[] peerEndpointIds; // Array of chain IDs for peers
+        address[] peerAddresses; // Array of peer addresses corresponding to chainIds
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -85,6 +89,11 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
      * @notice Emitted when transfers are enabled
      */
     event TransfersEnabled();
+
+    /**
+     * @notice Error thrown when invalid peer arrays are provided
+     */
+    error SummerTokenInvalidPeerArrays();
 
     /**
      * @notice Emitted when an address is whitelisted

@@ -9,7 +9,7 @@ enum DecayType {
   Exponential,
 }
 
-const HUB_CHAIN_ID = 8453n
+const HUB_CHAIN_ID = 8453n // BASE
 
 /**
  * @title Governance Module Deployment Script
@@ -77,6 +77,8 @@ export const GovModule = buildModule('GovModule', (m) => {
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
     initialSupply: initialSupply,
     hubChainId: HUB_CHAIN_ID,
+    peerEndpointIds: peerEndpointIds,
+    peerAddresses: peerAddresses,
   }
   const summerToken = m.contract('SummerToken', [summerTokenParams])
 
