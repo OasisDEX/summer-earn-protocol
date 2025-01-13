@@ -225,11 +225,10 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         vm.mockCall(
             address(rewardsController),
             abi.encodeWithSelector(
-                IRewardsController(rewardsController)
-                    .claimRewardsToSelf
-                    .selector,
+                IRewardsController(rewardsController).claimRewards.selector,
                 incentivizedAssets,
                 type(uint256).max,
+                address(raft),
                 mockRewardToken
             ),
             abi.encode(mockClaimedRewardsBalance)

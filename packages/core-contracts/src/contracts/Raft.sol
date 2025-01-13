@@ -173,27 +173,11 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IRaft
-    function getAuctionInfo(
-        address ark,
-        address rewardToken
-    ) external view returns (DutchAuctionLibrary.Auction memory) {
-        return auctions[ark][rewardToken];
-    }
-
-    /// @inheritdoc IRaft
     function getCurrentPrice(
         address ark,
         address rewardToken
     ) external view returns (uint256) {
         return _getCurrentPrice(auctions[ark][rewardToken]);
-    }
-
-    /// @inheritdoc IRaft
-    function getObtainedTokens(
-        address ark,
-        address rewardToken
-    ) external view returns (uint256) {
-        return obtainedTokens[ark][rewardToken];
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -302,7 +286,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         DutchAuctionLibrary.Auction
             memory newAuction = _createAuctionWithParams(
                 IERC20(rewardToken),
-                IERC20(IArk(ark).getConfig().asset),
+                IERC20(IArk(ark).asset()),
                 totalTokens,
                 address(this),
                 arkAuctionParameters[ark][rewardToken]
@@ -371,8 +355,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         address ark,
         bytes memory data
     ) internal {
-        DutchAuctionLibrary.Auction memory auction = auctions[ark][rewardToken];
-        IERC20 paymentToken = IERC20(auction.config.paymentToken);
+        IERC20 paymentToken = auctions[ark][rewardToken].config.paymentToken;
 
         uint256 balance = paymentTokensToBoard[ark][rewardToken];
         if (balance > 0) {

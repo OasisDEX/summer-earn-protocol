@@ -20,7 +20,6 @@ import {ApproxParams} from "@pendle/core-v2/contracts/router/base/MarketApproxLi
 import {SwapData} from "@pendle/core-v2/contracts/router/swap-aggregator/IPSwapAggregator.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage, PercentageUtils} from "@summerfi/percentage-solidity/contracts/PercentageUtils.sol";
-import {console} from "forge-std/console.sol";
 
 interface IERC20Extended is IERC20 {
     function decimals() external view returns (uint8);
@@ -460,11 +459,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             revert InvalidAsset(address(config.asset));
         }
         if (input.netTokenIn != _amount) revert InvalidAmount();
-
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
+
         IERC20(config.asset).approve(router, _amount);
-        IPAllActionV3(router).swapExactTokenForPt(
+        (uint256 netPtOut, , ) = IPAllActionV3(router).swapExactTokenForPt(
             receiver,
             swapMarket,
             minPtOut,
@@ -472,6 +471,13 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             input,
             limit
         );
+
+        uint256 expectedPtAmount = _fleetAssetToPt(_amount);
+        uint256 minExpectedPtAmount = expectedPtAmount.subtractPercentage(
+            slippagePercentage
+        );
+
+        if (netPtOut < minExpectedPtAmount) revert InsufficientOutputAmount();
     }
 
     /**
@@ -505,16 +511,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         }
 
         uint256 expectedPtAmount = _fleetAssetToPt(_amount);
-        uint256 minPtAmount = expectedPtAmount.subtractPercentage(
-            slippagePercentage
-        );
         uint256 maxPtAmount = expectedPtAmount.addPercentage(
             slippagePercentage
         );
 
-        if (exactPtIn < minPtAmount || exactPtIn > maxPtAmount) {
-            revert InvalidAmount();
-        }
+        if (exactPtIn > maxPtAmount) revert InvalidAmount();
 
         IERC20(PT).approve(router, exactPtIn);
         IPAllActionV3(router).swapExactPtForToken(
@@ -532,7 +533,6 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @param data Additional data for boarding
      */
     function _board(uint256 amount, bytes calldata data) internal override {
-        console.log("marketExpiry xx", marketExpiry);
         _rolloverIfNeeded();
         _swapFleetAssetForPt(amount, data);
     }
@@ -667,9 +667,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         );
 
         TokenInput memory tokenInput = TokenInput({
-            tokenIn: address(marketAsset),
+            tokenIn: marketAsset,
             netTokenIn: _amount,
-            tokenMintSy: address(marketAsset),
+            tokenMintSy: marketAsset,
             pendleSwap: address(0),
             swapData: emptySwap
         });
@@ -732,26 +732,18 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
     ) internal {
         if (ptAmount > 0) {
             IERC20(PT).approve(router, ptAmount);
-            IPAllActionV3(router).redeemPyToSy(
+            TokenOutput memory tokenOutput = TokenOutput({
+                tokenOut: marketAsset,
+                minTokenOut: minTokenOut,
+                tokenRedeemSy: marketAsset,
+                pendleSwap: address(0),
+                swapData: emptySwap
+            });
+            IPAllActionV3(router).redeemPyToToken(
                 address(this),
                 address(YT),
                 ptAmount,
-                minTokenOut
-            );
-        }
-
-        uint256 syBalance = IERC20(SY).balanceOf(address(this));
-        if (syBalance > 0) {
-            uint256 tokensToRedeem = IStandardizedYield(SY).previewRedeem(
-                marketAsset,
-                syBalance
-            );
-            IStandardizedYield(SY).redeem(
-                address(this),
-                syBalance,
-                marketAsset,
-                tokensToRedeem,
-                false
+                tokenOutput
             );
         }
     }
@@ -796,11 +788,8 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * current block timestamp.
      */
     modifier shouldBuy() {
-        console.log("marketExpiry xx", marketExpiry);
         _shouldTrade();
-        console.log("block.timestamp", block.timestamp);
         if (marketExpiry <= block.timestamp + 20 days) {
-            console.log("Market expiration is too close");
             revert MarketExpirationTooClose();
         }
         _;

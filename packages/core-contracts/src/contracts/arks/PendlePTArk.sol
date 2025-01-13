@@ -143,26 +143,18 @@ contract PendlePTArk is BasePendleArk {
         uint256 minTokenOut
     ) internal {
         if (ptAmount > 0) {
-            IPAllActionV3(router).redeemPyToSy(
+            TokenOutput memory tokenOutput = TokenOutput({
+                tokenOut: address(config.asset),
+                minTokenOut: minTokenOut,
+                tokenRedeemSy: address(config.asset),
+                pendleSwap: address(0),
+                swapData: emptySwap
+            });
+            IPAllActionV3(router).redeemPyToToken(
                 address(this),
                 address(YT),
                 ptAmount,
-                minTokenOut
-            );
-        }
-
-        uint256 syBalance = IERC20(SY).balanceOf(address(this));
-        if (syBalance > 0) {
-            uint256 tokensToRedeem = IStandardizedYield(SY).previewRedeem(
-                address(config.asset),
-                syBalance
-            );
-            IStandardizedYield(SY).redeem(
-                address(this),
-                syBalance,
-                address(config.asset),
-                tokensToRedeem,
-                false
+                tokenOutput
             );
         }
     }

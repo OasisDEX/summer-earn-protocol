@@ -82,10 +82,7 @@ contract TipJar is
         ) {
             revert TipStreamLockedForTooLong(tipStream.recipient);
         }
-        _validateTipStreamAllocation(
-            tipStream.allocation,
-            tipStreams[tipStream.recipient].allocation
-        );
+        _validateTipStreamAllocation(tipStream.allocation, toPercentage(0));
 
         // The allocation in TipStream uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision

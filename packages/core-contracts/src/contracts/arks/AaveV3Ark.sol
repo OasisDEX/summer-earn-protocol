@@ -117,12 +117,12 @@ contract AaveV3Ark is Ark {
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = aToken;
 
-        rewardAmounts[0] = rewardsController.claimRewardsToSelf(
+        rewardAmounts[0] = rewardsController.claimRewards(
             incentivizedAssets,
             Constants.MAX_UINT256,
+            raft(),
             rewardsData.rewardToken
         );
-        IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }

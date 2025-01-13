@@ -37,6 +37,44 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  */
 contract ProtocolAccessManaged is IAccessControlErrors, Context {
     /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Role identifier for protocol governors - highest privilege level with admin capabilities
+    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+
+    /// @notice Role identifier for super keepers who can globally perform fleet maintanence roles
+    bytes32 public constant SUPER_KEEPER_ROLE = keccak256("SUPER_KEEPER_ROLE");
+
+    /**
+     * @notice Role identifier for protocol guardians
+     * @dev Guardians have emergency powers across multiple protocol components:
+     * - Can pause/unpause Fleet operations for security
+     * - Can pause/unpause TipJar operations
+     * - Can cancel governance proposals on SummerGovernor even if they don't meet normal cancellation requirements
+     * - Can cancel TipJar proposals
+     *
+     * The guardian role serves as an emergency backstop to protect the protocol, but with less
+     * privilege than governors.
+     */
+    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+
+    /**
+     * @notice Role identifier for decay controller
+     * @dev This role allows the decay controller to manage the decay of user voting power
+     */
+    bytes32 public constant DECAY_CONTROLLER_ROLE =
+        keccak256("DECAY_CONTROLLER_ROLE");
+
+    /**
+     * @notice Role identifier for admirals quarters bundler contract
+     * @dev This role allows Admirals Quarters to unstake and withdraw assets from fleets, on behalf of users
+     * @dev Withdrawn tokens go straight to users wallet, lowering the risk of manipulation if the role is compromised
+     */
+    bytes32 public constant ADMIRALS_QUARTERS_ROLE =
+        keccak256("ADMIRALS_QUARTERS_ROLE");
+
+    /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
@@ -86,9 +124,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyGovernor() {
-        if (
-            !_accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), msg.sender)
-        ) {
+        if (!_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)) {
             revert CallerIsNotGovernor(msg.sender);
         }
         _;
@@ -113,11 +149,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
             !_accessManager.hasRole(
                 generateRole(ContractSpecificRoles.KEEPER_ROLE, address(this)),
                 msg.sender
-            ) &&
-            !_accessManager.hasRole(
-                _accessManager.SUPER_KEEPER_ROLE(),
-                msg.sender
-            )
+            ) && !_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)
         ) {
             revert CallerIsNotKeeper(msg.sender);
         }
@@ -137,12 +169,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlySuperKeeper() {
-        if (
-            !_accessManager.hasRole(
-                _accessManager.SUPER_KEEPER_ROLE(),
-                msg.sender
-            )
-        ) {
+        if (!_accessManager.hasRole(SUPER_KEEPER_ROLE, msg.sender)) {
             revert CallerIsNotSuperKeeper(msg.sender);
         }
         _;
@@ -179,9 +206,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * - Relies on the correct setup of the access manager
      */
     modifier onlyGuardian() {
-        if (
-            !_accessManager.hasRole(_accessManager.GUARDIAN_ROLE(), msg.sender)
-        ) {
+        if (!_accessManager.hasRole(GUARDIAN_ROLE, msg.sender)) {
             revert CallerIsNotGuardian(msg.sender);
         }
         _;
@@ -203,11 +228,8 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      */
     modifier onlyGuardianOrGovernor() {
         if (
-            !_accessManager.hasRole(
-                _accessManager.GUARDIAN_ROLE(),
-                msg.sender
-            ) &&
-            !_accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), msg.sender)
+            !_accessManager.hasRole(GUARDIAN_ROLE, msg.sender) &&
+            !_accessManager.hasRole(GOVERNOR_ROLE, msg.sender)
         ) {
             revert CallerIsNotGuardianOrGovernor(msg.sender);
         }
@@ -218,12 +240,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * @notice Modifier to restrict access to decay controllers only
      */
     modifier onlyDecayController() {
-        if (
-            !_accessManager.hasRole(
-                _accessManager.DECAY_CONTROLLER_ROLE(),
-                msg.sender
-            )
-        ) {
+        if (!_accessManager.hasRole(DECAY_CONTROLLER_ROLE, msg.sender)) {
             revert CallerIsNotDecayController(msg.sender);
         }
         _;
@@ -255,11 +272,7 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
     function hasAdmiralsQuartersRole(
         address account
     ) public view returns (bool) {
-        return
-            _accessManager.hasRole(
-                _accessManager.ADMIRALS_QUARTERS_ROLE(),
-                account
-            );
+        return _accessManager.hasRole(ADMIRALS_QUARTERS_ROLE, account);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -272,14 +285,10 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
      * @return bool True if the address has the Governor role
      */
     function _isGovernor(address account) internal view returns (bool) {
-        return _accessManager.hasRole(_accessManager.GOVERNOR_ROLE(), account);
+        return _accessManager.hasRole(GOVERNOR_ROLE, account);
     }
 
     function _isDecayController(address account) internal view returns (bool) {
-        return
-            _accessManager.hasRole(
-                _accessManager.DECAY_CONTROLLER_ROLE(),
-                account
-            );
+        return _accessManager.hasRole(DECAY_CONTROLLER_ROLE, account);
     }
 }

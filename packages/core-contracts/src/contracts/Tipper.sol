@@ -112,14 +112,14 @@ abstract contract Tipper is ITipper {
         address tipJar,
         uint256 totalSupply
     ) public view returns (uint256 tippedShares) {
-        if (tipRate == toPercentage(0)) return 0;
-
         uint256 timeElapsed = block.timestamp - lastTipTimestamp;
         if (timeElapsed == 0) return 0;
 
+        if (tipRate == toPercentage(0)) return 0;
+
         uint256 totalShares = totalSupply -
             IERC20(address(this)).balanceOf(tipJar);
-        uint256 tippedShares = _calculateTip(totalShares, timeElapsed);
+        tippedShares = _calculateTip(totalShares, timeElapsed);
         return tippedShares;
     }
 

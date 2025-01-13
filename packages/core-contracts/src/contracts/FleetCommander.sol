@@ -76,8 +76,8 @@ contract FleetCommander is
      * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
      *         those calls migh be gas expensive for some arks.
      */
-    modifier useDepositCache() {
-        _getArksData(getActiveArks(), config.bufferArk);
+    modifier useCache() {
+        _getArksData(getActiveArks, config.bufferArk);
         _;
         _flushCache();
     }
@@ -90,7 +90,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(getActiveArks(), config.bufferArk);
+        _getWithdrawableArksData(getActiveArks, config.bufferArk);
         _;
         _flushCache();
     }
@@ -104,7 +104,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused collectTip returns (uint256 shares) {
+    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -129,7 +129,7 @@ contract FleetCommander is
         public
         override(ERC4626, IFleetCommander)
         collectTip
-        useWithdrawCache
+        useCache
         whenNotPaused
         returns (uint256 assets)
     {
@@ -152,13 +152,7 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    )
-        public
-        collectTip
-        useWithdrawCache
-        whenNotPaused
-        returns (uint256 assets)
-    {
+    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -183,7 +177,7 @@ contract FleetCommander is
         public
         override(ERC4626, IFleetCommander)
         collectTip
-        useWithdrawCache
+        useCache
         whenNotPaused
         returns (uint256 shares)
     {
@@ -255,7 +249,7 @@ contract FleetCommander is
         public
         override(ERC4626, IERC4626)
         collectTip
-        useDepositCache
+        useCache
         whenNotPaused
         returns (uint256 shares)
     {
@@ -279,7 +273,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         bytes memory referralCode
-    ) external whenNotPaused returns (uint256) {
+    ) external returns (uint256) {
         emit FleetCommanderReferral(receiver, referralCode);
         return deposit(assets, receiver);
     }
@@ -292,7 +286,7 @@ contract FleetCommander is
         public
         override(ERC4626, IERC4626)
         collectTip
-        useDepositCache
+        useCache
         whenNotPaused
         returns (uint256 assets)
     {
@@ -351,12 +345,12 @@ contract FleetCommander is
         override(IFleetCommander, ERC4626)
         returns (uint256)
     {
-        return _totalAssets(getActiveArks(), config.bufferArk);
+        return _totalAssets(getActiveArks, config.bufferArk);
     }
 
     /// @inheritdoc IFleetCommander
     function withdrawableTotalAssets() public view returns (uint256) {
-        return _withdrawableTotalAssets(getActiveArks(), config.bufferArk);
+        return _withdrawableTotalAssets(getActiveArks, config.bufferArk);
     }
 
     /// @inheritdoc IERC4626
@@ -594,17 +588,14 @@ contract FleetCommander is
      *      1. The maximum allocation of the destination Ark
      *      2. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
-     * @return amount uint256 The actual amount of assets reallocated
      * @custom:error FleetCommanderEffectiveDepositCapExceeded Thrown when the destination Ark is already at or above
      * its maximum
      * allocation
      */
-    function _reallocateAssets(
-        RebalanceData memory data
-    ) internal returns (uint256 amount) {
+    function _reallocateAssets(RebalanceData memory data) internal {
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
-
+        uint256 amount;
         if (data.amount == Constants.MAX_UINT256) {
             amount = fromArk.totalAssets();
         } else {
