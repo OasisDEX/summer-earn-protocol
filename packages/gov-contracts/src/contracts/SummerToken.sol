@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {OFT, OFTCore} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -23,10 +23,12 @@ import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 import {DecayController} from "./DecayController.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title SummerToken
  * @dev Implementation of the Summer governance token with vesting, cross-chain, and voting decay capabilities.
+ * Delegation of voting power is restricted to the hub chain only.
  * @custom:security-contact security@summer.fi
  */
 contract SummerToken is
@@ -45,6 +47,8 @@ contract SummerToken is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice The chain ID of the hub chain where governance actions are permitted
+    uint32 public immutable hubChainId;
     IGovernanceRewardsManager public rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
     SummerVestingWalletFactory public vestingWalletFactory;
@@ -53,9 +57,41 @@ contract SummerToken is
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
 
     /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Modifier to restrict certain functions to only be called on the hub chain.
+     * This ensures that governance actions like delegation can only happen on the
+     * designated hub chain.
+     */
+    modifier onlyHubChain() {
+        if (block.chainid != hubChainId) {
+            revert NotHubChain(block.chainid, hubChainId);
+        }
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Initializes the Summer token with the specified parameters
+     * @param params TokenParams struct containing:
+     *        - name: Token name
+     *        - symbol: Token symbol
+     *        - lzEndpoint: LayerZero endpoint address
+     *        - owner: Initial owner address
+     *        - accessManager: Protocol access manager address
+     *        - maxSupply: Maximum token supply cap
+     *        - initialSupply: Initial token supply to mint
+     *        - transferEnableDate: Timestamp when transfers become enabled
+     *        - initialDecayRate: Initial voting power decay rate
+     *        - initialDecayFreeWindow: Initial decay-free window duration
+     *        - initialDecayFunction: Initial decay function type
+     *        - hubChainId: ID of the chain where governance actions are permitted
+     */
     constructor(
         TokenParams memory params
     )
@@ -66,6 +102,8 @@ contract SummerToken is
         DecayController(address(this))
         Ownable(params.owner)
     {
+        hubChainId = params.hubChainId;
+
         decayState.initialize(
             params.initialDecayFreeWindow,
             params.initialDecayRate,
@@ -114,6 +152,70 @@ contract SummerToken is
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Override the send function to add whitelist checks with self-transfer allowance
+     */
+    function send(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    )
+        external
+        payable
+        override(IOFT, OFTCore)
+        returns (
+            MessagingReceipt memory msgReceipt,
+            OFTReceipt memory oftReceipt
+        )
+    {
+        // Convert bytes32 to address using uint256 cast
+        address to = address(uint160(uint256(_sendParam.to)));
+
+        // Allow transfers if:
+        // 1. Transfers are enabled globally, or
+        // 2. The target address is whitelisted, or
+        // 3. The sender is sending to themselves
+        if (
+            !transfersEnabled && !whitelistedAddresses[to] && to != msg.sender
+        ) {
+            revert TransferNotAllowed();
+        }
+
+        // Debit the sender's balance
+        (uint256 amountSentLD, uint256 amountReceivedLD) = _debit(
+            msg.sender,
+            _sendParam.amountLD,
+            _sendParam.minAmountLD,
+            _sendParam.dstEid
+        );
+
+        // Build the message and options for LayerZero
+        (bytes memory message, bytes memory options) = _buildMsgAndOptions(
+            _sendParam,
+            amountReceivedLD
+        );
+
+        // Send the message to the LayerZero endpoint
+        msgReceipt = _lzSend(
+            _sendParam.dstEid,
+            message,
+            options,
+            _fee,
+            _refundAddress
+        );
+
+        // Formulate the OFT receipt
+        oftReceipt = OFTReceipt(amountSentLD, amountReceivedLD);
+
+        emit OFTSent(
+            msgReceipt.guid,
+            _sendParam.dstEid,
+            msg.sender,
+            amountSentLD,
+            amountReceivedLD
+        );
+    }
 
     /// @inheritdoc ISummerToken
     function getDecayFreeWindow() external view returns (uint40) {
@@ -178,13 +280,14 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Delegates voting power to a specified address
+     * @dev Delegates voting power to a specified address. Can only be called on the hub chain.
      * @param delegatee The address to delegate voting power to
      * @dev Updates the decay factor for the caller
+     * @custom:restriction This function can only be called on the hub chain
      */
     function delegate(
         address delegatee
-    ) public override(IVotes, Votes) updateDecay(_msgSender()) {
+    ) public override(IVotes, Votes) updateDecay(_msgSender()) onlyHubChain {
         super.delegate(delegatee);
     }
 
