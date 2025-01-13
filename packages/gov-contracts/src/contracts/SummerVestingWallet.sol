@@ -51,9 +51,6 @@ contract SummerVestingWallet is
     // Time-based vesting amount
     uint256 public timeBasedVestingAmount;
 
-    /// @dev The total amount of performance-based tokens (cached)
-    uint256 private _totalPerformanceTokens;
-
     //////////////////////////////////////////////
     ///              CONSTRUCTOR               ///
     //////////////////////////////////////////////
@@ -121,7 +118,6 @@ contract SummerVestingWallet is
     }
 
     function _addNewGoal(uint256 goalAmount) internal {
-        _totalPerformanceTokens += goalAmount;
         goalAmounts.push(goalAmount);
         goalsReached.push(false);
         emit NewGoalAdded(goalAmount, goalAmounts.length);
@@ -147,7 +143,6 @@ contract SummerVestingWallet is
 
         for (uint256 i = 0; i < goalAmounts.length; i++) {
             if (!goalsReached[i]) {
-                _totalPerformanceTokens -= goalAmounts[i];
                 goalAmounts[i] = 0;
             }
         }
