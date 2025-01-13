@@ -1,4 +1,7 @@
 import dotenv from 'dotenv'
+import fs from 'fs'
+import path from 'path'
+import prompts from 'prompts'
 import {
   Address,
   createPublicClient,
@@ -8,197 +11,372 @@ import {
   http,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { arbitrum } from 'viem/chains'
+import { arbitrum, base, mainnet } from 'viem/chains'
 
 dotenv.config()
 
-// Contract addresses
-const GOVERNOR_ADDRESS = process.env.ARB_SUMMER_GOVERNOR_ADDRESS as Address
-const PEER_GOVERNOR_ADDRESS = process.env.BASE_SUMMER_GOVERNOR_ADDRESS as Address
-const PEER_ENDPOINT_ID = process.env.BASE_ENDPOINT_ID as string
-const TIMELOCK_ADDRESS = process.env.ARB_TIMELOCK_ADDRESS as Address
-const RPC_URL = process.env.ARBITRUM_RPC_URL as string
-const CHAIN = arbitrum
-// const CHAIN = base;
+// Load configuration from index.json
+const configPath = path.resolve(__dirname, '../../config/index.json')
+const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
 
-// Verify addresses and endpoint ID are not empty
-if (!GOVERNOR_ADDRESS) {
-  throw new Error('GOVERNOR_ADDRESS is not set')
+// Define available chains and their configurations
+const chainConfigs = {
+  base: {
+    chain: base,
+    config: config.base,
+    rpcUrl: process.env.BASE_RPC_URL as string,
+  },
+  arbitrum: {
+    chain: arbitrum,
+    config: config.arbitrum,
+    rpcUrl: process.env.ARBITRUM_RPC_URL as string,
+  },
+  mainnet: {
+    chain: mainnet,
+    config: config.mainnet,
+    rpcUrl: process.env.MAINNET_RPC_URL as string,
+  },
 }
 
-if (!PEER_GOVERNOR_ADDRESS) {
-  throw new Error('PEER_GOVERNOR_ADDRESS is not set')
+async function promptForChain(): Promise<{
+  name: string
+  config: any
+  chain: any
+  rpcUrl: string
+}> {
+  const chainOptions = Object.keys(chainConfigs).map((key) => ({
+    title: key,
+    value: { name: key, ...chainConfigs[key as keyof typeof chainConfigs] },
+  }))
+
+  const { selectedChain } = await prompts({
+    type: 'select',
+    name: 'selectedChain',
+    message: 'Which chain would you like to execute this operation on?',
+    choices: chainOptions,
+  })
+
+  if (!selectedChain) throw new Error('No chain selected')
+
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: `Please confirm you want to execute on ${selectedChain.name}`,
+    initial: false,
+  })
+
+  if (!confirmed) {
+    throw new Error('Operation cancelled by user')
+  }
+
+  return selectedChain
 }
 
-if (!PEER_ENDPOINT_ID) {
-  throw new Error('PEER_ENDPOINT_ID is not set')
+// Add interface for peer chain selection
+interface PeerChainOption {
+  name: string
+  config: any
+  endpointId: string
 }
 
-if (!TIMELOCK_ADDRESS) {
-  throw new Error('TIMELOCK_ADDRESS is not set')
-}
-
-if (!RPC_URL) {
-  throw new Error('RPC_URL is not set')
-}
-
-console.log('Using addresses:')
-console.log('GOVERNOR_ADDRESS:', GOVERNOR_ADDRESS)
-console.log('PEER_GOVERNOR_ADDRESS:', PEER_GOVERNOR_ADDRESS)
-console.log('PEER_ENDPOINT_ID:', PEER_ENDPOINT_ID)
-console.log('TIMELOCK_ADDRESS:', TIMELOCK_ADDRESS)
-
-// Reduce gas parameters
-const GAS_LIMIT = 200000n // Reduced from 300000n
-const MAX_FEE_PER_GAS = 1500000000n // 1.5 gwei (reduced from 150 gwei)
-const MAX_PRIORITY_FEE_PER_GAS = 1500000000n // 1.5 gwei (reduced from 15 gwei)
-
-function createSetPeerCalldata(peerAddress: Address, endpointId: string): Hex {
-  const peerAddressAsBytes32 = `0x000000000000000000000000${peerAddress.slice(2)}` as Hex
-  console.log('peerAddressAsBytes32:', peerAddressAsBytes32)
-  return encodeFunctionData({
-    abi: [
-      {
-        name: 'setPeer',
-        type: 'function',
-        inputs: [
-          { name: '_eid', type: 'uint32' },
-          { name: '_peer', type: 'bytes32' },
-        ],
-        outputs: [],
-        stateMutability: 'nonpayable',
+async function promptForPeerChain(currentChain: string): Promise<PeerChainOption> {
+  const peerChainOptions = Object.entries(chainConfigs)
+    .filter(([key]) => key !== currentChain)
+    .map(([key, value]) => ({
+      title: key,
+      value: {
+        name: key,
+        config: value.config,
+        endpointId: value.config.common.layerZero.eID,
       },
-    ],
-    args: [Number(endpointId), peerAddressAsBytes32],
-  })
-}
+    }))
 
-async function scheduleSetPeerOperation(publicClient: any, walletClient: any, delay: bigint) {
-  const setPeerCalldata = createSetPeerCalldata(PEER_GOVERNOR_ADDRESS, PEER_ENDPOINT_ID)
-  console.log('setPeerCalldata:', setPeerCalldata)
-
-  const hasRole = await publicClient.readContract({
-    address: TIMELOCK_ADDRESS,
-    abi: [
-      {
-        name: 'hasRole',
-        type: 'function',
-        inputs: [
-          { name: 'role', type: 'bytes32' },
-          { name: 'account', type: 'address' },
-        ],
-        outputs: [{ type: 'bool' }],
-        stateMutability: 'view',
-      },
-    ],
-    functionName: 'hasRole',
-    args: [
-      '0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1', // PROPOSER_ROLE
-      walletClient.account.address,
-    ],
-  })
-  console.log('Has proposer role:', hasRole)
-
-  const scheduleTx = encodeFunctionData({
-    abi: [
-      {
-        name: 'schedule',
-        type: 'function',
-        inputs: [
-          { name: 'target', type: 'address' },
-          { name: 'value', type: 'uint256' },
-          { name: 'data', type: 'bytes' },
-          { name: 'predecessor', type: 'bytes32' },
-          { name: 'salt', type: 'bytes32' },
-          { name: 'delay', type: 'uint256' },
-        ],
-        outputs: [],
-        stateMutability: 'nonpayable',
-      },
-    ],
-    args: [
-      GOVERNOR_ADDRESS,
-      0n,
-      setPeerCalldata,
-      '0x0000000000000000000000000000000000000000000000000000000000000000',
-      '0x0000000000000000000000000000000000000000000000000000000000000000',
-      delay,
-    ],
+  const { selectedPeerChain } = await prompts({
+    type: 'select',
+    name: 'selectedPeerChain',
+    message: 'Which chain would you like to add as a peer?',
+    choices: peerChainOptions,
   })
 
-  const tx = await walletClient.sendTransaction({
-    to: TIMELOCK_ADDRESS,
-    data: scheduleTx,
-    value: 0n,
-    gas: GAS_LIMIT, // Use higher gas limit
-    maxFeePerGas: MAX_FEE_PER_GAS,
-    maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
+  if (!selectedPeerChain) throw new Error('No peer chain selected')
+
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: `Please confirm you want to add ${selectedPeerChain.name} as a peer`,
+    initial: false,
   })
 
-  console.log(`Schedule transaction sent: ${tx}`)
+  if (!confirmed) {
+    throw new Error('Operation cancelled by user')
+  }
 
-  // Add transaction receipt logging
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: tx })
-  console.log('Transaction mined:', {
-    blockNumber: receipt.blockNumber,
-    gasUsed: receipt.gasUsed,
-    effectiveGasPrice: receipt.effectiveGasPrice,
-  })
-}
-
-async function executeSetPeerOperation(walletClient: any) {
-  const setPeerCalldata = createSetPeerCalldata(PEER_GOVERNOR_ADDRESS, PEER_ENDPOINT_ID)
-
-  const executeTx = encodeFunctionData({
-    abi: [
-      {
-        name: 'execute',
-        type: 'function',
-        inputs: [
-          { name: 'target', type: 'address' },
-          { name: 'value', type: 'uint256' },
-          { name: 'data', type: 'bytes' },
-          { name: 'predecessor', type: 'bytes32' },
-          { name: 'salt', type: 'bytes32' },
-        ],
-        outputs: [],
-        stateMutability: 'payable',
-      },
-    ],
-    args: [
-      GOVERNOR_ADDRESS,
-      0n,
-      setPeerCalldata,
-      '0x0000000000000000000000000000000000000000000000000000000000000000',
-      '0x0000000000000000000000000000000000000000000000000000000000000000',
-    ],
-  })
-
-  const tx = await walletClient.sendTransaction({
-    to: TIMELOCK_ADDRESS,
-    data: executeTx,
-    value: 0n,
-    gas: GAS_LIMIT,
-    maxFeePerGas: MAX_FEE_PER_GAS,
-    maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
-  })
-
-  console.log(`Execute transaction sent: ${tx}`)
+  return selectedPeerChain
 }
 
 async function main() {
+  console.log('🚀 Starting peer addition process...\n')
+
+  // Get and confirm chain selection
+  const { config: chainConfig, chain, rpcUrl, name } = await promptForChain()
+
   const publicClient = createPublicClient({
-    chain: CHAIN,
-    transport: http(RPC_URL),
+    chain,
+    transport: http(rpcUrl),
   })
 
   const account = privateKeyToAccount(`0x${process.env.PRIVATE_KEY as Hex}`)
   const walletClient = createWalletClient({
     account,
-    chain: CHAIN,
-    transport: http(RPC_URL),
+    chain,
+    transport: http(rpcUrl),
   })
 
+  // Reduce gas parameters
+  const GAS_LIMIT = 500000n
+  const MAX_FEE_PER_GAS = 1500000000n // 1.5 gwei (reduced from 150 gwei)
+  const MAX_PRIORITY_FEE_PER_GAS = 1500000000n // 1.5 gwei (reduced from 15 gwei)
+
+  function createSetPeerCalldata(
+    peerAddress: Address,
+    endpointId: string,
+    targetContract: Address,
+  ): Hex {
+    const peerAddressAsBytes32 = `0x000000000000000000000000${peerAddress.slice(2)}` as Hex
+
+    return encodeFunctionData({
+      abi: [
+        {
+          name: 'setPeer',
+          type: 'function',
+          inputs: [
+            { name: '_eid', type: 'uint32' },
+            { name: '_peer', type: 'bytes32' },
+          ],
+          outputs: [],
+          stateMutability: 'nonpayable',
+        },
+      ],
+      args: [Number(endpointId), peerAddressAsBytes32],
+    })
+  }
+
+  async function scheduleSetPeerOperation(
+    publicClient: any,
+    walletClient: any,
+    delay: bigint,
+    targetContract: Address,
+  ) {
+    const setPeerCalldata = createSetPeerCalldata(
+      PEER_CONTRACT_ADDRESS,
+      PEER_ENDPOINT_ID,
+      targetContract,
+    )
+
+    const hasRole = await publicClient.readContract({
+      address: TIMELOCK_ADDRESS,
+      abi: [
+        {
+          name: 'hasRole',
+          type: 'function',
+          inputs: [
+            { name: 'role', type: 'bytes32' },
+            { name: 'account', type: 'address' },
+          ],
+          outputs: [{ type: 'bool' }],
+          stateMutability: 'view',
+        },
+      ],
+      functionName: 'hasRole',
+      args: [
+        '0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1', // PROPOSER_ROLE
+        walletClient.account.address,
+      ],
+    })
+    console.log('Has proposer role:', hasRole)
+
+    if (!hasRole) {
+      throw new Error('User does not have PROPOSER_ROLE')
+    }
+
+    const scheduleTx = encodeFunctionData({
+      abi: [
+        {
+          name: 'schedule',
+          type: 'function',
+          inputs: [
+            { name: 'target', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'data', type: 'bytes' },
+            { name: 'predecessor', type: 'bytes32' },
+            { name: 'salt', type: 'bytes32' },
+            { name: 'delay', type: 'uint256' },
+          ],
+          outputs: [],
+          stateMutability: 'nonpayable',
+        },
+      ],
+      args: [
+        targetContract, // Use the target contract address
+        0n,
+        setPeerCalldata,
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        delay,
+      ],
+    })
+
+    const tx = await walletClient.sendTransaction({
+      to: TIMELOCK_ADDRESS,
+      data: scheduleTx,
+      value: 0n,
+      gas: GAS_LIMIT, // Use increased gas limit
+      maxFeePerGas: MAX_FEE_PER_GAS,
+      maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
+    })
+
+    console.log(`Schedule transaction sent: ${tx}`)
+
+    // Add transaction receipt logging
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: tx })
+    console.log('Transaction mined:', {
+      blockNumber: receipt.blockNumber,
+      gasUsed: receipt.gasUsed,
+      effectiveGasPrice: receipt.effectiveGasPrice,
+    })
+  }
+
+  async function executeSetPeerOperation(walletClient: any, targetContract: Address) {
+    const setPeerCalldata = createSetPeerCalldata(
+      PEER_CONTRACT_ADDRESS,
+      PEER_ENDPOINT_ID,
+      targetContract,
+    )
+
+    const executeTx = encodeFunctionData({
+      abi: [
+        {
+          name: 'execute',
+          type: 'function',
+          inputs: [
+            { name: 'target', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'data', type: 'bytes' },
+            { name: 'predecessor', type: 'bytes32' },
+            { name: 'salt', type: 'bytes32' },
+          ],
+          outputs: [],
+          stateMutability: 'payable',
+        },
+      ],
+      args: [
+        targetContract, // Use the target contract address
+        0n,
+        setPeerCalldata,
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+      ],
+    })
+
+    const tx = await walletClient.sendTransaction({
+      to: TIMELOCK_ADDRESS,
+      data: executeTx,
+      value: 0n,
+      gas: GAS_LIMIT, // Use increased gas limit
+      maxFeePerGas: MAX_FEE_PER_GAS,
+      maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
+    })
+
+    console.log(`Execute transaction sent: ${tx}`)
+  }
+
+  // Add interface for contract options
+  interface ContractOption {
+    name: string
+    address: Address
+  }
+
+  async function promptForContract(): Promise<ContractOption> {
+    const contractOptions = [
+      {
+        title: 'Summer Token',
+        value: {
+          name: 'Summer Token',
+          address: chainConfig.deployedContracts.gov.summerToken.address as Address,
+        },
+      },
+      {
+        title: 'Governor',
+        value: {
+          name: 'Governor',
+          address: chainConfig.deployedContracts.gov.summerGovernor.address as Address,
+        },
+      },
+    ]
+
+    const { selectedContract } = await prompts({
+      type: 'select',
+      name: 'selectedContract',
+      message: 'Which contract would you like to add peers to?',
+      choices: contractOptions.map((contract) => ({
+        title: `${contract.title} (${contract.value.address})`,
+        value: contract.value,
+      })),
+    })
+
+    if (!selectedContract) throw new Error('No contract selected')
+
+    const { confirmed } = await prompts({
+      type: 'confirm',
+      name: 'confirmed',
+      message: `Please confirm you want to add a peer to ${selectedContract.name} at ${selectedContract.address}`,
+      initial: false,
+    })
+
+    if (!confirmed) {
+      throw new Error('Operation cancelled by user')
+    }
+
+    return selectedContract
+  }
+
+  // Get and confirm contract selection
+  const selectedContract = await promptForContract()
+
+  // Get and confirm peer chain selection
+  const peerChain = await promptForPeerChain(name)
+  console.log('peerChain', peerChain)
+
+  // Define peer address based on contract selection
+  const PEER_CONTRACT_ADDRESS =
+    selectedContract.name === 'Summer Token'
+      ? (peerChain.config.deployedContracts.gov.summerToken.address as Address)
+      : (peerChain.config.deployedContracts.gov.summerGovernor.address as Address)
+  const PEER_ENDPOINT_ID = peerChain.config.common.layerZero.eID as string
+
+  const TIMELOCK_ADDRESS = chainConfig.deployedContracts.gov.timelock.address as Address
+
+  // Show final confirmation with all details
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message:
+      `📝 Please review the operation details:\n\n` +
+      `Chain: ${name}\n` +
+      `Target Contract: ${selectedContract.name} (${selectedContract.address})\n` +
+      `Peer Chain: ${peerChain.name}\n` +
+      `Peer Address: ${PEER_CONTRACT_ADDRESS}\n` +
+      `Endpoint ID: ${PEER_ENDPOINT_ID}\n` +
+      `Timelock: ${TIMELOCK_ADDRESS}\n\n` +
+      `Would you like to proceed with scheduling this operation?`,
+    initial: false,
+  })
+
+  if (!confirmed) {
+    throw new Error('Operation cancelled by user')
+  }
+
+  console.log('\n🔄 Fetching timelock delay...')
   const delay = (await publicClient.readContract({
     address: TIMELOCK_ADDRESS,
     abi: [
@@ -213,13 +391,35 @@ async function main() {
     functionName: 'getMinDelay',
   })) as bigint
 
-  await scheduleSetPeerOperation(publicClient, walletClient, delay)
+  console.log(`⏰ Timelock delay: ${delay} seconds\n`)
 
-  console.log('Waiting for timelock delay...')
-  await new Promise((resolve) => setTimeout(resolve, Number(delay + 10n) * 1000))
+  // Schedule operation
+  console.log('📋 Scheduling operation...')
+  // await scheduleSetPeerOperation(publicClient, walletClient, delay, selectedContract.address)
 
-  console.log('Executing timelock operation...')
-  await executeSetPeerOperation(walletClient)
+  // Confirm execution
+  const { executeNow } = await prompts({
+    type: 'confirm',
+    name: 'executeNow',
+    message: `\nWould you like to wait ${delay} seconds and execute the operation?`,
+    initial: false,
+  })
+
+  if (!executeNow) {
+    console.log('❌ Operation scheduled but execution cancelled by user')
+    return
+  }
+
+  console.log('\n⏳ Waiting for timelock delay...')
+  // await new Promise((resolve) => setTimeout(resolve, Number(delay + 10n) * 1000))
+
+  console.log('🚀 Executing timelock operation...')
+  await executeSetPeerOperation(walletClient, selectedContract.address)
+
+  console.log('✅ Operation completed successfully!')
 }
 
-main()
+main().catch((error) => {
+  console.error('❌ Error:', error)
+  process.exit(1)
+})

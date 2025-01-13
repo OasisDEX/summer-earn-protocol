@@ -7,12 +7,6 @@
 [submodule "packages/external-dependencies/lib/forge-std"]
 	path = packages/external-dependencies/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "packages/external-dependencies/lib/metamorpho"]
-	path = packages/external-dependencies/lib/metamorpho
-	url = https://github.com/morpho-org/metamorpho
-[submodule "packages/external-dependencies/lib/morpho-blue"]
-	path = packages/external-dependencies/lib/morpho-blue
-	url = https://github.com/morpho-org/morpho-blue
 [submodule "packages/external-dependencies/lib/pendle-core-v2-public"]
 	path = packages/external-dependencies/lib/pendle-core-v2-public
 	url = https://github.com/pendle-finance/pendle-core-v2-public

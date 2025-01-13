@@ -463,7 +463,7 @@ contract FleetCommander is
     /// @inheritdoc IFleetCommander
     function updateRebalanceCooldown(
         uint256 newCooldown
-    ) external onlyGovernor whenNotPaused {
+    ) external onlyCurator(address(this)) whenNotPaused {
         _updateCooldown(newCooldown);
     }
 

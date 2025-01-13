@@ -50,8 +50,8 @@ async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
   for (const tokenSymbol in config.tokens) {
     const tokenAddress = config.tokens[tokenSymbol as TokenType]
     tokens.push({
-      title: tokenSymbol.toUpperCase(),
-      value: { address: tokenAddress, symbol: tokenSymbol.toUpperCase() },
+      title: tokenSymbol,
+      value: { address: tokenAddress, symbol: tokenSymbol },
     })
   }
 

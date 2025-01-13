@@ -74,6 +74,8 @@ export const GovModule = buildModule('GovModule', (m) => {
     transferEnableDate: 1731667188n,
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
     initialSupply: initialSupply,
+    peerEndpointIds: peerEndpointIds,
+    peerAddresses: peerAddresses,
   }
   const summerToken = m.contract('SummerToken', [summerTokenParams])
 

@@ -9,7 +9,7 @@ import {TestHelpers} from "../helpers/TestHelpers.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
 import "../../src/contracts/arks/CompoundV3Ark.sol";
 
-import "../../src/contracts/arks/MetaMorphoArk.sol";
+import "../../src/contracts/arks/MorphoVaultArk.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
 
 import "../../src/events/IArkEvents.sol";
@@ -33,7 +33,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     CompoundV3Ark public usdcCompoundArk;
     AaveV3Ark public usdcAaveArk;
     MorphoArk public usdcMorphoArk;
-    MetaMorphoArk public usdcMetaMorphoArk;
+    MorphoVaultArk public usdcMetaMorphoArk;
     ERC4626Ark public usdcGearboxERC4626Ark;
     ERC4626Ark public usdcFluidERC4626Ark;
     BufferArk public usdcBufferArk;
@@ -41,7 +41,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     // DAI Fleet Arks
     AaveV3Ark public daiAaveArk;
     MorphoArk public daiMorphoArk;
-    MetaMorphoArk public daiMetaMorphoArk;
+    MorphoVaultArk public daiMetaMorphoArk;
     ERC4626Ark public sDAIArk;
     BufferArk public daiBufferArk;
 
@@ -200,7 +200,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             USDC_MORPHO_MARKET_ID,
             usdcArkParams
         );
-        usdcMetaMorphoArk = new MetaMorphoArk(
+        usdcMetaMorphoArk = new MorphoVaultArk(
             USDC_METAMORPHO_ADDRESS,
             usdcArkParams
         );
@@ -223,7 +223,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
             DAI_MORPHO_MARKET_ID,
             daiArkParams
         );
-        daiMetaMorphoArk = new MetaMorphoArk(
+        daiMetaMorphoArk = new MorphoVaultArk(
             DAI_METAMORPHO_ADDRESS,
             daiArkParams
         );

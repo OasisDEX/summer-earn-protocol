@@ -1,6 +1,6 @@
 forge-std/=node_modules/@summerfi/dependencies/lib/forge-std/src/
-morpho-blue/=node_modules/@summerfi/dependencies/lib/metamorpho/lib/morpho-blue/src/
-metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho/src/
+morpho-blue/=node_modules/@summerfi/dependencies/lib/morpho-blue-local/src/
+metamorpho/=node_modules/@summerfi/dependencies/lib/metamorpho-local/src/
 @summerfi/dutch-auction/=node_modules/@summerfi/dutch-auction/src/
 @prb/math/=node_modules/@summerfi/dependencies/lib/prb-math/
 @summerfi/percentage-solidity/contracts/=node_modules/@summerfi/percentage-solidity/contracts/

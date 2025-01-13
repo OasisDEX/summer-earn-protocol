@@ -5,8 +5,13 @@ import {
   Ark,
   ArkDailySnapshot,
   ArkHourlySnapshot,
+  DailyInterestRate,
   FinancialsDailySnapshot,
+  HourlyInterestRate,
   Position,
+  PositionDailySnapshot,
+  PositionHourlySnapshot,
+  PositionWeeklySnapshot,
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
   RewardsManager,
@@ -18,6 +23,8 @@ import {
   VaultFee,
   VaultHourlySnapshot,
   Vault as VaultStore,
+  VaultWeeklySnapshot,
+  WeeklyInterestRate,
   YieldAggregator,
 } from '../../generated/schema'
 import {
@@ -28,12 +35,21 @@ import {
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-
 import { updateVaultAPRs } from '../mappings/entities/vault'
+import {
+  getDailyTimestamp,
+  getDailyVaultRateIdAndTimestamp,
+  getHourlyOffsetTimestamp,
+  getHourlyTimestamp,
+  getHourlyVaultRateIdAndTimestamp,
+  getWeeklyOffsetTimestamp,
+  getWeeklyVaultRateIdAndTimestamp,
+} from '../utils/vaultRateHandlers'
 import { addresses } from './addressProvider'
 import * as constants from './constants'
-import { RewardTokenType } from './constants'
+import { BigIntConstants, RewardTokenType } from './constants'
 import * as utils from './utils'
+getWeeklyVaultRateIdAndTimestamp
 
 export function getOrCreateAccount(id: string): Account {
   let account = Account.load(id)
@@ -42,7 +58,7 @@ export function getOrCreateAccount(id: string): Account {
     account = new Account(id)
     account.save()
 
-    const protocol = getOrCreateYieldAggregator()
+    const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
     protocol.cumulativeUniqueUsers += 1
     protocol.save()
   }
@@ -87,17 +103,25 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.stakedInputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.stakedInputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.unstakedInputTokenBalance = constants.BigIntConstants.ZERO
+    position.unstakedOutputTokenBalance = constants.BigIntConstants.ZERO
+    position.unstakedInputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    position.unstakedInputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.account = positionIdDetails[0]
     position.vault = positionIdDetails[1]
     position.createdBlockNumber = block.number
     position.createdTimestamp = block.timestamp
+    position.inputTokenDeposits = constants.BigIntConstants.ZERO
+    position.inputTokenWithdrawals = constants.BigIntConstants.ZERO
+    position.inputTokenDepositsNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.save()
   }
 
   return position
 }
 
-export function getOrCreateYieldAggregator(): YieldAggregator {
+export function getOrCreateYieldAggregator(timestamp: BigInt): YieldAggregator {
   let protocol = YieldAggregator.load(constants.PROTOCOL_ID)
   log.debug('getOrCreateYieldAggregator', [])
   if (!protocol) {
@@ -116,8 +140,12 @@ export function getOrCreateYieldAggregator(): YieldAggregator {
     protocol.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
     protocol.cumulativeUniqueUsers = 0
-    protocol.lastDailyUpdateTimestamp = constants.BigIntConstants.ZERO
-    protocol.lastHourlyUpdateTimestamp = constants.BigIntConstants.ZERO
+    protocol.lastDailyUpdateTimestamp = timestamp
+      .div(BigIntConstants.SECONDS_PER_DAY)
+      .times(BigIntConstants.SECONDS_PER_DAY)
+    protocol.lastHourlyUpdateTimestamp = timestamp
+      .div(BigIntConstants.SECONDS_PER_HOUR)
+      .times(BigIntConstants.SECONDS_PER_HOUR)
     protocol.totalPoolCount = 0
     protocol.vaultsArray = []
     protocol.save()
@@ -199,7 +227,7 @@ export function getOrCreateUsageMetricsDailySnapshot(
     usageMetrics.blockNumber = block.number
     usageMetrics.timestamp = block.timestamp
 
-    const protocol = getOrCreateYieldAggregator()
+    const protocol = getOrCreateYieldAggregator(block.timestamp)
     usageMetrics.totalPoolCount = protocol.totalPoolCount
 
     usageMetrics.save()
@@ -239,13 +267,11 @@ export function getOrCreateVaultsDailySnapshots(
 ): VaultDailySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
   const currentDay = block.timestamp.toI64() / constants.SECONDS_PER_DAY
-  const previousDay = currentDay - 1
-  const previousId = vault.id.concat('-').concat(previousDay.toString())
-  const previousSnapshot = VaultDailySnapshot.load(previousId)
+  const dailyTimestamp = getDailyTimestamp(block.timestamp)
+  const dailyRateId = getDailyVaultRateIdAndTimestamp(block, vault.id)
+  const dailyRate = DailyInterestRate.load(dailyRateId.dailyRateId)
 
-  const id: string = vault.id
-    .concat('-')
-    .concat((block.timestamp.toI64() / constants.SECONDS_PER_DAY).toString())
+  const id: string = vault.id.concat('-').concat(currentDay.toString())
   let vaultSnapshots = VaultDailySnapshot.load(id)
 
   if (!vaultSnapshots) {
@@ -266,19 +292,7 @@ export function getOrCreateVaultsDailySnapshots(
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
 
-    vaultSnapshots.calculatedApr = !previousSnapshot
-      ? constants.BigDecimalConstants.ZERO
-      : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.DAY_IN_SECONDS,
-        )
-    log.error('vaultSnapshots.pricePerShare {} previous {} day in seconds {} apr {}', [
-      vaultSnapshots.pricePerShare!.toString(),
-      previousSnapshot ? previousSnapshot.pricePerShare!.toString() : 'nope',
-      constants.BigDecimalConstants.DAY_IN_SECONDS.toString(),
-      vaultSnapshots.calculatedApr.toString(),
-    ])
+    vaultSnapshots.calculatedApr = dailyRate!.averageRate
     vaultSnapshots.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -289,11 +303,11 @@ export function getOrCreateVaultsDailySnapshots(
     vaultSnapshots.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
 
     vaultSnapshots.blockNumber = block.number
-    vaultSnapshots.timestamp = block.timestamp
+    vaultSnapshots.timestamp = dailyTimestamp
 
     vaultSnapshots.save()
 
-    updateVaultAPRs(vault, vaultSnapshots.calculatedApr)
+    updateVaultAPRs(vault, dailyRate!.averageRate)
     vault.save()
   }
 
@@ -305,12 +319,15 @@ export function getOrCreateVaultsHourlySnapshots(
   block: ethereum.Block,
 ): VaultHourlySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
-  const currentHour = block.timestamp.toI64() / constants.SECONDS_PER_HOUR
-  const previousHour = currentHour - 1
+  const hourTimestamp = getHourlyOffsetTimestamp(block.timestamp)
+  const currentHour = block.timestamp
+    .minus(BigIntConstants.SECONDS_PER_HOUR)
+    .div(BigIntConstants.SECONDS_PER_HOUR)
   const id: string = vault.id.concat('-').concat(currentHour.toString())
-  const previousId = vault.id.concat('-').concat(previousHour.toString())
 
-  const previousSnapshot = VaultHourlySnapshot.load(previousId)
+  const hourlyRateId = getHourlyVaultRateIdAndTimestamp(block, vault.id)
+  const hourlyRate = HourlyInterestRate.load(hourlyRateId.hourlyRateId)
+
   let vaultSnapshots = VaultHourlySnapshot.load(id)
 
   if (!vaultSnapshots) {
@@ -330,14 +347,7 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.pricePerShare = vault.pricePerShare
       ? vault.pricePerShare!
       : constants.BigDecimalConstants.ZERO
-    vaultSnapshots.calculatedApr = !previousSnapshot
-      ? constants.BigDecimalConstants.ZERO
-      : utils.getAprForTimePeriod(
-          previousSnapshot.pricePerShare!,
-          vault.pricePerShare!,
-          constants.BigDecimalConstants.HOUR_IN_SECONDS,
-        )
-
+    vaultSnapshots.calculatedApr = hourlyRate!.averageRate
     vaultSnapshots.hourlySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     vaultSnapshots.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
 
@@ -348,7 +358,7 @@ export function getOrCreateVaultsHourlySnapshots(
     vaultSnapshots.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
 
     vaultSnapshots.blockNumber = block.number
-    vaultSnapshots.timestamp = block.timestamp
+    vaultSnapshots.timestamp = hourTimestamp
     vaultSnapshots.save()
   }
 
@@ -433,10 +443,11 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.rewardTokenEmissionsUSD = []
     vault.rewardTokenEmissionsAmountsPerOutputToken = []
     vault.rewardTokenEmissionsFinish = []
+    vault.positions = []
 
     vault.save()
 
-    const yeildAggregator = getOrCreateYieldAggregator()
+    const yeildAggregator = getOrCreateYieldAggregator(block.timestamp)
     const vaultsArray = yeildAggregator.vaultsArray
     vaultsArray.push(vault.id)
     yeildAggregator.vaultsArray = vaultsArray
@@ -445,6 +456,9 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     FleetCommanderTemplate.create(vaultAddress)
     FleetCommanderRewardsManagerTemplate.create(config.stakingRewardsManager)
+
+    const bufferArk = vaultContract.bufferArk()
+    getOrCreateArk(vaultAddress, bufferArk, block)
   }
 
   return vault
@@ -680,4 +694,222 @@ export function getOrCreateVaultsPostActionSnapshots(
   }
 
   return vaultSnapshots
+}
+
+export function getOrCreatePositionHourlySnapshot(
+  positionId: string,
+  vaultId: Address,
+  block: ethereum.Block,
+): void {
+  const hourTimestamp = getHourlyTimestamp(block.timestamp)
+  const snapshotId = positionId + '-' + hourTimestamp.toString()
+  let snapshot = PositionHourlySnapshot.load(snapshotId)
+
+  const vault = getOrCreateVault(vaultId, block)
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
+  if (!snapshot) {
+    snapshot = new PositionHourlySnapshot(snapshotId)
+    snapshot.position = positionId
+    snapshot.timestamp = hourTimestamp
+    snapshot.inputTokenBalance = constants.BIGINT_ZERO
+    snapshot.outputTokenBalance = constants.BIGINT_ZERO
+  }
+
+  // Update balances
+  const position = Position.load(positionId)
+  if (position) {
+    snapshot.outputTokenBalance = position.outputTokenBalance
+
+    position.inputTokenBalance = position.outputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+    position.stakedInputTokenBalance = position.stakedOutputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+
+    snapshot.inputTokenBalance = snapshot.outputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+
+    // Update normalized values
+    position.inputTokenBalanceNormalized = utils.formatAmount(
+      position.inputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
+    position.stakedInputTokenBalanceNormalized = utils.formatAmount(
+      position.stakedInputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
+    position.inputTokenBalanceNormalizedInUSD = position.inputTokenBalanceNormalized.times(
+      vault.inputTokenPriceUSD!,
+    )
+    position.stakedInputTokenBalanceNormalizedInUSD =
+      position.stakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
+
+    snapshot.inputTokenBalanceNormalizedInUSD = utils
+      .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
+      .times(vault.inputTokenPriceUSD!)
+    snapshot.inputTokenDeposits = position.inputTokenDeposits
+    snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
+    snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+    snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+    position.save()
+  }
+
+  snapshot.save()
+}
+
+// Function to create or update position daily snapshots
+export function getOrCreatePositionDailySnapshot(
+  positionId: string,
+  vaultId: Address,
+  block: ethereum.Block,
+): void {
+  const dayTimestamp = getDailyTimestamp(block.timestamp)
+
+  const snapshotId = positionId + '-' + dayTimestamp.toString()
+  let snapshot = PositionDailySnapshot.load(snapshotId)
+  const vault = getOrCreateVault(vaultId, block)
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
+  if (!snapshot) {
+    snapshot = new PositionDailySnapshot(snapshotId)
+    snapshot.position = positionId
+    snapshot.timestamp = dayTimestamp
+    snapshot.inputTokenBalance = constants.BIGINT_ZERO
+    snapshot.outputTokenBalance = constants.BIGINT_ZERO
+  }
+
+  // Update balances
+  const position = Position.load(positionId)
+  if (position) {
+    snapshot.outputTokenBalance = position.outputTokenBalance
+
+    snapshot.inputTokenBalance = snapshot.outputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+    snapshot.inputTokenBalanceNormalizedInUSD = utils
+      .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
+      .times(vault.inputTokenPriceUSD!)
+    snapshot.inputTokenDeposits = position.inputTokenDeposits
+    snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
+    snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+    snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+  }
+
+  snapshot.save()
+}
+
+// Function to create or update position weekly snapshots
+export function getOrCreatePositionWeeklySnapshot(
+  positionId: string,
+  vaultId: Address,
+  block: ethereum.Block,
+): void {
+  const weekTimestamp = getWeeklyOffsetTimestamp(block.timestamp)
+
+  const snapshotId = positionId + '-' + weekTimestamp.toString()
+  let snapshot = PositionWeeklySnapshot.load(snapshotId)
+  const vault = getOrCreateVault(vaultId, block)
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
+  if (!snapshot) {
+    snapshot = new PositionWeeklySnapshot(snapshotId)
+    snapshot.position = positionId
+    snapshot.timestamp = weekTimestamp
+    snapshot.inputTokenBalance = constants.BIGINT_ZERO
+    snapshot.outputTokenBalance = constants.BIGINT_ZERO
+  }
+
+  // Update balances
+  const position = Position.load(positionId)
+  if (position) {
+    snapshot.outputTokenBalance = position.outputTokenBalance
+
+    snapshot.inputTokenBalance = snapshot.outputTokenBalance
+      .times(vault.inputTokenBalance)
+      .div(vault.outputTokenSupply)
+    snapshot.inputTokenBalanceNormalizedInUSD = utils
+      .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
+      .times(vault.inputTokenPriceUSD!)
+    snapshot.inputTokenDeposits = position.inputTokenDeposits
+    snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
+    snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+    snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+  }
+
+  snapshot.save()
+}
+
+export function getOrCreateVaultWeeklySnapshots(
+  vaultAddress: Address,
+  block: ethereum.Block,
+): void {
+  const weekTimestamp = getWeeklyOffsetTimestamp(block.timestamp)
+  const snapshotId = vaultAddress.toHexString() + '-' + weekTimestamp.toString()
+  let snapshot = VaultWeeklySnapshot.load(snapshotId)
+
+  const weeklyRateId = getWeeklyVaultRateIdAndTimestamp(block, vaultAddress.toHexString())
+  const weeklyRate = WeeklyInterestRate.load(weeklyRateId.weeklyRateId)
+
+  if (!snapshot) {
+    snapshot = new VaultWeeklySnapshot(snapshotId)
+    const vault = getOrCreateVault(vaultAddress, block)
+    const protocol = getOrCreateYieldAggregator(block.timestamp)
+
+    snapshot.protocol = protocol.id
+    snapshot.vault = vault.id
+    snapshot.blockNumber = block.number
+    snapshot.timestamp = weekTimestamp
+
+    // Initialize metrics
+    snapshot.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
+    snapshot.inputTokenBalance = constants.BigIntConstants.ZERO
+    snapshot.outputTokenSupply = constants.BigIntConstants.ZERO
+    snapshot.weeklySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
+    snapshot.weeklyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
+    snapshot.weeklyTotalRevenueUSD = constants.BigDecimalConstants.ZERO
+    snapshot.cumulativeSupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
+    snapshot.cumulativeProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
+    snapshot.cumulativeTotalRevenueUSD = constants.BigDecimalConstants.ZERO
+    snapshot.calculatedApr = constants.BigDecimalConstants.ZERO
+
+    snapshot.save()
+  }
+
+  // Update snapshot with current values
+  const vault = getOrCreateVault(vaultAddress, block)
+  snapshot.totalValueLockedUSD = vault.totalValueLockedUSD
+  snapshot.inputTokenBalance = vault.inputTokenBalance
+  snapshot.outputTokenSupply = vault.outputTokenSupply
+  snapshot.outputTokenPriceUSD = vault.outputTokenPriceUSD
+  snapshot.inputTokenPriceUSD = vault.inputTokenPriceUSD
+  snapshot.pricePerShare = vault.pricePerShare
+  snapshot.stakedOutputTokenAmount = vault.stakedOutputTokenAmount
+  snapshot.rewardTokenEmissionsAmount = vault.rewardTokenEmissionsAmount
+  snapshot.rewardTokenEmissionsUSD = vault.rewardTokenEmissionsUSD
+  snapshot.calculatedApr = weeklyRate!.averageRate
+
+  // Update cumulative and weekly revenues
+  const previousSnapshot = VaultWeeklySnapshot.load(
+    vaultAddress.toHexString() +
+      '-' +
+      weekTimestamp.minus(BigIntConstants.SECONDS_PER_WEEK).toString(),
+  )
+
+  if (previousSnapshot) {
+    snapshot.weeklySupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD.minus(
+      previousSnapshot.cumulativeSupplySideRevenueUSD,
+    )
+    snapshot.weeklyProtocolSideRevenueUSD = vault.cumulativeProtocolSideRevenueUSD.minus(
+      previousSnapshot.cumulativeProtocolSideRevenueUSD,
+    )
+    snapshot.weeklyTotalRevenueUSD = vault.cumulativeTotalRevenueUSD.minus(
+      previousSnapshot.cumulativeTotalRevenueUSD,
+    )
+  }
+
+  snapshot.cumulativeSupplySideRevenueUSD = vault.cumulativeSupplySideRevenueUSD
+  snapshot.cumulativeProtocolSideRevenueUSD = vault.cumulativeProtocolSideRevenueUSD
+  snapshot.cumulativeTotalRevenueUSD = vault.cumulativeTotalRevenueUSD
+
+  snapshot.save()
 }
