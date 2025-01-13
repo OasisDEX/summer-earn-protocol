@@ -42,6 +42,8 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
       ? rewardTokenEmissionsAmounts[i].div(totalSupply)
       : constants.BigIntConstants.ZERO
   }
+  const arks = vault.arksArray
+  const arksAddresses = arks.map<Address>((ark) => Address.fromString(ark))
 
   return new VaultDetails(
     vault.id,
@@ -57,5 +59,6 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     withdrawableAssets,
     withdrawableAssetsUSD,
     rewardTokenEmissionsAmountsPerOutputToken,
+    arksAddresses,
   )
 }

@@ -386,6 +386,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.maxRebalanceOperations = config.maxRebalanceOperations
     vault.details = utils.readValue<string>(vaultContract.try_details(), '')
+    vault.rebalanceCount = constants.BigIntConstants.ZERO
 
     const inputToken = getOrCreateToken(vaultContract.asset())
     vault.inputToken = inputToken.id

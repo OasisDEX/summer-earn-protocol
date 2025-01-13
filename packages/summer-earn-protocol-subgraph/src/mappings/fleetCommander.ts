@@ -18,7 +18,7 @@ import {
   Rebalanced,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { ADDRESS_ZERO } from '../common/constants'
+import { ADDRESS_ZERO, BigIntConstants } from '../common/constants'
 import {
   getOrCreateAccount,
   getOrCreateArk,
@@ -38,7 +38,9 @@ import { createWithdrawEventEntity } from './entities/withdraw'
 
 export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
-  updateVaultAndArks(event, vault)
+  updateVaultAndArks(event, vault.id)
+  vault.rebalanceCount = vault.rebalanceCount.plus(BigIntConstants.ONE)
+  vault.save()
 }
 
 export function handleArkAdded(event: ArkAdded): void {
@@ -80,7 +82,7 @@ export function handleFleetCommanderWithdrawnFromArks(
   event: FleetCommanderWithdrawnFromArks,
 ): void {
   const vault = getOrCreateVault(event.address, event.block)
-  updateVaultAndArks(event, vault)
+  updateVaultAndArks(event, vault.id)
 }
 
 export function handleFleetCommanderMinimumBufferBalanceUpdated(

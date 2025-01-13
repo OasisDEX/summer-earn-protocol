@@ -8,13 +8,19 @@ import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {IGovernanceRewardsManager} from "./IGovernanceRewardsManager.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-
+import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 /**
  * @title ISummerToken
  * @dev Interface for the Summer governance token, combining ERC20, permit functionality,
  * and voting decay mechanisms
  */
-interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
+interface ISummerToken is
+    IOFT,
+    IERC20,
+    IERC20Permit,
+    ISummerTokenErrors,
+    IVotes
+{
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -33,6 +39,7 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
      * @param transferEnableDate The transfer enable date
      * @param maxSupply The maximum supply of the token
      * @param initialSupply The initial supply of the token
+     * @param hubChainId The chain ID of the hub chain
      * @param peerEndpointIds Array of chain IDs for peers
      * @param peerAddresses Array of peer addresses corresponding to chainIds
      */
@@ -49,6 +56,7 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
         uint256 transferEnableDate;
         uint256 maxSupply;
         uint256 initialSupply;
+        uint32 hubChainId;
         uint32[] peerEndpointIds; // Array of chain IDs for peers
         address[] peerAddresses; // Array of peer addresses corresponding to chainIds
     }
@@ -56,6 +64,13 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
+
+    /*
+     * @dev Error thrown when the chain is not the hub chain
+     * @param chainId The chain ID
+     * @param hubChainId The hub chain ID
+     */
+    error NotHubChain(uint256 chainId, uint256 hubChainId);
 
     /**
      * @notice Error thrown when transfers are not allowed
@@ -71,6 +86,11 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
      * @notice Error thrown when transfers are already enabled
      */
     error TransfersAlreadyEnabled();
+
+    /**
+     * @notice Error thrown when the address length is invalid
+     */
+    error InvalidAddressLength();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
