@@ -5,22 +5,17 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ISummerRewardsRedeemer} from "../interfaces/ISummerRewardsRedeemer.sol";
 
 /**
  * @title SummerRewardsRedeemer
  * @author Summer.fi
- * @notice Contract for managing and distributing token rewards using Merkle proofs
- * @dev This contract enables efficient distribution of rewards to multiple users
- *      using Merkle trees. Each distribution is identified by an index and has its
- *      own Merkle root. Users can claim their rewards by providing proofs of inclusion.
- *
- *      Security features:
- *      - Double-hashed leaves to prevent second preimage attacks
- *      - Bitmap-based claim tracking
- *      - Safe ERC20 transfers
- *      - Governance-controlled root management
+ * @notice Implementation of ISummerRewardsRedeemer
  */
-contract SummerRewardsRedeemer is ProtocolAccessManaged {
+contract SummerRewardsRedeemer is
+    ISummerRewardsRedeemer,
+    ProtocolAccessManaged
+{
     using BitMaps for BitMaps.BitMap;
     using SafeERC20 for IERC20;
 
@@ -48,37 +43,6 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
      */
     mapping(address user => BitMaps.BitMap claimedRoots) private claimedRoots;
 
-    /// EVENTS
-    event Claimed(address indexed user, uint256 indexed index, uint256 amount);
-    event RootAdded(uint256 indexed index, bytes32 root);
-    event RootRemoved(uint256 indexed index);
-
-    /// ERRORS
-    error InvalidRewardsToken(address token);
-    error RootAlreadyAdded(uint256 index, bytes32 root);
-    error UserCannotClaim(
-        address user,
-        uint256 index,
-        uint256 amount,
-        bytes32[] proof
-    );
-    error UserAlreadyClaimed(
-        address user,
-        uint256 index,
-        uint256 amount,
-        bytes32[] proof
-    );
-    error ClaimMultipleLengthMismatch(
-        uint256[] indices,
-        uint256[] amounts,
-        bytes32[][] proofs
-    );
-    error ClaimMultipleEmpty(
-        uint256[] indices,
-        uint256[] amounts,
-        bytes32[][] proofs
-    );
-
     /// CONSTRUCTOR
     constructor(
         address _rewardsToken,
@@ -93,13 +57,7 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
 
     /// EXTERNAL FUNCTIONS
 
-    /**
-     * @notice Adds a new Merkle root for a distribution
-     * @param index Unique identifier for the distribution
-     * @param root Merkle root hash of the distribution
-     * @dev Only callable by governance
-     * @dev Reverts if root already exists for the given index
-     */
+    /// @inheritdoc ISummerRewardsRedeemer
     function addRoot(uint256 index, bytes32 root) external onlyGovernor {
         if (roots[index] != bytes32(0)) {
             revert RootAlreadyAdded(index, root);
@@ -108,99 +66,61 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
         emit RootAdded(index, root);
     }
 
-    /**
-     * @notice Removes a Merkle root
-     * @param index Distribution index to remove
-     * @dev Only callable by governance
-     * @dev Used for correcting errors or updating distributions
-     */
+    /// @inheritdoc ISummerRewardsRedeemer
     function removeRoot(uint256 index) external onlyGovernor {
         delete roots[index];
         emit RootRemoved(index);
     }
 
+    /// @inheritdoc ISummerRewardsRedeemer
     function getRoot(uint256 index) external view returns (bytes32) {
         return roots[index];
     }
 
-    /**
-     * @notice Checks if a user can claim from a distribution
-     * @param index Distribution index to check
-     * @param amount Amount attempting to claim
-     * @param proof Merkle proof to verify
-     * @return bool True if claim is possible, false otherwise
-     * @dev Returns false if already claimed or proof is invalid
-     */
+    /// @inheritdoc ISummerRewardsRedeemer
     function canClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] memory proof
     ) external view returns (bool) {
         return
-            _couldClaim(index, amount, proof) &&
-            !hasClaimed(_msgSender(), index);
+            _couldClaim(user, index, amount, proof) && !hasClaimed(user, index);
     }
 
-    /**
-     * @notice Claims rewards for a single distribution
-     * @param index Distribution index to claim from
-     * @param amount Amount of tokens to claim
-     * @param proof Merkle proof verifying the claim
-     * @dev Verifies proof, marks claim as processed, and transfers tokens
-     */
+    /// @inheritdoc ISummerRewardsRedeemer
     function claim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] calldata proof
     ) external {
-        BitMaps.BitMap storage userClaimedRoots = claimedRoots[_msgSender()];
+        BitMaps.BitMap storage userClaimedRoots = claimedRoots[user];
 
-        _processClaim(index, amount, proof, userClaimedRoots);
-        _sendRewards(_msgSender(), amount);
+        _processClaim(user, index, amount, proof, userClaimedRoots);
+        _sendRewards(user, amount);
     }
 
-    /**
-     * @notice Claims rewards from multiple distributions at once
-     * @param indices Array of distribution indices to claim from
-     * @param amounts Array of amounts to claim from each distribution
-     * @param proofs Array of Merkle proofs for each claim
-     * @dev Processes multiple claims in a single transaction
-     * @dev All arrays must be equal length and non-empty
-     */
+    /// @inheritdoc ISummerRewardsRedeemer
+    function claimMultiple(
+        address user,
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external {
+        _claimMultiple(user, indices, amounts, proofs);
+    }
+
+    /// @inheritdoc ISummerRewardsRedeemer
     function claimMultiple(
         uint256[] calldata indices,
         uint256[] calldata amounts,
         bytes32[][] calldata proofs
     ) external {
-        if (
-            indices.length != amounts.length || amounts.length != proofs.length
-        ) {
-            revert ClaimMultipleLengthMismatch(indices, amounts, proofs);
-        }
-        if (indices.length == 0) {
-            revert ClaimMultipleEmpty(indices, amounts, proofs);
-        }
-
-        uint256 total;
-        BitMaps.BitMap storage userClaimedRoots = claimedRoots[_msgSender()];
-
-        for (uint256 i = 0; i < indices.length; i += 1) {
-            _processClaim(indices[i], amounts[i], proofs[i], userClaimedRoots);
-
-            total += amounts[i];
-        }
-
-        _sendRewards(_msgSender(), total);
+        _claimMultiple(_msgSender(), indices, amounts, proofs);
     }
 
-    /**
-     * @notice Emergency withdrawal of tokens
-     * @param token Address of token to withdraw
-     * @param to Address to send tokens to
-     * @param amount Amount of tokens to withdraw
-     * @dev Only callable by governance
-     * @dev Used for recovering stuck tokens or handling emergencies
-     */
+    /// @inheritdoc ISummerRewardsRedeemer
     function emergencyWithdraw(
         address token,
         address to,
@@ -212,57 +132,88 @@ contract SummerRewardsRedeemer is ProtocolAccessManaged {
     /// INTERNALS
 
     function _couldClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] memory proof
     ) internal view returns (bool) {
         bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(_msgSender(), amount)))
+            bytes.concat(keccak256(abi.encode(user, amount)))
         );
         return MerkleProof.verify(proof, roots[index], leaf);
     }
 
     function _verifyClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] memory proof
     ) internal view {
-        if (!_couldClaim(index, amount, proof)) {
-            revert UserCannotClaim(_msgSender(), index, amount, proof);
+        if (!_couldClaim(user, index, amount, proof)) {
+            revert UserCannotClaim(user, index, amount, proof);
         }
 
-        if (hasClaimed(_msgSender(), index)) {
-            revert UserAlreadyClaimed(_msgSender(), index, amount, proof);
+        if (hasClaimed(user, index)) {
+            revert UserAlreadyClaimed(user, index, amount, proof);
         }
     }
 
     function _processClaim(
+        address user,
         uint256 index,
         uint256 amount,
         bytes32[] calldata proof,
         BitMaps.BitMap storage userClaimedRoots
     ) internal {
-        _verifyClaim(index, amount, proof);
+        _verifyClaim(user, index, amount, proof);
 
         userClaimedRoots.set(index);
 
-        emit Claimed(_msgSender(), index, amount);
+        emit Claimed(user, index, amount);
     }
 
     function _sendRewards(address to, uint256 amount) internal {
         rewardsToken.safeTransfer(to, amount);
     }
 
-    /**
-     * @notice Checks if a user has already claimed from a distribution
-     * @param user Address to check
-     * @param index Distribution index to check
-     * @return bool True if already claimed, false otherwise
-     */
+    /// @inheritdoc ISummerRewardsRedeemer
     function hasClaimed(
         address user,
         uint256 index
     ) public view returns (bool) {
         return claimedRoots[user].get(index);
+    }
+
+    function _claimMultiple(
+        address user,
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) internal {
+        if (
+            indices.length != amounts.length || amounts.length != proofs.length
+        ) {
+            revert ClaimMultipleLengthMismatch(indices, amounts, proofs);
+        }
+        if (indices.length == 0) {
+            revert ClaimMultipleEmpty(indices, amounts, proofs);
+        }
+
+        uint256 total;
+        BitMaps.BitMap storage userClaimedRoots = claimedRoots[user];
+
+        for (uint256 i = 0; i < indices.length; i += 1) {
+            _processClaim(
+                user,
+                indices[i],
+                amounts[i],
+                proofs[i],
+                userClaimedRoots
+            );
+
+            total += amounts[i];
+        }
+
+        _sendRewards(user, total);
     }
 }
