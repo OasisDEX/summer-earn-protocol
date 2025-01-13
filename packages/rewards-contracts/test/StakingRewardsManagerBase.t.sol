@@ -272,6 +272,11 @@ contract StakingRewardsManagerBaseTest is Test {
 
     function test_Stake() public {
         uint256 stakeAmount = 1000 * 1e18;
+
+        // Expect the Staked event with correct parameters
+        vm.expectEmit(true, true, false, true);
+        emit IStakingRewardsManagerBase.Staked(alice, alice, stakeAmount);
+
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
@@ -291,6 +296,11 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 stakeAmount = 1000 * 1e18;
         vm.startPrank(alice);
         stakingRewardsManager.stake(stakeAmount);
+
+        // Expect the Unstaked event with correct parameters
+        vm.expectEmit(true, true, false, true);
+        emit IStakingRewardsManagerBase.Unstaked(alice, alice, stakeAmount);
+
         stakingRewardsManager.unstake(stakeAmount);
         vm.stopPrank();
 
@@ -303,6 +313,38 @@ contract StakingRewardsManagerBaseTest is Test {
             stakingRewardsManager.totalSupply(),
             0,
             "Total supply should be zero after unstake"
+        );
+    }
+
+    function test_StakeOnBehalfOf() public {
+        uint256 stakeAmount = 1000 * 1e18;
+
+        // First approve the tokens
+        vm.startPrank(alice);
+        mockStakingToken.approve(address(stakingRewardsManager), stakeAmount);
+
+        // Expect the Staked event with correct parameters
+        vm.expectEmit(true, true, false, true, address(stakingRewardsManager));
+        emit IStakingRewardsManagerBase.Staked(alice, bob, stakeAmount);
+
+        // Then call stakeOnBehalfOf
+        stakingRewardsManager.stakeOnBehalfOf(bob, stakeAmount);
+        vm.stopPrank();
+
+        assertEq(
+            stakingRewardsManager.balanceOf(bob),
+            stakeAmount,
+            "Stake amount should be correct for receiver"
+        );
+        assertEq(
+            stakingRewardsManager.balanceOf(alice),
+            0,
+            "Staker should have no balance"
+        );
+        assertEq(
+            stakingRewardsManager.totalSupply(),
+            stakeAmount,
+            "Total supply should be updated"
         );
     }
 
