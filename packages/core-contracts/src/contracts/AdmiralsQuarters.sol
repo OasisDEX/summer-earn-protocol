@@ -12,6 +12,7 @@ import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
 import {IAToken} from "../interfaces/aave-v3/IAtoken.sol";
 import {IPoolV3} from "../interfaces/aave-v3/IPoolV3.sol";
 import {IComet} from "../interfaces/compound-v3/IComet.sol";
+import {IWETH} from "../interfaces/misc/IWETH.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
@@ -73,25 +74,37 @@ contract AdmiralsQuarters is
     using SafeERC20 for IERC20;
     using SafeERC20 for IAToken;
 
-    address public immutable oneInchRouter;
+    address public immutable ONE_INCH_ROUTER;
+    address public immutable NATIVE_PSEUDO_ADDRESS =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public immutable WRAPPED_NATIVE;
 
     constructor(
         address _oneInchRouter,
-        address _configurationManager
+        address _configurationManager,
+        address _wrappedNative
     ) Ownable(_msgSender()) ConfigurationManaged(_configurationManager) {
         if (_oneInchRouter == address(0)) revert InvalidRouterAddress();
-        oneInchRouter = _oneInchRouter;
+        ONE_INCH_ROUTER = _oneInchRouter;
+        if (_wrappedNative == address(0)) revert InvalidNativeTokenAddress();
+        WRAPPED_NATIVE = _wrappedNative;
     }
 
     /// @inheritdoc IAdmiralsQuarters
     function depositTokens(
         IERC20 asset,
         uint256 amount
-    ) external onlyMulticall nonReentrant {
+    ) external payable onlyMulticall nonReentrant {
         _validateToken(asset);
         _validateAmount(amount);
 
-        asset.safeTransferFrom(_msgSender(), address(this), amount);
+        if (address(asset) == NATIVE_PSEUDO_ADDRESS) {
+            _validateNativeAmount(amount, address(this).balance);
+            IWETH(WRAPPED_NATIVE).deposit{value: address(this).balance}();
+        } else {
+            _validateNativeAmount(0, address(this).balance);
+            asset.safeTransferFrom(_msgSender(), address(this), amount);
+        }
         emit TokensDeposited(_msgSender(), address(asset), amount);
     }
 
@@ -99,13 +112,22 @@ contract AdmiralsQuarters is
     function withdrawTokens(
         IERC20 asset,
         uint256 amount
-    ) external onlyMulticall nonReentrant {
+    ) external payable onlyMulticall nonReentrant noNativeToken {
         _validateToken(asset);
-        if (amount == 0) {
-            amount = asset.balanceOf(address(this));
+
+        if (address(asset) == NATIVE_PSEUDO_ADDRESS) {
+            if (amount == 0) {
+                amount = IWETH(WRAPPED_NATIVE).balanceOf(address(this));
+            }
+            IWETH(WRAPPED_NATIVE).withdraw(amount);
+            payable(_msgSender()).transfer(amount);
+        } else {
+            if (amount == 0) {
+                amount = asset.balanceOf(address(this));
+            }
+            asset.safeTransfer(_msgSender(), amount);
         }
 
-        asset.safeTransfer(_msgSender(), amount);
         emit TokensWithdrawn(_msgSender(), address(asset), amount);
     }
 
@@ -114,7 +136,14 @@ contract AdmiralsQuarters is
         address fleetCommander,
         uint256 assets,
         address receiver
-    ) external onlyMulticall nonReentrant returns (uint256 shares) {
+    )
+        external
+        payable
+        onlyMulticall
+        nonReentrant
+        noNativeToken
+        returns (uint256 shares)
+    {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -135,7 +164,14 @@ contract AdmiralsQuarters is
     function exitFleet(
         address fleetCommander,
         uint256 assets
-    ) external onlyMulticall nonReentrant returns (uint256 shares) {
+    )
+        external
+        payable
+        onlyMulticall
+        nonReentrant
+        noNativeToken
+        returns (uint256 shares)
+    {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -151,7 +187,7 @@ contract AdmiralsQuarters is
     function stake(
         address fleetCommander,
         uint256 shares
-    ) external onlyMulticall nonReentrant {
+    ) external payable onlyMulticall nonReentrant noNativeToken {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -198,7 +234,14 @@ contract AdmiralsQuarters is
         uint256 assets,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
-    ) external onlyMulticall nonReentrant returns (uint256 swappedAmount) {
+    )
+        external
+        payable
+        onlyMulticall
+        nonReentrant
+        noNativeToken
+        returns (uint256 swappedAmount)
+    {
         _validateToken(fromToken);
         _validateToken(toToken);
         _validateAmount(assets);
@@ -268,8 +311,8 @@ contract AdmiralsQuarters is
     ) internal returns (uint256 swappedAmount) {
         uint256 balanceBefore = toToken.balanceOf(address(this));
 
-        fromToken.forceApprove(oneInchRouter, assets);
-        (bool success, ) = oneInchRouter.call(swapCalldata);
+        fromToken.forceApprove(ONE_INCH_ROUTER, assets);
+        (bool success, ) = ONE_INCH_ROUTER.call(swapCalldata);
         if (!success) {
             revert SwapFailed();
         }
@@ -298,6 +341,13 @@ contract AdmiralsQuarters is
 
     function _validateAmount(uint256 amount) internal pure {
         if (amount == 0) revert ZeroAmount();
+    }
+
+    function _validateNativeAmount(
+        uint256 amount,
+        uint256 msgValue
+    ) internal pure {
+        if (amount != msgValue) revert InvalidNativeAmount();
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -437,5 +487,18 @@ contract AdmiralsQuarters is
         vaultToken.redeem(shares, address(this), _msgSender());
 
         emit ERC4626PositionImported(_msgSender(), vault, shares);
+     * @dev Required to receive ETH when unwrapping WETH
+     */
+    receive() external payable {}
+
+    /**
+     * @dev Modifier to prevent native token usage
+     * @dev This is used to prevent native token usage in the multicall function
+     * @dev Inb methods that have to be payable, but are not the entry point for the user
+     * @dev Adds 22 gas to the call
+     */
+    modifier noNativeToken() {
+        if (address(this).balance > 0) revert NativeTokenNotAllowed();
+        _;
     }
 }

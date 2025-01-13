@@ -43,7 +43,7 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   const deployer = m.getAccount(0)
   const treasury = m.getParameter('treasury')
   const swapProvider = m.getParameter('swapProvider')
-
+  const weth = m.getParameter('weth')
   /**
    * @dev Step 1: Deploy Core Infrastructure
    *
@@ -117,7 +117,11 @@ export const CoreModule = buildModule('CoreModule', (m) => {
    * - Completed core configuration
    * - Swap provider for token operations
    */
-  const admiralsQuarters = m.contract('AdmiralsQuarters', [swapProvider, configurationManager])
+  const admiralsQuarters = m.contract('AdmiralsQuarters', [
+    swapProvider,
+    configurationManager,
+    weth,
+  ])
 
   return {
     protocolAccessManager,
