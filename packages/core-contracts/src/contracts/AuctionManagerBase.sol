@@ -5,7 +5,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
 
 import {IAuctionManagerBaseEvents} from "../events/IAuctionManagerBaseEvents.sol";
-import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
+import {BaseAuctionParameters} from "../types/CommonAuctionTypes.sol";
 
 /**
  * @title AuctionManagerBase
@@ -16,20 +16,15 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
     using SafeERC20 for IERC20;
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
-    /// @notice Default parameters for all auctions
-    AuctionDefaultParameters public auctionDefaultParameters;
-
-    /// @notice Counter for generating unique auction IDs
-    /// @dev Initialized to 0. The first auction will have ID 1 due to pre-increment in _createAuction
-    uint256 public nextAuctionId;
+    /// @notice Counter for tracking the current auction ID
+    /// @dev Initialized to 0. Incremented before each new auction creation
+    uint256 public currentAuctionId;
 
     /**
-     * @notice Initializes the AuctionManagerBase with default parameters
-     * @param _defaultParameters The initial default parameters for auctions
+     * @notice Initializes the AuctionManagerBase
      */
-    constructor(AuctionDefaultParameters memory _defaultParameters) {
-        auctionDefaultParameters = _defaultParameters;
-        // nextAuctionId is implicitly initialized to 0
+    constructor() {
+        // currentAuctionId is implicitly initialized to 0
     }
 
     /**
@@ -38,61 +33,42 @@ abstract contract AuctionManagerBase is IAuctionManagerBaseEvents {
      * @param paymentToken The token used for payments
      * @param totalTokens The total number of tokens to be auctioned
      * @param unsoldTokensRecipient The address to receive any unsold tokens after the auction
+     * @param baseParams The parameters for the auction
      * @return A new Auction struct
      * @custom:internal-logic
-     * - Pre-increments nextAuctionId to generate a unique ID (first auction will have ID 1)
-     * - Creates an AuctionParams struct using default parameters and provided inputs
+     * - Pre-increments currentAuctionId to generate a unique ID (first auction will have ID 1)
+     * - Creates an AuctionParams struct using provided parameters
      * - Calls the createAuction function of the DutchAuctionLibrary to initialize the auction
      * @custom:effects
-     * - Increments nextAuctionId
+     * - Increments currentAuctionId
      * - Creates and returns a new Auction struct
      * @custom:security-considerations
      * - Ensure that the provided token addresses are valid
      * - Verify that totalTokens is non-zero and matches the actual token balance
      */
-    function _createAuction(
+    function _createAuctionWithParams(
         IERC20 auctionToken,
         IERC20 paymentToken,
         uint256 totalTokens,
-        address unsoldTokensRecipient
+        address unsoldTokensRecipient,
+        BaseAuctionParameters memory baseParams
     ) internal returns (DutchAuctionLibrary.Auction memory) {
         DutchAuctionLibrary.AuctionParams memory params = DutchAuctionLibrary
             .AuctionParams({
-                auctionId: ++nextAuctionId,
+                auctionId: ++currentAuctionId,
                 auctionToken: auctionToken,
                 paymentToken: paymentToken,
-                duration: auctionDefaultParameters.duration,
-                startPrice: auctionDefaultParameters.startPrice,
-                endPrice: auctionDefaultParameters.endPrice,
+                duration: baseParams.duration,
+                startPrice: baseParams.startPrice,
+                endPrice: baseParams.endPrice,
                 totalTokens: totalTokens,
-                kickerRewardPercentage: auctionDefaultParameters
-                    .kickerRewardPercentage,
+                kickerRewardPercentage: baseParams.kickerRewardPercentage,
                 kicker: msg.sender,
                 unsoldTokensRecipient: unsoldTokensRecipient,
-                decayType: auctionDefaultParameters.decayType
+                decayType: baseParams.decayType
             });
 
         return DutchAuctionLibrary.createAuction(params);
-    }
-
-    /**
-     * @dev Updates the default parameters for future auctions
-     * @param newParameters The new default parameters to set
-     * @custom:internal-logic
-     * - Replaces the current auctionDefaultParameters with newParameters
-     * @custom:effects
-     * - Updates auctionDefaultParameters
-     * - Emits an AuctionDefaultParametersUpdated event
-     * @custom:security-considerations
-     * - Validate the new parameters to ensure they are within acceptable ranges
-     * - Consider the impact on future auctions (e.g., duration, price ranges)
-     * - Implement proper access control to restrict who can call this function
-     */
-    function _updateAuctionDefaultParameters(
-        AuctionDefaultParameters calldata newParameters
-    ) internal {
-        auctionDefaultParameters = newParameters;
-        emit AuctionDefaultParametersUpdated(newParameters);
     }
 
     /**

@@ -52,6 +52,9 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         aSummerToken.approve(address(stakingRewardsManager), type(uint256).max);
         vm.prank(bob);
         aSummerToken.approve(address(stakingRewardsManager), type(uint256).max);
+
+        // In the test setup
+        rewardTokens[0].mint(address(mockGovernor), 100000000000000000000); // Mint 100 tokens
     }
 
     function test_StakeOnBehalfOfUpdatesBalancesCorrectly() public {
@@ -121,13 +124,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stake(stakeAmount);
 
         // Notify reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
-
+        vm.stopPrank();
         // Fast forward time
         vm.warp(block.timestamp + 3 days);
 
@@ -151,6 +155,9 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 rewardAmount = 100 * 1e18;
 
+        // Mint reward tokens to the governor first
+        rewardTokens[0].mint(address(mockGovernor), rewardAmount);
+
         // Setup delegate (bob) and delegator (alice)
         vm.startPrank(bob);
         aSummerToken.delegate(bob); // Bob self-delegates first
@@ -163,13 +170,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.stopPrank();
 
         // Notify reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
-
+        vm.stopPrank();
         // Fast forward past decay-free window
         vm.warp(block.timestamp + 30 days);
 
@@ -254,13 +262,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stake(stakeAmount);
 
         // Notify reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
-
+        vm.stopPrank();
         // Fast forward time
         vm.warp(block.timestamp + 3 days);
 

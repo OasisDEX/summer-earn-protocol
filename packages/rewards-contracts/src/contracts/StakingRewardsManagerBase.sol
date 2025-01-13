@@ -158,7 +158,18 @@ abstract contract StakingRewardsManagerBase is
 
     /// @inheritdoc IStakingRewardsManagerBase
     function getReward() public virtual nonReentrant {
-        _getReward(_msgSender());
+        uint256 rewardTokenCount = _rewardTokensList.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            address rewardTokenAddress = _rewardTokensList.at(i);
+            _getReward(_msgSender(), rewardTokenAddress);
+        }
+    }
+
+    /// @inheritdoc IStakingRewardsManagerBase
+    function getReward(address rewardToken) public virtual nonReentrant {
+        if (!_rewardTokensList.contains(rewardToken))
+            revert RewardTokenDoesNotExist();
+        _getReward(_msgSender(), rewardToken);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -218,10 +229,10 @@ abstract contract StakingRewardsManagerBase is
             if (decimals <= 4) {
                 dustThreshold = 1;
             } else {
-                dustThreshold = 100 * (10 ** (decimals - 4)); // 0.01% of 1 token
+                dustThreshold = 10 ** (decimals - 4); // 0.01% of 1 token
             }
         } catch {
-            dustThreshold = 1e12; // Default threshold for tokens without decimals
+            dustThreshold = 1e14; // Default threshold for tokens without decimals
         }
 
         if (remainingBalance > dustThreshold) {
@@ -309,23 +320,21 @@ abstract contract StakingRewardsManagerBase is
     }
 
     /**
-     * @notice Internal function to claim rewards for an account
+     * @notice Internal function to claim rewards for an account for a specific token
      * @param account The address to claim rewards for
+     * @param rewardTokenAddress The address of the reward token to claim
      * @dev rewards go straight to the user's wallet
      */
     function _getReward(
-        address account
+        address account,
+        address rewardTokenAddress
     ) internal virtual updateReward(account) {
-        uint256 rewardTokenCount = _rewardTokensList.length();
-        for (uint256 i = 0; i < rewardTokenCount; i++) {
-            address rewardTokenAddress = _rewardTokensList.at(i);
-            IERC20 rewardToken = IERC20(rewardTokenAddress);
-            uint256 reward = rewards[rewardToken][account];
-            if (reward > 0) {
-                rewards[rewardToken][account] = 0;
-                rewardToken.safeTransfer(account, reward);
-                emit RewardPaid(account, address(rewardToken), reward);
-            }
+        IERC20 rewardToken = IERC20(rewardTokenAddress);
+        uint256 reward = rewards[rewardToken][account];
+        if (reward > 0) {
+            rewards[rewardToken][account] = 0;
+            rewardToken.safeTransfer(account, reward);
+            emit RewardPaid(account, address(rewardToken), reward);
         }
     }
 
@@ -358,29 +367,19 @@ abstract contract StakingRewardsManagerBase is
             revert CannotChangeRewardsDuration();
         }
 
-        uint256 totalReward;
-        if (block.timestamp >= rewardTokenData.periodFinish) {
-            totalReward = reward;
-        } else {
-            uint256 remaining = rewardTokenData.periodFinish - block.timestamp;
-            uint256 leftover = (remaining * rewardTokenData.rewardRate) /
-                Constants.WAD;
-            totalReward = reward + leftover;
-        }
+        // Transfer exact amount needed for new rewards
+        rewardToken.safeTransferFrom(msg.sender, address(this), reward);
 
-        // Check balance first
-        uint256 balance = rewardToken.balanceOf(address(this));
-        if (totalReward > balance) revert ProvidedRewardTooHigh();
-
-        // Calculate rate only once after validation
+        // Calculate new reward rate
         rewardTokenData.rewardRate =
-            (totalReward * Constants.WAD) /
+            (reward * Constants.WAD) /
             rewardTokenData.rewardsDuration;
 
         rewardTokenData.lastUpdateTime = block.timestamp;
         rewardTokenData.periodFinish =
             block.timestamp +
             rewardTokenData.rewardsDuration;
+
         emit RewardAdded(address(rewardToken), reward);
     }
 }

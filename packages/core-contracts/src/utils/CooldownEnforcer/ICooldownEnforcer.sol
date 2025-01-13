@@ -8,6 +8,20 @@ pragma solidity 0.8.28;
  */
 interface ICooldownEnforcer {
     /**
+     * ERRORS
+     */
+
+    /**
+     * @notice Error thrown when the cooldown period is too short
+     */
+    error CooldownEnforcerCooldownTooShort();
+
+    /**
+     * @notice Error thrown when the cooldown period is too long
+     */
+    error CooldownEnforcerCooldownTooLong();
+
+    /**
      * VIEW FUNCTIONS
      */
 

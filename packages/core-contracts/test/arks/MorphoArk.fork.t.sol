@@ -82,6 +82,10 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Fund the rewards distributor
         deal(address(rewardToken), address(rewardsDistributor), 1000e18);
+
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
     }
 
     function test_Constructor_MorphoArk_fork() public {

@@ -3,7 +3,8 @@ pragma solidity 0.8.28;
 
 import {ISummerVestingWallet} from "../interfaces/ISummerVestingWallet.sol";
 
-/* @title ISummerTokenErrors
+/**
+ * @title ISummerTokenErrors
  * @notice Interface defining custom errors for the SummerToken contract
  */
 interface ISummerTokenErrors {

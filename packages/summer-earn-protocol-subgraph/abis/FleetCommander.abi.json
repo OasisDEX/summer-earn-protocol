@@ -64,19 +64,6 @@
   },
   {
     "type": "function",
-    "name": "DEFAULT_MAX_REBALANCE_OPERATIONS",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "INITIAL_MINIMUM_PAUSE_TIME",
     "inputs": [],
     "outputs": [
@@ -122,46 +109,6 @@
         "name": "_arkAddresses",
         "type": "address[]",
         "internalType": "address[]"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "adjustBuffer",
-    "inputs": [
-      {
-        "name": "rebalanceData",
-        "type": "tuple[]",
-        "internalType": "struct RebalanceData[]",
-        "components": [
-          {
-            "name": "fromArk",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "toArk",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "boardData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "disembarkData",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
       }
     ],
     "outputs": [],
@@ -444,19 +391,6 @@
   },
   {
     "type": "function",
-    "name": "estimateAccruedTip",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "fleetCommanderRewardsManagerFactory",
     "inputs": [],
     "outputs": [
@@ -534,7 +468,7 @@
   },
   {
     "type": "function",
-    "name": "getArks",
+    "name": "getActiveArks",
     "inputs": [],
     "outputs": [
       {
@@ -664,7 +598,7 @@
   },
   {
     "type": "function",
-    "name": "isArkActive",
+    "name": "isArkActiveOrBufferArk",
     "inputs": [
       {
         "name": "arkAddress",
@@ -675,25 +609,6 @@
     "outputs": [
       {
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isArkWithdrawable",
-    "inputs": [
-      {
-        "name": "ark",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "isWithdrawable",
         "type": "bool",
         "internalType": "bool"
       }
@@ -961,6 +876,30 @@
     "outputs": [
       {
         "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewTip",
+    "inputs": [
+      {
+        "name": "tipJar",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "totalSupply",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "tippedShares",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1265,19 +1204,6 @@
   },
   {
     "type": "function",
-    "name": "setStakingRewardsManager",
-    "inputs": [
-      {
-        "name": "newStakingRewardsManager",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setTipRate",
     "inputs": [
       {
@@ -1450,6 +1376,13 @@
         "internalType": "uint256"
       }
     ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateStakingRewardsManager",
+    "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -1663,25 +1596,6 @@
         "type": "address",
         "indexed": false,
         "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "FleetCommanderBufferAdjusted",
-    "inputs": [
-      {
-        "name": "keeper",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "totalMoved",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -2253,6 +2167,16 @@
   },
   {
     "type": "error",
+    "name": "CooldownEnforcerCooldownTooLong",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CooldownEnforcerCooldownTooShort",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "CooldownNotElapsed",
     "inputs": [
       {
@@ -2487,11 +2411,6 @@
   },
   {
     "type": "error",
-    "name": "FleetCommanderArkAlreadyHasCommander",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "FleetCommanderArkAssetsNotZero",
     "inputs": [
       {
@@ -2544,6 +2463,11 @@
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderAssetMismatch",
+    "inputs": []
   },
   {
     "type": "error",
@@ -2630,11 +2554,6 @@
   },
   {
     "type": "error",
-    "name": "FleetCommanderInvalidBufferAdjustment",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "FleetCommanderInvalidSourceArk",
     "inputs": [
       {
@@ -2648,6 +2567,17 @@
     "type": "error",
     "name": "FleetCommanderInvalidStakingRewardsManager",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderMaxRebalanceOperationsTooHigh",
+    "inputs": [
+      {
+        "name": "newMaxRebalanceOperations",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
@@ -2667,6 +2597,11 @@
   {
     "type": "error",
     "name": "FleetCommanderPausableMinimumPauseTimeNotElapsed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FleetCommanderPausableMinimumPauseTimeTooShort",
     "inputs": []
   },
   {
@@ -2772,7 +2707,7 @@
   },
   {
     "type": "error",
-    "name": "TipRateCannotExceedOneHundredPercent",
+    "name": "TipRateCannotExceedFivePercent",
     "inputs": []
   },
   {

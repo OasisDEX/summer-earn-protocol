@@ -140,12 +140,7 @@ contract AdmiralsQuartersImportTest is
         );
         importCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                0,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), 0, address(admiralsQuarters))
         );
         importCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -188,12 +183,7 @@ contract AdmiralsQuartersImportTest is
         );
         importCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                0,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), 0, address(admiralsQuarters))
         );
         importCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -240,12 +230,7 @@ contract AdmiralsQuartersImportTest is
         );
         importCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                0,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), 0, address(admiralsQuarters))
         );
         importCalls[2] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -325,12 +310,7 @@ contract AdmiralsQuartersImportTest is
         );
         importCalls[3] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (
-                address(usdcFleet),
-                IERC20(USDC_ADDRESS),
-                0,
-                address(admiralsQuarters)
-            )
+            (address(usdcFleet), 0, address(admiralsQuarters))
         );
         importCalls[4] = abi.encodeCall(
             admiralsQuarters.stake,
@@ -379,7 +359,7 @@ contract AdmiralsQuartersImportTest is
         );
         importCalls[1] = abi.encodeCall(
             admiralsQuarters.enterFleet,
-            (address(usdcFleet), IERC20(USDC_ADDRESS), 0, address(0))
+            (address(usdcFleet), 0, address(0))
         );
         admiralsQuarters.multicall(importCalls);
 

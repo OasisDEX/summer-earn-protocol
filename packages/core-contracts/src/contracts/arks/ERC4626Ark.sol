@@ -57,6 +57,19 @@ contract ERC4626Ark is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev ERC4626Ark is always withdrawable
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return vault.maxWithdraw(address(this));
+    }
+
+    /**
      * @notice Deposits assets into the ERC4626 vault
      * @param amount The amount of assets to deposit
      * @param /// data Additional data (unused in this implementation)

@@ -55,7 +55,6 @@ contract SummerVestingWalletFactory is
         }
 
         uint64 startTimestamp = uint64(block.timestamp);
-        uint64 durationSeconds = 730 days; // 2 years for both vesting types
 
         uint256 totalAmount = timeBasedAmount;
         for (uint256 i = 0; i < goalAmounts.length; i++) {
@@ -78,7 +77,6 @@ contract SummerVestingWalletFactory is
                 token,
                 beneficiary,
                 startTimestamp,
-                durationSeconds,
                 vestingType,
                 timeBasedAmount,
                 goalAmounts,

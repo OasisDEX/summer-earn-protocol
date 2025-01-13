@@ -19,7 +19,7 @@ interface ITipperErrors {
     error InvalidTipJarAddress();
 
     /**
-     * @notice Thrown when the tip rate exceeds 100%.
+     * @notice Thrown when the tip rate exceeds 5%.
      */
-    error TipRateCannotExceedOneHundredPercent();
+    error TipRateCannotExceedFivePercent();
 }

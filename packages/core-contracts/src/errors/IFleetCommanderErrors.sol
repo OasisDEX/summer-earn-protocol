@@ -33,11 +33,6 @@ interface IFleetCommanderErrors {
     );
 
     /**
-     * @notice Thrown when an invalid buffer adjustment is attempted.
-     */
-    error FleetCommanderInvalidBufferAdjustment();
-
-    /**
      * @notice Thrown when there is insufficient buffer for an operation.
      */
     error FleetCommanderInsufficientBuffer();
@@ -143,4 +138,9 @@ interface IFleetCommanderErrors {
      * @notice Thrown when the staking rewards manager is not set.
      */
     error FleetCommanderStakingRewardsManagerNotSet();
+
+    /**
+     * @notice Thrown when user attempts to deposit/mint or withdraw/redeem 0 units
+     */
+    error FleetCommanderZeroAmount();
 }

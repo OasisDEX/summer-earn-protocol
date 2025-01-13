@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IBuyAndBurnErrors} from "../errors/IBuyAndBurnErrors.sol";
 import {IBuyAndBurnEvents} from "../events/IBuyAndBurnEvents.sol";
-import {AuctionDefaultParameters} from "../types/CommonAuctionTypes.sol";
+import {BaseAuctionParameters} from "../types/CommonAuctionTypes.sol";
 import {DutchAuctionLibrary} from "@summerfi/dutch-auction/DutchAuctionLibrary.sol";
 
 /**
@@ -88,12 +88,12 @@ interface IBuyAndBurn is IBuyAndBurnEvents, IBuyAndBurnErrors {
     function getCurrentPrice(uint256 auctionId) external view returns (uint256);
 
     /**
-     * @notice Updates the default parameters for future auctions
-     * @param newParameters The new default parameters
-     * @dev Only callable by the governor
-     * @dev Emits an AuctionDefaultParametersUpdated event
+     * @notice Sets auction parameters for a specific token
+     * @param token The token address
+     * @param parameters The auction parameters
      */
-    function updateAuctionDefaultParameters(
-        AuctionDefaultParameters calldata newParameters
+    function setTokenAuctionParameters(
+        address token,
+        BaseAuctionParameters calldata parameters
     ) external;
 }

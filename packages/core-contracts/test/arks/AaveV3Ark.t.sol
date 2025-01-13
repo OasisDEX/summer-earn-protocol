@@ -89,6 +89,11 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
             address(commander)
         );
         vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        nextArk.registerFleetCommander();
+        vm.stopPrank();
     }
 
     function test_Constructor() public {
@@ -220,11 +225,10 @@ contract AaveV3ArkTest is Test, IArkEvents, ArkTestBase {
         vm.mockCall(
             address(rewardsController),
             abi.encodeWithSelector(
-                IRewardsController(rewardsController)
-                    .claimRewardsToSelf
-                    .selector,
+                IRewardsController(rewardsController).claimRewards.selector,
                 incentivizedAssets,
                 type(uint256).max,
+                address(raft),
                 mockRewardToken
             ),
             abi.encode(mockClaimedRewardsBalance)

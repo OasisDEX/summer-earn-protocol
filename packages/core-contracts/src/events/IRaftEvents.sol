@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+import {BaseAuctionParameters} from "../types/CommonAuctionTypes.sol";
+
 /**
  * @title IRaftEvents
  * @notice Interface defining events emitted by the Raft contract
@@ -44,5 +46,29 @@ interface IRaftEvents {
         address indexed fromRewardToken,
         address indexed toFleetToken,
         uint256 amountReboarded
+    );
+
+    /**
+     * @notice Emitted when a sweepable token is set for an Ark
+     * @param ark The address of the Ark contract
+     * @param token The address of the token
+     * @param isSweepable Whether the token is sweepable
+     */
+    event SweepableTokenSet(
+        address indexed ark,
+        address indexed token,
+        bool isSweepable
+    );
+
+    /**
+     * @notice Emitted when auction parameters are set for an Ark's reward token
+     * @param ark The address of the Ark contract
+     * @param rewardToken The address of the reward token
+     * @param parameters The auction parameters
+     */
+    event ArkAuctionParametersSet(
+        address indexed ark,
+        address indexed rewardToken,
+        BaseAuctionParameters parameters
     );
 }
