@@ -197,14 +197,9 @@ contract SummerVestingWallet is
      * @return uint256 The amount of tokens already vested based on time
      * @custom:internal-logic
      * - Checks if the timestamp is before the cliff period
-<<<<<<< HEAD
-     * - Calculates the number of months that have passed, including the cliff period
-     * - Determines the vested amount based on elapsed months
-=======
      * - Calculates the number of quarters that have passed, including the cliff period
      * - Determines the vested amount based on elapsed quarters
      * - Caps the vested amount at the timeBasedVestingAmount
->>>>>>> audit-report-fixes
      * @custom:effects
      * - Does not modify any state, view function only
      * @custom:security-considerations
