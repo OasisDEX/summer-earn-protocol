@@ -8,13 +8,19 @@ import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {IGovernanceRewardsManager} from "./IGovernanceRewardsManager.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-
+import {IOFT} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 /**
  * @title ISummerToken
  * @dev Interface for the Summer governance token, combining ERC20, permit functionality,
  * and voting decay mechanisms
  */
-interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
+interface ISummerToken is
+    IOFT,
+    IERC20,
+    IERC20Permit,
+    ISummerTokenErrors,
+    IVotes
+{
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -80,6 +86,11 @@ interface ISummerToken is IERC20, IERC20Permit, ISummerTokenErrors, IVotes {
      * @notice Error thrown when transfers are already enabled
      */
     error TransfersAlreadyEnabled();
+
+    /**
+     * @notice Error thrown when the address length is invalid
+     */
+    error InvalidAddressLength();
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS

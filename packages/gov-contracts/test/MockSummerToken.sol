@@ -7,6 +7,7 @@ import {ISummerToken, SummerVestingWallet} from "../src/interfaces/ISummerToken.
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {IGovernanceRewardsManager} from "../src/interfaces/IGovernanceRewardsManager.sol";
+import {IOFT, SendParam, MessagingFee, MessagingReceipt, OFTReceipt, OFTLimit, OFTFeeDetail} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
     uint256 private constant INITIAL_SUPPLY = 1e9;
@@ -156,5 +157,67 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
 
     function updateDecayFactor(address) external pure {
         return;
+    }
+
+    function approvalRequired() external pure override returns (bool) {
+        // Mock implementation
+        return false;
+    }
+
+    function oftVersion()
+        external
+        pure
+        override
+        returns (bytes4 interfaceId, uint64 version)
+    {
+        // Mock implementation
+        return (bytes4(keccak256("OFT")), 1);
+    }
+
+    function quoteOFT(
+        SendParam calldata
+    )
+        external
+        pure
+        returns (
+            OFTLimit memory oftLimit,
+            OFTFeeDetail[] memory oftFeeDetails,
+            OFTReceipt memory oftReceipt
+        )
+    {
+        // Properly initialize an empty array for OFTFeeDetail
+        OFTFeeDetail[] memory feeDetails = new OFTFeeDetail[](0);
+
+        return (OFTLimit(0, 0), feeDetails, OFTReceipt(0, 0));
+    }
+
+    function quoteSend(
+        SendParam calldata,
+        bool
+    ) external pure override returns (MessagingFee memory) {
+        // Mock implementation
+        return MessagingFee(0, 0);
+    }
+
+    function send(
+        SendParam calldata,
+        MessagingFee calldata,
+        address
+    ) external payable returns (MessagingReceipt memory, OFTReceipt memory) {
+        // Correctly initialize MessagingReceipt with appropriate types
+        return (
+            MessagingReceipt(bytes32(0), 0, MessagingFee(0, 0)),
+            OFTReceipt(0, 0)
+        );
+    }
+
+    function sharedDecimals() external pure override returns (uint8) {
+        // Mock implementation
+        return 18;
+    }
+
+    function token() external view override returns (address) {
+        // Mock implementation
+        return address(this);
     }
 }
