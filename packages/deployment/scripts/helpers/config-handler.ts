@@ -50,7 +50,7 @@ function validateConfig(config: BaseConfig): void {
   validateAddress(config.deployedContracts.core.tipJar.address, 'core.tipJar')
   validateAddress(config.deployedContracts.core.raft.address, 'core.raft')
   validateAddress(
-    config.deployedContracts.core.protocolAccessManager.address,
+    config.deployedContracts.gov.protocolAccessManager.address,
     'core.protocolAccessManager',
   )
   validateAddress(

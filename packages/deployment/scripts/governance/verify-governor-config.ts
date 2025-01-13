@@ -15,7 +15,7 @@ const governorAbi = [
   },
   {
     inputs: [],
-    name: 'proposalChainId',
+    name: 'hubChainId',
     outputs: [{ internalType: 'uint32', name: '', type: 'uint32' }],
     stateMutability: 'view',
     type: 'function',
@@ -66,7 +66,7 @@ async function verifyGovernorConfig(
   const baseProposalChainId = await baseClient.readContract({
     address: baseGovernor,
     abi: governorAbi,
-    functionName: 'proposalChainId',
+    functionName: 'hubChainId',
   })
 
   // Get Arbitrum governor config
@@ -79,7 +79,7 @@ async function verifyGovernorConfig(
   const arbProposalChainId = await arbClient.readContract({
     address: arbGovernor,
     abi: governorAbi,
-    functionName: 'proposalChainId',
+    functionName: 'hubChainId',
   })
 
   // Check peer configurations

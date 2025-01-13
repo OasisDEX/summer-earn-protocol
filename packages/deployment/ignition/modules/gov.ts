@@ -41,7 +41,7 @@ export const GovModule = buildModule('GovModule', (m) => {
    * @dev Step 0: Deploy ProtocolAccessManager
    * This contract manages access control for the protocol
    */
-  const protocolAccessManager = m.contract('ProtocolAccessManager', [deployer])
+  const accessManager = m.contract('ProtocolAccessManager', [deployer])
 
   /**
    * @dev Step 1: Deploy SummerTimelockController
@@ -58,7 +58,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     [deployer],
     [ADDRESS_ZERO],
     deployer,
-    protocolAccessManager,
+    accessManager,
   ])
 
   /**
@@ -73,7 +73,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
     owner: deployer,
-    accessManager: protocolAccessManager,
+    accessManager: accessManager,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
     initialDecayRate: 3.1709792e9, // ~10% per year
     initialDecayFunction: DecayType.Linear,
@@ -87,7 +87,7 @@ export const GovModule = buildModule('GovModule', (m) => {
    * @dev Step 3: Deploy SummerGovernor
    * This contract manages the governance process
    * - Integrates with SummerToken for voting power calculations
-   * - On BASE chain (proposalChainId == chainId):
+   * - On BASE chain (hubChainId == chainId):
    *   - Uses TimelockController for action execution
    *   - TimelockController owns the governor
    * - On satellite chains:
@@ -97,13 +97,13 @@ export const GovModule = buildModule('GovModule', (m) => {
   const summerGovernorDeployParams = {
     token: summerToken,
     timelock: timelock,
+    accessManager: accessManager,
     // Note: Voting delay is set to 60 second to allow for testing
     votingDelay: 60n,
     // Note: Voting period is set to 10 minutes to allow for testing
     votingPeriod: 600n, // 10 minutes
     proposalThreshold: 10000n * 10n ** 18n,
     quorumFraction: 4n,
-    initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
     hubChainId: 8453n,
     peerEndpointIds: peerEndpointIds,
@@ -115,7 +115,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     summerGovernor,
     summerToken,
     timelock,
-    protocolAccessManager,
+    protocolAccessManager: accessManager,
   }
 })
 

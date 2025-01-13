@@ -174,7 +174,7 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
 
   // Determine if we're on HUB chain (currently BASE chain)
-  const isHubChain = (await summerGovernor.read.proposalChainId()) === hre.network.config.chainId
+  const isHubChain = (await summerGovernor.read.hubChainId()) === hre.network.config.chainId
 
   // Set up the correct governor role based on chain
   if (isHubChain) {
