@@ -65,6 +65,7 @@ export interface BaseConfig {
     }
     morpho: {
       blue: Address
+      urdFactory: Address
       vaults: {
         [key in Tokens]: {
           [key: string]: Address
