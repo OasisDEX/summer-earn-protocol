@@ -14,6 +14,7 @@ enum DecayType {
  * @notice This module handles the deployment and initialization of the governance system
  *
  * @dev Deployment and initialization sequence:
+ * 0. Deploy ProtocolAccessManager
  * 1. Deploy TimelockController (timelock for governance actions)
  * 2. Deploy SummerToken (governance token)
  * 3. Deploy SummerGovernor (governance logic)
@@ -32,10 +33,15 @@ enum DecayType {
 export const GovModule = buildModule('GovModule', (m) => {
   const deployer = m.getAccount(0)
   const lzEndpoint = m.getParameter('lzEndpoint')
-  const protocolAccessManagerAddress = m.getParameter('protocolAccessManager')
   const initialSupply = m.getParameter('initialSupply', '0')
   const peerEndpointIds = m.getParameter<number[]>('peerEndpointIds', [])
   const peerAddresses = m.getParameter<string[]>('peerAddresses', [])
+
+  /**
+   * @dev Step 0: Deploy ProtocolAccessManager
+   * This contract manages access control for the protocol
+   */
+  const accessManager = m.contract('ProtocolAccessManager', [deployer])
 
   /**
    * @dev Step 1: Deploy SummerTimelockController
@@ -52,7 +58,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     [deployer],
     [ADDRESS_ZERO],
     deployer,
-    protocolAccessManagerAddress,
+    accessManager,
   ])
 
   /**
@@ -67,7 +73,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
     owner: deployer,
-    accessManager: protocolAccessManagerAddress,
+    accessManager: accessManager,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
     initialDecayRate: 3.1709792e9, // ~10% per year
     initialDecayFunction: DecayType.Linear,
@@ -81,7 +87,7 @@ export const GovModule = buildModule('GovModule', (m) => {
    * @dev Step 3: Deploy SummerGovernor
    * This contract manages the governance process
    * - Integrates with SummerToken for voting power calculations
-   * - On BASE chain (proposalChainId == chainId):
+   * - On BASE chain (hubChainId == chainId):
    *   - Uses TimelockController for action execution
    *   - TimelockController owns the governor
    * - On satellite chains:
@@ -91,13 +97,13 @@ export const GovModule = buildModule('GovModule', (m) => {
   const summerGovernorDeployParams = {
     token: summerToken,
     timelock: timelock,
+    accessManager: accessManager,
     // Note: Voting delay is set to 60 second to allow for testing
     votingDelay: 60n,
     // Note: Voting period is set to 10 minutes to allow for testing
     votingPeriod: 600n, // 10 minutes
     proposalThreshold: 10000n * 10n ** 18n,
     quorumFraction: 4n,
-    initialWhitelistGuardian: deployer,
     endpoint: lzEndpoint,
     hubChainId: 8453n,
     peerEndpointIds: peerEndpointIds,
@@ -105,15 +111,13 @@ export const GovModule = buildModule('GovModule', (m) => {
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
 
-  const rewardsRedeemer = m.contract('SummerRewardsRedeemer', [
-    summerToken,
-    protocolAccessManagerAddress,
-  ])
+  const rewardsRedeemer = m.contract('SummerRewardsRedeemer', [summerToken, accessManager])
 
   return {
     summerGovernor,
     summerToken,
     timelock,
+    protocolAccessManager: accessManager,
     rewardsRedeemer,
   }
 })
@@ -122,5 +126,6 @@ export type GovContracts = {
   summerGovernor: { address: string }
   summerToken: { address: string }
   timelock: { address: string }
+  protocolAccessManager: { address: string }
   rewardsRedeemer: { address: string }
 }
