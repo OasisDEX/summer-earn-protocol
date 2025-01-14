@@ -111,10 +111,7 @@ export const GovModule = buildModule('GovModule', (m) => {
   }
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
 
-  const rewardsRedeemer = m.contract('SummerRewardsRedeemer', [
-    summerToken,
-    accessManager,
-  ])
+  const rewardsRedeemer = m.contract('SummerRewardsRedeemer', [summerToken, accessManager])
 
   return {
     summerGovernor,
