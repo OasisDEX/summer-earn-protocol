@@ -42,6 +42,7 @@ enum DecayType {
 export const CoreModule = buildModule('CoreModule', (m) => {
   const treasury = m.getParameter('treasury')
   const swapProvider = m.getParameter('swapProvider')
+  const weth = m.getParameter('weth')
   const protocolAccessManager = m.getParameter('protocolAccessManager')
 
   /**
@@ -113,7 +114,11 @@ export const CoreModule = buildModule('CoreModule', (m) => {
    * - Completed core configuration
    * - Swap provider for token operations
    */
-  const admiralsQuarters = m.contract('AdmiralsQuarters', [swapProvider, configurationManager])
+  const admiralsQuarters = m.contract('AdmiralsQuarters', [
+    swapProvider,
+    configurationManager,
+    weth,
+  ])
 
   return {
     tipJar,

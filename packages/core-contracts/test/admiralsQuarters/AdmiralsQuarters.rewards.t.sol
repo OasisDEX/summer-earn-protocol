@@ -164,6 +164,9 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         0x111111125421cA6dc452d289314280a0f8842A65;
     address public constant USDC_ADDRESS =
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public immutable ETH_PSEUDO_ADDRESS =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     address public user1 = address(0x1111);
     FleetCommander public usdcFleet;
@@ -192,7 +195,8 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         // Deploy AdmiralsQuarters
         admiralsQuarters = new AdmiralsQuarters(
             ONE_INCH_ROUTER,
-            address(configurationManager)
+            address(configurationManager),
+            WETH
         );
         accessManager.grantAdmiralsQuartersRole(address(admiralsQuarters));
 

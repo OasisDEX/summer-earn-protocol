@@ -46,6 +46,7 @@ async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
         protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         treasury: config.deployedContracts.gov.timelock.address,
         lzEndpoint: config.common.layerZero.lzEndpoint,
+        weth: config.tokens.weth,
       },
     },
   })

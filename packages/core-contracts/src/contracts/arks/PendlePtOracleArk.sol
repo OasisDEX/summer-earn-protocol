@@ -455,8 +455,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             LimitOrderData memory limit
         ) = this.validateAndDecodeSwapForPtParams(boardData.swapForPtParams);
 
-        if (input.tokenIn != address(config.asset))
+        if (input.tokenIn != address(config.asset)) {
             revert InvalidAsset(address(config.asset));
+        }
         if (input.netTokenIn != _amount) revert InvalidAmount();
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
@@ -505,8 +506,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
         if (_amount < output.minTokenOut) revert InsufficientOutputAmount();
-        if (output.tokenOut != address(config.asset))
+        if (output.tokenOut != address(config.asset)) {
             revert InvalidAsset(address(config.asset));
+        }
 
         uint256 expectedPtAmount = _fleetAssetToPt(_amount);
         uint256 maxPtAmount = expectedPtAmount.addPercentage(

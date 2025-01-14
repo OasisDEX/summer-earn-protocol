@@ -14,18 +14,12 @@ interface IAdmiralsQuarters is
     IAdmiralsQuartersErrors
 {
     /**
-     * @notice Returns the address of the 1inch router used for token swaps
-     * @return The address of the 1inch router
-     */
-    function oneInchRouter() external view returns (address);
-
-    /**
      * @notice Deposits tokens into the contract
      * @param asset The token to be deposited
      * @param amount The amount of tokens to deposit
      * @dev Emits a TokensDeposited event
      */
-    function depositTokens(IERC20 asset, uint256 amount) external;
+    function depositTokens(IERC20 asset, uint256 amount) external payable;
 
     /**
      * @notice Withdraws tokens from the contract
@@ -33,7 +27,7 @@ interface IAdmiralsQuarters is
      * @param amount The amount of tokens to withdraw (0 for all)
      * @dev Emits a TokensWithdrawn event
      */
-    function withdrawTokens(IERC20 asset, uint256 amount) external;
+    function withdrawTokens(IERC20 asset, uint256 amount) external payable;
 
     /**
      * @notice Enters a FleetCommander by depositing tokens
@@ -47,7 +41,7 @@ interface IAdmiralsQuarters is
         address fleetCommander,
         uint256 assets,
         address receiver
-    ) external returns (uint256 shares);
+    ) external payable returns (uint256 shares);
 
     /**
      * @notice Stakes shares in a FleetCommander
@@ -56,7 +50,7 @@ interface IAdmiralsQuarters is
      * @param shares The amount of shares to stake
      * @dev Emits a FleetSharesStaked event
      */
-    function stake(address fleetCommander, uint256 shares) external;
+    function stake(address fleetCommander, uint256 shares) external payable;
 
     /**
      * @notice Unstakes shares from a FleetCommander and withdraws assets to user wallet
@@ -82,7 +76,7 @@ interface IAdmiralsQuarters is
     function exitFleet(
         address fleetCommander,
         uint256 assets
-    ) external returns (uint256 shares);
+    ) external payable returns (uint256 shares);
 
     /**
      * @notice Performs a token swap using 1inch Router
@@ -100,7 +94,7 @@ interface IAdmiralsQuarters is
         uint256 amount,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
-    ) external returns (uint256 swappedAmount);
+    ) external payable returns (uint256 swappedAmount);
 
     /**
      * @notice Allows the owner to rescue any ERC20 tokens sent to the contract by mistake
