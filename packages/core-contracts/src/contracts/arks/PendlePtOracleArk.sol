@@ -458,11 +458,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (input.tokenIn != address(config.asset))
             revert InvalidAsset(address(config.asset));
         if (input.netTokenIn != _amount) revert InvalidAmount();
-
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
+
         IERC20(config.asset).approve(router, _amount);
-        IPAllActionV3(router).swapExactTokenForPt(
+        (uint256 netPtOut, , ) = IPAllActionV3(router).swapExactTokenForPt(
             receiver,
             swapMarket,
             minPtOut,
@@ -470,6 +470,13 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             input,
             limit
         );
+
+        uint256 expectedPtAmount = _fleetAssetToPt(_amount);
+        uint256 minExpectedPtAmount = expectedPtAmount.subtractPercentage(
+            slippagePercentage
+        );
+
+        if (netPtOut < minExpectedPtAmount) revert InsufficientOutputAmount();
     }
 
     /**
@@ -502,15 +509,11 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             revert InvalidAsset(address(config.asset));
 
         uint256 expectedPtAmount = _fleetAssetToPt(_amount);
-        uint256 minPtAmount = expectedPtAmount.subtractPercentage(
-            slippagePercentage
-        );
         uint256 maxPtAmount = expectedPtAmount.addPercentage(
             slippagePercentage
         );
 
-        if (exactPtIn < minPtAmount || exactPtIn > maxPtAmount)
-            revert InvalidAmount();
+        if (exactPtIn > maxPtAmount) revert InvalidAmount();
 
         IERC20(PT).approve(router, exactPtIn);
         IPAllActionV3(router).swapExactPtForToken(
@@ -570,9 +573,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @notice Validate board data
      * @param data Data to validate
      */
-    function _validateBoardData(bytes calldata data) internal view override {
-        // Implementation left empty intentionally
-    }
+    function _validateBoardData(bytes calldata data) internal view override {}
 
     /**
      * @notice Validate disembark data
@@ -580,9 +581,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      */
     function _validateDisembarkData(
         bytes calldata data
-    ) internal view override {
-        // Implementation left empty intentionally
-    }
+    ) internal view override {}
 
     /**
      * @notice Set up router parameters
@@ -662,9 +661,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         );
 
         TokenInput memory tokenInput = TokenInput({
-            tokenIn: address(marketAsset),
+            tokenIn: marketAsset,
             netTokenIn: _amount,
-            tokenMintSy: address(marketAsset),
+            tokenMintSy: marketAsset,
             pendleSwap: address(0),
             swapData: emptySwap
         });
@@ -728,9 +727,9 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (ptAmount > 0) {
             IERC20(PT).approve(router, ptAmount);
             TokenOutput memory tokenOutput = TokenOutput({
-                tokenOut: address(marketAsset),
+                tokenOut: marketAsset,
                 minTokenOut: minTokenOut,
-                tokenRedeemSy: address(marketAsset),
+                tokenRedeemSy: marketAsset,
                 pendleSwap: address(0),
                 swapData: emptySwap
             });

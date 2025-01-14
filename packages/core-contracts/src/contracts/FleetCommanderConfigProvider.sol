@@ -41,6 +41,8 @@ contract FleetCommanderConfigProvider is
     uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
     uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
 
+    bool public transfersEnabled;
+
     constructor(
         FleetCommanderParams memory params
     )
@@ -222,6 +224,16 @@ contract FleetCommanderConfigProvider is
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations
         );
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function setFleetTokenTransferability(
+        bool enabled
+    ) external onlyGovernor whenNotPaused {
+        if (enabled && !transfersEnabled) {
+            transfersEnabled = enabled;
+            emit TransfersEnabledUpdated(enabled);
+        }
     }
 
     // INTERNAL FUNCTIONS

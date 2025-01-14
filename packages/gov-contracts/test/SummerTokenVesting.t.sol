@@ -143,8 +143,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             "1/4 of time-based tokens should be vested after cliff"
         );
 
-        // After 1 year
-        vm.warp(block.timestamp + 185 days);
+        // After 1 year (12 months)
+        vm.warp(block.timestamp + 180 days);
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
@@ -154,8 +154,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             "Half of time-based tokens should be vested after 1 year"
         );
 
-        // After 2 years
-        vm.warp(block.timestamp + 365 days);
+        // After 2 years (24 months)
+        vm.warp(block.timestamp + 360 days);
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
@@ -201,8 +201,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             "1/4 of tokens should be vested after cliff"
         );
 
-        // After 1 year
-        vm.warp(block.timestamp + 185 days);
+        // After 1 year (12 months)
+        vm.warp(block.timestamp + 180 days);
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
@@ -212,8 +212,8 @@ contract SummerVestingTest is SummerTokenTestBase {
             "Half of tokens should be vested after 1 year"
         );
 
-        // After 2 years
-        vm.warp(block.timestamp + 365 days);
+        // After 2 years (24 months)
+        vm.warp(block.timestamp + 360 days);
         assertEq(
             vestingWallet.vestedAmount(
                 address(aSummerToken),
@@ -474,6 +474,71 @@ contract SummerVestingTest is SummerTokenTestBase {
             vestingWallet.goalAmounts(2),
             goalAmounts[2],
             "Reached goal 3 should remain unchanged"
+        );
+    }
+
+    function test_TimeBasedVestingCap() public {
+        // Create vesting wallet with team vesting type
+        vestingWalletFactoryA.createVestingWallet(
+            beneficiary,
+            TIME_BASED_AMOUNT,
+            goalAmounts,
+            ISummerVestingWallet.VestingType.TeamVesting
+        );
+        address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
+            beneficiary
+        );
+        SummerVestingWallet vestingWallet = SummerVestingWallet(
+            payable(vestingWalletAddress)
+        );
+
+        // Warp time to well after vesting period (e.g., 3 years)
+        vm.warp(block.timestamp + 1095 days); // 3 years
+
+        // Check vested amount
+        uint256 vestedAmount = vestingWallet.vestedAmount(
+            address(aSummerToken),
+            SafeCast.toUint64(block.timestamp)
+        );
+
+        // Verify that time-based vesting is capped
+        assertEq(
+            vestedAmount,
+            TIME_BASED_AMOUNT,
+            "Time-based vesting should be capped at TIME_BASED_AMOUNT even after vesting period"
+        );
+
+        // Mark no goals as reached
+        uint256 initialBalance = aSummerToken.balanceOf(beneficiary);
+
+        // Release tokens
+        vestingWallet.release(address(aSummerToken));
+
+        // Verify released amount
+        uint256 finalBalance = aSummerToken.balanceOf(beneficiary);
+        assertEq(
+            finalBalance - initialBalance,
+            TIME_BASED_AMOUNT,
+            "Only time-based tokens should be released, even after vesting period"
+        );
+
+        // Verify remaining tokens are still locked
+        assertEq(
+            aSummerToken.balanceOf(address(vestingWallet)),
+            GOAL_1_AMOUNT + GOAL_2_AMOUNT + GOAL_3_AMOUNT + GOAL_4_AMOUNT,
+            "Performance-based tokens should remain locked"
+        );
+    }
+
+    function test_InvestorExTeamVestingWithGoals() public {
+        assertGt(goalAmounts.length, 0, "Goal amount should be greater than 0");
+        // Try to create an InvestorExTeamVesting wallet with goals
+        vm.expectRevert(abi.encodeWithSignature("OnlyTeamVesting()"));
+        vestingWalletFactoryA.createVestingWallet(
+            beneficiary,
+            TIME_BASED_AMOUNT,
+            goalAmounts,
+            ISummerVestingWallet.VestingType.InvestorExTeamVesting
         );
     }
 }
