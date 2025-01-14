@@ -64,7 +64,6 @@ contract FleetCommanderCache {
 
     /**
      * @dev Calculates the total assets across all arks
-     * @param getActiveArks The getter function for ark addresses
      * @param bufferArk The buffer ark instance
      * @return total The sum of total assets across all arks
      * @custom:internal-logic
@@ -79,7 +78,6 @@ contract FleetCommanderCache {
      * - Assumes no changes in total assets throughout the execution of function that use this cache
      */
     function _totalAssets(
-        function() view returns (address[] memory) getActiveArks,
         IArk bufferArk
     ) internal view returns (uint256 total) {
         bool isTotalAssetsCached = StorageSlots
@@ -89,12 +87,12 @@ contract FleetCommanderCache {
         if (isTotalAssetsCached) {
             return StorageSlots.TOTAL_ASSETS_STORAGE.asUint256().tload();
         }
-        return _sumTotalAssets(_getAllArks(getActiveArks(), bufferArk));
+        return
+            _sumTotalAssets(_getAllArks(_getActiveArksAddresses(), bufferArk));
     }
 
     /**
      * @dev Calculates the total assets of withdrawable arks
-     * @param getActiveArks The getter function for ark addresses
      * @param bufferArk The buffer ark instance
      * @return withdrawableTotalAssets The sum of total assets across withdrawable arks
      *  - arks that don't require additional data to be boarded or disembarked from.
@@ -109,7 +107,6 @@ contract FleetCommanderCache {
      * - Depends on the correctness of the withdrawableTotalAssets function
      */
     function _withdrawableTotalAssets(
-        function() view returns (address[] memory) getActiveArks,
         IArk bufferArk
     ) internal view returns (uint256 withdrawableTotalAssets) {
         bool isWithdrawableTotalAssetsCached = StorageSlots
@@ -124,7 +121,10 @@ contract FleetCommanderCache {
                     .tload();
         }
 
-        IArk[] memory allArks = _getAllArks(getActiveArks(), bufferArk);
+        IArk[] memory allArks = _getAllArks(
+            _getActiveArksAddresses(),
+            bufferArk
+        );
         for (uint256 i = 0; i < allArks.length; i++) {
             uint256 withdrawableAssets = IArk(allArks[i])
                 .withdrawableTotalAssets();
@@ -207,7 +207,6 @@ contract FleetCommanderCache {
 
     /**
      * @dev Retrieves the data (address, totalAssets) for all arks and the buffer ark
-     * @param getActiveArks The getter function for ark addresses
      * @param bufferArk The buffer ark instance
      * @return _arksData An array of ArkData structs containing the ark addresses and their total assets
      * @custom:internal-logic
@@ -222,14 +221,13 @@ contract FleetCommanderCache {
      * - Relies on accurate reporting of total assets by individual arks
      */
     function _getArksData(
-        function() view returns (address[] memory) getActiveArks,
         IArk bufferArk
     ) internal returns (ArkData[] memory _arksData) {
         if (StorageSlots.IS_TOTAL_ASSETS_CACHED_STORAGE.asBoolean().tload()) {
             return _getAllArksDataFromCache();
         }
 
-        address[] memory arks = getActiveArks();
+        address[] memory arks = _getActiveArksAddresses();
         // Initialize data for all arks
         _arksData = new ArkData[](arks.length + 1); // +1 for buffer ark
         uint256 totalAssets = 0;
@@ -427,7 +425,6 @@ contract FleetCommanderCache {
 
     /**
      * @dev Retrieves and processes data for withdrawable arks
-     * @param getActiveArks The getter function for ark addresses
      * @param bufferArk The buffer ark instance
      * @custom:internal-logic
      * - Fetches data for all arks using _getArksData
@@ -447,10 +444,7 @@ contract FleetCommanderCache {
      * - Relies on the correctness of _getArksData, _cacheWithdrawableArksTotalAssets,
      *   _sortArkDataByTotalAssets, and _cacheWithdrawableArksTotalAssetsArray functions
      */
-    function _getWithdrawableArksData(
-        function() view returns (address[] memory) getActiveArks,
-        IArk bufferArk
-    ) internal {
+    function _getWithdrawableArksData(IArk bufferArk) internal {
         if (
             StorageSlots
                 .IS_WITHDRAWABLE_ARKS_TOTAL_ASSETS_CACHED_STORAGE
@@ -459,7 +453,7 @@ contract FleetCommanderCache {
         ) {
             return;
         }
-        ArkData[] memory _arksData = _getArksData(getActiveArks, bufferArk);
+        ArkData[] memory _arksData = _getArksData(bufferArk);
         // Initialize data for withdrawable arks
         ArkData[] memory _withdrawableArksData = new ArkData[](
             _arksData.length
@@ -544,4 +538,36 @@ contract FleetCommanderCache {
             }
         }
     }
+
+    /**
+     * @title _getActiveArksAddresses
+     * @notice Returns an array of addresses for all currently active Arks in the fleet
+     * @dev This is an abstract internal function that must be implemented by the FleetCommander contract
+     *      It serves as a critical component in the caching system for efficient ark management
+     *
+     * @return address[] An array containing the addresses of all active Arks
+     *
+     * @custom:purpose
+     * - Provides the foundation for the caching system by identifying which Arks are currently active
+     * - Used by _getArksData and _getWithdrawableArksData to populate cache data
+     * - Essential for operations that need to iterate over or manage all active Arks
+     * - Defined as virtual to be overridden by the FleetCommander contract and avoid calling it before it's required
+     *
+     * @custom:implementation-notes
+     * - Must be implemented by the inheriting FleetCommander contract
+     * - Should return a fresh array of addresses each time it's called
+     * - Buffer Ark should NOT be included in this list (it's handled separately)
+     * - Only truly active and operational Arks should be included
+     *
+     * @custom:related-functions
+     * - _getArksData: Uses this function to get data for all active Arks
+     * - _getWithdrawableArksData: Uses this function to identify withdrawable Arks
+     * - _getAllArks: Combines these addresses with the buffer Ark
+     */
+    function _getActiveArksAddresses()
+        internal
+        view
+        virtual
+        returns (address[] memory)
+    {}
 }
