@@ -459,9 +459,9 @@ contract VotingDecayTest is Test {
     }
 
     function test_DelegationChainWithZeroAddress() public view {
-        function(address)
-            pure
-            returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
+        function(
+            address
+        ) pure returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
 
         uint256 chainLength = state.getDelegationChainLength(
             user,
@@ -474,9 +474,9 @@ contract VotingDecayTest is Test {
         address user1 = address(1);
 
         // Mock delegation chain
-        function(address)
-            view
-            returns (address) mockGetDelegateTo = _mockComplexDelegation;
+        function(
+            address
+        ) view returns (address) mockGetDelegateTo = _mockComplexDelegation;
 
         // Test chain length
         uint256 chainLength = state.getDelegationChainLength(
@@ -503,9 +503,9 @@ contract VotingDecayTest is Test {
         state.resetDecay(address(0));
 
         // Create a helper function that always returns address(0)
-        function(address)
-            view
-            returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
+        function(
+            address
+        ) view returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
 
         uint256 decayFactor = state.getDecayFactor(
             address(0),

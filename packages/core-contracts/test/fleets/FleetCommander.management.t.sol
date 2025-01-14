@@ -536,7 +536,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         assertNotEq(config.stakingRewardsManager, address(0));
     }
 
-    function test_TransfersDisabledByDefault() public {
+    function test_TransfersDisabledByDefault() public view {
         assertEq(
             fleetCommander.transfersEnabled(),
             false,

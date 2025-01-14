@@ -348,7 +348,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
     }
 
     function test_Deposit_Enter_Stake_WETH() public {
-        address rewardsManager = wethFleet.getConfig().stakingRewardsManager;
         uint256 wethAmount = 1e18; // 1 WETH
 
         // deal weth

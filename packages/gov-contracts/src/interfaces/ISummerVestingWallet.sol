@@ -30,9 +30,6 @@ interface ISummerVestingWallet {
     ///             VIEW FUNCTIONS             ///
     //////////////////////////////////////////////
 
-    /// @dev Role identifier for the guardian role
-    function GUARDIAN_ROLE() external view returns (bytes32);
-
     /// @dev The token being vested
     function token() external view returns (address);
 

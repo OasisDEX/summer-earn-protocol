@@ -101,7 +101,10 @@ contract SummerTokenOwnershipTest is SummerTokenTestBase {
             initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
             transferEnableDate: block.timestamp + 1 days,
             maxSupply: INITIAL_SUPPLY * 10 ** 18,
-            initialSupply: INITIAL_SUPPLY * 10 ** 18
+            initialSupply: INITIAL_SUPPLY * 10 ** 18,
+            hubChainId: 31337,
+            peerEndpointIds: new uint32[](0),
+            peerAddresses: new address[](0)
         });
 
         vm.expectEmit(true, true, false, true);

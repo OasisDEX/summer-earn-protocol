@@ -365,12 +365,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stake(stakeAmount);
 
         // Setup reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
+        vm.stopPrank();
 
         // Fast forward time
         vm.warp(block.timestamp + 7 days);
@@ -405,12 +407,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         uint256 rewardAmount = 100 * 1e18;
         uint256 duration = 7 days;
 
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             duration
         );
+        vm.stopPrank();
 
         (
             uint256 periodFinish,
@@ -433,12 +437,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         uint256 rewardAmount = 100 * 1e18;
 
         // Setup reward token
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
+        vm.stopPrank();
 
         // Fast forward past reward period
         vm.warp(block.timestamp + 8 days);
@@ -470,12 +476,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         uint256 newDuration = 14 days;
 
         // Setup initial reward
-        vm.prank(address(mockGovernor));
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             initialDuration
         );
+        vm.stopPrank();
 
         // Fast forward past initial period
         vm.warp(block.timestamp + 8 days);

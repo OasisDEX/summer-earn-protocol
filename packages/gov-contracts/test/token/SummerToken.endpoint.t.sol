@@ -49,6 +49,8 @@ contract SummerTokenEndpointTest is SummerTokenTestBase {
     }
 
     function test_Send() public {
+        enableTransfers();
+
         uint256 amount = 100 ether;
         bytes memory options = OptionsBuilder
             .newOptions()

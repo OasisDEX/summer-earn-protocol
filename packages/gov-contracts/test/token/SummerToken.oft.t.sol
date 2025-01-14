@@ -12,6 +12,7 @@ contract SummerTokenOFTTest is SummerTokenTestBase {
     using OptionsBuilder for bytes;
 
     function test_SendTokens() public {
+        enableTransfers();
         uint256 amount = 100 ether;
         bytes memory options = OptionsBuilder
             .newOptions()
@@ -30,14 +31,11 @@ contract SummerTokenOFTTest is SummerTokenTestBase {
         MessagingFee memory fee = aSummerToken.quoteSend(sendParam, false);
 
         vm.prank(owner);
-        (
-            MessagingReceipt memory msgReceipt,
-            OFTReceipt memory oftReceipt
-        ) = aSummerToken.send{value: fee.nativeFee}(
-                sendParam,
-                fee,
-                payable(address(this))
-            );
+        aSummerToken.send{value: fee.nativeFee}(
+            sendParam,
+            fee,
+            payable(address(this))
+        );
 
         verifyPackets(bEid, addressToBytes32(address(bSummerToken)));
     }

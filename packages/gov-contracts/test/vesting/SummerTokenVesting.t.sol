@@ -431,31 +431,36 @@ contract SummerVestingTest is SummerTokenTestBase {
     }
 
     function test_ZeroAddressToken() public {
-        // Deploy a new SummerVestingWallet directly with zero address token
         uint64 startTimestamp = uint64(block.timestamp);
-        uint64 durationSeconds = uint64(2 * 365 days); // 2 years
 
-        vm.expectRevert(ISummerVestingWallet.InvalidToken.selector);
+        vm.startPrank(foundation);
+        // Expect revert with the full error including the address parameter
+        vm.expectRevert(
+            abi.encodeWithSignature("InvalidToken(address)", address(0))
+        );
         new SummerVestingWallet(
-            address(0), // zero address token
+            address(0),
             beneficiary,
             startTimestamp,
-            durationSeconds,
             ISummerVestingWallet.VestingType.TeamVesting,
             TIME_BASED_AMOUNT,
             goalAmounts,
             address(accessManagerA)
         );
+        vm.stopPrank();
     }
 
     function test_RecallUnvestedTokens_CantRecallTwice() public {
         // Create a vesting wallet with team vesting type
+        vm.startPrank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
+        vm.stopPrank();
+
         address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
             beneficiary
         );
@@ -465,16 +470,20 @@ contract SummerVestingTest is SummerTokenTestBase {
 
         // Warp time and mark some goals as reached (goals 1 and 3)
         vm.warp(block.timestamp + 365 days);
+        vm.startPrank(foundation);
         vestingWallet.markGoalReached(1);
         vestingWallet.markGoalReached(3);
+        vm.stopPrank();
 
         // Calculate expected unvested amount (goals 2 and 4 are not reached)
         uint256 expectedUnvestedAmount = goalAmounts[1] + goalAmounts[3];
 
         // First recall of unvested tokens
-        uint256 initialBalance = aSummerToken.balanceOf(address(this));
+        vm.startPrank(foundation);
+        uint256 initialBalance = aSummerToken.balanceOf(foundation);
         vestingWallet.recallUnvestedTokens();
-        uint256 firstRecallBalance = aSummerToken.balanceOf(address(this));
+        uint256 firstRecallBalance = aSummerToken.balanceOf(foundation);
+        vm.stopPrank();
 
         // Verify first recall worked as expected
         assertEq(
@@ -484,8 +493,10 @@ contract SummerVestingTest is SummerTokenTestBase {
         );
 
         // Second recall of unvested tokens should return 0
+        vm.startPrank(foundation);
         vestingWallet.recallUnvestedTokens();
-        uint256 secondRecallBalance = aSummerToken.balanceOf(address(this));
+        uint256 secondRecallBalance = aSummerToken.balanceOf(foundation);
+        vm.stopPrank();
 
         // Verify that the second recall didn't transfer any tokens
         assertEq(
@@ -521,12 +532,15 @@ contract SummerVestingTest is SummerTokenTestBase {
 
     function test_TimeBasedVestingCap() public {
         // Create vesting wallet with team vesting type
+        vm.startPrank(foundation);
         vestingWalletFactoryA.createVestingWallet(
             beneficiary,
             TIME_BASED_AMOUNT,
             goalAmounts,
             ISummerVestingWallet.VestingType.TeamVesting
         );
+        vm.stopPrank();
+
         address vestingWalletAddress = vestingWalletFactoryA.vestingWallets(
             beneficiary
         );
@@ -574,6 +588,8 @@ contract SummerVestingTest is SummerTokenTestBase {
 
     function test_InvestorExTeamVestingWithGoals() public {
         assertGt(goalAmounts.length, 0, "Goal amount should be greater than 0");
+
+        vm.startPrank(foundation);
         // Try to create an InvestorExTeamVesting wallet with goals
         vm.expectRevert(abi.encodeWithSignature("OnlyTeamVesting()"));
         vestingWalletFactoryA.createVestingWallet(
@@ -582,5 +598,6 @@ contract SummerVestingTest is SummerTokenTestBase {
             goalAmounts,
             ISummerVestingWallet.VestingType.InvestorExTeamVesting
         );
+        vm.stopPrank();
     }
 }

@@ -22,7 +22,7 @@ contract SummerTokenCappedTest is SummerTokenTestBase {
         enableTransfers(); // Enable transfers for testing
     }
 
-    function test_InitialState() public {
+    function test_InitialState() public view {
         assertEq(aSummerToken.cap(), MAX_SUPPLY, "Cap should be set correctly");
         assertEq(
             aSummerToken.totalSupply(),
@@ -133,10 +133,6 @@ contract SummerTokenCappedTest is SummerTokenTestBase {
     }
 
     function test_BurnAndMintCombinations() public {
-        // Get current total supply
-        uint256 currentSupply = aSummerToken.totalSupply();
-        uint256 maxSupply = aSummerToken.cap();
-
         // Burn from owner
         aSummerToken.burn(500e18);
 
@@ -161,8 +157,6 @@ contract SummerTokenCappedTest is SummerTokenTestBase {
     }
 
     function test_MintAfterComplexOperations() public {
-        uint256 currentSupply = aSummerToken.totalSupply();
-
         aSummerToken.burn(aSummerToken.totalSupply());
 
         // Mint smaller amounts to avoid cap issues

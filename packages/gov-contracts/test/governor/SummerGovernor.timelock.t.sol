@@ -184,5 +184,40 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
         governorA.queue(targets, values, calldatas, descriptionHash);
 
         // Try to execute immediately (should fail)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TimelockController.TimelockUnexpectedOperationState.selector,
+                bytes32(
+                    0x81297373e089cb2bba7fe732a206753121d91648a36fb2584c2cf0c8f8afd1fc
+                ),
+                bytes32(1 << uint8(TimelockController.OperationState.Ready))
+            )
+        );
+        governorA.execute(targets, values, calldatas, descriptionHash);
+
+        // Advance time but not quite enough
+        vm.warp(queueTime + timelockA.getMinDelay() - 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TimelockController.TimelockUnexpectedOperationState.selector,
+                bytes32(
+                    0x81297373e089cb2bba7fe732a206753121d91648a36fb2584c2cf0c8f8afd1fc
+                ),
+                bytes32(1 << uint8(TimelockController.OperationState.Ready))
+            )
+        );
+        governorA.execute(targets, values, calldatas, descriptionHash);
+
+        // Advance time to exactly the delay
+        vm.warp(queueTime + timelockA.getMinDelay());
+
+        // Now execution should succeed
+        governorA.execute(targets, values, calldatas, descriptionHash);
+
+        // Verify proposal state
+        assertEq(
+            uint256(governorA.state(proposalId)),
+            uint256(IGovernor.ProposalState.Executed)
+        );
     }
 }

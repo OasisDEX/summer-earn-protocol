@@ -11,7 +11,7 @@ contract SummerGovernorQuorumTest is SummerGovernorTestBase {
         uint256 newQuorumNumerator
     );
 
-    function test_InitialQuorumSetup() public {
+    function test_InitialQuorumSetup() public view {
         assertEq(governorA.quorumNumerator(), QUORUM_FRACTION);
         assertEq(governorA.quorumDenominator(), 100);
     }
@@ -65,7 +65,6 @@ contract SummerGovernorQuorumTest is SummerGovernorTestBase {
         );
 
         // Verify quorum calculation
-        (, , uint256 abstainVotes) = governorA.proposalVotes(proposalId);
         uint256 actualQuorum = governorA.quorum(block.timestamp - 1);
         assertEq(actualQuorum, expectedQuorum, "Quorum calculation mismatch");
     }
@@ -92,7 +91,7 @@ contract SummerGovernorQuorumTest is SummerGovernorTestBase {
 
         // Create proposal
         vm.prank(alice);
-        (uint256 proposalId, bytes32 descriptionHash) = createProposal();
+        (uint256 proposalId, ) = createProposal();
 
         // Wait for voting to start
         advanceTimeForVotingDelay();
@@ -155,7 +154,7 @@ contract SummerGovernorQuorumTest is SummerGovernorTestBase {
         vm.stopPrank();
 
         vm.prank(alice);
-        (uint256 proposalId, bytes32 descriptionHash) = createProposal();
+        (uint256 proposalId, ) = createProposal();
 
         advanceTimeForVotingDelay();
 

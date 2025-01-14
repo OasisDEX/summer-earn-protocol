@@ -30,9 +30,6 @@ contract SummerVestingWallet is
     /// @dev Duration of the vesting period in seconds
     uint64 private constant DURATION_SECONDS = 730 days; // 2 years for both vesting types
 
-    /// @inheritdoc ISummerVestingWallet
-    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-
     //////////////////////////////////////////////
     ///             STATE VARIABLES            ///
     //////////////////////////////////////////////
