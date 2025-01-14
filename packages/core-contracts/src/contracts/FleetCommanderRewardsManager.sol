@@ -72,7 +72,6 @@ contract FleetCommanderRewardsManager is
         }
 
         _unstake(owner, address(this), amount);
-        IERC20(fleetCommander).approve(fleetCommander, amount);
         IFleetCommander(fleetCommander).redeem(amount, owner, address(this));
 
         if (claimRewards) {

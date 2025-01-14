@@ -10,6 +10,9 @@
         },
         "timelock": {
           "address": "0x814f437Aa0555f87179013A1817e495bbD882529"
+        },
+        "rewardsRedeemer": {
+          "address": "0xf69943661d989073f1043ee1927ad3c5c2615166"
         }
       },
       "buyAndBurn": {
