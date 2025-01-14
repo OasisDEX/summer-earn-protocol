@@ -141,6 +141,7 @@ async function deployMorphoArkContract(
       [moduleName]: {
         morphoBlue: config.protocolSpecific.morpho.blue,
         marketId: userInput.marketId,
+        urdFactory: config.protocolSpecific.morpho.urdFactory,
         arkParams: {
           name: `Morpho-${userInput.token.symbol}-${userInput.marketName}-${chainId}`,
           details: JSON.stringify({

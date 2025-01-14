@@ -9,7 +9,7 @@ import {TestHelpers} from "../helpers/TestHelpers.sol";
 import "../../src/contracts/arks/AaveV3Ark.sol";
 import "../../src/contracts/arks/CompoundV3Ark.sol";
 
-import "../../src/contracts/arks/MetaMorphoArk.sol";
+import "../../src/contracts/arks/MorphoVaultArk.sol";
 import "../../src/contracts/arks/MorphoArk.sol";
 
 import "../../src/events/IArkEvents.sol";
@@ -33,7 +33,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     CompoundV3Ark public usdcCompoundArk;
     AaveV3Ark public usdcAaveArk;
     MorphoArk public usdcMorphoArk;
-    MetaMorphoArk public usdcMetaMorphoArk;
+    MorphoVaultArk public usdcMetaMorphoArk;
     ERC4626Ark public usdcGearboxERC4626Ark;
     ERC4626Ark public usdcFluidERC4626Ark;
     BufferArk public usdcBufferArk;
@@ -41,7 +41,7 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     // DAI Fleet Arks
     AaveV3Ark public daiAaveArk;
     MorphoArk public daiMorphoArk;
-    MetaMorphoArk public daiMetaMorphoArk;
+    MorphoVaultArk public daiMetaMorphoArk;
     ERC4626Ark public sDAIArk;
     BufferArk public daiBufferArk;
 
@@ -87,6 +87,8 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         0xda00000035fef4082F78dEF6A8903bee419FbF8E;
     address public constant FLUID_USDC_VAULT_ADDRESS =
         0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33;
+    address public constant MORPHO_URD_FACTORY =
+        0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D;
 
     Id public constant USDC_MORPHO_MARKET_ID =
         Id.wrap(
@@ -198,10 +200,12 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         usdcMorphoArk = new MorphoArk(
             MORPHO_ADDRESS,
             USDC_MORPHO_MARKET_ID,
+            MORPHO_URD_FACTORY,
             usdcArkParams
         );
-        usdcMetaMorphoArk = new MetaMorphoArk(
+        usdcMetaMorphoArk = new MorphoVaultArk(
             USDC_METAMORPHO_ADDRESS,
+            MORPHO_URD_FACTORY,
             usdcArkParams
         );
         usdcGearboxERC4626Ark = new ERC4626Ark(
@@ -221,10 +225,12 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
         daiMorphoArk = new MorphoArk(
             MORPHO_ADDRESS,
             DAI_MORPHO_MARKET_ID,
+            MORPHO_URD_FACTORY,
             daiArkParams
         );
-        daiMetaMorphoArk = new MetaMorphoArk(
+        daiMetaMorphoArk = new MorphoVaultArk(
             DAI_METAMORPHO_ADDRESS,
+            MORPHO_URD_FACTORY,
             daiArkParams
         );
         sDAIArk = new ERC4626Ark(SDAI_ADDRESS, daiArkParams);

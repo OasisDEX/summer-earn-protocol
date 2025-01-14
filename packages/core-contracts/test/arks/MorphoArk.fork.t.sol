@@ -29,6 +29,8 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant WBTC_ADDRESS =
         0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    address public constant MORPHO_URD_FACTORY =
+        0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D;
 
     Id public constant MARKET_ID =
         Id.wrap(
@@ -66,7 +68,12 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
+        ark = new MorphoArk(
+            MORPHO_ADDRESS,
+            MARKET_ID,
+            MORPHO_URD_FACTORY,
+            params
+        );
 
         // Permissioning
         vm.startPrank(governor);
@@ -105,15 +112,20 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Act & Assert
         vm.expectRevert(abi.encodeWithSignature("InvalidMorphoAddress()"));
-        new MorphoArk(address(0), Id.wrap(0), params);
+        new MorphoArk(address(0), Id.wrap(0), MORPHO_URD_FACTORY, params);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidMorphoAddress()"));
-        new MorphoArk(address(0), MARKET_ID, params);
+        new MorphoArk(address(0), MARKET_ID, MORPHO_URD_FACTORY, params);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidMarketId()"));
-        new MorphoArk(MORPHO_ADDRESS, Id.wrap(0), params);
+        new MorphoArk(MORPHO_ADDRESS, Id.wrap(0), MORPHO_URD_FACTORY, params);
 
-        MorphoArk newArk = new MorphoArk(MORPHO_ADDRESS, MARKET_ID, params);
+        MorphoArk newArk = new MorphoArk(
+            MORPHO_ADDRESS,
+            MARKET_ID,
+            MORPHO_URD_FACTORY,
+            params
+        );
         assertTrue(newArk.depositCap() == 1000, "Max allocation should be set");
         assertTrue(
             Id.unwrap(newArk.marketId()) == Id.unwrap(MARKET_ID),
@@ -220,6 +232,15 @@ contract MorphoArkTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function testHarvest() public {
+        // make sure the URD is registered
+        vm.mockCall(
+            address(MORPHO_URD_FACTORY),
+            abi.encodeWithSelector(
+                IUrdFactory.isUrd.selector,
+                address(rewardsDistributor)
+            ),
+            abi.encode(true)
+        );
         // Prepare harvest data
         address[] memory urd = new address[](1);
         urd[0] = address(rewardsDistributor);

@@ -12,9 +12,10 @@ export function createMorphoArkModule(moduleName: string) {
   return buildModule(moduleName, (m) => {
     const morphoBlue = m.getParameter('morphoBlue')
     const marketId = m.getParameter('marketId')
+    const urdFactory = m.getParameter('urdFactory')
     const arkParams = m.getParameter('arkParams')
 
-    const morphoArk = m.contract('MorphoArk', [morphoBlue, marketId, arkParams])
+    const morphoArk = m.contract('MorphoArk', [morphoBlue, marketId, urdFactory, arkParams])
 
     return { morphoArk }
   })

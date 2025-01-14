@@ -124,7 +124,10 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialSupply: INITIAL_SUPPLY * 10 ** 18
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                hubChainId: 31337,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
 
         ISummerToken.TokenParams memory tokenParamsB = ISummerToken
@@ -140,7 +143,10 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialSupply: 0
+                initialSupply: 0,
+                hubChainId: 31338,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
             });
 
         vm.label(owner, "Owner");

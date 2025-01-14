@@ -8,7 +8,7 @@ import "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 import {IAuctionManagerBaseEvents} from "../../src/events/IAuctionManagerBaseEvents.sol";
 import {IBuyAndBurnEvents} from "../../src/events/IBuyAndBurnEvents.sol";
-import {MockSummerToken} from "../mocks/MockSummerToken.sol";
+import {MockSummerToken} from "@summerfi/gov-contracts/test/MockSummerToken.sol";
 import "./AuctionTestBase.sol";
 import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
 
