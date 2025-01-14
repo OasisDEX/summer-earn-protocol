@@ -212,8 +212,8 @@ contract SummerVestingWallet is
     function _calculateTimeBasedVesting(
         uint64 timestamp
     ) private view returns (uint256) {
-        uint256 elapsedQuarters = (timestamp - start()) / QUARTER;
-        uint256 _vestedAmount = (timeBasedVestingAmount * elapsedQuarters) / 8;
+        uint256 elapsedMonths = (timestamp - start()) / MONTH;
+        uint256 _vestedAmount = (timeBasedVestingAmount * elapsedMonths) / 24;
         return
             _vestedAmount < timeBasedVestingAmount
                 ? _vestedAmount
