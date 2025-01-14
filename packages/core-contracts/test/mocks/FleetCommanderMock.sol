@@ -207,7 +207,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function unstake(uint256 shares) external {}
 
-    function setTransfersEnabled(bool enabled) external {
+    function setFleetTokenTransferability(bool enabled) external {
         transfersEnabled = enabled;
     }
 }
