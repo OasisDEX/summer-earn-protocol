@@ -459,9 +459,9 @@ contract VotingDecayTest is Test {
     }
 
     function test_DelegationChainWithZeroAddress() public view {
-        function(
-            address
-        ) pure returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
+        function(address)
+            pure
+            returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
 
         uint256 chainLength = state.getDelegationChainLength(
             user,
@@ -474,9 +474,9 @@ contract VotingDecayTest is Test {
         address user1 = address(1);
 
         // Mock delegation chain
-        function(
-            address
-        ) view returns (address) mockGetDelegateTo = _mockComplexDelegation;
+        function(address)
+            view
+            returns (address) mockGetDelegateTo = _mockComplexDelegation;
 
         // Test chain length
         uint256 chainLength = state.getDelegationChainLength(
@@ -503,9 +503,9 @@ contract VotingDecayTest is Test {
         state.resetDecay(address(0));
 
         // Create a helper function that always returns address(0)
-        function(
-            address
-        ) view returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
+        function(address)
+            view
+            returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
 
         uint256 decayFactor = state.getDecayFactor(
             address(0),
@@ -569,6 +569,47 @@ contract VotingDecayTest is Test {
             decayFactor,
             0,
             "Decay factor should be 0 when exceeding MAX_DELEGATION_DEPTH"
+        );
+    }
+
+    function test_UpdateDecayFactorPreservesFactorInWindow() public {
+        // Initialize account
+        state.resetDecay(user);
+
+        // Advance time to create some decay (60 days)
+        vm.warp(block.timestamp + 60 days);
+
+        // Get initial decay factor after decay period
+        uint256 initialDecayFactor = state.getDecayFactor(user, _getDelegateTo);
+        assertLt(
+            initialDecayFactor,
+            VotingDecayLibrary.WAD,
+            "Should have decayed"
+        );
+
+        state.updateDecayFactor(user, _getDelegateTo);
+        uint256 expectedDecayFactor = state.getDecayFactor(
+            user,
+            _getDelegateTo
+        );
+
+        // Move forward but stay within decay-free window (15 days)
+        vm.warp(block.timestamp + 15 days);
+
+        // Check decay factor hasn't changed
+        uint256 newDecayFactor = state.getDecayFactor(user, _getDelegateTo);
+
+        assertEq(
+            newDecayFactor,
+            expectedDecayFactor,
+            "Decay factor should not change when updating within decay-free window"
+        );
+
+        // Double check it's not WAD
+        assertLt(
+            newDecayFactor,
+            VotingDecayLibrary.WAD,
+            "Decay factor should not reset to WAD"
         );
     }
 }

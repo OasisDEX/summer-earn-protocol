@@ -173,7 +173,7 @@ library VotingDecayLibrary {
         DecayInfo storage account = self.decayInfoByAccount[accountAddress];
 
         uint256 decayPeriod = block.timestamp - account.lastUpdateTimestamp;
-        uint256 newDecayFactor = WAD; // Default to WAD
+        uint256 newDecayFactor = account.decayFactor;
 
         if (decayPeriod > self.decayFreeWindow) {
             newDecayFactor = getDecayFactor(
@@ -334,6 +334,12 @@ library VotingDecayLibrary {
         }
 
         address delegateTo = getDelegateTo(accountAddress);
+
+        // Detect cycles - if we're back to original account and within depth limit,
+        // return the original account's decay factor
+        if (delegateTo == originalAccount && depth > 0) {
+            return _calculateAccountDecayFactor(self, originalAccount);
+        }
 
         // Has Delegate + Delegate has Decay Info
         if (
