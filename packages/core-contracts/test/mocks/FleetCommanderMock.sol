@@ -13,6 +13,8 @@ import {PercentageUtils} from "@summerfi/percentage-solidity/contracts/Percentag
 contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     using PercentageUtils for uint256;
 
+    bool public transfersEnabled;
+
     FleetConfig public config;
     address[] public arks;
     mapping(address => bool) public isArkActiveOrBufferArk;
@@ -204,4 +206,8 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     function stake(uint256 shares) external {}
 
     function unstake(uint256 shares) external {}
+
+    function setFleetTokenTransferability(bool enabled) external {
+        transfersEnabled = enabled;
+    }
 }

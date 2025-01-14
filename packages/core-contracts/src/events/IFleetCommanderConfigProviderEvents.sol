@@ -37,4 +37,10 @@ interface IFleetCommanderConfigProviderEvents {
      * @param newStakingRewards The address of the new staking rewards contract
      */
     event FleetCommanderStakingRewardsUpdated(address newStakingRewards);
+
+    /**
+     * @notice Emitted when the transfer enabled status is updated
+     * @param enabled The new transfer enabled status
+     */
+    event TransfersEnabledUpdated(bool enabled);
 }
