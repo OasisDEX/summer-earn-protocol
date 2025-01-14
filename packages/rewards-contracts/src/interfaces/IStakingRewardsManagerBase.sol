@@ -98,8 +98,13 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      */
     function unstake(uint256 amount) external;
 
-    /* @notice Claim accumulated rewards */
+    /* @notice Claim accumulated rewards for all reward tokens */
     function getReward() external;
+
+    /* @notice Claim accumulated rewards for a specific reward token
+     * @param rewardToken The address of the reward token to claim
+     */
+    function getReward(address rewardToken) external;
 
     /* @notice Withdraw all staked tokens and claim rewards */
     function exit() external;
@@ -144,16 +149,26 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
     event RewardAdded(address indexed rewardToken, uint256 reward);
 
     /* @notice Emitted when tokens are staked
-     * @param account The address of the account that staked
-     * @param amount The amount of tokens staked
+     * @param staker The address that provided the tokens for staking
+     * @param receiver The address whose staking balance was updated
+     * @param amount The amount of tokens added to the staking position
      */
-    event Staked(address indexed account, uint256 amount);
+    event Staked(
+        address indexed staker,
+        address indexed receiver,
+        uint256 amount
+    );
 
     /* @notice Emitted when tokens are unstaked
-     * @param account The address of the account that unstaked
+     * @param staker The address whose tokens were unstaked
+     * @param receiver The address receiving the unstaked tokens
      * @param amount The amount of tokens unstaked
      */
-    event Unstaked(address indexed account, uint256 amount);
+    event Unstaked(
+        address indexed staker,
+        address indexed receiver,
+        uint256 amount
+    );
 
     /* @notice Emitted when tokens are withdrawn
      * @param user The address of the user that withdrew
@@ -196,4 +211,15 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param rewardToken The address of the reward token
      */
     event RewardTokenRemoved(address rewardToken);
+
+    /* @notice Claims rewards for a specific account
+     * @param account The address to claim rewards for
+     */
+    function getRewardFor(address account) external;
+
+    /* @notice Claims rewards for a specific account and specific reward token
+     * @param account The address to claim rewards for
+     * @param rewardToken The address of the reward token to claim
+     */
+    function getRewardFor(address account, address rewardToken) external;
 }

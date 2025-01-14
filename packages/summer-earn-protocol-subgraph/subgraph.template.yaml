@@ -237,4 +237,13 @@ templates:
         - event: Unstaked(indexed address,uint256)
           handler: handleUnstaked
           receipt: true
+        - event: RewardTokenRemoved(address)
+          handler: handleRewardTokenRemoved
+          receipt: true
+        - event: RewardAdded(indexed address,uint256)
+          handler: handleRewardAdded
+          receipt: true
+        - event: RewardsDurationUpdated(indexed address,uint256)
+          handler: handleRewardsDurationUpdated
+          receipt: true
       file: ./src/mappings/fleetCommander.ts

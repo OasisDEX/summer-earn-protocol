@@ -38,7 +38,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         defaultParams.kickerRewardPercentage = Percentage.wrap(
             KICKER_REWARD_PERCENTAGE
         );
-        raftContract = new Raft(address(accessManager), defaultParams);
+        raftContract = new Raft(address(accessManager));
 
         vm.prank(governor);
         configurationManager.setRaft(address(raftContract));
@@ -46,6 +46,19 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         mockRewardToken = createMockToken("Reward Token", "RWD", 18);
         mockRewardToken2 = createMockToken("Reward Token 2", "RWD2", 18);
         mockPaymentToken = mockToken;
+
+        vm.startPrank(governor);
+        raftContract.setArkAuctionParameters(
+            address(mockArk1),
+            address(mockRewardToken),
+            defaultParams
+        );
+        raftContract.setArkAuctionParameters(
+            address(mockArk1),
+            address(mockRewardToken2),
+            defaultParams
+        );
+        vm.stopPrank();
 
         mintTokens(address(mockRewardToken), address(mockArk1), REWARD_AMOUNT);
         mintTokens(
@@ -63,14 +76,25 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     }
 
     function test_Constructor() public {
-        Raft newRaft = new Raft(address(accessManager), defaultParams);
+        Raft newRaft = new Raft(address(accessManager));
+        vm.startPrank(governor);
+        newRaft.setArkAuctionParameters(
+            address(mockArk1),
+            address(mockRewardToken),
+            defaultParams
+        );
+        vm.stopPrank();
         (
             uint40 duration,
             uint256 startPrice,
             uint256 endPrice,
             Percentage kickerRewardPercentage,
             DecayFunctions.DecayType decayType
-        ) = newRaft.auctionDefaultParameters();
+        ) = newRaft.arkAuctionParameters(
+                address(mockArk1),
+                address(mockRewardToken)
+            );
+
         assertEq(duration, AUCTION_DURATION);
         assertEq(startPrice, START_PRICE);
         assertEq(endPrice, END_PRICE);
@@ -97,7 +121,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
 
         assertEq(
-            raftContract.getObtainedTokens(
+            raftContract.obtainedTokens(
                 address(mockArk1),
                 address(mockRewardToken)
             ),
@@ -129,7 +153,6 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         raftContract.harvestAndStartAuction(
             address(mockArk1),
-            address(mockPaymentToken),
             _getEncodedRewardData(rewardTokens, rewardAmounts)
         );
 
@@ -184,7 +207,6 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         raftContract.harvestAndStartAuction(
             address(mockArk1),
-            address(mockPaymentToken),
             _getEncodedRewardData(rewardTokens, rewardAmounts)
         );
 
@@ -289,11 +311,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             )
         );
 
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
         vm.stopPrank();
 
         // Verify second auction setup
@@ -495,11 +513,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             )
         );
 
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
         vm.stopPrank();
 
         // Verify second auction setup
@@ -604,11 +618,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
 
         vm.prank(governor);
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
 
         (, DutchAuctionLibrary.AuctionState memory state) = raftContract
             .auctions(address(mockArk1), address(mockRewardToken));
@@ -701,7 +711,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
     }
 
     function test_UpdateAuctionConfig() public {
-        AuctionDefaultParameters memory newConfig = AuctionDefaultParameters({
+        BaseAuctionParameters memory newConfig = BaseAuctionParameters({
             duration: 2 days,
             startPrice: 2e18,
             endPrice: 2,
@@ -711,11 +721,17 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true);
-        emit IAuctionManagerBaseEvents.AuctionDefaultParametersUpdated(
+        emit IRaftEvents.ArkAuctionParametersSet(
+            address(mockArk1),
+            address(mockRewardToken),
             newConfig
         );
 
-        raftContract.updateAuctionDefaultParameters(newConfig);
+        raftContract.setArkAuctionParameters(
+            address(mockArk1),
+            address(mockRewardToken),
+            newConfig
+        );
 
         (
             uint40 duration,
@@ -723,7 +739,10 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             uint256 endPrice,
             Percentage kickerRewardPercentage,
             DecayFunctions.DecayType decayType
-        ) = raftContract.auctionDefaultParameters();
+        ) = raftContract.arkAuctionParameters(
+                address(mockArk1),
+                address(mockRewardToken)
+            );
         assertEq(duration, newConfig.duration);
         assertEq(startPrice, newConfig.startPrice);
         assertEq(endPrice, newConfig.endPrice);
@@ -745,21 +764,13 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
                 address(mockRewardToken)
             )
         );
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
     }
 
     function test_CannotStartAuctionWithNoTokens() public {
         vm.prank(governor);
         vm.expectRevert(DutchAuctionErrors.InvalidTokenAmount.selector);
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
     }
 
     function test_CannotFinalizeAuctionBeforeEndTime() public {
@@ -816,28 +827,30 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
     }
 
-    function test_GetAuctionInfo() public {
+    function test_auctions() public {
         // Setup the auction
         _setupAuction();
 
         // Get the auction info
-        DutchAuctionLibrary.Auction memory auctionInfo = raftContract
-            .getAuctionInfo(address(mockArk1), address(mockRewardToken));
+        (
+            DutchAuctionLibrary.AuctionConfig memory config,
+            DutchAuctionLibrary.AuctionState memory state
+        ) = raftContract.auctions(address(mockArk1), address(mockRewardToken));
 
         // Verify the auction config
-        assertEq(auctionInfo.config.id, 1, "Auction ID should be 1");
+        assertEq(config.id, 1, "Auction ID should be 1");
         assertEq(
-            address(auctionInfo.config.auctionToken),
+            address(config.auctionToken),
             address(mockRewardToken),
             "Auction token should be mockRewardToken"
         );
         assertEq(
-            address(auctionInfo.config.paymentToken),
+            address(config.paymentToken),
             address(mockPaymentToken),
             "Payment token should be mockPaymentToken"
         );
         assertEq(
-            auctionInfo.config.totalTokens,
+            config.totalTokens,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -845,44 +858,37 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             "Total tokens should be correct"
         );
         assertEq(
-            auctionInfo.config.startTime,
+            config.startTime,
             block.timestamp,
             "Start time should be current block timestamp"
         );
         assertEq(
-            auctionInfo.config.endTime,
+            config.endTime,
             block.timestamp + AUCTION_DURATION,
             "End time should be start time + duration"
         );
         assertEq(
-            auctionInfo.config.startPrice,
+            config.startPrice,
             START_PRICE,
             "Start price should be correct"
         );
+        assertEq(config.endPrice, END_PRICE, "End price should be correct");
         assertEq(
-            auctionInfo.config.endPrice,
-            END_PRICE,
-            "End price should be correct"
-        );
-        assertEq(
-            uint8(auctionInfo.config.decayType),
+            uint8(config.decayType),
             uint8(DecayFunctions.DecayType.Linear),
             "Decay type should be Linear"
         );
 
         // Verify the auction state
         assertEq(
-            auctionInfo.state.remainingTokens,
+            state.remainingTokens,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
                 ),
             "Remaining tokens should be total tokens"
         );
-        assertFalse(
-            auctionInfo.state.isFinalized,
-            "Auction should not be finalized"
-        );
+        assertFalse(state.isFinalized, "Auction should not be finalized");
 
         // Buy some tokens
         uint256 buyAmount = 1000;
@@ -902,14 +908,14 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         vm.stopPrank();
 
         // Get the updated auction info
-        auctionInfo = raftContract.getAuctionInfo(
+        (config, state) = raftContract.auctions(
             address(mockArk1),
             address(mockRewardToken)
         );
 
         // Verify the updated state
         assertEq(
-            auctionInfo.state.remainingTokens,
+            state.remainingTokens,
             REWARD_AMOUNT -
                 REWARD_AMOUNT.applyPercentage(
                     Percentage.wrap(KICKER_REWARD_PERCENTAGE)
@@ -917,10 +923,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
                 buyAmount,
             "Remaining tokens should be updated"
         );
-        assertFalse(
-            auctionInfo.state.isFinalized,
-            "Auction should still not be finalized"
-        );
+        assertFalse(state.isFinalized, "Auction should still not be finalized");
 
         // Finalize the auction
         vm.warp(block.timestamp + AUCTION_DURATION + 1);
@@ -930,16 +933,13 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
 
         // Get the final auction info
-        auctionInfo = raftContract.getAuctionInfo(
+        (config, state) = raftContract.auctions(
             address(mockArk1),
             address(mockRewardToken)
         );
 
         // Verify the final state
-        assertTrue(
-            auctionInfo.state.isFinalized,
-            "Auction should be finalized"
-        );
+        assertTrue(state.isFinalized, "Auction should be finalized");
     }
 
     function _setupAuction() internal {
@@ -951,11 +951,7 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
                 REWARD_AMOUNT
             )
         );
-        raftContract.startAuction(
-            address(mockArk1),
-            address(mockRewardToken),
-            address(mockPaymentToken)
-        );
+        raftContract.startAuction(address(mockArk1), address(mockRewardToken));
         vm.stopPrank();
     }
 
@@ -1070,7 +1066,18 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         tokensToSweep[0] = address(mockRewardToken);
         tokensToSweep[1] = address(mockRewardToken2);
 
-        vm.prank(governor);
+        vm.startPrank(governor); // governor is also curator for that fleet
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken2),
+            true
+        );
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken),
+            true
+        );
+
         vm.expectEmit(true, true, true, true);
         emit DutchAuctionEvents.AuctionCreated(
             1,
@@ -1092,12 +1099,8 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
             amount2.applyPercentage(Percentage.wrap(KICKER_REWARD_PERCENTAGE))
         );
 
-        raftContract.sweepAndStartAuction(
-            address(mockArk1),
-            tokensToSweep,
-            address(mockPaymentToken)
-        );
-
+        raftContract.sweepAndStartAuction(address(mockArk1), tokensToSweep);
+        vm.stopPrank();
         (, DutchAuctionLibrary.AuctionState memory state) = raftContract
             .auctions(address(mockArk1), address(mockRewardToken));
         assertEq(
@@ -1120,18 +1123,167 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
 
         // Verify that obtainedTokens are reset after starting the auction
         assertEq(
-            raftContract.getObtainedTokens(
+            raftContract.obtainedTokens(
                 address(mockArk1),
                 address(mockRewardToken)
             ),
             0
         );
         assertEq(
-            raftContract.getObtainedTokens(
+            raftContract.obtainedTokens(
                 address(mockArk1),
                 address(mockRewardToken2)
             ),
             0
         );
+    }
+
+    function test_SetSweepableToken() public {
+        vm.startPrank(governor);
+
+        // Set token as sweepable
+        vm.expectEmit(true, true, true, true);
+        emit SweepableTokenSet(
+            address(mockArk1),
+            address(mockRewardToken),
+            true
+        );
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken),
+            true
+        );
+
+        // Verify token is sweepable
+        assertTrue(
+            raftContract.sweepableTokens(
+                address(mockArk1),
+                address(mockRewardToken)
+            ),
+            "Token should be sweepable"
+        );
+
+        // Set token as not sweepable
+        vm.expectEmit(true, true, true, true);
+        emit SweepableTokenSet(
+            address(mockArk1),
+            address(mockRewardToken),
+            false
+        );
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken),
+            false
+        );
+
+        // Verify token is not sweepable
+        assertFalse(
+            raftContract.sweepableTokens(
+                address(mockArk1),
+                address(mockRewardToken)
+            ),
+            "Token should not be sweepable"
+        );
+
+        vm.stopPrank();
+    }
+
+    function test_SweepNotSweepableToken() public {
+        // Try to sweep token that hasn't been marked as sweepable
+        address[] memory tokensToSweep = new address[](1);
+        tokensToSweep[0] = address(mockRewardToken);
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RaftTokenNotSweepable(address,address)",
+                address(mockArk1),
+                address(mockRewardToken)
+            )
+        );
+        raftContract.sweep(address(mockArk1), tokensToSweep);
+    }
+
+    function test_SweepMultipleTokens_MixedSweepable() public {
+        // Setup: mark first token as sweepable, leave second token as not sweepable
+        vm.startPrank(governor);
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken),
+            true
+        );
+        vm.stopPrank();
+
+        // Try to sweep both tokens
+        address[] memory tokensToSweep = new address[](2);
+        tokensToSweep[0] = address(mockRewardToken);
+        tokensToSweep[1] = address(mockRewardToken2);
+
+        vm.prank(governor);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RaftTokenNotSweepable(address,address)",
+                address(mockArk1),
+                address(mockRewardToken2)
+            )
+        );
+        raftContract.sweep(address(mockArk1), tokensToSweep);
+    }
+
+    function test_SweepAndStartAuction_OnlySweepableTokens() public {
+        // Setup: mint tokens and mark first token as sweepable
+        uint256 amount1 = 1000 * 10 ** 18;
+        uint256 amount2 = 500 * 10 ** 18;
+        deal(address(mockRewardToken), address(mockArk1), amount1);
+        deal(address(mockRewardToken2), address(mockArk1), amount2);
+
+        vm.startPrank(governor);
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken),
+            true
+        );
+
+        // Try to sweep and start auction with mix of sweepable and non-sweepable tokens
+        address[] memory tokensToSweep = new address[](2);
+        tokensToSweep[0] = address(mockRewardToken);
+        tokensToSweep[1] = address(mockRewardToken2);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RaftTokenNotSweepable(address,address)",
+                address(mockArk1),
+                address(mockRewardToken2)
+            )
+        );
+        raftContract.sweepAndStartAuction(address(mockArk1), tokensToSweep);
+        vm.stopPrank();
+    }
+
+    function test_NonGovernorCannotSetSweepableToken() public {
+        vm.prank(address(0xdead));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotCurator(address)",
+                address(0xdead)
+            )
+        );
+        raftContract.setSweepableToken(
+            address(mockArk1),
+            address(mockRewardToken),
+            true
+        );
+    }
+
+    function test_uninitilizedRewardToken() public {
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "RaftAuctionParametersNotSet(address,address)",
+                address(mockArk1),
+                address(789)
+            )
+        );
+        vm.prank(governor);
+        raftContract.startAuction(address(mockArk1), address(789));
     }
 }

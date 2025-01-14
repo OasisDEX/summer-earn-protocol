@@ -31,6 +31,12 @@ interface IArkConfigProvider is
     function name() external view returns (string memory);
 
     /**
+     * @notice Returns the details of the Ark
+     * @return The details of the Ark as a string
+     */
+    function details() external view returns (string memory);
+
+    /**
      * @notice Returns the deposit cap for this Ark
      * @return The maximum amount of tokens that can be deposited into the Ark
      */

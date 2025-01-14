@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 import {IFleetCommanderRewardsManager} from "../interfaces/IFleetCommanderRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
+import {StakingRewardsManagerBase, EnumerableSet} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
-import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 /**
  * @title FleetCommanderRewardsManager
  * @notice Contract for managing staking rewards specific to the Fleet system
  * @dev Extends StakingRewardsManagerBase with Fleet-specific functionality
  */
+
 contract FleetCommanderRewardsManager is
     IFleetCommanderRewardsManager,
     StakingRewardsManagerBase
 {
+    using EnumerableSet for EnumerableSet.AddressSet;
     address public immutable fleetCommander;
 
     /**
@@ -71,12 +73,14 @@ contract FleetCommanderRewardsManager is
         }
 
         _unstake(owner, address(this), amount);
-        IERC20(fleetCommander).approve(fleetCommander, amount);
         IFleetCommander(fleetCommander).redeem(amount, owner, address(this));
 
         if (claimRewards) {
-            // sends claimed rewards directly to `owner` address
-            _getReward(owner);
+            uint256 rewardTokenCount = _rewardTokensList.length();
+            for (uint256 i = 0; i < rewardTokenCount; i++) {
+                address rewardTokenAddress = _rewardTokensList.at(i);
+                _getReward(owner, rewardTokenAddress);
+            }
         }
     }
 }

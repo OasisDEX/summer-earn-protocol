@@ -11,6 +11,7 @@ export enum Tokens {
   USDCE = 'usdce',
   USDS = 'usds',
   STAKED_USDS = 'stakedUsds',
+  WETH = 'weth',
 }
 export type TokenType =
   | Tokens.DAI
@@ -20,7 +21,7 @@ export type TokenType =
   | Tokens.USDCE
   | Tokens.USDS
   | Tokens.STAKED_USDS
-
+  | Tokens.WETH
 export interface BaseConfig {
   deployedContracts: {
     core: CoreContracts
@@ -65,6 +66,7 @@ export interface BaseConfig {
     }
     morpho: {
       blue: Address
+      urdFactory: Address
       vaults: {
         [key in Tokens]: {
           [key: string]: Address
@@ -86,6 +88,9 @@ export interface BaseConfig {
     }
     sky: {
       psmLite: {
+        [key in Tokens]: Address
+      }
+      psm3: {
         [key in Tokens]: Address
       }
     }

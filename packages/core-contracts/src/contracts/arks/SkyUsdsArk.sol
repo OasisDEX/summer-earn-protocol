@@ -39,10 +39,32 @@ contract SkyUsdsArk is Ark {
         stakedUsds = IERC4626(_stakedUsds);
     }
 
-    function totalAssets() public view override returns (uint256) {
-        return
-            stakedUsds.maxWithdraw(address(this)) /
-            TO_18_DECIMALS_CONVERSION_FACTOR;
+    function totalAssets() public view override returns (uint256 assets) {
+        uint256 balance = stakedUsds.balanceOf(address(this));
+        if (balance > 0) {
+            assets =
+                stakedUsds.convertToAssets(balance) /
+                TO_18_DECIMALS_CONVERSION_FACTOR;
+        }
+    }
+
+    /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev SkyUsdsArk is always withdrawable
+     * @dev TODO:  check for current psm liquidity
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256 withdrawableAssets)
+    {
+        uint256 shares = stakedUsds.balanceOf(address(this));
+        if (shares > 0) {
+            withdrawableAssets =
+                stakedUsds.maxWithdraw(address(this)) /
+                TO_18_DECIMALS_CONVERSION_FACTOR;
+        }
     }
 
     function _board(uint256 amount, bytes calldata) internal override {

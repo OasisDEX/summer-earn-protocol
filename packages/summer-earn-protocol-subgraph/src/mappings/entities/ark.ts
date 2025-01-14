@@ -1,12 +1,16 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { Ark as ArkContract } from '../../../generated/HarborCommand/Ark'
 import { Ark } from '../../../generated/schema'
-import { BigDecimalConstants } from '../../common/constants'
+import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
 import { getOrCreateArk } from '../../common/initializers'
 import { getAprForTimePeriod } from '../../common/utils'
 import { ArkDetails } from '../../types'
 
-export function updateArk(arkDetails: ArkDetails, block: ethereum.Block): void {
+export function updateArk(
+  arkDetails: ArkDetails,
+  block: ethereum.Block,
+  shouldUpdateApr: boolean,
+): void {
   const arkAddress = Address.fromString(arkDetails.arkId)
   const vaultAddress = Address.fromString(arkDetails.vaultId)
   const ark = getOrCreateArk(vaultAddress, arkAddress, block)
@@ -14,38 +18,42 @@ export function updateArk(arkDetails: ArkDetails, block: ethereum.Block): void {
   const arkContract = ArkContract.bind(arkAddress)
   const currentTotalAssets = arkContract.totalAssets()
 
-  // Calculate earnings since last update
-  const timeDiff = block.timestamp.minus(ark.lastUpdateTimestamp)
-  const assetDiff = currentTotalAssets.minus(ark.inputTokenBalance)
+  if (shouldUpdateApr) {
+    // Calculate earnings since last update
+    const timeDiff = block.timestamp.minus(ark.lastUpdateTimestamp)
+    const assetDiff = currentTotalAssets.minus(ark._lastUpdateInputTokenBalance)
 
-  // Adjust for known deposits and withdrawals
-  const netDeposits = ark.cumulativeDeposits.minus(ark.cumulativeWithdrawals)
-  const earnings = assetDiff.minus(netDeposits)
+    // Adjust for known deposits and withdrawals
+    const netDeposits = ark._cumulativeDeposits.minus(ark._cumulativeWithdrawals)
+    const earnings = assetDiff.minus(netDeposits)
+    // Update cumulative earnings
+    ark.cumulativeEarnings = ark.cumulativeEarnings.plus(earnings)
+    // Calculate annualized APR based on earnings
+    if (
+      timeDiff.gt(BigIntConstants.ZERO) &&
+      ark.inputTokenBalance.gt(BigIntConstants.ZERO) &&
+      ark._lastUpdateInputTokenBalance.gt(BigIntConstants.ZERO)
+    ) {
+      ark.calculatedApr = getAprForTimePeriod(
+        ark._lastUpdateInputTokenBalance.toBigDecimal(),
+        ark._lastUpdateInputTokenBalance.plus(earnings).toBigDecimal(),
+        timeDiff.toBigDecimal(),
+      )
+    } else if (ark.inputTokenBalance.gt(BigInt.fromI32(0))) {
+      ark.calculatedApr = ark.calculatedApr
+    } else {
+      ark.calculatedApr = BigDecimalConstants.ZERO
+    }
 
-  // Update cumulative earnings
-  ark.cumulativeEarnings = ark.cumulativeEarnings.plus(earnings)
-
-  // Calculate annualized APR based on earnings
-  if (timeDiff.gt(BigInt.fromI32(0)) && ark.inputTokenBalance.gt(BigInt.fromI32(0))) {
-    ark.calculatedApr = getAprForTimePeriod(
-      ark.inputTokenBalance.toBigDecimal(),
-      ark.inputTokenBalance.plus(earnings).toBigDecimal(),
-      timeDiff.toBigDecimal(),
-    )
-  } else if (ark.inputTokenBalance.gt(BigInt.fromI32(0))) {
-    ark.calculatedApr = ark.calculatedApr
-  } else {
-    ark.calculatedApr = BigDecimalConstants.ZERO
+    // Reset cumulative deposits and withdrawals
+    ark._cumulativeDeposits = BigIntConstants.ZERO
+    ark._cumulativeWithdrawals = BigIntConstants.ZERO
+    ark._lastUpdateInputTokenBalance = currentTotalAssets
   }
-
   // Update other fields
   ark.inputTokenBalance = currentTotalAssets
   ark.totalValueLockedUSD = arkDetails.totalValueLockedUSD
   ark.lastUpdateTimestamp = block.timestamp
-
-  // Reset cumulative deposits and withdrawals
-  ark.cumulativeDeposits = BigInt.fromI32(0)
-  ark.cumulativeWithdrawals = BigInt.fromI32(0)
 
   ark.save()
 }
@@ -66,17 +74,17 @@ export function updateArk(arkDetails: ArkDetails, block: ethereum.Block): void {
 // to update the global state and distribute earnings appropriately.
 
 export function handleBoard(amount: BigInt, ark: Ark): void {
-  ark.cumulativeDeposits = ark.cumulativeDeposits.plus(amount)
+  ark._cumulativeDeposits = ark._cumulativeDeposits.plus(amount)
   ark.save()
 }
 
 export function handleDisembark(amount: BigInt, ark: Ark): void {
-  ark.cumulativeWithdrawals = ark.cumulativeWithdrawals.plus(amount)
+  ark._cumulativeWithdrawals = ark._cumulativeWithdrawals.plus(amount)
   ark.save()
-  log.error('Disembarked TOTAL {}, amount: {}', [ark.name!, ark.cumulativeWithdrawals.toString()])
+  log.error('Disembarked TOTAL {}, amount: {}', [ark.name!, ark._cumulativeWithdrawals.toString()])
 }
 
 export function handleMove(amount: BigInt, ark: Ark): void {
-  ark.cumulativeWithdrawals = ark.cumulativeWithdrawals.plus(amount)
+  ark._cumulativeWithdrawals = ark._cumulativeWithdrawals.plus(amount)
   ark.save()
 }

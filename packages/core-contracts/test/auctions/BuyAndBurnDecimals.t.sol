@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 
-import {MockSummerToken} from "../mocks/MockSummerToken.sol";
+import {MockSummerToken} from "@summerfi/gov-contracts/test/MockSummerToken.sol";
 import "./AuctionTestBase.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";
@@ -30,8 +30,7 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
         buyAndBurn = new BuyAndBurn(
             address(summerToken),
             address(accessManager),
-            address(configurationManager),
-            defaultParams
+            address(configurationManager)
         );
 
         tokenToAuction6Dec = createMockToken("Auction Token 6 Dec", "AT6", 6);
@@ -41,7 +40,20 @@ contract BuyAndBurnDecimalsTest is AuctionTestBase {
             "AT18",
             18
         );
-
+        vm.startPrank(governor);
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction6Dec),
+            defaultParams
+        );
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction8Dec),
+            defaultParams
+        );
+        buyAndBurn.setTokenAuctionParameters(
+            address(tokenToAuction18Dec),
+            defaultParams
+        );
+        vm.stopPrank();
         mintTokens(
             address(tokenToAuction6Dec),
             address(buyAndBurn),

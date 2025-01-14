@@ -22,14 +22,6 @@ contract CompoundV3Ark is Ark {
     /// @notice The Compound V3 CometRewards contract
     ICometRewards public cometRewards;
 
-    /**
-     * @notice Struct to hold reward token information
-     * @param rewardToken The address of the reward token
-     */
-    struct RewardsData {
-        address rewardToken;
-    }
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -56,18 +48,28 @@ contract CompoundV3Ark is Ark {
     /**
      * @inheritdoc IArk
      */
-    function totalAssets()
-        public
-        view
-        override
-        returns (uint256 suppliedAssets)
-    {
-        suppliedAssets = comet.balanceOf(address(this));
+    function totalAssets() public view override returns (uint256 assets) {
+        assets = comet.balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev CompoundV3Ark is always withdrawable
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256 withdrawableAssets)
+    {
+        if (!comet.isWithdrawPaused()) {
+            withdrawableAssets = totalAssets();
+        }
+    }
 
     /**
      * @notice Deposits assets into Compound V3
@@ -90,12 +92,11 @@ contract CompoundV3Ark is Ark {
 
     /**
      * @notice Harvests rewards from Compound V3
-     * @param data Encoded RewardsData struct containing reward token information
      * @return rewardTokens Array of reward token addresses
      * @return rewardAmounts Array of reward token amounts
      */
     function _harvest(
-        bytes calldata data
+        bytes calldata
     )
         internal
         override
@@ -104,14 +105,18 @@ contract CompoundV3Ark is Ark {
         rewardTokens = new address[](1);
         rewardAmounts = new uint256[](1);
 
-        RewardsData memory rewardsData = abi.decode(data, (RewardsData));
-        rewardTokens[0] = rewardsData.rewardToken;
-        cometRewards.claim(address(comet), address(this), true);
+        ICometRewards.RewardConfig memory config = ICometRewards(
+            address(cometRewards)
+        ).rewardConfig(address(comet));
 
-        rewardAmounts[0] = IERC20(rewardsData.rewardToken).balanceOf(
-            address(this)
-        );
-        IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
+        rewardTokens[0] = config.token;
+
+        address raft = raft();
+        uint256 balanceBefore = IERC20(rewardTokens[0]).balanceOf(raft);
+        cometRewards.claimTo(address(comet), address(this), raft, true);
+        uint256 balanceAfter = IERC20(rewardTokens[0]).balanceOf(raft);
+
+        rewardAmounts[0] = balanceAfter - balanceBefore;
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }

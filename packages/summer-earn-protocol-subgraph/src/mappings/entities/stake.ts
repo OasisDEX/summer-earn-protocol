@@ -1,17 +1,14 @@
-import { BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { ethereum } from '@graphprotocol/graph-ts'
 import { Staked } from '../../../generated/schema'
-import { Staked as StakedEvent } from '../../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { PositionDetails } from '../../types'
 
 export function createStakedEventEntity(
-  event: StakedEvent,
-  amount: BigInt,
-  normalizedAmountUSD: BigDecimal,
+  event: ethereum.Event,
   positionDetails: PositionDetails,
 ): void {
   const staked = new Staked(`${event.transaction.hash.toHexString()}-${event.logIndex.toString()}`)
-  staked.amount = amount
-  staked.amountUSD = normalizedAmountUSD
+  staked.amount = positionDetails.stakedInputTokenDelta
+  staked.amountUSD = positionDetails.stakedInputTokenDeltaNormalizedUSD
   staked.from = positionDetails.account
   staked.to = positionDetails.vault
   staked.blockNumber = event.block.number

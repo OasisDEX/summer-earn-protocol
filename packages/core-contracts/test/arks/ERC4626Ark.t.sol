@@ -61,6 +61,10 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
             address(commander)
         );
         vm.stopPrank();
+
+        vm.startPrank(commander);
+        ark.registerFleetCommander();
+        vm.stopPrank();
     }
 
     function test_Constructor() public {

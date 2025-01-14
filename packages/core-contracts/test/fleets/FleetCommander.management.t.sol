@@ -50,12 +50,14 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
         assertEq(config.minimumBufferBalance, 1000);
         assertEq(config.depositCap, 10000);
-        assertEq(config.maxRebalanceOperations, 10);
-        assertTrue(newFleetCommander.isArkActive(address(config.bufferArk)));
+        assertEq(config.maxRebalanceOperations, 50);
+        assertTrue(
+            newFleetCommander.isArkActiveOrBufferArk(address(config.bufferArk))
+        );
     }
 
     function test_GetArks() public view {
-        address[] memory arks = fleetCommander.getArks();
+        address[] memory arks = fleetCommander.getActiveArks();
         assertEq(arks.length, 4);
         assertEq(arks[0], address(mockArk1));
         assertEq(arks[1], address(mockArk2));
@@ -112,9 +114,22 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         fleetCommander.removeArk(address(mockArk1));
     }
 
+    function test_RemoveBufferArk() public {
+        address bufferArkAddress = fleetCommander.bufferArk();
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FleetCommanderArkNotFound(address)",
+                bufferArkAddress
+            )
+        );
+        vm.startPrank(governor);
+        fleetCommander.removeArk(bufferArkAddress);
+        vm.stopPrank();
+    }
+
     function test_RemoveSuccessful() public {
         // First, set max allocation to 0
-        uint256 initialArksCount = fleetCommander.getArks().length;
+        uint256 initialArksCount = fleetCommander.getActiveArks().length;
         vm.prank(governor);
         fleetCommander.setArkDepositCap(address(mockArk1), 0);
 
@@ -131,8 +146,11 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.expectEmit();
         emit IFleetCommanderConfigProviderEvents.ArkRemoved(address(mockArk1));
         fleetCommander.removeArk(address(mockArk1));
-        assertEq(fleetCommander.getArks().length, initialArksCount - 1);
-        assertEq(fleetCommander.isArkActive(address(mockArk1)), false);
+        assertEq(fleetCommander.getActiveArks().length, initialArksCount - 1);
+        assertEq(
+            fleetCommander.isArkActiveOrBufferArk(address(mockArk1)),
+            false
+        );
     }
 
     function test_RemoveArkWithNonZeroAssets() public {
@@ -255,7 +273,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
     function test_updateRebalanceCooldown_ShouldFail() public {
         vm.prank(keeper);
         vm.expectRevert(
-            abi.encodeWithSignature("CallerIsNotGovernor(address)", keeper)
+            abi.encodeWithSignature("CallerIsNotCurator(address)", keeper)
         );
         fleetCommander.updateRebalanceCooldown(0);
     }
@@ -395,11 +413,15 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             }),
             address(fleetCommander)
         );
-
-        // Try to add the Ark with an existing commander
+        vm.prank(governor);
+        accessManager.grantCommanderRole(
+            address(mockArkWithCommander),
+            address(fleetCommander)
+        );
+        // Try to add the Ark with an existing commander, assuming the fleet has the appropriate role
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSignature("FleetCommanderArkAlreadyHasCommander()")
+            abi.encodeWithSignature("FleetCommanderAlreadyRegistered()")
         );
         fleetCommander.addArk(address(mockArkWithCommander));
     }
@@ -499,5 +521,57 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(governor);
         vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         fleetCommander.setFleetDepositCap(1000);
+    }
+
+    function test_UpdateStakingRewardsManager() public {
+        address initialStakingRewardsManager = fleetCommander
+            .getConfig()
+            .stakingRewardsManager;
+
+        vm.prank(governor);
+        fleetCommander.updateStakingRewardsManager();
+
+        FleetConfig memory config = fleetCommander.getConfig();
+        assertNotEq(config.stakingRewardsManager, initialStakingRewardsManager);
+        assertNotEq(config.stakingRewardsManager, address(0));
+    }
+
+    function test_TransfersDisabledByDefault() public {
+        assertEq(
+            fleetCommander.transfersEnabled(),
+            false,
+            "Transfers should be disabled by default"
+        );
+    }
+
+    function test_SetTransfersEnabled() public {
+        vm.prank(governor);
+        fleetCommander.setFleetTokenTransferability(true);
+
+        assertEq(
+            fleetCommander.transfersEnabled(),
+            true,
+            "Transfers should be enabled after setting"
+        );
+    }
+
+    function test_SetTransfersEnabled_EmitsEvent() public {
+        vm.prank(governor);
+
+        vm.expectEmit(true, true, true, true);
+        emit IFleetCommanderConfigProviderEvents.TransfersEnabledUpdated(true);
+        fleetCommander.setFleetTokenTransferability(true);
+    }
+
+    function test_SetTransfersEnabled_OnlyGovernor() public {
+        // Test non-governor cannot enable transfers
+        vm.prank(address(0x123));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "CallerIsNotGovernor(address)",
+                address(0x123)
+            )
+        );
+        fleetCommander.setFleetTokenTransferability(true);
     }
 }

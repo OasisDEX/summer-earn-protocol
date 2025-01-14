@@ -11,10 +11,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  *
  * Vesting Schedules:
  * 1. Team Vesting:
- *    - Time-based: 8 quarterly releases over 2 years, starting after the 6-month cliff.
+ *    - Time-based: Monthly releases over 2 years, starting after the 6-month cliff.
  *    - Performance-based: arbitrary amount of additional milestone-based releases, triggered by the guardian.
  * 2. Investor/Ex-Team Vesting:
- *    - Time-based only: 8 quarterly releases over 2 years, starting after the 6-month cliff.
+ *    - Time-based only: Monthly releases over 2 years, starting after the 6-month cliff.
  *
  * The guardian role can mark performance goals as reached for team vesting and recall unvested
  * performance-based tokens if necessary.
@@ -93,6 +93,15 @@ interface ISummerVestingWallet {
     /// @dev Thrown when the goal array length is invalid
     error InvalidGoalArrayLength();
 
-    /// @dev Thrown when the token is invalid
-    error InvalidToken();
+    /// @dev Thrown when the token address is invalid
+    error InvalidToken(address token);
+
+    /// @dev Emitted when a new goal is added
+    event NewGoalAdded(uint256 goalAmount, uint256 goalNumber);
+
+    /// @dev Emitted when a goal is reached
+    event GoalReached(uint256 goalNumber);
+
+    /// @dev Emitted when unvested tokens are recalled
+    event UnvestedTokensRecalled(uint256 unvestedTokens);
 }

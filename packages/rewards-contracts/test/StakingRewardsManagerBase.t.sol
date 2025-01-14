@@ -73,11 +73,10 @@ contract StakingRewardsManagerBaseTest is Test {
         mockStakingToken.mint(alice, INITIAL_STAKE_AMOUNT);
         mockStakingToken.mint(bob, INITIAL_STAKE_AMOUNT);
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            rewardTokens[i].mint(
-                address(stakingRewardsManager),
-                INITIAL_REWARD_AMOUNT
-            );
+            rewardTokens[i].mint(mockGovernor, INITIAL_REWARD_AMOUNT);
         }
+        rewardTokenWithDecimals.mint(mockGovernor, 1000 * 1e18);
+        rewardTokenWithoutDecimals.mint(mockGovernor, 1000 * 1e18);
 
         // Approve staking
         vm.prank(alice);
@@ -90,30 +89,21 @@ contract StakingRewardsManagerBaseTest is Test {
             address(stakingRewardsManager),
             type(uint256).max
         );
-
-        // Mint initial tokens for reward tokens
-        rewardTokenWithDecimals.mint(
-            address(stakingRewardsManager),
-            1000 * 1e18
-        );
-        rewardTokenWithoutDecimals.mint(
-            address(stakingRewardsManager),
-            1000 * 1e18
-        );
     }
 
     function test_NotifyRewardAmount() public {
-        vm.prank(mockGovernor);
-
         IERC20 rewardToken = rewardTokens[0];
         uint256 rewardAmount = 100000000000000000000; // 100 tokens
-        uint256 newDuration = 14 days; // New duration for the reward
+        uint256 newDuration = 14 days;
 
+        vm.startPrank(mockGovernor);
+        rewardToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             rewardAmount,
             newDuration
         );
+        vm.stopPrank();
 
         (
             uint256 periodFinish,
@@ -145,15 +135,17 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 rewardAmount = 1000 * 1e18; // 1000 tokens
         uint256 newDuration = 30 days; // New duration for the reward
 
-        // Mint reward tokens to the staking rewards manager
-        newRewardToken.mint(address(stakingRewardsManager), rewardAmount);
+        // Mint reward tokens to the governor instead of staking manager
+        newRewardToken.mint(mockGovernor, rewardAmount);
 
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        newRewardToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(newRewardToken)),
             rewardAmount,
             newDuration
         );
+        vm.stopPrank();
 
         // Get the reward data
         (
@@ -170,7 +162,6 @@ contract StakingRewardsManagerBaseTest is Test {
             newDuration,
             "Rewards duration should be set to the new specified duration"
         );
-
         assertEq(
             periodFinish,
             block.timestamp + newDuration,
@@ -201,26 +192,35 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 initialDuration = 7 days;
 
         // First notification to set up the reward token
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardToken.approve(
+            address(stakingRewardsManager),
+            initialRewardAmount
+        );
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             initialRewardAmount,
             initialDuration
         );
+        vm.stopPrank();
 
         // Try to change the duration for an existing token
         uint256 newRewardAmount = 200 * 1e18;
-        uint256 newDuration = 14 days;
+        uint256 newDuration = 14 days; // Different duration
 
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardToken.approve(address(stakingRewardsManager), newRewardAmount);
+
+        // This should revert with CannotChangeRewardsDuration
         vm.expectRevert(
             abi.encodeWithSignature("CannotChangeRewardsDuration()")
         );
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             newRewardAmount,
-            newDuration
+            newDuration // Attempting to change duration
         );
+        vm.stopPrank();
 
         // Verify that the original duration is still in place
         (, , uint256 duration, , ) = stakingRewardsManager.rewardData(
@@ -239,12 +239,14 @@ contract StakingRewardsManagerBaseTest is Test {
 
         if (rewardsDuration == 0) {
             // Only add the reward token if it hasn't been added yet
-            vm.prank(mockGovernor);
+            vm.startPrank(mockGovernor);
+            rewardToken1.approve(address(stakingRewardsManager), 604800);
             stakingRewardsManager.notifyRewardAmount(
                 rewardToken1,
                 604800,
                 7 days
             );
+            vm.stopPrank();
         }
 
         vm.warp(block.timestamp + 8 days);
@@ -270,6 +272,11 @@ contract StakingRewardsManagerBaseTest is Test {
 
     function test_Stake() public {
         uint256 stakeAmount = 1000 * 1e18;
+
+        // Expect the Staked event with correct parameters
+        vm.expectEmit(true, true, false, true);
+        emit IStakingRewardsManagerBase.Staked(alice, alice, stakeAmount);
+
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
@@ -289,6 +296,11 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 stakeAmount = 1000 * 1e18;
         vm.startPrank(alice);
         stakingRewardsManager.stake(stakeAmount);
+
+        // Expect the Unstaked event with correct parameters
+        vm.expectEmit(true, true, false, true);
+        emit IStakingRewardsManagerBase.Unstaked(alice, alice, stakeAmount);
+
         stakingRewardsManager.unstake(stakeAmount);
         vm.stopPrank();
 
@@ -304,6 +316,38 @@ contract StakingRewardsManagerBaseTest is Test {
         );
     }
 
+    function test_StakeOnBehalfOf() public {
+        uint256 stakeAmount = 1000 * 1e18;
+
+        // First approve the tokens
+        vm.startPrank(alice);
+        mockStakingToken.approve(address(stakingRewardsManager), stakeAmount);
+
+        // Expect the Staked event with correct parameters
+        vm.expectEmit(true, true, false, true, address(stakingRewardsManager));
+        emit IStakingRewardsManagerBase.Staked(alice, bob, stakeAmount);
+
+        // Then call stakeOnBehalfOf
+        stakingRewardsManager.stakeOnBehalfOf(bob, stakeAmount);
+        vm.stopPrank();
+
+        assertEq(
+            stakingRewardsManager.balanceOf(bob),
+            stakeAmount,
+            "Stake amount should be correct for receiver"
+        );
+        assertEq(
+            stakingRewardsManager.balanceOf(alice),
+            0,
+            "Staker should have no balance"
+        );
+        assertEq(
+            stakingRewardsManager.totalSupply(),
+            stakeAmount,
+            "Total supply should be updated"
+        );
+    }
+
     function test_GetReward() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 rewardAmount = 100 * 1e18;
@@ -311,13 +355,14 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
-
+        vm.stopPrank();
         // Fast forward time
         vm.warp(block.timestamp + 7 days);
 
@@ -334,6 +379,43 @@ contract StakingRewardsManagerBaseTest is Test {
         );
     }
 
+    function test_GetReward_SpecificToken() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        vm.startPrank(mockGovernor);
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 balanceBefore = rewardTokens[0].balanceOf(alice);
+
+        vm.prank(alice);
+        stakingRewardsManager.getReward(address(rewardTokens[0]));
+
+        uint256 balanceAfter = rewardTokens[0].balanceOf(alice);
+        assertGt(
+            balanceAfter,
+            balanceBefore,
+            "Alice should have received rewards"
+        );
+    }
+
+    function test_GetReward_SpecificToken_NonExistingToken() public {
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        vm.prank(alice);
+        stakingRewardsManager.getReward(address(0x789));
+    }
+
     function test_Exit() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 rewardAmount = 100 * 1e18;
@@ -341,12 +423,14 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
+        vm.stopPrank();
 
         // Fast forward time
         vm.warp(block.timestamp + 7 days);
@@ -392,6 +476,10 @@ contract StakingRewardsManagerBaseTest is Test {
         // Notify rewards for all three tokens
         vm.startPrank(mockGovernor);
         for (uint256 i = 0; i < rewardTokens.length; i++) {
+            rewardTokens[i].approve(
+                address(stakingRewardsManager),
+                rewardAmounts[i]
+            );
             stakingRewardsManager.notifyRewardAmount(
                 IERC20(address(rewardTokens[i])),
                 rewardAmounts[i],
@@ -555,13 +643,14 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
-
+        vm.stopPrank();
         // Fast forward time to accumulate some rewards
         vm.warp(block.timestamp + 1 days);
 
@@ -615,12 +704,14 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
+        vm.stopPrank();
 
         // Fast forward time to accumulate some rewards
         vm.warp(block.timestamp + 1 days);
@@ -687,6 +778,10 @@ contract StakingRewardsManagerBaseTest is Test {
 
         vm.startPrank(mockGovernor);
         for (uint i = 0; i < rewardTokens.length; i++) {
+            rewardTokens[i].approve(
+                address(stakingRewardsManager),
+                rewardAmount
+            );
             stakingRewardsManager.notifyRewardAmount(
                 rewardTokens[i],
                 rewardAmount,
@@ -715,13 +810,14 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 rewardAmount = 100 * 1e18;
         uint256 duration = 7 days;
 
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             rewardAmount,
             duration
         );
-
+        vm.stopPrank();
         uint256 rewardForDuration = stakingRewardsManager.getRewardForDuration(
             rewardToken
         );
@@ -747,6 +843,7 @@ contract StakingRewardsManagerBaseTest is Test {
 
         // Setup initial state with a reward token
         vm.startPrank(mockGovernor);
+        rewardToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             rewardAmount,
@@ -819,12 +916,17 @@ contract StakingRewardsManagerBaseTest is Test {
 
     function test_RemoveRewardToken_WithDecimals() public {
         // Notify reward amount
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardTokenWithDecimals.approve(
+            address(stakingRewardsManager),
+            1000 * 1e18
+        );
         stakingRewardsManager.notifyRewardAmount(
             rewardTokenWithDecimals,
             1000 * 1e18,
             7 days
         );
+        vm.stopPrank();
 
         // Fast forward past reward period
         vm.warp(block.timestamp + 8 days);
@@ -844,12 +946,17 @@ contract StakingRewardsManagerBaseTest is Test {
 
     function test_RemoveRewardToken_WithoutDecimals() public {
         // Notify reward amount
-        vm.prank(mockGovernor);
+        vm.startPrank(mockGovernor);
+        rewardTokenWithoutDecimals.approve(
+            address(stakingRewardsManager),
+            1000 * 1e18
+        );
         stakingRewardsManager.notifyRewardAmount(
             rewardTokenWithoutDecimals,
             1000 * 1e18,
             7 days
         );
+        vm.stopPrank();
 
         // Fast forward past reward period
         vm.warp(block.timestamp + 8 days);
@@ -878,12 +985,16 @@ contract StakingRewardsManagerBaseTest is Test {
         mockStakingToken.mint(mockGovernor, rewardAmount);
 
         vm.startPrank(mockGovernor);
+        // Approve underlying token to wrapped token
         mockStakingToken.approve(address(wrappedStakingToken), rewardAmount);
+        // Deposit underlying for wrapped tokens
         wrappedStakingToken.depositFor(mockGovernor, rewardAmount);
-        wrappedStakingToken.transfer(
+        // Approve wrapped tokens to staking manager
+        wrappedStakingToken.approve(
             address(stakingRewardsManager),
             rewardAmount
         );
+        // Notify reward amount (this will transfer the tokens)
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(wrappedStakingToken)),
             rewardAmount,
@@ -904,65 +1015,138 @@ contract StakingRewardsManagerBaseTest is Test {
     }
 
     function test_GetReward_WithWrappedNonStakingToken() public {
-        // Deploy a wrapped version of a different token (not the staking token)
-        ERC20Mock differentToken = new ERC20Mock();
-        MockWrappedToken wrappedDifferentToken = new MockWrappedToken(
-            IERC20(address(differentToken))
-        );
+        // Create and setup wrapped token
+        ERC20Mock underlyingToken = new ERC20Mock();
+        MockWrappedToken wrappedToken = new MockWrappedToken(underlyingToken);
 
-        // Setup initial state
+        // Mint tokens to user for staking
+        mockStakingToken.mint(alice, 1000 * 1e18);
+
+        // Setup staking
+        vm.prank(alice);
+        mockStakingToken.approve(address(stakingRewardsManager), 1000 * 1e18);
+        vm.prank(alice);
+        stakingRewardsManager.stake(1000 * 1e18);
+
+        // Mint underlying tokens to governor
+        underlyingToken.mint(mockGovernor, 100 * 1e18);
+
+        vm.startPrank(mockGovernor);
+        // Approve underlying token to wrapped token
+        underlyingToken.approve(address(wrappedToken), 100 * 1e18);
+        // Deposit underlying for wrapped tokens
+        wrappedToken.depositFor(mockGovernor, 100 * 1e18);
+        // Approve wrapped tokens to staking manager for notifyRewardAmount
+        wrappedToken.approve(address(stakingRewardsManager), 100 * 1e18);
+        // Notify reward amount (this will transfer the tokens)
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(wrappedToken)),
+            100 * 1e18,
+            7 days
+        );
+        vm.stopPrank();
+
+        // Advance time
+        vm.warp(block.timestamp + 7 days);
+
+        // Get reward
+        vm.prank(alice);
+        stakingRewardsManager.getReward();
+
+        // Verify rewards were distributed, allowing for small rounding differences
+        assertApproxEqAbs(
+            wrappedToken.balanceOf(alice),
+            100 * 1e18,
+            1000, // Allow difference of up to 1000 wei
+            "User should have received wrapped tokens"
+        );
+    }
+
+    function test_GetRewardFor() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 rewardAmount = 100 * 1e18;
 
-        // Give Alice staking tokens and approve
-        mockStakingToken.mint(alice, stakeAmount);
-        vm.prank(alice);
-        mockStakingToken.approve(address(stakingRewardsManager), stakeAmount);
-
-        // Stake tokens with alice
+        // Setup: Alice stakes tokens
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        // Setup rewards with wrapped different token
-        differentToken.mint(mockGovernor, rewardAmount);
-
+        // Setup: Add rewards
         vm.startPrank(mockGovernor);
-        differentToken.approve(address(wrappedDifferentToken), rewardAmount);
-        wrappedDifferentToken.depositFor(mockGovernor, rewardAmount);
-        wrappedDifferentToken.transfer(
-            address(stakingRewardsManager),
-            rewardAmount
-        );
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(wrappedDifferentToken)),
+            IERC20(address(rewardTokens[0])),
             rewardAmount,
             7 days
         );
         vm.stopPrank();
 
-        // Fast forward time to accumulate rewards
-        vm.warp(block.timestamp + 1 days);
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
 
-        // Get initial balances
-        uint256 aliceInitialWrappedBalance = wrappedDifferentToken.balanceOf(
-            alice
-        );
-        uint256 aliceInitialUnderlyingBalance = differentToken.balanceOf(alice);
+        uint256 balanceBefore = rewardTokens[0].balanceOf(alice);
 
-        // Claim rewards
-        vm.prank(alice);
-        stakingRewardsManager.getReward();
+        // Bob claims rewards on behalf of Alice
+        vm.prank(bob);
+        stakingRewardsManager.getRewardFor(alice);
 
-        // Verify Alice received wrapped tokens (not unwrapped)
+        uint256 balanceAfter = rewardTokens[0].balanceOf(alice);
         assertGt(
-            wrappedDifferentToken.balanceOf(alice),
-            aliceInitialWrappedBalance,
-            "Alice should have received wrapped tokens"
+            balanceAfter,
+            balanceBefore,
+            "Alice should have received rewards"
+        );
+    }
+
+    function test_GetRewardFor_SpecificToken() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup: Alice stakes tokens
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Setup: Add multiple reward tokens
+        vm.startPrank(mockGovernor);
+        for (uint256 i = 0; i < 2; i++) {
+            rewardTokens[i].approve(
+                address(stakingRewardsManager),
+                rewardAmount
+            );
+            stakingRewardsManager.notifyRewardAmount(
+                IERC20(address(rewardTokens[i])),
+                rewardAmount,
+                7 days
+            );
+        }
+        vm.stopPrank();
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 balanceBefore = rewardTokens[0].balanceOf(alice);
+        uint256 otherTokenBefore = rewardTokens[1].balanceOf(alice);
+
+        // Bob claims specific reward token for Alice
+        vm.prank(bob);
+        stakingRewardsManager.getRewardFor(alice, address(rewardTokens[0]));
+
+        uint256 balanceAfter = rewardTokens[0].balanceOf(alice);
+        uint256 otherTokenAfter = rewardTokens[1].balanceOf(alice);
+
+        assertGt(
+            balanceAfter,
+            balanceBefore,
+            "Alice should have received rewards for the specific token"
         );
         assertEq(
-            differentToken.balanceOf(alice),
-            aliceInitialUnderlyingBalance,
-            "Alice's underlying token balance should not change"
+            otherTokenAfter,
+            otherTokenBefore,
+            "Alice should not have received rewards for other token"
         );
+    }
+
+    function test_GetRewardFor_InvalidToken() public {
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        stakingRewardsManager.getRewardFor(alice, address(0x123));
     }
 }

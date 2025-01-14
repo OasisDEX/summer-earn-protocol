@@ -37,13 +37,6 @@ contract FleetCommander is
     using Math for uint256;
 
     /*//////////////////////////////////////////////////////////////
-                            CONSTANTS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Default maximum number of rebalance operations allowed in a single transaction
-    uint256 public constant DEFAULT_MAX_REBALANCE_OPERATIONS = 10;
-
-    /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
@@ -69,8 +62,11 @@ contract FleetCommander is
      * @dev Modifier to collect the tip before any other action is taken
      */
     modifier collectTip() {
-        _accrueTip(tipJar());
+        _setIsCollectingTip(true);
+        _accrueTip(tipJar(), totalSupply());
+
         _;
+        _setIsCollectingTip(false);
     }
 
     /**
@@ -80,8 +76,8 @@ contract FleetCommander is
      * @dev The cache is required due to multiple calls to `totalAssets` in the same transaction.
      *         those calls migh be gas expensive for some arks.
      */
-    modifier useDepositCache() {
-        _getArksData(getArks(), config.bufferArk);
+    modifier useCache() {
+        _getArksData(config.bufferArk);
         _;
         _flushCache();
     }
@@ -94,11 +90,7 @@ contract FleetCommander is
      *         those calls migh be gas expensive for some arks.
      */
     modifier useWithdrawCache() {
-        _getWithdrawableArksData(
-            getArks(),
-            config.bufferArk,
-            isArkWithdrawable
-        );
+        _getWithdrawableArksData(config.bufferArk);
         _;
         _flushCache();
     }
@@ -112,7 +104,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         address owner
-    ) public whenNotPaused returns (uint256 shares) {
+    ) public whenNotPaused collectTip useCache returns (uint256 shares) {
         shares = previewWithdraw(assets);
         _validateBufferWithdraw(assets, shares, owner);
 
@@ -137,7 +129,7 @@ contract FleetCommander is
         public
         override(ERC4626, IFleetCommander)
         collectTip
-        useWithdrawCache
+        useCache
         whenNotPaused
         returns (uint256 assets)
     {
@@ -160,13 +152,7 @@ contract FleetCommander is
         uint256 shares,
         address receiver,
         address owner
-    )
-        public
-        collectTip
-        useWithdrawCache
-        whenNotPaused
-        returns (uint256 assets)
-    {
+    ) public collectTip useCache whenNotPaused returns (uint256 assets) {
         _validateBufferRedeem(shares, owner);
 
         uint256 previousFundsBufferBalance = config.bufferArk.totalAssets();
@@ -191,7 +177,7 @@ contract FleetCommander is
         public
         override(ERC4626, IFleetCommander)
         collectTip
-        useWithdrawCache
+        useCache
         whenNotPaused
         returns (uint256 shares)
     {
@@ -228,7 +214,7 @@ contract FleetCommander is
 
         _forceDisembarkFromSortedArks(assets);
         _withdraw(_msgSender(), receiver, owner, assets, totalSharesToRedeem);
-        _setLastActionTimestamp(0);
+        _resetLastActionTimestamp();
 
         emit FleetCommanderWithdrawnFromArks(owner, receiver, assets);
     }
@@ -246,12 +232,12 @@ contract FleetCommander is
         whenNotPaused
         returns (uint256 totalAssetsToWithdraw)
     {
-        _validateForceRedeem(shares, owner);
+        _validateRedeemFromArks(shares, owner);
 
         totalAssetsToWithdraw = previewRedeem(shares);
         _forceDisembarkFromSortedArks(totalAssetsToWithdraw);
         _withdraw(_msgSender(), receiver, owner, totalAssetsToWithdraw, shares);
-        _setLastActionTimestamp(0);
+        _resetLastActionTimestamp();
         emit FleetCommanderRedeemedFromArks(owner, receiver, shares);
     }
 
@@ -263,7 +249,7 @@ contract FleetCommander is
         public
         override(ERC4626, IERC4626)
         collectTip
-        useDepositCache
+        useCache
         whenNotPaused
         returns (uint256 shares)
     {
@@ -287,7 +273,7 @@ contract FleetCommander is
         uint256 assets,
         address receiver,
         bytes memory referralCode
-    ) external whenNotPaused returns (uint256) {
+    ) external returns (uint256) {
         emit FleetCommanderReferral(receiver, referralCode);
         return deposit(assets, receiver);
     }
@@ -300,7 +286,7 @@ contract FleetCommander is
         public
         override(ERC4626, IERC4626)
         collectTip
-        useDepositCache
+        useCache
         whenNotPaused
         returns (uint256 assets)
     {
@@ -321,12 +307,36 @@ contract FleetCommander is
 
     /// @inheritdoc IFleetCommander
     function tip() public whenNotPaused returns (uint256) {
-        return _accrueTip(tipJar());
+        return _accrueTip(tipJar(), totalSupply());
     }
 
     /*//////////////////////////////////////////////////////////////
                         PUBLIC VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Overrides the totalSupply function to include the tip shares
+     * @dev This is done to ensure that the totalSupply is always accurate, even when tips are being accrued
+     * @dev This is done by checking if the _isCollectingTip flag is set, and if it is, return the totalSupply
+     * @dev If the _isCollectingTip flag is not set, then we need to accrue the tips and return the totalSupply + the
+     * previewTip
+     * @dev when collecting fee we require totalSupply to be the pre tip totalSupply, after the tip is collected the
+     * totalSupply will include the tip shares
+     * @dev when called in view functions we need to return the totalSupply + the previewTip
+     * @return uint256 The total supply of the FleetCommander, including tip shares
+     */
+    function totalSupply()
+        public
+        view
+        override(ERC20, IERC20)
+        returns (uint256)
+    {
+        if (_isCollectingTip()) {
+            return super.totalSupply();
+        }
+        uint256 _totalSupply = super.totalSupply();
+        return _totalSupply + previewTip(tipJar(), _totalSupply);
+    }
 
     /// @inheritdoc IFleetCommander
     function totalAssets()
@@ -335,17 +345,12 @@ contract FleetCommander is
         override(IFleetCommander, ERC4626)
         returns (uint256)
     {
-        return _totalAssets(getArks(), config.bufferArk);
+        return _totalAssets(config.bufferArk);
     }
 
     /// @inheritdoc IFleetCommander
     function withdrawableTotalAssets() public view returns (uint256) {
-        return
-            _withdrawableTotalAssets(
-                getArks(),
-                config.bufferArk,
-                isArkWithdrawable
-            );
+        return _withdrawableTotalAssets(config.bufferArk);
     }
 
     /// @inheritdoc IERC4626
@@ -421,22 +426,9 @@ contract FleetCommander is
     function rebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
-        // Validate that no operations are moving to or from the bufferArk
-        _validateReallocateAllAssets(rebalanceData);
-        _validateRebalance(rebalanceData);
-        _reallocateAllAssets(rebalanceData);
-    }
-
-    /// @inheritdoc IFleetCommander
-    function adjustBuffer(
-        RebalanceData[] calldata rebalanceData
-    ) external onlyKeeper enforceCooldown collectTip whenNotPaused {
         _validateReallocateAllAssets(rebalanceData);
         _validateAdjustBuffer(rebalanceData);
-
-        uint256 totalMoved = _reallocateAllAssets(rebalanceData);
-
-        emit FleetCommanderBufferAdjusted(_msgSender(), totalMoved);
+        _reallocateAllAssets(rebalanceData);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -450,7 +442,7 @@ contract FleetCommander is
         // The newTipRate uses the Percentage type from @summerfi/percentage-solidity
         // Percentages have 18 decimals of precision
         // For example, 1% would be represented as 1 * 10^18 (assuming PERCENTAGE_DECIMALS is 18)
-        _setTipRate(newTipRate, tipJar());
+        _setTipRate(newTipRate, tipJar(), totalSupply());
     }
 
     /// @inheritdoc IFleetCommander
@@ -463,7 +455,7 @@ contract FleetCommander is
     /// @inheritdoc IFleetCommander
     function updateRebalanceCooldown(
         uint256 newCooldown
-    ) external onlyGovernor whenNotPaused {
+    ) external onlyCurator(address(this)) whenNotPaused {
         _updateCooldown(newCooldown);
     }
 
@@ -471,19 +463,18 @@ contract FleetCommander is
     function forceRebalance(
         RebalanceData[] calldata rebalanceData
     ) external onlyGovernor collectTip whenNotPaused {
-        // Validate that no operations are moving to or from the bufferArk
         _validateReallocateAllAssets(rebalanceData);
-        _validateRebalance(rebalanceData);
+        _validateAdjustBuffer(rebalanceData);
         _reallocateAllAssets(rebalanceData);
     }
 
     /// @inheritdoc IFleetCommander
-    function pause() external onlyGuardianOrGovernor whenNotPaused {
+    function pause() external onlyGuardianOrGovernor {
         _pause();
     }
 
     /// @inheritdoc IFleetCommander
-    function unpause() external onlyGuardianOrGovernor whenPaused {
+    function unpause() external onlyGuardianOrGovernor {
         _unpause();
     }
 
@@ -496,8 +487,7 @@ contract FleetCommander is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        FleetConfig memory config = this.getConfig();
-        if (_msgSender() == address(config.stakingRewardsManager)) {
+        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
             return super.transfer(to, amount);
         }
 
@@ -510,10 +500,7 @@ contract FleetCommander is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (
-            _msgSender() == address(config.stakingRewardsManager) ||
-            to == address(this)
-        ) {
+        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
             return super.transferFrom(from, to, amount);
         }
         revert FleetCommanderTransfersDisabled();
@@ -543,13 +530,12 @@ contract FleetCommander is
     /**
      * @notice Reallocates all assets based on the provided rebalance data
      * @param rebalanceData Array of RebalanceData structs containing information about the reallocation
-     * @return totalMoved The total amount of assets moved during the reallocation
      */
     function _reallocateAllAssets(
         RebalanceData[] calldata rebalanceData
-    ) internal returns (uint256 totalMoved) {
+    ) internal {
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            totalMoved += _reallocateAssets(rebalanceData[i]);
+            _reallocateAssets(rebalanceData[i]);
         }
         emit Rebalanced(_msgSender(), rebalanceData);
     }
@@ -601,22 +587,21 @@ contract FleetCommander is
      *      1. The maximum allocation of the destination Ark
      *      2. The current allocation of the destination Ark
      * @param data The RebalanceData struct containing information about the reallocation
-     * @return amount uint256 The actual amount of assets reallocated
      * @custom:error FleetCommanderEffectiveDepositCapExceeded Thrown when the destination Ark is already at or above
      * its maximum
      * allocation
      */
-    function _reallocateAssets(
-        RebalanceData memory data
-    ) internal returns (uint256 amount) {
+    function _reallocateAssets(RebalanceData memory data) internal {
         IArk toArk = IArk(data.toArk);
         IArk fromArk = IArk(data.fromArk);
-
+        uint256 amount;
         if (data.amount == Constants.MAX_UINT256) {
             amount = fromArk.totalAssets();
         } else {
             amount = data.amount;
         }
+        // The validation has to take into account the actual amount that will be moved
+        _validateReallocateAssets(data.fromArk, data.toArk, amount);
 
         uint256 toArkDepositCap = getEffectiveArkDepositCap(toArk);
         uint256 toArkAllocation = toArk.totalAssets();
@@ -652,13 +637,13 @@ contract FleetCommander is
         );
         return Math.min(pctBasedCap, ark.depositCap());
     }
+
     /**
      * @notice Withdraws assets from multiple arks in a specific order
      * @dev This function attempts to withdraw the requested amount from arks,
      *      that allow such operations, in the order of total assets held
      * @param assets The total amount of assets to withdraw
      */
-
     function _forceDisembarkFromSortedArks(uint256 assets) internal {
         ArkData[] memory withdrawableArks = _getWithdrawableArksDataFromCache();
         for (uint256 i = 0; i < withdrawableArks.length; i++) {
@@ -682,8 +667,6 @@ contract FleetCommander is
      *      the buffer balance remains above the minimum required balance.
      *      When moving to the buffer, using MAX_UINT256 as the amount will move all funds from the source Ark.
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
-     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when operations are inconsistent (all operations need
-     * to move funds in one direction)
      * @custom:error FleetCommanderNoExcessFunds Thrown when trying to move funds out of an already minimum buffer
      * @custom:error FleetCommanderInsufficientBuffer Thrown when trying to move more funds than available excess
      * @custom:error FleetCommanderCantUseMaxUintMovingFromBuffer Thrown when trying to use MAX_UINT256 amount when
@@ -692,50 +675,35 @@ contract FleetCommander is
     function _validateAdjustBuffer(
         RebalanceData[] calldata rebalanceData
     ) internal view {
-        bool isMovingToBuffer = rebalanceData[0].toArk ==
-            address(config.bufferArk);
         uint256 initialBufferBalance = config.bufferArk.totalAssets();
-        uint256 totalToMove;
-
+        int256 netBufferChange;
+        address _bufferArkAddress = address(config.bufferArk);
         for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _validateBufferAdjustmentDirection(
-                isMovingToBuffer,
-                rebalanceData[i]
-            );
-
-            uint256 amount = rebalanceData[i].amount;
-            if (amount == Constants.MAX_UINT256) {
-                if (!isMovingToBuffer) {
-                    revert FleetCommanderCantUseMaxUintMovingFromBuffer();
+            if (
+                rebalanceData[i].toArk == _bufferArkAddress ||
+                rebalanceData[i].fromArk == _bufferArkAddress
+            ) {
+                bool isMovingToBuffer = rebalanceData[i].toArk ==
+                    _bufferArkAddress;
+                uint256 amount = rebalanceData[i].amount;
+                if (amount == Constants.MAX_UINT256) {
+                    if (!isMovingToBuffer) {
+                        revert FleetCommanderCantUseMaxUintMovingFromBuffer();
+                    }
+                    amount = IArk(rebalanceData[i].fromArk).totalAssets();
                 }
-                amount = IArk(rebalanceData[i].fromArk).totalAssets();
+                if (isMovingToBuffer) {
+                    netBufferChange += int256(amount);
+                } else {
+                    netBufferChange -= int256(amount);
+                }
             }
-            totalToMove += amount;
         }
-
-        if (!isMovingToBuffer) {
-            _validateBufferExcessFunds(initialBufferBalance, totalToMove);
-        }
-    }
-
-    /**
-     * @notice Validates the direction of buffer adjustment for a single rebalance operation
-     * @dev This function ensures that the rebalance operation is consistent with the overall
-     *      direction of the buffer adjustment (either moving funds to or from the buffer).
-     * @param isMovingToBuffer A boolean indicating whether the overall operation is moving funds to the buffer
-     * @param data The RebalanceData struct containing information about the specific rebalance operation
-     * @custom:error FleetCommanderInvalidBufferAdjustment Thrown when the operation direction is inconsistent
-     *               with the overall buffer adjustment direction
-     */
-    function _validateBufferAdjustmentDirection(
-        bool isMovingToBuffer,
-        RebalanceData memory data
-    ) internal view {
-        if (
-            (isMovingToBuffer && data.toArk != address(config.bufferArk)) ||
-            (!isMovingToBuffer && data.fromArk != address(config.bufferArk))
-        ) {
-            revert FleetCommanderInvalidBufferAdjustment();
+        if (netBufferChange < 0) {
+            _validateBufferExcessFunds(
+                initialBufferBalance,
+                uint256(-netBufferChange)
+            );
         }
     }
 
@@ -755,45 +723,13 @@ contract FleetCommander is
         uint256 initialBufferBalance,
         uint256 totalToMove
     ) internal view {
-        if (initialBufferBalance <= config.minimumBufferBalance) {
+        uint256 minimumBufferBalance = config.minimumBufferBalance;
+        if (initialBufferBalance <= minimumBufferBalance) {
             revert FleetCommanderNoExcessFunds();
         }
-        uint256 excessFunds = initialBufferBalance -
-            config.minimumBufferBalance;
+        uint256 excessFunds = initialBufferBalance - minimumBufferBalance;
         if (totalToMove > excessFunds) {
             revert FleetCommanderInsufficientBuffer();
-        }
-    }
-
-    /**
-     * @notice Validates the rebalance operations to ensure they meet all required constraints
-     * @dev This function performs a series of checks on each rebalance operation:
-     *      1. Ensures general reallocation constraints are met
-     *      2. Verifies the buffer ark is not directly involved in rebalancing
-     * @param rebalanceData An array of RebalanceData structs, each representing a rebalance operation
-     */
-    function _validateRebalance(
-        RebalanceData[] calldata rebalanceData
-    ) internal view {
-        for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _validateBufferArkNotInvolved(rebalanceData[i]);
-        }
-    }
-
-    /**
-     * @notice Validates that the buffer ark is not directly involved in a rebalance operation
-     * @dev This function checks if either the source or destination ark in a rebalance operation is the buffer ark
-     * @param data The RebalanceData struct containing the source and destination ark addresses
-     * @custom:error FleetCommanderCantUseRebalanceOnBufferArk Thrown if the buffer ark is involved in the rebalance
-     */
-    function _validateBufferArkNotInvolved(
-        RebalanceData memory data
-    ) internal view {
-        if (
-            data.toArk == address(config.bufferArk) ||
-            data.fromArk == address(config.bufferArk)
-        ) {
-            revert FleetCommanderCantUseRebalanceOnBufferArk();
         }
     }
 
@@ -801,8 +737,6 @@ contract FleetCommander is
      * @notice Validates the asset reallocation data for correctness and consistency
      * @dev This function checks various conditions of the rebalance operations:
      *      - Number of operations is within limits
-     *      - Each operation has valid amounts and addresses
-     *      - Arks involved in the operations are active and have proper allocations
      * @param rebalanceData An array of RebalanceData structs containing the rebalance operations
      */
     function _validateReallocateAllAssets(
@@ -815,14 +749,6 @@ contract FleetCommander is
         }
         if (rebalanceData.length == 0) {
             revert FleetCommanderRebalanceNoOperations();
-        }
-
-        for (uint256 i = 0; i < rebalanceData.length; i++) {
-            _validateReallocateAssets(
-                rebalanceData[i].fromArk,
-                rebalanceData[i].toArk,
-                rebalanceData[i].amount
-            );
         }
     }
 
@@ -844,40 +770,44 @@ contract FleetCommander is
         address fromArk,
         address toArk,
         uint256 amount
-    ) internal view {
+    ) internal {
         if (amount == 0) {
             revert FleetCommanderRebalanceAmountZero(toArk);
         }
         if (toArk == address(0)) {
             revert FleetCommanderArkNotFound(toArk);
         }
-        if (address(fromArk) == address(0)) {
+        if (fromArk == address(0)) {
             revert FleetCommanderArkNotFound(fromArk);
         }
-        if (!isArkActive(address(toArk))) {
+        if (!isArkActiveOrBufferArk(toArk)) {
             revert FleetCommanderArkNotActive(toArk);
         }
-        if (!isArkActive(address(fromArk))) {
+        if (!isArkActiveOrBufferArk(fromArk)) {
             revert FleetCommanderArkNotActive(fromArk);
-        }
-        uint256 maxRebalanceOutflow = IArk(fromArk).maxRebalanceOutflow();
-        if (amount > maxRebalanceOutflow) {
-            revert FleetCommanderExceedsMaxOutflow(
-                fromArk,
-                amount,
-                maxRebalanceOutflow
-            );
-        }
-        uint256 maxRebalanceInflow = IArk(toArk).maxRebalanceInflow();
-        if (amount > maxRebalanceInflow) {
-            revert FleetCommanderExceedsMaxInflow(
-                toArk,
-                amount,
-                maxRebalanceInflow
-            );
         }
         if (IArk(toArk).depositCap() == 0) {
             revert FleetCommanderArkDepositCapZero(toArk);
+        }
+        (
+            uint256 inflowBalance,
+            uint256 outflowBalance,
+            uint256 maxRebalanceInflow,
+            uint256 maxRebalanceOutflow
+        ) = _cacheArkFlow(fromArk, toArk, amount);
+        if (outflowBalance > maxRebalanceOutflow) {
+            revert FleetCommanderExceedsMaxOutflow(
+                fromArk,
+                outflowBalance,
+                maxRebalanceOutflow
+            );
+        }
+        if (inflowBalance > maxRebalanceInflow) {
+            revert FleetCommanderExceedsMaxInflow(
+                toArk,
+                inflowBalance,
+                maxRebalanceInflow
+            );
         }
     }
 
@@ -891,12 +821,16 @@ contract FleetCommander is
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
      * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error FleetCommanderZeroAmount Thrown when the withdrawal amount is zero
      */
     function _validateBufferWithdraw(
         uint256 assets,
         uint256 shares,
         address owner
     ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares
@@ -918,11 +852,15 @@ contract FleetCommander is
      * @param owner The address of the owner of the shares
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
      * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error FleetCommanderZeroAmount Thrown when the redemption amount is zero
      */
     function _validateBufferRedeem(
         uint256 shares,
         address owner
     ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares
@@ -941,9 +879,13 @@ contract FleetCommander is
      * @dev This function checks if the requested deposit amount exceeds the maximum allowed
      * @param assets The amount of assets to deposit
      * @param owner The address of the account making the deposit
+     * @custom:error FleetCommanderZeroAmount Thrown when the deposit amount is zero
      * @custom:error IERC4626ExceededMaxDeposit Thrown when the deposit amount exceeds the maximum allowed
      */
     function _validateDeposit(uint256 assets, address owner) internal view {
+        if (assets == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         uint256 maxAssets = maxDeposit(owner);
         if (assets > maxAssets) {
             revert ERC4626ExceededMaxDeposit(owner, assets, maxAssets);
@@ -955,9 +897,13 @@ contract FleetCommander is
      * @dev This function checks if the requested mint amount exceeds the maximum allowed
      * @param shares The number of shares to mint
      * @param owner The address of the account minting the shares
+     * @custom:error FleetCommanderZeroAmount Thrown when the mint amount is zero
      * @custom:error IERC4626ExceededMaxMint Thrown when the mint amount exceeds the maximum allowed
      */
     function _validateMint(uint256 shares, address owner) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         uint256 maxShares = maxMint(owner);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxMint(owner, shares, maxShares);
@@ -974,12 +920,16 @@ contract FleetCommander is
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedWithdrawal Thrown when the caller is not authorized to withdraw
      * @custom:error IERC4626ExceededMaxWithdraw Thrown when the withdrawal amount exceeds the maximum allowed
+     * @custom:error FleetCommanderZeroAmount Thrown when the withdrawal amount is zero
      */
     function _validateWithdrawFromArks(
         uint256 assets,
         uint256 shares,
         address owner
     ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares
@@ -1002,8 +952,15 @@ contract FleetCommander is
      * @param owner The address of the owner of the assets
      * @custom:error FleetCommanderUnauthorizedRedemption Thrown when the caller is not authorized to redeem
      * @custom:error IERC4626ExceededMaxRedeem Thrown when the redemption amount exceeds the maximum allowed
+     * @custom:error FleetCommanderZeroAmount Thrown when the redemption amount is zero
      */
-    function _validateForceRedeem(uint256 shares, address owner) internal view {
+    function _validateRedeemFromArks(
+        uint256 shares,
+        address owner
+    ) internal view {
+        if (shares == 0) {
+            revert FleetCommanderZeroAmount();
+        }
         if (
             _msgSender() != owner &&
             IERC20(address(this)).allowance(owner, _msgSender()) < shares
@@ -1014,5 +971,14 @@ contract FleetCommander is
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
         }
+    }
+
+    function _getActiveArksAddresses()
+        internal
+        view
+        override(FleetCommanderCache)
+        returns (address[] memory)
+    {
+        return getActiveArks();
     }
 }

@@ -44,12 +44,26 @@ contract PendlePTArk is BasePendleArk {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev PendlePTArk is always withdrawable
+     * @dev TODO:  add logic to check for pause etc
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return totalAssets();
+    }
+
+    /**
      * @notice Set up token approvals for Pendle interactions
      */
     function _setupApprovals() internal override {
-        config.asset.forceApprove(address(router), type(uint256).max);
-        IERC20(SY).forceApprove(router, type(uint256).max);
-        IERC20(PT).forceApprove(router, type(uint256).max);
+        config.asset.forceApprove(address(router), Constants.MAX_UINT256);
+        IERC20(SY).forceApprove(router, Constants.MAX_UINT256);
+        IERC20(PT).forceApprove(router, Constants.MAX_UINT256);
     }
 
     /**
@@ -112,7 +126,7 @@ contract PendlePTArk is BasePendleArk {
         uint256 amount,
         uint256 minTokenOut
     ) internal override {
-        _redeemFleetAssetFromPtPostExpiry(amount, minTokenOut);
+        _redeemMarketAssetFromPtPostExpiry(amount, minTokenOut);
     }
 
     /**
@@ -124,31 +138,23 @@ contract PendlePTArk is BasePendleArk {
      * 2. Redeem SY to underlying token
      * No slippage is applied as the exchange rate is fixed post-expiry
      */
-    function _redeemFleetAssetFromPtPostExpiry(
+    function _redeemMarketAssetFromPtPostExpiry(
         uint256 ptAmount,
         uint256 minTokenOut
     ) internal {
         if (ptAmount > 0) {
-            IPAllActionV3(router).redeemPyToSy(
+            TokenOutput memory tokenOutput = TokenOutput({
+                tokenOut: address(config.asset),
+                minTokenOut: minTokenOut,
+                tokenRedeemSy: address(config.asset),
+                pendleSwap: address(0),
+                swapData: emptySwap
+            });
+            IPAllActionV3(router).redeemPyToToken(
                 address(this),
                 address(YT),
                 ptAmount,
-                minTokenOut
-            );
-        }
-
-        uint256 syBalance = IERC20(SY).balanceOf(address(this));
-        if (syBalance > 0) {
-            uint256 tokensToRedeem = IStandardizedYield(SY).previewRedeem(
-                address(config.asset),
-                syBalance
-            );
-            IStandardizedYield(SY).redeem(
-                address(this),
-                syBalance,
-                address(config.asset),
-                tokensToRedeem,
-                false
+                tokenOutput
             );
         }
     }
@@ -188,7 +194,7 @@ contract PendlePTArk is BasePendleArk {
      */
     function _redeemAllFleetAssetsFromExpiredMarket() internal override {
         uint256 ptBalance = IERC20(PT).balanceOf(address(this));
-        _redeemFleetAssetFromPtPostExpiry(ptBalance, ptBalance);
+        _redeemMarketAssetFromPtPostExpiry(ptBalance, ptBalance);
     }
 
     /*//////////////////////////////////////////////////////////////

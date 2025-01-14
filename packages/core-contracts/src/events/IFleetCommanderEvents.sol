@@ -63,15 +63,6 @@ interface IFleetCommanderEvents {
         uint256 prevBalance,
         uint256 newBalance
     );
-    /**
-     *
-     * @param keeper Keeper address
-     * @param totalMoved Total amount of funds moved to arks
-     */
-    event FleetCommanderBufferAdjusted(
-        address indexed keeper,
-        uint256 totalMoved
-    );
 
     /**
      * @notice Emitted when funds are withdrawn from Arks

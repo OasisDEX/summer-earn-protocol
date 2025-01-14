@@ -97,7 +97,7 @@ contract LifecycleTest is TestHelpers, FleetCommanderTestBase {
         // Advance time to move past cooldown window
         vm.warp(block.timestamp + 1 days);
         vm.prank(keeper);
-        fleetCommander.adjustBuffer(rebalanceData);
+        fleetCommander.rebalance(rebalanceData);
 
         // Advance time and update Ark1 and Ark2 balances to simulate interest accrual
         vm.warp(block.timestamp + 1 days);

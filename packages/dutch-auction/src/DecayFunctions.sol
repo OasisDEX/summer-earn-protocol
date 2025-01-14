@@ -41,7 +41,7 @@ library DecayFunctions {
      * 2. If the auction has ended, return the end price
      * 3. If the auction is still active, calculate the current price using the specified decay function
      * 4. For Linear decay, use DutchAuctionMath.linearDecay
-     * 5. For Quadratic decay, use DutchAuctionMath.exponentialDecay
+     * 5. For Quadratic decay, use DutchAuctionMath.quadraticDecay
      *
      * @dev Note on precision:
      * - All price calculations are performed with high precision using the DutchAuctionMath library
@@ -78,7 +78,7 @@ library DecayFunctions {
                 );
         } else if (decayType == DecayType.Quadratic) {
             return
-                DutchAuctionMath.exponentialDecay(
+                DutchAuctionMath.quadraticDecay(
                     startPrice,
                     endPrice,
                     timeElapsed,

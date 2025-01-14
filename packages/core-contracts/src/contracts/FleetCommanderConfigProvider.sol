@@ -12,14 +12,16 @@ import {FleetConfig} from "../types/FleetCommanderTypes.sol";
 import {ConfigurationManaged} from "./ConfigurationManaged.sol";
 import {FleetCommanderRewardsManager} from "./FleetCommanderRewardsManager.sol";
 import {ArkParams, BufferArk} from "./arks/BufferArk.sol";
+
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ContractSpecificRoles, IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
-
+import {Constants} from "@summerfi/constants/Constants.sol";
 import {PERCENTAGE_100, Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
- * @title
+ * @title FleetCommanderConfigProvider
  * @author SummerFi
  * @notice This contract provides configuration management for the FleetCommander
  * @custom:see IFleetCommanderConfigProvider
@@ -35,10 +37,11 @@ contract FleetCommanderConfigProvider is
     FleetConfig public config;
     string public details;
     EnumerableSet.AddressSet private _activeArks;
-    mapping(address ark => bool isWithdrawable) public isArkWithdrawable;
 
-    uint256 public constant MAX_REBALANCE_OPERATIONS = 10;
-    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 36 hours;
+    uint256 public constant MAX_REBALANCE_OPERATIONS = 50;
+    uint256 public constant INITIAL_MINIMUM_PAUSE_TIME = 2 days;
+
+    bool public transfersEnabled;
 
     constructor(
         FleetCommanderParams memory params
@@ -54,14 +57,15 @@ contract FleetCommanderConfigProvider is
                 accessManager: address(params.accessManager),
                 asset: params.asset,
                 configurationManager: address(params.configurationManager),
-                depositCap: type(uint256).max,
-                maxRebalanceOutflow: type(uint256).max,
-                maxRebalanceInflow: type(uint256).max,
+                depositCap: Constants.MAX_UINT256,
+                maxRebalanceOutflow: Constants.MAX_UINT256,
+                maxRebalanceInflow: Constants.MAX_UINT256,
                 requiresKeeperData: false,
                 maxDepositPercentageOfTVL: PERCENTAGE_100
             }),
             address(this)
         );
+        emit ArkAdded(address(_bufferArk));
         _setFleetConfig(
             FleetConfig({
                 bufferArk: IArk(address(_bufferArk)),
@@ -73,16 +77,16 @@ contract FleetCommanderConfigProvider is
                 ).createRewardsManager(address(_accessManager), address(this))
             })
         );
-        isArkWithdrawable[address(_bufferArk)] = true;
         details = params.details;
     }
 
     /**
-     * @dev Modifier to restrict function access to only active Arks
+     * @dev Modifier to restrict function access to only active Arks (excluding the buffer ark)
      * @param arkAddress The address of the Ark to check
      * @custom:internal-logic
      * - Checks if the provided arkAddress is in the _activeArks set
      * - If not found, reverts with FleetCommanderArkNotFound error
+     * - If the arkAddress is the buffer ark, it will revert, due to the buffer ark being a special case
      * @custom:effects
      * - No direct state changes, but may revert the transaction
      * @custom:security-considerations
@@ -98,7 +102,9 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function isArkActive(address arkAddress) public view returns (bool) {
+    function isArkActiveOrBufferArk(
+        address arkAddress
+    ) public view returns (bool) {
         return
             _activeArks.contains(arkAddress) ||
             arkAddress == address(config.bufferArk);
@@ -110,7 +116,7 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function getArks() public view returns (address[] memory) {
+    function getActiveArks() public view returns (address[] memory) {
         return _activeArks.values();
     }
 
@@ -194,26 +200,40 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function setStakingRewardsManager(
-        address newStakingRewardsManager
-    ) external onlyCurator(address(this)) whenNotPaused {
-        if (newStakingRewardsManager == address(0)) {
-            revert FleetCommanderInvalidStakingRewardsManager();
-        }
+    function updateStakingRewardsManager()
+        external
+        onlyCurator(address(this))
+        whenNotPaused
+    {
         config.stakingRewardsManager = IFleetCommanderRewardsManagerFactory(
             fleetCommanderRewardsManagerFactory()
         ).createRewardsManager(address(_accessManager), address(this));
-        emit FleetCommanderStakingRewardsUpdated(newStakingRewardsManager);
+        emit FleetCommanderStakingRewardsUpdated(config.stakingRewardsManager);
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
     function setMaxRebalanceOperations(
         uint256 newMaxRebalanceOperations
     ) external onlyCurator(address(this)) whenNotPaused {
+        if (newMaxRebalanceOperations > MAX_REBALANCE_OPERATIONS) {
+            revert FleetCommanderMaxRebalanceOperationsTooHigh(
+                newMaxRebalanceOperations
+            );
+        }
         config.maxRebalanceOperations = newMaxRebalanceOperations;
         emit FleetCommanderMaxRebalanceOperationsUpdated(
             newMaxRebalanceOperations
         );
+    }
+
+    ///@inheritdoc IFleetCommanderConfigProvider
+    function setFleetTokenTransferability(
+        bool enabled
+    ) external onlyGovernor whenNotPaused {
+        if (enabled && !transfersEnabled) {
+            transfersEnabled = enabled;
+            emit TransfersEnabledUpdated(enabled);
+        }
     }
 
     // INTERNAL FUNCTIONS
@@ -243,7 +263,7 @@ contract FleetCommanderConfigProvider is
      * - Registers this contract as the ark's FleetCommander
      * - Adds the ark to the list of active arks
      * @custom:effects
-     * - Modifies isArkActive and isArkWithdrawable mappings
+     * - Modifies isArkActiveOrBufferArk mapping
      * - Updates the arks array
      * - Emits an ArkAdded event
      * @custom:security-considerations
@@ -255,14 +275,11 @@ contract FleetCommanderConfigProvider is
         if (ark == address(0)) {
             revert FleetCommanderInvalidArkAddress();
         }
-        if (isArkActive(ark)) {
+        if (isArkActiveOrBufferArk(ark)) {
             revert FleetCommanderArkAlreadyExists(ark);
         }
-
-        // Ark can be withdrawn by anyone if it doesnt' require keeper data
-        isArkWithdrawable[ark] = !IArk(ark).requiresKeeperData();
-        if (IArk(ark).getConfig().commander != address(0)) {
-            revert FleetCommanderArkAlreadyHasCommander();
+        if (address(IArk(ark).asset()) != IERC4626(address(this)).asset()) {
+            revert FleetCommanderAssetMismatch();
         }
         IArk(ark).registerFleetCommander();
         _activeArks.add(ark);
@@ -280,7 +297,7 @@ contract FleetCommanderConfigProvider is
      * - Unregisters this contract as the ark's FleetCommander
      * - Revokes the COMMANDER_ROLE for this contract on the ark
      * @custom:effects
-     * - Modifies the isArkActive mapping
+     * - Modifies the isArkActiveOrBufferArk mapping
      * - Updates the arks array
      * - Changes the ark's FleetCommander status
      * - Revokes a role in the access manager
@@ -290,10 +307,7 @@ contract FleetCommanderConfigProvider is
      * - Validates ark state before removal to prevent inconsistencies
      * - Only callable internally, typically by privileged roles
      */
-    function _removeArk(address ark) internal {
-        if (!isArkActive(ark)) {
-            revert FleetCommanderArkNotFound(ark);
-        }
+    function _removeArk(address ark) internal onlyActiveArk(ark) {
         _validateArkRemoval(ark);
         _activeArks.remove(ark);
 

@@ -78,4 +78,13 @@ interface IArk is
         bytes calldata boardData,
         bytes calldata disembarkData
     ) external;
+
+    /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @return uint256 The total assets that are withdrawable
+     * @dev _withdrawableTotalAssets is an internal function that should be implemented by derived contracts to define
+     * specific withdrawability logic
+     * @dev the ark is withdrawable if it doesnt require keeper data and _isWithdrawable returns true
+     */
+    function withdrawableTotalAssets() external view returns (uint256);
 }
