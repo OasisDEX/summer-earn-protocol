@@ -11,6 +11,7 @@ import { deployPendleLPArk } from './arks/deploy-pendle-lp-ark'
 import { deployPendlePTArk } from './arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from './arks/deploy-pendle-pt-oracle-ark'
 import { deploySkyUsdsArk } from './arks/deploy-sky-usds-ark'
+import { deploySkyUsdsPsm3Ark } from './arks/deploy-sky-usds-psm3-ark'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
@@ -25,6 +26,7 @@ const arkTypes = [
   { title: 'PendlePTArk', value: deployPendlePTArk },
   { title: 'PendlePtOracleArk', value: deployPendlePTOracleArk },
   { title: 'SkyUsdsArk', value: deploySkyUsdsArk },
+  { title: 'SkyUsdsPsm3Ark', value: deploySkyUsdsPsm3Ark },
 ]
 
 async function deployArk() {

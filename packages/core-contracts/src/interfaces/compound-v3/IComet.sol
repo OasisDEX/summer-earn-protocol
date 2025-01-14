@@ -89,4 +89,6 @@ interface IComet {
         address owner,
         address manager
     ) external view returns (bool);
+
+    function isWithdrawPaused() external view returns (bool);
 }
