@@ -174,6 +174,28 @@ abstract contract StakingRewardsManagerBase is
         _unstake(_msgSender(), _msgSender(), _balances[_msgSender()]);
     }
 
+    /// @notice Claims rewards for a specific account
+    /// @param account The address to claim rewards for
+    function getRewardFor(address account) public virtual nonReentrant {
+        uint256 rewardTokenCount = _rewardTokensList.length();
+        for (uint256 i = 0; i < rewardTokenCount; i++) {
+            address rewardTokenAddress = _rewardTokensList.at(i);
+            _getReward(account, rewardTokenAddress);
+        }
+    }
+
+    /// @notice Claims rewards for a specific account and specific reward token
+    /// @param account The address to claim rewards for
+    /// @param rewardToken The address of the reward token to claim
+    function getRewardFor(
+        address account,
+        address rewardToken
+    ) public virtual nonReentrant {
+        if (!_rewardTokensList.contains(rewardToken))
+            revert RewardTokenDoesNotExist();
+        _getReward(account, rewardToken);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             RESTRICTED FUNCTIONS
     //////////////////////////////////////////////////////////////*/

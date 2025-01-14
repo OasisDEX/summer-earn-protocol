@@ -201,4 +201,15 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param rewardToken The address of the reward token
      */
     event RewardTokenRemoved(address rewardToken);
+
+    /* @notice Claims rewards for a specific account
+     * @param account The address to claim rewards for
+     */
+    function getRewardFor(address account) external;
+
+    /* @notice Claims rewards for a specific account and specific reward token
+     * @param account The address to claim rewards for
+     * @param rewardToken The address of the reward token to claim
+     */
+    function getRewardFor(address account, address rewardToken) external;
 }

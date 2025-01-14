@@ -157,7 +157,6 @@ contract SummerVestingWallet is
 
     /**
      * @dev Calculates the amount of tokens that has vested at a specific time
-     * @param totalAllocation Total number of tokens allocated for vesting
      * @param timestamp The timestamp to check for vested tokens
      * @return uint256 The amount of tokens already vested
      * @custom:override Overrides the _vestingSchedule function from VestingWallet
@@ -176,7 +175,7 @@ contract SummerVestingWallet is
      * - Consider gas costs when frequently querying vested amounts
      */
     function _vestingSchedule(
-        uint256 totalAllocation,
+        uint256,
         uint64 timestamp
     ) internal view override returns (uint256) {
         if (timestamp < start() + CLIFF) {
