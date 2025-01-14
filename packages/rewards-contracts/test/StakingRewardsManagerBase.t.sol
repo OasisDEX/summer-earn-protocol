@@ -272,6 +272,11 @@ contract StakingRewardsManagerBaseTest is Test {
 
     function test_Stake() public {
         uint256 stakeAmount = 1000 * 1e18;
+
+        // Expect the Staked event with correct parameters
+        vm.expectEmit(true, true, false, true);
+        emit IStakingRewardsManagerBase.Staked(alice, alice, stakeAmount);
+
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
@@ -291,6 +296,11 @@ contract StakingRewardsManagerBaseTest is Test {
         uint256 stakeAmount = 1000 * 1e18;
         vm.startPrank(alice);
         stakingRewardsManager.stake(stakeAmount);
+
+        // Expect the Unstaked event with correct parameters
+        vm.expectEmit(true, true, false, true);
+        emit IStakingRewardsManagerBase.Unstaked(alice, alice, stakeAmount);
+
         stakingRewardsManager.unstake(stakeAmount);
         vm.stopPrank();
 
@@ -303,6 +313,38 @@ contract StakingRewardsManagerBaseTest is Test {
             stakingRewardsManager.totalSupply(),
             0,
             "Total supply should be zero after unstake"
+        );
+    }
+
+    function test_StakeOnBehalfOf() public {
+        uint256 stakeAmount = 1000 * 1e18;
+
+        // First approve the tokens
+        vm.startPrank(alice);
+        mockStakingToken.approve(address(stakingRewardsManager), stakeAmount);
+
+        // Expect the Staked event with correct parameters
+        vm.expectEmit(true, true, false, true, address(stakingRewardsManager));
+        emit IStakingRewardsManagerBase.Staked(alice, bob, stakeAmount);
+
+        // Then call stakeOnBehalfOf
+        stakingRewardsManager.stakeOnBehalfOf(bob, stakeAmount);
+        vm.stopPrank();
+
+        assertEq(
+            stakingRewardsManager.balanceOf(bob),
+            stakeAmount,
+            "Stake amount should be correct for receiver"
+        );
+        assertEq(
+            stakingRewardsManager.balanceOf(alice),
+            0,
+            "Staker should have no balance"
+        );
+        assertEq(
+            stakingRewardsManager.totalSupply(),
+            stakeAmount,
+            "Total supply should be updated"
         );
     }
 
@@ -1018,5 +1060,93 @@ contract StakingRewardsManagerBaseTest is Test {
             1000, // Allow difference of up to 1000 wei
             "User should have received wrapped tokens"
         );
+    }
+
+    function test_GetRewardFor() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup: Alice stakes tokens
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Setup: Add rewards
+        vm.startPrank(mockGovernor);
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 balanceBefore = rewardTokens[0].balanceOf(alice);
+
+        // Bob claims rewards on behalf of Alice
+        vm.prank(bob);
+        stakingRewardsManager.getRewardFor(alice);
+
+        uint256 balanceAfter = rewardTokens[0].balanceOf(alice);
+        assertGt(
+            balanceAfter,
+            balanceBefore,
+            "Alice should have received rewards"
+        );
+    }
+
+    function test_GetRewardFor_SpecificToken() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Setup: Alice stakes tokens
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Setup: Add multiple reward tokens
+        vm.startPrank(mockGovernor);
+        for (uint256 i = 0; i < 2; i++) {
+            rewardTokens[i].approve(
+                address(stakingRewardsManager),
+                rewardAmount
+            );
+            stakingRewardsManager.notifyRewardAmount(
+                IERC20(address(rewardTokens[i])),
+                rewardAmount,
+                7 days
+            );
+        }
+        vm.stopPrank();
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        uint256 balanceBefore = rewardTokens[0].balanceOf(alice);
+        uint256 otherTokenBefore = rewardTokens[1].balanceOf(alice);
+
+        // Bob claims specific reward token for Alice
+        vm.prank(bob);
+        stakingRewardsManager.getRewardFor(alice, address(rewardTokens[0]));
+
+        uint256 balanceAfter = rewardTokens[0].balanceOf(alice);
+        uint256 otherTokenAfter = rewardTokens[1].balanceOf(alice);
+
+        assertGt(
+            balanceAfter,
+            balanceBefore,
+            "Alice should have received rewards for the specific token"
+        );
+        assertEq(
+            otherTokenAfter,
+            otherTokenBefore,
+            "Alice should not have received rewards for other token"
+        );
+    }
+
+    function test_GetRewardFor_InvalidToken() public {
+        vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
+        stakingRewardsManager.getRewardFor(alice, address(0x123));
     }
 }

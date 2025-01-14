@@ -575,9 +575,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      * @notice Validate board data
      * @param data Data to validate
      */
-    function _validateBoardData(bytes calldata data) internal view override {
-        // Implementation left empty intentionally
-    }
+    function _validateBoardData(bytes calldata data) internal view override {}
 
     /**
      * @notice Validate disembark data
@@ -585,9 +583,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
      */
     function _validateDisembarkData(
         bytes calldata data
-    ) internal view override {
-        // Implementation left empty intentionally
-    }
+    ) internal view override {}
 
     /**
      * @notice Set up router parameters

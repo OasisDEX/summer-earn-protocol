@@ -21,8 +21,8 @@ contract SummerVestingWallet is
     ///                CONSTANTS               ///
     //////////////////////////////////////////////
 
-    /// @dev Duration of a quarter in seconds
-    uint256 private constant QUARTER = 90 days;
+    /// @dev Duration of a month in seconds
+    uint256 private constant MONTH = 30 days;
     /// @dev Duration of the cliff period in seconds
     uint256 private constant CLIFF = 180 days;
 
@@ -157,7 +157,6 @@ contract SummerVestingWallet is
 
     /**
      * @dev Calculates the amount of tokens that has vested at a specific time
-     * @param totalAllocation Total number of tokens allocated for vesting
      * @param timestamp The timestamp to check for vested tokens
      * @return uint256 The amount of tokens already vested
      * @custom:override Overrides the _vestingSchedule function from VestingWallet
@@ -176,7 +175,7 @@ contract SummerVestingWallet is
      * - Consider gas costs when frequently querying vested amounts
      */
     function _vestingSchedule(
-        uint256 totalAllocation,
+        uint256,
         uint64 timestamp
     ) internal view override returns (uint256) {
         if (timestamp < start() + CLIFF) {
@@ -203,7 +202,7 @@ contract SummerVestingWallet is
      * @custom:effects
      * - Does not modify any state, view function only
      * @custom:security-considerations
-     * - Ensure that the CLIFF and QUARTER constants are correctly set
+     * - Ensure that the CLIFF and MONTH constants are correctly set
      * - The function assumes that start() is correctly set
      * @custom:gas-considerations
      * - This function performs several mathematical operations, which may impact gas usage
@@ -212,8 +211,8 @@ contract SummerVestingWallet is
     function _calculateTimeBasedVesting(
         uint64 timestamp
     ) private view returns (uint256) {
-        uint256 elapsedQuarters = (timestamp - start()) / QUARTER;
-        uint256 _vestedAmount = (timeBasedVestingAmount * elapsedQuarters) / 8;
+        uint256 elapsedMonths = (timestamp - start()) / MONTH;
+        uint256 _vestedAmount = (timeBasedVestingAmount * elapsedMonths) / 24;
         return
             _vestedAmount < timeBasedVestingAmount
                 ? _vestedAmount

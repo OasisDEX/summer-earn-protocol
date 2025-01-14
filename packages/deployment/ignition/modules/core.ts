@@ -40,22 +40,19 @@ enum DecayType {
  * - Supporting contracts deployed last to ensure core system is ready
  */
 export const CoreModule = buildModule('CoreModule', (m) => {
-  const deployer = m.getAccount(0)
   const treasury = m.getParameter('treasury')
   const swapProvider = m.getParameter('swapProvider')
   const weth = m.getParameter('weth')
+  const protocolAccessManager = m.getParameter('protocolAccessManager')
+
   /**
    * @dev Step 1: Deploy Core Infrastructure
    *
    * Order:
    * 1. DutchAuctionLibrary: Required by Raft for auction calculations
-   * 2. ProtocolAccessManager: Required by all access-controlled contracts
-   * 3. ConfigurationManager: Required for protocol-wide settings
+   * 2. ConfigurationManager: Required for protocol-wide settings
    */
   const dutchAuctionLibrary = m.contract('DutchAuctionLibrary', [])
-
-  const protocolAccessManager = m.contract('ProtocolAccessManager', [deployer])
-
   const configurationManager = m.contract('ConfigurationManager', [protocolAccessManager])
 
   /**
@@ -124,7 +121,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
   ])
 
   return {
-    protocolAccessManager,
     tipJar,
     raft,
     configurationManager,
@@ -139,7 +135,6 @@ export const CoreModule = buildModule('CoreModule', (m) => {
  * Used for contract interaction after deployment
  */
 export type CoreContracts = {
-  protocolAccessManager: { address: string }
   tipJar: { address: string }
   raft: { address: string }
   configurationManager: { address: string }

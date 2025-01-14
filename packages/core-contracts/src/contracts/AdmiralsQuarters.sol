@@ -22,6 +22,10 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {ISummerRewardsRedeemer} from "@summerfi/rewards-contracts/interfaces/ISummerRewardsRedeemer.sol";
+import {IGovernanceRewardsManager} from "@summerfi/earn-gov-contracts/interfaces/IGovernanceRewardsManager.sol";
+
 /**
  * @title AdmiralsQuarters
  * @dev A contract for managing deposits and withdrawals to/from FleetCommander contracts,
@@ -263,52 +267,30 @@ contract AdmiralsQuarters is
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function moveFromCompoundToAdmiralsQuarters(
-        address cToken,
-        uint256 assets
+    function claimMerkleRewards(
+        address user,
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs,
+        address rewardsRedeemer
     ) external onlyMulticall nonReentrant {
-        IComet token = IComet(cToken);
-        address underlying = token.baseToken();
-
-        // Get actual assets if 0 was passed
-        assets = assets == 0 ? token.balanceOf(_msgSender()) : assets;
-
-        // Calculate underlying assets
-        token.withdrawFrom(_msgSender(), address(this), underlying, assets);
-
-        emit CompoundPositionImported(_msgSender(), cToken, assets);
+        _claimMerkleRewards(user, indices, amounts, proofs, rewardsRedeemer);
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function moveFromAaveToAdmiralsQuarters(
-        address aToken,
-        uint256 assets
+    function claimGovernanceRewards(
+        address govRewardsManager,
+        address rewardToken
     ) external onlyMulticall nonReentrant {
-        IAToken token = IAToken(aToken);
-        IPoolV3 pool = IPoolV3(token.POOL());
-        IERC20 underlying = IERC20(token.UNDERLYING_ASSET_ADDRESS());
-
-        assets = assets == 0 ? token.balanceOf(_msgSender()) : assets;
-
-        token.safeTransferFrom(_msgSender(), address(this), assets);
-        pool.withdraw(address(underlying), assets, address(this));
-
-        emit AavePositionImported(_msgSender(), aToken, assets);
+        _claimGovernanceRewards(govRewardsManager, rewardToken);
     }
 
     /// @inheritdoc IAdmiralsQuarters
-    function moveFromERC4626ToAdmiralsQuarters(
-        address vault,
-        uint256 shares
+    function claimFleetRewards(
+        address[] calldata fleetCommanders,
+        address rewardToken
     ) external onlyMulticall nonReentrant {
-        IERC4626 vaultToken = IERC4626(vault);
-
-        // Get actual shares if 0 was passed
-        shares = shares == 0 ? vaultToken.balanceOf(_msgSender()) : shares;
-
-        vaultToken.redeem(shares, address(this), _msgSender());
-
-        emit ERC4626PositionImported(_msgSender(), vault, shares);
+        _claimFleetRewards(fleetCommanders, rewardToken);
     }
 
     /**
@@ -392,5 +374,134 @@ contract AdmiralsQuarters is
     modifier noNativeToken() {
         if (address(this).balance > 0) revert NativeTokenNotAllowed();
         _;
+    }
+
+    /**
+     * @dev Claims rewards from merkle distributor
+     * @param user Address to claim rewards for
+     * @param indices Array of merkle proof indices
+     * @param amounts Array of merkle proof amounts
+     * @param proofs Array of merkle proof data
+     * @param rewardsRedeemer Address of the rewards redeemer contract
+     */
+    function _claimMerkleRewards(
+        address user,
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs,
+        address rewardsRedeemer
+    ) internal {
+        if (rewardsRedeemer == address(0)) {
+            revert InvalidRewardsRedeemer();
+        }
+
+        // We can now directly pass the arrays to the redeemer
+        ISummerRewardsRedeemer(rewardsRedeemer).claimMultiple(
+            user,
+            indices,
+            amounts,
+            proofs
+        );
+    }
+
+    /**
+     * @dev Claims rewards from governance rewards manager
+     * @param govRewardsManager Address of the governance rewards manager
+     * @param rewardToken Address of the reward token to claim
+     */
+    function _claimGovernanceRewards(
+        address govRewardsManager,
+        address rewardToken
+    ) internal {
+        if (govRewardsManager == address(0)) {
+            revert InvalidRewardsManager();
+        }
+
+        _validateToken(IERC20(rewardToken));
+
+        // Claim rewards
+        IGovernanceRewardsManager(govRewardsManager).getRewardFor(
+            _msgSender(),
+            rewardToken
+        );
+    }
+
+    /**
+     * @dev Claims rewards from fleet commanders
+     * @param fleetCommanders Array of FleetCommander addresses
+     * @param rewardToken Address of the reward token to claim
+     */
+    function _claimFleetRewards(
+        address[] calldata fleetCommanders,
+        address rewardToken
+    ) internal {
+        for (uint256 i = 0; i < fleetCommanders.length; ) {
+            address fleetCommander = fleetCommanders[i];
+
+            // Validate FleetCommander through HarborCommand
+            _validateFleetCommander(fleetCommander);
+
+            // Get rewards manager from FleetCommander and claim
+            address rewardsManager = IFleetCommander(fleetCommander)
+                .getConfig()
+                .stakingRewardsManager;
+            IFleetCommanderRewardsManager(rewardsManager).getRewardFor(
+                _msgSender(),
+                rewardToken
+            );
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function moveFromCompoundToAdmiralsQuarters(
+        address cToken,
+        uint256 assets
+    ) external onlyMulticall nonReentrant {
+        IComet token = IComet(cToken);
+        address underlying = token.baseToken();
+
+        // Get actual assets if 0 was passed
+        assets = assets == 0 ? token.balanceOf(_msgSender()) : assets;
+
+        // Calculate underlying assets
+        token.withdrawFrom(_msgSender(), address(this), underlying, assets);
+
+        emit CompoundPositionImported(_msgSender(), cToken, assets);
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function moveFromAaveToAdmiralsQuarters(
+        address aToken,
+        uint256 assets
+    ) external onlyMulticall nonReentrant {
+        IAToken token = IAToken(aToken);
+        IPoolV3 pool = IPoolV3(token.POOL());
+        IERC20 underlying = IERC20(token.UNDERLYING_ASSET_ADDRESS());
+
+        assets = assets == 0 ? token.balanceOf(_msgSender()) : assets;
+
+        token.safeTransferFrom(_msgSender(), address(this), assets);
+        pool.withdraw(address(underlying), assets, address(this));
+
+        emit AavePositionImported(_msgSender(), aToken, assets);
+    }
+
+    /// @inheritdoc IAdmiralsQuarters
+    function moveFromERC4626ToAdmiralsQuarters(
+        address vault,
+        uint256 shares
+    ) external onlyMulticall nonReentrant {
+        IERC4626 vaultToken = IERC4626(vault);
+
+        // Get actual shares if 0 was passed
+        shares = shares == 0 ? vaultToken.balanceOf(_msgSender()) : shares;
+
+        vaultToken.redeem(shares, address(this), _msgSender());
+
+        emit ERC4626PositionImported(_msgSender(), vault, shares);
     }
 }

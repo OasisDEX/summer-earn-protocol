@@ -731,7 +731,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
     }
 
     function test_Deposit_Enter_Stake_Reverts() public {
-        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
         uint256 usdcAmount = 1000e6; // 1000 USDC
         vm.startPrank(user1);
         bytes[] memory enterCalls = new bytes[](3);
@@ -974,9 +973,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         // Get initial balances
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
-        uint256 initialStakedBalance = IFleetCommanderRewardsManager(
-            rewardsManager
-        ).balanceOf(user1);
         vm.warp(block.timestamp + 10 days);
         // Unstake all shares (using 0 amount) and claim rewards
         bytes[] memory calls2 = new bytes[](1);
@@ -1868,12 +1864,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         vm.stopPrank();
 
-        // Record initial balances
-        uint256 user1Rewards = rewardsManager.earned(
-            user1,
-            IERC20(rewardTokens[0])
-        );
-
         uint256 rewardsBalanceUser1 = IERC20(rewardTokens[0]).balanceOf(user1);
 
         vm.prank(user1);
@@ -2126,6 +2116,48 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         // Now try to remove the reward token as governor
         vm.startPrank(governor);
         IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(usdc);
+        vm.stopPrank();
+    }
+
+    function test_ClaimMerkleRewards_RevertInvalidRewardsRedeemer() public {
+        uint256[] memory indices = new uint256[](1);
+        uint256[] memory amounts = new uint256[](1);
+        bytes32[][] memory proofs = new bytes32[][](1);
+
+        vm.startPrank(user1);
+        vm.expectRevert(
+            IAdmiralsQuartersErrors.InvalidRewardsRedeemer.selector
+        );
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.claimMerkleRewards,
+            (user1, indices, amounts, proofs, address(0))
+        );
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+    }
+
+    function test_ClaimGovernanceRewards_RevertInvalidRewardsManager() public {
+        vm.startPrank(user1);
+        vm.expectRevert(IAdmiralsQuartersErrors.InvalidRewardsManager.selector);
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.claimGovernanceRewards,
+            (address(0), USDC_ADDRESS)
+        );
+        admiralsQuarters.multicall(calls);
+        vm.stopPrank();
+    }
+
+    function test_ClaimGovernanceRewards_RevertInvalidToken() public {
+        vm.startPrank(user1);
+        vm.expectRevert(IAdmiralsQuartersErrors.InvalidToken.selector);
+        bytes[] memory calls = new bytes[](1);
+        calls[0] = abi.encodeCall(
+            admiralsQuarters.claimGovernanceRewards,
+            (address(usdcFleet), address(0))
+        );
+        admiralsQuarters.multicall(calls);
         vm.stopPrank();
     }
 }

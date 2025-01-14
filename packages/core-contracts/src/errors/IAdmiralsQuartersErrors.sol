@@ -77,4 +77,14 @@ interface IAdmiralsQuartersErrors {
      * @notice Thrown when native token is not allowed.
      */
     error NativeTokenNotAllowed();
+
+    /**
+     * @notice Thrown when the provided rewards redeemer is invalid.
+     */
+    error InvalidRewardsRedeemer();
+
+    /**
+     * @notice Thrown when the provided rewards manager is invalid.
+     */
+    error InvalidRewardsManager();
 }

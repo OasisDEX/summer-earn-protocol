@@ -1,0 +1,27 @@
+{
+  "chainId": "8453",
+  "distributionId": "1",
+  "merkleRoot": "0xe2eee43b5009744b6b130f2bbfd8e933d32f13291a02c48339734de8b718ce94",
+  "totalAmount": "6000000000000000000",
+  "addressCount": 3,
+  "claims": {
+    "0xDDc68f9dE415ba2fE2FD84bc62Be2d2CFF1098dA": {
+      "amount": "3000000000000000000",
+      "proof": ["0xadc9e02b1d5508bf95c9549830f31b0170ec25aefe4985a076c8803c926e47f8"]
+    },
+    "0xAb1a4Ae0F851700CC42442c588f458B553cB2620": {
+      "amount": "2000000000000000000",
+      "proof": [
+        "0x3986e17540ab4778b5df0dfe505da9b742cb3991d75052a88925c6ef71318628",
+        "0x45bd1fa987e859ce5632d07c6338ac950d1dbe6b6a4c1447a3de39899dca3381"
+      ]
+    },
+    "0xb0f758323D3798a6A567C1601d84f30d1BCAAA0b": {
+      "amount": "1000000000000000000",
+      "proof": [
+        "0x1eeeed5de0f00178fb79f9ea3701224ed9662cd7a6ac82692ea5cbae139763a8",
+        "0x45bd1fa987e859ce5632d07c6338ac950d1dbe6b6a4c1447a3de39899dca3381"
+      ]
+    }
+  }
+}
