@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {AdmiralsQuarters} from "../src/contracts/AdmiralsQuarters.sol";
+import {AdmiralsQuarters} from "../../src/contracts/AdmiralsQuarters.sol";
 
-import {FleetCommander} from "../src/contracts/FleetCommander.sol";
-import {IAggregationRouterV6} from "../src/interfaces/1inch/IAggregationRouterV6.sol";
-import {IFleetCommanderRewardsManager} from "../src/interfaces/IFleetCommanderRewardsManager.sol";
+import {FleetCommander} from "../../src/contracts/FleetCommander.sol";
+import {IAggregationRouterV6} from "../../src/interfaces/1inch/IAggregationRouterV6.sol";
+import {IFleetCommanderRewardsManager} from "../../src/interfaces/IFleetCommanderRewardsManager.sol";
 
-import {IComet} from "../src/interfaces/compound-v3/IComet.sol";
-import {FleetCommanderTestBase} from "./fleets/FleetCommanderTestBase.sol";
-import {OneInchTestHelpers} from "./helpers/OneInchTestHelpers.sol";
+import {IComet} from "../../src/interfaces/compound-v3/IComet.sol";
+import {FleetCommanderTestBase} from "../fleets/FleetCommanderTestBase.sol";
+import {OneInchTestHelpers} from "../helpers/OneInchTestHelpers.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -212,14 +212,8 @@ contract AdmiralsQuartersImportTest is
     function test_ImportFromERC4626() public {
         user1 = USDC_4626_HOLDER;
         uint256 sharesToRedeem = 1000e6; // Assuming same decimals as USDC
-        uint256 assetsToReceive = IERC4626(USDC_4626_VAULT).previewRedeem(
-            sharesToRedeem
-        );
 
         uint256 sharesAmountBefore = IERC4626(USDC_4626_VAULT).balanceOf(user1);
-        uint256 balanceBefore = IERC4626(USDC_4626_VAULT).previewWithdraw(
-            sharesAmountBefore
-        );
 
         vm.startPrank(user1);
 
@@ -354,9 +348,7 @@ contract AdmiralsQuartersImportTest is
 
     function test_ImportZeroAmount() public {
         // Test importing with amount = 0 (should import full balance)
-        uint256 cTokenAmount = 50000e8;
         user1 = CUSDC_HOLDER;
-        uint256 cTokenBalanceBefore = IERC20(CUSDC_ADDRESS).balanceOf(user1);
         vm.startPrank(user1);
         IComet(CUSDC_ADDRESS).allow(address(admiralsQuarters), true);
 
@@ -370,11 +362,6 @@ contract AdmiralsQuartersImportTest is
             (address(usdcFleet), 0, address(0))
         );
         admiralsQuarters.multicall(importCalls);
-
-        bool hasPermission = IComet(CUSDC_ADDRESS).hasPermission(
-            user1,
-            address(admiralsQuarters)
-        );
 
         assertEq(
             IERC20(CUSDC_ADDRESS).balanceOf(user1),

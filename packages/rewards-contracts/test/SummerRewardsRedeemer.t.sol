@@ -90,7 +90,7 @@ contract RewardsRedeemerTest is Test {
         ] = hex"59bfd8b8aa058effb68dc5d8dadc75a6af9069ec03a5e3e4081284366d553c72";
     }
 
-    function test_Constructor() public {
+    function test_Constructor() public view {
         assertEq(address(redeemer.rewardsToken()), address(rewardsToken));
         assertTrue(redeemer.deployedAt() > 0);
         assertTrue(redeemer.deployedAt() <= block.timestamp);
@@ -153,7 +153,7 @@ contract RewardsRedeemerTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit Claimed(alice, TEST_INDEX, TEST_AMOUNT_ALICE);
-        redeemer.claim(TEST_INDEX, TEST_AMOUNT_ALICE, TEST_PROOF_ALICE);
+        redeemer.claim(alice, TEST_INDEX, TEST_AMOUNT_ALICE, TEST_PROOF_ALICE);
 
         assertEq(
             rewardsToken.balanceOf(alice),
@@ -167,7 +167,7 @@ contract RewardsRedeemerTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit Claimed(bob, TEST_INDEX, TEST_AMOUNT_BOB);
-        redeemer.claim(TEST_INDEX, TEST_AMOUNT_BOB, TEST_PROOF_BOB);
+        redeemer.claim(bob, TEST_INDEX, TEST_AMOUNT_BOB, TEST_PROOF_BOB);
 
         assertEq(rewardsToken.balanceOf(bob), balanceBefore + TEST_AMOUNT_BOB);
         assertTrue(redeemer.hasClaimed(bob, TEST_INDEX));
@@ -205,7 +205,7 @@ contract RewardsRedeemerTest is Test {
         vm.startPrank(alice);
         uint256 balanceBefore = rewardsToken.balanceOf(alice);
 
-        redeemer.claimMultiple(indices, amountsAlice, proofsAlice);
+        redeemer.claimMultiple(alice, indices, amountsAlice, proofsAlice);
 
         assertEq(
             rewardsToken.balanceOf(alice),
@@ -218,7 +218,7 @@ contract RewardsRedeemerTest is Test {
         vm.startPrank(bob);
         balanceBefore = rewardsToken.balanceOf(bob);
 
-        redeemer.claimMultiple(indices, amountsBob, proofsBob);
+        redeemer.claimMultiple(bob, indices, amountsBob, proofsBob);
 
         assertEq(
             rewardsToken.balanceOf(bob),
@@ -242,7 +242,7 @@ contract RewardsRedeemerTest is Test {
                 emptyProofs
             )
         );
-        redeemer.claimMultiple(emptyIndices, emptyAmounts, emptyProofs);
+        redeemer.claimMultiple(alice, emptyIndices, emptyAmounts, emptyProofs);
     }
 
     function test_EmergencyWithdraw() public {
@@ -268,7 +268,7 @@ contract RewardsRedeemerTest is Test {
         redeemer.emergencyWithdraw(address(rewardsToken), alice, 1 ether);
     }
 
-    function test_DeployTime() public {
+    function test_DeployTime() public view {
         assertTrue(redeemer.deployedAt() > 0);
         assertTrue(redeemer.deployedAt() <= block.timestamp);
     }
@@ -330,7 +330,12 @@ contract RewardsRedeemerTest is Test {
 
         vm.prank(alice);
         assertTrue(
-            redeemer.canClaim(TEST_INDEX, TEST_AMOUNT_ALICE, TEST_PROOF_ALICE)
+            redeemer.canClaim(
+                alice,
+                TEST_INDEX,
+                TEST_AMOUNT_ALICE,
+                TEST_PROOF_ALICE
+            )
         );
     }
 
@@ -341,6 +346,7 @@ contract RewardsRedeemerTest is Test {
         vm.prank(alice);
         assertFalse(
             redeemer.canClaim(
+                alice,
                 TEST_INDEX + 1,
                 TEST_AMOUNT_ALICE,
                 TEST_PROOF_ALICE
@@ -354,6 +360,7 @@ contract RewardsRedeemerTest is Test {
 
         assertFalse(
             redeemer.canClaim(
+                alice,
                 TEST_INDEX,
                 TEST_AMOUNT_ALICE + 1,
                 TEST_PROOF_ALICE
@@ -366,7 +373,12 @@ contract RewardsRedeemerTest is Test {
         redeemer.addRoot(TEST_INDEX, TEST_ROOT);
 
         assertFalse(
-            redeemer.canClaim(TEST_INDEX, TEST_AMOUNT_ALICE, TEST_PROOF_BOB)
+            redeemer.canClaim(
+                alice,
+                TEST_INDEX,
+                TEST_AMOUNT_ALICE,
+                TEST_PROOF_BOB
+            )
         );
     }
 
@@ -383,7 +395,7 @@ contract RewardsRedeemerTest is Test {
                 proofs
             )
         );
-        redeemer.claimMultiple(indices, amounts, proofs);
+        redeemer.claimMultiple(alice, indices, amounts, proofs);
     }
 
     function test_ClaimMultiple_DuplicateIndex() public {
@@ -412,7 +424,7 @@ contract RewardsRedeemerTest is Test {
                 TEST_PROOF_ALICE
             )
         );
-        redeemer.claimMultiple(indices, amounts, proofs);
+        redeemer.claimMultiple(alice, indices, amounts, proofs);
         vm.stopPrank();
     }
 
@@ -443,6 +455,42 @@ contract RewardsRedeemerTest is Test {
                 4 ether
             )
         );
+        redeemer.claimMultiple(alice, indices, amounts, proofs);
+    }
+
+    function test_ClaimMultiple_MsgSender() public {
+        // Mint tokens to redeemer
+        rewardsToken.mint(address(redeemer), 1000 ether);
+
+        uint256[] memory indices = new uint256[](2);
+        indices[0] = TEST_INDEX;
+        indices[1] = TEST_INDEX_2;
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = TEST_AMOUNT_ALICE;
+        amounts[1] = TEST_AMOUNT_ALICE_2;
+
+        bytes32[][] memory proofs = new bytes32[][](2);
+        proofs[0] = TEST_PROOF_ALICE;
+        proofs[1] = TEST_PROOF_ALICE_2;
+
+        vm.startPrank(governor);
+        redeemer.addRoot(TEST_INDEX, TEST_ROOT);
+        redeemer.addRoot(TEST_INDEX_2, TEST_ROOT_2);
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        uint256 balanceBefore = rewardsToken.balanceOf(alice);
+
+        // Call the overloaded version without user parameter
         redeemer.claimMultiple(indices, amounts, proofs);
+
+        assertEq(
+            rewardsToken.balanceOf(alice),
+            balanceBefore + TEST_AMOUNT_ALICE + TEST_AMOUNT_ALICE_2
+        );
+        assertTrue(redeemer.hasClaimed(alice, TEST_INDEX));
+        assertTrue(redeemer.hasClaimed(alice, TEST_INDEX_2));
+        vm.stopPrank();
     }
 }
