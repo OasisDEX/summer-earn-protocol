@@ -88,6 +88,9 @@ export interface BaseConfig {
       psmLite: {
         [key in Tokens]: Address
       }
+      psm3: {
+        [key in Tokens]: Address
+      }
     }
   }
 }
