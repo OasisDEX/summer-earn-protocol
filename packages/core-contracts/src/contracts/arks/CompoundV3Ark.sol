@@ -56,13 +56,8 @@ contract CompoundV3Ark is Ark {
     /**
      * @inheritdoc IArk
      */
-    function totalAssets()
-        public
-        view
-        override
-        returns (uint256 suppliedAssets)
-    {
-        suppliedAssets = comet.balanceOf(address(this));
+    function totalAssets() public view override returns (uint256 assets) {
+        assets = comet.balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -72,15 +67,16 @@ contract CompoundV3Ark is Ark {
     /**
      * @notice Internal function to get the total assets that are withdrawable
      * @dev CompoundV3Ark is always withdrawable
-     * @dev TODO:  add logic to check if the comet is in liquidation mode or not
      */
     function _withdrawableTotalAssets()
         internal
         view
         override
-        returns (uint256)
+        returns (uint256 withdrawableAssets)
     {
-        return totalAssets();
+        if (!comet.isWithdrawPaused()) {
+            withdrawableAssets = totalAssets();
+        }
     }
 
     /**
