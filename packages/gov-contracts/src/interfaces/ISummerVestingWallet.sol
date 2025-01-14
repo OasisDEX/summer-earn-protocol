@@ -12,10 +12,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  *
  * Vesting Schedules:
  * 1. Team Vesting:
- *    - Time-based: 8 quarterly releases over 2 years, starting after the 6-month cliff.
+ *    - Time-based: Monthly releases over 2 years, starting after the 6-month cliff.
  *    - Performance-based: arbitrary amount of additional milestone-based releases, triggered by the guardian.
  * 2. Investor/Ex-Team Vesting:
- *    - Time-based only: 8 quarterly releases over 2 years, starting after the 6-month cliff.
+ *    - Time-based only: Monthly releases over 2 years, starting after the 6-month cliff.
  *
  * The guardian role can mark performance goals as reached for team vesting and recall unvested
  * performance-based tokens if necessary.
