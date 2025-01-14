@@ -422,12 +422,7 @@ contract FleetCommanderCache {
             StorageSlots.WITHDRAWABLE_ARKS_LENGTH_STORAGE
         );
     }
-    function _getActiveArksAddresses()
-        internal
-        view
-        virtual
-        returns (address[] memory)
-    {}
+
     /**
      * @dev Retrieves and processes data for withdrawable arks
      * @param bufferArk The buffer ark instance
@@ -543,4 +538,36 @@ contract FleetCommanderCache {
             }
         }
     }
+
+    /**
+     * @title _getActiveArksAddresses
+     * @notice Returns an array of addresses for all currently active Arks in the fleet
+     * @dev This is an abstract internal function that must be implemented by the FleetCommander contract
+     *      It serves as a critical component in the caching system for efficient ark management
+     *
+     * @return address[] An array containing the addresses of all active Arks
+     *
+     * @custom:purpose
+     * - Provides the foundation for the caching system by identifying which Arks are currently active
+     * - Used by _getArksData and _getWithdrawableArksData to populate cache data
+     * - Essential for operations that need to iterate over or manage all active Arks
+     * - Defined as virtual to be overridden by the FleetCommander contract and avoid calling it before it's required
+     *
+     * @custom:implementation-notes
+     * - Must be implemented by the inheriting FleetCommander contract
+     * - Should return a fresh array of addresses each time it's called
+     * - Buffer Ark should NOT be included in this list (it's handled separately)
+     * - Only truly active and operational Arks should be included
+     *
+     * @custom:related-functions
+     * - _getArksData: Uses this function to get data for all active Arks
+     * - _getWithdrawableArksData: Uses this function to identify withdrawable Arks
+     * - _getAllArks: Combines these addresses with the buffer Ark
+     */
+    function _getActiveArksAddresses()
+        internal
+        view
+        virtual
+        returns (address[] memory)
+    {}
 }

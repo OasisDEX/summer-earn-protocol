@@ -347,14 +347,7 @@ contract FleetCommander is
     {
         return _totalAssets(config.bufferArk);
     }
-    function _getActiveArksAddresses()
-        internal
-        view
-        override(FleetCommanderCache)
-        returns (address[] memory)
-    {
-        return getActiveArks();
-    }
+
     /// @inheritdoc IFleetCommander
     function withdrawableTotalAssets() public view returns (uint256) {
         return _withdrawableTotalAssets(config.bufferArk);
@@ -978,5 +971,14 @@ contract FleetCommander is
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(owner, shares, maxShares);
         }
+    }
+
+    function _getActiveArksAddresses()
+        internal
+        view
+        override(FleetCommanderCache)
+        returns (address[] memory)
+    {
+        return getActiveArks();
     }
 }
