@@ -24,14 +24,6 @@ contract AaveV3Ark is Ark {
     /// @notice The Aave V3 rewards controller address
     IRewardsController public immutable rewardsController;
 
-    /**
-     * @notice Struct to hold reward token information
-     * @param rewardToken The address of the reward token
-     */
-    struct RewardsData {
-        address rewardToken;
-    }
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -113,20 +105,12 @@ contract AaveV3Ark is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        rewardTokens = new address[](1);
-        rewardAmounts = new uint256[](1);
-
-        RewardsData memory rewardsData = abi.decode(data, (RewardsData));
-        rewardTokens[0] = rewardsData.rewardToken;
-
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = aToken;
 
-        rewardAmounts[0] = rewardsController.claimRewards(
+        (rewardTokens, rewardAmounts) = rewardsController.claimAllRewards(
             incentivizedAssets,
-            Constants.MAX_UINT256,
-            raft(),
-            rewardsData.rewardToken
+            raft()
         );
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
