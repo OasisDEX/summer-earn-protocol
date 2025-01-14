@@ -62,4 +62,29 @@ interface IAdmiralsQuartersErrors {
      * @notice Thrown when the provided token does not match the expected token.
      */
     error TokenMismatch();
+
+    /**
+     * @notice Thrown when an invalid WETH address is provided or used.
+     */
+    error InvalidNativeTokenAddress();
+
+    /**
+     * @notice Thrown when the provided native amount does not match the expected native amount.
+     */
+    error InvalidNativeAmount();
+
+    /**
+     * @notice Thrown when native token is not allowed.
+     */
+    error NativeTokenNotAllowed();
+
+    /**
+     * @notice Thrown when the provided rewards redeemer is invalid.
+     */
+    error InvalidRewardsRedeemer();
+
+    /**
+     * @notice Thrown when the provided rewards manager is invalid.
+     */
+    error InvalidRewardsManager();
 }

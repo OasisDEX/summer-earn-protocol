@@ -3,8 +3,9 @@
 
 pragma solidity ^0.8.20;
 
-import {Address, Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
+import {Address, Context} from "@openzeppelin/contracts/utils/Multicall.sol";
 import {StorageSlot} from "@summerfi/dependencies/openzeppelin-next/StorageSlot.sol";
+
 /**
  * @dev Provides a function to batch together multiple calls in a single external call.
  *
@@ -18,7 +19,7 @@ import {StorageSlot} from "@summerfi/dependencies/openzeppelin-next/StorageSlot.
  * {_msgSender} are not propagated to subcalls.
  */
 
-abstract contract ProtectedMulticall is Multicall {
+abstract contract ProtectedMulticall is Context {
     using StorageSlot for *;
 
     error MulticallAlreadyInProgress();
@@ -39,7 +40,7 @@ abstract contract ProtectedMulticall is Multicall {
 
     function multicall(
         bytes[] calldata data
-    ) external override returns (bytes[] memory results) {
+    ) external payable returns (bytes[] memory results) {
         if (_getCaller() != address(0)) {
             revert MulticallAlreadyInProgress();
         }

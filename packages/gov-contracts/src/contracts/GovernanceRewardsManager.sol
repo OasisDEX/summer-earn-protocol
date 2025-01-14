@@ -255,7 +255,7 @@ contract GovernanceRewardsManager is
         totalSupply += amount;
         _balances[receiver] += amount;
 
-        emit Staked(receiver, amount);
+        emit Staked(from, receiver, amount);
     }
 
     /**
@@ -281,6 +281,6 @@ contract GovernanceRewardsManager is
         // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
         stakingToken.transfer(receiver, amount);
 
-        emit Unstaked(from, amount);
+        emit Unstaked(from, receiver, amount);
     }
 }

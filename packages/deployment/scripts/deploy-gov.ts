@@ -14,7 +14,6 @@ const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
 const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
-const ADMIRALS_QUARTERS_ROLE = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
 
 interface PeerConfig {
   eid: number
@@ -40,13 +39,15 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   const initialSupply = getInitialSupply(config)
   console.log(kleur.blue('Initial Supply:'), kleur.cyan(`${initialSupply} SUMMER`))
 
+  if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
+    throw new Error('LayerZero is not set up correctly')
+  }
   // Add peer configuration prompt
   const peers = getPeersFromConfig(hre.network.name)
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
       GovModule: {
         lzEndpoint: config.common.layerZero.lzEndpoint,
-        protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
         initialSupply,
         peerEndpointIds: peers.map((p) => p.eid),
         peerAddresses: peers.map((p) => p.address),
@@ -151,7 +152,6 @@ function getPeersFromConfig(currentNetwork: string): PeerConfig[] {
 async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   console.log(kleur.cyan().bold('Setting up governance roles...'))
   const publicClient = await hre.viem.getPublicClient()
-  const [deployer] = await hre.viem.getWalletClients()
 
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,
@@ -167,14 +167,14 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   )
   const protocolAccessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,
-    config.deployedContracts.core.protocolAccessManager.address as Address,
+    config.deployedContracts.gov.protocolAccessManager.address as Address,
   )
 
   // Get governance rewards manager address from SummerToken
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
 
   // Determine if we're on HUB chain (currently BASE chain)
-  const isHubChain = (await summerGovernor.read.proposalChainId()) === hre.network.config.chainId
+  const isHubChain = (await summerGovernor.read.hubChainId()) === hre.network.config.chainId
 
   // Set up the correct governor role based on chain
   if (isHubChain) {
@@ -256,21 +256,6 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
         await publicClient.waitForTransactionReceipt({ hash })
       }
     }
-  }
-  const hasAdmiralsQuartersRole =
-    config.deployedContracts.core.admiralsQuarters.address !== ADDRESS_ZERO &&
-    (await protocolAccessManager.read.hasRole([
-      ADMIRALS_QUARTERS_ROLE,
-      config.deployedContracts.core.admiralsQuarters.address,
-    ]))
-  if (!hasAdmiralsQuartersRole) {
-    console.log(
-      '[PROTOCOL ACCESS MANAGER] - Granting admirals quarters role to admirals quarters...',
-    )
-    const hash = await protocolAccessManager.write.grantAdmiralsQuartersRole([
-      config.deployedContracts.core.admiralsQuarters.address,
-    ])
-    await publicClient.waitForTransactionReceipt({ hash })
   }
   console.log(kleur.green().bold('Governance roles setup completed!'))
 }
