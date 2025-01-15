@@ -33,7 +33,6 @@ export class ModuleLogger {
 
   static logCore(contracts: CoreContracts): void {
     const logger = new ModuleLogger('CoreModule', {
-      'Protocol Access Manager   ': contracts.protocolAccessManager,
       'Tip Jar                   ': contracts.tipJar,
       'Raft                      ': contracts.raft,
       'Configuration Manager     ': contracts.configurationManager,
@@ -44,6 +43,8 @@ export class ModuleLogger {
   }
   static logGov(contracts: GovContracts): void {
     const logger = new ModuleLogger('GovModule', {
+      'Access Manager': contracts.protocolAccessManager,
+      'Rewards Redeemer': contracts.rewardsRedeemer,
       'Summer Governor': contracts.summerGovernor,
       'Timelock Controller': contracts.timelock,
       'Summer Token': contracts.summerToken,

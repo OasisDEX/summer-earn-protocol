@@ -3,7 +3,7 @@ import kleur from 'kleur'
 
 import { Address, keccak256, toBytes } from 'viem'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
-import { BaseConfig } from '../types/config-types'
+import { BaseConfig, SupportedNetworks } from '../types/config-types'
 import { ADDRESS_ZERO } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
@@ -87,8 +87,8 @@ function getInitialSupply(config: BaseConfig): bigint {
 function getPeersFromConfig(currentNetwork: string): NetworkPeers {
   const tokenPeers: PeerConfig[] = []
   const governorPeers: PeerConfig[] = []
-  const networks = ['base', 'arbitrum', 'mainnet'] // Known networks from index.json
-  const HUB_NETWORK = 'base'
+  const networks = Object.values(SupportedNetworks)
+  const HUB_NETWORK = SupportedNetworks.BASE
 
   // Determine if current network is hub
   const isHub = currentNetwork === HUB_NETWORK
