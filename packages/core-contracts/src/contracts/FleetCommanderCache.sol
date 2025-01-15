@@ -540,7 +540,6 @@ contract FleetCommanderCache {
     }
 
     /**
-     * @title _getActiveArksAddresses
      * @notice Returns an array of addresses for all currently active Arks in the fleet
      * @dev This is an abstract internal function that must be implemented by the FleetCommander contract
      *      It serves as a critical component in the caching system for efficient ark management

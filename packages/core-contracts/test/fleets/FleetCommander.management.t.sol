@@ -543,35 +543,4 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
             "Transfers should be disabled by default"
         );
     }
-
-    function test_SetTransfersEnabled() public {
-        vm.prank(governor);
-        fleetCommander.setFleetTokenTransferability(true);
-
-        assertEq(
-            fleetCommander.transfersEnabled(),
-            true,
-            "Transfers should be enabled after setting"
-        );
-    }
-
-    function test_SetTransfersEnabled_EmitsEvent() public {
-        vm.prank(governor);
-
-        vm.expectEmit(true, true, true, true);
-        emit IFleetCommanderConfigProviderEvents.TransfersEnabledUpdated(true);
-        fleetCommander.setFleetTokenTransferability(true);
-    }
-
-    function test_SetTransfersEnabled_OnlyGovernor() public {
-        // Test non-governor cannot enable transfers
-        vm.prank(address(0x123));
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "CallerIsNotGovernor(address)",
-                address(0x123)
-            )
-        );
-        fleetCommander.setFleetTokenTransferability(true);
-    }
 }

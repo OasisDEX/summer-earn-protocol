@@ -226,16 +226,6 @@ contract FleetCommanderConfigProvider is
         );
     }
 
-    ///@inheritdoc IFleetCommanderConfigProvider
-    function setFleetTokenTransferability(
-        bool enabled
-    ) external onlyGovernor whenNotPaused {
-        if (enabled && !transfersEnabled) {
-            transfersEnabled = enabled;
-            emit TransfersEnabledUpdated(enabled);
-        }
-    }
-
     // INTERNAL FUNCTIONS
     /**
      * @dev Internal function to set the fleet configuration

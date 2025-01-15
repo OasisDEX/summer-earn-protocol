@@ -487,7 +487,7 @@ contract FleetCommander is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
+        if (_msgSender() == address(config.stakingRewardsManager)) {
             return super.transfer(to, amount);
         }
 
@@ -500,7 +500,7 @@ contract FleetCommander is
         address to,
         uint256 amount
     ) public override(IERC20, ERC20) returns (bool) {
-        if (transfersEnabled || _msgSender() == config.stakingRewardsManager) {
+        if (_msgSender() == config.stakingRewardsManager) {
             return super.transferFrom(from, to, amount);
         }
         revert FleetCommanderTransfersDisabled();
