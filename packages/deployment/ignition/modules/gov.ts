@@ -90,10 +90,8 @@ export const GovModule = buildModule('GovModule', (m) => {
     peerAddresses: peerAddresses,
   }
 
-  const summerToken = m.contract('SummerToken', [
-    summerTokenConstructorParams,
-    summerTokenInitParams,
-  ])
+  const summerToken = m.contract('SummerToken', [summerTokenConstructorParams])
+  m.call(summerToken, 'initialize', [summerTokenInitParams])
 
   /**
    * @dev Step 3: Deploy SummerGovernor
