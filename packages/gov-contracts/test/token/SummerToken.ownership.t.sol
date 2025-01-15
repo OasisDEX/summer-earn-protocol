@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
+import {ISummerTokenErrors} from "../../src/errors/ISummerTokenErrors.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {SupplyControlSummerToken} from "../utils/SupplyControlSummerToken.sol";
@@ -17,7 +18,7 @@ contract SummerTokenOwnershipTest is SummerTokenTestBase {
         bob = makeAddr("bob");
     }
 
-    function test_InitialOwnership() public {
+    function test_InitialOwnership() public view {
         // Check initial owner is set correctly
         assertEq(aSummerToken.owner(), owner);
         assertEq(bSummerToken.owner(), owner);
@@ -90,29 +91,114 @@ contract SummerTokenOwnershipTest is SummerTokenTestBase {
 
     function test_OwnershipAfterDeployment() public {
         // Deploy a new token to test initial ownership
-        ISummerToken.TokenParams memory params = ISummerToken.TokenParams({
-            name: "Test Token",
-            symbol: "TEST",
-            lzEndpoint: address(endpoints[aEid]),
-            initialOwner: alice,
-            accessManager: address(accessManagerA),
-            initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-            initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-            initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-            transferEnableDate: block.timestamp + 1 days,
-            maxSupply: INITIAL_SUPPLY * 10 ** 18,
-            initialSupply: INITIAL_SUPPLY * 10 ** 18,
-            hubChainId: 31337,
-            peerEndpointIds: new uint32[](0),
-            peerAddresses: new address[](0)
-        });
+        ISummerToken.ConstructorParams memory constructorParams = ISummerToken
+            .ConstructorParams({
+                name: "Test Token",
+                symbol: "TEST",
+                lzEndpoint: address(endpoints[aEid]),
+                initialOwner: alice,
+                accessManager: address(accessManagerA),
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                transferEnableDate: block.timestamp + 1 days,
+                hubChainId: 31337,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+            });
+
+        ISummerToken.InitializeParams memory initializeParams = ISummerToken
+            .InitializeParams({
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
+            });
 
         vm.expectEmit(true, true, false, true);
         emit Ownable.OwnershipTransferred(address(0), alice);
         SupplyControlSummerToken newToken = new SupplyControlSummerToken(
-            params
+            constructorParams
         );
 
+        vm.prank(alice);
+        newToken.initialize(initializeParams);
+
+        assertEq(newToken.owner(), alice);
+    }
+
+    function test_RevertWhen_AlreadyInitialized() public {
+        ISummerToken.ConstructorParams memory constructorParams = ISummerToken
+            .ConstructorParams({
+                name: "Test Token",
+                symbol: "TEST",
+                lzEndpoint: address(endpoints[aEid]),
+                initialOwner: owner,
+                accessManager: address(accessManagerA),
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                transferEnableDate: block.timestamp + 1 days,
+                hubChainId: 31337,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+            });
+
+        ISummerToken.InitializeParams memory initializeParams = ISummerToken
+            .InitializeParams({
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
+            });
+
+        SupplyControlSummerToken newToken = new SupplyControlSummerToken(
+            constructorParams
+        );
+
+        // First initialization should succeed
+        vm.prank(owner);
+        newToken.initialize(initializeParams);
+
+        // Second initialization should fail
+        vm.prank(owner);
+        vm.expectRevert(ISummerTokenErrors.AlreadyInitialized.selector);
+        newToken.initialize(initializeParams);
+    }
+
+    function test_OwnershipAfterDeploymentAndInitialization() public {
+        ISummerToken.ConstructorParams memory constructorParams = ISummerToken
+            .ConstructorParams({
+                name: "Test Token",
+                symbol: "TEST",
+                lzEndpoint: address(endpoints[aEid]),
+                initialOwner: alice,
+                accessManager: address(accessManagerA),
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                transferEnableDate: block.timestamp + 1 days,
+                hubChainId: 31337,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+            });
+
+        ISummerToken.InitializeParams memory initializeParams = ISummerToken
+            .InitializeParams({
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
+            });
+
+        vm.expectEmit(true, true, false, true);
+        emit Ownable.OwnershipTransferred(address(0), alice);
+        SupplyControlSummerToken newToken = new SupplyControlSummerToken(
+            constructorParams
+        );
+
+        // Verify owner is set correctly after deployment
+        assertEq(newToken.owner(), alice);
+
+        // Initialize with owner
+        vm.prank(alice);
+        newToken.initialize(initializeParams);
+
+        // Verify owner remains the same after initialization
         assertEq(newToken.owner(), alice);
     }
 }

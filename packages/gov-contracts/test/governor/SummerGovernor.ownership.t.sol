@@ -6,7 +6,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SummerGovernorOwnershipTest is SummerGovernorTestBase {
-    function test_InitialOwnership() public {
+    function test_InitialOwnership() public view {
         // Verify that the timelock is the owner of the governor
         assertEq(governorA.owner(), address(timelockA));
         assertEq(governorB.owner(), address(timelockB));

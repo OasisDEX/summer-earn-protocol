@@ -40,16 +40,20 @@ abstract contract DecayController is IDecayController {
         _rewardsManager = IGovernanceRewardsManager(rewardsManager_);
     }
 
+    function _updateDecay(address account) internal {
+        if (account != address(0)) {
+            _summerToken.updateDecayFactor(account);
+            _rewardsManager.updateSmoothedDecayFactor(account);
+        }
+    }
+
     /**
      * @notice Modifier to update decay before executing a function
      * @param account Address to update decay for
      * @dev Updates both base decay and smoothed decay factors
      */
     modifier updateDecay(address account) {
-        if (account != address(0)) {
-            _summerToken.updateDecayFactor(account);
-            _rewardsManager.updateSmoothedDecayFactor(account);
-        }
+        _updateDecay(account);
         _;
     }
 }

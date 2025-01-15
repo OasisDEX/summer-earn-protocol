@@ -4,8 +4,11 @@ pragma solidity 0.8.28;
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
+
 contract SupplyControlSummerToken is SummerToken {
-    constructor(TokenParams memory params) SummerToken(params) {}
+    constructor(
+        ISummerToken.ConstructorParams memory params
+    ) SummerToken(params) {}
 
     /// @notice Burns all existing supply and mints a new custom amount
     /// @dev Only for testing purposes
