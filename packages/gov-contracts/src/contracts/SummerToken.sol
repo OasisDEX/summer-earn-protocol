@@ -62,6 +62,9 @@ contract SummerToken is
     uint40 private constant MIN_DECAY_FREE_WINDOW = 30 days;
     uint40 private constant MAX_DECAY_FREE_WINDOW = 365.25 days;
 
+    /// @notice Whether the contract has been initialized
+    bool private _initialized;
+
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -96,21 +99,6 @@ contract SummerToken is
         DecayController(address(this))
         Ownable(params.initialOwner)
     {
-        hubChainId = params.hubChainId;
-        transferEnableDate = params.transferEnableDate;
-
-        rewardsManager = new GovernanceRewardsManager(
-            address(this),
-            params.accessManager
-        );
-        _setRewardsManager(address(rewardsManager));
-    }
-
-    /**
-     * @dev Completes the token initialization with remaining parameters
-     * @param params InitializeParams struct containing additional configuration
-     */
-    function initialize(InitializeParams memory params) external onlyOwner {
         _validateDecayRate(params.initialYearlyDecayRate);
         _validateDecayFreeWindow(params.initialDecayFreeWindow);
 
@@ -125,14 +113,32 @@ contract SummerToken is
             params.initialDecayFunction
         );
 
+        rewardsManager = new GovernanceRewardsManager(
+            address(this),
+            params.accessManager
+        );
+        _setRewardsManager(address(rewardsManager));
+
         vestingWalletFactory = new SummerVestingWalletFactory(
             address(this),
             params.accessManager
         );
 
-        _mint(msg.sender, params.initialSupply);
+        hubChainId = params.hubChainId;
+        transferEnableDate = params.transferEnableDate;
+    }
 
+    /**
+     * @dev Completes the token initialization with remaining parameters
+     * @param params InitializeParams struct containing additional configuration
+     */
+    function initialize(InitializeParams memory params) external onlyOwner {
+        if (_initialized) {
+            revert AlreadyInitialized();
+        }
         _initializePeers(params.peerEndpointIds, params.peerAddresses);
+        _mint(msg.sender, params.initialSupply);
+        _initialized = true;
     }
 
     /**

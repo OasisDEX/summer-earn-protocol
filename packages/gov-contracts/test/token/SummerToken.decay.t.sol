@@ -340,42 +340,33 @@ contract SummerTokenDecayTest is SummerTokenTestBase {
     function test_RevertWhenInitializeDecayFreeWindowTooLow() public {
         (
             ISummerToken.ConstructorParams memory constructorParams,
-            ISummerToken.InitializeParams memory initializeParams
+
         ) = _getDefaultTokenParams();
 
-        SupplyControlSummerToken newToken = new SupplyControlSummerToken(
-            constructorParams
-        );
-
-        initializeParams.initialDecayFreeWindow = MIN_DECAY_FREE_WINDOW - 1;
-
+        constructorParams.initialDecayFreeWindow = MIN_DECAY_FREE_WINDOW - 1;
         vm.expectRevert(
             abi.encodeWithSelector(
                 ISummerTokenErrors.InvalidDecayFreeWindow.selector,
-                initializeParams.initialDecayFreeWindow
+                constructorParams.initialDecayFreeWindow
             )
         );
-        newToken.initialize(initializeParams);
+        new SupplyControlSummerToken(constructorParams);
     }
 
     function test_RevertWhenInitializeDecayFreeWindowTooHigh() public {
         (
             ISummerToken.ConstructorParams memory constructorParams,
-            ISummerToken.InitializeParams memory initializeParams
+
         ) = _getDefaultTokenParams();
 
-        SupplyControlSummerToken newToken = new SupplyControlSummerToken(
-            constructorParams
-        );
-
-        initializeParams.initialDecayFreeWindow = MAX_DECAY_FREE_WINDOW + 1;
+        constructorParams.initialDecayFreeWindow = MAX_DECAY_FREE_WINDOW + 1;
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 ISummerTokenErrors.InvalidDecayFreeWindow.selector,
-                initializeParams.initialDecayFreeWindow
+                constructorParams.initialDecayFreeWindow
             )
         );
-        newToken.initialize(initializeParams);
+        new SupplyControlSummerToken(constructorParams);
     }
 }

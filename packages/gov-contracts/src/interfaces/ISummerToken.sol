@@ -47,6 +47,9 @@ interface ISummerToken is
         uint256 maxSupply;
         uint256 transferEnableDate;
         uint32 hubChainId;
+        uint40 initialDecayFreeWindow;
+        Percentage initialYearlyDecayRate;
+        VotingDecayLibrary.DecayFunction initialDecayFunction;
     }
 
     /**
@@ -55,16 +58,11 @@ interface ISummerToken is
      * @param initialDecayFreeWindow The initial decay-free window duration in seconds
      * @param initialYearlyDecayRate The initial yearly decay rate as a percentage
      * @param initialDecayFunction The initial decay function type
-     * @param accessManager The access manager contract address
      * @param peerEndpointIds Array of chain IDs for peers
      * @param peerAddresses Array of peer addresses corresponding to chainIds
      */
     struct InitializeParams {
         uint256 initialSupply;
-        uint40 initialDecayFreeWindow;
-        Percentage initialYearlyDecayRate;
-        VotingDecayLibrary.DecayFunction initialDecayFunction;
-        address accessManager;
         uint32[] peerEndpointIds;
         address[] peerAddresses;
     }

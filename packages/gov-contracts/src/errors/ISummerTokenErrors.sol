@@ -36,4 +36,9 @@ interface ISummerTokenErrors {
      * @param window The invalid window duration that was provided
      */
     error InvalidDecayFreeWindow(uint40 window);
+
+    /**
+     * @dev Error thrown when attempting to initialize the contract after it has already been initialized
+     */
+    error AlreadyInitialized();
 }
