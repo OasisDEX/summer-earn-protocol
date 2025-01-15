@@ -70,23 +70,30 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - deployer as decay manager (temporary, will be transferred to governor)
    * - Configured with initial decay parameters for voting power
    */
-  const summerTokenParams = {
+  const summerTokenConstructorParams = {
     name: 'SummerToken',
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
     initialOwner: deployer,
     accessManager: accessManager,
-    initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
-    initialDecayYearlyRate: 0.1e18, // ~10% per year
-    initialDecayFunction: DecayType.Linear,
-    transferEnableDate: 1731667188n,
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
-    initialSupply: initialSupply,
+    transferEnableDate: 1731667188n,
     hubChainId: HUB_CHAIN_ID,
+    initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
+    initialYearlyDecayRate: 0.1e18, // ~10% per year
+    initialDecayFunction: DecayType.Linear,
+  }
+
+  const summerTokenInitParams = {
+    initialSupply: initialSupply,
     peerEndpointIds: peerEndpointIds,
     peerAddresses: peerAddresses,
   }
-  const summerToken = m.contract('SummerToken', [summerTokenParams])
+
+  const summerToken = m.contract('SummerToken', [
+    summerTokenConstructorParams,
+    summerTokenInitParams,
+  ])
 
   /**
    * @dev Step 3: Deploy SummerGovernor
