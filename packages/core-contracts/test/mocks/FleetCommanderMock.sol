@@ -105,9 +105,6 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
     }
 
     function removeArk(address ark) external {}
-
-    function addArks(address[] memory _arks) external {}
-
     function emergencyShutdown() external {}
 
     function setFleetDepositCap(uint256 newCap) external {}
@@ -207,7 +204,7 @@ contract FleetCommanderMock is IFleetCommander, Tipper, ERC4626Mock {
 
     function unstake(uint256 shares) external {}
 
-    function setFleetTokenTransferability(bool enabled) external {
-        transfersEnabled = enabled;
+    function setFleetTokenTransferability() external {
+        transfersEnabled = true;
     }
 }

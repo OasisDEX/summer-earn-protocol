@@ -546,7 +546,7 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
 
     function test_SetTransfersEnabled() public {
         vm.prank(governor);
-        fleetCommander.setFleetTokenTransferability(true);
+        fleetCommander.setFleetTokenTransferability();
 
         assertEq(
             fleetCommander.transfersEnabled(),
@@ -559,8 +559,8 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
         vm.prank(governor);
 
         vm.expectEmit(true, true, true, true);
-        emit IFleetCommanderConfigProviderEvents.TransfersEnabledUpdated(true);
-        fleetCommander.setFleetTokenTransferability(true);
+        emit IFleetCommanderConfigProviderEvents.TransfersEnabled();
+        fleetCommander.setFleetTokenTransferability();
     }
 
     function test_SetTransfersEnabled_OnlyGovernor() public {
@@ -572,6 +572,6 @@ contract ManagementTest is Test, TestHelpers, FleetCommanderTestBase {
                 address(0x123)
             )
         );
-        fleetCommander.setFleetTokenTransferability(true);
+        fleetCommander.setFleetTokenTransferability();
     }
 }

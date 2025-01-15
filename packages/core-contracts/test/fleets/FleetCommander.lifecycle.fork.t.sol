@@ -249,28 +249,23 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
     }
 
     function addArksToFleetCommanders() internal {
-        // Add USDC Arks to USDC Fleet Commander
-        usdcArks = new address[](6);
-        usdcArks[0] = address(usdcCompoundArk);
-        usdcArks[1] = address(usdcAaveArk);
-        usdcArks[2] = address(usdcMorphoArk);
-        usdcArks[3] = address(usdcMetaMorphoArk);
-        usdcArks[4] = address(usdcGearboxERC4626Ark);
-        usdcArks[5] = address(usdcFluidERC4626Ark);
-
-        // Add DAI Arks to DAI Fleet Commander
-        daiArks = new address[](4);
-        daiArks[0] = address(daiAaveArk);
-        daiArks[1] = address(daiMorphoArk);
-        daiArks[2] = address(daiMetaMorphoArk);
-        daiArks[3] = address(sDAIArk);
-
         grantPermissions();
 
-        vm.prank(governor);
-        daiFleetCommander.addArks(daiArks);
-        vm.prank(governor);
-        usdcFleetCommander.addArks(usdcArks);
+        // Add USDC Arks to USDC Fleet Commander
+        vm.startPrank(governor);
+        usdcFleetCommander.addArk(address(usdcCompoundArk));
+        usdcFleetCommander.addArk(address(usdcAaveArk));
+        usdcFleetCommander.addArk(address(usdcMorphoArk));
+        usdcFleetCommander.addArk(address(usdcMetaMorphoArk));
+        usdcFleetCommander.addArk(address(usdcGearboxERC4626Ark));
+        usdcFleetCommander.addArk(address(usdcFluidERC4626Ark));
+
+        // Add DAI Arks to DAI Fleet Commander
+        daiFleetCommander.addArk(address(daiAaveArk));
+        daiFleetCommander.addArk(address(daiMorphoArk));
+        daiFleetCommander.addArk(address(daiMetaMorphoArk));
+        daiFleetCommander.addArk(address(sDAIArk));
+        vm.stopPrank();
     }
 
     function grantPermissions() internal {
