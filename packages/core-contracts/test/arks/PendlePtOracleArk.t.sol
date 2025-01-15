@@ -203,12 +203,9 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             address(usdcArk),
             address(usdcFleetCommanderAddress)
         );
-        address[] memory usdcArks = new address[](1);
-        usdcArks[0] = address(usdcArk);
-        usdcFleetCommander.addArks(usdcArks);
-        address[] memory usdceArks = new address[](1);
-        usdceArks[0] = address(usdceArk);
-        usdceFleetCommander.addArks(usdceArks);
+
+        usdcFleetCommander.addArk(address(usdcArk));
+        usdceFleetCommander.addArk(address(usdceArk));
         accessManager.grantCuratorRole(
             address(usdceFleetCommanderAddress),
             governor
@@ -360,9 +357,7 @@ contract PendlePTArkTestFork2 is Test, IArkEvents, ArkTestBase {
             address(usdcFleetCommander)
         );
         accessManager.grantCuratorRole(address(usdcFleetCommander), governor);
-        address[] memory usdcArks = new address[](1);
-        usdcArks[0] = address(rolloverTestArk);
-        usdcFleetCommander.addArks(usdcArks);
+        usdcFleetCommander.addArk(address(rolloverTestArk));
         rolloverTestArk.setNextMarket(MARKET);
         vm.stopPrank();
         vm.makePersistent(address(rolloverTestArk));

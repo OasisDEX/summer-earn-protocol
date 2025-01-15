@@ -40,7 +40,6 @@ interface IFleetCommanderConfigProviderEvents {
 
     /**
      * @notice Emitted when the transfer enabled status is updated
-     * @param enabled The new transfer enabled status
      */
-    event TransfersEnabledUpdated(bool enabled);
+    event TransfersEnabled();
 }

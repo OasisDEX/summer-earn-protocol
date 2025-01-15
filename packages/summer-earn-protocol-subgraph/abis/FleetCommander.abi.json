@@ -168,19 +168,6 @@
   },
   {
     "type": "function",
-    "name": "addArks",
-    "inputs": [
-      {
-        "name": "_arkAddresses",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "allowance",
     "inputs": [
       {
@@ -1231,13 +1218,7 @@
   {
     "type": "function",
     "name": "setFleetTokenTransferability",
-    "inputs": [
-      {
-        "name": "enabled",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
+    "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -2044,15 +2025,8 @@
   },
   {
     "type": "event",
-    "name": "TransfersEnabledUpdated",
-    "inputs": [
-      {
-        "name": "enabled",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
-    ],
+    "name": "TransfersEnabled",
+    "inputs": [],
     "anonymous": false
   },
   {
