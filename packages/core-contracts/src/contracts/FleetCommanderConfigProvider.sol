@@ -66,17 +66,15 @@ contract FleetCommanderConfigProvider is
             address(this)
         );
         emit ArkAdded(address(_bufferArk));
-        _setFleetConfig(
-            FleetConfig({
-                bufferArk: IArk(address(_bufferArk)),
-                minimumBufferBalance: params.initialMinimumBufferBalance,
-                depositCap: params.depositCap,
-                maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
-                stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
-                    fleetCommanderRewardsManagerFactory()
-                ).createRewardsManager(address(_accessManager), address(this))
-            })
-        );
+        config = FleetConfig({
+            bufferArk: IArk(address(_bufferArk)),
+            minimumBufferBalance: params.initialMinimumBufferBalance,
+            depositCap: params.depositCap,
+            maxRebalanceOperations: MAX_REBALANCE_OPERATIONS,
+            stakingRewardsManager: IFleetCommanderRewardsManagerFactory(
+                fleetCommanderRewardsManagerFactory()
+            ).createRewardsManager(address(_accessManager), address(this))
+        });
         details = params.details;
     }
 
@@ -135,15 +133,6 @@ contract FleetCommanderConfigProvider is
     ///@inheritdoc IFleetCommanderConfigProvider
     function addArk(address ark) external onlyGovernor whenNotPaused {
         _addArk(ark);
-    }
-
-    ///@inheritdoc IFleetCommanderConfigProvider
-    function addArks(
-        address[] calldata _arkAddresses
-    ) external onlyGovernor whenNotPaused {
-        for (uint256 i = 0; i < _arkAddresses.length; i++) {
-            _addArk(_arkAddresses[i]);
-        }
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
@@ -227,31 +216,18 @@ contract FleetCommanderConfigProvider is
     }
 
     ///@inheritdoc IFleetCommanderConfigProvider
-    function setFleetTokenTransferability(
-        bool enabled
-    ) external onlyGovernor whenNotPaused {
-        if (enabled && !transfersEnabled) {
-            transfersEnabled = enabled;
-            emit TransfersEnabledUpdated(enabled);
+    function setFleetTokenTransferability()
+        external
+        onlyGovernor
+        whenNotPaused
+    {
+        if (!transfersEnabled) {
+            transfersEnabled = true;
+            emit TransfersEnabled();
         }
     }
 
     // INTERNAL FUNCTIONS
-    /**
-     * @dev Internal function to set the fleet configuration
-     * @param _config The new FleetConfig to be set
-     * @custom:internal-logic
-     * - Directly assigns the provided _config to the config state variable
-     * @custom:effects
-     * - Updates the global fleet configuration
-     * @custom:security-considerations
-     * - This function can significantly alter the behavior of the fleet
-     * - Should only be called by trusted functions with proper access control
-     */
-    function _setFleetConfig(FleetConfig memory _config) internal {
-        config = _config;
-    }
-
     /**
      * @dev Internal function to add a new Ark to the fleet
      * @param ark The address of the Ark to be added

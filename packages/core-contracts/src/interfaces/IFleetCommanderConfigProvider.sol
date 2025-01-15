@@ -54,12 +54,6 @@ interface IFleetCommanderConfigProvider is
     function addArk(address ark) external;
 
     /**
-     * @notice Adds multiple Arks in a batch
-     * @param arks Array of ark addresses
-     */
-    function addArks(address[] calldata arks) external;
-
-    /**
      * @notice Removes an existing Ark
      * @param ark The address of the Ark to remove
      */
@@ -132,7 +126,6 @@ interface IFleetCommanderConfigProvider is
     /**
      * @notice Enables or disables transfers of fleet commander shares
      * @dev Only callable by the governor when not paused
-     * @param enabled True to enable transfers, false to disable them
      */
-    function setFleetTokenTransferability(bool enabled) external;
+    function setFleetTokenTransferability() external;
 }
