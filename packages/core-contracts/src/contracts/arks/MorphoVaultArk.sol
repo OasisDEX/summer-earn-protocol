@@ -75,12 +75,31 @@ contract MorphoVaultArk is Ark {
      * @return assets The total balance of underlying assets held in the vault for this Ark
      */
     function totalAssets() public view override returns (uint256 assets) {
-        return metaMorpho.convertToAssets(metaMorpho.balanceOf(address(this)));
+        uint256 shares = metaMorpho.balanceOf(address(this));
+        if (shares > 0) {
+            assets = metaMorpho.convertToAssets(shares);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev MetaMorphoArk is always withdrawable
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256 withdrawableAssets)
+    {
+        uint256 shares = metaMorpho.balanceOf(address(this));
+        if (shares > 0) {
+            withdrawableAssets = metaMorpho.maxWithdraw(address(this));
+        }
+    }
 
     /**
      * @notice Deposits assets into the MetaMorpho vault
@@ -161,6 +180,7 @@ contract MorphoVaultArk is Ark {
      * @param /// data Additional data to validate (unused in this implementation)
      */
     function _validateBoardData(bytes calldata) internal override {}
+
     /**
      * @notice Validates the disembark data
      * @dev This Ark does not require any validation for disembark data

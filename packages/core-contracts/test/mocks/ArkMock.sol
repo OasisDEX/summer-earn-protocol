@@ -18,6 +18,15 @@ contract ArkMock is Ark {
         return IERC20(config.asset).balanceOf(address(this));
     }
 
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        return totalAssets();
+    }
+
     function _board(uint256 amount, bytes calldata) internal override {}
 
     function _disembark(
@@ -41,5 +50,6 @@ contract ArkMock is Ark {
     }
 
     function _validateBoardData(bytes calldata data) internal override {}
+
     function _validateDisembarkData(bytes calldata data) internal override {}
 }

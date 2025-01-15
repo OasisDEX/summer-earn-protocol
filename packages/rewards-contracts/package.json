@@ -4,11 +4,17 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "forge test"
+    "test": "forge test",
+    "generate-merkle-root": "tsx scripts/generate-merkle-root.ts"
   },
   "dependencies": {
+    "@openzeppelin/merkle-tree": "^1.0.7",
     "@summerfi/access-contracts": "workspace:*",
+    "@summerfi/constants": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
-    "@summerfi/voting-decay": "workspace:*"
+    "@summerfi/voting-decay": "workspace:*",
+    "@types/prompts": "^2.4.9",
+    "prompts": "^2.4.2",
+    "tsx": "^4.19.2"
   }
 }

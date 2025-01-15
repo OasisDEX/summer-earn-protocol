@@ -6,11 +6,11 @@ import {DecayFunctions} from "@summerfi/dutch-auction/DecayFunctions.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /**
- * @title AuctionDefaultParameters
+ * @title BaseAuctionParameters
  * @notice Struct containing default parameters for Dutch auctions
  * @dev This struct is used to configure the default settings for Dutch auctions in the protocol
  */
-struct AuctionDefaultParameters {
+struct BaseAuctionParameters {
     /**
      * @notice The duration of the auction in seconds
      * @dev This value determines how long the auction will run before it can be finalized

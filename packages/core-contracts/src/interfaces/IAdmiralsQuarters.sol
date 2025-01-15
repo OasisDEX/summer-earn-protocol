@@ -14,18 +14,12 @@ interface IAdmiralsQuarters is
     IAdmiralsQuartersErrors
 {
     /**
-     * @notice Returns the address of the 1inch router used for token swaps
-     * @return The address of the 1inch router
-     */
-    function oneInchRouter() external view returns (address);
-
-    /**
      * @notice Deposits tokens into the contract
      * @param asset The token to be deposited
      * @param amount The amount of tokens to deposit
      * @dev Emits a TokensDeposited event
      */
-    function depositTokens(IERC20 asset, uint256 amount) external;
+    function depositTokens(IERC20 asset, uint256 amount) external payable;
 
     /**
      * @notice Withdraws tokens from the contract
@@ -33,12 +27,11 @@ interface IAdmiralsQuarters is
      * @param amount The amount of tokens to withdraw (0 for all)
      * @dev Emits a TokensWithdrawn event
      */
-    function withdrawTokens(IERC20 asset, uint256 amount) external;
+    function withdrawTokens(IERC20 asset, uint256 amount) external payable;
 
     /**
      * @notice Enters a FleetCommander by depositing tokens
      * @param fleetCommander The address of the FleetCommander contract
-     * @param inputToken The token to be deposited
      * @param assets The amount of inputToken to be deposited (0 for all)
      * @param receiver The address to receive the shares
      * @return shares The number of shares received from the FleetCommander
@@ -46,10 +39,9 @@ interface IAdmiralsQuarters is
      */
     function enterFleet(
         address fleetCommander,
-        IERC20 inputToken,
         uint256 assets,
         address receiver
-    ) external returns (uint256 shares);
+    ) external payable returns (uint256 shares);
 
     /**
      * @notice Stakes shares in a FleetCommander
@@ -58,18 +50,20 @@ interface IAdmiralsQuarters is
      * @param shares The amount of shares to stake
      * @dev Emits a FleetSharesStaked event
      */
-    function stake(address fleetCommander, uint256 shares) external;
+    function stake(address fleetCommander, uint256 shares) external payable;
 
     /**
      * @notice Unstakes shares from a FleetCommander and withdraws assets to user wallet
      * @dev If zero shares are provided, the full balance of the FleetCommander is unstaked
      * @param fleetCommander The address of the FleetCommander contract
      * @param shares The amount of shares to unstake
+     * @param claimRewards Whether to claim rewards before unstaking
      * @dev Emits a FleetSharesUnstaked event
      */
     function unstakeAndWithdrawAssets(
         address fleetCommander,
-        uint256 shares
+        uint256 shares,
+        bool claimRewards
     ) external;
 
     /**
@@ -82,7 +76,7 @@ interface IAdmiralsQuarters is
     function exitFleet(
         address fleetCommander,
         uint256 assets
-    ) external returns (uint256 shares);
+    ) external payable returns (uint256 shares);
 
     /**
      * @notice Performs a token swap using 1inch Router
@@ -100,7 +94,7 @@ interface IAdmiralsQuarters is
         uint256 amount,
         uint256 minTokensReceived,
         bytes calldata swapCalldata
-    ) external returns (uint256 swappedAmount);
+    ) external payable returns (uint256 swappedAmount);
 
     /**
      * @notice Allows the owner to rescue any ERC20 tokens sent to the contract by mistake
@@ -154,5 +148,41 @@ interface IAdmiralsQuarters is
     function moveFromCompoundToAdmiralsQuarters(
         address cToken,
         uint256 amount
+    ) external;
+
+    /**
+     * @notice Claims merkle rewards for a user
+     * @param user Address to claim rewards for
+     * @param indices Array of merkle proof indices
+     * @param amounts Array of merkle proof amounts
+     * @param proofs Array of merkle proof data
+     * @param rewardsRedeemer Address of the rewards redeemer contract
+     */
+    function claimMerkleRewards(
+        address user,
+        uint256[] calldata indices,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs,
+        address rewardsRedeemer
+    ) external;
+
+    /**
+     * @notice Claims governance rewards
+     * @param govRewardsManager Address of the governance rewards manager
+     * @param rewardToken Address of the reward token to claim
+     */
+    function claimGovernanceRewards(
+        address govRewardsManager,
+        address rewardToken
+    ) external;
+
+    /**
+     * @notice Claims rewards from fleet commanders
+     * @param fleetCommanders Array of FleetCommander addresses
+     * @param rewardToken Address of the reward token to claim
+     */
+    function claimFleetRewards(
+        address[] calldata fleetCommanders,
+        address rewardToken
     ) external;
 }

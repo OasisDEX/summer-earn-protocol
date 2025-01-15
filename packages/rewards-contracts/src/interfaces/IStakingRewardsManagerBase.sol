@@ -32,14 +32,17 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
 
     /* @notice Get the reward per token for a specific reward token
      * @param rewardToken The address of the reward token
-     * @return The reward amount per staked token
+     * @return The reward amount per staked token (WAD-scaled)
+     * @dev Returns a WAD-scaled value (1e18) to maintain precision in calculations
+     * @dev This value represents: (rewardRate * timeElapsed * WAD) / totalSupply
      */
     function rewardPerToken(IERC20 rewardToken) external view returns (uint256);
 
     /* @notice Calculate the earned reward for an account and a specific reward token
      * @param account The address of the account
      * @param rewardToken The address of the reward token
-     * @return The amount of reward tokens earned
+     * @return The amount of reward tokens earned (not WAD-scaled)
+     * @dev Calculated as: (balance * (rewardPerToken - userRewardPerTokenPaid)) / WAD + rewards
      */
     function earned(
         address account,
@@ -48,7 +51,8 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
 
     /* @notice Get the reward for the entire duration for a specific reward token
      * @param rewardToken The address of the reward token
-     * @return The total reward amount for the duration
+     * @return The total reward amount for the duration (not WAD-scaled)
+     * @dev Calculated as: (rewardRate * rewardsDuration) / WAD
      */
     function getRewardForDuration(
         IERC20 rewardToken
@@ -79,14 +83,14 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
     function stakeOnBehalfOf(address receiver, uint256 amount) external;
 
     /* @notice Unstake staked tokens on behalf of another account
-     * @param from The address of the account to unstake from
-     * @param receiver The address of the account to receive the unstaked tokens
+     * @param owner The address of the account to unstake from
      * @param amount The amount of tokens to unstake
+     * @param claimRewards Whether to claim rewards before unstaking
      */
-    function unstakeOnBehalfOf(
-        address from,
-        address receiver,
-        uint256 amount
+    function unstakeAndWithdrawOnBehalfOf(
+        address owner,
+        uint256 amount,
+        bool claimRewards
     ) external;
 
     /* @notice Unstake staked tokens
@@ -94,8 +98,13 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      */
     function unstake(uint256 amount) external;
 
-    /* @notice Claim accumulated rewards */
+    /* @notice Claim accumulated rewards for all reward tokens */
     function getReward() external;
+
+    /* @notice Claim accumulated rewards for a specific reward token
+     * @param rewardToken The address of the reward token to claim
+     */
+    function getReward(address rewardToken) external;
 
     /* @notice Withdraw all staked tokens and claim rewards */
     function exit() external;
@@ -104,8 +113,9 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
 
     /* @notice Notify the contract about new reward amount
      * @param rewardToken The address of the reward token
-     * @param reward The amount of new reward
+     * @param reward The amount of new reward (not WAD-scaled)
      * @param newRewardsDuration The duration for rewards distribution (only used when adding a new reward token)
+     * @dev Internally sets rewardRate as (reward * WAD) / duration to maintain precision
      */
     function notifyRewardAmount(
         IERC20 rewardToken,
@@ -122,6 +132,14 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
         uint256 _rewardsDuration
     ) external;
 
+    /* @notice Removes a reward token from the list of reward tokens
+     * @dev Can only be called by governor
+     * @dev Can only be called after reward period is complete
+     * @dev Can only be called if remaining balance is below dust threshold
+     * @param rewardToken The address of the reward token to remove
+     */
+    function removeRewardToken(IERC20 rewardToken) external;
+
     // Events
 
     /* @notice Emitted when a new reward is added
@@ -131,16 +149,26 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
     event RewardAdded(address indexed rewardToken, uint256 reward);
 
     /* @notice Emitted when tokens are staked
-     * @param account The address of the account that staked
-     * @param amount The amount of tokens staked
+     * @param staker The address that provided the tokens for staking
+     * @param receiver The address whose staking balance was updated
+     * @param amount The amount of tokens added to the staking position
      */
-    event Staked(address indexed account, uint256 amount);
+    event Staked(
+        address indexed staker,
+        address indexed receiver,
+        uint256 amount
+    );
 
     /* @notice Emitted when tokens are unstaked
-     * @param account The address of the account that unstaked
+     * @param staker The address whose tokens were unstaked
+     * @param receiver The address receiving the unstaked tokens
      * @param amount The amount of tokens unstaked
      */
-    event Unstaked(address indexed account, uint256 amount);
+    event Unstaked(
+        address indexed staker,
+        address indexed receiver,
+        uint256 amount
+    );
 
     /* @notice Emitted when tokens are withdrawn
      * @param user The address of the user that withdrew
@@ -183,4 +211,15 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param rewardToken The address of the reward token
      */
     event RewardTokenRemoved(address rewardToken);
+
+    /* @notice Claims rewards for a specific account
+     * @param account The address to claim rewards for
+     */
+    function getRewardFor(address account) external;
+
+    /* @notice Claims rewards for a specific account and specific reward token
+     * @param account The address to claim rewards for
+     * @param rewardToken The address of the reward token to claim
+     */
+    function getRewardFor(address account, address rewardToken) external;
 }

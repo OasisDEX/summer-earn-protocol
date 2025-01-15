@@ -21,10 +21,10 @@ contract MockStakingRewardsManager is StakingRewardsManagerBase {
         _stake(_msgSender(), receiver, amount);
     }
 
-    function unstakeOnBehalfOf(
+    function unstakeAndWithdrawOnBehalfOf(
         address from,
-        address receiver,
-        uint256 amount
+        uint256 amount,
+        bool claimRewards
     ) external {
         /* no op */
     }

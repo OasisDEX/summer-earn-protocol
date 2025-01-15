@@ -24,14 +24,6 @@ contract AaveV3Ark is Ark {
     /// @notice The Aave V3 rewards controller address
     IRewardsController public immutable rewardsController;
 
-    /**
-     * @notice Struct to hold reward token information
-     * @param rewardToken The address of the reward token
-     */
-    struct RewardsData {
-        address rewardToken;
-    }
-
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -62,13 +54,43 @@ contract AaveV3Ark is Ark {
     /**
      * @inheritdoc IArk
      */
-    function totalAssets() public view override returns (uint256) {
-        return IERC20(aToken).balanceOf(address(this));
+    function totalAssets() public view override returns (uint256 assets) {
+        assets = IERC20(aToken).balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Internal function to get the total assets that are withdrawable
+     * @dev AaveV3Ark is withdrawable if the asset is active, not frozen, and not paused
+     */
+    function _withdrawableTotalAssets()
+        internal
+        view
+        override
+        returns (uint256 withdrawableAssets)
+    {
+        uint256 configData = aaveV3Pool
+            .getReserveData(address(config.asset))
+            .configuration
+            .data;
+        // We dont check if asset is frozen as
+        // Withdrawals and repayments on the assets frozen are completely active, together with liquidations.
+        // Only “additive” actions like supplying and borrowing them are halted.
+        if (!(_isActive(configData) && !_isPaused(configData))) {
+            return 0;
+        }
+        uint256 _totalAssets = totalAssets();
+        if (_totalAssets == 0) {
+            return 0;
+        }
+        uint256 assetsInAToken = config.asset.balanceOf(aToken);
+        withdrawableAssets = assetsInAToken < _totalAssets
+            ? assetsInAToken
+            : _totalAssets;
+    }
 
     /**
      * @notice Harvests rewards from the Aave V3 pool
@@ -83,21 +105,13 @@ contract AaveV3Ark is Ark {
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        rewardTokens = new address[](1);
-        rewardAmounts = new uint256[](1);
-
-        RewardsData memory rewardsData = abi.decode(data, (RewardsData));
-        rewardTokens[0] = rewardsData.rewardToken;
-
         address[] memory incentivizedAssets = new address[](1);
         incentivizedAssets[0] = aToken;
 
-        rewardAmounts[0] = rewardsController.claimRewardsToSelf(
+        (rewardTokens, rewardAmounts) = rewardsController.claimAllRewards(
             incentivizedAssets,
-            type(uint256).max,
-            rewardsData.rewardToken
+            raft()
         );
-        IERC20(rewardsData.rewardToken).safeTransfer(raft(), rewardAmounts[0]);
 
         emit ArkHarvested(rewardTokens, rewardAmounts);
     }
@@ -130,4 +144,12 @@ contract AaveV3Ark is Ark {
      * @dev Aave V3 Ark does not require any validation for board or disembark data
      */
     function _validateDisembarkData(bytes calldata) internal override {}
+
+    function _isActive(uint256 configData) internal pure returns (bool) {
+        return configData & ~Constants.ACTIVE_MASK != 0;
+    }
+
+    function _isPaused(uint256 configData) internal pure returns (bool) {
+        return configData & ~Constants.PAUSED_MASK != 0;
+    }
 }
