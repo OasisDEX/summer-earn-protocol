@@ -84,7 +84,7 @@ export const CoreModule = buildModule('CoreModule', (m) => {
 
   const harborCommand = m.contract('HarborCommand', [protocolAccessManager])
 
-  const raft = m.contract('Raft', [protocolAccessManager, raftAuctionDefaultParams], {
+  const raft = m.contract('Raft', [protocolAccessManager], {
     libraries: { DutchAuctionLibrary: dutchAuctionLibrary },
   })
 
