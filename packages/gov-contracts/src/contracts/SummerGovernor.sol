@@ -172,7 +172,12 @@ contract SummerGovernor is
     }
 
     // Receive function to allow the contract to receive ETH from LayerZero
-    receive() external payable override {}
+    receive() external payable override {
+        // Allow deposits from LayerZero endpoint or timelock
+        if (msg.sender != address(endpoint) && msg.sender != timelock()) {
+            revert GovernorDisabledDeposit();
+        }
+    }
 
     /**
      * @dev Internal function to queue a proposal received from another chain.
@@ -337,7 +342,7 @@ contract SummerGovernor is
             );
         }
 
-        return super._cancel(targets, values, calldatas, descriptionHash);
+        return _cancel(targets, values, calldatas, descriptionHash);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -393,17 +398,17 @@ contract SummerGovernor is
 
     /**
      * @dev Internal function to validate the proposal threshold
-     * @param _proposalThreshold The threshold to validate
+     * @param thresholdToValidate The threshold value to validate against min/max bounds
      */
     function _validateProposalThreshold(
-        uint256 _proposalThreshold
+        uint256 thresholdToValidate
     ) internal pure {
         if (
-            _proposalThreshold < MIN_PROPOSAL_THRESHOLD ||
-            _proposalThreshold > MAX_PROPOSAL_THRESHOLD
+            thresholdToValidate < MIN_PROPOSAL_THRESHOLD ||
+            thresholdToValidate > MAX_PROPOSAL_THRESHOLD
         ) {
             revert SummerGovernorInvalidProposalThreshold(
-                _proposalThreshold,
+                thresholdToValidate,
                 MIN_PROPOSAL_THRESHOLD,
                 MAX_PROPOSAL_THRESHOLD
             );

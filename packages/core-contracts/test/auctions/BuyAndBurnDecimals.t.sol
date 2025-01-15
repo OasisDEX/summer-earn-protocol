@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {BuyAndBurn} from "../../src/contracts/BuyAndBurn.sol";
 
-import {MockSummerToken} from "@summerfi/gov-contracts/test/MockSummerToken.sol";
+import {MockSummerToken} from "@summerfi/gov-contracts/test/mocks/MockSummerToken.sol";
 import "./AuctionTestBase.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ISummerToken} from "@summerfi/earn-gov-contracts/interfaces/ISummerToken.sol";

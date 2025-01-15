@@ -348,7 +348,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
     }
 
     function test_Deposit_Enter_Stake_WETH() public {
-        address rewardsManager = wethFleet.getConfig().stakingRewardsManager;
         uint256 wethAmount = 1e18; // 1 WETH
 
         // deal weth
@@ -731,7 +730,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
     }
 
     function test_Deposit_Enter_Stake_Reverts() public {
-        address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
         uint256 usdcAmount = 1000e6; // 1000 USDC
         vm.startPrank(user1);
         bytes[] memory enterCalls = new bytes[](3);
@@ -974,9 +972,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         // Get initial balances
         address rewardsManager = usdcFleet.getConfig().stakingRewardsManager;
-        uint256 initialStakedBalance = IFleetCommanderRewardsManager(
-            rewardsManager
-        ).balanceOf(user1);
         vm.warp(block.timestamp + 10 days);
         // Unstake all shares (using 0 amount) and claim rewards
         bytes[] memory calls2 = new bytes[](1);
@@ -1869,11 +1864,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         vm.stopPrank();
 
         // Record initial balances
-        uint256 user1Rewards = rewardsManager.earned(
-            user1,
-            IERC20(rewardTokens[0])
-        );
-
         uint256 rewardsBalanceUser1 = IERC20(rewardTokens[0]).balanceOf(user1);
 
         vm.prank(user1);

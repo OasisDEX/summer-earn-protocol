@@ -87,4 +87,10 @@ interface IAccessControlErrors {
      * @notice Thrown when an invalid access manager address is provided.
      */
     error InvalidAccessManagerAddress(address invalidAddress);
+
+    /**
+     * @notice Error thrown when a caller is not the Foundation
+     * @param caller The address that attempted the operation
+     */
+    error CallerIsNotFoundation(address caller);
 }

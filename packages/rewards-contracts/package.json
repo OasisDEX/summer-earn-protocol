@@ -5,6 +5,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "forge test",
+    "coverage": "forge coverage --ir-minimum",
+    "coverage:lcov": "forge coverage --report lcov --ir-minimum",
+    "coverage:report": "pnpm coverage:lcov && genhtml -o coverage --branch-coverage lcov.info",
     "generate-merkle-root": "tsx scripts/generate-merkle-root.ts"
   },
   "dependencies": {

@@ -94,12 +94,12 @@ contract AaveV3Ark is Ark {
 
     /**
      * @notice Harvests rewards from the Aave V3 pool
-     * @param data Additional data for the harvest operation
+     * @param /// data Additional data for the harvest operation
      * @return rewardTokens Array of reward tokens
      * @return rewardAmounts Array of reward amounts
      */
     function _harvest(
-        bytes calldata data
+        bytes calldata
     )
         internal
         override

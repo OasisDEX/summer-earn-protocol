@@ -23,6 +23,8 @@ import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
 import {SummerVestingWallet} from "./SummerVestingWallet.sol";
 import {DecayController} from "./DecayController.sol";
 import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
@@ -56,6 +58,10 @@ contract SummerToken is
     bool public transfersEnabled;
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
 
+    uint256 private constant SECONDS_PER_YEAR = 365.25 days;
+    uint40 private constant MIN_DECAY_FREE_WINDOW = 30 days;
+    uint40 private constant MAX_DECAY_FREE_WINDOW = 365.25 days;
+
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -82,7 +88,7 @@ contract SummerToken is
      *        - name: Token name
      *        - symbol: Token symbol
      *        - lzEndpoint: LayerZero endpoint address
-     *        - owner: Initial owner address
+     *        - initialOwner: Initial owner address
      *        - accessManager: Protocol access manager address
      *        - maxSupply: Maximum token supply cap
      *        - initialSupply: Initial token supply to mint
@@ -95,18 +101,25 @@ contract SummerToken is
     constructor(
         TokenParams memory params
     )
-        OFT(params.name, params.symbol, params.lzEndpoint, params.owner)
+        OFT(params.name, params.symbol, params.lzEndpoint, params.initialOwner)
         ERC20Permit(params.name)
         ERC20Capped(params.maxSupply)
         ProtocolAccessManaged(params.accessManager)
         DecayController(address(this))
-        Ownable(params.owner)
+        Ownable(params.initialOwner)
     {
+        _validateDecayRate(params.initialYearlyDecayRate);
+        _validateDecayFreeWindow(params.initialDecayFreeWindow);
+
+        // Convert yearly rate to per-second rate
+        uint256 perSecondRate = Percentage.unwrap(
+            params.initialYearlyDecayRate
+        ) / SECONDS_PER_YEAR;
         hubChainId = params.hubChainId;
 
         decayState.initialize(
             params.initialDecayFreeWindow,
-            params.initialDecayRate,
+            perSecondRate,
             params.initialDecayFunction
         );
 
@@ -118,8 +131,11 @@ contract SummerToken is
         _setRewardsManager(address(rewardsManager));
 
         transferEnableDate = params.transferEnableDate;
-        vestingWalletFactory = new SummerVestingWalletFactory(address(this));
-        _mint(params.owner, params.initialSupply);
+        vestingWalletFactory = new SummerVestingWalletFactory(
+            address(this),
+            params.accessManager
+        );
+        _mint(params.initialOwner, params.initialSupply);
 
         // Initialize peers if provided
         _initializePeers(params.peerEndpointIds, params.peerAddresses);
@@ -150,7 +166,7 @@ contract SummerToken is
     }
 
     /*//////////////////////////////////////////////////////////////
-                            EXTERNAL FUNCTIONS
+                            VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -228,14 +244,42 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function setDecayRatePerSecond(
-        uint256 newRatePerSecond
+    function getDelegationChainLength(
+        address account
+    ) external view returns (uint256) {
+        return decayState.getDelegationChainLength(account, _getDelegateTo);
+    }
+
+    /// @inheritdoc ISummerToken
+    function getDecayRatePerYear() external view returns (Percentage) {
+        // Convert per-second rate to yearly rate using simple multiplication
+        // Note: We use simple multiplication rather than compound rate calculation
+        // because:
+        // 1. It's more intuitive for governance participants
+        // 2. The decay rate is meant to be a simple linear reduction
+        // 3. For typical decay rates, the difference is minimal
+        uint256 yearlyRate = _getDecayRatePerSecond() * SECONDS_PER_YEAR;
+        return Percentage.wrap(yearlyRate);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc ISummerToken
+    function setDecayRatePerYear(
+        Percentage newYearlyRate
     ) external onlyGovernor {
-        decayState.setDecayRatePerSecond(newRatePerSecond);
+        _validateDecayRate(newYearlyRate);
+        // Convert yearly rate to per-second rate
+        uint256 perSecondRate = Percentage.unwrap(newYearlyRate) /
+            SECONDS_PER_YEAR;
+        decayState.setDecayRatePerSecond(perSecondRate);
     }
 
     /// @inheritdoc ISummerToken
     function setDecayFreeWindow(uint40 newWindow) external onlyGovernor {
+        _validateDecayFreeWindow(newWindow);
         decayState.setDecayFreeWindow(newWindow);
     }
 
@@ -288,6 +332,10 @@ contract SummerToken is
     function delegate(
         address delegatee
     ) public override(IVotes, Votes) updateDecay(_msgSender()) onlyHubChain {
+        // Only initialize delegatee if they don't have decay info yet
+        if (delegatee != address(0) && !decayState.hasDecayInfo(delegatee)) {
+            decayState.initializeAccount(delegatee);
+        }
         super.delegate(delegatee);
     }
 
@@ -320,12 +368,10 @@ contract SummerToken is
     function getVotes(
         address account
     ) public view override(ISummerToken, Votes) returns (uint256) {
+        uint256 rawVotingPower = super.getVotes(account);
+
         return
-            decayState.getVotingPower(
-                account,
-                super.getVotes(account),
-                _getDelegateTo
-            );
+            decayState.getVotingPower(account, rawVotingPower, _getDelegateTo);
     }
 
     /**
@@ -345,17 +391,24 @@ contract SummerToken is
         address account,
         uint256 timepoint
     ) public view override(IVotes, Votes) returns (uint256) {
-        return
-            decayState.getVotingPower(
-                account,
-                super.getPastVotes(account, timepoint),
-                _getDelegateTo
-            );
+        uint256 pastVotingUnits = super.getPastVotes(account, timepoint);
+        uint256 historicalDecayFactor = decayState.getHistoricalDecayFactor(
+            account,
+            timepoint
+        );
+
+        return (pastVotingUnits * historicalDecayFactor) / Constants.WAD;
     }
 
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /// @dev Internal helper to get the per-second decay rate
+    /// @return The decay rate per second
+    function _getDecayRatePerSecond() internal view returns (uint256) {
+        return decayState.decayRatePerSecond;
+    }
 
     /**
      * @dev Returns the delegate address for a given account, implementing VotingDecayLibrary's abstract method
@@ -491,15 +544,19 @@ contract SummerToken is
         address to,
         uint256 amount
     ) internal override {
-        if (_handleRewardsManagerVotingTransfer(from, to)) {
-            return;
-        }
+        bool isRewardsManagerTransfer = _handleRewardsManagerVotingTransfer(
+            from,
+            to
+        );
+        bool isVestingWalletTransfer = _handleVestingWalletVotingTransfer(
+            from,
+            to,
+            amount
+        );
 
-        if (_handleVestingWalletVotingTransfer(from, to, amount)) {
-            return;
+        if (!isRewardsManagerTransfer && !isVestingWalletTransfer) {
+            super._transferVotingUnits(from, to, amount);
         }
-
-        super._transferVotingUnits(from, to, amount);
     }
 
     /**
@@ -560,5 +617,22 @@ contract SummerToken is
             return true;
         }
         return false;
+    }
+
+    /// @dev Validates that the decay rate is between 1% and 50%
+    /// @param rate The yearly decay rate to validate
+    function _validateDecayRate(Percentage rate) internal pure {
+        uint256 unwrappedRate = Percentage.unwrap(rate);
+        if (unwrappedRate > Constants.WAD / 2) {
+            revert DecayRateTooHigh(unwrappedRate);
+        }
+    }
+
+    /// @dev Validates that the decay free window is between 30 days and 365.25 days
+    /// @param window The window duration to validate
+    function _validateDecayFreeWindow(uint40 window) internal pure {
+        if (window < MIN_DECAY_FREE_WINDOW || window > MAX_DECAY_FREE_WINDOW) {
+            revert InvalidDecayFreeWindow(window);
+        }
     }
 }

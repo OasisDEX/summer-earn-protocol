@@ -348,7 +348,6 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
     }
 
     function test_Deposit_Enter_Stake_WETH() public {
-        address rewardsManager = wethFleet.getConfig().stakingRewardsManager;
         uint256 wethAmount = 1e18; // 1 WETH
 
         // deal weth
@@ -2068,9 +2067,8 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         vm.stopPrank();
 
         // Calculate a reward amount that divides evenly by the duration
-        uint256 rewardDuration = 864000; // 10 days in seconds
-        uint256 rewardRate = 1000e6; // 1000 USDC per second
-        uint256 rewardAmount = rewardRate * rewardDuration;
+        uint256 rewardAmount = 54e18;
+        uint256 rewardDuration = 3.65 days;
 
         // First transfer USDC to the rewards manager and setup rewards
         vm.startPrank(governor);

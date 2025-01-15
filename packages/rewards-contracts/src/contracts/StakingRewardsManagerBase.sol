@@ -75,9 +75,9 @@ abstract contract StakingRewardsManagerBase is
 
     /**
      * @notice Initializes the StakingRewards contract
-     * @param _accessManager The address of the access manager
+     * @param accessManager The address of the access manager
      */
-    constructor(address _accessManager) ProtocolAccessManaged(_accessManager) {}
+    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                                 VIEWS
@@ -131,9 +131,13 @@ abstract contract StakingRewardsManagerBase is
     function getRewardForDuration(
         IERC20 rewardToken
     ) external view returns (uint256) {
-        return
-            (rewardData[rewardToken].rewardRate *
-                rewardData[rewardToken].rewardsDuration) / Constants.WAD;
+        RewardData storage data = rewardData[rewardToken];
+        if (block.timestamp >= data.periodFinish) {
+            return (data.rewardRate * data.rewardsDuration) / Constants.WAD;
+        }
+        // For active periods, calculate remaining rewards plus any new rewards
+        uint256 remaining = data.periodFinish - block.timestamp;
+        return (data.rewardRate * remaining) / Constants.WAD;
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -213,6 +213,9 @@ interface IProtocolAccessManager {
     /// @notice Role identifier for the Admirals Quarters role
     function ADMIRALS_QUARTERS_ROLE() external pure returns (bytes32);
 
+    /// @notice Role identifier for the Foundation, responsible for managing vesting wallets and related operations
+    function FOUNDATION_ROLE() external pure returns (bytes32);
+
     /**
      * @notice Checks if an account has a specific role
      * @param role The role identifier to check
@@ -285,4 +288,17 @@ interface IProtocolAccessManager {
         uint256 minExpiryPeriod,
         uint256 maxExpiryPeriod
     );
+
+    /**
+     * @notice Grants the Foundation role to a given account. The Foundation is responsible for
+     * managing vesting wallets and related operations.
+     * @param account The account to which the Foundation role will be granted
+     */
+    function grantFoundationRole(address account) external;
+
+    /**
+     * @notice Revokes the Foundation role from a given account
+     * @param account The account from which the Foundation role will be revoked
+     */
+    function revokeFoundationRole(address account) external;
 }

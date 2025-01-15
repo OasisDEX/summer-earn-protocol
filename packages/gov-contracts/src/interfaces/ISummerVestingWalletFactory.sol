@@ -2,11 +2,13 @@
 pragma solidity 0.8.28;
 
 import {ISummerVestingWallet} from "./ISummerVestingWallet.sol";
+
 interface ISummerVestingWalletFactory {
-    /**
-     * @dev Error thrown when attempting to create a vesting wallet for an address that already has one
-     * @param beneficiary The address for which a vesting wallet already exists
-     */
+    /** @notice Custom errors */
+    error ZeroTokenAddress();
+    error InsufficientAllowance(uint256 required, uint256 actual);
+    error InsufficientBalance(uint256 required, uint256 actual);
+    error TransferAmountMismatch(uint256 expected, uint256 actual);
     error VestingWalletAlreadyExists(address beneficiary);
 
     /**

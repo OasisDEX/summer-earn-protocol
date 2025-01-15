@@ -246,6 +246,25 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
         _;
     }
 
+    /**
+     * @notice Modifier to restrict access to foundation only
+     * @dev Modifier to check that the caller has the Foundation role
+     * @custom:security-considerations
+     * - Ensures that only the Foundation can access vesting and related functions
+     * - Relies on the correct setup of the access manager
+     */
+    modifier onlyFoundation() {
+        if (
+            !_accessManager.hasRole(
+                _accessManager.FOUNDATION_ROLE(),
+                msg.sender
+            )
+        ) {
+            revert CallerIsNotFoundation(msg.sender);
+        }
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -290,5 +309,15 @@ contract ProtocolAccessManaged is IAccessControlErrors, Context {
 
     function _isDecayController(address account) internal view returns (bool) {
         return _accessManager.hasRole(DECAY_CONTROLLER_ROLE, account);
+    }
+
+    /**
+     * @notice Helper function to check if an address has the Foundation role
+     * @param account The address to check
+     * @return bool True if the address has the Foundation role
+     */
+    function _isFoundation(address account) internal view returns (bool) {
+        return
+            _accessManager.hasRole(_accessManager.FOUNDATION_ROLE(), account);
     }
 }

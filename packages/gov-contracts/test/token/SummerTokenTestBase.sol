@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SupplyControlSummerToken} from "./SupplyControlSummerToken.sol";
-import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
+import {SupplyControlSummerToken} from "../utils/SupplyControlSummerToken.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 
 import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -16,9 +16,10 @@ import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/
 import {Test, console} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
-import {MockSummerGovernor} from "./MockSummerGovernor.sol";
-import {SummerVestingWalletFactory} from "../src/contracts/SummerVestingWalletFactory.sol";
-import {SummerTimelockController} from "../src/contracts/SummerTimelockController.sol";
+import {MockSummerGovernor} from "../mocks/MockSummerGovernor.sol";
+import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
+import {SummerTimelockController} from "../../src/contracts/SummerTimelockController.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 contract SummerTokenTestBase is TestHelperOz5 {
     using OptionsBuilder for bytes;
@@ -44,11 +45,11 @@ contract SummerTokenTestBase is TestHelperOz5 {
     ProtocolAccessManager public accessManagerB;
     MockSummerGovernor public mockGovernor;
 
-    /// @notice Initial decay rate per second (approximately 10% per year)
-    /// @dev Calculated as (0.1e18 / (365 * 24 * 60 * 60))
-    uint256 internal constant INITIAL_DECAY_RATE_PER_SECOND = 3.1709792e9;
+    uint40 public constant MIN_DECAY_FREE_WINDOW = 30 days;
+    uint40 public constant MAX_DECAY_FREE_WINDOW = 365.25 days;
+    Percentage internal constant INITIAL_DECAY_RATE_PER_YEAR =
+        Percentage.wrap(0.1e18);
     uint40 public constant INITIAL_DECAY_FREE_WINDOW = 30 days;
-
     uint256 constant INITIAL_SUPPLY = 1000000000;
 
     function setUp() public virtual override {
@@ -117,10 +118,10 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 symbol: "SUMMERA",
                 lzEndpoint: lzEndpointA,
                 // Changed in inheriting test suites
-                owner: owner,
+                initialOwner: owner,
                 accessManager: address(accessManagerA),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
@@ -136,10 +137,10 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 symbol: "SUMMERB",
                 lzEndpoint: lzEndpointB,
                 // Changed in inheriting test suites
-                owner: owner,
+                initialOwner: owner,
                 accessManager: address(accessManagerB),
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialDecayRate: INITIAL_DECAY_RATE_PER_SECOND,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
                 transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
@@ -207,6 +208,33 @@ contract SummerTokenTestBase is TestHelperOz5 {
 
     function useNetworkB() public {
         vm.chainId(31338);
+    }
+
+    // Test skipper function
+    function test() public {}
+
+    function _getDefaultTokenParams()
+        internal
+        view
+        returns (ISummerToken.TokenParams memory)
+    {
+        return
+            ISummerToken.TokenParams({
+                name: "SummerToken Test",
+                symbol: "SUMMER",
+                lzEndpoint: lzEndpointA,
+                initialOwner: owner,
+                accessManager: address(accessManagerA),
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                transferEnableDate: block.timestamp + 1 days,
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                hubChainId: 31337,
+                peerEndpointIds: new uint32[](0),
+                peerAddresses: new address[](0)
+            });
     }
 }
 

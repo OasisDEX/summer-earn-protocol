@@ -101,7 +101,7 @@ contract SkyUsdsPsm3Ark is Ark {
             amount
         );
         // Perform swap with exact output as preview
-        uint256 amountOut = psm.swapExactIn(
+        psm.swapExactIn(
             address(config.asset),
             address(susds),
             amount,
@@ -120,7 +120,7 @@ contract SkyUsdsPsm3Ark is Ark {
         );
         // Perform swap with exact output as preview
         susds.approve(address(psm), susdsNeeded);
-        uint256 amountOut = psm.swapExactOut(
+        psm.swapExactOut(
             address(susds),
             address(config.asset),
             amount,

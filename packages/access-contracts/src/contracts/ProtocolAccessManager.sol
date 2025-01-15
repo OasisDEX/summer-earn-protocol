@@ -82,6 +82,9 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
     /// @notice Maximum allowed guardian expiration period (180 days)
     uint256 public constant MAX_GUARDIAN_EXPIRY = 180 days;
 
+    /// @notice Role identifier for the Foundation which manages vesting wallets and related operations
+    bytes32 public constant FOUNDATION_ROLE = keccak256("FOUNDATION_ROLE");
+
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -371,5 +374,15 @@ contract ProtocolAccessManager is IProtocolAccessManager, LimitedAccessControl {
             revert CallerIsNotGuardian(account);
         }
         return guardianExpirations[account];
+    }
+
+    /// @inheritdoc IProtocolAccessManager
+    function grantFoundationRole(address account) external onlyGovernor {
+        _grantRole(FOUNDATION_ROLE, account);
+    }
+
+    /// @inheritdoc IProtocolAccessManager
+    function revokeFoundationRole(address account) external onlyGovernor {
+        _revokeRole(FOUNDATION_ROLE, account);
     }
 }

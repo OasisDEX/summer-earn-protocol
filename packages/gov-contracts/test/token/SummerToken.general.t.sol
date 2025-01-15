@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerToken} from "../src/contracts/SummerToken.sol";
-import {ISummerToken, IERC20} from "../src/interfaces/ISummerToken.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
+import {ISummerToken, IERC20} from "../../src/interfaces/ISummerToken.sol";
+
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -410,6 +411,52 @@ contract SummerTokenTest is SummerTokenTestBase {
         bSummerToken.transfer(user2, amount);
         assertEq(bSummerToken.balanceOf(user2), amount);
         assertEq(bSummerToken.balanceOf(owner), amount);
+    }
+
+    function test_DelegationChainLength() public {
+        enableTransfers();
+
+        // Setup initial tokens
+        uint256 amount = 100 ether;
+        aSummerToken.transfer(user1, amount);
+        aSummerToken.transfer(user2, amount);
+
+        // Test case 1: Self-delegation (length should be 0)
+        vm.prank(user1);
+        aSummerToken.delegate(user1);
+        assertEq(
+            aSummerToken.getDelegationChainLength(user1),
+            0,
+            "Self-delegation should have length 0"
+        );
+
+        // Test case 2: Single delegation (length should be 1)
+        vm.prank(user1);
+        aSummerToken.delegate(user2);
+        assertEq(
+            aSummerToken.getDelegationChainLength(user1),
+            1,
+            "Single delegation should have length 1"
+        );
+
+        // Test case 3: Chain delegation (length should be 2)
+        address user3 = address(0x3);
+        vm.prank(user2);
+        aSummerToken.delegate(user3);
+        assertEq(
+            aSummerToken.getDelegationChainLength(user1),
+            2,
+            "Two-step delegation should have length 2"
+        );
+
+        // Test case 5: Zero address delegation
+        vm.prank(user1);
+        aSummerToken.delegate(address(0));
+        assertEq(
+            aSummerToken.getDelegationChainLength(user1),
+            0,
+            "Zero address delegation should have length 0"
+        );
     }
 
     function test_DelegateOnlyAllowedOnHubChain() public {

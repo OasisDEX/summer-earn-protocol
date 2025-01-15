@@ -74,10 +74,10 @@ export const GovModule = buildModule('GovModule', (m) => {
     name: 'SummerToken',
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
-    owner: deployer,
+    initialOwner: deployer,
     accessManager: accessManager,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
-    initialDecayRate: 3.1709792e9, // ~10% per year
+    initialDecayYearlyRate: 0.1e18, // ~10% per year
     initialDecayFunction: DecayType.Linear,
     transferEnableDate: 1731667188n,
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens

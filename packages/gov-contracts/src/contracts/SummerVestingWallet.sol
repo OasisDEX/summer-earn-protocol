@@ -2,11 +2,10 @@
 pragma solidity 0.8.28;
 
 import {ISummerVestingWallet} from "../interfaces/ISummerVestingWallet.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {VestingWallet} from "@openzeppelin/contracts/finance/VestingWallet.sol";
-
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 /**
  * @title SummerVestingWallet
@@ -15,8 +14,10 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract SummerVestingWallet is
     ISummerVestingWallet,
     VestingWallet,
-    AccessControl
+    ProtocolAccessManaged
 {
+    using SafeERC20 for IERC20;
+
     //////////////////////////////////////////////
     ///                CONSTANTS               ///
     //////////////////////////////////////////////
@@ -28,9 +29,6 @@ contract SummerVestingWallet is
 
     /// @dev Duration of the vesting period in seconds
     uint64 private constant DURATION_SECONDS = 730 days; // 2 years for both vesting types
-
-    /// @inheritdoc ISummerVestingWallet
-    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
     //////////////////////////////////////////////
     ///             STATE VARIABLES            ///
@@ -57,11 +55,13 @@ contract SummerVestingWallet is
 
     /**
      * @dev Constructor that sets up the vesting wallet with a specific vesting type
+     * @param _token The address of the token to be vested
      * @param beneficiaryAddress Address of the beneficiary to whom vested tokens are transferred
      * @param startTimestamp Unix timestamp marking the start of the vesting period
      * @param vestingType Type of vesting schedule (0 for TeamVesting, 1 for InvestorExTeamVesting)
-     * @param guardianAddress Address to be granted the guardian role
+     * @param _timeBasedVestingAmount Amount of tokens to be vested time-based
      * @param _goalAmounts Array of goal amounts for performance-based vesting
+     * @param _accessManager The address of the ProtocolAccessManager contract
      */
     constructor(
         address _token,
@@ -70,8 +70,11 @@ contract SummerVestingWallet is
         VestingType vestingType,
         uint256 _timeBasedVestingAmount,
         uint256[] memory _goalAmounts,
-        address guardianAddress
-    ) VestingWallet(beneficiaryAddress, startTimestamp, DURATION_SECONDS) {
+        address _accessManager
+    )
+        VestingWallet(beneficiaryAddress, startTimestamp, DURATION_SECONDS)
+        ProtocolAccessManaged(_accessManager)
+    {
         _vestingType = vestingType;
         timeBasedVestingAmount = _timeBasedVestingAmount;
         if (_vestingType == VestingType.TeamVesting) {
@@ -86,8 +89,6 @@ contract SummerVestingWallet is
         if (token == address(0)) {
             revert InvalidToken(_token);
         }
-
-        _grantRole(GUARDIAN_ROLE, guardianAddress);
     }
 
     //////////////////////////////////////////////
@@ -104,7 +105,7 @@ contract SummerVestingWallet is
     //////////////////////////////////////////////
 
     /// @inheritdoc ISummerVestingWallet
-    function addNewGoal(uint256 goalAmount) external onlyRole(GUARDIAN_ROLE) {
+    function addNewGoal(uint256 goalAmount) external onlyFoundation {
         if (_vestingType != VestingType.TeamVesting) {
             revert OnlyTeamVesting();
         }
@@ -124,9 +125,7 @@ contract SummerVestingWallet is
     }
 
     /// @inheritdoc ISummerVestingWallet
-    function markGoalReached(
-        uint256 goalNumber
-    ) external onlyRole(GUARDIAN_ROLE) {
+    function markGoalReached(uint256 goalNumber) external onlyFoundation {
         if (goalNumber < 1 || goalNumber > goalAmounts.length) {
             revert InvalidGoalNumber();
         }
@@ -135,7 +134,7 @@ contract SummerVestingWallet is
     }
 
     /// @inheritdoc ISummerVestingWallet
-    function recallUnvestedTokens() external onlyRole(GUARDIAN_ROLE) {
+    function recallUnvestedTokens() external onlyFoundation {
         if (_vestingType != VestingType.TeamVesting) {
             revert OnlyTeamVesting();
         }

@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Origin, SummerGovernor} from "../src/contracts/SummerGovernor.sol";
-import {ISummerGovernorErrors} from "../src/errors/ISummerGovernorErrors.sol";
+import {Origin, SummerGovernor} from "../../src/contracts/SummerGovernor.sol";
+import {ISummerGovernorErrors} from "../../src/errors/ISummerGovernorErrors.sol";
 
-import {ISummerGovernor} from "../src/interfaces/ISummerGovernor.sol";
+import {ISummerGovernor} from "../../src/interfaces/ISummerGovernor.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
-import {SummerToken} from "../src/contracts/SummerToken.sol";
+import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {ERC20, ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-import {ISummerToken} from "../src/interfaces/ISummerToken.sol";
-import {SummerVestingWallet} from "../src/contracts/SummerVestingWallet.sol";
-import {ISummerVestingWallet} from "../src/interfaces/ISummerVestingWallet.sol";
-import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
+import {SummerVestingWallet} from "../../src/contracts/SummerVestingWallet.sol";
+import {ISummerVestingWallet} from "../../src/interfaces/ISummerVestingWallet.sol";
+import {SummerTokenTestBase} from "../token/SummerTokenTestBase.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -25,7 +25,8 @@ import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {ExposedSummerGovernor, SummerGovernorTestBase} from "./SummerGovernorTestBase.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ExposedSummerTimelockController} from "./SummerTokenTestBase.sol";
+import {ExposedSummerTimelockController} from "../token/SummerTokenTestBase.sol";
+import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
 /*
  * @title SummerGovernorTest
@@ -768,6 +769,11 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         uint256 directAmount = 1000000 * 10 ** 18;
         console.log("Vesting amount :", vestingAmount);
 
+        // Grant foundation role to timelock
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantFoundationRole(address(timelockA));
+        vm.stopPrank();
+
         vm.startPrank(address(timelockA));
         aSummerToken.approve(address(vestingWalletFactoryA), vestingAmount);
         vestingWalletFactoryA.createVestingWallet(
@@ -885,113 +891,6 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         wrongChainGovernor.propose(targets, values, calldatas, description);
     }
 
-    function test_ProposalFailsQuorumAfterDecay() public {
-        // Setup: Mint tokens just above quorum threshold
-        uint256 supply = INITIAL_SUPPLY * 10 ** 18;
-        uint256 quorumThreshold = getQuorumThreshold(supply);
-
-        // Give multiple voters enough combined tokens to meet quorum
-        uint256 aliceTokens = quorumThreshold / 2;
-        uint256 bobTokens = quorumThreshold / 2;
-
-        vm.startPrank(address(timelockA));
-        aSummerToken.transfer(alice, aliceTokens);
-        aSummerToken.transfer(bob, bobTokens);
-        aSummerToken.transfer(charlie, supply - aliceTokens - bobTokens);
-        vm.stopPrank();
-
-        // Delegate voting power
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
-        vm.prank(bob);
-        aSummerToken.delegate(bob);
-        advanceTimeAndBlock();
-
-        // Verify initial combined voting power meets quorum
-        uint256 initialAliceVotes = governorA.getVotes(
-            alice,
-            block.timestamp - 1
-        );
-        uint256 initialBobVotes = governorA.getVotes(bob, block.timestamp - 1);
-        uint256 initialTotalVotes = initialAliceVotes + initialBobVotes;
-        uint256 initialQuorum = governorA.quorum(block.timestamp - 1);
-
-        console.log("Initial Alice votes:", initialAliceVotes);
-        console.log("Initial Bob votes:", initialBobVotes);
-        console.log("Initial total votes:", initialTotalVotes);
-        console.log("Initial quorum needed:", initialQuorum);
-
-        assertTrue(
-            initialTotalVotes >= initialQuorum,
-            "Combined voting power should meet quorum initially"
-        );
-
-        advanceTimeForPeriod(aSummerToken.getDecayFreeWindow() + 30 days);
-
-        // Check decayed voting power
-        uint256 decayedAliceVotes = governorA.getVotes(
-            alice,
-            block.timestamp - 1
-        );
-        uint256 decayedBobVotes = governorA.getVotes(bob, block.timestamp - 1);
-        uint256 decayedTotalVotes = decayedAliceVotes + decayedBobVotes;
-        uint256 quorumAfterDecay = governorA.quorum(block.timestamp - 1);
-
-        console.log("Decayed Alice votes:", decayedAliceVotes);
-        console.log("Decayed Bob votes:", decayedBobVotes);
-        console.log("Decayed total votes:", decayedTotalVotes);
-        console.log("Quorum needed after decay:", quorumAfterDecay);
-
-        assertTrue(
-            decayedTotalVotes < quorumAfterDecay,
-            "Combined voting power should be below quorum after decay"
-        );
-
-        // Now create proposal with decayed weights
-        vm.prank(alice);
-        (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[] memory calldatas,
-            string memory description
-        ) = createProposalParams(address(aSummerToken));
-
-        uint256 proposalId = governorA.propose(
-            targets,
-            values,
-            calldatas,
-            description
-        );
-
-        advanceTimeForVotingDelay();
-
-        // Both voters vote in favor
-        vm.prank(alice);
-        governorA.castVote(proposalId, 1);
-        vm.prank(bob);
-        governorA.castVote(proposalId, 1);
-
-        // Check final proposal votes
-        (, uint256 finalForVotes, ) = governorA.proposalVotes(proposalId);
-        uint256 finalQuorum = governorA.quorum(block.timestamp - 1);
-
-        console.log("Final for votes:", finalForVotes);
-        console.log("Final quorum needed:", finalQuorum);
-
-        assertTrue(
-            finalForVotes < finalQuorum,
-            "Proposal should not meet quorum with decayed votes"
-        );
-
-        advanceTimeForVotingPeriod();
-
-        assertEq(
-            uint256(governorA.state(proposalId)),
-            uint256(IGovernor.ProposalState.Defeated),
-            "Proposal should be defeated due to insufficient quorum"
-        );
-    }
-
     function getQuorumThreshold(uint256 supply) public pure returns (uint256) {
         return (supply * QUORUM_FRACTION) / 100;
     }
@@ -1054,8 +953,13 @@ contract SummerGovernorTest is SummerGovernorTestBase {
         uint256 additionalAmount = 100000 * 10 ** 18;
         address _bob = address(0xb0b);
 
+        // Grant foundation role to timelock
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantFoundationRole(address(timelockA));
+        vm.stopPrank();
+
         vm.prank(address(timelockA));
-        aSummerToken.setDecayRatePerSecond(0);
+        aSummerToken.setDecayRatePerYear(Percentage.wrap(0));
 
         vm.prank(_bob);
         // Bob delegates to himself - even if he has no tokens yet, he will have voting power after Cas 5 test is

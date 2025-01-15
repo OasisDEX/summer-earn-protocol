@@ -38,7 +38,7 @@ contract TokenLibraryTest is Test {
         tokenNoDecimals = new MockToken("TokenNoDecimals", "TKNN", 0);
     }
 
-    function testGetDecimals() public {
+    function testGetDecimals() public view {
         assertEq(TokenLibrary.getDecimals(IERC20(address(token0))), 0);
         assertEq(TokenLibrary.getDecimals(IERC20(address(token6))), 6);
         assertEq(TokenLibrary.getDecimals(IERC20(address(token8))), 8);
@@ -46,7 +46,7 @@ contract TokenLibraryTest is Test {
         assertEq(TokenLibrary.getDecimals(IERC20(address(tokenNoDecimals))), 0);
     }
 
-    function testGetDecimalsWithNonERC20() public {
+    function testGetDecimalsWithNonERC20() public view {
         assertEq(TokenLibrary.getDecimals(IERC20(address(0x1))), 18);
     }
 

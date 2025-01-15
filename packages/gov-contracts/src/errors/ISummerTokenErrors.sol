@@ -2,7 +2,9 @@
 pragma solidity 0.8.28;
 
 import {ISummerVestingWallet} from "../interfaces/ISummerVestingWallet.sol";
-/* @title ISummerTokenErrors
+
+/**
+ * @title ISummerTokenErrors
  * @notice Interface defining custom errors for the SummerToken contract
  */
 interface ISummerTokenErrors {
@@ -23,4 +25,15 @@ interface ISummerTokenErrors {
      * @param caller The address of the caller
      */
     error CallerIsNotDecayManager(address caller);
+
+    /**
+     * @dev Error thrown when the decay rate is too high
+     */
+    error DecayRateTooHigh(uint256 rate);
+
+    /**
+     * @dev Error thrown when the decay free window is invalid (less than 30 days or more than 365.25 days)
+     * @param window The invalid window duration that was provided
+     */
+    error InvalidDecayFreeWindow(uint40 window);
 }
