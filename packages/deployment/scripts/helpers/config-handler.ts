@@ -51,7 +51,7 @@ function validateConfig(config: BaseConfig): void {
   validateAddress(config.deployedContracts.core.raft.address, 'core.raft')
   validateAddress(
     config.deployedContracts.gov.protocolAccessManager.address,
-    'core.protocolAccessManager',
+    'gov.protocolAccessManager',
   )
   validateAddress(
     config.deployedContracts.core.configurationManager.address,

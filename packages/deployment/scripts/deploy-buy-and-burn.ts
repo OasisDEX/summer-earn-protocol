@@ -28,7 +28,7 @@ async function deployBuyAndBurnContracts(config: BaseConfig): Promise<BuyAndBurn
     parameters: {
       BuyAndBurnModule: {
         summerToken: config.deployedContracts.gov.summerToken.address,
-        protocolAccessManager: config.deployedContracts.core.protocolAccessManager.address,
+        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         configurationManager: config.deployedContracts.core.configurationManager.address,
       },
     },
