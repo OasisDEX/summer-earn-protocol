@@ -100,11 +100,7 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         setupBaseContracts();
         // then setup the mock arks - they are not initilaized with fleet commander address
         setupMockArks(address(mockToken));
-        address[] memory mockArks = new address[](4);
-        mockArks[0] = ark1;
-        mockArks[1] = ark2;
-        mockArks[2] = ark3;
-        mockArks[3] = ark4;
+
         // setup the fleet commander - fleetcommander deploys buffer ark
         setupFleetCommanderWithBufferArk(
             address(mockToken),
@@ -112,9 +108,19 @@ abstract contract FleetCommanderTestBase is Test, FleetCommanderTestHelpers {
         );
         // grant roles to the fleet commander - Dyanmic `COMMANDER_ROLE` to manage arks
         // grants governor keepr, curator roles
+
+        address[] memory mockArks = new address[](4);
+        mockArks[0] = ark1;
+        mockArks[1] = ark2;
+        mockArks[2] = ark3;
+        mockArks[3] = ark4;
         grantRoles(mockArks, address(bufferArk), keeper);
-        vm.prank(governor);
-        fleetCommander.addArks(mockArks);
+        vm.startPrank(governor);
+        fleetCommander.addArk(ark1);
+        fleetCommander.addArk(ark2);
+        fleetCommander.addArk(ark3);
+        fleetCommander.addArk(ark4);
+        vm.stopPrank();
         vm.label(address(mockArk1), "Ark1");
         vm.label(address(mockArk2), "Ark2");
         vm.label(address(mockArk3), "Ark3");

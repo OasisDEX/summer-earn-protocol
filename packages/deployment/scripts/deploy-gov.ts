@@ -152,6 +152,7 @@ function getPeersFromConfig(currentNetwork: string): PeerConfig[] {
 async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   console.log(kleur.cyan().bold('Setting up governance roles...'))
   const publicClient = await hre.viem.getPublicClient()
+  const deployer = (await hre.viem.getWalletClients())[0]
 
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,

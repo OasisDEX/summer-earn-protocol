@@ -267,10 +267,17 @@ contract LifecycleTest is Test, TestHelpers, FleetCommanderTestBase {
 
         grantPermissions();
 
-        vm.prank(governor);
-        daiFleetCommander.addArks(daiArks);
-        vm.prank(governor);
-        usdcFleetCommander.addArks(usdcArks);
+        // Add USDC Arks to USDC Fleet Commander
+        vm.startPrank(governor);
+        for (uint256 i = 0; i < usdcArks.length; i++) {
+            usdcFleetCommander.addArk(usdcArks[i]);
+        }
+
+        for (uint256 i = 0; i < daiArks.length; i++) {
+            daiFleetCommander.addArk(daiArks[i]);
+        }
+
+        vm.stopPrank();
     }
 
     function grantPermissions() internal {
