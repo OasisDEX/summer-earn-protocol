@@ -337,29 +337,45 @@ contract SummerTokenDecayTest is SummerTokenTestBase {
         assertTrue(true);
     }
 
-    function test_RevertWhenConstructorDecayFreeWindowTooLow() public {
-        ISummerToken.TokenParams memory params = _getDefaultTokenParams();
-        params.initialDecayFreeWindow = MIN_DECAY_FREE_WINDOW - 1;
+    function test_RevertWhenInitializeDecayFreeWindowTooLow() public {
+        (
+            ISummerToken.ConstructorParams memory constructorParams,
+            ISummerToken.InitializeParams memory initializeParams
+        ) = _getDefaultTokenParams();
+
+        SupplyControlSummerToken newToken = new SupplyControlSummerToken(
+            constructorParams
+        );
+
+        initializeParams.initialDecayFreeWindow = MIN_DECAY_FREE_WINDOW - 1;
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 ISummerTokenErrors.InvalidDecayFreeWindow.selector,
-                params.initialDecayFreeWindow
+                initializeParams.initialDecayFreeWindow
             )
         );
-        new SupplyControlSummerToken(params);
+        newToken.initialize(initializeParams);
     }
 
-    function test_RevertWhenConstructorDecayFreeWindowTooHigh() public {
-        ISummerToken.TokenParams memory params = _getDefaultTokenParams();
-        params.initialDecayFreeWindow = MAX_DECAY_FREE_WINDOW + 1;
+    function test_RevertWhenInitializeDecayFreeWindowTooHigh() public {
+        (
+            ISummerToken.ConstructorParams memory constructorParams,
+            ISummerToken.InitializeParams memory initializeParams
+        ) = _getDefaultTokenParams();
+
+        SupplyControlSummerToken newToken = new SupplyControlSummerToken(
+            constructorParams
+        );
+
+        initializeParams.initialDecayFreeWindow = MAX_DECAY_FREE_WINDOW + 1;
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 ISummerTokenErrors.InvalidDecayFreeWindow.selector,
-                params.initialDecayFreeWindow
+                initializeParams.initialDecayFreeWindow
             )
         );
-        new SupplyControlSummerToken(params);
+        newToken.initialize(initializeParams);
     }
 }

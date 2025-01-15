@@ -27,40 +27,46 @@ interface ISummerToken is
                                 STRUCTS
     //////////////////////////////////////////////////////////////*/
 
-    /*
-     * @dev Struct for the token parameters
+    /**
+     * @dev Parameters required for contract construction
      * @param name The name of the token
      * @param symbol The symbol of the token
      * @param lzEndpoint The LayerZero endpoint address
-     * @param initialOwner The owner address
-     * @param accessManager The access manager address
-     * @param initialDecayFreeWindow The initial decay free window in seconds
-     * @param initialDecayRate The initial decay rate
-     * @param initialDecayFunction The initial decay function
-     * @param governor The governor address
-     * @param transferEnableDate The transfer enable date
-     * @param maxSupply The maximum supply of the token
-     * @param initialSupply The initial supply of the token
+     * @param initialOwner The initial owner of the contract
+     * @param accessManager The access manager contract address
+     * @param maxSupply The maximum token supply
+     * @param transferEnableDate The timestamp when transfers can be enabled
      * @param hubChainId The chain ID of the hub chain
-     * @param peerEndpointIds Array of chain IDs for peers
-     * @param peerAddresses Array of peer addresses corresponding to chainIds
      */
-    struct TokenParams {
+    struct ConstructorParams {
         string name;
         string symbol;
         address lzEndpoint;
-        // Update from deployer address after deployment
         address initialOwner;
         address accessManager;
+        uint256 maxSupply;
+        uint256 transferEnableDate;
+        uint32 hubChainId;
+    }
+
+    /**
+     * @dev Parameters required for contract initialization
+     * @param initialSupply The initial token supply to mint
+     * @param initialDecayFreeWindow The initial decay-free window duration in seconds
+     * @param initialYearlyDecayRate The initial yearly decay rate as a percentage
+     * @param initialDecayFunction The initial decay function type
+     * @param accessManager The access manager contract address
+     * @param peerEndpointIds Array of chain IDs for peers
+     * @param peerAddresses Array of peer addresses corresponding to chainIds
+     */
+    struct InitializeParams {
+        uint256 initialSupply;
         uint40 initialDecayFreeWindow;
         Percentage initialYearlyDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
-        uint256 transferEnableDate;
-        uint256 maxSupply;
-        uint256 initialSupply;
-        uint32 hubChainId;
-        uint32[] peerEndpointIds; // Array of chain IDs for peers
-        address[] peerAddresses; // Array of peer addresses corresponding to chainIds
+        address accessManager;
+        uint32[] peerEndpointIds;
+        address[] peerAddresses;
     }
 
     /*//////////////////////////////////////////////////////////////

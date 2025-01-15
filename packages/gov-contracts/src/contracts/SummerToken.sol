@@ -83,23 +83,11 @@ contract SummerToken is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Initializes the Summer token with the specified parameters
-     * @param params TokenParams struct containing:
-     *        - name: Token name
-     *        - symbol: Token symbol
-     *        - lzEndpoint: LayerZero endpoint address
-     *        - initialOwner: Initial owner address
-     *        - accessManager: Protocol access manager address
-     *        - maxSupply: Maximum token supply cap
-     *        - initialSupply: Initial token supply to mint
-     *        - transferEnableDate: Timestamp when transfers become enabled
-     *        - initialDecayRate: Initial voting power decay rate
-     *        - initialDecayFreeWindow: Initial decay-free window duration
-     *        - initialDecayFunction: Initial decay function type
-     *        - hubChainId: ID of the chain where governance actions are permitted
+     * @dev Initializes the Summer token with minimal required parameters
+     * @param params ConstructorParams struct containing basic token configuration
      */
     constructor(
-        TokenParams memory params
+        ConstructorParams memory params
     )
         OFT(params.name, params.symbol, params.lzEndpoint, params.initialOwner)
         ERC20Permit(params.name)
@@ -108,6 +96,21 @@ contract SummerToken is
         DecayController(address(this))
         Ownable(params.initialOwner)
     {
+        hubChainId = params.hubChainId;
+        transferEnableDate = params.transferEnableDate;
+
+        rewardsManager = new GovernanceRewardsManager(
+            address(this),
+            params.accessManager
+        );
+        _setRewardsManager(address(rewardsManager));
+    }
+
+    /**
+     * @dev Completes the token initialization with remaining parameters
+     * @param params InitializeParams struct containing additional configuration
+     */
+    function initialize(InitializeParams memory params) external onlyOwner {
         _validateDecayRate(params.initialYearlyDecayRate);
         _validateDecayFreeWindow(params.initialDecayFreeWindow);
 
@@ -115,7 +118,6 @@ contract SummerToken is
         uint256 perSecondRate = Percentage.unwrap(
             params.initialYearlyDecayRate
         ) / SECONDS_PER_YEAR;
-        hubChainId = params.hubChainId;
 
         decayState.initialize(
             params.initialDecayFreeWindow,
@@ -123,21 +125,13 @@ contract SummerToken is
             params.initialDecayFunction
         );
 
-        rewardsManager = new GovernanceRewardsManager(
-            address(this),
-            params.accessManager
-        );
-        // Required to set rewards manager in Token's DecayController
-        _setRewardsManager(address(rewardsManager));
-
-        transferEnableDate = params.transferEnableDate;
         vestingWalletFactory = new SummerVestingWalletFactory(
             address(this),
             params.accessManager
         );
-        _mint(params.initialOwner, params.initialSupply);
 
-        // Initialize peers if provided
+        _mint(msg.sender, params.initialSupply);
+
         _initializePeers(params.peerEndpointIds, params.peerAddresses);
     }
 

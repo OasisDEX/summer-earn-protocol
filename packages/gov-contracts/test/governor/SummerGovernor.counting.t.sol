@@ -7,7 +7,7 @@ import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensi
 
 contract SummerGovernorCountingTest is SummerGovernorTestBase {
     // Test basic vote counting mode
-    function test_CountingMode() public {
+    function test_CountingMode() public view {
         assertEq(governorA.COUNTING_MODE(), "support=bravo&quorum=for,abstain");
     }
 

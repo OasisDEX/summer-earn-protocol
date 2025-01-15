@@ -112,49 +112,58 @@ contract SummerTokenTestBase is TestHelperOz5 {
         vm.label(address(timelockA), "SummerTimelockController A");
         vm.label(address(timelockB), "SummerTimelockController B");
 
-        ISummerToken.TokenParams memory tokenParamsA = ISummerToken
-            .TokenParams({
+        ISummerToken.ConstructorParams memory constructorParamsA = ISummerToken
+            .ConstructorParams({
                 name: "SummerToken A",
                 symbol: "SUMMERA",
                 lzEndpoint: lzEndpointA,
-                // Changed in inheriting test suites
                 initialOwner: owner,
                 accessManager: address(accessManagerA),
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                transferEnableDate: block.timestamp + 1 days,
+                hubChainId: 31337
+            });
+
+        ISummerToken.InitializeParams memory initParamsA = ISummerToken
+            .InitializeParams({
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                transferEnableDate: block.timestamp + 1 days,
-                maxSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialSupply: INITIAL_SUPPLY * 10 ** 18,
-                hubChainId: 31337,
+                accessManager: address(accessManagerA),
                 peerEndpointIds: new uint32[](0),
                 peerAddresses: new address[](0)
             });
 
-        ISummerToken.TokenParams memory tokenParamsB = ISummerToken
-            .TokenParams({
+        ISummerToken.ConstructorParams memory constructorParamsB = ISummerToken
+            .ConstructorParams({
                 name: "SummerToken B",
                 symbol: "SUMMERB",
                 lzEndpoint: lzEndpointB,
-                // Changed in inheriting test suites
                 initialOwner: owner,
                 accessManager: address(accessManagerB),
+                maxSupply: INITIAL_SUPPLY * 10 ** 18,
+                transferEnableDate: block.timestamp + 1 days,
+                hubChainId: 31338
+            });
+
+        ISummerToken.InitializeParams memory initParamsB = ISummerToken
+            .InitializeParams({
+                initialSupply: 0,
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
                 initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                transferEnableDate: block.timestamp + 1 days,
-                maxSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialSupply: 0,
-                hubChainId: 31338,
+                accessManager: address(accessManagerB),
                 peerEndpointIds: new uint32[](0),
                 peerAddresses: new address[](0)
             });
 
-        vm.label(owner, "Owner");
-
         vm.startPrank(owner);
-        aSummerToken = new SupplyControlSummerToken(tokenParamsA);
-        bSummerToken = new SupplyControlSummerToken(tokenParamsB);
+        aSummerToken = new SupplyControlSummerToken(constructorParamsA);
+        aSummerToken.initialize(initParamsA);
+
+        bSummerToken = new SupplyControlSummerToken(constructorParamsB);
+        bSummerToken.initialize(initParamsB);
         vm.stopPrank();
 
         vestingWalletFactoryA = SummerVestingWalletFactory(
@@ -216,25 +225,31 @@ contract SummerTokenTestBase is TestHelperOz5 {
     function _getDefaultTokenParams()
         internal
         view
-        returns (ISummerToken.TokenParams memory)
+        returns (
+            ISummerToken.ConstructorParams memory constructorParams,
+            ISummerToken.InitializeParams memory initializeParams
+        )
     {
-        return
-            ISummerToken.TokenParams({
-                name: "SummerToken Test",
-                symbol: "SUMMER",
-                lzEndpoint: lzEndpointA,
-                initialOwner: owner,
-                accessManager: address(accessManagerA),
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                transferEnableDate: block.timestamp + 1 days,
-                maxSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialSupply: INITIAL_SUPPLY * 10 ** 18,
-                hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
-            });
+        constructorParams = ISummerToken.ConstructorParams({
+            name: "SummerToken Test",
+            symbol: "SUMMER",
+            lzEndpoint: lzEndpointA,
+            initialOwner: owner,
+            accessManager: address(accessManagerA),
+            maxSupply: INITIAL_SUPPLY * 10 ** 18,
+            transferEnableDate: block.timestamp + 1 days,
+            hubChainId: 31337
+        });
+
+        initializeParams = ISummerToken.InitializeParams({
+            initialSupply: INITIAL_SUPPLY * 10 ** 18,
+            initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+            initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+            initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+            accessManager: address(accessManagerA),
+            peerEndpointIds: new uint32[](0),
+            peerAddresses: new address[](0)
+        });
     }
 }
 

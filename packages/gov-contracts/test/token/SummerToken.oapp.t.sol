@@ -39,7 +39,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
     // OApp Version Tests
     // ===============================================
 
-    function test_OAppVersion() public {
+    function test_OAppVersion() public view {
         (uint64 senderVersion, uint64 receiverVersion) = aSummerToken
             .oAppVersion();
         assertEq(senderVersion, 1);
@@ -256,21 +256,21 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
     // OFT Interface Tests
     // ===============================================
 
-    function test_OFTVersion() public {
+    function test_OFTVersion() public view {
         (bytes4 interfaceId, uint64 version) = aSummerToken.oftVersion();
         assertEq(interfaceId, type(IOFT).interfaceId);
         assertEq(version, 1);
     }
 
-    function test_Token() public {
+    function test_Token() public view {
         assertEq(aSummerToken.token(), address(aSummerToken));
     }
 
-    function test_ApprovalRequired() public {
+    function test_ApprovalRequired() public view {
         assertFalse(aSummerToken.approvalRequired());
     }
 
-    function test_SharedDecimals() public {
+    function test_SharedDecimals() public view {
         assertEq(aSummerToken.sharedDecimals(), 6);
     }
 
@@ -278,7 +278,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
     // OAppOptionsType3 Tests
     // ===============================================
 
-    function test_CombineOptions_NoEnforcedOptions() public {
+    function test_CombineOptions_NoEnforcedOptions() public view {
         bytes memory options = OptionsBuilder
             .newOptions()
             .addExecutorLzReceiveOption(100000, 0);
@@ -407,7 +407,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
     // Decimal Conversion Tests
     // ===============================================
 
-    function test_DecimalConversions() public {
+    function test_DecimalConversions() public view {
         uint256 amount = 1234567890;
 
         // Test conversion consistency using decimalConversionRate
@@ -481,26 +481,21 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
     function test_RevertWhen_InvalidLocalDecimals() public {
         vm.startPrank(owner);
 
-        // Try to deploy the invalid decimals token - should revert
-        vm.expectRevert(IOFT.InvalidLocalDecimals.selector);
-        new InvalidDecimalsSummerToken(
-            ISummerToken.TokenParams({
+        ISummerToken.ConstructorParams memory constructorParams = ISummerToken
+            .ConstructorParams({
                 name: "Summer Token",
                 symbol: "SUMMER",
                 lzEndpoint: address(endpoints[aEid]),
                 initialOwner: owner,
                 accessManager: address(accessManagerA),
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
-                transferEnableDate: block.timestamp + 1 days,
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialSupply: INITIAL_SUPPLY * 10 ** 18,
-                hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
-            })
-        );
+                transferEnableDate: block.timestamp + 1 days,
+                hubChainId: 31337
+            });
+
+        // Try to deploy the invalid decimals token - should revert
+        vm.expectRevert(IOFT.InvalidLocalDecimals.selector);
+        new InvalidDecimalsSummerToken(constructorParams);
 
         vm.stopPrank();
     }
@@ -531,7 +526,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
         aSummerToken.setEnforcedOptions(params);
     }
 
-    function test_RevertWhen_EmptyOptionsWithNoEnforced() public {
+    function test_RevertWhen_EmptyOptionsWithNoEnforced() public view {
         bytes memory empty = "";
         bytes memory result = aSummerToken.combineOptions(
             bEid,
@@ -628,7 +623,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
         aSummerToken.lzReceiveSimulate(origin, bytes32(0), "", address(0), "");
     }
 
-    function test_OAppAddress() public {
+    function test_OAppAddress() public view {
         assertEq(aSummerToken.oApp(), address(aSummerToken));
     }
 
@@ -704,7 +699,9 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
 }
 
 contract InvalidDecimalsSummerToken is SummerToken {
-    constructor(TokenParams memory params) SummerToken(params) {}
+    constructor(
+        ISummerToken.ConstructorParams memory params
+    ) SummerToken(params) {}
 
     // Override decimals to return 5 (less than shared decimals of 6)
     function decimals() public pure override returns (uint8) {
