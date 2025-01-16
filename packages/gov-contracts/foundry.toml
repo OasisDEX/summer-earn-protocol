@@ -9,8 +9,7 @@ test = 'test'
 cache_path  = 'cache_forge'
 solc = "0.8.28"
 viaIR = true
-optimizer = true
-optimizer_runs = 50
+optimizer = false
 evm_version = "cancun"
 cbor_metadata = true
 
