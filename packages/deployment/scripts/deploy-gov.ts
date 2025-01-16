@@ -252,31 +252,16 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   const isHubChain =
     (await summerGovernor.read.hubChainId()) === BigInt(!hre.network.config.chainId)
 
-  // Set up the correct governor role based on chain
-  if (isHubChain) {
-    console.log('[PROTOCOL ACCESS MANAGER] - Setting up HUB chain governance...')
-    // On HUB, the timelock should have governor role
-    const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      GOVERNOR_ROLE,
-      timelock.address,
-    ])
-    if (!hasGovernorRole) {
-      console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
-      const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
-      await publicClient.waitForTransactionReceipt({ hash })
-    }
-  } else {
-    console.log('[PROTOCOL ACCESS MANAGER] - Setting up satellite chain governance...')
-    // On satellite chains, the governor contract itself should have governor role
-    const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      GOVERNOR_ROLE,
-      summerGovernor.address,
-    ])
-    if (!hasGovernorRole) {
-      console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to governor contract...')
-      const hash = await protocolAccessManager.write.grantGovernorRole([summerGovernor.address])
-      await publicClient.waitForTransactionReceipt({ hash })
-    }
+  // Remove the chain-specific governor role assignment and always set timelock as governor
+  console.log('[PROTOCOL ACCESS MANAGER] - Setting up governance...')
+  const hasGovernorRole = await protocolAccessManager.read.hasRole([
+    GOVERNOR_ROLE,
+    timelock.address,
+  ])
+  if (!hasGovernorRole) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
+    const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
+    await publicClient.waitForTransactionReceipt({ hash })
   }
 
   // On satellite chains, grant CANCELLER_ROLE to timelock
