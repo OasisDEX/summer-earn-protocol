@@ -156,11 +156,17 @@ function getPeersForContract(
         continue
       }
 
+      // Only add peer if address exists and is not zero address
       if (address && address !== ADDRESS_ZERO) {
         peers.push({
           eid: parseInt(layerZeroEID),
           address,
         })
+      } else {
+        console.log(
+          kleur.yellow().bold('Skipping network, no valid contract address:'),
+          kleur.cyan(targetNetwork),
+        )
       }
     } catch (error) {
       console.log(kleur.red().bold('Error processing network config:'), kleur.cyan(targetNetwork))
@@ -217,22 +223,6 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     'ProtocolAccessManager' as string,
     gov.protocolAccessManager.address as Address,
   )
-
-  // Check if token needs initialization
-  try {
-    // This will throw if already initialized
-    const peers = getPeersFromConfig(hre.network.name)
-    const initParams = {
-      initialSupply: getInitialSupply(config),
-      peerEndpointIds: peers.tokenPeers.map((p) => p.eid),
-      peerAddresses: peers.tokenPeers.map((p) => p.address),
-    }
-    console.log('[SUMMER TOKEN] - Initializing token with peers...')
-    const hash = await summerToken.write.initialize([initParams])
-    await publicClient.waitForTransactionReceipt({ hash })
-  } catch (error) {
-    console.log('[SUMMER TOKEN] - Token already initialized or initialization failed:', error)
-  }
 
   // Get governance rewards manager address from SummerToken
   const rewardsManagerAddress = await summerToken.read.rewardsManager()

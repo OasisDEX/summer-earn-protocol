@@ -2,20 +2,20 @@
   "base": {
     "deployedContracts": {
       "gov": {
-        "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x7e452F067c508f0661B3a5B5a828148442c15f28"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x45cD11ad16334B23ACCC27B8C5c9ACFC6fd2bc50"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x6ABd21b52fB7d62e07060Ef86537790633981928"
+        },
+        "protocolAccessManager": {
+          "address": "0x2dAb8DBA1633c742c8D2Fbf7129f3Aa075A575C3"
         },
         "rewardsRedeemer": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xc77974Ba8759946EDc61e1C176816DE09f03b89d"
         }
       },
       "buyAndBurn": {
