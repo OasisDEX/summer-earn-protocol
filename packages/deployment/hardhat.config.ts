@@ -55,9 +55,6 @@ const config: HardhatUserConfig = {
           balance: '1000000000000000000000', // 1000 ETH in wei
         },
       ],
-      forking: {
-        url: `${process.env.BASE_RPC_URL}`,
-      },
     },
     // mainnets
     mainnet: {

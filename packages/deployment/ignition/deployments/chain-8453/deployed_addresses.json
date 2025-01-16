@@ -1,8 +1,0 @@
-{
-  "GovModule#ProtocolAccessManager": "0x2dAb8DBA1633c742c8D2Fbf7129f3Aa075A575C3",
-  "GovModule#VotingDecayLibrary": "0xdcA093dB8f7BeCF50fDD6DB64D7d130862044229",
-  "GovModule#SummerTimelockController": "0x6ABd21b52fB7d62e07060Ef86537790633981928",
-  "GovModule#SummerToken": "0x45cD11ad16334B23ACCC27B8C5c9ACFC6fd2bc50",
-  "GovModule#SummerGovernor": "0x7e452F067c508f0661B3a5B5a828148442c15f28",
-  "GovModule#SummerRewardsRedeemer": "0xc77974Ba8759946EDc61e1C176816DE09f03b89d"
-}
