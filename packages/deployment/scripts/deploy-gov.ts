@@ -48,22 +48,58 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
     throw new Error('LayerZero is not set up correctly')
   }
   // Add peer configuration prompt
-  const peers = getPeersFromConfig(hre.network.name)
+  console.log('Deploying Gov Module...')
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
       GovModule: {
         lzEndpoint: config.common.layerZero.lzEndpoint,
         initialSupply,
-        peerEndpointIds: peers.tokenPeers.map((p) => p.eid),
-        peerAddresses: peers.tokenPeers.map((p) => p.address),
-        governorPeerEndpointIds: peers.governorPeers.map((p) => p.eid),
-        governorPeerAddresses: peers.governorPeers.map((p) => p.address),
+        // Initialize with empty peer arrays to avoid deployment issues
+        // Peers should be configured post-deployment because:
+        // 1. Peer configurations can change between deploy runs
+        // 2. Contracts need to be deployed before they can be peers
+        // 3. This allows for more flexible peer management
+        peerEndpointIds: [],
+        peerAddresses: [],
+        governorPeerEndpointIds: [],
+        governorPeerAddresses: [],
       },
     },
   })
 
+  console.log('Updating index.json...')
   updateIndexJson('gov', hre.network.name, gov)
+
+  console.log('Setting up governance roles...')
   await setupGovernanceRoles(gov, config)
+
+  // Set up cross-chain peers after deployment
+  const summerToken = await hre.viem.getContractAt(
+    'SummerToken' as string,
+    gov.summerToken.address as Address,
+  )
+  const summerGovernor = await hre.viem.getContractAt(
+    'SummerGovernor' as string,
+    gov.summerGovernor.address as Address,
+  )
+  const publicClient = await hre.viem.getPublicClient()
+
+  // Get peers using existing configuration logic
+  const peers = getPeersFromConfig(hre.network.name)
+
+  // Set token peers
+  for (const peer of peers.tokenPeers) {
+    const hash = await summerToken.write.setPeer([peer.eid, toBytes(peer.address, { size: 32 })])
+    await publicClient.waitForTransactionReceipt({ hash })
+    console.log(`Set token peer for endpoint ${peer.eid}: ${peer.address}`)
+  }
+
+  // Set governor peers
+  for (const peer of peers.governorPeers) {
+    const hash = await summerGovernor.write.setPeer([peer.eid, toBytes(peer.address, { size: 32 })])
+    await publicClient.waitForTransactionReceipt({ hash })
+    console.log(`Set governor peer for endpoint ${peer.eid}: ${peer.address}`)
+  }
 
   console.log(kleur.green().bold('All Gov Contracts Deployed Successfully!'))
 
@@ -98,6 +134,7 @@ function getTokenPeers(sourceNetwork: string): PeerConfig[] {
   return getPeersForContract(sourceNetwork, (config) => ({
     address: config.deployedContracts?.gov?.summerToken?.address,
     skipSatelliteToSatellite: false,
+    label: 'TOKEN',
   }))
 }
 
@@ -108,6 +145,7 @@ function getGovernorPeers(sourceNetwork: string): PeerConfig[] {
   return getPeersForContract(sourceNetwork, (config) => ({
     address: config.deployedContracts?.gov?.summerGovernor?.address,
     skipSatelliteToSatellite: true,
+    label: 'GOVERNOR',
   }))
 }
 
@@ -119,6 +157,7 @@ function getPeersForContract(
   getContractInfo: (config: BaseConfig) => {
     address: string | undefined
     skipSatelliteToSatellite: boolean
+    label: string
   },
 ): PeerConfig[] {
   const peers: PeerConfig[] = []
@@ -128,20 +167,23 @@ function getPeersForContract(
 
   for (const targetNetwork of networks) {
     if (targetNetwork === sourceNetwork) {
-      console.log(kleur.blue().bold('Skipping source network:'), kleur.cyan(targetNetwork))
+      console.log(
+        kleur.blue().bold('Peering - skipping source network:'),
+        kleur.cyan(targetNetwork),
+      )
       continue
     }
 
     try {
       const networkConfig = getConfigByNetwork(targetNetwork)
-      const { address, skipSatelliteToSatellite } = getContractInfo(networkConfig)
+      const { address, skipSatelliteToSatellite, label } = getContractInfo(networkConfig)
       const layerZeroEID = networkConfig.common?.layerZero?.eID
 
       const isTargetHub = targetNetwork === HUB_NETWORK
 
       if (!layerZeroEID) {
         console.log(
-          kleur.yellow().bold('Skipping network, missing LayerZero config:'),
+          kleur.yellow().bold('Peering - skipping network, missing LayerZero config:'),
           kleur.cyan(targetNetwork),
         )
         continue
@@ -150,17 +192,23 @@ function getPeersForContract(
       // Skip satellite-to-satellite connections if specified
       if (skipSatelliteToSatellite && !isSourceHub && !isTargetHub) {
         console.log(
-          kleur.blue().bold('Skipping satellite-to-satellite peering:'),
+          kleur.blue().bold(`Peering - ${label} - skipping satellite-to-satellite peering:`),
           kleur.cyan(`${sourceNetwork} -> ${targetNetwork}`),
         )
         continue
       }
 
+      // Only add peer if address exists and is not zero address
       if (address && address !== ADDRESS_ZERO) {
         peers.push({
           eid: parseInt(layerZeroEID),
           address,
         })
+      } else {
+        console.log(
+          kleur.yellow().bold('Peering - skipping network, no valid contract address:'),
+          kleur.cyan(targetNetwork),
+        )
       }
     } catch (error) {
       console.log(kleur.red().bold('Error processing network config:'), kleur.cyan(targetNetwork))
@@ -217,22 +265,6 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     'ProtocolAccessManager' as string,
     gov.protocolAccessManager.address as Address,
   )
-
-  // Check if token needs initialization
-  try {
-    // This will throw if already initialized
-    const peers = getPeersFromConfig(hre.network.name)
-    const initParams = {
-      initialSupply: getInitialSupply(config),
-      peerEndpointIds: peers.tokenPeers.map((p) => p.eid),
-      peerAddresses: peers.tokenPeers.map((p) => p.address),
-    }
-    console.log('[SUMMER TOKEN] - Initializing token with peers...')
-    const hash = await summerToken.write.initialize([initParams])
-    await publicClient.waitForTransactionReceipt({ hash })
-  } catch (error) {
-    console.log('[SUMMER TOKEN] - Token already initialized or initialization failed:', error)
-  }
 
   // Get governance rewards manager address from SummerToken
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
