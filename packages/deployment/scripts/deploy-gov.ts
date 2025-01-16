@@ -84,79 +84,92 @@ function getInitialSupply(config: BaseConfig): bigint {
  * Retrieves both token and governor peer configurations for the given network.
  * @param currentNetwork - The name of the current network to exclude from the peer list.
  */
-function getPeersFromConfig(currentNetwork: string): NetworkPeers {
-  const tokenPeers: PeerConfig[] = []
-  const governorPeers: PeerConfig[] = []
+function getPeersFromConfig(sourceNetwork: string): NetworkPeers {
+  return {
+    tokenPeers: getTokenPeers(sourceNetwork),
+    governorPeers: getGovernorPeers(sourceNetwork),
+  }
+}
+
+/**
+ * Gets token peer configurations for all networks except current
+ */
+function getTokenPeers(sourceNetwork: string): PeerConfig[] {
+  return getPeersForContract(sourceNetwork, (config) => ({
+    address: config.deployedContracts?.gov?.summerToken?.address,
+    skipSatelliteToSatellite: false,
+  }))
+}
+
+/**
+ * Gets governor peer configurations following hub-spoke model
+ */
+function getGovernorPeers(sourceNetwork: string): PeerConfig[] {
+  return getPeersForContract(sourceNetwork, (config) => ({
+    address: config.deployedContracts?.gov?.summerGovernor?.address,
+    skipSatelliteToSatellite: true,
+  }))
+}
+
+/**
+ * Shared functionality for getting peer configurations
+ */
+function getPeersForContract(
+  sourceNetwork: string,
+  getContractInfo: (config: BaseConfig) => {
+    address: string | undefined
+    skipSatelliteToSatellite: boolean
+  },
+): PeerConfig[] {
+  const peers: PeerConfig[] = []
   const networks = Object.values(SupportedNetworks)
   const HUB_NETWORK = SupportedNetworks.BASE
+  const isSourceHub = sourceNetwork === HUB_NETWORK
 
-  // Determine if current network is hub
-  const isHub = currentNetwork === HUB_NETWORK
-
-  for (const network of networks) {
-    // Skip current network
-    if (network === currentNetwork) {
-      console.log(kleur.blue().bold('Skipping current network:'), kleur.cyan(network))
-      continue
-    }
-
-    // For satellite chains, only peer with hub
-    if (!isHub && network !== HUB_NETWORK) {
-      console.log(
-        kleur.blue().bold('Skipping satellite-to-satellite peering:'),
-        kleur.cyan(`${currentNetwork} -> ${network}`),
-      )
+  for (const targetNetwork of networks) {
+    if (targetNetwork === sourceNetwork) {
+      console.log(kleur.blue().bold('Skipping source network:'), kleur.cyan(targetNetwork))
       continue
     }
 
     try {
-      const networkConfig = getConfigByNetwork(network)
-      const tokenAddress = networkConfig.deployedContracts?.gov?.summerToken?.address
-      const governorAddress = networkConfig.deployedContracts?.gov?.summerGovernor?.address
+      const networkConfig = getConfigByNetwork(targetNetwork)
+      const { address, skipSatelliteToSatellite } = getContractInfo(networkConfig)
       const layerZeroEID = networkConfig.common?.layerZero?.eID
+
+      const isTargetHub = targetNetwork === HUB_NETWORK
 
       if (!layerZeroEID) {
         console.log(
           kleur.yellow().bold('Skipping network, missing LayerZero config:'),
-          kleur.cyan(network),
+          kleur.cyan(targetNetwork),
         )
         continue
       }
 
-      // Add token peer if available
-      if (tokenAddress && tokenAddress !== ADDRESS_ZERO) {
-        tokenPeers.push({
-          eid: parseInt(layerZeroEID),
-          address: tokenAddress,
-        })
+      // Skip satellite-to-satellite connections if specified
+      if (skipSatelliteToSatellite && !isSourceHub && !isTargetHub) {
+        console.log(
+          kleur.blue().bold('Skipping satellite-to-satellite peering:'),
+          kleur.cyan(`${sourceNetwork} -> ${targetNetwork}`),
+        )
+        continue
       }
 
-      // Add governor peer if available
-      if (governorAddress && governorAddress !== ADDRESS_ZERO) {
-        governorPeers.push({
+      if (address && address !== ADDRESS_ZERO) {
+        peers.push({
           eid: parseInt(layerZeroEID),
-          address: governorAddress,
+          address,
         })
       }
     } catch (error) {
-      console.log(kleur.red().bold('Error processing network config:'), kleur.cyan(network))
+      console.log(kleur.red().bold('Error processing network config:'), kleur.cyan(targetNetwork))
       console.error(error)
       continue
     }
   }
 
-  // Log peer configurations
-  console.log('\nConfigured Token Peers:')
-  tokenPeers.forEach((peer) => {
-    console.log(kleur.blue(`EID: ${peer.eid}`), kleur.cyan(`Address: ${peer.address}`))
-  })
-
-  console.log('\nConfigured Governor Peers:')
-  governorPeers.forEach((peer) => {
-    console.log(kleur.blue(`EID: ${peer.eid}`), kleur.cyan(`Address: ${peer.address}`))
-  })
-
-  return { tokenPeers, governorPeers }
+  return peers
 }
 
 /**
