@@ -3,12 +3,11 @@ import dotenv from 'dotenv'
 import fs from 'fs'
 import hre from 'hardhat'
 import path from 'path'
-import { Address, encodeFunctionData, keccak256, toBytes } from 'viem'
+import { Address, encodeFunctionData } from 'viem'
 import { base } from 'viem/chains'
-import { ADDRESS_ZERO } from '../common/constants'
+import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 const VESTING_TYPE = {
   TeamVesting: 0,
   InvestorExTeamVesting: 1,
@@ -31,7 +30,8 @@ const chainConfig = {
 
 async function main() {
   console.log('🚀 Starting Safe vesting wallet creation process...\n')
-
+  // Prepare transactions array for Safe
+  const transactions = []
   if (!process.env.SAFE_ADDRESS) {
     throw new Error('SAFE_ADDRESS not set in environment')
   }
@@ -69,6 +69,23 @@ async function main() {
     console.log('✅ You are a governor - all good!')
   }
 
+  const hasFoundationRole = await accessManager.read.hasRole([FOUNDATION_ROLE, safeAddress])
+  if (!hasFoundationRole) {
+    console.log('❌ You are not a foundation - adding...')
+    const grantFoundationRoleCalldata = encodeFunctionData({
+      abi: accessManager.abi,
+      functionName: 'grantFoundationRole',
+      args: [safeAddress],
+    })
+    transactions.push({
+      to: accessManager.address,
+      data: grantFoundationRoleCalldata,
+      value: '0',
+    })
+  } else {
+    console.log('✅ You are a foundation - all good!')
+  }
+
   console.log(' Instantiating SummerVestingWalletFactory...')
   const FACTORY_ADDRESS = (await summerToken.read.vestingWalletFactory()) as Address
   const vestingWalletFactory = await hre.viem.getContractAt(
@@ -90,8 +107,6 @@ async function main() {
     throw new Error('❌ Safe balance is less than total amount')
   }
 
-  // Prepare transactions array for Safe
-  const transactions = []
   const allowance = (await summerToken.read.allowance([safeAddress, FACTORY_ADDRESS])) as bigint
   if (allowance < totalAmount) {
     console.log('❌ Allowance is less than total amount, adding approval tx...')

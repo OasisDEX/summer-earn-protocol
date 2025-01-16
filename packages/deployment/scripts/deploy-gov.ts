@@ -1,19 +1,20 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 
-import { Address, keccak256, toBytes } from 'viem'
+import { Address } from 'viem'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
 import { BaseConfig, SupportedNetworks } from '../types/config-types'
-import { ADDRESS_ZERO } from './common/constants'
+import {
+  ADDRESS_ZERO,
+  CANCELLER_ROLE,
+  DECAY_CONTROLLER_ROLE,
+  EXECUTOR_ROLE,
+  GOVERNOR_ROLE,
+  PROPOSER_ROLE,
+} from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 import { updateIndexJson } from './helpers/update-json'
-
-const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
-const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
-const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
-const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
 interface PeerConfig {
   eid: number

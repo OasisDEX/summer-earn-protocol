@@ -2,12 +2,11 @@ import dotenv from 'dotenv'
 import fs from 'fs'
 import hre from 'hardhat'
 import path from 'path'
-import { Address, keccak256, toBytes } from 'viem'
+import { Address } from 'viem'
 import { base } from 'viem/chains'
-import { ADDRESS_ZERO } from '../common/constants'
+import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 const VESTING_TYPE = {
   TeamVesting: 0,
   InvestorExTeamVesting: 1,
@@ -60,6 +59,17 @@ async function main() {
     throw new Error('❌ You are not a governor')
   } else {
     console.log('✅ You are a governor - all good!')
+  }
+
+  const hasFoundationRole = await accessManager.read.hasRole([
+    FOUNDATION_ROLE,
+    signer.account.address,
+  ])
+  if (!hasFoundationRole) {
+    console.log('❌ You are not a foundation - adding...')
+    await accessManager.write.grantFoundationRole([signer.account.address])
+  } else {
+    console.log('✅ You are a foundation - all good!')
   }
 
   console.log('✅ Address of the factory: ', FACTORY_ADDRESS)
@@ -118,7 +128,9 @@ async function main() {
       ? VESTING_TYPE.TeamVesting
       : VESTING_TYPE.InvestorExTeamVesting
 
-    console.log('📋 Creating vesting wallet...')
+    console.log(
+      `📋 Creating vesting wallet for ${beneficiary} with type ${vestingType}. Time based amount: ${timeBasedAmount}. Goal amounts: ${goalAmounts.join(', ')}.`,
+    )
 
     const tx = await vestingWalletFactory.write.createVestingWallet([
       beneficiary as Address,
