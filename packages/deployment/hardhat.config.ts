@@ -74,6 +74,10 @@ const config: HardhatUserConfig = {
       url: `${process.env.ARBITRUM_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
       chainId: 42161,
+      ignition: {
+        maxFeePerGasLimit: 500_000_000_000n, // 500 gwei
+        maxPriorityFeePerGas: 200_000_000_000n, // 200 gwei
+      },
     },
     base: {
       url: `${process.env.BASE_RPC_URL}`,
