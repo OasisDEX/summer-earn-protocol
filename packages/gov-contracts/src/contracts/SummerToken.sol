@@ -99,20 +99,6 @@ contract SummerToken is
         DecayController(address(this))
         Ownable(params.initialOwner)
     {
-        _validateDecayRate(params.initialYearlyDecayRate);
-        _validateDecayFreeWindow(params.initialDecayFreeWindow);
-
-        // Convert yearly rate to per-second rate
-        uint256 perSecondRate = Percentage.unwrap(
-            params.initialYearlyDecayRate
-        ) / SECONDS_PER_YEAR;
-
-        decayState.initialize(
-            params.initialDecayFreeWindow,
-            perSecondRate,
-            params.initialDecayFunction
-        );
-
         rewardsManager = new GovernanceRewardsManager(
             address(this),
             params.accessManager
@@ -136,33 +122,22 @@ contract SummerToken is
         if (_initialized) {
             revert AlreadyInitialized();
         }
-        _initializePeers(params.peerEndpointIds, params.peerAddresses);
+        _validateDecayRate(params.initialYearlyDecayRate);
+        _validateDecayFreeWindow(params.initialDecayFreeWindow);
+
+        // Convert yearly rate to per-second rate
+        uint256 perSecondRate = Percentage.unwrap(
+            params.initialYearlyDecayRate
+        ) / SECONDS_PER_YEAR;
+
+        decayState.initialize(
+            params.initialDecayFreeWindow,
+            perSecondRate,
+            params.initialDecayFunction
+        );
+
         _mint(msg.sender, params.initialSupply);
         _initialized = true;
-    }
-
-    /**
-     * @dev Internal function to initialize peers during construction
-     * @param _peerEndpointIds Array of chain IDs for peers
-     * @param _peerAddresses Array of peer addresses corresponding to chainIds
-     */
-    function _initializePeers(
-        uint32[] memory _peerEndpointIds,
-        address[] memory _peerAddresses
-    ) internal {
-        if (_peerEndpointIds.length == 0) {
-            return;
-        }
-        if (_peerEndpointIds.length != _peerAddresses.length) {
-            revert SummerTokenInvalidPeerArrays();
-        }
-
-        for (uint256 i = 0; i < _peerEndpointIds.length; i++) {
-            _setPeer(
-                _peerEndpointIds[i],
-                bytes32(uint256(uint160(_peerAddresses[i])))
-            );
-        }
     }
 
     /*//////////////////////////////////////////////////////////////

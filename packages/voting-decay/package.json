@@ -7,6 +7,7 @@
   },
   "devDependencies": {
     "@summerfi/dependencies": "workspace:*",
+    "@summerfi/constants": "workspace:*",
     "prettier": "^3.0.0",
     "solhint": "^3.6.2"
   },

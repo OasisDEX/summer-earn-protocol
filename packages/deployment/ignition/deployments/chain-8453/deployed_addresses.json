@@ -1,0 +1,7 @@
+{
+  "GovModule#ProtocolAccessManager": "0xF50674885Bb7D50077b7b6a880760734BEd2A47A",
+  "GovModule#SummerTimelockController": "0xc2B80aED390f5c22C7b7E867bC7b59D2C2014727",
+  "GovModule#SummerToken": "0x26BB23685ED0692902C101F9E8bc2f0bBD619ade",
+  "GovModule#SummerGovernor": "0xc9D42d49EAC47765B9Ee9633bCF079ABF17954aF",
+  "GovModule#SummerRewardsRedeemer": "0xBc2769387f788bba70F75c0665f2376C9a808C79"
+}

@@ -14,7 +14,7 @@ library VotingDecayLibrary {
     using Checkpoints for Checkpoints.Trace224;
 
     /* @notice Constant representing 1 in the system's fixed-point arithmetic (18 decimal places) */
-    uint256 public constant WAD = 1e18;
+    uint256 private constant WAD = 1e18;
 
     /* @notice Number of seconds in a year, used for annualized rate calculations */
     uint256 private constant SECONDS_PER_YEAR = 365 days;
@@ -405,7 +405,7 @@ library VotingDecayLibrary {
     function hasDecayInfo(
         DecayState storage self,
         address accountAddress
-    ) public view returns (bool) {
+    ) internal view returns (bool) {
         return self.decayInfoByAccount[accountAddress].lastUpdateTimestamp != 0;
     }
 

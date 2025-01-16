@@ -57,6 +57,7 @@
     "@summerfi/rewards-contracts": "workspace:*",
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
+    "@summerfi/voting-decay": "workspace:*",
     "@types/prompts": "^2.4.9",
     "hardhat": "^2.22.8",
     "hardhat-contract-sizer": "^2.10.0",

@@ -42,7 +42,7 @@ export const GovModule = buildModule('GovModule', (m) => {
   const governorPeerEndpointIds = m.getParameter<number[]>('governorPeerEndpointIds', [])
   const governorPeerAddresses = m.getParameter<string[]>('governorPeerAddresses', [])
 
-  const votingDecayLibrary = m.contract('VotingDecayLibrary', [])
+  // const votingDecayLibrary = m.contract('VotingDecayLibrary', [])
 
   /**
    * @dev Step 0: Deploy ProtocolAccessManager
@@ -84,20 +84,16 @@ export const GovModule = buildModule('GovModule', (m) => {
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
     transferEnableDate: 1731667188n,
     hubChainId: HUB_CHAIN_ID,
+  }
+
+  const summerTokenInitParams = {
+    initialSupply: initialSupply,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
     initialYearlyDecayRate: BigInt(0.1e18), // ~10% per year
     initialDecayFunction: DecayType.Linear,
   }
 
-  const summerTokenInitParams = {
-    initialSupply: initialSupply,
-    peerEndpointIds: peerEndpointIds,
-    peerAddresses: peerAddresses,
-  }
-
-  const summerToken = m.contract('SummerToken', [summerTokenConstructorParams], {
-    libraries: { VotingDecayLibrary: votingDecayLibrary },
-  })
+  const summerToken = m.contract('SummerToken', [summerTokenConstructorParams])
 
   m.call(summerToken, 'initialize', [summerTokenInitParams])
 
