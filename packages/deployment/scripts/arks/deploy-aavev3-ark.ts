@@ -128,7 +128,7 @@ async function deployAaveV3ArkContract(
             pool: config.protocolSpecific.aaveV3.pool,
             chainId: chainId,
           }),
-          accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
+          accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
           asset: userInput.token.address,

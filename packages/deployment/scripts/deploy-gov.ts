@@ -3,7 +3,7 @@ import kleur from 'kleur'
 
 import { Address, keccak256, toBytes } from 'viem'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
-import { BaseConfig } from '../types/config-types'
+import { BaseConfig, SupportedNetworks } from '../types/config-types'
 import { ADDRESS_ZERO } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
@@ -18,6 +18,11 @@ const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 interface PeerConfig {
   eid: number
   address: string
+}
+
+interface NetworkPeers {
+  tokenPeers: PeerConfig[]
+  governorPeers: PeerConfig[]
 }
 
 export async function deployGov() {
@@ -49,8 +54,10 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
       GovModule: {
         lzEndpoint: config.common.layerZero.lzEndpoint,
         initialSupply,
-        peerEndpointIds: peers.map((p) => p.eid),
-        peerAddresses: peers.map((p) => p.address),
+        peerEndpointIds: peers.tokenPeers.map((p) => p.eid),
+        peerAddresses: peers.tokenPeers.map((p) => p.address),
+        governorPeerEndpointIds: peers.governorPeers.map((p) => p.eid),
+        governorPeerAddresses: peers.governorPeers.map((p) => p.address),
       },
     },
   })
@@ -74,53 +81,92 @@ function getInitialSupply(config: BaseConfig): bigint {
 }
 
 /**
- * Retrieves the peer configuration for the given network.
- *
- * This function iterates over all available networks, excluding the current one,
- * and collects the peer configurations for networks where the SummerGovernor contract
- * is deployed. The peer configuration includes the endpoint ID (eid) and the address
- * of the SummerGovernor contract.
- *
+ * Retrieves both token and governor peer configurations for the given network.
  * @param currentNetwork - The name of the current network to exclude from the peer list.
- * @returns An array of peer configurations.
  */
-function getPeersFromConfig(currentNetwork: string): PeerConfig[] {
-  const peers: PeerConfig[] = []
-  const networks = Object.keys(hre.config.networks)
-
-  for (const network of networks) {
-    console.log(kleur.blue().bold('Checking network:'), kleur.cyan(network))
-    // Skip current network
-    if (network === currentNetwork || network === 'hardhat' || network === 'local') {
-      console.log(kleur.blue().bold('Skipping current network:'), kleur.cyan(network))
-      continue
-    }
-
-    // Get config for the network
-    try {
-      const networkConfig = getConfigByNetwork(network)
-      // Skip if no gov contracts or SummerGovernor not deployed
-      if (
-        !networkConfig.deployedContracts?.gov?.summerGovernor?.address ||
-        networkConfig.deployedContracts?.gov?.summerGovernor.address == ADDRESS_ZERO
-      )
-        continue
-      peers.push({
-        eid: parseInt(networkConfig.common.layerZero.eID),
-        address: networkConfig.deployedContracts.gov.summerGovernor.address,
-      })
-    } catch (error) {
-      console.log(kleur.red().bold('Skipping network, lack of config:'), kleur.cyan(network))
-      continue
-    }
+function getPeersFromConfig(sourceNetwork: string): NetworkPeers {
+  return {
+    tokenPeers: getTokenPeers(sourceNetwork),
+    governorPeers: getGovernorPeers(sourceNetwork),
   }
+}
 
-  // Log peer configuration
-  if (peers.length > 0) {
-    console.log('\nConfigured Peers:')
-    peers.forEach((peer) => {
-      console.log(kleur.blue(`EID: ${peer.eid}`), kleur.cyan(`Address: ${peer.address}`))
-    })
+/**
+ * Gets token peer configurations for all networks except current
+ */
+function getTokenPeers(sourceNetwork: string): PeerConfig[] {
+  return getPeersForContract(sourceNetwork, (config) => ({
+    address: config.deployedContracts?.gov?.summerToken?.address,
+    skipSatelliteToSatellite: false,
+  }))
+}
+
+/**
+ * Gets governor peer configurations following hub-spoke model
+ */
+function getGovernorPeers(sourceNetwork: string): PeerConfig[] {
+  return getPeersForContract(sourceNetwork, (config) => ({
+    address: config.deployedContracts?.gov?.summerGovernor?.address,
+    skipSatelliteToSatellite: true,
+  }))
+}
+
+/**
+ * Shared functionality for getting peer configurations
+ */
+function getPeersForContract(
+  sourceNetwork: string,
+  getContractInfo: (config: BaseConfig) => {
+    address: string | undefined
+    skipSatelliteToSatellite: boolean
+  },
+): PeerConfig[] {
+  const peers: PeerConfig[] = []
+  const networks = Object.values(SupportedNetworks)
+  const HUB_NETWORK = SupportedNetworks.BASE
+  const isSourceHub = sourceNetwork === HUB_NETWORK
+
+  for (const targetNetwork of networks) {
+    if (targetNetwork === sourceNetwork) {
+      console.log(kleur.blue().bold('Skipping source network:'), kleur.cyan(targetNetwork))
+      continue
+    }
+
+    try {
+      const networkConfig = getConfigByNetwork(targetNetwork)
+      const { address, skipSatelliteToSatellite } = getContractInfo(networkConfig)
+      const layerZeroEID = networkConfig.common?.layerZero?.eID
+
+      const isTargetHub = targetNetwork === HUB_NETWORK
+
+      if (!layerZeroEID) {
+        console.log(
+          kleur.yellow().bold('Skipping network, missing LayerZero config:'),
+          kleur.cyan(targetNetwork),
+        )
+        continue
+      }
+
+      // Skip satellite-to-satellite connections if specified
+      if (skipSatelliteToSatellite && !isSourceHub && !isTargetHub) {
+        console.log(
+          kleur.blue().bold('Skipping satellite-to-satellite peering:'),
+          kleur.cyan(`${sourceNetwork} -> ${targetNetwork}`),
+        )
+        continue
+      }
+
+      if (address && address !== ADDRESS_ZERO) {
+        peers.push({
+          eid: parseInt(layerZeroEID),
+          address,
+        })
+      }
+    } catch (error) {
+      console.log(kleur.red().bold('Error processing network config:'), kleur.cyan(targetNetwork))
+      console.error(error)
+      continue
+    }
   }
 
   return peers
@@ -131,8 +177,9 @@ function getPeersFromConfig(currentNetwork: string): PeerConfig[] {
  *
  * Configuration sequence:
  * 1. Configure SummerToken
+ *    - Initialize token with peers if not initialized
  *    - Transfer ownership to TimelockController
- *    - Get rewards manager address
+ *    - Get rewards manager and vesting factory addresses
  *
  * 2. Configure TimelockController roles
  *    - Grant PROPOSER_ROLE to SummerGovernor
@@ -168,8 +215,24 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   )
   const protocolAccessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,
-    config.deployedContracts.gov.protocolAccessManager.address as Address,
+    gov.protocolAccessManager.address as Address,
   )
+
+  // Check if token needs initialization
+  try {
+    // This will throw if already initialized
+    const peers = getPeersFromConfig(hre.network.name)
+    const initParams = {
+      initialSupply: getInitialSupply(config),
+      peerEndpointIds: peers.tokenPeers.map((p) => p.eid),
+      peerAddresses: peers.tokenPeers.map((p) => p.address),
+    }
+    console.log('[SUMMER TOKEN] - Initializing token with peers...')
+    const hash = await summerToken.write.initialize([initParams])
+    await publicClient.waitForTransactionReceipt({ hash })
+  } catch (error) {
+    console.log('[SUMMER TOKEN] - Token already initialized or initialization failed:', error)
+  }
 
   // Get governance rewards manager address from SummerToken
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
@@ -186,33 +249,19 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
   }
 
   // Determine if we're on HUB chain (currently BASE chain)
-  const isHubChain = (await summerGovernor.read.hubChainId()) === hre.network.config.chainId
+  const isHubChain =
+    (await summerGovernor.read.hubChainId()) === BigInt(!hre.network.config.chainId)
 
-  // Set up the correct governor role based on chain
-  if (isHubChain) {
-    console.log('[PROTOCOL ACCESS MANAGER] - Setting up HUB chain governance...')
-    // On HUB, the timelock should have governor role
-    const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      GOVERNOR_ROLE,
-      timelock.address,
-    ])
-    if (!hasGovernorRole) {
-      console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
-      const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
-      await publicClient.waitForTransactionReceipt({ hash })
-    }
-  } else {
-    console.log('[PROTOCOL ACCESS MANAGER] - Setting up satellite chain governance...')
-    // On satellite chains, the governor contract itself should have governor role
-    const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      GOVERNOR_ROLE,
-      summerGovernor.address,
-    ])
-    if (!hasGovernorRole) {
-      console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to governor contract...')
-      const hash = await protocolAccessManager.write.grantGovernorRole([summerGovernor.address])
-      await publicClient.waitForTransactionReceipt({ hash })
-    }
+  // Remove the chain-specific governor role assignment and always set timelock as governor
+  console.log('[PROTOCOL ACCESS MANAGER] - Setting up governance...')
+  const hasGovernorRole = await protocolAccessManager.read.hasRole([
+    GOVERNOR_ROLE,
+    timelock.address,
+  ])
+  if (!hasGovernorRole) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
+    const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
+    await publicClient.waitForTransactionReceipt({ hash })
   }
 
   // On satellite chains, grant CANCELLER_ROLE to timelock

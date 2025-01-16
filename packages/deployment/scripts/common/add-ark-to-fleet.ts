@@ -60,7 +60,7 @@ export async function addArkToFleet(
       return
     }
     await grantCommanderRole(
-      config.deployedContracts.core.protocolAccessManager.address as Address,
+      config.deployedContracts.gov.protocolAccessManager.address as Address,
       arkAddress as Address,
       response.selectedFleet.fleetAddress as Address,
       hre,
@@ -71,7 +71,7 @@ export async function addArkToFleet(
     )
     const protocolAccessManager = await hre.viem.getContractAt(
       'ProtocolAccessManager' as string,
-      config.deployedContracts.core.protocolAccessManager.address as Address,
+      config.deployedContracts.gov.protocolAccessManager.address as Address,
     )
     const hasGovernorRole = await protocolAccessManager.read.hasRole([
       keccak256(toBytes('GOVERNOR_ROLE')),

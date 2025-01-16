@@ -36,20 +36,19 @@ async function deployFleet() {
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
 
-  const coreContracts = config.deployedContracts.core
   const assetAddress = getAssetAddress(fleetDefinition.assetSymbol, config)
 
   if (await confirmDeployment(fleetDefinition)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
-    const deployedFleet = await deployFleetContracts(fleetDefinition, coreContracts, assetAddress)
+    const deployedFleet = await deployFleetContracts(fleetDefinition, config, assetAddress)
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
     const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
 
     await grantCommanderRole(
-      coreContracts.protocolAccessManager.address as Address,
+      config.deployedContracts.gov.protocolAccessManager.address as Address,
       bufferArkAddress,
       deployedFleet.fleetCommander.address,
       hre,
@@ -124,7 +123,7 @@ async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
  */
 async function deployFleetContracts(
   fleetDefinition: FleetDefinition,
-  coreContracts: CoreContracts,
+  config: BaseConfig,
   asset: string,
 ) {
   const chainId = getChainId()
@@ -135,8 +134,8 @@ async function deployFleetContracts(
   const deployedModule = await hre.ignition.deploy(fleetModule, {
     parameters: {
       [`FleetModule_${name}`]: {
-        configurationManager: coreContracts.configurationManager.address,
-        protocolAccessManager: coreContracts.protocolAccessManager.address,
+        configurationManager: config.deployedContracts.core.configurationManager.address,
+        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
         fleetName: fleetDefinition.fleetName,
         fleetSymbol: fleetDefinition.symbol,
         fleetDetails: fleetDefinition.details,
@@ -146,15 +145,15 @@ async function deployFleetContracts(
         depositCap: fleetDefinition.depositCap,
         initialTipRate: fleetDefinition.initialTipRate,
         fleetCommanderRewardsManagerFactory:
-          coreContracts.fleetCommanderRewardsManagerFactory.address,
+          config.deployedContracts.core.fleetCommanderRewardsManagerFactory.address,
       },
     },
     deploymentId,
   })
   await addFleetToHarbor(
     deployedModule.fleetCommander.address,
-    coreContracts.harborCommand.address as Address,
-    coreContracts.protocolAccessManager.address as Address,
+    config.deployedContracts.core.harborCommand.address as Address,
+    config.deployedContracts.gov.protocolAccessManager.address as Address,
   )
   return deployedModule
 }

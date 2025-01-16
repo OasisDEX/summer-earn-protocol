@@ -145,7 +145,7 @@ async function deploySkyUsdsPsm3ArkContract(
             ],
             chainId: chainId,
           }),
-          accessManager: config.deployedContracts.core.protocolAccessManager.address as Address,
+          accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
             .address as Address,
           asset: userInput.token.address,

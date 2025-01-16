@@ -3,6 +3,18 @@ import { BuyAndBurnContracts } from '../ignition/modules/buy-and-burn'
 import { CoreContracts } from '../ignition/modules/core'
 import { GovContracts } from '../ignition/modules/gov'
 
+export enum SupportedNetworks {
+  MAINNET = 'mainnet',
+  BASE = 'base',
+  ARBITRUM = 'arbitrum',
+}
+
+export interface Config {
+  [SupportedNetworks.MAINNET]: BaseConfig
+  [SupportedNetworks.BASE]: BaseConfig
+  [SupportedNetworks.ARBITRUM]: BaseConfig
+}
+
 export enum Tokens {
   USDC = 'usdc',
   DAI = 'dai',
@@ -106,10 +118,4 @@ export interface FleetDefinition {
   depositCap: string
   initialTipRate: string
   network: string
-}
-
-export interface Config {
-  mainnet: BaseConfig
-  base: BaseConfig
-  arbitrum: BaseConfig
 }

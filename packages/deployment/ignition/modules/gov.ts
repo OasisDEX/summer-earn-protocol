@@ -39,6 +39,8 @@ export const GovModule = buildModule('GovModule', (m) => {
   const peerEndpointIds = m.getParameter<number[]>('peerEndpointIds', [])
   const peerAddresses = m.getParameter<string[]>('peerAddresses', [])
 
+  const votingDecayLibrary = m.contract('VotingDecayLibrary', [])
+
   /**
    * @dev Step 0: Deploy ProtocolAccessManager
    * This contract manages access control for the protocol
@@ -70,23 +72,30 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - deployer as decay manager (temporary, will be transferred to governor)
    * - Configured with initial decay parameters for voting power
    */
-  const summerTokenParams = {
+  const summerTokenConstructorParams = {
     name: 'SummerToken',
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
     initialOwner: deployer,
     accessManager: accessManager,
-    initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
-    initialDecayYearlyRate: 0.1e18, // ~10% per year
-    initialDecayFunction: DecayType.Linear,
-    transferEnableDate: 1731667188n,
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
-    initialSupply: initialSupply,
+    transferEnableDate: 1731667188n,
     hubChainId: HUB_CHAIN_ID,
+    initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
+    initialYearlyDecayRate: BigInt(0.1e18), // ~10% per year
+    initialDecayFunction: DecayType.Linear,
+  }
+
+  const summerTokenInitParams = {
+    initialSupply: initialSupply,
     peerEndpointIds: peerEndpointIds,
     peerAddresses: peerAddresses,
   }
-  const summerToken = m.contract('SummerToken', [summerTokenParams])
+
+  const summerToken = m.contract('SummerToken', [summerTokenConstructorParams], {
+    libraries: { VotingDecayLibrary: votingDecayLibrary },
+  })
+  m.call(summerToken, 'initialize', [summerTokenInitParams])
 
   /**
    * @dev Step 3: Deploy SummerGovernor
