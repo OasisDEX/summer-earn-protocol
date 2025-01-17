@@ -25,22 +25,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xB5168c70F5a81E315959E1A96629175E2f3cF93D"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x0a14Edaf9e835525B3c5e0648C64A2A0D262255a"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xB566eeacd4B9c6904A467B3250d895041B94D655"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x79BDBaa087175aA490F311EC743264bD6268C933"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x34f72f4B4979f0EA13d2AD80243c1f1Bd4E750db"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x09276B3013C606F8aABB7701Accbab5fFD0bb189"
         }
       }
     },
@@ -358,16 +358,14 @@
         "blue": "0x0000000000000000000000000000000000000000",
         "urdFactory": "0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D",
         "vaults": {
-          "usdc": {
-
-          },
+          "usdc": {},
           "dai": {},
           "usde": {},
           "usdt": {},
           "usdce": {},
-          "weth":{
-           "Gauntlet_WETH_Prime" :"0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658",
-           "Re7_WETH" :"0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0"
+          "weth": {
+            "Gauntlet_WETH_Prime": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658",
+            "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0"
           }
         },
         "markets": {
