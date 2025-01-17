@@ -40,8 +40,10 @@ contract RaftTest is AuctionTestBase, IRaftEvents {
         );
         raftContract = new Raft(address(accessManager));
 
-        vm.prank(governor);
+        vm.startPrank(governor);
         configurationManager.setRaft(address(raftContract));
+        accessManager.grantSuperKeeperRole(address(governor));
+        vm.stopPrank();
 
         mockRewardToken = createMockToken("Reward Token", "RWD", 18);
         mockRewardToken2 = createMockToken("Reward Token 2", "RWD2", 18);
