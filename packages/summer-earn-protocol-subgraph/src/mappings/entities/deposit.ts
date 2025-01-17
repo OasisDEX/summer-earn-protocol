@@ -1,6 +1,7 @@
 import { BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Deposit, Staked } from '../../../generated/schema'
 import { PositionDetails } from '../../types'
+import { BigIntConstants } from '../../common/constants'
 
 export function createDepositEventEntity(
   event: ethereum.Event,
@@ -29,5 +30,7 @@ export function createDepositEventEntity(
   deposit.position = positionDetails.positionId
   deposit.inputTokenBalance = positionDetails.inputTokenBalance
   deposit.inputTokenBalanceNormalizedUSD = positionDetails.inputTokenBalanceNormalizedUSD
-  deposit.save()
+  if (positionDetails.inputTokenDelta.gt(BigIntConstants.ZERO)) {
+    deposit.save()
+  }
 }

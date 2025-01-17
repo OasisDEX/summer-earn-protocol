@@ -127,7 +127,7 @@ export function handleFleetCommanderMaxRebalanceOperationsUpdated(
 }
 
 export function handleStaked(event: Staked): void {
-  const account = getOrCreateAccount(event.params.account.toHexString())
+  const account = getOrCreateAccount(event.params.receiver.toHexString())
 
   const rewardsManager = getOrCreateRewardsManager(event.address)
 
@@ -143,7 +143,7 @@ export function handleStaked(event: Staked): void {
 }
 
 export function handleUnstaked(event: Unstaked): void {
-  const account = getOrCreateAccount(event.params.account.toHexString())
+  const account = getOrCreateAccount(event.params.staker.toHexString())
 
   const rewardsManager = getOrCreateRewardsManager(event.address)
 

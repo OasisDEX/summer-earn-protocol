@@ -1,6 +1,7 @@
 import { BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Unstaked, Withdraw } from '../../../generated/schema'
 import { PositionDetails } from '../../types'
+import { BigIntConstants } from '../../common/constants'
 
 export function createWithdrawEventEntity(
   event: ethereum.Event,
@@ -31,5 +32,7 @@ export function createWithdrawEventEntity(
   withdraw.position = positionDetails.positionId
   withdraw.inputTokenBalance = positionDetails.inputTokenBalance
   withdraw.inputTokenBalanceNormalizedUSD = positionDetails.inputTokenBalanceNormalizedUSD
-  withdraw.save()
+  if (positionDetails.inputTokenDelta.gt(BigIntConstants.ZERO)) {
+    withdraw.save()
+  }
 }

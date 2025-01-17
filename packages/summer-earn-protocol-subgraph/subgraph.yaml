@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: arbitrum-one
+    network: base
     source:
       abi: HarborCommand
-      address: "0xc67be6da8D50EB2583a92adccBf2d36a2759DB1e"
-      startBlock: 278532315
+      address: "0x79BDBaa087175aA490F311EC743264bD6268C933"
+      startBlock: 25165573
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -54,12 +54,12 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 240 
+            every: 30 
       file: ./src/mappings/harborCommand.ts
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: arbitrum-one
+    network: base
     source:
       abi: FleetCommander
     mapping:
@@ -131,7 +131,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: arbitrum-one
+    network: base
     source:
       abi: Ark
     mapping:
@@ -192,7 +192,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: arbitrum-one
+    network: base
     source:
       abi: FleetCommanderRewardsManager
     mapping:
@@ -231,10 +231,10 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
       eventHandlers:
-        - event: Staked(indexed address,uint256)
+        - event: Staked(indexed address,indexed address,uint256)
           handler: handleStaked
           receipt: true
-        - event: Unstaked(indexed address,uint256)
+        - event: Unstaked(indexed address,indexed address,uint256)
           handler: handleUnstaked
           receipt: true
         - event: RewardTokenRemoved(address)

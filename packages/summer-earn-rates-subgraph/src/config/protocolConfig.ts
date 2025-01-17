@@ -229,6 +229,12 @@ class ProtocolConfig {
           BigInt.fromI32(159160679),
           'CompoundV3',
         ),
+        new CompoundProduct(
+          getOrCreateToken(addresses.USDT),
+          Address.fromString('0xd98Be00b5D27fc98112BdE293e487f8D4cA57d07'),
+          BigInt.fromI32(159160679),
+          'CompoundV3',
+        ),
       ]),
       new Protocol('Gearbox', [
         new GearboxProduct(
@@ -256,6 +262,20 @@ class ProtocolConfig {
           Address.fromString('0x794a61358D6845594F94dc1DB02A252b5b4814aD'),
           BigInt.fromI32(159160679),
           'AaveV3',
+        ),
+        new AaveV3Product(
+          getOrCreateToken(addresses.USDT),
+          Address.fromString('0x794a61358D6845594F94dc1DB02A252b5b4814aD'),
+          BigInt.fromI32(159160679),
+          'AaveV3',
+        ),
+      ]),
+      new Protocol('Fluid', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDT),
+          Address.fromString('0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03'),
+          BigInt.fromI32(159160679),
+          'Fluid',
         ),
       ]),
     ]

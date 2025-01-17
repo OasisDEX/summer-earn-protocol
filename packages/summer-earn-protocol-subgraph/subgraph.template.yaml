@@ -231,10 +231,10 @@ templates:
         - name: DefaultReverseNameResolver
           file: ./abis/ens/default-resolver.json
       eventHandlers:
-        - event: Staked(indexed address,uint256)
+        - event: Staked(indexed address,indexed address,uint256)
           handler: handleStaked
           receipt: true
-        - event: Unstaked(indexed address,uint256)
+        - event: Unstaked(indexed address,indexed address,uint256)
           handler: handleUnstaked
           receipt: true
         - event: RewardTokenRemoved(address)
