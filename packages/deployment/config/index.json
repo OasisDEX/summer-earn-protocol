@@ -3,19 +3,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0xc9D42d49EAC47765B9Ee9633bCF079ABF17954aF"
+          "address": "0xc41AF022a0cBBbD95b4A4Eb5B9EbB51bB888bB0D"
         },
         "summerToken": {
-          "address": "0x26BB23685ED0692902C101F9E8bc2f0bBD619ade"
+          "address": "0xD33E132C34c978C18ACd8CD90D14467C1BF10f30"
         },
         "timelock": {
-          "address": "0xc2B80aED390f5c22C7b7E867bC7b59D2C2014727"
+          "address": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2"
         },
         "protocolAccessManager": {
-          "address": "0xF50674885Bb7D50077b7b6a880760734BEd2A47A"
+          "address": "0x5dFacd9C14bA264D76548549Af1d27440B877407"
         },
         "rewardsRedeemer": {
-          "address": "0xBc2769387f788bba70F75c0665f2376C9a808C79"
+          "address": "0xa3B8e720cFff63fd47Ea80e18b773965E25c2b6c"
         }
       },
       "buyAndBurn": {

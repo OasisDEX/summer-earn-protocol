@@ -46,9 +46,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointA,
-                hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                hubChainId: 31337
             });
         new SummerGovernor(params);
         assertEq(governorA.name(), "SummerGovernor");
@@ -286,9 +284,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
                 proposalThreshold: belowMin,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointA,
-                hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                hubChainId: 31337
             });
 
         vm.expectRevert(
@@ -846,9 +842,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: address(endpoints[aEid]),
-                hubChainId: governanceChainId,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                hubChainId: governanceChainId
             });
 
         ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(

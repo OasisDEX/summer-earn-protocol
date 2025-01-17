@@ -133,6 +133,13 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         return Constants.WAD;
     }
 
+    function getPastDecayFactor(
+        address,
+        uint256
+    ) external pure returns (uint256) {
+        revert("Not implemented");
+    }
+
     function getVotingPower(address, uint256) external pure returns (uint256) {
         revert("Not implemented");
     }

@@ -47,9 +47,7 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointA,
-                hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                hubChainId: 31337
             });
         SummerGovernor.GovernorParams memory paramsB = ISummerGovernor
             .GovernorParams({
@@ -61,9 +59,7 @@ contract SummerGovernorTestBase is SummerTokenTestBase, ISummerGovernorErrors {
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointB,
-                hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                hubChainId: 31337
             });
         governorA = new ExposedSummerGovernor(paramsA);
         governorB = new ExposedSummerGovernor(paramsB);
