@@ -1,5 +1,5 @@
 [profile.default]
-src = "node_modules/@summerfi/earn-gov-contracts"
+src = "src"
 out = "out"
 libs = [
   'node_modules', 
