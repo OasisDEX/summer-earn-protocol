@@ -42,10 +42,9 @@ function validateConfig(config: BaseConfig): void {
       throw new Error(`Invalid address for ${fieldName}: ${address}`)
     }
   }
-
-  validateAddress(config.tokens.usdc, 'tokens.usdc')
-  validateAddress(config.tokens.dai, 'tokens.dai')
-  validateAddress(config.common.treasury, 'core.treasury')
+  for (const token in config.tokens) {
+    validateAddress(config.tokens[token as keyof typeof config.tokens], `tokens.${token}`)
+  }
   validateAddress(config.deployedContracts.gov.summerToken.address, 'core.governor')
   validateAddress(config.deployedContracts.core.tipJar.address, 'core.tipJar')
   validateAddress(config.deployedContracts.core.raft.address, 'core.raft')

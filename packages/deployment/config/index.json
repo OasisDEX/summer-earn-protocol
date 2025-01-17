@@ -56,7 +56,6 @@
     },
     "common": {
       "initialSupply": "1000000000",
-      "treasury": "0xAb1a4Ae0F851700CC42442c588f458B553cB2620",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
       "layerZero": {
@@ -169,13 +168,12 @@
       "usdc": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
       "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
       "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
-      "usdt": "0x0000000000000000000000000000000000000000",
+      "usdt": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
       "usdce": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
       "weth": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
     },
     "common": {
       "initialSupply": "0",
-      "treasury": "0x13371f8Cf79706907a5A18939b77b426636C3BA0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
       "layerZero": {
@@ -307,9 +305,8 @@
       "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD"
     },
     "common": {
-      "treasury": "0x0000000000000000000000000000000000000000",
-      "lzEndpoint": "0x0000000000000000000000000000000000000000",
-      "swapProvider": "0x0000000000000000000000000000000000000000",
+      "initialSupply": "0",
+      "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
       "tipRate": "100",
       "layerZero": {
         "eID": "30101",
@@ -322,7 +319,12 @@
         "dai": {},
         "usde": {},
         "usdt": {},
-        "usdce": {}
+        "usdce": {},
+        "weth": {
+          "Gearbox": "0xda0002859b2d05f66a753d8241fcde8623f26f4f",
+          "Fluid": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
+          "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2"
+        }
       },
       "pendle": {
         "router": "0x0000000000000000000000000000000000000000",
@@ -351,14 +353,24 @@
         }
       },
       "aaveV3": {
-        "pool": "0x0000000000000000000000000000000000000000",
-        "rewards": "0x0000000000000000000000000000000000000000"
+        "pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+        "rewards": "0x223d844fc4B006D67c0cDbd39371A9F73f69d974"
+      },
+      "spark": {
+        "pool": "0xC13e21B648A5Ee794902342038FF3aDAB66BE987 ",
+        "rewards": "0xf09e48dd4CA8e76F63a57ADd428bB06fee7932a4"
       },
       "morpho": {
         "blue": "0x0000000000000000000000000000000000000000",
         "urdFactory": "0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D",
         "vaults": {
-          "usdc": {},
+          "usdc": {
+            "Gauntlet_USDC_Core": "0x8eB67A509616cd6A7c1B3c8C21D48FF57df3d458",
+            "Flagship_USDC": "0x186514400e52270cef3D80e1c6F8d10A75d47344",
+            "Steakhouse": "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
+            "Gauntlet_USDC_Prime": "0xdd0f28e19C1780eb6396170735D45153D261490d",
+            "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78"
+          },
           "dai": {},
           "usde": {},
           "usdt": {},
@@ -392,6 +404,9 @@
           },
           "usdce": {
             "cToken": "0x0000000000000000000000000000000000000000"
+          },
+          "weth": {
+            "cToken": "0xA17581A9E3356d9A858b789D68B4d866e593aE94"
           }
         },
         "rewards": "0x0000000000000000000000000000000000000000"
