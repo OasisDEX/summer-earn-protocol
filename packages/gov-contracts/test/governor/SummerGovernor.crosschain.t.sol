@@ -33,7 +33,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointA,
-                hubChainId: 31337
+                hubChainId: 31337,
+                initialOwner: address(timelockA)
             });
 
         // Set up Governor B (Satellite Chain)
@@ -47,7 +48,8 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointB,
-                hubChainId: 31337
+                hubChainId: 31337,
+                initialOwner: address(timelockB)
             });
 
         governorA = new ExposedSummerGovernor(paramsA);

@@ -3,19 +3,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0xc41AF022a0cBBbD95b4A4Eb5B9EbB51bB888bB0D"
+          "address": "0x1bd84d0Abe55f00890A0737d9213DdC306dD28F4"
         },
         "summerToken": {
-          "address": "0xD33E132C34c978C18ACd8CD90D14467C1BF10f30"
+          "address": "0x52A94964b494A4dc6912A10949f88c0770E0a514"
         },
         "timelock": {
-          "address": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2"
+          "address": "0x565C070505196c4ff684d9aE70e2405325dd921B"
         },
         "protocolAccessManager": {
-          "address": "0x5dFacd9C14bA264D76548549Af1d27440B877407"
+          "address": "0x49C50db8704Fc14367a089690f8560739A123E49"
         },
         "rewardsRedeemer": {
-          "address": "0xa3B8e720cFff63fd47Ea80e18b773965E25c2b6c"
+          "address": "0xD7c18F5df960617fa409f9D7c6BFDAfBbCA13462"
         }
       },
       "buyAndBurn": {
@@ -123,17 +123,20 @@
   "arbitrum": {
     "deployedContracts": {
       "gov": {
-        "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xE52d32df7752E8Da97fD093CEC1Dacd633198910"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xc4E635b196Fb8B1f0AB58Ec3cCC73e79188741a0"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x8C3d2BC0F5ad577FE2FcA70b8E5319067b5dD70D"
+        },
+        "protocolAccessManager": {
+          "address": "0xCfe9Ec0BE2e692667eb9a4Ee362299520C620D20"
+        },
+        "rewardsRedeemer": {
+          "address": "0x5DDf8a03A327A0e9c3B2E71e9720e69735406447"
         }
       },
       "buyAndBurn": {

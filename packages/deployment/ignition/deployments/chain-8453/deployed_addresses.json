@@ -1,7 +1,7 @@
 {
-  "GovModule#ProtocolAccessManager": "0x5dFacd9C14bA264D76548549Af1d27440B877407",
-  "GovModule#SummerTimelockController": "0xEcCd16aA1ae0B32b231a3B5FFE8567aBf68616E2",
-  "GovModule#SummerToken": "0xD33E132C34c978C18ACd8CD90D14467C1BF10f30",
-  "GovModule#SummerGovernor": "0xc41AF022a0cBBbD95b4A4Eb5B9EbB51bB888bB0D",
-  "GovModule#SummerRewardsRedeemer": "0xa3B8e720cFff63fd47Ea80e18b773965E25c2b6c"
+  "GovModule#ProtocolAccessManager": "0x49C50db8704Fc14367a089690f8560739A123E49",
+  "GovModule#SummerTimelockController": "0x565C070505196c4ff684d9aE70e2405325dd921B",
+  "GovModule#SummerToken": "0x52A94964b494A4dc6912A10949f88c0770E0a514",
+  "GovModule#SummerGovernor": "0x1bd84d0Abe55f00890A0737d9213DdC306dD28F4",
+  "GovModule#SummerRewardsRedeemer": "0xD7c18F5df960617fa409f9D7c6BFDAfBbCA13462"
 }

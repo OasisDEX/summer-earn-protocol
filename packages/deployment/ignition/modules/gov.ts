@@ -72,7 +72,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     name: 'SummerToken',
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
-    initialOwner: deployer,
+    initialOwner: deployer, // Swapped out for Timelock after Peering is complete
     accessManager: accessManager,
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
     transferEnableDate: 1731667188n,
@@ -113,6 +113,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     quorumFraction: 4n,
     endpoint: lzEndpoint,
     hubChainId: HUB_CHAIN_ID,
+    initialOwner: deployer, // Swapped out for Timelock after Peering is complete
   }
 
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])

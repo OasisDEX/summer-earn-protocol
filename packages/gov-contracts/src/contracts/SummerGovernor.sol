@@ -92,7 +92,7 @@ contract SummerGovernor is
         GovernorTimelockControl(params.timelock)
         OApp(params.endpoint, address(params.timelock))
         DecayController(address(params.token))
-        Ownable(address(params.timelock))
+        Ownable(address(params.initialOwner))
     {
         accessManager = IProtocolAccessManager(params.accessManager);
         _setRewardsManager(
