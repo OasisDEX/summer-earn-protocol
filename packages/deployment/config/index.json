@@ -146,22 +146,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xc1F47C95f313e2738f1eE8f37d817884F1bf0038"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x6c54Ac96C6BE868ebb5c04fcCA0B9081ab9dC87A"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x90295011Cd38c76f54948cfea4CD31C316be0d68"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x2eA9c38Bf6170C47a2B7D81F9AB01EcF0849E6B4"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xebA00532bd17B01229d70c48F838F715f5571C41"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xE38F9440e02F54ECa1E07cBeE5C2860E101e362E"
         }
       }
     },
