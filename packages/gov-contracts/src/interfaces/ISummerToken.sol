@@ -146,6 +146,17 @@ interface ISummerToken is
     function getDecayFactor(address account) external view returns (uint256);
 
     /**
+     * @notice Returns the decay factor for an account at a specific timepoint
+     * @param account The address to get the decay factor for
+     * @param timepoint The timestamp to get the decay factor at
+     * @return The decay factor for the account at the specified timepoint
+     */
+    function getPastDecayFactor(
+        address account,
+        uint256 timepoint
+    ) external view returns (uint256);
+
+    /**
      * @notice Returns the current votes for an account with decay factor applied
      * @param account The address to get votes for
      * @return The current voting power after applying the decay factor

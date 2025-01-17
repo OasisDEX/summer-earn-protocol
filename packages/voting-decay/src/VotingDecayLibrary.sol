@@ -524,6 +524,10 @@ library VotingDecayLibrary {
         address accountAddress,
         uint256 timestamp
     ) internal view returns (uint256) {
+        if (timestamp < self.originTimestamp) {
+            return 0;
+        }
+
         uint224 checkpointValue = self
             .decayFactorCheckpoints[accountAddress]
             .upperLookup(uint32(timestamp));

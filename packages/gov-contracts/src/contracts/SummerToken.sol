@@ -219,6 +219,14 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
+    function getPastDecayFactor(
+        address account,
+        uint256 timepoint
+    ) external view returns (uint256) {
+        return decayState.getHistoricalDecayFactor(account, timepoint);
+    }
+
+    /// @inheritdoc ISummerToken
     function getDelegationChainLength(
         address account
     ) external view returns (uint256) {

@@ -23,8 +23,6 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param quorumFraction The quorum fraction in tokens
      * @param endpoint The LayerZero endpoint address
      * @param hubChainId The hub chain ID
-     * @param peerEndpointIds The peer endpoint IDs
-     * @param peerAddresses The peer addresses
      */
     struct GovernorParams {
         ISummerToken token;
@@ -36,8 +34,6 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
         uint256 quorumFraction;
         address endpoint;
         uint32 hubChainId;
-        uint32[] peerEndpointIds;
-        address[] peerAddresses;
     }
 
     /**

@@ -100,7 +100,6 @@ contract SummerGovernor is
         );
         _validateProposalThreshold(params.proposalThreshold);
         hubChainId = params.hubChainId;
-        _initializePeers(params.peerEndpointIds, params.peerAddresses);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -370,30 +369,6 @@ contract SummerGovernor is
             revert NotEnoughNative(address(this).balance);
         }
         return _nativeFee;
-    }
-
-    /**
-     * @dev Internal function to initialize peers during construction
-     * @param _peerEndpointIds Array of chain IDs for peers
-     * @param _peerAddresses Array of peer addresses corresponding to chainIds
-     */
-    function _initializePeers(
-        uint32[] memory _peerEndpointIds,
-        address[] memory _peerAddresses
-    ) internal {
-        if (_peerEndpointIds.length == 0) {
-            return;
-        }
-        if (_peerEndpointIds.length != _peerAddresses.length) {
-            revert SummerGovernorInvalidPeerArrays();
-        }
-
-        for (uint256 i = 0; i < _peerEndpointIds.length; i++) {
-            _setPeer(
-                _peerEndpointIds[i],
-                bytes32(uint256(uint160(_peerAddresses[i])))
-            );
-        }
     }
 
     /**
