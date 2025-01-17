@@ -36,13 +36,6 @@ export const GovModule = buildModule('GovModule', (m) => {
   const deployer = m.getAccount(0)
   const lzEndpoint = m.getParameter('lzEndpoint')
   const initialSupply = m.getParameter('initialSupply', '0')
-  const peerEndpointIds = m.getParameter<number[]>('peerEndpointIds', [])
-  const peerAddresses = m.getParameter<string[]>('peerAddresses', [])
-
-  const governorPeerEndpointIds = m.getParameter<number[]>('governorPeerEndpointIds', [])
-  const governorPeerAddresses = m.getParameter<string[]>('governorPeerAddresses', [])
-
-  // const votingDecayLibrary = m.contract('VotingDecayLibrary', [])
 
   /**
    * @dev Step 0: Deploy ProtocolAccessManager
@@ -120,8 +113,6 @@ export const GovModule = buildModule('GovModule', (m) => {
     quorumFraction: 4n,
     endpoint: lzEndpoint,
     hubChainId: HUB_CHAIN_ID,
-    peerEndpointIds: governorPeerEndpointIds,
-    peerAddresses: governorPeerAddresses,
   }
 
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])

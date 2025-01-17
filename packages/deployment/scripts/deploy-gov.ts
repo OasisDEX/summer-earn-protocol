@@ -54,15 +54,6 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
       GovModule: {
         lzEndpoint: config.common.layerZero.lzEndpoint,
         initialSupply,
-        // Initialize with empty peer arrays to avoid deployment issues
-        // Peers should be configured post-deployment because:
-        // 1. Peer configurations can change between deploy runs
-        // 2. Contracts need to be deployed before they can be peers
-        // 3. This allows for more flexible peer management
-        peerEndpointIds: [],
-        peerAddresses: [],
-        governorPeerEndpointIds: [],
-        governorPeerAddresses: [],
       },
     },
   })
