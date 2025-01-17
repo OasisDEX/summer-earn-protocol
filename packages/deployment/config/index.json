@@ -186,10 +186,14 @@
     "protocolSpecific": {
       "erc4626": {
         "usdc": {
-          "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6"
+          "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6",
+          "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096"
         },
         "usdce": {
           "Gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
+        },
+        "usdt": {
+          "Fluid": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03"
         }
       },
       "pendle": {
@@ -354,11 +358,17 @@
         "blue": "0x0000000000000000000000000000000000000000",
         "urdFactory": "0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D",
         "vaults": {
-          "usdc": {},
+          "usdc": {
+
+          },
           "dai": {},
           "usde": {},
           "usdt": {},
-          "usdce": {}
+          "usdce": {},
+          "weth":{
+           "Gauntlet_WETH_Prime" :"0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658",
+           "Re7_WETH" :"0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0"
+          }
         },
         "markets": {
           "usdc": {},

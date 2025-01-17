@@ -1,10 +1,10 @@
 {
-  "fleetName": "LazyVault_USDC",
+  "fleetName": "LazyVault_LowerRisk_USDC",
   "symbol": "LVUSDC",
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
-  "initialRebalanceCooldown": "0",
-  "depositCap": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000",
   "initialTipRate": "0",
   "network": "base"
 }
