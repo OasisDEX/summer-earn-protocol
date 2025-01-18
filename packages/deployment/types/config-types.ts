@@ -76,6 +76,10 @@ export interface BaseConfig {
       pool: Address
       rewards: Address
     }
+    spark: {
+      pool: Address
+      rewards: Address
+    }
     morpho: {
       blue: Address
       urdFactory: Address
