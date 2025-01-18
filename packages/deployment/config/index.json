@@ -110,11 +110,7 @@
       },
       "sky": {
         "psm3": {
-          "usdc": "0x1601843c5E9bC251A3272907010AFa41Fa18347E",
-          "dai": "0x0000000000000000000000000000000000000000",
-          "usde": "0x0000000000000000000000000000000000000000",
-          "usdt": "0x0000000000000000000000000000000000000000",
-          "usdce": "0x0000000000000000000000000000000000000000"
+          "usdc": "0x1601843c5E9bC251A3272907010AFa41Fa18347E"
         }
       }
     }
@@ -315,10 +311,21 @@
     },
     "protocolSpecific": {
       "erc4626": {
-        "usdc": {},
+        "usdc": {
+          "Gearbox": "0xda00000035fef4082f78def6a8903bee419fbf8e",
+          "Fluid": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
+          "Euler_Prime": "0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9",
+          "Euler_Yield": "0xe0a80d35bB6618CBA260120b279d357978c42BCE",
+          "Euler_Stablecoin_Maxi": "0xce45EF0414dE3516cAF1BCf937bF7F2Cf67873De"
+        },
         "dai": {},
         "usde": {},
-        "usdt": {},
+        "usdt": {
+          "Gearbox": "0x05a811275fe9b4de503b3311f51edf6a856d936e",
+          "Fluid": "0x5C20B550819128074FD538Edf79791733ccEdd18",
+          "Euler_Prime": "0x313603FA690301b0CaeEf8069c065862f9162162",
+          "Euler_Yield": "0x7c280DBDEf569e96c7919251bD2B0edF0734C5A8"
+        },
         "usdce": {},
         "weth": {
           "Gearbox": "0xda0002859b2d05f66a753d8241fcde8623f26f4f",
@@ -354,11 +361,11 @@
       },
       "aaveV3": {
         "pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
-        "rewards": "0x223d844fc4B006D67c0cDbd39371A9F73f69d974"
+        "rewards": "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5 "
       },
       "spark": {
         "pool": "0xC13e21B648A5Ee794902342038FF3aDAB66BE987 ",
-        "rewards": "0xf09e48dd4CA8e76F63a57ADd428bB06fee7932a4"
+        "rewards": "0x4370D3b6C9588E02ce9D22e684387859c7Ff5b34"
       },
       "morpho": {
         "blue": "0x0000000000000000000000000000000000000000",
@@ -373,7 +380,12 @@
           },
           "dai": {},
           "usde": {},
-          "usdt": {},
+          "usdt": {
+            "Flagship_USDT": "0x2C25f6C25770fFEC5959D34B94Bf898865e5D6b1",
+            "Steakhouse_USDT": "0xbEef047a543E45807105E51A8BBEFCc5950fcfBa",
+            "Gauntlet_USDT_Prime": "0x8CB3649114051cA5119141a34C200D65dc0Faa73",
+            "RE7_USDT": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8"
+          },
           "usdce": {},
           "weth": {
             "Gauntlet_WETH_Prime": "0x4881Ef0BF6d2365D3dd6499ccd7532bcdBCE0658",
@@ -391,7 +403,7 @@
       "compoundV3": {
         "pools": {
           "usdc": {
-            "cToken": "0x0000000000000000000000000000000000000000"
+            "cToken": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
           },
           "dai": {
             "cToken": "0x0000000000000000000000000000000000000000"
@@ -400,7 +412,7 @@
             "cToken": "0x0000000000000000000000000000000000000000"
           },
           "usdt": {
-            "cToken": "0x0000000000000000000000000000000000000000"
+            "cToken": "0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840"
           },
           "usdce": {
             "cToken": "0x0000000000000000000000000000000000000000"

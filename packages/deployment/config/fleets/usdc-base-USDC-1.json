@@ -6,5 +6,36 @@
   "initialRebalanceCooldown": "3600",
   "depositCap": "1000000000",
   "initialTipRate": "0",
-  "network": "base"
+  "network": "base",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "SkyUsdsPsm3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "sky"
+      }
+    }
+  ]
 }
