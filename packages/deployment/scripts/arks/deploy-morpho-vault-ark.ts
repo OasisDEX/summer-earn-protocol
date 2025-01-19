@@ -8,19 +8,11 @@ import {
 } from '../../ignition/modules/arks/morpho-vault-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface MorphoVaultInfo {
-  token: Tokens
-  vaultId: string
-  vaultName: string
-}
-
-interface MorphoVaultArkUserInput {
-  vaultSelection: MorphoVaultInfo
+export interface MorphoVaultArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -38,12 +30,13 @@ interface MorphoVaultArkUserInput {
  * - Deploying the MorphoVaultArk contract
  * - Logging deployment results
  */
-export async function deployMorphoVaultArk() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deployMorphoVaultArk(
+  config: BaseConfig,
+  arkParams: MorphoVaultArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting MorphoVaultArk deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput)) {
     const deployedMorphoVaultArk = await deployMorphoVaultArkContract(config, userInput)
@@ -103,7 +96,9 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
   const tokenAddress = config.tokens[selectedVault.token as TokenType]
 
   const aggregatedData = {
-    ...responses,
+    depositCap: responses.depositCap,
+    maxRebalanceInflow: responses.maxRebalanceInflow,
+    maxRebalanceOutflow: responses.maxRebalanceOutflow,
     token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
     vaultName: selectedVault.vaultName,

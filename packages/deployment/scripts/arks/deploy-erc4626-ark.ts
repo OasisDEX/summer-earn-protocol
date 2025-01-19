@@ -8,19 +8,11 @@ import {
 } from '../../ignition/modules/arks/erc4626-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface ERC4626VaultInfo {
-  token: Tokens
-  vaultId: string
-  vaultName: string
-}
-
-interface ERC4626ArkUserInput {
-  vaultSelection: ERC4626VaultInfo
+export interface ERC4626ArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -29,12 +21,13 @@ interface ERC4626ArkUserInput {
   vaultName: string
 }
 
-export async function deployERC4626Ark() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deployERC4626Ark(
+  config: BaseConfig,
+  arkParams: ERC4626ArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting ERC4626Ark deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput)) {
     const deployedERC4626Ark = await deployERC4626ArkContract(config, userInput)
@@ -92,7 +85,9 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
   const tokenAddress = config.tokens[selectedVault.token as TokenType]
 
   const aggregatedData = {
-    ...responses,
+    depositCap: responses.depositCap,
+    maxRebalanceOutflow: responses.maxRebalanceOutflow,
+    maxRebalanceInflow: responses.maxRebalanceInflow,
     token: { address: tokenAddress, symbol: selectedVault.token },
     vaultId: selectedVault.vaultId,
     vaultName: selectedVault.vaultName,

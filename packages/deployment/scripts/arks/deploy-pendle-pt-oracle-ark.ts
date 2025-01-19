@@ -8,35 +8,27 @@ import {
 } from '../../ignition/modules/arks/pendle-pt-oracle-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface PendleMarketInfo {
-  token: { address: Address; symbol: Tokens }
-  marketId: Address
-  marketName: string
-}
-
-interface PendlePtOracleArkUserInput {
-  marketSelection: PendleMarketInfo
+export interface PendlePtOracleArkUserInput {
   marketAssetOracle: Address
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
   token: { address: Address; symbol: Tokens }
   marketId: Address
-  router: Address
-  pendleOracle: Address
+  marketName: string
 }
 
-export async function deployPendlePTOracleArk() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deployPendlePTOracleArk(
+  config: BaseConfig,
+  arkParams: PendlePtOracleArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting PendlePtOracleArk deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput)) {
     const deployedPendlePtOracleArk = await deployPendlePtOracleArkContract(config, userInput)
@@ -114,17 +106,13 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
   // Set the token address based on the selected market
   const selectedMarket = marketResponse.marketSelection
   const arkAssetAddress = config.tokens[arkAssetResponse.arkAssetSelection.token as TokenType]
-  const routerAddress = config.protocolSpecific.pendle.router
-  const oracleAddress = config.protocolSpecific.pendle['lp-oracle']
 
   const aggregatedData = {
     ...responses,
-    marketSelection: selectedMarket,
     marketAssetOracle: arkAssetResponse.arkAssetSelection.oracle,
     token: { address: arkAssetAddress, symbol: arkAssetResponse.arkAssetSelection.token },
     marketId: selectedMarket.marketId,
-    router: routerAddress,
-    pendleOracle: oracleAddress,
+    marketName: selectedMarket.marketName,
   }
 
   return aggregatedData
@@ -133,9 +121,7 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
 async function confirmDeployment(userInput: PendlePtOracleArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
-  console.log(kleur.yellow(`PendleOracle: ${userInput.pendleOracle}`))
   console.log(kleur.yellow(`Market Asset Oracle: ${userInput.marketAssetOracle}`))
-  console.log(kleur.yellow(`Router: ${userInput.router}`))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
@@ -150,23 +136,26 @@ async function deployPendlePtOracleArkContract(
 ): Promise<PendlePtOracleArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const arkName = `PendlePt-${userInput.token.symbol}-${userInput.marketSelection.marketName}-${chainId}`
+  const arkName = `PendlePt-${userInput.token.symbol}-${userInput.marketName}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
+
+  const routerAddress = config.protocolSpecific.pendle.router
+  const oracleAddress = config.protocolSpecific.pendle['lp-oracle']
 
   return (await hre.ignition.deploy(createPendlePtOracleArkModule(moduleName), {
     parameters: {
       [moduleName]: {
         market: userInput.marketId,
-        oracle: userInput.pendleOracle,
-        router: userInput.router,
+        oracle: oracleAddress,
+        router: routerAddress,
         marketAssetOracle: userInput.marketAssetOracle,
         arkParams: {
-          name: `PendlePt-${userInput.token.symbol}-${userInput.marketSelection.marketName}-${chainId}`,
+          name: `PendlePt-${userInput.token.symbol}-${userInput.marketName}-${chainId}`,
           details: JSON.stringify({
             protocol: 'Pendle',
             type: 'PtOracle',
             asset: userInput.token.address,
-            marketAsset: userInput.marketSelection.token.address,
+            marketAsset: userInput.token.address,
             pool: userInput.marketId,
             chainId: chainId,
           }),

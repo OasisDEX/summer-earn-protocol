@@ -6,17 +6,14 @@ import {
   CompoundV3ArkContracts,
   createCompoundV3ArkModule,
 } from '../../ignition/modules/arks/compoundv3-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
-import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
+import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface CompoundV3ArkUserInput {
-  compoundV3Pool: Address
-  compoundV3Rewards: Address
-  token: { address: Address; symbol: string }
+export interface CompoundV3ArkUserInput {
+  token: { address: Address; symbol: Tokens }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -31,12 +28,13 @@ interface CompoundV3ArkUserInput {
  * - Deploying the CompoundV3Ark contract
  * - Logging deployment results
  */
-export async function deployCompoundV3Ark() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deployCompoundV3Ark(
+  config: BaseConfig,
+  arkParams: CompoundV3ArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting CompoundV3Ark deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput)) {
     const deployedCompoundV3Ark = await deployCompoundV3ArkContract(config, userInput)
@@ -95,8 +93,6 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
   return {
     ...responses,
     token: { address: tokenAddress, symbol: selectedPool },
-    compoundV3Pool: config.protocolSpecific.compoundV3.pools[selectedPool].cToken,
-    compoundV3Rewards: config.protocolSpecific.compoundV3.rewards,
   }
 }
 
@@ -107,8 +103,6 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
  */
 async function confirmDeployment(userInput: CompoundV3ArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Compound V3 Pool: ${userInput.compoundV3Pool}`))
-  console.log(kleur.yellow(`Compound V3 Rewards: ${userInput.compoundV3Rewards}`))
   console.log(kleur.yellow(`Token: ${userInput.token.symbol}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
@@ -132,11 +126,23 @@ async function deployCompoundV3ArkContract(
   const arkName = `CompoundV3-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const compoundV3Pool = config.protocolSpecific.compoundV3.pools[userInput.token.symbol].cToken
+  const compoundV3Rewards = config.protocolSpecific.compoundV3.rewards
+
+  if (
+    !compoundV3Pool ||
+    !compoundV3Rewards ||
+    compoundV3Pool === ADDRESS_ZERO ||
+    compoundV3Rewards === ADDRESS_ZERO
+  ) {
+    throw new Error('Compound V3 pool or rewards not found')
+  }
+
   return (await hre.ignition.deploy(createCompoundV3ArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        compoundV3Pool: userInput.compoundV3Pool,
-        compoundV3Rewards: userInput.compoundV3Rewards,
+        compoundV3Pool: compoundV3Pool,
+        compoundV3Rewards: compoundV3Rewards,
         arkParams: {
           name: `CompoundV3-${userInput.token.symbol}-${chainId}`,
           details: JSON.stringify({
@@ -144,7 +150,7 @@ async function deployCompoundV3ArkContract(
             type: 'Lending',
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
-            pool: userInput.compoundV3Pool,
+            pool: compoundV3Pool,
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,

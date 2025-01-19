@@ -8,12 +8,11 @@ import {
 } from '../../ignition/modules/arks/sky-usds-psm3-ark'
 import { BaseConfig, TokenType } from '../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface SkyUsdsPsm3ArkUserInput {
+export interface SkyUsdsPsm3ArkUserInput {
   token: { address: Address; symbol: string }
   depositCap: string
   maxRebalanceOutflow: string
@@ -29,12 +28,13 @@ interface SkyUsdsPsm3ArkUserInput {
  * - Deploying the SkyUsdsPsm3Ark contract
  * - Logging deployment results
  */
-export async function deploySkyUsdsPsm3Ark() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deploySkyUsdsPsm3Ark(
+  config: BaseConfig,
+  arkParams: SkyUsdsPsm3ArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting SkyUsdsPsm3Ark deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput, config)) {
     const deployedSkyUsdsPsm3Ark = await deploySkyUsdsPsm3ArkContract(config, userInput)

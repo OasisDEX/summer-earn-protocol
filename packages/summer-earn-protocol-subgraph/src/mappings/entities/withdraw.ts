@@ -1,7 +1,7 @@
 import { BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Unstaked, Withdraw } from '../../../generated/schema'
-import { PositionDetails } from '../../types'
 import { BigIntConstants } from '../../common/constants'
+import { PositionDetails } from '../../types'
 
 export function createWithdrawEventEntity(
   event: ethereum.Event,

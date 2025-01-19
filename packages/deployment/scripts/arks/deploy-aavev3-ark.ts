@@ -3,15 +3,14 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { AaveV3ArkContracts, createAaveV3ArkModule } from '../../ignition/modules/arks/aavev3-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface AaveV3ArkUserInput {
-  token: { address: Address; symbol: string }
+export interface AaveV3ArkUserInput {
+  token: { address: Address; symbol: Tokens }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -26,12 +25,13 @@ interface AaveV3ArkUserInput {
  * - Deploying the AaveV3Ark contract
  * - Logging deployment results
  */
-export async function deployAaveV3Ark() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deployAaveV3Ark(
+  config: BaseConfig,
+  arkParams: AaveV3ArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting AaveV3Ark deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput)) {
     const deployedAaveV3Ark = await deployAaveV3ArkContract(config, userInput)

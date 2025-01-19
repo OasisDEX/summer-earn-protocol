@@ -8,12 +8,11 @@ import {
 } from '../../ignition/modules/arks/sky-usds-ark'
 import { BaseConfig, TokenType } from '../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface SkyUsdsArkUserInput {
+export interface SkyUsdsArkUserInput {
   token: { address: Address; symbol: string }
   depositCap: string
   maxRebalanceOutflow: string
@@ -29,12 +28,13 @@ interface SkyUsdsArkUserInput {
  * - Deploying the SkyUsdsArk contract
  * - Logging deployment results
  */
-export async function deploySkyUsdsArk() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deploySkyUsdsArk(
+  config: BaseConfig,
+  arkParams: SkyUsdsArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting SkyUsdsArk deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput, config)) {
     const deployedSkyUsdsArk = await deploySkyUsdsArkContract(config, userInput)

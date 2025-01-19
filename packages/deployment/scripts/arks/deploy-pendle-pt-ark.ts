@@ -8,35 +8,26 @@ import {
 } from '../../ignition/modules/arks/pendle-pt-ark'
 import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
-interface PendleMarketInfo {
-  token: { address: Address; symbol: Tokens }
-  marketId: string
-  marketName: string
-}
-
-interface PendlePTArkUserInput {
-  marketSelection: PendleMarketInfo
+export interface PendlePTArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
   token: { address: Address; symbol: Tokens }
   marketId: string
   marketName: string
-  router: Address
-  oracle: Address
 }
 
-export async function deployPendlePTArk() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deployPendlePTArk(
+  config: BaseConfig,
+  arkParams: PendlePTArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting PendlePTArk deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput)) {
     const deployedPendlePTArk = await deployPendlePTArkContract(config, userInput)
@@ -98,16 +89,14 @@ async function getUserInput(config: BaseConfig) {
   // Set the token address based on the selected market
   const selectedMarket = responses.marketSelection
   const tokenAddress = config.tokens[selectedMarket.token as TokenType]
-  const routerAddress = config.protocolSpecific.pendle.router
-  const oracleAddress = config.protocolSpecific.pendle['lp-oracle']
 
   const aggregatedData = {
-    ...responses,
+    depositCap: responses.depositCap,
+    maxRebalanceOutflow: responses.maxRebalanceOutflow,
+    maxRebalanceInflow: responses.maxRebalanceInflow,
     token: { address: tokenAddress, symbol: selectedMarket.token },
     marketId: selectedMarket.marketId,
     marketName: selectedMarket.marketName,
-    router: routerAddress,
-    oracle: oracleAddress,
   }
 
   return aggregatedData
@@ -116,8 +105,6 @@ async function getUserInput(config: BaseConfig) {
 async function confirmDeployment(userInput: PendlePTArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
-  console.log(kleur.yellow(`Oracle: ${userInput.oracle}`))
-  console.log(kleur.yellow(`Router: ${userInput.router}`))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
@@ -135,12 +122,15 @@ async function deployPendlePTArkContract(
   const arkName = `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const routerAddress = config.protocolSpecific.pendle.router
+  const oracleAddress = config.protocolSpecific.pendle['lp-oracle']
+
   return (await hre.ignition.deploy(createPendlePTArkModule(moduleName), {
     parameters: {
       [moduleName]: {
         market: userInput.marketId,
-        oracle: userInput.oracle,
-        router: userInput.router,
+        oracle: oracleAddress,
+        router: routerAddress,
         arkParams: {
           name: `PendlePt-${userInput.token}-${userInput.marketId}-${chainId}`,
           details: JSON.stringify({

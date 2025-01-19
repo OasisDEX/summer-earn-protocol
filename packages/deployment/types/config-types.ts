@@ -8,6 +8,19 @@ export enum SupportedNetworks {
   BASE = 'base',
   ARBITRUM = 'arbitrum',
 }
+// Supported Arks
+export enum ArkType {
+  AaveV3Ark = 'AaveV3Ark',
+  CompoundV3Ark = 'CompoundV3Ark',
+  ERC4626Ark = 'ERC4626Ark',
+  MorphoArk = 'MorphoArk',
+  MorphoVaultArk = 'MorphoVaultArk',
+  PendleLPArk = 'PendleLPArk',
+  PendlePTArk = 'PendlePTArk',
+  PendlePtOracleArk = 'PendlePtOracleArk',
+  SkyUsdsArk = 'SkyUsdsArk',
+  SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
+}
 
 export interface Config {
   [SupportedNetworks.MAINNET]: BaseConfig
@@ -108,14 +121,25 @@ export interface BaseConfig {
     }
   }
 }
+
+export interface ArkConfig {
+  type: ArkType
+  params: {
+    asset: string
+    protocol: string
+    vaultName?: string // For ERC4626Ark
+  }
+}
+
 export interface FleetDefinition {
   fleetName: string
   symbol: string
   assetSymbol: string
-  details: string
   initialMinimumBufferBalance: string
   initialRebalanceCooldown: string
   depositCap: string
   initialTipRate: string
   network: string
+  arks: ArkConfig[]
+  details: string
 }
