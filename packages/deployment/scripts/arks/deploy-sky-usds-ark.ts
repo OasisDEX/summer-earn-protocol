@@ -108,8 +108,8 @@ async function confirmDeployment(
   console.log(
     kleur.yellow(`PSM Lite: ${config.protocolSpecific.sky.psmLite[userInput.token.symbol]}`),
   )
-  console.log(kleur.yellow(`USDS: ${config.protocolSpecific.sky.psmLite.usds}`))
-  console.log(kleur.yellow(`Staked USDS: ${config.protocolSpecific.sky.psmLite.stakedUsds}`))
+  console.log(kleur.yellow(`USDS: ${config.tokens.usds}`))
+  console.log(kleur.yellow(`Staked USDS: ${config.tokens.stakedUsds}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))

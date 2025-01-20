@@ -17,6 +17,7 @@ import { loadFleetConfig } from './helpers/fleet-definition-handler'
 import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
 import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import { validateToken } from './helpers/validation'
 
 /**
  * Deploys all Arks specified in the fleet definition
@@ -59,6 +60,8 @@ async function deployFleet() {
   console.log(kleur.green().bold('Starting Fleet deployment process...'))
 
   const fleetDefinition = await getFleetConfig()
+  validateToken(config, fleetDefinition.assetSymbol)
+
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
 

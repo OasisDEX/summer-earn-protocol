@@ -111,7 +111,7 @@
       }
     },
     {
-      "type": "SkyUsdsPsm3Ark",
+      "type": "SkyUsdsArk",
       "params": {
         "asset": "USDC",
         "protocol": "sky"

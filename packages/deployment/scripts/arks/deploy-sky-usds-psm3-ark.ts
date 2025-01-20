@@ -107,7 +107,7 @@ async function confirmDeployment(
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(
     kleur.yellow(
-      `PSM3: ${config.protocolSpecific.sky.psm3[userInput.token.symbol.toLowerCase() as Token]}`,
+      `PSM3: ${config.protocolSpecific.sky.psm3[userInput.token.symbol]}`,
     ),
   )
   console.log(kleur.yellow(`sUSDS: ${config.tokens.stakedUsds}`))
