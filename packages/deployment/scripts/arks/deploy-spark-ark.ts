@@ -3,15 +3,15 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { SparkArkContracts, createSparkArkModule } from '../../ignition/modules/arks/spark-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
 interface SparkArkUserInput {
-  token: { address: Address; symbol: string }
+  token: { address: Address; symbol: Token }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -26,14 +26,12 @@ interface SparkArkUserInput {
  * - Deploying the SparkArk contract
  * - Logging deployment results
  */
-export async function deploySparkArk() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deploySparkArk(config: BaseConfig, arkParams: SparkArkUserInput | undefined) {
   console.log(kleur.green().bold('Starting SparkArk deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedSparkArk = await deploySparkArkContract(config, userInput)
     return { ark: deployedSparkArk.sparkArk }
   } else {
@@ -49,7 +47,7 @@ export async function deploySparkArk() {
 async function getUserInput(config: BaseConfig): Promise<SparkArkUserInput> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
-    const tokenAddress = config.tokens[tokenSymbol as TokenType]
+    const tokenAddress = config.tokens[tokenSymbol as Token]
     tokens.push({
       title: tokenSymbol,
       value: { address: tokenAddress, symbol: tokenSymbol },
@@ -89,14 +87,14 @@ async function getUserInput(config: BaseConfig): Promise<SparkArkUserInput> {
  * @param {SparkArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: SparkArkUserInput) {
+async function confirmDeployment(userInput: SparkArkUserInput, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**
@@ -114,11 +112,14 @@ async function deploySparkArkContract(
   const arkName = `Spark-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const sparkPool = validateAddress(config.protocolSpecific.spark.pool, 'spark pool')
+  const sparkRewards = validateAddress(config.protocolSpecific.spark.rewards, 'spark rewards')
+
   return (await hre.ignition.deploy(createSparkArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        sparkPool: config.protocolSpecific.spark.pool,
-        rewardsController: config.protocolSpecific.spark.rewards,
+        sparkPool: sparkPool,
+        rewardsController: sparkRewards,
         arkParams: {
           name: `Spark-${userInput.token.symbol}-${chainId}`,
           details: JSON.stringify({
@@ -126,7 +127,7 @@ async function deploySparkArkContract(
             type: 'Lending',
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
-            pool: config.protocolSpecific.spark.pool,
+            pool: sparkPool,
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,

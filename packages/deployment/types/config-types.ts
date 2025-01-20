@@ -11,6 +11,7 @@ export enum SupportedNetworks {
 // Supported Arks
 export enum ArkType {
   AaveV3Ark = 'AaveV3Ark',
+  SparkArk = 'SparkArk',
   CompoundV3Ark = 'CompoundV3Ark',
   ERC4626Ark = 'ERC4626Ark',
   MorphoArk = 'MorphoArk',

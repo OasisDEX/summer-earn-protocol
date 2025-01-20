@@ -9,6 +9,7 @@ import { ModuleLogger } from './helpers/module-logger'
 
 const arkTypes = [
   { title: 'AaveV3Ark', value: ArkType.AaveV3Ark },
+  { title: 'SparkArk', value: ArkType.SparkArk },
   { title: 'MorphoArk', value: ArkType.MorphoArk },
   { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
   { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },

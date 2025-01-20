@@ -45,7 +45,10 @@ export function validateToken(config: BaseConfig, token: string): Token {
   if (!Object.values(Token).includes(normalizedToken as Token)) {
     throw new ValidationError(`Invalid token type: ${token}`)
   }
-  if (!config.tokens[normalizedToken as Token] || config.tokens[normalizedToken as Token] === ADDRESS_ZERO) {
+  if (
+    !config.tokens[normalizedToken as Token] ||
+    config.tokens[normalizedToken as Token] === ADDRESS_ZERO
+  ) {
     throw new ValidationError(`Invalid token: ${token}`)
   }
   return normalizedToken as Token

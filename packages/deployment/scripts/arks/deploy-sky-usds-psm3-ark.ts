@@ -105,11 +105,7 @@ async function confirmDeployment(
 ) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
-  console.log(
-    kleur.yellow(
-      `PSM3: ${config.protocolSpecific.sky.psm3[userInput.token.symbol]}`,
-    ),
-  )
+  console.log(kleur.yellow(`PSM3: ${config.protocolSpecific.sky.psm3[userInput.token.symbol]}`))
   console.log(kleur.yellow(`sUSDS: ${config.tokens.stakedUsds}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))

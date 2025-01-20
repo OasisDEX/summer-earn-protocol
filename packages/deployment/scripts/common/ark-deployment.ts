@@ -10,6 +10,7 @@ import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
 import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
 import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
 import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
+import { deploySparkArk } from '../arks/deploy-spark-ark'
 import {
   validateAddress,
   validateErc4626Address,
@@ -48,6 +49,9 @@ export async function deployArk(
   switch (arkConfig.type) {
     case ArkType.AaveV3Ark:
       deployedArk = await deployAaveV3Ark(config, baseArkParams)
+      break
+    case ArkType.SparkArk:
+      deployedArk = await deploySparkArk(config, baseArkParams)
       break
 
     case ArkType.CompoundV3Ark:
