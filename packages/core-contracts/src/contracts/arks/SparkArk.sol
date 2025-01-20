@@ -7,21 +7,21 @@ import {IRewardsController} from "../../interfaces/aave-v3/IRewardsController.so
 import "../Ark.sol";
 
 /**
- * @title AaveV3Ark
- * @notice Ark contract for managing token supply and yield generation through the Aave V3.
- * @dev Implements strategy for supplying tokens, withdrawing tokens, and claiming rewards on Aave V3.
+ * @title SparkArk
+ * @notice Ark contract for managing token supply and yield generation through Spark Protocol (Aave V3 fork).
+ * @dev Implements strategy for supplying tokens, withdrawing tokens, and claiming rewards on Spark.
  */
-contract AaveV3Ark is Ark {
+contract SparkArk is Ark {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    /// @notice The Aave V3 aToken address
-    address public immutable aToken;
-    /// @notice The Aave V3 pool address
-    IPoolV3 public immutable aaveV3Pool;
-    /// @notice The Aave V3 rewards controller address
+    /// @notice The Spark spToken address (equivalent to aToken in Aave)
+    address public immutable spToken;
+    /// @notice The Spark pool address
+    IPoolV3 public immutable sparkPool;
+    /// @notice The Spark rewards controller address
     IRewardsController public immutable rewardsController;
 
     /*//////////////////////////////////////////////////////////////
@@ -29,21 +29,21 @@ contract AaveV3Ark is Ark {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Constructor for AaveV3Ark
-     * @param _aaveV3Pool Address of the Aave V3 pool
-     * @param _rewardsController Address of the Aave V3 rewards controller
+     * @notice Constructor for SparkArk
+     * @param _sparkPool Address of the Spark pool
+     * @param _rewardsController Address of the Spark rewards controller
      * @param _params ArkParams struct containing initialization parameters
      */
     constructor(
-        address _aaveV3Pool,
+        address _sparkPool,
         address _rewardsController,
         ArkParams memory _params
     ) Ark(_params) {
-        aaveV3Pool = IPoolV3(_aaveV3Pool);
-        DataTypes.ReserveData memory reserveData = aaveV3Pool.getReserveData(
+        sparkPool = IPoolV3(_sparkPool);
+        DataTypes.ReserveData memory reserveData = sparkPool.getReserveData(
             address(config.asset)
         );
-        aToken = reserveData.aTokenAddress;
+        spToken = reserveData.aTokenAddress; // In Spark, aToken is called spToken
         rewardsController = IRewardsController(_rewardsController);
     }
 
@@ -55,7 +55,7 @@ contract AaveV3Ark is Ark {
      * @inheritdoc IArk
      */
     function totalAssets() public view override returns (uint256 assets) {
-        assets = IERC20(aToken).balanceOf(address(this));
+        assets = IERC20(spToken).balanceOf(address(this));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ contract AaveV3Ark is Ark {
 
     /**
      * @notice Internal function to get the total assets that are withdrawable
-     * @dev AaveV3Ark is withdrawable if the asset is active, not frozen, and not paused
+     * @dev SparkArk is withdrawable if the asset is active, not frozen, and not paused
      */
     function _withdrawableTotalAssets()
         internal
@@ -72,13 +72,13 @@ contract AaveV3Ark is Ark {
         override
         returns (uint256 withdrawableAssets)
     {
-        uint256 configData = aaveV3Pool
+        uint256 configData = sparkPool
             .getReserveData(address(config.asset))
             .configuration
             .data;
         // We dont check if asset is frozen as
         // Withdrawals and repayments on the assets frozen are completely active, together with liquidations.
-        // Only “additive” actions like supplying and borrowing them are halted.
+        // Only "additive" actions like supplying and borrowing them are halted.
         if (!(_isActive(configData) && !_isPaused(configData))) {
             return 0;
         }
@@ -86,14 +86,14 @@ contract AaveV3Ark is Ark {
         if (_totalAssets == 0) {
             return 0;
         }
-        uint256 assetsInAToken = config.asset.balanceOf(aToken);
-        withdrawableAssets = assetsInAToken < _totalAssets
-            ? assetsInAToken
+        uint256 assetsInSpToken = config.asset.balanceOf(spToken);
+        withdrawableAssets = assetsInSpToken < _totalAssets
+            ? assetsInSpToken
             : _totalAssets;
     }
 
     /**
-     * @notice Harvests rewards from the Aave V3 pool
+     * @notice Harvests rewards from the Spark pool
      * @param /// data Additional data for the harvest operation
      * @return rewardTokens Array of reward tokens
      * @return rewardAmounts Array of reward amounts
@@ -106,7 +106,7 @@ contract AaveV3Ark is Ark {
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
         address[] memory incentivizedAssets = new address[](1);
-        incentivizedAssets[0] = aToken;
+        incentivizedAssets[0] = spToken;
 
         (rewardTokens, rewardAmounts) = rewardsController.claimAllRewards(
             incentivizedAssets,
@@ -117,31 +117,31 @@ contract AaveV3Ark is Ark {
     }
 
     /**
-     * @notice Boards the Ark by supplying the specified amount of tokens to the Aave V3 pool
+     * @notice Boards the Ark by supplying the specified amount of tokens to the Spark pool
      * @param amount Amount of tokens to supply
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        config.asset.forceApprove(address(aaveV3Pool), amount);
-        aaveV3Pool.supply(address(config.asset), amount, address(this), 0);
+        config.asset.forceApprove(address(sparkPool), amount);
+        sparkPool.supply(address(config.asset), amount, address(this), 0);
     }
 
     /**
-     * @notice Disembarks the Ark by withdrawing the specified amount of tokens from the Aave V3 pool
+     * @notice Disembarks the Ark by withdrawing the specified amount of tokens from the Spark pool
      * @param amount Amount of tokens to withdraw
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        aaveV3Pool.withdraw(address(config.asset), amount, address(this));
+        sparkPool.withdraw(address(config.asset), amount, address(this));
     }
 
     /**
      * @notice Validates the board data
-     * @dev Aave V3 Ark does not require any validation for board data
+     * @dev Spark Ark does not require any validation for board data
      */
-    function _validateBoardData(bytes calldata ta) internal override {}
+    function _validateBoardData(bytes calldata) internal override {}
 
     /**
      * @notice Validates the disembark data
-     * @dev Aave V3 Ark does not require any validation for board or disembark data
+     * @dev Spark Ark does not require any validation for disembark data
      */
     function _validateDisembarkData(bytes calldata) internal override {}
 

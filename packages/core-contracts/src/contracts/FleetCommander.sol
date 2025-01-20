@@ -548,7 +548,7 @@ contract FleetCommander is
      * @param amount The amount of assets to board
      */
     function _board(address ark, uint256 amount) internal {
-        IERC20(asset()).approve(ark, amount);
+        IERC20(asset()).forceApprove(ark, amount);
         IArk(ark).board(amount, bytes(""));
     }
 

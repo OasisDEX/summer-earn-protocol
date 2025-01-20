@@ -92,7 +92,7 @@ contract SkyUsdsPsm3Ark is Ark {
 
     function _board(uint256 amount, bytes calldata) internal override {
         // Approve PSM to take fleet asset
-        config.asset.approve(address(psm), amount);
+        config.asset.forceApprove(address(psm), amount);
 
         // Preview swap to get expected sUSDS amount
         uint256 expectedSusds = psm.previewSwapExactIn(
@@ -119,7 +119,7 @@ contract SkyUsdsPsm3Ark is Ark {
             amount
         );
         // Perform swap with exact output as preview
-        susds.approve(address(psm), susdsNeeded);
+        susds.forceApprove(address(psm), susdsNeeded);
         psm.swapExactOut(
             address(susds),
             address(config.asset),
