@@ -29,7 +29,7 @@ export async function deployPendlePTArk(
 
   const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedPendlePTArk = await deployPendlePTArkContract(config, userInput)
     return { ark: deployedPendlePTArk.pendlePTArk }
   } else {
@@ -102,7 +102,11 @@ async function getUserInput(config: BaseConfig) {
   return aggregatedData
 }
 
-async function confirmDeployment(userInput: PendlePTArkUserInput) {
+async function confirmDeployment(
+  userInput: PendlePTArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
   console.log(kleur.yellow(`Token: ${userInput.token}`))
@@ -110,7 +114,7 @@ async function confirmDeployment(userInput: PendlePTArkUserInput) {
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 async function deployPendlePTArkContract(

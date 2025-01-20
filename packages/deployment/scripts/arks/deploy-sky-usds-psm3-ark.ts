@@ -36,7 +36,7 @@ export async function deploySkyUsdsPsm3Ark(
 
   const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput, config)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedSkyUsdsPsm3Ark = await deploySkyUsdsPsm3ArkContract(config, userInput)
     return { ark: deployedSkyUsdsPsm3Ark.skyUsdsPsm3Ark }
   } else {
@@ -97,7 +97,11 @@ async function getUserInput(config: BaseConfig): Promise<SkyUsdsPsm3ArkUserInput
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: SkyUsdsPsm3ArkUserInput, config: BaseConfig) {
+async function confirmDeployment(
+  userInput: SkyUsdsPsm3ArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(
@@ -110,7 +114,7 @@ async function confirmDeployment(userInput: SkyUsdsPsm3ArkUserInput, config: Bas
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**

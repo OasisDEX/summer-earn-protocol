@@ -7,7 +7,7 @@
   "depositCap": "1000000000",
   "initialTipRate": "0",
   "network": "mainnet",
-  "details":"",
+  "details": "",
   "arks": [
     {
       "type": "AaveV3Ark",

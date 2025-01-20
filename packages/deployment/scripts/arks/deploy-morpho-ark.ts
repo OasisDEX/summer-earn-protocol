@@ -34,7 +34,7 @@ export async function deployMorphoArk(
 
   const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedMorphoArk = await deployMorphoArkContract(config, userInput)
     return { ark: deployedMorphoArk.morphoArk }
   } else {
@@ -106,7 +106,11 @@ async function getUserInput(config: BaseConfig): Promise<MorphoArkUserInput> {
  * @param {MorphoArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: MorphoArkUserInput) {
+async function confirmDeployment(
+  userInput: MorphoArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token                  : ${userInput.token}`))
   console.log(kleur.yellow(`Market ID              : ${userInput.marketId}`))
@@ -114,7 +118,7 @@ async function confirmDeployment(userInput: MorphoArkUserInput) {
   console.log(kleur.yellow(`Max Rebalance Outflow  : ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow   : ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**

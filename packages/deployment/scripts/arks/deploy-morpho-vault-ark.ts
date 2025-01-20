@@ -38,7 +38,7 @@ export async function deployMorphoVaultArk(
 
   const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedMorphoVaultArk = await deployMorphoVaultArkContract(config, userInput)
     return { ark: deployedMorphoVaultArk.morphoVaultArk }
   } else {
@@ -112,7 +112,11 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
  * @param {MorphoVaultArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: MorphoVaultArkUserInput) {
+async function confirmDeployment(
+  userInput: MorphoVaultArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} - ${userInput.token.symbol}`))
   console.log(kleur.yellow(`Vault ID: ${userInput.vaultId}`))
@@ -120,7 +124,7 @@ async function confirmDeployment(userInput: MorphoVaultArkUserInput) {
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**

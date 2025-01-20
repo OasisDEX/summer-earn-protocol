@@ -36,7 +36,7 @@ export async function deployCompoundV3Ark(
 
   const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedCompoundV3Ark = await deployCompoundV3ArkContract(config, userInput)
     return { ark: deployedCompoundV3Ark.compoundV3Ark }
   } else {
@@ -101,14 +101,18 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
  * @param {CompoundV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: CompoundV3ArkUserInput) {
+async function confirmDeployment(
+  userInput: CompoundV3ArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.symbol}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**

@@ -33,7 +33,7 @@ export async function deployAaveV3Ark(
 
   const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedAaveV3Ark = await deployAaveV3ArkContract(config, userInput)
     return { ark: deployedAaveV3Ark.aaveV3Ark }
   } else {
@@ -88,14 +88,18 @@ async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
  * @param {AaveV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: AaveV3ArkUserInput) {
+async function confirmDeployment(
+  userInput: AaveV3ArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**

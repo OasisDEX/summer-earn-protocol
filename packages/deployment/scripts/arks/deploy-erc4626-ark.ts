@@ -29,7 +29,7 @@ export async function deployERC4626Ark(
 
   const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedERC4626Ark = await deployERC4626ArkContract(config, userInput)
     return { ark: deployedERC4626Ark.erc4626Ark }
   } else {
@@ -96,7 +96,11 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
   return aggregatedData
 }
 
-async function confirmDeployment(userInput: ERC4626ArkUserInput) {
+async function confirmDeployment(
+  userInput: ERC4626ArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Vault ID               : ${userInput.vaultId}`))
   console.log(
@@ -106,7 +110,7 @@ async function confirmDeployment(userInput: ERC4626ArkUserInput) {
   console.log(kleur.yellow(`Max Rebalance Outflow  : ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow   : ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 async function deployERC4626ArkContract(

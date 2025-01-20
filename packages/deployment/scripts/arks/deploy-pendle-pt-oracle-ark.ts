@@ -30,7 +30,7 @@ export async function deployPendlePTOracleArk(
 
   const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedPendlePtOracleArk = await deployPendlePtOracleArkContract(config, userInput)
     return { ark: deployedPendlePtOracleArk.pendlePtOracleArk }
   } else {
@@ -118,7 +118,11 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
   return aggregatedData
 }
 
-async function confirmDeployment(userInput: PendlePtOracleArkUserInput) {
+async function confirmDeployment(
+  userInput: PendlePtOracleArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Market ID: ${userInput.marketId}`))
   console.log(kleur.yellow(`Market Asset Oracle: ${userInput.marketAssetOracle}`))
@@ -127,7 +131,7 @@ async function confirmDeployment(userInput: PendlePtOracleArkUserInput) {
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 async function deployPendlePtOracleArkContract(
