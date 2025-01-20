@@ -239,7 +239,7 @@ contract GovernanceRewardsManager is
 
         // Pull tokens and wrap them
         stakingToken.safeTransferFrom(from, address(this), amount);
-        stakingToken.approve(address(wrappedStakingToken), amount);
+        stakingToken.forceApprove(address(wrappedStakingToken), amount);
         wrappedStakingToken.depositFor(address(this), amount);
 
         // Update balances with wrapped token amount

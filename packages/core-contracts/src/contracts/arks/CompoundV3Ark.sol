@@ -77,7 +77,7 @@ contract CompoundV3Ark is Ark {
      * @param /// boardData Additional data for boarding (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        config.asset.approve(address(comet), amount);
+        config.asset.forceApprove(address(comet), amount);
         comet.supply(address(config.asset), amount);
     }
 

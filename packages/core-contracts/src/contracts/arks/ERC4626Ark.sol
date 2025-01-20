@@ -40,7 +40,7 @@ contract ERC4626Ark is Ark {
         }
 
         // Approve the vault to spend the Ark's tokens
-        config.asset.approve(_vault, Constants.MAX_UINT256);
+        config.asset.forceApprove(_vault, Constants.MAX_UINT256);
     }
 
     /**

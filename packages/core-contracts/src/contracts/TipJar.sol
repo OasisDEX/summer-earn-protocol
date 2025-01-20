@@ -284,7 +284,7 @@ contract TipJar is
             }
 
             if (amount > 0) {
-                underlyingAsset.transfer(recipient, amount);
+                underlyingAsset.safeTransfer(recipient, amount);
                 totalDistributed += amount;
             }
         }
@@ -292,7 +292,7 @@ contract TipJar is
         // Transfer remaining balance to treasury
         uint256 remaining = withdrawnAssets - totalDistributed;
         if (remaining > 0) {
-            underlyingAsset.transfer(treasury(), remaining);
+            underlyingAsset.safeTransfer(treasury(), remaining);
         }
 
         emit TipJarShaken(address(fleetCommander), withdrawnAssets);

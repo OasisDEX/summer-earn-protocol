@@ -107,7 +107,7 @@ contract MorphoVaultArk is Ark {
      * @param /// data Additional data (unused in this implementation)
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        config.asset.approve(address(metaMorpho), amount);
+        config.asset.forceApprove(address(metaMorpho), amount);
         metaMorpho.deposit(amount, address(this));
     }
 
