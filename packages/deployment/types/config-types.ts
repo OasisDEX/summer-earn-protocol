@@ -8,6 +8,20 @@ export enum SupportedNetworks {
   BASE = 'base',
   ARBITRUM = 'arbitrum',
 }
+// Supported Arks
+export enum ArkType {
+  AaveV3Ark = 'AaveV3Ark',
+  SparkArk = 'SparkArk',
+  CompoundV3Ark = 'CompoundV3Ark',
+  ERC4626Ark = 'ERC4626Ark',
+  MorphoArk = 'MorphoArk',
+  MorphoVaultArk = 'MorphoVaultArk',
+  PendleLPArk = 'PendleLPArk',
+  PendlePTArk = 'PendlePTArk',
+  PendlePtOracleArk = 'PendlePtOracleArk',
+  SkyUsdsArk = 'SkyUsdsArk',
+  SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
+}
 
 export interface Config {
   [SupportedNetworks.MAINNET]: BaseConfig
@@ -15,7 +29,7 @@ export interface Config {
   [SupportedNetworks.ARBITRUM]: BaseConfig
 }
 
-export enum Tokens {
+export enum Token {
   USDC = 'usdc',
   DAI = 'dai',
   USDT = 'usdt',
@@ -25,15 +39,7 @@ export enum Tokens {
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
 }
-export type TokenType =
-  | Tokens.DAI
-  | Tokens.USDC
-  | Tokens.USDT
-  | Tokens.USDE
-  | Tokens.USDCE
-  | Tokens.USDS
-  | Tokens.STAKED_USDS
-  | Tokens.WETH
+
 export interface BaseConfig {
   deployedContracts: {
     core: CoreContracts
@@ -46,16 +52,15 @@ export interface BaseConfig {
       lzEndpoint: Address
       eID: string
     }
-    treasury: Address
     swapProvider: Address
     tipRate: string
   }
   tokens: {
-    [key in Tokens]: Address
+    [key in Token]: Address
   }
   protocolSpecific: {
     erc4626: {
-      [key in Tokens]: {
+      [key in Token]: {
         [key: string]: Address
       }
     }
@@ -63,9 +68,9 @@ export interface BaseConfig {
       router: Address
       'lp-oracle': Address
       markets: {
-        [key in Tokens]: {
+        [key in Token]: {
           swapInTokens: Array<{
-            token: TokenType
+            token: Token
             oracle: Address
           }>
           marketAddresses: Record<string, Address>
@@ -84,19 +89,19 @@ export interface BaseConfig {
       blue: Address
       urdFactory: Address
       vaults: {
-        [key in Tokens]: {
+        [key in Token]: {
           [key: string]: Address
         }
       }
       markets: {
-        [key in Tokens]: {
+        [key in Token]: {
           [key: string]: Address
         }
       }
     }
     compoundV3: {
       pools: {
-        [key in Tokens]: {
+        [key in Token]: {
           cToken: Address
         }
       }
@@ -104,22 +109,43 @@ export interface BaseConfig {
     }
     sky: {
       psmLite: {
-        [key in Tokens]: Address
+        [key in Token]: Address
       }
       psm3: {
-        [key in Tokens]: Address
+        [key in Token]: Address
       }
     }
   }
 }
-export interface FleetDefinition {
+
+export interface ArkConfig {
+  type: ArkType
+  params: {
+    asset: string
+    protocol: string
+    vaultName?: string // For ERC4626Ark
+  }
+}
+
+export interface FleetConfig {
   fleetName: string
   symbol: string
   assetSymbol: string
-  details: string
   initialMinimumBufferBalance: string
   initialRebalanceCooldown: string
   depositCap: string
   initialTipRate: string
   network: string
+  arks: ArkConfig[]
+  details: string
+}
+
+export interface FleetDeployment {
+  fleetName: string
+  fleetSymbol: string
+  assetSymbol: string
+  fleetAddress: Address
+  bufferArkAddress: Address
+  network: string
+  arks: Address[]
 }

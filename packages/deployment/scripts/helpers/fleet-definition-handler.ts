@@ -1,26 +1,27 @@
 import fs from 'fs'
 import path from 'path'
-import { FleetDefinition } from '../../types/config-types'
+import { FleetConfig } from '../../types/config-types'
 
-export function loadFleetDefinition(filePath: string): Omit<FleetDefinition, 'details'> {
+export function loadFleetConfig(filePath: string): FleetConfig {
   const fullPath = path.resolve(filePath)
   if (!fs.existsSync(fullPath)) {
     throw new Error(`Fleet definition file not found: ${fullPath}`)
   }
 
   const fileContent = fs.readFileSync(fullPath, 'utf8')
-  const fleetDefinition = JSON.parse(fileContent) as FleetDefinition
+  const fleetConfig = JSON.parse(fileContent) as FleetConfig
   if (
-    !fleetDefinition.fleetName ||
-    !fleetDefinition.symbol ||
-    !fleetDefinition.assetSymbol ||
-    !fleetDefinition.initialMinimumBufferBalance ||
-    !fleetDefinition.initialRebalanceCooldown ||
-    !fleetDefinition.depositCap ||
-    !fleetDefinition.initialTipRate ||
-    !fleetDefinition.network
+    !fleetConfig.fleetName ||
+    !fleetConfig.symbol ||
+    !fleetConfig.assetSymbol ||
+    !fleetConfig.initialMinimumBufferBalance ||
+    !fleetConfig.initialRebalanceCooldown ||
+    !fleetConfig.depositCap ||
+    !fleetConfig.initialTipRate ||
+    !fleetConfig.network ||
+    fleetConfig.details === undefined
   ) {
-    throw new Error(`Fleet definition file is missing required fields: ${fullPath}`)
+    throw new Error(`Fleet config file is missing required fields: ${fullPath}`)
   }
-  return fleetDefinition
+  return fleetConfig
 }

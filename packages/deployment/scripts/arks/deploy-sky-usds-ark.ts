@@ -6,15 +6,15 @@ import {
   SkyUsdsArkContracts,
   createSkyUsdsArkModule,
 } from '../../ignition/modules/arks/sky-usds-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
-interface SkyUsdsArkUserInput {
-  token: { address: Address; symbol: string }
+export interface SkyUsdsArkUserInput {
+  token: { address: Address; symbol: Token }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -29,14 +29,15 @@ interface SkyUsdsArkUserInput {
  * - Deploying the SkyUsdsArk contract
  * - Logging deployment results
  */
-export async function deploySkyUsdsArk() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deploySkyUsdsArk(
+  config: BaseConfig,
+  arkParams: SkyUsdsArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting SkyUsdsArk deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput, config)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedSkyUsdsArk = await deploySkyUsdsArkContract(config, userInput)
     return { ark: deployedSkyUsdsArk.skyUsdsArk }
   } else {
@@ -52,9 +53,9 @@ export async function deploySkyUsdsArk() {
 async function getUserInput(config: BaseConfig): Promise<SkyUsdsArkUserInput> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
-    const tokenAddress = config.tokens[tokenSymbol as TokenType]
+    const tokenAddress = config.tokens[tokenSymbol as Token]
     // Only add tokens that have a corresponding PSM Lite configuration
-    const psmLiteAddress = config.protocolSpecific.sky.psmLite[tokenSymbol as TokenType]
+    const psmLiteAddress = config.protocolSpecific.sky.psmLite[tokenSymbol as Token]
     if (psmLiteAddress && psmLiteAddress != ADDRESS_ZERO) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
@@ -97,21 +98,23 @@ async function getUserInput(config: BaseConfig): Promise<SkyUsdsArkUserInput> {
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: SkyUsdsArkUserInput, config: BaseConfig) {
+async function confirmDeployment(
+  userInput: SkyUsdsArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(
-    kleur.yellow(
-      `PSM Lite: ${config.protocolSpecific.sky.psmLite[userInput.token.symbol.toLowerCase() as TokenType]}`,
-    ),
+    kleur.yellow(`PSM Lite: ${config.protocolSpecific.sky.psmLite[userInput.token.symbol]}`),
   )
-  console.log(kleur.yellow(`USDS: ${config.protocolSpecific.sky.psmLite.usds}`))
-  console.log(kleur.yellow(`Staked USDS: ${config.protocolSpecific.sky.psmLite.stakedUsds}`))
+  console.log(kleur.yellow(`USDS: ${config.tokens.usds}`))
+  console.log(kleur.yellow(`Staked USDS: ${config.tokens.stakedUsds}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**
@@ -129,13 +132,20 @@ async function deploySkyUsdsArkContract(
   const arkName = `SkyUsds-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const psmLiteAddress = validateAddress(
+    config.protocolSpecific.sky.psmLite[userInput.token.symbol],
+    'PSM Lite',
+  )
+  const usdsAddress = validateAddress(config.tokens.usds, 'USDS')
+  const stakedUsdsAddress = validateAddress(config.tokens.stakedUsds, 'Staked USDS')
+
   return (await hre.ignition.deploy(createSkyUsdsArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        litePsm:
-          config.protocolSpecific.sky.psmLite[userInput.token.symbol.toLowerCase() as TokenType],
-        usds: config.tokens.usds,
-        stakedUsds: config.tokens.stakedUsds,
+        litePsm: psmLiteAddress,
+        usds: usdsAddress,
+        stakedUsds: stakedUsdsAddress,
+
         arkParams: {
           name: arkName,
           details: JSON.stringify({
@@ -143,9 +153,7 @@ async function deploySkyUsdsArkContract(
             type: 'Staking',
             asset: userInput.token.address,
             marketAsset: config.tokens.usds,
-            pool: config.protocolSpecific.sky.psmLite[
-              userInput.token.symbol.toLowerCase() as TokenType
-            ],
+            pool: psmLiteAddress,
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,

@@ -1,8 +1,8 @@
 import kleur from 'kleur'
 import fs from 'node:fs'
-import path from 'node:path'
 import { FleetContracts } from '../../ignition/modules/fleet'
-import { FleetDefinition } from '../../types/config-types'
+import { FleetConfig } from '../../types/config-types'
+import { getFleetDeploymentDir, getFleetDeploymentPath } from './fleet-deployment-files-helpers'
 
 /**
  * Creates and saves a deployment JSON file with fleet information.
@@ -10,7 +10,7 @@ import { FleetDefinition } from '../../types/config-types'
  * @param {FleetContracts} deployedFleet - The deployed fleet contracts.
  */
 export function saveFleetDeploymentJson(
-  fleetDefinition: FleetDefinition,
+  fleetDefinition: FleetConfig,
   deployedFleet: FleetContracts,
   bufferArkAddress: string,
 ) {
@@ -27,15 +27,20 @@ export function saveFleetDeploymentJson(
     initialTipRate: fleetDefinition.initialTipRate,
   }
 
-  const deploymentDir = path.resolve(__dirname, '..', '..', 'deployments', 'fleets')
+  const deploymentDir = getFleetDeploymentDir()
   if (!fs.existsSync(deploymentDir)) {
     fs.mkdirSync(deploymentDir, { recursive: true })
   }
 
-  const fileName = `${fleetDefinition.fleetName.replace(/\W/g, '')}_${fleetDefinition.network}_deployment.json`
-  const filePath = path.join(deploymentDir, fileName)
+  const filePath = getFleetDeploymentPath(fleetDefinition)
 
-  fs.writeFileSync(filePath, JSON.stringify(deploymentInfo, null, 2))
+  if (fs.existsSync(filePath)) {
+    console.log(
+      kleur.red(`File ${filePath} already exists. Skipping overwriting fleet deployment JSON.`),
+    )
+  } else {
+    fs.writeFileSync(filePath, JSON.stringify(deploymentInfo, null, 2))
+  }
 
   console.log(kleur.green().bold(`Deployment information saved to: ${filePath}`))
 }

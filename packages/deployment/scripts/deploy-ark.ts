@@ -1,36 +1,28 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
-import { Address } from 'viem'
-import { deployAaveV3Ark } from './arks/deploy-aavev3-ark'
-import { deployCompoundV3Ark } from './arks/deploy-compoundv3-ark'
-import { deployERC4626Ark } from './arks/deploy-erc4626-ark'
-import { deployMorphoArk } from './arks/deploy-morpho-ark'
-import { deployMorphoVaultArk } from './arks/deploy-morpho-vault-ark'
-import { deployPendleLPArk } from './arks/deploy-pendle-lp-ark'
-import { deployPendlePTArk } from './arks/deploy-pendle-pt-ark'
-import { deployPendlePTOracleArk } from './arks/deploy-pendle-pt-oracle-ark'
-import { deploySkyUsdsArk } from './arks/deploy-sky-usds-ark'
-import { deploySkyUsdsPsm3Ark } from './arks/deploy-sky-usds-psm3-ark'
+import { ArkType } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
+import { ArkConfig, deployArk } from './common/ark-deployment'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 
 const arkTypes = [
-  { title: 'AaveV3Ark', value: deployAaveV3Ark },
-  { title: 'MorphoArk', value: deployMorphoArk },
-  { title: 'MorphoVaultArk', value: deployMorphoVaultArk },
-  { title: 'CompoundV3Ark', value: deployCompoundV3Ark },
-  { title: 'ERC4626Ark', value: deployERC4626Ark },
-  { title: 'PendleLPArk', value: deployPendleLPArk },
-  { title: 'PendlePTArk', value: deployPendlePTArk },
-  { title: 'PendlePtOracleArk', value: deployPendlePTOracleArk },
-  { title: 'SkyUsdsArk', value: deploySkyUsdsArk },
-  { title: 'SkyUsdsPsm3Ark', value: deploySkyUsdsPsm3Ark },
+  { title: 'AaveV3Ark', value: ArkType.AaveV3Ark },
+  { title: 'SparkArk', value: ArkType.SparkArk },
+  { title: 'MorphoArk', value: ArkType.MorphoArk },
+  { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
+  { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },
+  { title: 'ERC4626Ark', value: ArkType.ERC4626Ark },
+  { title: 'SkyUsdsArk', value: ArkType.SkyUsdsArk },
+  { title: 'SkyUsdsPsm3Ark', value: ArkType.SkyUsdsPsm3Ark },
+  { title: 'PendleLPArk', value: ArkType.PendleLPArk },
+  { title: 'PendlePTArk', value: ArkType.PendlePTArk },
+  { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
 ]
 
-async function deployArk() {
-  const config = getConfigByNetwork(hre.network.name)
+async function deployArkInteractive() {
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })
 
   console.log(kleur.green().bold('Starting Ark deployment process...'))
 
@@ -46,28 +38,33 @@ async function deployArk() {
     return
   }
 
-  const deployedArk = await selectedArkType(config)
+  const { asset } = await prompts({
+    type: 'text',
+    name: 'asset',
+    message: 'Enter the asset symbol (e.g., USDC):',
+  })
 
-  if (deployedArk) {
+  const arkConfig: ArkConfig = {
+    type: selectedArkType,
+    params: {
+      asset: asset.toUpperCase(),
+    },
+  }
+
+  try {
+    const arkAddress = await deployArk(arkConfig, config)
     console.log(kleur.green().bold('Ark deployment completed successfully!'))
 
-    // Log the deployed Ark
-    ModuleLogger.logArk(deployedArk)
+    ModuleLogger.logArk({ ark: { address: arkAddress } })
 
-    // Add Ark to Fleet
-    await addArkToFleet(deployedArk.ark.address as Address, config, hre)
-  } else {
+    await addArkToFleet(arkAddress, config, hre)
+  } catch (error) {
     console.log(kleur.red().bold('Ark deployment failed or was cancelled.'))
+    throw error
   }
 }
 
-export type ArkContracts = {
-  ark: {
-    address: Address
-  }
-}
-// Execute the deployArk function and handle any errors
-deployArk().catch((error) => {
+deployArkInteractive().catch((error) => {
   console.error(kleur.red('Error during Ark deployment:'))
   console.error(error)
   process.exit(1)

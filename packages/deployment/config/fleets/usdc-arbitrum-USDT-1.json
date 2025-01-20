@@ -7,6 +7,7 @@
   "depositCap": "1000000000",
   "initialTipRate": "0",
   "network": "arbitrum",
+  "details": "",
   "arks": [
     {
       "type": "AaveV3Ark",

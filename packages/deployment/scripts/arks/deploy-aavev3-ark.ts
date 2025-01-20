@@ -3,15 +3,15 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { AaveV3ArkContracts, createAaveV3ArkModule } from '../../ignition/modules/arks/aavev3-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
-interface AaveV3ArkUserInput {
-  token: { address: Address; symbol: string }
+export interface AaveV3ArkUserInput {
+  token: { address: Address; symbol: Token }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -26,14 +26,15 @@ interface AaveV3ArkUserInput {
  * - Deploying the AaveV3Ark contract
  * - Logging deployment results
  */
-export async function deployAaveV3Ark() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deployAaveV3Ark(
+  config: BaseConfig,
+  arkParams: AaveV3ArkUserInput | undefined,
+) {
   console.log(kleur.green().bold('Starting AaveV3Ark deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedAaveV3Ark = await deployAaveV3ArkContract(config, userInput)
     return { ark: deployedAaveV3Ark.aaveV3Ark }
   } else {
@@ -48,7 +49,7 @@ export async function deployAaveV3Ark() {
 async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
-    const tokenAddress = config.tokens[tokenSymbol as TokenType]
+    const tokenAddress = config.tokens[tokenSymbol as Token]
     tokens.push({
       title: tokenSymbol,
       value: { address: tokenAddress, symbol: tokenSymbol },
@@ -88,14 +89,14 @@ async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
  * @param {AaveV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: AaveV3ArkUserInput) {
+async function confirmDeployment(userInput: AaveV3ArkUserInput, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**
@@ -113,11 +114,14 @@ async function deployAaveV3ArkContract(
   const arkName = `AaveV3-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const aaveV3Pool = validateAddress(config.protocolSpecific.aaveV3.pool, 'aaveV3 pool')
+  const aaveV3Rewards = validateAddress(config.protocolSpecific.aaveV3.rewards, 'aaveV3 rewards')
+
   return (await hre.ignition.deploy(createAaveV3ArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        aaveV3Pool: config.protocolSpecific.aaveV3.pool,
-        rewardsController: config.protocolSpecific.aaveV3.rewards,
+        aaveV3Pool: aaveV3Pool,
+        rewardsController: aaveV3Rewards,
         arkParams: {
           name: `AaveV3-${userInput.token.symbol}-${chainId}`,
           details: JSON.stringify({
@@ -125,7 +129,7 @@ async function deployAaveV3ArkContract(
             type: 'Lending',
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
-            pool: config.protocolSpecific.aaveV3.pool,
+            pool: aaveV3Pool,
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,

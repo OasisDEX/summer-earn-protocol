@@ -5,7 +5,7 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 
 export async function finalizeGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
 
   const summerToken = await hre.viem.getContractAt(
     'SummerToken' as string,

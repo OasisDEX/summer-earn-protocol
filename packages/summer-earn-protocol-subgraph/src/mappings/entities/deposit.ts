@@ -1,7 +1,7 @@
 import { BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Deposit, Staked } from '../../../generated/schema'
-import { PositionDetails } from '../../types'
 import { BigIntConstants } from '../../common/constants'
+import { PositionDetails } from '../../types'
 
 export function createDepositEventEntity(
   event: ethereum.Event,

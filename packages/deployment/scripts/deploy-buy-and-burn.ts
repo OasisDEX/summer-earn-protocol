@@ -8,7 +8,7 @@ import { ModuleLogger } from './helpers/module-logger'
 import { updateIndexJson } from './helpers/update-json'
 
 export async function deployBuyAndBurn() {
-  const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })
   const deployedBuyAndBurn = await deployBuyAndBurnContracts(config)
   ModuleLogger.logBuyAndBurn(deployedBuyAndBurn)
   return deployedBuyAndBurn

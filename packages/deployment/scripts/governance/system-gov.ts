@@ -10,7 +10,7 @@ import { updateIndexJson } from '../helpers/update-json'
 
 export async function deployGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: false, core: false })
   const deployedGov = await deployGovContracts(config)
   ModuleLogger.logGov(deployedGov)
   return deployedGov
