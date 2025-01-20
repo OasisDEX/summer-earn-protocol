@@ -68,16 +68,16 @@ contract SkyUsdsArk is Ark {
     }
 
     function _board(uint256 amount, bytes calldata) internal override {
-        config.asset.approve(address(litePsm), amount);
+        config.asset.forceApprove(address(litePsm), amount);
         uint256 usdsAmount = litePsm.sellGem(address(this), amount);
-        usds.approve(address(stakedUsds), usdsAmount);
+        usds.forceApprove(address(stakedUsds), usdsAmount);
         stakedUsds.deposit(usdsAmount, address(this));
     }
 
     function _disembark(uint256 amount, bytes calldata) internal override {
         uint256 usdsAmount = amount * TO_18_DECIMALS_CONVERSION_FACTOR;
         stakedUsds.withdraw(usdsAmount, address(this), address(this));
-        usds.approve(address(litePsm), usdsAmount);
+        usds.forceApprove(address(litePsm), usdsAmount);
         litePsm.buyGem(address(this), amount);
     }
 

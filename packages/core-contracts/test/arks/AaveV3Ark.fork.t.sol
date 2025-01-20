@@ -14,8 +14,10 @@ import {ArkTestBase} from "./ArkTestBase.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
+    using SafeERC20 for IERC20;
     AaveV3Ark public ark;
     AaveV3Ark public nextArk;
 
@@ -29,16 +31,16 @@ contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
         0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb;
 
     IPoolV3 public aaveV3Pool;
-    IERC20 public dai;
+    IERC20 public usdt;
 
-    uint256 forkBlock = 20276596;
+    uint256 forkBlock = 20006596;
     uint256 forkId;
 
     function setUp() public {
         initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
-        dai = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+        usdt = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
         aaveV3Pool = IPoolV3(aaveV3PoolAddress);
 
         ArkParams memory params = ArkParams({
@@ -46,7 +48,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
             details: "TestArk details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            asset: address(dai),
+            asset: address(usdt),
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -77,17 +79,17 @@ contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
 
     function test_Board_AaveV3_fork() public {
         // Arrange
-        uint256 amount = 1000 * 10 ** 18;
-        deal(address(dai), commander, amount);
+        uint256 amount = 1000 * 10 ** 6;
+        deal(address(usdt), commander, amount);
 
         vm.prank(commander);
-        dai.approve(address(ark), amount);
+        usdt.forceApprove(address(ark), amount);
 
         vm.expectCall(
             address(aaveV3Pool),
             abi.encodeWithSelector(
                 aaveV3Pool.supply.selector,
-                address(dai),
+                address(usdt),
                 amount,
                 address(ark),
                 0
@@ -104,7 +106,7 @@ contract AaveV3ArkTestFork is Test, IArkEvents, ArkTestBase {
 
         // Expect the Boarded event to be emitted
         vm.expectEmit();
-        emit Boarded(commander, address(dai), amount);
+        emit Boarded(commander, address(usdt), amount);
 
         // Act
         vm.prank(commander); // Execute the next call as the commander
