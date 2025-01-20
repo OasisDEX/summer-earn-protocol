@@ -121,7 +121,7 @@ contract SparkArk is Ark {
      * @param amount Amount of tokens to supply
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        config.asset.approve(address(sparkPool), amount);
+        config.asset.forceApprove(address(sparkPool), amount);
         sparkPool.supply(address(config.asset), amount, address(this), 0);
     }
 
