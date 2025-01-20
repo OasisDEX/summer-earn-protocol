@@ -6,7 +6,7 @@ import {
   SkyUsdsPsm3ArkContracts,
   createSkyUsdsPsm3ArkModule,
 } from '../../ignition/modules/arks/sky-usds-psm3-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -52,9 +52,9 @@ export async function deploySkyUsdsPsm3Ark(
 async function getUserInput(config: BaseConfig): Promise<SkyUsdsPsm3ArkUserInput> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
-    const tokenAddress = config.tokens[tokenSymbol as TokenType]
+    const tokenAddress = config.tokens[tokenSymbol as Token]
     // Only add tokens that have a corresponding PSM3 configuration
-    const psm3Address = config.protocolSpecific.sky.psm3[tokenSymbol as TokenType]
+    const psm3Address = config.protocolSpecific.sky.psm3[tokenSymbol as Token]
     if (psm3Address && psm3Address != ADDRESS_ZERO) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
@@ -106,7 +106,7 @@ async function confirmDeployment(
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(
     kleur.yellow(
-      `PSM3: ${config.protocolSpecific.sky.psm3[userInput.token.symbol.toLowerCase() as TokenType]}`,
+      `PSM3: ${config.protocolSpecific.sky.psm3[userInput.token.symbol.toLowerCase() as Token]}`,
     ),
   )
   console.log(kleur.yellow(`sUSDS: ${config.tokens.stakedUsds}`))
@@ -135,7 +135,7 @@ async function deploySkyUsdsPsm3ArkContract(
   return (await hre.ignition.deploy(createSkyUsdsPsm3ArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        psm3: config.protocolSpecific.sky.psm3[userInput.token.symbol.toLowerCase() as TokenType],
+        psm3: config.protocolSpecific.sky.psm3[userInput.token.symbol.toLowerCase() as Token],
         susds: config.tokens.stakedUsds,
         arkParams: {
           name: arkName,
@@ -144,9 +144,7 @@ async function deploySkyUsdsPsm3ArkContract(
             type: 'Staking',
             asset: userInput.token.address,
             marketAsset: config.tokens.stakedUsds,
-            pool: config.protocolSpecific.sky.psm3[
-              userInput.token.symbol.toLowerCase() as TokenType
-            ],
+            pool: config.protocolSpecific.sky.psm3[userInput.token.symbol.toLowerCase() as Token],
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,

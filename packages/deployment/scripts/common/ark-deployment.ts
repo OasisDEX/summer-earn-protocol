@@ -1,5 +1,5 @@
 import { Address } from 'viem'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
@@ -24,8 +24,8 @@ export async function deployArk(
 ): Promise<Address> {
   const arkParams = {
     token: {
-      address: config.tokens[arkConfig.params.asset.toLowerCase() as TokenType],
-      symbol: arkConfig.params.asset.toLowerCase() as TokenType,
+      address: config.tokens[arkConfig.params.asset.toLowerCase() as Token],
+      symbol: arkConfig.params.asset.toLowerCase() as Token,
     },
     depositCap,
     maxRebalanceOutflow: MAX_UINT256_STRING,
@@ -50,7 +50,7 @@ export async function deployArk(
       deployedArk = await deployERC4626Ark(config, {
         ...arkParams,
         vaultId:
-          config.protocolSpecific.erc4626[arkConfig.params.asset.toLowerCase() as TokenType][
+          config.protocolSpecific.erc4626[arkConfig.params.asset.toLowerCase() as Token][
             arkConfig.params.vaultName
           ],
         vaultName: arkConfig.params.vaultName,
@@ -61,7 +61,7 @@ export async function deployArk(
       const morphoParams: MorphoArkUserInput = {
         ...arkParams,
         marketId:
-          config.protocolSpecific.morpho.markets[arkConfig.params.asset.toLowerCase() as TokenType][
+          config.protocolSpecific.morpho.markets[arkConfig.params.asset.toLowerCase() as Token][
             arkConfig.params.vaultName!
           ],
         // todo: validate
@@ -75,7 +75,7 @@ export async function deployArk(
       const morphoVaultParams: MorphoVaultArkUserInput = {
         ...arkParams,
         vaultId:
-          config.protocolSpecific.morpho.vaults[arkConfig.params.asset.toLowerCase() as TokenType][
+          config.protocolSpecific.morpho.vaults[arkConfig.params.asset.toLowerCase() as Token][
             arkConfig.params.vaultName!
           ],
         vaultName: arkConfig.params.vaultName!,
@@ -87,7 +87,7 @@ export async function deployArk(
     // case 'PendleLPArk': {
     //   const pendleLPParams = {
     //     ...arkParams,
-    //     pendleMarket: config.protocolSpecific.pendle.markets[arkConfig.params.asset.toLowerCase() as TokenType]
+    //     pendleMarket: config.protocolSpecific.pendle.markets[arkConfig.params.asset.toLowerCase() as Token]
     //   }
     //   deployedArk = await deployPendleLPArk(config, pendleLPParams)
     //   break
@@ -96,7 +96,7 @@ export async function deployArk(
     // case 'PendlePTArk': {
     //   const pendlePTParams = {
     //     ...arkParams,
-    //     pendlePT: config.protocolSpecific.pendle.pts[arkConfig.params.asset.toLowerCase() as TokenType]
+    //     pendlePT: config.protocolSpecific.pendle.pts[arkConfig.params.asset.toLowerCase() as Token]
     //   }
     //   deployedArk = await deployPendlePTArk(config, pendlePTParams)
     //   break
@@ -105,7 +105,7 @@ export async function deployArk(
     // case 'PendlePtOracleArk': {
     //   const pendlePTOracleParams = {
     //     ...arkParams,
-    //     pendleMarket: config.protocolSpecific.pendle.markets[arkConfig.params.asset.toLowerCase() as TokenType],
+    //     pendleMarket: config.protocolSpecific.pendle.markets[arkConfig.params.asset.toLowerCase() as Token],
     //     pendleOracle: config.protocolSpecific.pendle.oracle
     //   }
     //   deployedArk = await deployPendlePTOracleArk(config, pendlePTOracleParams)

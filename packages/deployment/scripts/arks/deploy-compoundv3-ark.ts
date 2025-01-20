@@ -6,14 +6,14 @@ import {
   CompoundV3ArkContracts,
   createCompoundV3ArkModule,
 } from '../../ignition/modules/arks/compoundv3-ark'
-import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 export interface CompoundV3ArkUserInput {
-  token: { address: Address; symbol: Tokens }
+  token: { address: Address; symbol: Token }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -87,7 +87,7 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
   ])
 
   // Set the token address based on the selected pool
-  const selectedPool = responses.compoundV3Pool as TokenType
+  const selectedPool = responses.compoundV3Pool as Token
   const tokenAddress = config.tokens[selectedPool]
 
   return {

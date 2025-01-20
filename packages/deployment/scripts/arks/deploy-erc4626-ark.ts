@@ -6,7 +6,7 @@ import {
   createERC4626ArkModule,
   ERC4626ArkContracts,
 } from '../../ignition/modules/arks/erc4626-ark'
-import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -16,7 +16,7 @@ export interface ERC4626ArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: { address: Address; symbol: Tokens }
+  token: { address: Address; symbol: Token }
   vaultId: string
   vaultName: string
 }
@@ -44,8 +44,8 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
     throw new Error('No ERC4626 vaults found in the configuration.')
   }
   for (const token in config.protocolSpecific.erc4626) {
-    for (const vaultName in config.protocolSpecific.erc4626[token as Tokens]) {
-      const vaultId = config.protocolSpecific.erc4626[token as TokenType][vaultName]
+    for (const vaultName in config.protocolSpecific.erc4626[token as Token]) {
+      const vaultId = config.protocolSpecific.erc4626[token as Token][vaultName]
       erc4626Vaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, vaultId, vaultName },
@@ -82,7 +82,7 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
 
   // Set the token address based on the selected vault
   const selectedVault = responses.vaultSelection
-  const tokenAddress = config.tokens[selectedVault.token as TokenType]
+  const tokenAddress = config.tokens[selectedVault.token as Token]
 
   const aggregatedData = {
     depositCap: responses.depositCap,

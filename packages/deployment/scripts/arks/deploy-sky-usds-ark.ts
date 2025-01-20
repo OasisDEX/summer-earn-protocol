@@ -6,7 +6,7 @@ import {
   SkyUsdsArkContracts,
   createSkyUsdsArkModule,
 } from '../../ignition/modules/arks/sky-usds-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -52,9 +52,9 @@ export async function deploySkyUsdsArk(
 async function getUserInput(config: BaseConfig): Promise<SkyUsdsArkUserInput> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
-    const tokenAddress = config.tokens[tokenSymbol as TokenType]
+    const tokenAddress = config.tokens[tokenSymbol as Token]
     // Only add tokens that have a corresponding PSM Lite configuration
-    const psmLiteAddress = config.protocolSpecific.sky.psmLite[tokenSymbol as TokenType]
+    const psmLiteAddress = config.protocolSpecific.sky.psmLite[tokenSymbol as Token]
     if (psmLiteAddress && psmLiteAddress != ADDRESS_ZERO) {
       tokens.push({
         title: tokenSymbol.toUpperCase(),
@@ -106,7 +106,7 @@ async function confirmDeployment(
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(
     kleur.yellow(
-      `PSM Lite: ${config.protocolSpecific.sky.psmLite[userInput.token.symbol.toLowerCase() as TokenType]}`,
+      `PSM Lite: ${config.protocolSpecific.sky.psmLite[userInput.token.symbol.toLowerCase() as Token]}`,
     ),
   )
   console.log(kleur.yellow(`USDS: ${config.protocolSpecific.sky.psmLite.usds}`))
@@ -136,8 +136,7 @@ async function deploySkyUsdsArkContract(
   return (await hre.ignition.deploy(createSkyUsdsArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        litePsm:
-          config.protocolSpecific.sky.psmLite[userInput.token.symbol.toLowerCase() as TokenType],
+        litePsm: config.protocolSpecific.sky.psmLite[userInput.token.symbol.toLowerCase() as Token],
         usds: config.tokens.usds,
         stakedUsds: config.tokens.stakedUsds,
         arkParams: {
@@ -148,7 +147,7 @@ async function deploySkyUsdsArkContract(
             asset: userInput.token.address,
             marketAsset: config.tokens.usds,
             pool: config.protocolSpecific.sky.psmLite[
-              userInput.token.symbol.toLowerCase() as TokenType
+              userInput.token.symbol.toLowerCase() as Token
             ],
             chainId: chainId,
           }),

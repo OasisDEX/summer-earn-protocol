@@ -6,7 +6,7 @@ import {
   createPendlePTArkModule,
   PendlePTArkContracts,
 } from '../../ignition/modules/arks/pendle-pt-ark'
-import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -16,7 +16,7 @@ export interface PendlePTArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: { address: Address; symbol: Tokens }
+  token: { address: Address; symbol: Token }
   marketId: string
   marketName: string
 }
@@ -44,14 +44,14 @@ async function getUserInput(config: BaseConfig) {
     throw new Error('No Pendle markets found in the configuration.')
   }
   for (const token in config.protocolSpecific.pendle.markets) {
-    for (const marketName in config.protocolSpecific.pendle.markets[token as Tokens]
+    for (const marketName in config.protocolSpecific.pendle.markets[token as Token]
       .marketAddresses) {
       const marketId =
-        config.protocolSpecific.pendle.markets[token as TokenType].marketAddresses[marketName]
+        config.protocolSpecific.pendle.markets[token as Token].marketAddresses[marketName]
       pendleMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
         value: {
-          token: { address: config.tokens[token as TokenType], symbol: token },
+          token: { address: config.tokens[token as Token], symbol: token },
           marketId,
           marketName,
         },
@@ -88,7 +88,7 @@ async function getUserInput(config: BaseConfig) {
 
   // Set the token address based on the selected market
   const selectedMarket = responses.marketSelection
-  const tokenAddress = config.tokens[selectedMarket.token as TokenType]
+  const tokenAddress = config.tokens[selectedMarket.token as Token]
 
   const aggregatedData = {
     depositCap: responses.depositCap,

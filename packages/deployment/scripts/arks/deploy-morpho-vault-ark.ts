@@ -6,7 +6,7 @@ import {
   createMorphoVaultArkModule,
   MorphoVaultArkContracts,
 } from '../../ignition/modules/arks/morpho-vault-ark'
-import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -16,7 +16,7 @@ export interface MorphoVaultArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: { address: Address; symbol: Tokens }
+  token: { address: Address; symbol: Token }
   vaultId: Address
   vaultName: string
 }
@@ -55,8 +55,8 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
   // Extract Morpho vaults from the configuration
   const morphoVaults = []
   for (const token in config.protocolSpecific.morpho.vaults) {
-    for (const vaultName in config.protocolSpecific.morpho.vaults[token as Tokens]) {
-      const vaultId = config.protocolSpecific.morpho.vaults[token as TokenType][vaultName]
+    for (const vaultName in config.protocolSpecific.morpho.vaults[token as Token]) {
+      const vaultId = config.protocolSpecific.morpho.vaults[token as Token][vaultName]
       morphoVaults.push({
         title: `${token.toUpperCase()} - ${vaultName}`,
         value: { token, vaultId, vaultName },
@@ -93,7 +93,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
 
   // Set the token address based on the selected vault
   const selectedVault = responses.vaultSelection
-  const tokenAddress = config.tokens[selectedVault.token as TokenType]
+  const tokenAddress = config.tokens[selectedVault.token as Token]
 
   const aggregatedData = {
     depositCap: responses.depositCap,

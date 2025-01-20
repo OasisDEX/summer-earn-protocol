@@ -28,7 +28,7 @@ export interface Config {
   [SupportedNetworks.ARBITRUM]: BaseConfig
 }
 
-export enum Tokens {
+export enum Token {
   USDC = 'usdc',
   DAI = 'dai',
   USDT = 'usdt',
@@ -38,15 +38,7 @@ export enum Tokens {
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
 }
-export type TokenType =
-  | Tokens.DAI
-  | Tokens.USDC
-  | Tokens.USDT
-  | Tokens.USDE
-  | Tokens.USDCE
-  | Tokens.USDS
-  | Tokens.STAKED_USDS
-  | Tokens.WETH
+
 export interface BaseConfig {
   deployedContracts: {
     core: CoreContracts
@@ -64,11 +56,11 @@ export interface BaseConfig {
     tipRate: string
   }
   tokens: {
-    [key in Tokens]: Address
+    [key in Token]: Address
   }
   protocolSpecific: {
     erc4626: {
-      [key in Tokens]: {
+      [key in Token]: {
         [key: string]: Address
       }
     }
@@ -76,9 +68,9 @@ export interface BaseConfig {
       router: Address
       'lp-oracle': Address
       markets: {
-        [key in Tokens]: {
+        [key in Token]: {
           swapInTokens: Array<{
-            token: TokenType
+            token: Token
             oracle: Address
           }>
           marketAddresses: Record<string, Address>
@@ -93,19 +85,19 @@ export interface BaseConfig {
       blue: Address
       urdFactory: Address
       vaults: {
-        [key in Tokens]: {
+        [key in Token]: {
           [key: string]: Address
         }
       }
       markets: {
-        [key in Tokens]: {
+        [key in Token]: {
           [key: string]: Address
         }
       }
     }
     compoundV3: {
       pools: {
-        [key in Tokens]: {
+        [key in Token]: {
           cToken: Address
         }
       }
@@ -113,10 +105,10 @@ export interface BaseConfig {
     }
     sky: {
       psmLite: {
-        [key in Tokens]: Address
+        [key in Token]: Address
       }
       psm3: {
-        [key in Tokens]: Address
+        [key in Token]: Address
       }
     }
   }
@@ -152,8 +144,4 @@ export interface FleetDeployment {
   bufferArkAddress: Address
   network: string
   arks: Address[]
-}
-
-export interface FleetDeploymentWithFileName extends FleetDeployment {
-  filePath: string
 }

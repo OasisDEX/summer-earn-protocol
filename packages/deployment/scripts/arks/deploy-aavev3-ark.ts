@@ -3,14 +3,14 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { AaveV3ArkContracts, createAaveV3ArkModule } from '../../ignition/modules/arks/aavev3-ark'
-import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 
 export interface AaveV3ArkUserInput {
-  token: { address: Address; symbol: Tokens }
+  token: { address: Address; symbol: Token }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -48,7 +48,7 @@ export async function deployAaveV3Ark(
 async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
   const tokens = []
   for (const tokenSymbol in config.tokens) {
-    const tokenAddress = config.tokens[tokenSymbol as TokenType]
+    const tokenAddress = config.tokens[tokenSymbol as Token]
     tokens.push({
       title: tokenSymbol,
       value: { address: tokenAddress, symbol: tokenSymbol },
@@ -88,11 +88,7 @@ async function getUserInput(config: BaseConfig): Promise<AaveV3ArkUserInput> {
  * @param {AaveV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(
-  userInput: AaveV3ArkUserInput,
-  config: BaseConfig,
-  skip: boolean,
-) {
+async function confirmDeployment(userInput: AaveV3ArkUserInput, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token: ${userInput.token.address} (${userInput.token.symbol})`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))

@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { createMorphoArkModule, MorphoArkContracts } from '../../ignition/modules/arks/morpho-ark'
-import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -13,7 +13,7 @@ export interface MorphoArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: { address: Address; symbol: Tokens }
+  token: { address: Address; symbol: Token }
   marketId: string
   marketName: string
 }
@@ -51,8 +51,8 @@ async function getUserInput(config: BaseConfig): Promise<MorphoArkUserInput> {
   // Extract Morpho markets from the configuration
   const morphoMarkets = []
   for (const token in config.protocolSpecific.morpho.markets) {
-    for (const marketName in config.protocolSpecific.morpho.markets[token as TokenType]) {
-      const marketId = config.protocolSpecific.morpho.markets[token as TokenType][marketName]
+    for (const marketName in config.protocolSpecific.morpho.markets[token as Token]) {
+      const marketId = config.protocolSpecific.morpho.markets[token as Token][marketName]
       morphoMarkets.push({
         title: `${token.toUpperCase()} - ${marketName}`,
         value: { token, marketId, marketName },
@@ -89,7 +89,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoArkUserInput> {
 
   // Set the token address based on the selected market
   const selectedMarket = responses.marketSelection
-  const tokenAddress = config.tokens[selectedMarket.token as TokenType]
+  const tokenAddress = config.tokens[selectedMarket.token as Token]
 
   return {
     depositCap: responses.depositCap,
@@ -106,11 +106,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoArkUserInput> {
  * @param {MorphoArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(
-  userInput: MorphoArkUserInput,
-  config: BaseConfig,
-  skip: boolean,
-) {
+async function confirmDeployment(userInput: MorphoArkUserInput, config: BaseConfig, skip: boolean) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Token                  : ${userInput.token}`))
   console.log(kleur.yellow(`Market ID              : ${userInput.marketId}`))

@@ -6,7 +6,7 @@ import {
   createPendlePtOracleArkModule,
   PendlePtOracleArkContracts,
 } from '../../ignition/modules/arks/pendle-pt-oracle-ark'
-import { BaseConfig, Tokens, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
@@ -17,7 +17,7 @@ export interface PendlePtOracleArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
-  token: { address: Address; symbol: Tokens }
+  token: { address: Address; symbol: Token }
   marketId: Address
   marketName: string
 }
@@ -46,10 +46,10 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
   }
 
   for (const token in config.protocolSpecific.pendle.markets) {
-    const marketConfig = config.protocolSpecific.pendle.markets[token as Tokens]
+    const marketConfig = config.protocolSpecific.pendle.markets[token as Token]
     for (const marketName in marketConfig.marketAddresses) {
       const marketId = marketConfig.marketAddresses[marketName]
-      const marketAssetAddress = config.tokens[token as TokenType]
+      const marketAssetAddress = config.tokens[token as Token]
       pendleMarkets.push({
         title: `Market Asset: ${token.toUpperCase()} - Market Name: ${marketName}`,
         value: { token: { address: marketAssetAddress, symbol: token }, marketId, marketName },
@@ -67,7 +67,7 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
 
   const selectedMarketAsset = marketResponse.marketSelection.token
   const selectedMarketConfig =
-    config.protocolSpecific.pendle.markets[selectedMarketAsset.symbol as Tokens]
+    config.protocolSpecific.pendle.markets[selectedMarketAsset.symbol as Token]
   const arkAssetChoices = selectedMarketConfig.swapInTokens.map((arkAsset) => ({
     title: `Ark Asset: ${arkAsset.token.toUpperCase()} - Oracle: ${arkAsset.oracle}`,
     value: arkAsset,
@@ -105,7 +105,7 @@ async function getUserInput(config: BaseConfig): Promise<PendlePtOracleArkUserIn
 
   // Set the token address based on the selected market
   const selectedMarket = marketResponse.marketSelection
-  const arkAssetAddress = config.tokens[arkAssetResponse.arkAssetSelection.token as TokenType]
+  const arkAssetAddress = config.tokens[arkAssetResponse.arkAssetSelection.token as Token]
 
   const aggregatedData = {
     ...responses,
