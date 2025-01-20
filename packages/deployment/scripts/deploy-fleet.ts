@@ -194,20 +194,22 @@ async function deployFleet() {
   if (await confirmDeployment(fleetDefinition)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
-    // Deploy all Arks first
-    const deployedArkAddresses = await deployArks(fleetDefinition, config)
-
-    // Deploy Fleet with deployed Arks
+    // Deploy Fleet first
     const deployedFleet = await deployFleetContracts(fleetDefinition, config, assetAddress)
+
+    console.log(kleur.green().bold('Deployment completed successfully!'))
+
+    const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
+
+    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
+
+    // Deploy all Arks later
+    const deployedArkAddresses = await deployArks(fleetDefinition, config)
 
     // Add each Ark to the Fleet
     for (const arkAddress of deployedArkAddresses) {
       await addArkToFleet(arkAddress, config, hre)
     }
-
-    console.log(kleur.green().bold('Deployment completed successfully!'))
-
-    const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
 
     await grantCommanderRole(
       config.deployedContracts.gov.protocolAccessManager.address as Address,
@@ -217,7 +219,6 @@ async function deployFleet() {
     )
 
     logDeploymentResults(deployedFleet)
-    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -293,6 +294,7 @@ async function deployFleetContracts(
 
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
   const fleetModule = createFleetModule(`FleetModule_${name}`)
+
   const deployedModule = await hre.ignition.deploy(fleetModule, {
     parameters: {
       [`FleetModule_${name}`]: {
@@ -349,13 +351,20 @@ async function addFleetToHarbor(
     deployer.account.address,
   ])
   if (hasGovernorRole) {
-    const hash = await (
-      await hre.viem.getContractAt('HarborCommand' as string, harborCommandAddress)
-    ).write.enlistFleetCommander([fleetCommanderAddress])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
-    console.log(kleur.green('Fleet added to Harbor Command successfully!'))
+    const harborCommand = await hre.viem.getContractAt(
+      'HarborCommand' as string,
+      harborCommandAddress,
+    )
+    const isEnlisted = await harborCommand.read.activeFleetCommanders([fleetCommanderAddress])
+    if (!isEnlisted) {
+      const hash = await harborCommand.write.enlistFleetCommander([fleetCommanderAddress])
+      await publicClient.waitForTransactionReceipt({
+        hash: hash,
+      })
+      console.log(kleur.green('Fleet added to Harbor Command successfully!'))
+    } else {
+      console.log(kleur.yellow('Fleet already enlisted in Harbor Command'))
+    }
   } else {
     console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
     console.log(
