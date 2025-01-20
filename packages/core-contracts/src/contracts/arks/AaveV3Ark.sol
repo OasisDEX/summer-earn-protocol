@@ -121,7 +121,7 @@ contract AaveV3Ark is Ark {
      * @param amount Amount of tokens to supply
      */
     function _board(uint256 amount, bytes calldata) internal override {
-        config.asset.approve(address(aaveV3Pool), amount);
+        config.asset.forceApprove(address(aaveV3Pool), amount);
         aaveV3Pool.supply(address(config.asset), amount, address(this), 0);
     }
 

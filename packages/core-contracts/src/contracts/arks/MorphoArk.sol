@@ -144,7 +144,7 @@ contract MorphoArk is Ark {
      */
     function _board(uint256 amount, bytes calldata) internal override {
         MORPHO.accrueInterest(marketParams);
-        config.asset.approve(address(MORPHO), amount);
+        config.asset.forceApprove(address(MORPHO), amount);
         MORPHO.supply(marketParams, amount, 0, address(this), hex"");
     }
 

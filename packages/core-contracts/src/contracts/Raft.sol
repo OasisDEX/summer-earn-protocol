@@ -5,7 +5,7 @@ import {IArk} from "../interfaces/IArk.sol";
 import {IRaft} from "../interfaces/IRaft.sol";
 import {ArkAccessManaged} from "./ArkAccessManaged.sol";
 import {AuctionManagerBase, BaseAuctionParameters, DutchAuctionLibrary} from "./AuctionManagerBase.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Raft
@@ -14,6 +14,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @custom:see IRaft
  */
 contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
+    using SafeERC20 for IERC20;
     using DutchAuctionLibrary for DutchAuctionLibrary.Auction;
 
     /*//////////////////////////////////////////////////////////////
@@ -355,7 +356,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
 
         uint256 balance = paymentTokensToBoard[ark][rewardToken];
         if (balance > 0) {
-            paymentToken.approve(ark, balance);
+            paymentToken.forceApprove(ark, balance);
             IArk(ark).board(balance, data);
 
             emit RewardBoarded(

@@ -161,7 +161,7 @@ abstract contract Ark is IArk, ArkConfigProvider, ReentrancyGuardTransient {
         _disembark(amount, disembarkData);
 
         IERC20 asset = config.asset;
-        asset.approve(receiverArk, amount);
+        asset.forceApprove(receiverArk, amount);
         IArk(receiverArk).board(amount, boardData);
 
         emit Moved(address(this), receiverArk, address(asset), amount);

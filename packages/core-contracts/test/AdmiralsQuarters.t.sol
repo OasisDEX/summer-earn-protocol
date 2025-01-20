@@ -13,11 +13,12 @@ import {IFleetCommanderRewardsManager} from "../src/interfaces/IFleetCommanderRe
 import {FleetCommanderTestBase} from "./fleets/FleetCommanderTestBase.sol";
 import {OneInchTestHelpers} from "./helpers/OneInchTestHelpers.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ContractSpecificRoles} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
+    using SafeERC20 for IERC20;
     AdmiralsQuarters public admiralsQuarters;
     IAggregationRouterV6 public oneInchRouter;
 
