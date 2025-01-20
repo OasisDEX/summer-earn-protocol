@@ -28,7 +28,10 @@ async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Pro
   const deployedArks: Address[] = []
 
   for (const arkConfig of fleetDefinition.arks) {
-    console.log(kleur.cyan().bold(`Deploying ${arkConfig.type}...`))
+    console.log(
+      kleur.bgWhite().bold(`\n ------------------------------------------------------------`),
+    )
+    console.log(kleur.cyan().bold(`\nDeploying ${arkConfig.type}...`))
 
     const arkAddress = await deployArk(arkConfig, config, fleetDefinition.depositCap)
     deployedArks.push(arkAddress)
