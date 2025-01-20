@@ -99,7 +99,9 @@ async function getUserInput(config: BaseConfig): Promise<ERC4626ArkUserInput> {
 async function confirmDeployment(userInput: ERC4626ArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow(`Vault ID               : ${userInput.vaultId}`))
-  console.log(kleur.yellow(`Token                  : ${userInput.token}`))
+  console.log(
+    kleur.yellow(`Token                  : ${userInput.token.address} - ${userInput.token.symbol}`),
+  )
   console.log(kleur.yellow(`Deposit Cap            : ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow  : ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow   : ${userInput.maxRebalanceInflow}`))
@@ -116,6 +118,8 @@ async function deployERC4626ArkContract(
   const arkName = `ERC4626-${userInput.vaultName}-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const protocol = userInput.vaultName.split('_')[0]
+
   return (await hre.ignition.deploy(createERC4626ArkModule(moduleName), {
     parameters: {
       [moduleName]: {
@@ -123,12 +127,13 @@ async function deployERC4626ArkContract(
         arkParams: {
           name: arkName,
           details: JSON.stringify({
-            protocol: userInput.vaultName,
+            protocol: protocol,
             type: 'ERC4626',
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
             pool: userInput.vaultId,
             chainId: chainId,
+            vaultName: userInput.vaultName,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager

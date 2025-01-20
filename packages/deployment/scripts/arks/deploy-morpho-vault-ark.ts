@@ -114,7 +114,7 @@ async function getUserInput(config: BaseConfig): Promise<MorphoVaultArkUserInput
  */
 async function confirmDeployment(userInput: MorphoVaultArkUserInput) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Token: ${userInput.token}`))
+  console.log(kleur.yellow(`Token: ${userInput.token.address} - ${userInput.token.symbol}`))
   console.log(kleur.yellow(`Vault ID: ${userInput.vaultId}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
@@ -152,6 +152,7 @@ async function deployMorphoVaultArkContract(
             marketAsset: userInput.token.address,
             pool: userInput.vaultId,
             chainId: chainId,
+            vaultName: userInput.vaultName,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
           configurationManager: config.deployedContracts.core.configurationManager
