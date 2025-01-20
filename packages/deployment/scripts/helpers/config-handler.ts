@@ -1,7 +1,10 @@
 import fs from 'fs'
 import kleur from 'kleur'
 import path from 'path'
+import { CoreContracts } from '../../ignition/modules/core'
+import { GovContracts } from '../../ignition/modules/gov'
 import { BaseConfig, Config } from '../../types/config-types'
+import { validateAddress, validateNumber } from './validation'
 
 export function getConfigByNetwork(network: string): BaseConfig {
   const configPath = path.resolve(__dirname, '..', '..', 'config', 'index.json')
@@ -36,36 +39,25 @@ function validateConfig(config: BaseConfig): void {
     }
   }
 
-  // Validate that all address fields are non-empty strings
-  const validateAddress = (address: string, fieldName: string) => {
-    if (typeof address !== 'string' || !address.startsWith('0x')) {
-      throw new Error(`Invalid address for ${fieldName}: ${address}`)
-    }
-  }
   for (const token in config.tokens) {
     validateAddress(config.tokens[token as keyof typeof config.tokens], `tokens.${token}`)
   }
-  validateAddress(config.deployedContracts.gov.summerToken.address, 'core.governor')
-  validateAddress(config.deployedContracts.core.tipJar.address, 'core.tipJar')
-  validateAddress(config.deployedContracts.core.raft.address, 'core.raft')
-  validateAddress(
-    config.deployedContracts.gov.protocolAccessManager.address,
-    'gov.protocolAccessManager',
-  )
-  validateAddress(
-    config.deployedContracts.core.configurationManager.address,
-    'core.configurationManager',
-  )
-  validateAddress(config.deployedContracts.core.harborCommand.address, 'core.harborCommand')
 
-  // Validate tip rate
-  if (
-    isNaN(Number(config.common.tipRate)) ||
-    Number(config.common.tipRate) < 0 ||
-    Number(config.common.tipRate) > 10000
-  ) {
-    throw new Error(
-      `Invalid tipRate: ${config.common.tipRate}. Should be a number between 0 and 10000.`,
+  for (const contract in config.deployedContracts.gov) {
+    validateAddress(
+      config.deployedContracts.gov[contract as keyof GovContracts].address,
+      `gov.${contract}`,
     )
   }
+
+  for (const contract in config.deployedContracts.core) {
+    validateAddress(
+      config.deployedContracts.core[contract as keyof CoreContracts].address,
+      `core.${contract}`,
+    )
+  }
+  validateAddress(config.common.swapProvider, 'swapProvider')
+  validateAddress(config.common.layerZero.lzEndpoint, 'layerZero.lzEndpoint')
+  validateNumber(+config.common.layerZero.eID, 'layerZero.eID', 0, 1000000)
+  validateNumber(+config.common.tipRate, 'tipRate', 0, 10000)
 }

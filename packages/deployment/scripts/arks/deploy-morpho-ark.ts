@@ -8,6 +8,7 @@ import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
 export interface MorphoArkUserInput {
   depositCap: string
@@ -132,12 +133,18 @@ async function deployMorphoArkContract(
   const arkName = `Morpho-${userInput.token.symbol}-${userInput.marketName}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const urdFactoryAddress = validateAddress(
+    config.protocolSpecific.morpho.urdFactory,
+    'Morpho URD Factory',
+  )
+  const blueAddress = validateAddress(config.protocolSpecific.morpho.blue, 'Morpho Blue')
+
   return (await hre.ignition.deploy(createMorphoArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        morphoBlue: config.protocolSpecific.morpho.blue,
+        morphoBlue: blueAddress,
         marketId: userInput.marketId,
-        urdFactory: config.protocolSpecific.morpho.urdFactory,
+        urdFactory: urdFactoryAddress,
         arkParams: {
           name: `Morpho-${userInput.token.symbol}-${userInput.marketName}-${chainId}`,
           details: JSON.stringify({

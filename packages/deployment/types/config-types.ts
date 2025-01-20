@@ -51,7 +51,6 @@ export interface BaseConfig {
       lzEndpoint: Address
       eID: string
     }
-    treasury: Address
     swapProvider: Address
     tipRate: string
   }

@@ -1,12 +1,22 @@
 import { Address } from 'viem'
-import { BaseConfig, Token } from '../../types/config-types'
+import { ArkType, BaseConfig } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
 import { deployMorphoArk, MorphoArkUserInput } from '../arks/deploy-morpho-ark'
 import { deployMorphoVaultArk, MorphoVaultArkUserInput } from '../arks/deploy-morpho-vault-ark'
-import { deploySkyUsdsArk, SkyUsdsArkUserInput } from '../arks/deploy-sky-usds-ark'
-import { deploySkyUsdsPsm3Ark, SkyUsdsPsm3ArkUserInput } from '../arks/deploy-sky-usds-psm3-ark'
+import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
+import { deployPendlePTArk } from '../arks/deploy-pendle-pt-ark'
+import { deployPendlePTOracleArk } from '../arks/deploy-pendle-pt-oracle-ark'
+import { deploySkyUsdsArk } from '../arks/deploy-sky-usds-ark'
+import { deploySkyUsdsPsm3Ark } from '../arks/deploy-sky-usds-psm3-ark'
+import {
+  validateAddress,
+  validateErc4626Address,
+  validateMarketId,
+  validateString,
+  validateToken,
+} from '../helpers/validation'
 import { MAX_UINT256_STRING } from './constants'
 
 export type ArkConfig = {
@@ -22,10 +32,11 @@ export async function deployArk(
   config: BaseConfig,
   depositCap: string = MAX_UINT256_STRING,
 ): Promise<Address> {
-  const arkParams = {
+  const token = validateToken(config, arkConfig.params.asset)
+  const baseArkParams = {
     token: {
-      address: config.tokens[arkConfig.params.asset.toLowerCase() as Token],
-      symbol: arkConfig.params.asset.toLowerCase() as Token,
+      address: config.tokens[token],
+      symbol: token,
     },
     depositCap,
     maxRebalanceOutflow: MAX_UINT256_STRING,
@@ -35,96 +46,114 @@ export async function deployArk(
   let deployedArk
 
   switch (arkConfig.type) {
-    case 'AaveV3Ark':
-      deployedArk = await deployAaveV3Ark(config, arkParams)
+    case ArkType.AaveV3Ark:
+      deployedArk = await deployAaveV3Ark(config, baseArkParams)
       break
 
-    case 'CompoundV3Ark':
-      deployedArk = await deployCompoundV3Ark(config, arkParams)
+    case ArkType.CompoundV3Ark:
+      deployedArk = await deployCompoundV3Ark(config, baseArkParams)
       break
 
-    case 'ERC4626Ark':
-      if (!arkConfig.params.vaultName) {
-        throw new Error('Vault name is required for ERC4626Ark')
-      }
+    case ArkType.ERC4626Ark:
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.erc4626[token][vaultName],
+        `ERC4626-${vaultName}`,
+      )
       deployedArk = await deployERC4626Ark(config, {
-        ...arkParams,
-        vaultId:
-          config.protocolSpecific.erc4626[arkConfig.params.asset.toLowerCase() as Token][
-            arkConfig.params.vaultName
-          ],
-        vaultName: arkConfig.params.vaultName,
+        ...baseArkParams,
+        vaultId,
+        vaultName: vaultName,
       })
       break
 
-    case 'MorphoArk': {
+    case ArkType.MorphoArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const marketId = validateMarketId(
+        config.protocolSpecific.morpho.markets[token][vaultName],
+        `Morpho-${vaultName}`,
+      )
       const morphoParams: MorphoArkUserInput = {
-        ...arkParams,
-        marketId:
-          config.protocolSpecific.morpho.markets[arkConfig.params.asset.toLowerCase() as Token][
-            arkConfig.params.vaultName!
-          ],
-        // todo: validate
-        marketName: arkConfig.params.vaultName!,
+        ...baseArkParams,
+        marketId,
+        marketName: vaultName,
       }
       deployedArk = await deployMorphoArk(config, morphoParams)
       break
     }
 
-    case 'MorphoVaultArk': {
+    case ArkType.MorphoVaultArk: {
+      const vaultName = validateString(arkConfig.params.vaultName, 'vaultName')
+      const vaultId = validateErc4626Address(
+        config.protocolSpecific.morpho.vaults[token][vaultName],
+        `Morpho-${vaultName}`,
+      )
       const morphoVaultParams: MorphoVaultArkUserInput = {
-        ...arkParams,
-        vaultId:
-          config.protocolSpecific.morpho.vaults[arkConfig.params.asset.toLowerCase() as Token][
-            arkConfig.params.vaultName!
-          ],
-        vaultName: arkConfig.params.vaultName!,
+        ...baseArkParams,
+        vaultId,
+        vaultName: vaultName,
       }
       deployedArk = await deployMorphoVaultArk(config, morphoVaultParams)
       break
     }
 
-    // case 'PendleLPArk': {
-    //   const pendleLPParams = {
-    //     ...arkParams,
-    //     pendleMarket: config.protocolSpecific.pendle.markets[arkConfig.params.asset.toLowerCase() as Token]
-    //   }
-    //   deployedArk = await deployPendleLPArk(config, pendleLPParams)
-    //   break
-    // }
-
-    // case 'PendlePTArk': {
-    //   const pendlePTParams = {
-    //     ...arkParams,
-    //     pendlePT: config.protocolSpecific.pendle.pts[arkConfig.params.asset.toLowerCase() as Token]
-    //   }
-    //   deployedArk = await deployPendlePTArk(config, pendlePTParams)
-    //   break
-    // }
-
-    // case 'PendlePtOracleArk': {
-    //   const pendlePTOracleParams = {
-    //     ...arkParams,
-    //     pendleMarket: config.protocolSpecific.pendle.markets[arkConfig.params.asset.toLowerCase() as Token],
-    //     pendleOracle: config.protocolSpecific.pendle.oracle
-    //   }
-    //   deployedArk = await deployPendlePTOracleArk(config, pendlePTOracleParams)
-    //   break
-    // }
-
-    case 'SkyUsdsArk': {
-      const skyUsdsParams: SkyUsdsArkUserInput = {
-        ...arkParams,
+    case ArkType.PendleLPArk: {
+      const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleMarket = validateAddress(
+        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        `Pendle-${token}`,
+      )
+      const pendleLPParams = {
+        ...baseArkParams,
+        marketId: pendleMarket,
+        marketName: marketName,
       }
-      deployedArk = await deploySkyUsdsArk(config, skyUsdsParams)
+      deployedArk = await deployPendleLPArk(config, pendleLPParams)
       break
     }
 
-    case 'SkyUsdsPsm3Ark': {
-      const skyUsdsPsm3Params: SkyUsdsPsm3ArkUserInput = {
-        ...arkParams,
+    case 'PendlePTArk': {
+      const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleMarket = validateAddress(
+        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        `Pendle-${token}`,
+      )
+      const pendlePTParams = {
+        ...baseArkParams,
+        marketId: pendleMarket,
+        marketName: marketName,
       }
-      deployedArk = await deploySkyUsdsPsm3Ark(config, skyUsdsPsm3Params)
+      deployedArk = await deployPendlePTArk(config, pendlePTParams)
+      break
+    }
+
+    case 'PendlePtOracleArk': {
+      const marketName = validateString(arkConfig.params.vaultName, 'marketName')
+      const pendleMarket = validateAddress(
+        config.protocolSpecific.pendle.markets[token].marketAddresses[marketName],
+        `Pendle-${token}`,
+      )
+      const marketAssetOracle = validateAddress(
+        config.protocolSpecific.pendle.markets[token].swapInTokens[0].oracle,
+        `Pendle-${token}`,
+      )
+      const pendlePTOracleParams = {
+        ...baseArkParams,
+        marketId: pendleMarket,
+        marketName: marketName,
+        marketAssetOracle,
+      }
+      deployedArk = await deployPendlePTOracleArk(config, pendlePTOracleParams)
+      break
+    }
+
+    case ArkType.SkyUsdsArk: {
+      deployedArk = await deploySkyUsdsArk(config, baseArkParams)
+      break
+    }
+
+    case ArkType.SkyUsdsPsm3Ark: {
+      deployedArk = await deploySkyUsdsPsm3Ark(config, baseArkParams)
       break
     }
 

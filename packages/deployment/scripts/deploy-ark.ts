@@ -1,24 +1,23 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
+import { ArkType } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { ArkConfig, deployArk } from './common/ark-deployment'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 
 const arkTypes = [
-  { title: 'AaveV3Ark', value: 'AaveV3Ark' },
-  { title: 'MorphoArk', value: 'MorphoArk' },
-  { title: 'MorphoVaultArk', value: 'MorphoVaultArk' },
-  { title: 'CompoundV3Ark', value: 'CompoundV3Ark' },
-  { title: 'ERC4626Ark', value: 'ERC4626Ark' },
-  { title: 'SkyUsdsArk', value: 'SkyUsdsArk' },
-  { title: 'SkyUsdsPsm3Ark', value: 'SkyUsdsPsm3Ark' },
-  { title: 'PendleLPArk', value: 'PendleLPArk' },
-  { title: 'PendlePTArk', value: 'PendlePTArk' },
-  { title: 'PendlePtOracleArk', value: 'PendlePtOracleArk' },
-  { title: 'SkyUsdsArk', value: 'SkyUsdsArk' },
-  { title: 'SkyUsdsPsm3Ark', value: 'SkyUsdsPsm3Ark' },
+  { title: 'AaveV3Ark', value: ArkType.AaveV3Ark },
+  { title: 'MorphoArk', value: ArkType.MorphoArk },
+  { title: 'MorphoVaultArk', value: ArkType.MorphoVaultArk },
+  { title: 'CompoundV3Ark', value: ArkType.CompoundV3Ark },
+  { title: 'ERC4626Ark', value: ArkType.ERC4626Ark },
+  { title: 'SkyUsdsArk', value: ArkType.SkyUsdsArk },
+  { title: 'SkyUsdsPsm3Ark', value: ArkType.SkyUsdsPsm3Ark },
+  { title: 'PendleLPArk', value: ArkType.PendleLPArk },
+  { title: 'PendlePTArk', value: ArkType.PendlePTArk },
+  { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
 ]
 
 async function deployArkInteractive() {

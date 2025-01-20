@@ -8,6 +8,7 @@ import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
 export interface AaveV3ArkUserInput {
   token: { address: Address; symbol: Token }
@@ -113,11 +114,14 @@ async function deployAaveV3ArkContract(
   const arkName = `AaveV3-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const aaveV3Pool = validateAddress(config.protocolSpecific.aaveV3.pool, 'aaveV3 pool')
+  const aaveV3Rewards = validateAddress(config.protocolSpecific.aaveV3.rewards, 'aaveV3 rewards')
+
   return (await hre.ignition.deploy(createAaveV3ArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        aaveV3Pool: config.protocolSpecific.aaveV3.pool,
-        rewardsController: config.protocolSpecific.aaveV3.rewards,
+        aaveV3Pool: aaveV3Pool,
+        rewardsController: aaveV3Rewards,
         arkParams: {
           name: `AaveV3-${userInput.token.symbol}-${chainId}`,
           details: JSON.stringify({
@@ -125,7 +129,7 @@ async function deployAaveV3ArkContract(
             type: 'Lending',
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
-            pool: config.protocolSpecific.aaveV3.pool,
+            pool: aaveV3Pool,
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,

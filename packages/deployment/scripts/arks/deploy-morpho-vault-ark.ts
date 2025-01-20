@@ -11,6 +11,7 @@ import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
 export interface MorphoVaultArkUserInput {
   depositCap: string
@@ -142,11 +143,16 @@ async function deployMorphoVaultArkContract(
   const arkName = `MorphoVault-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const urdFactoryAddress = validateAddress(
+    config.protocolSpecific.morpho.urdFactory,
+    'Morpho URD Factory',
+  )
+
   return (await hre.ignition.deploy(createMorphoVaultArkModule(moduleName), {
     parameters: {
       [moduleName]: {
         strategyVault: userInput.vaultId,
-        urdFactory: config.protocolSpecific.morpho.urdFactory,
+        urdFactory: urdFactoryAddress,
         arkParams: {
           name: `MorphoVault-${userInput.token.symbol}-${userInput.vaultName}-${chainId}`,
           details: JSON.stringify({

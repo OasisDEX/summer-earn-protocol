@@ -11,9 +11,10 @@ import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/con
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
 export interface SkyUsdsPsm3ArkUserInput {
-  token: { address: Address; symbol: string }
+  token: { address: Address; symbol: Token }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -132,11 +133,17 @@ async function deploySkyUsdsPsm3ArkContract(
   const arkName = `SkyUsds-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const psm3Address = validateAddress(
+    config.protocolSpecific.sky.psm3[userInput.token.symbol],
+    'PSM3',
+  )
+  const stakedUsdsAddress = validateAddress(config.tokens.stakedUsds, 'Staked USDS')
+
   return (await hre.ignition.deploy(createSkyUsdsPsm3ArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        psm3: config.protocolSpecific.sky.psm3[userInput.token.symbol.toLowerCase() as Token],
-        susds: config.tokens.stakedUsds,
+        psm3: psm3Address,
+        susds: stakedUsdsAddress,
         arkParams: {
           name: arkName,
           details: JSON.stringify({
@@ -144,7 +151,7 @@ async function deploySkyUsdsPsm3ArkContract(
             type: 'Staking',
             asset: userInput.token.address,
             marketAsset: config.tokens.stakedUsds,
-            pool: config.protocolSpecific.sky.psm3[userInput.token.symbol.toLowerCase() as Token],
+            pool: psm3Address,
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,

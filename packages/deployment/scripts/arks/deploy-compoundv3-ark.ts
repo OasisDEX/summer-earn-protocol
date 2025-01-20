@@ -7,10 +7,11 @@ import {
   createCompoundV3ArkModule,
 } from '../../ignition/modules/arks/compoundv3-ark'
 import { BaseConfig, Token } from '../../types/config-types'
-import { ADDRESS_ZERO, HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
+import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
 export interface CompoundV3ArkUserInput {
   token: { address: Address; symbol: Token }
@@ -130,17 +131,14 @@ async function deployCompoundV3ArkContract(
   const arkName = `CompoundV3-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
-  const compoundV3Pool = config.protocolSpecific.compoundV3.pools[userInput.token.symbol].cToken
-  const compoundV3Rewards = config.protocolSpecific.compoundV3.rewards
-
-  if (
-    !compoundV3Pool ||
-    !compoundV3Rewards ||
-    compoundV3Pool === ADDRESS_ZERO ||
-    compoundV3Rewards === ADDRESS_ZERO
-  ) {
-    throw new Error('Compound V3 pool or rewards not found')
-  }
+  const compoundV3Pool = validateAddress(
+    config.protocolSpecific.compoundV3.pools[userInput.token.symbol].cToken,
+    'Compound V3 Pool',
+  )
+  const compoundV3Rewards = validateAddress(
+    config.protocolSpecific.compoundV3.rewards,
+    'Compound V3 Rewards',
+  )
 
   return (await hre.ignition.deploy(createCompoundV3ArkModule(moduleName), {
     parameters: {

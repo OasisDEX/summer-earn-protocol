@@ -11,6 +11,7 @@ import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
 export interface PendleLPArkUserInput {
   depositCap: string
@@ -126,8 +127,11 @@ async function deployPendleLPArkContract(
   const arkName = `PendleLp-${userInput.token.symbol}-${userInput.marketName}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
-  const routerAddress = config.protocolSpecific.pendle.router
-  const oracleAddress = config.protocolSpecific.pendle['lp-oracle']
+  const routerAddress = validateAddress(config.protocolSpecific.pendle.router, 'Pendle Router')
+  const oracleAddress = validateAddress(
+    config.protocolSpecific.pendle['lp-oracle'],
+    'Pendle LP Oracle',
+  )
 
   return (await hre.ignition.deploy(createPendleLPArkModule(moduleName), {
     parameters: {
