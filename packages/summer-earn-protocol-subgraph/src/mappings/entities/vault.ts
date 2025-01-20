@@ -1,5 +1,5 @@
 import { Address, BigDecimal, ethereum } from '@graphprotocol/graph-ts'
-import { Account, Vault } from '../../../generated/schema'
+import { Vault } from '../../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
 import {
@@ -9,12 +9,10 @@ import {
   getOrCreateVaultsPostActionSnapshots,
 } from '../../common/initializers'
 import { getAprForTimePeriod } from '../../common/utils'
-import { VaultAndPositionDetails, VaultDetails } from '../../types'
+import { VaultDetails } from '../../types'
 import { getArkDetails } from '../../utils/ark'
-import { getPositionDetails } from '../../utils/position'
 import { getVaultDetails } from '../../utils/vault'
 import { updateArk } from './ark'
-import { updatePosition } from './position'
 
 export function updateVault(
   vaultDetails: VaultDetails,
@@ -57,30 +55,6 @@ export function updateVault(
   vault.rewardTokenEmissionsAmountsPerOutputToken =
     vaultDetails.rewardTokenEmissionsAmountsPerOutputToken
   vault.save()
-}
-
-export function getVaultAndPositionDetails(
-  vaultAddress: Address,
-  account: Account,
-  block: ethereum.Block,
-): VaultAndPositionDetails {
-  const vaultDetails = getVaultDetails(vaultAddress, block)
-  const positionDetails = getPositionDetails(vaultAddress, account, vaultDetails, block)
-  return { vaultDetails: vaultDetails, positionDetails: positionDetails }
-}
-
-export function getAndUpdateVaultAndPositionDetails(
-  event: ethereum.Event,
-  vaultAddress: Address,
-  account: Account,
-  block: ethereum.Block,
-): VaultAndPositionDetails {
-  const result = getVaultAndPositionDetails(vaultAddress, account, block)
-
-  updateVault(result.vaultDetails, event.block, false)
-  updatePosition(result.positionDetails, event.block)
-
-  return { vaultDetails: result.vaultDetails, positionDetails: result.positionDetails }
 }
 
 export function updateVaultAndArks(event: ethereum.Event, vaultId: string): void {

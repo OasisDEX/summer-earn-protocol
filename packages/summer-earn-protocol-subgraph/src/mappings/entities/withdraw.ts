@@ -32,7 +32,9 @@ export function createWithdrawEventEntity(
   withdraw.position = positionDetails.positionId
   withdraw.inputTokenBalance = positionDetails.inputTokenBalance
   withdraw.inputTokenBalanceNormalizedUSD = positionDetails.inputTokenBalanceNormalizedUSD
-  if (positionDetails.inputTokenDelta.gt(BigIntConstants.ZERO)) {
-    withdraw.save()
+
+  if (positionDetails.inputTokenDelta.equals(BigIntConstants.ZERO)) {
+    return
   }
+  withdraw.save()
 }

@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Ark as ArkContract } from '../../../generated/HarborCommand/Ark'
 import { Ark } from '../../../generated/schema'
 import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
@@ -81,7 +81,6 @@ export function handleBoard(amount: BigInt, ark: Ark): void {
 export function handleDisembark(amount: BigInt, ark: Ark): void {
   ark._cumulativeWithdrawals = ark._cumulativeWithdrawals.plus(amount)
   ark.save()
-  log.error('Disembarked TOTAL {}, amount: {}', [ark.name!, ark._cumulativeWithdrawals.toString()])
 }
 
 export function handleMove(amount: BigInt, ark: Ark): void {

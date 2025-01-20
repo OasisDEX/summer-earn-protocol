@@ -30,7 +30,8 @@ export function createDepositEventEntity(
   deposit.position = positionDetails.positionId
   deposit.inputTokenBalance = positionDetails.inputTokenBalance
   deposit.inputTokenBalanceNormalizedUSD = positionDetails.inputTokenBalanceNormalizedUSD
-  if (positionDetails.inputTokenDelta.gt(BigIntConstants.ZERO)) {
-    deposit.save()
+  if (positionDetails.inputTokenDelta.equals(BigIntConstants.ZERO)) {
+    return
   }
+  deposit.save()
 }
