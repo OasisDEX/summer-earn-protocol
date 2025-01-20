@@ -5,7 +5,7 @@ import path from 'path'
 import prompts from 'prompts'
 import { Address, keccak256, toBytes } from 'viem'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
-import { BaseConfig, FleetDefinition, TokenType } from '../types/config-types'
+import { BaseConfig, FleetConfig, TokenType } from '../types/config-types'
 import { deployAaveV3Ark } from './arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from './arks/deploy-compoundv3-ark'
 import { deployERC4626Ark, ERC4626ArkUserInput } from './arks/deploy-erc4626-ark'
@@ -15,25 +15,23 @@ import { deploySkyUsdsArk, SkyUsdsArkUserInput } from './arks/deploy-sky-usds-ar
 import { deploySkyUsdsPsm3Ark, SkyUsdsPsm3ArkUserInput } from './arks/deploy-sky-usds-psm3-ark'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { MAX_UINT256_STRING } from './common/constants'
+import { getFleetConfigDir } from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
 import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { loadFleetDefinition } from './helpers/fleet-definition-handler'
+import { loadFleetConfig } from './helpers/fleet-definition-handler'
 import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
 import { continueDeploymentCheck } from './helpers/prompt-helpers'
 
 /**
  * Deploys all Arks specified in the fleet definition
- * @param {FleetDefinition} fleetDefinition - The fleet definition object
+ * @param {FleetConfig} fleetDefinition - The fleet definition object
  * @param {BaseConfig} config - The configuration object
  * @returns {Promise<Address[]>} Array of deployed Ark addresses
  */
-async function deployArks(
-  fleetDefinition: FleetDefinition,
-  config: BaseConfig,
-): Promise<Address[]> {
+async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Promise<Address[]> {
   const deployedArks: Address[] = []
 
   for (const arkConfig of fleetDefinition.arks) {
@@ -185,7 +183,7 @@ async function deployFleet() {
 
   console.log(kleur.green().bold('Starting Fleet deployment process...'))
 
-  const fleetDefinition = await getFleetDefinition()
+  const fleetDefinition = await getFleetConfig()
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
 
@@ -208,7 +206,7 @@ async function deployFleet() {
 
     // Add each Ark to the Fleet
     for (const arkAddress of deployedArkAddresses) {
-      await addArkToFleet(arkAddress, config, hre)
+      await addArkToFleet(arkAddress, config, hre, fleetDefinition)
     }
 
     await grantCommanderRole(
@@ -228,25 +226,25 @@ async function deployFleet() {
  * Prompts the user for the fleet definition file and loads it.
  * @returns The loaded fleet definition object.
  */
-async function getFleetDefinition(): Promise<FleetDefinition> {
-  const fleetsDir = path.resolve(__dirname, '..', 'config', 'fleets')
+async function getFleetConfig(): Promise<FleetConfig> {
+  const fleetsDir = getFleetConfigDir()
   const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
 
   if (fleetFiles.length === 0) {
-    throw new Error('No fleet definition files found in the fleets directory.')
+    throw new Error('No fleet config files found in the fleets directory.')
   }
 
   const response = await prompts({
     type: 'select',
-    name: 'fleetDefinitionFile',
-    message: 'Select the fleet definition file:',
+    name: 'fleetConfigFile',
+    message: 'Select the fleet config file:',
     choices: fleetFiles.map((file) => ({ title: file, value: file })),
   })
 
-  const fleetDefinitionPath = path.resolve(fleetsDir, response.fleetDefinitionFile)
-  console.log(kleur.green(`Loading fleet definition from: ${fleetDefinitionPath}`))
-  // todo: remove this once we have a details field in the fleet definition
-  return { ...loadFleetDefinition(fleetDefinitionPath), details: JSON.stringify('') }
+  const fleetConfigPath = path.resolve(fleetsDir, response.fleetConfigFile)
+  console.log(kleur.green(`Loading fleet config from: ${fleetConfigPath}`))
+  const fleetConfig = loadFleetConfig(fleetConfigPath)
+  return { ...fleetConfig, details: JSON.stringify(fleetConfig.details) }
 }
 
 /**
@@ -285,7 +283,7 @@ async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
  * @returns {Promise<FleetContracts>} The deployed fleet contracts.
  */
 async function deployFleetContracts(
-  fleetDefinition: FleetDefinition,
+  fleetDefinition: FleetConfig,
   config: BaseConfig,
   asset: string,
 ) {

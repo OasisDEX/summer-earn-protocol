@@ -131,7 +131,7 @@ export interface ArkConfig {
   }
 }
 
-export interface FleetDefinition {
+export interface FleetConfig {
   fleetName: string
   symbol: string
   assetSymbol: string
@@ -142,4 +142,18 @@ export interface FleetDefinition {
   network: string
   arks: ArkConfig[]
   details: string
+}
+
+export interface FleetDeployment {
+  fleetName: string
+  fleetSymbol: string
+  assetSymbol: string
+  fleetAddress: Address
+  bufferArkAddress: Address
+  network: string
+  arks: Address[]
+}
+
+export interface FleetDeploymentWithFileName extends FleetDeployment {
+  filePath: string
 }
