@@ -17,7 +17,7 @@ interface NetworkPeers {
 
 export async function peerGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
 
   if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
     throw new Error('LayerZero is not set up correctly')
@@ -115,7 +115,11 @@ function getPeersForContract(
     }
 
     try {
-      const networkConfig = getConfigByNetwork(targetNetwork)
+      const networkConfig = getConfigByNetwork(targetNetwork, {
+        common: true,
+        gov: true,
+        core: false,
+      })
       const { address, skipSatelliteToSatellite, label } = getContractInfo(networkConfig)
       const layerZeroEID = networkConfig.common?.layerZero?.eID
 

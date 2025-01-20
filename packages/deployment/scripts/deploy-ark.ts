@@ -21,7 +21,8 @@ const arkTypes = [
 ]
 
 async function deployArkInteractive() {
-  const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })
+
   console.log(kleur.green().bold('Starting Ark deployment process...'))
 
   const { selectedArkType } = await prompts({

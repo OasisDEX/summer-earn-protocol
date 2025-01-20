@@ -12,7 +12,7 @@ import { updateIndexJson } from './helpers/update-json'
 const ADMIRALS_QUARTERS_ROLE = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
 
 export async function deployCore() {
-  const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
   const deployedCore = await deployCoreContracts(config)
   ModuleLogger.logCore(deployedCore)
   return deployedCore

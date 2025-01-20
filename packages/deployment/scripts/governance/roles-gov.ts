@@ -25,7 +25,7 @@ const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
  */
 export async function rolesGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name)
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
 
   const publicClient = await hre.viem.getPublicClient()
 

@@ -54,7 +54,7 @@ async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Pro
 async function deployFleet() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
-  const config = getConfigByNetwork(network)
+  const config = getConfigByNetwork(network, { common: true, gov: true, core: true })
 
   console.log(kleur.green().bold('Starting Fleet deployment process...'))
 
