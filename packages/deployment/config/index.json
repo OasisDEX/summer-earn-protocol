@@ -361,10 +361,10 @@
       },
       "aaveV3": {
         "pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
-        "rewards": "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5 "
+        "rewards": "0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb"
       },
       "spark": {
-        "pool": "0xC13e21B648A5Ee794902342038FF3aDAB66BE987 ",
+        "pool": "0xC13e21B648A5Ee794902342038FF3aDAB66BE98",
         "rewards": "0x4370D3b6C9588E02ce9D22e684387859c7Ff5b34"
       },
       "morpho": {
