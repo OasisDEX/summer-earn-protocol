@@ -5,7 +5,7 @@ import {ITipJar} from "../interfaces/ITipJar.sol";
 
 import {IFleetCommander} from "../interfaces/IFleetCommander.sol";
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 import {IHarborCommand} from "../interfaces/IHarborCommand.sol";
@@ -29,6 +29,7 @@ contract TipJar is
     ConfigurationManaged,
     Pausable
 {
+    using SafeERC20 for IERC20;
     using PercentageUtils for uint256;
 
     /// @notice The maximum duration that a tip stream can be locked for
