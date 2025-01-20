@@ -50,8 +50,7 @@ export async function rolesGov() {
   const rewardsManagerAddress = await summerToken.read.rewardsManager()
 
   // Determine if we're on HUB chain (currently BASE chain)
-  const isHubChain =
-    (await summerGovernor.read.hubChainId()) === BigInt(hre.network.config.chainId!)
+  const isHubChain = (await summerGovernor.read.hubChainId()) === hre.network.config.chainId
 
   // Set timelock as governor in ProtocolAccessManager
   console.log('[PROTOCOL ACCESS MANAGER] - Setting up governance...')
@@ -97,6 +96,16 @@ export async function rolesGov() {
     const hash = await protocolAccessManager.write.grantDecayControllerRole([
       summerGovernor.address,
     ])
+    await publicClient.waitForTransactionReceipt({ hash })
+  }
+
+  const hasDecayRole3 = await protocolAccessManager.read.hasRole([
+    DECAY_CONTROLLER_ROLE,
+    summerToken.address,
+  ])
+  if (!hasDecayRole3) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Granting decay controller role to SummerToken...')
+    const hash = await protocolAccessManager.write.grantDecayControllerRole([summerToken.address])
     await publicClient.waitForTransactionReceipt({ hash })
   }
 

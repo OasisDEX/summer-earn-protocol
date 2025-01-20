@@ -1,65 +1,35 @@
-import { Options } from '@layerzerolabs/lz-v2-utilities'
-import dotenv from 'dotenv'
-import {
-  Address,
-  createPublicClient,
-  createWalletClient,
-  encodeFunctionData,
-  Hex,
-  http,
-  keccak256,
-  parseAbi,
-  toBytes,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { base } from 'viem/chains'
+import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
+import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
+import { hashDescription } from '../../helpers/hash-description'
+import { constructLzOptions } from '../../helpers/layerzero-options'
+import { createClients } from '../../helpers/wallet-helper'
 
-dotenv.config()
-
-// Contract addresses
-const HUB_SUMMER_GOVERNOR_ADDRESS = process.env.BASE_SUMMER_GOVERNOR_ADDRESS as Address
-const ARB_SUMMER_TOKEN_ADDRESS = process.env.ARB_SUMMER_TOKEN_ADDRESS as Address
-const ARB_ENDPOINT_ID = process.env.ARB_ENDPOINT_ID as string // LayerZero chain ID for Arbitrum
-
-// Governor ABI (only the needed functions)
 const governorAbi = parseAbi([
   'function propose(address[] targets, uint256[] values, bytes[] calldatas, string description) public returns (uint256)',
   'function hashProposal(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) public pure returns (uint256)',
 ])
 
-// Add a helper function to match the test file's approach
-function hashDescription(description: string): Hex {
-  return keccak256(toBytes(description))
-}
-
-// Helper function to construct LayerZero options
-function constructLzOptions(gasLimit: bigint = 200000n): Hex {
-  // Create new options instance and add required execution options
-  const options = Options.newOptions()
-    // Add gas for lzReceive execution on destination
-    .addExecutorLzReceiveOption(Number(gasLimit), 0) // (gas limit, msg.value)
-    // Add ordered execution option to ensure proper message ordering
-    .addExecutorOrderedExecutionOption()
-
-  return options.toHex() as Hex
-}
-
 async function main() {
-  // Setup clients
-  const publicClient = createPublicClient({
-    chain: base,
-    transport: http(process.env.RPC_URL),
-  })
+  // Get hub chain configuration through prompt
+  const {
+    config: hubConfig,
+    chain,
+    rpcUrl,
+    name: hubChainName,
+  } = await promptForChain('Select the hub chain:')
 
-  const account = privateKeyToAccount(`0x${process.env.PRIVATE_KEY as Hex}`)
-  const walletClient = createWalletClient({
-    account,
-    chain: base,
-    transport: http(process.env.RPC_URL),
-  })
+  const { publicClient, walletClient } = createClients(chain, rpcUrl)
 
-  // Prepare the Arbitrum-side proposal parameters (target proposal)
-  const dstTargets = [ARB_SUMMER_TOKEN_ADDRESS]
+  // Get target (satellite) chain configuration
+  const { config: targetConfig } = await promptForTargetChain(hubChainName)
+
+  // Extract addresses and IDs from configs
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const SATELLITE_TOKEN_ADDRESS = targetConfig.deployedContracts.gov.summerToken.address as Address
+  const SATELLITE_ENDPOINT_ID = targetConfig.common.layerZero.eID
+
+  // Prepare the satellite chain proposal parameters (target proposal)
+  const dstTargets = [SATELLITE_TOKEN_ADDRESS]
   const dstValues = [0n]
   const dstCalldatas = [
     encodeFunctionData({
@@ -67,7 +37,7 @@ async function main() {
       args: [],
     }) as Hex,
   ]
-  const dstDescription = 'Enable transfers on Arbitrum SummerToken (v6)'
+  const dstDescription = `Enable transfers on satellite chain SummerToken (v6)`
 
   console.log('Destination description:', dstDescription)
   console.log('Hashed destination description:', hashDescription(dstDescription))
@@ -76,12 +46,10 @@ async function main() {
   console.log('Destination values:', dstValues)
   console.log('Destination calldatas:', dstCalldatas)
 
-  // Prepare the Base-side proposal parameters (source proposal)
-  const srcTargets = [HUB_SUMMER_GOVERNOR_ADDRESS]
+  // Prepare the hub chain proposal parameters (source proposal)
+  const srcTargets = [HUB_GOVERNOR_ADDRESS]
   const srcValues = [0n]
-
-  // Construct proper LayerZero options
-  const lzOptions = constructLzOptions(200000n) // 200k gas for destination execution
+  const lzOptions = constructLzOptions(200000n)
 
   // Encode the cross-chain message parameters
   const srcCalldatas = [
@@ -90,7 +58,7 @@ async function main() {
         'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
       ]),
       args: [
-        Number(ARB_ENDPOINT_ID),
+        Number(SATELLITE_ENDPOINT_ID),
         dstTargets,
         dstValues,
         dstCalldatas,
@@ -114,12 +82,12 @@ async function main() {
 
     // Submit the proposal with explicit gas parameters
     const hash = await walletClient.writeContract({
-      address: HUB_SUMMER_GOVERNOR_ADDRESS,
+      address: HUB_GOVERNOR_ADDRESS,
       abi: governorAbi,
       functionName: 'propose',
       args: [srcTargets, srcValues, srcCalldatas, srcDescription],
-      gas: 500000n, // Set a reasonable gas limit
-      maxFeePerGas: await publicClient.getGasPrice(), // Use current gas price
+      gas: 500000n,
+      maxFeePerGas: await publicClient.getGasPrice(),
     })
 
     console.log('Proposal submitted. Transaction hash:', hash)
@@ -130,7 +98,7 @@ async function main() {
 
     // Get the proposal ID
     const proposalId = await publicClient.readContract({
-      address: HUB_SUMMER_GOVERNOR_ADDRESS,
+      address: HUB_GOVERNOR_ADDRESS,
       abi: governorAbi,
       functionName: 'hashProposal',
       args: [srcTargets, srcValues, srcCalldatas, hashDescription(srcDescription)],
@@ -141,7 +109,6 @@ async function main() {
     console.error('Error submitting proposal:', error)
     if (error.cause) {
       console.error('Error cause:', error.cause)
-      // Add more detailed error information
       if (error.cause.data) {
         console.error('Error data:', error.cause.data)
       }

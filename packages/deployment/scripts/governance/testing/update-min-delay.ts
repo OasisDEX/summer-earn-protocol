@@ -1,21 +1,7 @@
-import dotenv from 'dotenv'
-import {
-  Address,
-  createPublicClient,
-  createWalletClient,
-  encodeFunctionData,
-  Hex,
-  http,
-  parseAbi,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { base } from 'viem/chains'
-
-dotenv.config()
-
-// Contract addresses
-const TIMELOCK_ADDRESS = process.env.TIMELOCK_ADDRESS as Address
-const SUMMER_GOVERNOR_ADDRESS = process.env.SUMMER_GOVERNOR_ADDRESS as Address
+import { encodeFunctionData, parseAbi } from 'viem'
+import { promptForChain } from '../../helpers/chain-prompt'
+import { hashDescription } from '../../helpers/hash-description'
+import { createClients } from '../../helpers/wallet-helper'
 
 // SummerGovernor ABI (only the propose function)
 const governorAbi = parseAbi([
@@ -23,19 +9,13 @@ const governorAbi = parseAbi([
 ])
 
 async function main() {
-  // Setup public client
-  const publicClient = createPublicClient({
-    chain: base,
-    transport: http(process.env.RPC_URL),
-  })
+  // Get chain configuration and setup clients
+  const chainSetup = await promptForChain()
+  const { publicClient, walletClient } = createClients(chainSetup.chain, chainSetup.rpcUrl)
 
-  // Setup wallet client
-  const account = privateKeyToAccount(`0x${process.env.PRIVATE_KEY as Hex}`)
-  const walletClient = createWalletClient({
-    account,
-    chain: base,
-    transport: http(process.env.RPC_URL),
-  })
+  // Get contract addresses from chain config
+  const TIMELOCK_ADDRESS = chainSetup.config.deployedContracts.gov.timelock.address
+  const SUMMER_GOVERNOR_ADDRESS = chainSetup.config.deployedContracts.gov.summerGovernor.address
 
   // Prepare the proposal data
   const newMinDelay = 3600n // 1 hour in seconds
@@ -65,6 +45,7 @@ async function main() {
     })
 
     console.log('Proposal submitted. Transaction hash:', hash)
+    console.log('Proposal description hash:', hashDescription(description))
 
     // Wait for the transaction to be mined
     const receipt = await publicClient.waitForTransactionReceipt({ hash })

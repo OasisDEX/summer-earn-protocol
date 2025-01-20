@@ -1,23 +1,7 @@
-import dotenv from 'dotenv'
-import {
-  Address,
-  createPublicClient,
-  createWalletClient,
-  encodeFunctionData,
-  Hex,
-  http,
-  keccak256,
-  parseAbi,
-  toBytes,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { base } from 'viem/chains'
-
-dotenv.config()
-
-// Contract addresses
-const TIMELOCK_ADDRESS = process.env.TIMELOCK_ADDRESS as Address
-const SUMMER_GOVERNOR_ADDRESS = process.env.SUMMER_GOVERNOR_ADDRESS as Address
+import { encodeFunctionData, keccak256, parseAbi, toBytes } from 'viem'
+import { promptForChain } from '../../helpers/chain-prompt'
+import { hashDescription } from '../../helpers/hash-description'
+import { createClients } from '../../helpers/wallet-helper'
 
 // Role identifiers
 const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
@@ -30,44 +14,37 @@ const timelockAbi = parseAbi([
 ])
 
 async function main() {
-  // Setup public client
-  const publicClient = createPublicClient({
-    chain: base,
-    transport: http(process.env.RPC_URL),
-  })
+  // Get chain configuration using the prompt helper
+  const chainSetup = await promptForChain('Which chain would you like to grant roles on?')
 
-  // Setup wallet client
-  const account = privateKeyToAccount(`0x${process.env.PRIVATE_KEY as Hex}`)
-  const walletClient = createWalletClient({
-    account,
-    chain: base,
-    transport: http(process.env.RPC_URL),
-  })
+  // Setup clients using wallet helper
+  const { publicClient, walletClient } = createClients(chainSetup.chain, chainSetup.rpcUrl)
+
+  const TIMELOCK_ADDRESS = chainSetup.config.deployedContracts.gov.timelock.address
+  const SUMMER_GOVERNOR_ADDRESS = chainSetup.config.deployedContracts.gov.summerGovernor.address
 
   // Prepare the proposal data
   const calldatas = [
+    { role: PROPOSER_ROLE, name: 'PROPOSER_ROLE' },
+    { role: CANCELLER_ROLE, name: 'CANCELLER_ROLE' },
+    { role: EXECUTOR_ROLE, name: 'EXECUTOR_ROLE' },
+  ].map((roleData) =>
     encodeFunctionData({
       abi: parseAbi(['function grantRole(bytes32 role, address account)']),
-      args: [PROPOSER_ROLE, SUMMER_GOVERNOR_ADDRESS],
+      args: [roleData.role, SUMMER_GOVERNOR_ADDRESS],
     }),
-    encodeFunctionData({
-      abi: parseAbi(['function grantRole(bytes32 role, address account)']),
-      args: [CANCELLER_ROLE, SUMMER_GOVERNOR_ADDRESS],
-    }),
-    encodeFunctionData({
-      abi: parseAbi(['function grantRole(bytes32 role, address account)']),
-      args: [EXECUTOR_ROLE, SUMMER_GOVERNOR_ADDRESS],
-    }),
-  ]
+  )
 
-  const targets = [TIMELOCK_ADDRESS, TIMELOCK_ADDRESS, TIMELOCK_ADDRESS]
-  const values = [0n, 0n, 0n]
+  const targets = Array(3).fill(TIMELOCK_ADDRESS)
+  const values = Array(3).fill(0n)
   const predecessor = '0x0000000000000000000000000000000000000000000000000000000000000000'
-  const salt = keccak256(toBytes('Grant roles to SummerGovernor'))
-  const delay = 86400n
+  const salt = hashDescription('Grant roles to SummerGovernor')
+  const delay = 86400n // 24 hours in seconds
 
   // Get the current nonce
-  const nonce = await publicClient.getTransactionCount({ address: account.address })
+  const nonce = await publicClient.getTransactionCount({
+    address: walletClient.account.address,
+  })
 
   // Get the current gas price and increase it significantly
   const currentGasPrice = await publicClient.getGasPrice()

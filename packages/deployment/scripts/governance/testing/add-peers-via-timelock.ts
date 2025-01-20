@@ -1,141 +1,25 @@
-import dotenv from 'dotenv'
-import fs from 'fs'
-import path from 'path'
 import prompts from 'prompts'
-import {
-  Address,
-  createPublicClient,
-  createWalletClient,
-  encodeFunctionData,
-  Hex,
-  http,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { arbitrum, base, mainnet } from 'viem/chains'
-
-dotenv.config()
-
-// Load configuration from index.json
-const configPath = path.resolve(__dirname, '../../config/index.json')
-const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
-
-// Define available chains and their configurations
-const chainConfigs = {
-  base: {
-    chain: base,
-    config: config.base,
-    rpcUrl: process.env.BASE_RPC_URL as string,
-  },
-  arbitrum: {
-    chain: arbitrum,
-    config: config.arbitrum,
-    rpcUrl: process.env.ARBITRUM_RPC_URL as string,
-  },
-  mainnet: {
-    chain: mainnet,
-    config: config.mainnet,
-    rpcUrl: process.env.MAINNET_RPC_URL as string,
-  },
-}
-
-async function promptForChain(): Promise<{
-  name: string
-  config: any
-  chain: any
-  rpcUrl: string
-}> {
-  const chainOptions = Object.keys(chainConfigs).map((key) => ({
-    title: key,
-    value: { name: key, ...chainConfigs[key as keyof typeof chainConfigs] },
-  }))
-
-  const { selectedChain } = await prompts({
-    type: 'select',
-    name: 'selectedChain',
-    message: 'Which chain would you like to execute this operation on?',
-    choices: chainOptions,
-  })
-
-  if (!selectedChain) throw new Error('No chain selected')
-
-  const { confirmed } = await prompts({
-    type: 'confirm',
-    name: 'confirmed',
-    message: `Please confirm you want to execute on ${selectedChain.name}`,
-    initial: false,
-  })
-
-  if (!confirmed) {
-    throw new Error('Operation cancelled by user')
-  }
-
-  return selectedChain
-}
-
-// Add interface for peer chain selection
-interface PeerChainOption {
-  name: string
-  config: any
-  endpointId: string
-}
-
-async function promptForPeerChain(currentChain: string): Promise<PeerChainOption> {
-  const peerChainOptions = Object.entries(chainConfigs)
-    .filter(([key]) => key !== currentChain)
-    .map(([key, value]) => ({
-      title: key,
-      value: {
-        name: key,
-        config: value.config,
-        endpointId: value.config.common.layerZero.eID,
-      },
-    }))
-
-  const { selectedPeerChain } = await prompts({
-    type: 'select',
-    name: 'selectedPeerChain',
-    message: 'Which chain would you like to add as a peer?',
-    choices: peerChainOptions,
-  })
-
-  if (!selectedPeerChain) throw new Error('No peer chain selected')
-
-  const { confirmed } = await prompts({
-    type: 'confirm',
-    name: 'confirmed',
-    message: `Please confirm you want to add ${selectedPeerChain.name} as a peer`,
-    initial: false,
-  })
-
-  if (!confirmed) {
-    throw new Error('Operation cancelled by user')
-  }
-
-  return selectedPeerChain
-}
+import { Address, encodeFunctionData, Hex } from 'viem'
+import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
+import { createClients } from '../../helpers/wallet-helper'
 
 async function main() {
   console.log('🚀 Starting peer addition process...\n')
 
-  // Get and confirm chain selection
-  const { config: chainConfig, chain, rpcUrl, name } = await promptForChain()
-
-  const publicClient = createPublicClient({
+  // Get hub chain configuration through prompt
+  const {
+    config: chainConfig,
+    name: hubChainName,
     chain,
-    transport: http(rpcUrl),
-  })
+    rpcUrl,
+  } = await promptForChain('Select the hub chain:')
 
-  const account = privateKeyToAccount(`0x${process.env.PRIVATE_KEY as Hex}`)
-  const walletClient = createWalletClient({
-    account,
-    chain,
-    transport: http(rpcUrl),
-  })
+  const { publicClient, walletClient } = await createClients(chain, rpcUrl)
 
   // Reduce gas parameters
   const GAS_LIMIT = 500000n
-  const MAX_FEE_PER_GAS = 1500000000n // 1.5 gwei (reduced from 150 gwei)
-  const MAX_PRIORITY_FEE_PER_GAS = 1500000000n // 1.5 gwei (reduced from 15 gwei)
+  const MAX_FEE_PER_GAS = 1500000000n // 1.5 gwei
+  const MAX_PRIORITY_FEE_PER_GAS = 1500000000n // 1.5 gwei
 
   function createSetPeerCalldata(
     peerAddress: Address,
@@ -343,16 +227,16 @@ async function main() {
   // Get and confirm contract selection
   const selectedContract = await promptForContract()
 
-  // Get and confirm peer chain selection
-  const peerChain = await promptForPeerChain(name)
-  console.log('peerChain', peerChain)
+  // Get and confirm target chain selection (replacing peer chain)
+  const targetChain = await promptForTargetChain(hubChainName)
+  console.log('targetChain', targetChain)
 
   // Define peer address based on contract selection
   const PEER_CONTRACT_ADDRESS =
     selectedContract.name === 'Summer Token'
-      ? (peerChain.config.deployedContracts.gov.summerToken.address as Address)
-      : (peerChain.config.deployedContracts.gov.summerGovernor.address as Address)
-  const PEER_ENDPOINT_ID = peerChain.config.common.layerZero.eID as string
+      ? (targetChain.config.deployedContracts.gov.summerToken.address as Address)
+      : (targetChain.config.deployedContracts.gov.summerGovernor.address as Address)
+  const PEER_ENDPOINT_ID = targetChain.endpointId
 
   const TIMELOCK_ADDRESS = chainConfig.deployedContracts.gov.timelock.address as Address
 
@@ -362,9 +246,9 @@ async function main() {
     name: 'confirmed',
     message:
       `📝 Please review the operation details:\n\n` +
-      `Chain: ${name}\n` +
+      `Hub Chain: ${hubChainName}\n` +
       `Target Contract: ${selectedContract.name} (${selectedContract.address})\n` +
-      `Peer Chain: ${peerChain.name}\n` +
+      `Target Chain: ${targetChain.name}\n` +
       `Peer Address: ${PEER_CONTRACT_ADDRESS}\n` +
       `Endpoint ID: ${PEER_ENDPOINT_ID}\n` +
       `Timelock: ${TIMELOCK_ADDRESS}\n\n` +
