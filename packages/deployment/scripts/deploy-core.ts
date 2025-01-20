@@ -55,6 +55,8 @@ async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
 
   updateIndexJson('core', hre.network.name, core)
 
+  await setupGovernanceRoles(config)
+
   return core
 }
 
