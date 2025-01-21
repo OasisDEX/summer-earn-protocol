@@ -65,7 +65,7 @@ export async function promptForChain(
 ): Promise<ChainSetup> {
   const chainOptions = Object.keys(chainConfigs).map((key) => ({
     title: key,
-    value: { name: key, ...chainConfigs[key as ChainName] },
+    value: { name: key as ChainName, ...chainConfigs[key as ChainName] },
   }))
 
   const { selectedChain } = await prompts({
@@ -88,79 +88,30 @@ export async function promptForChain(
     throw new Error('Operation cancelled by user')
   }
 
-  return {
-    ...selectedChain,
-  }
+  return selectedChain
 }
 
-export async function promptForPeerChain(currentChain: ChainName): Promise<{
-  name: ChainName
-  config: ChainConfig
-  endpointId: string
-}> {
-  const peerChainOptions = Object.entries(chainConfigs)
+export async function promptForTargetChain(currentChain: ChainName): Promise<ChainSetup> {
+  const chainOptions = Object.entries(chainConfigs)
     .filter(([key]) => key !== currentChain)
-    .map(([key, value]) => ({
+    .map(([key]) => ({
       title: key,
-      value: {
-        name: key as ChainName,
-        config: value.config,
-        endpointId: value.config.common.layerZero.eID,
-      },
+      value: { name: key as ChainName, ...chainConfigs[key as ChainName] },
     }))
 
-  const { selectedPeerChain } = await prompts({
+  const { selectedChain } = await prompts({
     type: 'select',
-    name: 'selectedPeerChain',
-    message: 'Which chain would you like to add as a peer?',
-    choices: peerChainOptions,
-  })
-
-  if (!selectedPeerChain) throw new Error('No peer chain selected')
-
-  const { confirmed } = await prompts({
-    type: 'confirm',
-    name: 'confirmed',
-    message: `Please confirm you want to add ${selectedPeerChain.name} as a peer`,
-    initial: false,
-  })
-
-  if (!confirmed) {
-    throw new Error('Operation cancelled by user')
-  }
-
-  return selectedPeerChain
-}
-
-export async function promptForTargetChain(currentChain: ChainName): Promise<{
-  name: ChainName
-  config: ChainConfig
-  endpointId: string
-}> {
-  const targetChainOptions = Object.entries(chainConfigs)
-    .filter(([key]) => key !== currentChain)
-    .map(([key, value]) => ({
-      title: key,
-      value: {
-        name: key as ChainName,
-        config: value.config,
-        endpointId: value.config.common.layerZero.eID,
-      },
-    }))
-
-  const { selectedTargetChain } = await prompts({
-    type: 'select',
-    name: 'selectedTargetChain',
+    name: 'selectedChain',
     message: 'Which chain would you like to set as the target?',
-    choices: targetChainOptions,
+    choices: chainOptions,
   })
 
-  if (!selectedTargetChain) throw new Error('No target chain selected')
+  if (!selectedChain) throw new Error('No target chain selected')
 
   const { confirmed } = await prompts({
     type: 'confirm',
     name: 'confirmed',
-    message: `Please confirm you want to set ${selectedTargetChain.name} as the target chain`,
+    message: `Please confirm you want to set ${selectedChain.name} as the target chain`,
     initial: false,
   })
 
@@ -168,5 +119,5 @@ export async function promptForTargetChain(currentChain: ChainName): Promise<{
     throw new Error('Operation cancelled by user')
   }
 
-  return selectedTargetChain
+  return selectedChain
 }
