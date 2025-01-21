@@ -21,7 +21,7 @@ contract VotingDecayMathTest is Test {
         assertEq(result, INITIAL_VALUE);
     }
 
-    function test_LinearDecayEdgeCases() public {
+    function test_LinearDecayEdgeCases() public pure {
         // Test zero time elapsed
         uint256 result = VotingDecayMath.linearDecay(
             INITIAL_VALUE,
@@ -55,7 +55,7 @@ contract VotingDecayMathTest is Test {
         );
     }
 
-    function test_ExponentialDecayEdgeCases() public {
+    function test_ExponentialDecayEdgeCases() public pure {
         // Test zero initial value
         uint256 result = VotingDecayMath.exponentialDecay(
             0, // initialValue
