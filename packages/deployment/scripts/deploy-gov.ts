@@ -1,19 +1,20 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
 
-import { Address, keccak256, toBytes } from 'viem'
+import { Address } from 'viem'
 import { GovContracts, GovModule } from '../ignition/modules/gov'
 import { BaseConfig, SupportedNetworks } from '../types/config-types'
-import { ADDRESS_ZERO } from './common/constants'
+import {
+  ADDRESS_ZERO,
+  CANCELLER_ROLE,
+  DECAY_CONTROLLER_ROLE,
+  EXECUTOR_ROLE,
+  GOVERNOR_ROLE,
+  PROPOSER_ROLE,
+} from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 import { updateIndexJson } from './helpers/update-json'
-
-const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
-const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
-const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
-const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
 interface PeerConfig {
   eid: number
@@ -49,6 +50,7 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
   }
   // Add peer configuration prompt
   const peers = getPeersFromConfig(hre.network.name)
+  console.log('Deploying Gov Module...')
   const gov = await hre.ignition.deploy(GovModule, {
     parameters: {
       GovModule: {
@@ -62,7 +64,10 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
     },
   })
 
+  console.log('Updating index.json...')
   updateIndexJson('gov', hre.network.name, gov)
+
+  console.log('Setting up governance roles...')
   await setupGovernanceRoles(gov, config)
 
   console.log(kleur.green().bold('All Gov Contracts Deployed Successfully!'))
@@ -85,10 +90,13 @@ function getInitialSupply(config: BaseConfig): bigint {
  * @param currentNetwork - The name of the current network to exclude from the peer list.
  */
 function getPeersFromConfig(sourceNetwork: string): NetworkPeers {
-  return {
+  const peers = {
     tokenPeers: getTokenPeers(sourceNetwork),
     governorPeers: getGovernorPeers(sourceNetwork),
   }
+  console.log('Gov Peers:', peers.governorPeers)
+  console.log('Token Peers:', peers.tokenPeers)
+  return peers
 }
 
 /**
@@ -98,6 +106,7 @@ function getTokenPeers(sourceNetwork: string): PeerConfig[] {
   return getPeersForContract(sourceNetwork, (config) => ({
     address: config.deployedContracts?.gov?.summerToken?.address,
     skipSatelliteToSatellite: false,
+    label: 'TOKEN',
   }))
 }
 
@@ -108,6 +117,7 @@ function getGovernorPeers(sourceNetwork: string): PeerConfig[] {
   return getPeersForContract(sourceNetwork, (config) => ({
     address: config.deployedContracts?.gov?.summerGovernor?.address,
     skipSatelliteToSatellite: true,
+    label: 'GOVERNOR',
   }))
 }
 
@@ -119,6 +129,7 @@ function getPeersForContract(
   getContractInfo: (config: BaseConfig) => {
     address: string | undefined
     skipSatelliteToSatellite: boolean
+    label: string
   },
 ): PeerConfig[] {
   const peers: PeerConfig[] = []
@@ -128,20 +139,23 @@ function getPeersForContract(
 
   for (const targetNetwork of networks) {
     if (targetNetwork === sourceNetwork) {
-      console.log(kleur.blue().bold('Skipping source network:'), kleur.cyan(targetNetwork))
+      console.log(
+        kleur.blue().bold('Peering - skipping source network:'),
+        kleur.cyan(targetNetwork),
+      )
       continue
     }
 
     try {
       const networkConfig = getConfigByNetwork(targetNetwork)
-      const { address, skipSatelliteToSatellite } = getContractInfo(networkConfig)
+      const { address, skipSatelliteToSatellite, label } = getContractInfo(networkConfig)
       const layerZeroEID = networkConfig.common?.layerZero?.eID
 
       const isTargetHub = targetNetwork === HUB_NETWORK
 
       if (!layerZeroEID) {
         console.log(
-          kleur.yellow().bold('Skipping network, missing LayerZero config:'),
+          kleur.yellow().bold('Peering - skipping network, missing LayerZero config:'),
           kleur.cyan(targetNetwork),
         )
         continue
@@ -150,17 +164,23 @@ function getPeersForContract(
       // Skip satellite-to-satellite connections if specified
       if (skipSatelliteToSatellite && !isSourceHub && !isTargetHub) {
         console.log(
-          kleur.blue().bold('Skipping satellite-to-satellite peering:'),
+          kleur.blue().bold(`Peering - ${label} - skipping satellite-to-satellite peering:`),
           kleur.cyan(`${sourceNetwork} -> ${targetNetwork}`),
         )
         continue
       }
 
+      // Only add peer if address exists and is not zero address
       if (address && address !== ADDRESS_ZERO) {
         peers.push({
           eid: parseInt(layerZeroEID),
           address,
         })
+      } else {
+        console.log(
+          kleur.yellow().bold('Peering - skipping network, no valid contract address:'),
+          kleur.cyan(targetNetwork),
+        )
       }
     } catch (error) {
       console.log(kleur.red().bold('Error processing network config:'), kleur.cyan(targetNetwork))
@@ -217,22 +237,6 @@ async function setupGovernanceRoles(gov: GovContracts, config: BaseConfig) {
     'ProtocolAccessManager' as string,
     gov.protocolAccessManager.address as Address,
   )
-
-  // Check if token needs initialization
-  try {
-    // This will throw if already initialized
-    const peers = getPeersFromConfig(hre.network.name)
-    const initParams = {
-      initialSupply: getInitialSupply(config),
-      peerEndpointIds: peers.tokenPeers.map((p) => p.eid),
-      peerAddresses: peers.tokenPeers.map((p) => p.address),
-    }
-    console.log('[SUMMER TOKEN] - Initializing token with peers...')
-    const hash = await summerToken.write.initialize([initParams])
-    await publicClient.waitForTransactionReceipt({ hash })
-  } catch (error) {
-    console.log('[SUMMER TOKEN] - Token already initialized or initialization failed:', error)
-  }
 
   // Get governance rewards manager address from SummerToken
   const rewardsManagerAddress = await summerToken.read.rewardsManager()

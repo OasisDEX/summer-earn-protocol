@@ -3,8 +3,9 @@ import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
-import { Address, keccak256, toBytes } from 'viem'
+import { Address } from 'viem'
 import { BaseConfig } from '../../types/config-types'
+import { GOVERNOR_ROLE } from './constants'
 import { getAvailableFleets } from './get-available-fleets'
 import { grantCommanderRole } from './grant-commander-role'
 
@@ -74,7 +75,7 @@ export async function addArkToFleet(
       config.deployedContracts.gov.protocolAccessManager.address as Address,
     )
     const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      keccak256(toBytes('GOVERNOR_ROLE')),
+      GOVERNOR_ROLE,
       deployer.account.address,
     ])
     if (hasGovernorRole) {

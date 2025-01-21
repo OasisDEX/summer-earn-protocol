@@ -39,6 +39,9 @@ export const GovModule = buildModule('GovModule', (m) => {
   const peerEndpointIds = m.getParameter<number[]>('peerEndpointIds', [])
   const peerAddresses = m.getParameter<string[]>('peerAddresses', [])
 
+  const governorPeerEndpointIds = m.getParameter<number[]>('governorPeerEndpointIds', [])
+  const governorPeerAddresses = m.getParameter<string[]>('governorPeerAddresses', [])
+
   const votingDecayLibrary = m.contract('VotingDecayLibrary', [])
 
   /**
@@ -95,6 +98,7 @@ export const GovModule = buildModule('GovModule', (m) => {
   const summerToken = m.contract('SummerToken', [summerTokenConstructorParams], {
     libraries: { VotingDecayLibrary: votingDecayLibrary },
   })
+
   m.call(summerToken, 'initialize', [summerTokenInitParams])
 
   /**
@@ -120,9 +124,10 @@ export const GovModule = buildModule('GovModule', (m) => {
     quorumFraction: 4n,
     endpoint: lzEndpoint,
     hubChainId: HUB_CHAIN_ID,
-    peerEndpointIds: peerEndpointIds,
-    peerAddresses: peerAddresses,
+    peerEndpointIds: governorPeerEndpointIds,
+    peerAddresses: governorPeerAddresses,
   }
+
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
 
   const rewardsRedeemer = m.contract('SummerRewardsRedeemer', [summerToken, accessManager])
