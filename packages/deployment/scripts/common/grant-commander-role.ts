@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import kleur from 'kleur'
-import { Address, keccak256, toBytes } from 'viem'
+import { Address } from 'viem'
+import { GOVERNOR_ROLE } from './constants'
 
 /**
  * Grants the commander role for the buffer ark to the fleet commander.
@@ -23,7 +24,7 @@ export async function grantCommanderRole(
   const role = await protocolAccessManager.read.generateRole([2, arkAddress])
   const hasRole = await protocolAccessManager.read.hasRole([role, fleetCommanderAddress])
   const hasGovernorRole = await protocolAccessManager.read.hasRole([
-    keccak256(toBytes('GOVERNOR_ROLE')),
+    GOVERNOR_ROLE,
     deployer.account.address,
   ])
   if (!hasRole) {

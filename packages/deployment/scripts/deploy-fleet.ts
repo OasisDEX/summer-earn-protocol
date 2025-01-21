@@ -3,11 +3,12 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
 import prompts from 'prompts'
-import { Address, keccak256, toBytes } from 'viem'
+import { Address } from 'viem'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { deployArk } from './common/ark-deployment'
+import { GOVERNOR_ROLE } from './common/constants'
 import { getFleetConfigDir } from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
 import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
@@ -223,7 +224,7 @@ async function addFleetToHarbor(
     protocolAccessManagerAddress,
   )
   const hasGovernorRole = await protocolAccessManager.read.hasRole([
-    keccak256(toBytes('GOVERNOR_ROLE')),
+    GOVERNOR_ROLE,
     deployer.account.address,
   ])
   if (hasGovernorRole) {
