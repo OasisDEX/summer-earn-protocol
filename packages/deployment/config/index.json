@@ -271,22 +271,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xBA57eaB5B4e8560061b7237db2dC3226b2DAc064"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x64EB3C12EAC910ceC0B2527B91288Ec2653D2b86"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x694F9c802909CeaBa936230354de95968cE36aB5"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xc7C9d0BcbEE418a4012C67d83cBd291860416DF9"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x05Da9eE95BF7f0a37e79a1341706eFB65e385979"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xaF5506dB6a8c7Bfad5e70D1f2fDBB7b1FC89E249"
         }
       }
     },
