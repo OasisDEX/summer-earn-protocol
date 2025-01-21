@@ -3,8 +3,9 @@ import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
-import { Address, keccak256, toBytes } from 'viem'
+import { Address } from 'viem'
 import { BaseConfig, FleetConfig, FleetDeployment } from '../../types/config-types'
+import { GOVERNOR_ROLE } from './constants'
 import {
   getAvailableFleets,
   getFleetDeploymentDir,
@@ -13,7 +14,6 @@ import {
   loadFleetDeployment,
 } from './fleet-deployment-files-helpers'
 import { grantCommanderRole } from './grant-commander-role'
-import { GOVERNOR_ROLE } from './constants'
 
 /**
  * Adds the deployed Ark to a selected fleet.
