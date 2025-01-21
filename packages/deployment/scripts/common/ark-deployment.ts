@@ -171,3 +171,67 @@ export async function deployArk(
 
   return deployedArk.ark.address as Address
 }
+
+export async function deployArkInteractive(arkType: ArkType, config: BaseConfig) {
+  let deployedArk
+  switch (arkType) {
+    case ArkType.AaveV3Ark:
+      deployedArk = await deployAaveV3Ark(config)
+      break
+    case ArkType.SparkArk:
+      deployedArk = await deploySparkArk(config)
+      break
+
+    case ArkType.CompoundV3Ark:
+      deployedArk = await deployCompoundV3Ark(config)
+      break
+
+    case ArkType.ERC4626Ark:
+      deployedArk = await deployERC4626Ark(config)
+      break
+
+    case ArkType.MorphoArk: {
+      deployedArk = await deployMorphoArk(config)
+      break
+    }
+
+    case ArkType.MorphoVaultArk: {
+      deployedArk = await deployMorphoVaultArk(config)
+      break
+    }
+
+    case ArkType.PendleLPArk: {
+      deployedArk = await deployPendleLPArk(config)
+      break
+    }
+
+    case ArkType.PendlePTArk: {
+      deployedArk = await deployPendlePTArk(config)
+      break
+    }
+
+    case ArkType.PendlePtOracleArk: {
+      deployedArk = await deployPendlePTOracleArk(config)
+      break
+    }
+
+    case ArkType.SkyUsdsArk: {
+      deployedArk = await deploySkyUsdsArk(config)
+      break
+    }
+
+    case ArkType.SkyUsdsPsm3Ark: {
+      deployedArk = await deploySkyUsdsPsm3Ark(config)
+      break
+    }
+
+    default:
+      throw new Error(`Unknown Ark type: ${arkType}`)
+  }
+
+  if (!deployedArk?.ark?.address) {
+    throw new Error(`Failed to deploy ${arkType}`)
+  }
+
+  return deployedArk.ark.address as Address
+}

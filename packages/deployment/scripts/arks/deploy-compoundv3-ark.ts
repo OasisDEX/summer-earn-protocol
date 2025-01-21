@@ -29,10 +29,7 @@ export interface CompoundV3ArkUserInput {
  * - Deploying the CompoundV3Ark contract
  * - Logging deployment results
  */
-export async function deployCompoundV3Ark(
-  config: BaseConfig,
-  arkParams: CompoundV3ArkUserInput | undefined,
-) {
+export async function deployCompoundV3Ark(config: BaseConfig, arkParams?: CompoundV3ArkUserInput) {
   console.log(kleur.green().bold('Starting CompoundV3Ark deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))

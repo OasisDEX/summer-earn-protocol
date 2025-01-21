@@ -3,7 +3,7 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { ArkType } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
-import { ArkConfig, deployArk } from './common/ark-deployment'
+import { deployArkInteractive } from './common/ark-deployment'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
 
@@ -21,7 +21,7 @@ const arkTypes = [
   { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
 ]
 
-async function deployArkInteractive() {
+async function deployArk() {
   const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })
 
   console.log(kleur.green().bold('Starting Ark deployment process...'))
@@ -38,21 +38,8 @@ async function deployArkInteractive() {
     return
   }
 
-  const { asset } = await prompts({
-    type: 'text',
-    name: 'asset',
-    message: 'Enter the asset symbol (e.g., USDC):',
-  })
-
-  const arkConfig: ArkConfig = {
-    type: selectedArkType,
-    params: {
-      asset: asset.toUpperCase(),
-    },
-  }
-
   try {
-    const arkAddress = await deployArk(arkConfig, config)
+    const arkAddress = await deployArkInteractive(selectedArkType, config)
     console.log(kleur.green().bold('Ark deployment completed successfully!'))
 
     ModuleLogger.logArk({ ark: { address: arkAddress } })
@@ -64,7 +51,7 @@ async function deployArkInteractive() {
   }
 }
 
-deployArkInteractive().catch((error) => {
+deployArk().catch((error) => {
   console.error(kleur.red('Error during Ark deployment:'))
   console.error(error)
   process.exit(1)

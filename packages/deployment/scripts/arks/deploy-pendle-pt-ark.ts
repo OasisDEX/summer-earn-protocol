@@ -22,10 +22,7 @@ export interface PendlePTArkUserInput {
   marketName: string
 }
 
-export async function deployPendlePTArk(
-  config: BaseConfig,
-  arkParams: PendlePTArkUserInput | undefined,
-) {
+export async function deployPendlePTArk(config: BaseConfig, arkParams?: PendlePTArkUserInput) {
   console.log(kleur.green().bold('Starting PendlePTArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))

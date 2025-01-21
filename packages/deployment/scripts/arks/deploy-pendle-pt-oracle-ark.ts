@@ -25,7 +25,7 @@ export interface PendlePtOracleArkUserInput {
 
 export async function deployPendlePTOracleArk(
   config: BaseConfig,
-  arkParams: PendlePtOracleArkUserInput | undefined,
+  arkParams?: PendlePtOracleArkUserInput,
 ) {
   console.log(kleur.green().bold('Starting PendlePtOracleArk deployment process...'))
 

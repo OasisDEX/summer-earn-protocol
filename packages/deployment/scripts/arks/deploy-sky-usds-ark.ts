@@ -29,10 +29,7 @@ export interface SkyUsdsArkUserInput {
  * - Deploying the SkyUsdsArk contract
  * - Logging deployment results
  */
-export async function deploySkyUsdsArk(
-  config: BaseConfig,
-  arkParams: SkyUsdsArkUserInput | undefined,
-) {
+export async function deploySkyUsdsArk(config: BaseConfig, arkParams?: SkyUsdsArkUserInput) {
   console.log(kleur.green().bold('Starting SkyUsdsArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))

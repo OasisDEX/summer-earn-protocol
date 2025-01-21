@@ -26,10 +26,7 @@ export interface AaveV3ArkUserInput {
  * - Deploying the AaveV3Ark contract
  * - Logging deployment results
  */
-export async function deployAaveV3Ark(
-  config: BaseConfig,
-  arkParams: AaveV3ArkUserInput | undefined,
-) {
+export async function deployAaveV3Ark(config: BaseConfig, arkParams?: AaveV3ArkUserInput) {
   console.log(kleur.green().bold('Starting AaveV3Ark deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))

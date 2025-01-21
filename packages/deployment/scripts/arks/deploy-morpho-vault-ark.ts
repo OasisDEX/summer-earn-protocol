@@ -33,7 +33,7 @@ export interface MorphoVaultArkUserInput {
  */
 export async function deployMorphoVaultArk(
   config: BaseConfig,
-  arkParams: MorphoVaultArkUserInput | undefined,
+  arkParams?: MorphoVaultArkUserInput,
 ) {
   console.log(kleur.green().bold('Starting MorphoVaultArk deployment process...'))
 

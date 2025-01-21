@@ -31,7 +31,7 @@ export interface SkyUsdsPsm3ArkUserInput {
  */
 export async function deploySkyUsdsPsm3Ark(
   config: BaseConfig,
-  arkParams: SkyUsdsPsm3ArkUserInput | undefined,
+  arkParams?: SkyUsdsPsm3ArkUserInput,
 ) {
   console.log(kleur.green().bold('Starting SkyUsdsPsm3Ark deployment process...'))
 

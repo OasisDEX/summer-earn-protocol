@@ -21,10 +21,7 @@ export interface ERC4626ArkUserInput {
   vaultName: string
 }
 
-export async function deployERC4626Ark(
-  config: BaseConfig,
-  arkParams: ERC4626ArkUserInput | undefined,
-) {
+export async function deployERC4626Ark(config: BaseConfig, arkParams?: ERC4626ArkUserInput) {
   console.log(kleur.green().bold('Starting ERC4626Ark deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))

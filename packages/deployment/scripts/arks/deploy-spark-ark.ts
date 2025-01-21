@@ -26,7 +26,7 @@ interface SparkArkUserInput {
  * - Deploying the SparkArk contract
  * - Logging deployment results
  */
-export async function deploySparkArk(config: BaseConfig, arkParams: SparkArkUserInput | undefined) {
+export async function deploySparkArk(config: BaseConfig, arkParams?: SparkArkUserInput) {
   console.log(kleur.green().bold('Starting SparkArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))

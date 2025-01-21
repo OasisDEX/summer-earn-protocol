@@ -27,10 +27,7 @@ export interface MorphoArkUserInput {
  * - Deploying the MorphoArk contract
  * - Logging deployment results
  */
-export async function deployMorphoArk(
-  config: BaseConfig,
-  arkParams: MorphoArkUserInput | undefined,
-) {
+export async function deployMorphoArk(config: BaseConfig, arkParams?: MorphoArkUserInput) {
   console.log(kleur.green().bold('Starting MorphoArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
