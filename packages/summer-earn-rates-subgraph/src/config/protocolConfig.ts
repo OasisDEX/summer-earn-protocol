@@ -138,19 +138,19 @@ class ProtocolConfig {
           getOrCreateToken(addresses.USDC),
           Address.fromString('0xC13e21B648A5Ee794902342038FF3aDAB66BE987'),
           BigInt.fromI32(18798139),
-          'AaveV3',
+          'Spark',
         ),
         new AaveV3Product(
           getOrCreateToken(addresses.WETH),
           Address.fromString('0xC13e21B648A5Ee794902342038FF3aDAB66BE987'),
           BigInt.fromI32(18798140),
-          'AaveV3',
+          'Spark',
         ),
         new AaveV3Product(
           getOrCreateToken(addresses.USDT),
           Address.fromString('0xC13e21B648A5Ee794902342038FF3aDAB66BE987'),
           BigInt.fromI32(18798140),
-          'AaveV3',
+          'Spark',
         ),
       ]),
       new Protocol('MorphoVault', [
