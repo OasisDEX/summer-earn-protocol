@@ -16,7 +16,7 @@ const VESTING_TYPE = {
 dotenv.config()
 
 // Load configuration from index.json
-const config = getConfigByNetwork(hre.network.name)
+const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })
 
 // Load vesting distribution configuration
 const vestingPath = path.resolve(__dirname, '../../config/distributions/vesting.json')
