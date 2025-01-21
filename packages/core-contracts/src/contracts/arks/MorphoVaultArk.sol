@@ -117,7 +117,15 @@ contract MorphoVaultArk is Ark {
      * @param /// data Additional data (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        metaMorpho.withdraw(amount, address(this), address(this));
+        if (amount == totalAssets()) {
+            metaMorpho.redeem(
+                metaMorpho.balanceOf(address(this)),
+                address(this),
+                address(this)
+            );
+        } else {
+            metaMorpho.withdraw(amount, address(this), address(this));
+        }
     }
 
     /**

@@ -18,5 +18,9 @@
   "MorphoVault_usdc_Gauntlet_USDC_Core_8453#MorphoVaultArk": "0x5d84Ae58eF5d51F4e5Fd6693f7df981ba0b2500a",
   "MorphoVault_usdc_Gauntlet_USDC_Prime_8453#MorphoVaultArk": "0x825b294C022979eC74C1E35108C77294ADe30D1c",
   "MorphoVault_usdc_Steakhouse_USDC_8453#MorphoVaultArk": "0x1c0CBBbA8F0940ef512fCF442dDF75da7bF4A753",
-  "MorphoVault_usdc_Re7_USDC_8453#MorphoVaultArk": "0x444F28ac2B5079f1C41e933ec1E9b8f2A5ba074D"
+  "MorphoVault_usdc_Re7_USDC_8453#MorphoVaultArk": "0x444F28ac2B5079f1C41e933ec1E9b8f2A5ba074D",
+  "MorphoVault_usdc_Gauntlet_USDC_Core_1_8453#MorphoVaultArk": "0x86B918aC3Ed905229C08BF377606DD4B57040350",
+  "MorphoVault_usdc_Gauntlet_USDC_Prime_1_8453#MorphoVaultArk": "0x9D32f0bD1Ac2ADfc421ec6e23eE24F1EBAfde8C7",
+  "MorphoVault_usdc_Steakhouse_USDC_1_8453#MorphoVaultArk": "0x78C5089b496789beA72380379adF1EBEFAd2Fb60",
+  "MorphoVault_usdc_Re7_USDC_1_8453#MorphoVaultArk": "0x1b579ce50677E44b5c9F0f92353d38efAD940d1b"
 }
