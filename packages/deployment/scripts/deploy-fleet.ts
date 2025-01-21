@@ -18,6 +18,7 @@ import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
 import { continueDeploymentCheck } from './helpers/prompt-helpers'
 import { validateToken } from './helpers/validation'
+import { GOVERNOR_ROLE } from './common/constants'
 
 /**
  * Deploys all Arks specified in the fleet definition
@@ -223,7 +224,7 @@ async function addFleetToHarbor(
     protocolAccessManagerAddress,
   )
   const hasGovernorRole = await protocolAccessManager.read.hasRole([
-    keccak256(toBytes('GOVERNOR_ROLE')),
+    GOVERNOR_ROLE,
     deployer.account.address,
   ])
   if (hasGovernorRole) {

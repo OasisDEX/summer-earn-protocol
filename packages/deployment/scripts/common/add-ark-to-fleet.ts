@@ -13,6 +13,7 @@ import {
   loadFleetDeployment,
 } from './fleet-deployment-files-helpers'
 import { grantCommanderRole } from './grant-commander-role'
+import { GOVERNOR_ROLE } from './constants'
 
 /**
  * Adds the deployed Ark to a selected fleet.
@@ -82,7 +83,7 @@ export async function addArkToFleet(
       config.deployedContracts.gov.protocolAccessManager.address as Address,
     )
     const hasGovernorRole = await protocolAccessManager.read.hasRole([
-      keccak256(toBytes('GOVERNOR_ROLE')),
+      GOVERNOR_ROLE,
       deployer.account.address,
     ])
     if (hasGovernorRole) {
