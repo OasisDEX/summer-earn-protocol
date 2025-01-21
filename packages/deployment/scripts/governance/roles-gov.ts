@@ -64,12 +64,22 @@ export async function rolesGov() {
     await publicClient.waitForTransactionReceipt({ hash })
   }
 
-  // On satellite chains, grant CANCELLER_ROLE to timelock
+  // On satellite chains, grant CANCELLER_ROLE to timelock and PROPOSER_ROLE to governor
   if (!isHubChain) {
     const hasTimelockCancellerRole = await timelock.read.hasRole([CANCELLER_ROLE, timelock.address])
     if (!hasTimelockCancellerRole) {
       console.log('[TIMELOCK] - Granting CANCELLER_ROLE to timelock on satellite chain...')
       const hash = await timelock.write.grantRole([CANCELLER_ROLE, timelock.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+    }
+
+    const hasGovernorProposerRole = await timelock.read.hasRole([
+      PROPOSER_ROLE,
+      summerGovernor.address,
+    ])
+    if (!hasGovernorProposerRole) {
+      console.log('[TIMELOCK] - Granting PROPOSER_ROLE to SummerGovernor on satellite chain...')
+      const hash = await timelock.write.grantRole([PROPOSER_ROLE, summerGovernor.address])
       await publicClient.waitForTransactionReceipt({ hash })
     }
   }

@@ -3,15 +3,19 @@ import path from 'path'
 import prompts from 'prompts'
 import { Address, Chain, parseAbi } from 'viem'
 import { FleetConfig } from '../../types/config-types'
-import { ChainName } from './chain-prompt'
+import { ChainConfig, ChainName } from './chain-prompt'
 import { createClients } from './wallet-helper'
 
 const fleetCommanderAbi = parseAbi([
-  'function getConfig() view returns (tuple(address bufferArk, uint256 minimumBufferBalance, uint256 depositCap, uint256 maxRebalanceOperations, address stakingRewardsManager))',
+  'function getConfig() view returns ((address bufferArk, uint256 minimumBufferBalance, uint256 depositCap, uint256 maxRebalanceOperations, address stakingRewardsManager))',
+  'function name() view returns (string)',
 ])
+
+const harborCommandAbi = parseAbi(['function getActiveFleetCommanders() view returns (address[])'])
 
 export async function promptForFleet(
   chainName: ChainName,
+  targetConfig: ChainConfig,
   targetChain: Chain,
   targetRpcUrl: string,
 ): Promise<{
@@ -58,10 +62,47 @@ export async function promptForFleet(
     throw new Error('No fleet selected')
   }
 
-  const fleetCommanderAddress = selectedFleet.deployedContracts.fleet.fleetCommander
-    .address as Address
+  console.log('Selected Fleet:', selectedFleet.fleetName)
+  const harborCommandAddress = targetConfig.deployedContracts.core.harborCommand.address
+
+  console.log('HarborCommand address:', harborCommandAddress)
+
+  // Get all active fleet commanders from HarborCommand
+  const activeFleetCommanders = (await publicClient.readContract({
+    address: harborCommandAddress as Address,
+    abi: harborCommandAbi,
+    functionName: 'getActiveFleetCommanders',
+  })) as Address[]
+
+  console.log('\nActive Fleet Commanders:')
+
+  // Find the fleet commander address by matching names
+  let matchedFleetCommander: Address | undefined
+  for (const commander of activeFleetCommanders) {
+    const fleetName = (await publicClient.readContract({
+      address: commander,
+      abi: fleetCommanderAbi,
+      functionName: 'name',
+    })) as string
+
+    console.log(`- Address: ${commander}`)
+    console.log(`  Name: ${fleetName}`)
+
+    if (fleetName === selectedFleet.fleetName) {
+      matchedFleetCommander = commander
+      console.log('  ✓ Matched!')
+    }
+  }
+
+  if (!matchedFleetCommander) {
+    throw new Error(`No active fleet commander found for fleet ${selectedFleet.fleetName}`)
+  }
+
+  console.log('\nSelected Fleet Commander:', matchedFleetCommander)
+
+  // Get fleet config using the matched fleet commander address
   const fleetConfig = (await publicClient.readContract({
-    address: fleetCommanderAddress,
+    address: matchedFleetCommander,
     abi: fleetCommanderAbi,
     functionName: 'getConfig',
   })) as any

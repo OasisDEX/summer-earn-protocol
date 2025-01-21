@@ -32,7 +32,7 @@ async function main() {
 
   // Get fleet configuration for the target chain
   const { fleetConfig, rewardsManagerAddress: SATELLITE_REWARDS_MANAGER_ADDRESS } =
-    await promptForFleet(targetChainName, targetChain, targetRpcUrl)
+    await promptForFleet(targetChainName, targetConfig, targetChain, targetRpcUrl)
 
   // Prompt for reward parameters
   const { rewardToken, rewardAmount, rewardDuration } = await prompts([
