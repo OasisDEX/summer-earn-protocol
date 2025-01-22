@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
+import {IGovernanceRewardsManagerErrors} from "../../src/errors/IGovernanceRewardsManagerErrors.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -68,6 +69,23 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             stakeAmount,
             "Staked balance should be updated"
         );
+    }
+
+    function test_RevertWhen_StakingToZeroAddress() public {
+        // Setup
+        uint256 amount = 100e18;
+        deal(address(aSummerToken), alice, amount);
+
+        vm.startPrank(alice);
+        aSummerToken.approve(address(stakingRewardsManager), amount);
+
+        // Test
+        vm.expectRevert(
+            IGovernanceRewardsManagerErrors.CannotStakeToZeroAddress.selector
+        );
+        stakingRewardsManager.stakeOnBehalfOf(address(0), amount);
+
+        vm.stopPrank();
     }
 
     function test_Unstake() public {
