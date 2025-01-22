@@ -68,9 +68,15 @@ async function main() {
   const SATELLITE_ENDPOINT_ID = targetConfig.common.layerZero.eID
 
   // Prepare the satellite chain proposal parameters (target proposal)
-  const dstTargets = [SATELLITE_REWARDS_MANAGER_ADDRESS]
-  const dstValues = [0n]
+  const dstTargets = [rewardToken as Address, SATELLITE_REWARDS_MANAGER_ADDRESS]
+  const dstValues = [0n, 0n]
   const dstCalldatas = [
+    // First call: approve RewardsManager to spend tokens
+    encodeFunctionData({
+      abi: parseAbi(['function approve(address spender, uint256 amount)']),
+      args: [SATELLITE_REWARDS_MANAGER_ADDRESS, REWARD_AMOUNT_IN_WEI],
+    }) as Hex,
+    // Second call: notify reward amount
     encodeFunctionData({
       abi: parseAbi([
         'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration)',
@@ -78,7 +84,7 @@ async function main() {
       args: [rewardToken as Address, REWARD_AMOUNT_IN_WEI, BigInt(rewardDuration)],
     }) as Hex,
   ]
-  const dstDescription = `Add rewards to ${fleetConfig.fleetName} Fleet`
+  const dstDescription = `Add rewards to ${fleetConfig.fleetName} Fleet (v2)`
 
   console.log('Destination description:', dstDescription)
   console.log('Hashed destination description:', hashDescription(dstDescription))
