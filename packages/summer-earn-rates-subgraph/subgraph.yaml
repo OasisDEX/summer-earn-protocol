@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: arbitrum-one
+    network: mainnet
     source:
       abi: Comet
-      startBlock: 270009806
-      address: "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3"
+      startBlock: 21453416
+      address: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -46,5 +46,5 @@ dataSources:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 2400    
+            every: 50    
       file: ./src/mapping.ts
