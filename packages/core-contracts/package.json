@@ -37,9 +37,9 @@
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-foundry": "^1.1.2",
-    "@nomicfoundation/hardhat-ignition": "^0.15.5",
-    "@nomicfoundation/hardhat-ignition-viem": "^0.15.5",
+    "@nomicfoundation/hardhat-foundry": "1.1.2",
+    "@nomicfoundation/hardhat-ignition": "0.15.5",
+    "@nomicfoundation/hardhat-ignition-viem": "0.15.5",
     "@summerfi/access-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
@@ -53,15 +53,15 @@
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
     "@summerfi/voting-decay": "workspace:*",
-    "@types/prompts": "^2.4.9",
-    "hardhat": "^2.22.8",
-    "kleur": "^4.1.5",
-    "prompts": "^2.4.2",
-    "ts-node": "^10.9.2"
+    "@types/prompts": "2.4.9",
+    "hardhat": "2.22.8",
+    "kleur": "4.1.5",
+    "prompts": "2.4.2",
+    "ts-node": "10.9.2"
   },
   "dependencies": {
     "@oasisdex/addresses": "0.1.21-automation",
-    "solhint-plugin-prettier": "^0.1.0",
-    "solidity-bytes-utils": "^0.8.2"
+    "solhint-plugin-prettier": "0.1.0",
+    "solidity-bytes-utils": "0.8.2"
   }
 }
