@@ -48,7 +48,7 @@ abstract contract StakingRewardsManagerBase is
     IERC20 public stakingToken;
 
     /* @notice Mapping of reward token to its reward distribution data */
-    mapping(IERC20 rewardToken => RewardData) public rewardData;
+    mapping(IERC20 rewardToken => RewardData data) public rewardData;
     /* @notice Tracks the last reward per token paid to each user for each reward token */
     mapping(IERC20 rewardToken => mapping(address account => uint256 rewardPerTokenPaid))
         public userRewardPerTokenPaid;
@@ -140,6 +140,11 @@ abstract contract StakingRewardsManagerBase is
         // For active periods, calculate remaining rewards plus any new rewards
         uint256 remaining = data.periodFinish - block.timestamp;
         return (data.rewardRate * remaining) / Constants.WAD;
+    }
+
+    /// @inheritdoc IStakingRewardsManagerBase
+    function isRewardToken(address rewardToken) external view returns (bool) {
+        return _rewardTokensList.contains(rewardToken);
     }
 
     /*//////////////////////////////////////////////////////////////

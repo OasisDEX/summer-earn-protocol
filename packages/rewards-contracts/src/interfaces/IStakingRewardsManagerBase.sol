@@ -69,6 +69,12 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      */
     function rewardTokens(uint256 index) external view returns (IERC20);
 
+    /* @notice Check if a token is in the list of reward tokens
+     * @param rewardToken The address to check
+     * @return bool True if the token is a reward token, false otherwise
+     */
+    function isRewardToken(address rewardToken) external view returns (bool);
+
     // Mutative functions
 
     /* @notice Stake tokens for an account
