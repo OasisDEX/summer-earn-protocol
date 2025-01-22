@@ -14,8 +14,8 @@
     "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum"
   },
   "devDependencies": {
-    "@graphprotocol/graph-ts": "^0.35.1",
-    "@graphprotocol/graph-cli": "^0.82.0",
-    "mustache": "^4.2.0"
+    "@graphprotocol/graph-ts": "0.35.1",
+    "@graphprotocol/graph-cli": "0.82.0",
+    "mustache": "4.2.0"
   }
 }

@@ -16,8 +16,8 @@
     "deploy:all": "pnpm run deploy:mainnet && pnpm run deploy:arbitrum && pnpm run deploy:base && pnpm run deploy:optimism"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.82.0",
-    "@graphprotocol/graph-ts": "^0.35.1",
-    "mustache": "^4.2.0"
+    "@graphprotocol/graph-cli": "0.82.0",
+    "@graphprotocol/graph-ts": "0.35.1",
+    "mustache": "4.2.0"
   }
 }
