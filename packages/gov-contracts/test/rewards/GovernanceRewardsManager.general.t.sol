@@ -633,18 +633,105 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stakeOnBehalfOf(alice, stakeAmount);
     }
 
+    function _logState(
+        address user,
+        string memory label,
+        uint256 stakeAmount
+    ) internal view {
+        console.log("\n----------------------------------------");
+        console.log(label);
+        if (stakeAmount > 0) {
+            console.log(
+                "Stake Amount:                             ",
+                stakeAmount,
+                string.concat("(", _formatScientific(stakeAmount), ")")
+            );
+        }
+        uint256 totalSupply = stakingRewardsManager.totalSupply();
+        console.log(
+            "Total Supply:                             ",
+            totalSupply,
+            string.concat("(", _formatScientific(totalSupply), ")")
+        );
+
+        uint256 userBalance = stakingRewardsManager.balanceOf(user);
+        console.log(
+            "User Balance:                             ",
+            userBalance,
+            string.concat("(", _formatScientific(userBalance), ")")
+        );
+
+        uint256 earned = stakingRewardsManager.earned(
+            user,
+            IERC20(address(rewardTokens[0]))
+        );
+        console.log(
+            "Amount can claim:                         ",
+            earned,
+            string.concat("(", _formatScientific(earned), ")")
+        );
+
+        uint256 remainingReward = rewardTokens[0].balanceOf(
+            address(stakingRewardsManager)
+        );
+        console.log(
+            "Remaining reward amount:                  ",
+            remainingReward,
+            string.concat("(", _formatScientific(remainingReward), ")")
+        );
+
+        uint256 rewardPerToken = stakingRewardsManager.rewardPerToken(
+            IERC20(address(rewardTokens[0]))
+        );
+        console.log(
+            "Reward Per Token:                         ",
+            rewardPerToken,
+            string.concat("(", _formatScientific(rewardPerToken), ")")
+        );
+
+        uint256 userRewardPaid = stakingRewardsManager.userRewardPerTokenPaid(
+            IERC20(address(rewardTokens[0])),
+            user
+        );
+        console.log(
+            "User Reward Per Token Paid:               ",
+            userRewardPaid,
+            string.concat("(", _formatScientific(userRewardPaid), ")")
+        );
+    }
+
+    function _formatScientific(
+        uint256 value
+    ) internal pure returns (string memory) {
+        if (value == 0) return "0";
+
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            temp /= 10;
+            digits++;
+        }
+
+        if (digits <= 1) return string.concat(vm.toString(value));
+
+        uint256 exponent = digits - 1;
+        uint256 mantissa = value / (10 ** exponent);
+
+        return string.concat(vm.toString(mantissa), "e", vm.toString(exponent));
+    }
+
     function test_Regression_Interchanged_Staking_And_Claiming_Rewards()
         public
     {
-        // https://basescan.org/address/0x059acd95ba51d8be7213b591af586a0e97abebb1#events
         console.log("==========================================");
         console.log("============= STARTING TEST ==============");
         console.log("==========================================");
-        uint256 rewardAmount = 100000 * 1e18;
-        console.log("rewardAmount :                            ", rewardAmount);
+
+        uint256 rewardAmount = 100_000 * 1e18;
         console.log(
-            "Remaining reward amount (BEFORE) :        ",
-            rewardTokens[0].balanceOf(address(stakingRewardsManager))
+            "Initial reward amount:                     ",
+            rewardAmount,
+            string.concat("(", _formatScientific(rewardAmount), ")")
         );
 
         // Ensure mockGovernor has enough tokens for rewards
@@ -662,13 +749,12 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // 2. Move forward from notify to first stake
         vm.warp(block.timestamp + 15 hours);
-        console.log("Time warped by 15 hours");
+        console.log("\nTime warped by 15 hours");
 
         // 3. First user stakes
         address user1 = makeAddr("user1");
         uint256 user1StakeAmount = 4 * 1e18;
 
-        // First stake
         vm.startPrank(user1);
         deal(address(aSummerToken), user1, user1StakeAmount);
         aSummerToken.delegate(user1);
@@ -676,71 +762,31 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stake(user1StakeAmount);
         vm.stopPrank();
 
-        console.log("----------------------------------------");
-        console.log("After first stake :");
-        console.log(
-            "user1StakeAmount :                        ",
-            user1StakeAmount
-        );
-        console.log(
-            "Total Supply :                            ",
-            stakingRewardsManager.totalSupply()
-        );
-        console.log(
-            "User1 Balance :                           ",
-            stakingRewardsManager.balanceOf(user1)
-        );
+        _logState(user1, "After first stake:", user1StakeAmount);
 
-        // 4. Move forward in time
+        // 4. Move forward and claim
         vm.warp(block.timestamp + 1 hours);
-        console.log("Time warped by 1 hour");
+        console.log("\nTime warped by 1 hour");
 
-        console.log("----------------------------------------");
-        console.log("After first claim :");
-        console.log(
-            "Amount can claim :                        ",
-            stakingRewardsManager.earned(
-                user1,
-                IERC20(address(rewardTokens[0]))
-            )
-        );
-
-        // 5. Claim rewards
-        vm.prank(user1);
-        stakingRewardsManager.getReward();
-        console.log(
-            "Remaining reward amount :                 ",
-            rewardTokens[0].balanceOf(address(stakingRewardsManager))
-        );
-
-        // 6. Move forward in time
-        vm.warp(block.timestamp + 1 hours);
-        console.log("Time warped by 1 hour");
-
-        console.log("----------------------------------------");
-        console.log("After another claim :");
-        console.log(
-            "Amount can claim :                        ",
-            stakingRewardsManager.earned(
-                user1,
-                IERC20(address(rewardTokens[0]))
-            )
-        );
-        // 7. Claim rewards
         vm.prank(user1);
         stakingRewardsManager.getReward();
 
-        console.log(
-            "Remaining reward amount :                 ",
-            rewardTokens[0].balanceOf(address(stakingRewardsManager))
-        );
+        _logState(user1, "After first claim:", 0);
 
-        // 8. Move forward in time
+        // Continue with additional stakes and claims
         vm.warp(block.timestamp + 1 hours);
-        console.log("Time warped by 1 hour");
-        // 9. Second stake
+        console.log("\nTime warped by 1 hour");
+
+        vm.prank(user1);
+        stakingRewardsManager.getReward();
+
+        _logState(user1, "After second claim:", 0);
+
+        // Second stake
+        vm.warp(block.timestamp + 1 hours);
+        console.log("\nTime warped by 1 hour");
+
         uint256 user1SecondStakeAmount = 900 * 1e18;
-
         vm.startPrank(user1);
         deal(address(aSummerToken), user1, user1SecondStakeAmount);
         aSummerToken.approve(
@@ -749,78 +795,20 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         );
         stakingRewardsManager.stake(user1SecondStakeAmount);
         vm.stopPrank();
-        console.log("----------------------------------------");
-        console.log("After second stake :");
-        console.log(
-            "user1SecondStakeAmount :                  ",
-            user1SecondStakeAmount
-        );
-        console.log(
-            "Total Supply :                            ",
-            stakingRewardsManager.totalSupply()
-        );
-        console.log(
-            "User1 Balance :                           ",
-            stakingRewardsManager.balanceOf(user1)
-        );
 
-        // 10. Move forward in time
+        _logState(user1, "After second stake:", user1SecondStakeAmount);
+
+        // Third claim
         vm.warp(block.timestamp + 1 hours);
-        console.log("Time warped by 1 hour");
+        console.log("\nTime warped by 1 hour");
 
-        console.log(
-            "Amount can claim :                        ",
-            stakingRewardsManager.earned(
-                user1,
-                IERC20(address(rewardTokens[0]))
-            )
-        );
-
-        // Add after getReward:
-        console.log("----------------------------------------");
-        console.log("After third claim :");
-
-        console.log(
-            "Amount can claim :                        ",
-            stakingRewardsManager.earned(
-                user1,
-                IERC20(address(rewardTokens[0]))
-            )
-        );
-
-        // 11. Claim rewards
         vm.prank(user1);
         stakingRewardsManager.getReward();
 
-        console.log(
-            "Remaining reward amount :                 ",
-            rewardTokens[0].balanceOf(address(stakingRewardsManager))
-        );
-        console.log(
-            "Total Supply :                            ",
-            stakingRewardsManager.totalSupply()
-        );
-        console.log(
-            "User1 Balance :                           ",
-            stakingRewardsManager.balanceOf(user1)
-        );
-        console.log(
-            "Reward Per Token :                        ",
-            stakingRewardsManager.rewardPerToken(
-                IERC20(address(rewardTokens[0]))
-            )
-        );
-        console.log(
-            "User Reward Per Token Paid :              ",
-            stakingRewardsManager.userRewardPerTokenPaid(
-                IERC20(address(rewardTokens[0])),
-                user1
-            )
-        );
+        _logState(user1, "After third claim:", 0);
 
-        // 12. Third stake
+        // Third stake
         uint256 user1ThirdStakeAmount = rewardTokens[0].balanceOf(user1);
-
         vm.startPrank(user1);
         deal(address(aSummerToken), user1, user1ThirdStakeAmount);
         aSummerToken.approve(
@@ -830,61 +818,15 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stake(user1ThirdStakeAmount);
         vm.stopPrank();
 
-        console.log("----------------------------------------");
-        console.log("After last stake :         ");
-        console.log(
-            "user1ThirdStakeAmount :                   ",
-            user1ThirdStakeAmount
-        );
+        _logState(user1, "After third stake:", user1ThirdStakeAmount);
 
-        console.log(
-            "Remaining reward amount  :                ",
-            rewardTokens[0].balanceOf(address(stakingRewardsManager))
-        );
-
-        // Move forward in time
+        // Final claim
         vm.warp(block.timestamp + 1 hours);
-        console.log("Time warped by 1 hour");
+        console.log("\nTime warped by 1 hour");
 
-        console.log("----------------------------------------");
-        console.log("After last claim :         ");
-
-        console.log(
-            "Amount can claim :                        ",
-            stakingRewardsManager.earned(
-                user1,
-                IERC20(address(rewardTokens[0]))
-            )
-        );
-
-        // 13. Claim rewards
         vm.prank(user1);
         stakingRewardsManager.getReward();
 
-        console.log(
-            "Remaining reward amount :                 ",
-            rewardTokens[0].balanceOf(address(stakingRewardsManager))
-        );
-        console.log(
-            "Total Supply :                            ",
-            stakingRewardsManager.totalSupply()
-        );
-        console.log(
-            "User1 Balance :                           ",
-            stakingRewardsManager.balanceOf(user1)
-        );
-        console.log(
-            "Reward Per Token :                        ",
-            stakingRewardsManager.rewardPerToken(
-                IERC20(address(rewardTokens[0]))
-            )
-        );
-        console.log(
-            "User Reward Per Token Paid :              ",
-            stakingRewardsManager.userRewardPerTokenPaid(
-                IERC20(address(rewardTokens[0])),
-                user1
-            )
-        );
+        _logState(user1, "After final claim:", 0);
     }
 }
