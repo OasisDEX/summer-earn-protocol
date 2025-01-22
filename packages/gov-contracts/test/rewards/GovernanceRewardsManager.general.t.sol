@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 import {IGovernanceRewardsManagerErrors} from "../../src/errors/IGovernanceRewardsManagerErrors.sol";
 import {IStakingRewardsManagerBaseErrors} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBaseErrors.sol";
+import {IGovernanceRewardsManagerErrors} from "../../src/errors/IGovernanceRewardsManagerErrors.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
 import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
@@ -43,6 +44,12 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         aSummerToken.transfer(alice, INITIAL_STAKE_AMOUNT);
         aSummerToken.transfer(bob, INITIAL_STAKE_AMOUNT);
         vm.stopPrank();
+
+        // Delegate
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        vm.prank(bob);
+        aSummerToken.delegate(bob);
 
         // Approve staking
         vm.prank(alice);
@@ -241,55 +248,12 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
     }
 
     function test_NoRewardsWithoutDelegation() public {
-        uint256 stakeAmount = 1000 * 1e18;
-        uint256 rewardAmount = 100 * 1e18;
+        address randomAddress = makeAddr("random");
 
-        // Alice stakes without delegating first
-        vm.prank(alice);
-        stakingRewardsManager.stake(stakeAmount);
-
-        // Notify reward
-        vm.startPrank(address(mockGovernor));
-        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
-        stakingRewardsManager.notifyRewardAmount(
-            address(rewardTokens[0]),
-            rewardAmount,
-            7 days
-        );
-        vm.stopPrank();
-        // Fast forward time
-        vm.warp(block.timestamp + 3 days);
-
-        // Check earned amount - should be 0 since no delegation
-        uint256 earnedAmount = stakingRewardsManager.earned(
-            alice,
-            address(rewardTokens[0])
-        );
-
-        assertEq(
-            earnedAmount,
-            0,
-            "User should not earn rewards without delegating first"
-        );
-
-        // Now let's delegate and verify rewards start accruing
-        vm.prank(alice);
-        aSummerToken.delegate(alice);
-
-        // Fast forward more time
-        vm.warp(block.timestamp + 1 days);
-
-        // Check earned amount again - should be non-zero now
-        uint256 earnedAfterDelegation = stakingRewardsManager.earned(
-            alice,
-            address(rewardTokens[0])
-        );
-
-        assertGt(
-            earnedAfterDelegation,
-            0,
-            "User should start earning rewards after delegating"
-        );
+        // Try to stake without delegation - should revert
+        vm.prank(randomAddress);
+        vm.expectRevert(IGovernanceRewardsManagerErrors.NotDelegated.selector);
+        stakingRewardsManager.stake(1000 * 1e18);
     }
 
     function test_ClaimReward_WithStakingToken() public {

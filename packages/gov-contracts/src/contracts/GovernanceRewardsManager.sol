@@ -229,12 +229,12 @@ contract GovernanceRewardsManager is
             revert StakingTokenNotInitialized();
         }
 
-        // address delegate = ISummerToken(address(stakingToken)).delegates(
-        //     receiver
-        // );
-        // if (delegate == address(0)) {
-        //     revert NotDelegated();
-        // }
+        address delegate = ISummerToken(address(stakingToken)).delegates(
+            receiver
+        );
+        if (delegate == address(0)) {
+            revert NotDelegated();
+        }
 
         // Pull tokens and wrap them
         IERC20(stakingToken).safeTransferFrom(from, address(this), amount);
@@ -264,12 +264,12 @@ contract GovernanceRewardsManager is
     ) internal virtual override {
         if (amount == 0) revert CannotUnstakeZero();
 
-        // address delegate = ISummerToken(address(stakingToken)).delegates(
-        //     receiver
-        // );
-        // if (delegate == address(0)) {
-        //     revert NotDelegated();
-        // }
+        address delegate = ISummerToken(address(stakingToken)).delegates(
+            receiver
+        );
+        if (delegate == address(0)) {
+            revert NotDelegated();
+        }
 
         totalSupply -= amount;
         _balances[from] -= amount;
