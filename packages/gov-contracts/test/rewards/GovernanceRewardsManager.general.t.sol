@@ -4,9 +4,12 @@ pragma solidity 0.8.28;
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 import {IGovernanceRewardsManagerErrors} from "../../src/errors/IGovernanceRewardsManagerErrors.sol";
 import {IStakingRewardsManagerBaseErrors} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBaseErrors.sol";
+import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {StakingRewardsManagerBase} from "@summerfi/rewards-contracts/contracts/StakingRewardsManagerBase.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {console} from "forge-std/console.sol";
+import {UnprotectedGovernanceRewardsManager} from "../mocks/UnprotectedGovernanceRewardsManager.sol";
 
 contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
     GovernanceRewardsManager public stakingRewardsManager;
@@ -633,7 +636,281 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.stakeOnBehalfOf(alice, stakeAmount);
     }
 
-    function _logState(
+    function test_Regression_Interchanged_Staking_And_Claiming_Rewards()
+        public
+    {
+        console.log("==========================================");
+        console.log("============= STARTING TEST ==============");
+        console.log("==========================================");
+
+        address actor1 = makeAddr("actor1");
+        address actor2 = makeAddr("actor2");
+        uint256 rewardAmount = 100_000 * 1e18;
+        console.log(
+            "Initial reward amount:                     ",
+            rewardAmount,
+            string.concat("(", _formatScientific(rewardAmount), ")")
+        );
+
+        // Ensure mockGovernor has enough tokens for rewards
+        deal(address(rewardTokens[0]), address(mockGovernor), rewardAmount);
+
+        // 1. First notify reward amount
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            1 weeks
+        );
+        vm.stopPrank();
+
+        // 2. Move forward from notify to first stake
+        vm.warp(block.timestamp + 15 hours);
+        console.log("\nTime warped by 15 hours");
+
+        // 3. Actor1 first stake
+        uint256 actor1FirstStake = 4 * 1e18;
+        vm.startPrank(actor1);
+        deal(address(aSummerToken), actor1, actor1FirstStake);
+        aSummerToken.delegate(actor1);
+        aSummerToken.approve(address(stakingRewardsManager), actor1FirstStake);
+        stakingRewardsManager.stake(actor1FirstStake);
+        vm.stopPrank();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor1,
+            "After actor1 first stake:",
+            actor1FirstStake
+        );
+
+        // 4. Actor1 first claim
+        vm.warp(block.timestamp + 1 hours);
+        console.log("\nTime warped by 1 hour");
+
+        vm.prank(actor1);
+        stakingRewardsManager.getReward();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor1,
+            "After actor1 first claim:",
+            0
+        );
+
+        // 5. Actor1 second claim
+        vm.warp(block.timestamp + 1 hours);
+        console.log("\nTime warped by 1 hour");
+
+        vm.prank(actor1);
+        stakingRewardsManager.getReward();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor1,
+            "After actor1 second claim:",
+            0
+        );
+
+        // 6. Actor2 first stake
+        uint256 actor2FirstStake = 900 * 1e18;
+        vm.startPrank(actor2);
+        deal(address(aSummerToken), actor2, actor2FirstStake);
+        aSummerToken.delegate(actor2);
+        aSummerToken.approve(address(stakingRewardsManager), actor2FirstStake);
+        stakingRewardsManager.stake(actor2FirstStake);
+        vm.stopPrank();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor2,
+            "After actor2 first stake:",
+            actor2FirstStake
+        );
+
+        // 7. Actor2 first claim
+        vm.warp(block.timestamp + 1 hours);
+        console.log("\nTime warped by 1 hour");
+
+        vm.prank(actor2);
+        stakingRewardsManager.getReward();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor2,
+            "After actor2 first claim:",
+            0
+        );
+
+        // 8. Actor1 second stake
+        uint256 actor1SecondStake = 500 * 1e18;
+        vm.startPrank(actor1);
+        deal(address(aSummerToken), actor1, actor1SecondStake);
+        aSummerToken.approve(address(stakingRewardsManager), actor1SecondStake);
+        stakingRewardsManager.stake(actor1SecondStake);
+        vm.stopPrank();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor1,
+            "After actor1 second stake:",
+            actor1SecondStake
+        );
+
+        // 9. Actor2 second claim
+        vm.warp(block.timestamp + 1 hours);
+        console.log("\nTime warped by 1 hour");
+
+        vm.prank(actor2);
+        stakingRewardsManager.getReward();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor2,
+            "After actor2 second claim:",
+            0
+        );
+
+        // 10. Actor1 third claim
+        vm.warp(block.timestamp + 1 hours);
+        console.log("\nTime warped by 1 hour");
+
+        vm.prank(actor1);
+        stakingRewardsManager.getReward();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor1,
+            "After actor1 third claim:",
+            0
+        );
+
+        // 11. Actor1 third stake
+        uint256 actor1ThirdStake = 300 * 1e18;
+        vm.startPrank(actor1);
+        deal(address(aSummerToken), actor1, actor1ThirdStake);
+        aSummerToken.approve(address(stakingRewardsManager), actor1ThirdStake);
+        stakingRewardsManager.stake(actor1ThirdStake);
+        vm.stopPrank();
+
+        _logStateForManager(
+            stakingRewardsManager,
+            actor1,
+            "After actor1 third stake:",
+            actor1ThirdStake
+        );
+
+        // Final state check for both actors
+        console.log("\nFinal state check:");
+        _logStateForManager(
+            stakingRewardsManager,
+            actor1,
+            "Actor1 final state:",
+            0
+        );
+        _logStateForManager(
+            stakingRewardsManager,
+            actor2,
+            "Actor2 final state:",
+            0
+        );
+    }
+
+    function test_Regression_Revert_Claim_Without_UpdateReward() public {
+        console.log("==========================================");
+        console.log("============= STARTING TEST ==============");
+        console.log("==========================================");
+
+        address actor1 = makeAddr("actor1");
+        address actor2 = makeAddr("actor2");
+        uint256 rewardAmount = 100_000 * 1e18;
+
+        // Deploy unprotected version
+        UnprotectedGovernanceRewardsManager unprotectedManager = new UnprotectedGovernanceRewardsManager(
+                address(aSummerToken),
+                address(accessManagerA)
+            );
+
+        // Grant roles
+        vm.startPrank(address(timelockA));
+        accessManagerA.grantDecayControllerRole(address(unprotectedManager));
+        accessManagerA.grantGovernorRole(address(mockGovernor));
+        vm.stopPrank();
+
+        // Ensure mockGovernor has enough tokens for rewards
+        deal(address(rewardTokens[0]), address(mockGovernor), rewardAmount);
+
+        // 1. First notify reward amount
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(unprotectedManager), rewardAmount);
+        unprotectedManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            1 weeks
+        );
+        vm.stopPrank();
+
+        // 2. Move forward from notify to first stake
+        vm.warp(block.timestamp + 15 hours);
+        console.log("\nTime warped by 15 hours");
+
+        // 3. Actor1 first stake
+        uint256 actor1FirstStake = 4 * 1e18;
+        deal(address(aSummerToken), actor1, actor1FirstStake);
+        vm.startPrank(actor1);
+        aSummerToken.delegate(actor1);
+        aSummerToken.approve(address(unprotectedManager), type(uint256).max);
+        unprotectedManager.stakeWithoutUpdateReward(actor1FirstStake);
+        vm.stopPrank();
+
+        _logStateForManager(
+            unprotectedManager,
+            actor1,
+            "After actor1 first stake:",
+            actor1FirstStake
+        );
+
+        // 4. Actor1 first claim
+        vm.warp(block.timestamp + 1 hours);
+        console.log("\nTime warped by 1 hour");
+
+        vm.prank(actor1);
+        unprotectedManager.getReward();
+
+        _logStateForManager(
+            unprotectedManager,
+            actor1,
+            "After actor1 first claim:",
+            0
+        );
+
+        // 5. Actor2 stake
+        uint256 actor2FirstStake = 900 * 1e18;
+        deal(address(aSummerToken), actor2, actor2FirstStake);
+        vm.startPrank(actor2);
+        aSummerToken.delegate(actor2);
+        aSummerToken.approve(address(unprotectedManager), type(uint256).max);
+        unprotectedManager.stakeWithoutUpdateReward(actor2FirstStake);
+        vm.stopPrank();
+
+        _logStateForManager(
+            unprotectedManager,
+            actor2,
+            "After actor2 stake:",
+            actor2FirstStake
+        );
+
+        vm.warp(block.timestamp + 1 hours);
+        console.log("\nTime warped by 1 hour");
+
+        vm.prank(actor2);
+        vm.expectRevert();
+        unprotectedManager.getReward();
+    }
+
+    function _logStateForManager(
+        IStakingRewardsManagerBase manager,
         address user,
         string memory label,
         uint256 stakeAmount
@@ -647,40 +924,35 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
                 string.concat("(", _formatScientific(stakeAmount), ")")
             );
         }
-        uint256 totalSupply = stakingRewardsManager.totalSupply();
+        uint256 totalSupply = manager.totalSupply();
         console.log(
             "Total Supply:                             ",
             totalSupply,
             string.concat("(", _formatScientific(totalSupply), ")")
         );
 
-        uint256 userBalance = stakingRewardsManager.balanceOf(user);
+        uint256 userBalance = manager.balanceOf(user);
         console.log(
             "User Balance:                             ",
             userBalance,
             string.concat("(", _formatScientific(userBalance), ")")
         );
 
-        uint256 earned = stakingRewardsManager.earned(
-            user,
-            IERC20(address(rewardTokens[0]))
-        );
+        uint256 earned = manager.earned(user, IERC20(address(rewardTokens[0])));
         console.log(
             "Amount can claim:                         ",
             earned,
             string.concat("(", _formatScientific(earned), ")")
         );
 
-        uint256 remainingReward = rewardTokens[0].balanceOf(
-            address(stakingRewardsManager)
-        );
+        uint256 remainingReward = rewardTokens[0].balanceOf(address(manager));
         console.log(
             "Remaining reward amount:                  ",
             remainingReward,
             string.concat("(", _formatScientific(remainingReward), ")")
         );
 
-        uint256 rewardPerToken = stakingRewardsManager.rewardPerToken(
+        uint256 rewardPerToken = manager.rewardPerToken(
             IERC20(address(rewardTokens[0]))
         );
         console.log(
@@ -689,10 +961,8 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             string.concat("(", _formatScientific(rewardPerToken), ")")
         );
 
-        uint256 userRewardPaid = stakingRewardsManager.userRewardPerTokenPaid(
-            IERC20(address(rewardTokens[0])),
-            user
-        );
+        uint256 userRewardPaid = StakingRewardsManagerBase(address(manager))
+            .userRewardPerTokenPaid(IERC20(address(rewardTokens[0])), user);
         console.log(
             "User Reward Per Token Paid:               ",
             userRewardPaid,
@@ -718,115 +988,5 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         uint256 mantissa = value / (10 ** exponent);
 
         return string.concat(vm.toString(mantissa), "e", vm.toString(exponent));
-    }
-
-    function test_Regression_Interchanged_Staking_And_Claiming_Rewards()
-        public
-    {
-        console.log("==========================================");
-        console.log("============= STARTING TEST ==============");
-        console.log("==========================================");
-
-        uint256 rewardAmount = 100_000 * 1e18;
-        console.log(
-            "Initial reward amount:                     ",
-            rewardAmount,
-            string.concat("(", _formatScientific(rewardAmount), ")")
-        );
-
-        // Ensure mockGovernor has enough tokens for rewards
-        deal(address(rewardTokens[0]), address(mockGovernor), rewardAmount);
-
-        // 1. First notify reward amount
-        vm.startPrank(address(mockGovernor));
-        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
-        stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
-            rewardAmount,
-            1 weeks
-        );
-        vm.stopPrank();
-
-        // 2. Move forward from notify to first stake
-        vm.warp(block.timestamp + 15 hours);
-        console.log("\nTime warped by 15 hours");
-
-        // 3. First user stakes
-        address user1 = makeAddr("user1");
-        uint256 user1StakeAmount = 4 * 1e18;
-
-        vm.startPrank(user1);
-        deal(address(aSummerToken), user1, user1StakeAmount);
-        aSummerToken.delegate(user1);
-        aSummerToken.approve(address(stakingRewardsManager), user1StakeAmount);
-        stakingRewardsManager.stake(user1StakeAmount);
-        vm.stopPrank();
-
-        _logState(user1, "After first stake:", user1StakeAmount);
-
-        // 4. Move forward and claim
-        vm.warp(block.timestamp + 1 hours);
-        console.log("\nTime warped by 1 hour");
-
-        vm.prank(user1);
-        stakingRewardsManager.getReward();
-
-        _logState(user1, "After first claim:", 0);
-
-        // Continue with additional stakes and claims
-        vm.warp(block.timestamp + 1 hours);
-        console.log("\nTime warped by 1 hour");
-
-        vm.prank(user1);
-        stakingRewardsManager.getReward();
-
-        _logState(user1, "After second claim:", 0);
-
-        // Second stake
-        vm.warp(block.timestamp + 1 hours);
-        console.log("\nTime warped by 1 hour");
-
-        uint256 user1SecondStakeAmount = 900 * 1e18;
-        vm.startPrank(user1);
-        deal(address(aSummerToken), user1, user1SecondStakeAmount);
-        aSummerToken.approve(
-            address(stakingRewardsManager),
-            user1SecondStakeAmount
-        );
-        stakingRewardsManager.stake(user1SecondStakeAmount);
-        vm.stopPrank();
-
-        _logState(user1, "After second stake:", user1SecondStakeAmount);
-
-        // Third claim
-        vm.warp(block.timestamp + 1 hours);
-        console.log("\nTime warped by 1 hour");
-
-        vm.prank(user1);
-        stakingRewardsManager.getReward();
-
-        _logState(user1, "After third claim:", 0);
-
-        // Third stake
-        uint256 user1ThirdStakeAmount = rewardTokens[0].balanceOf(user1);
-        vm.startPrank(user1);
-        deal(address(aSummerToken), user1, user1ThirdStakeAmount);
-        aSummerToken.approve(
-            address(stakingRewardsManager),
-            user1ThirdStakeAmount
-        );
-        stakingRewardsManager.stake(user1ThirdStakeAmount);
-        vm.stopPrank();
-
-        _logState(user1, "After third stake:", user1ThirdStakeAmount);
-
-        // Final claim
-        vm.warp(block.timestamp + 1 hours);
-        console.log("\nTime warped by 1 hour");
-
-        vm.prank(user1);
-        stakingRewardsManager.getReward();
-
-        _logState(user1, "After final claim:", 0);
     }
 }
