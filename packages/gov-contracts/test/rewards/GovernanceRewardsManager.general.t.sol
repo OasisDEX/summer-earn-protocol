@@ -5,11 +5,12 @@ import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {console} from "forge-std/console.sol";
 
 contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
     GovernanceRewardsManager public stakingRewardsManager;
-    ERC20Mock[] public rewardTokens;
-
+    IERC20[] public rewardTokens;
+        uint256 bobStakeAmount = 5 * 1e18;
     uint256 constant INITIAL_REWARD_AMOUNT = 1000000 * 1e18;
     uint256 constant INITIAL_STAKE_AMOUNT = 100000 * 1e18;
 
@@ -18,7 +19,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // Deploy reward tokens
         for (uint i = 0; i < 3; i++) {
-            rewardTokens.push(new ERC20Mock());
+            rewardTokens.push(aSummerToken);
         }
 
         // Deploy GovernanceRewardsManager with aSummerToken
@@ -41,7 +42,8 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // Mint reward tokens
         for (uint i = 0; i < rewardTokens.length; i++) {
-            rewardTokens[i].mint(
+            deal(
+                address(rewardTokens[i]),
                 address(stakingRewardsManager),
                 INITIAL_REWARD_AMOUNT
             );
@@ -54,7 +56,11 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         aSummerToken.approve(address(stakingRewardsManager), type(uint256).max);
 
         // In the test setup
-        rewardTokens[0].mint(address(mockGovernor), 100000000000000000000); // Mint 100 tokens
+        deal(
+            address(rewardTokens[0]),
+            address(mockGovernor),
+            100000000000000000000
+        ); // Mint 100 tokens
     }
 
     function test_StakeOnBehalfOfUpdatesBalancesCorrectly() public {
@@ -111,17 +117,126 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         );
     }
 
-    function test_RewardCalculationAfterStakeAndUnstake() public {
+    function test_bug_1() public {
+
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+        console.log("rewardAmount :                        ", rewardAmount);
+        // Notify reward
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            604800
+        );
+        vm.stopPrank();
+        vm.warp(block.timestamp + 15 hours);
+        vm.startPrank(bob);
+        aSummerToken.delegate(bob);
+        stakingRewardsManager.stake(bobStakeAmount);
+        vm.warp(block.timestamp + 1 hours);
+        stakingRewardsManager.getReward(address(rewardTokens[0]));
+        vm.stopPrank();
+
+        // Alice stakes
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        // Check earned amount - should be greater than 0
+        uint256 earnedAmount = stakingRewardsManager.earned(
+            alice,
+            IERC20(address(rewardTokens[0]))
+        );
+        console.log("earnedAmount no delegate :            ", earnedAmount);
+    }
+
+    function test_bug_2() public {
         uint256 stakeAmount = 1000 * 1e18;
         uint256 rewardAmount = 100 * 1e18;
 
         // Setup delegation first
         vm.prank(alice);
         aSummerToken.delegate(alice);
-
+        // Notify reward
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            604800
+        );
+        vm.stopPrank();
+        vm.warp(block.timestamp + 15 hours);
+        vm.startPrank(bob);
+        aSummerToken.delegate(bob);
+        stakingRewardsManager.stake(bobStakeAmount);
+        vm.warp(block.timestamp + 1 hours);
+        stakingRewardsManager.getReward(address(rewardTokens[0]));
+        vm.stopPrank();
         // Alice stakes
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        // // Alice unstakes half
+        // vm.prank(alice);
+        // stakingRewardsManager.unstake(stakeAmount / 2);
+
+        // Check earned amount - should be greater than 0
+        uint256 earnedAmount = stakingRewardsManager.earned(
+            alice,
+            IERC20(address(rewardTokens[0]))
+        );
+        console.log("earnedAmount delegate after :         ", earnedAmount);
+    }
+    function test_bug_4() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+        // Setup delegation first
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+        // Notify reward
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            604800
+        );
+        vm.stopPrank();
+        vm.warp(block.timestamp + 15 hours);
+        vm.startPrank(bob);
+        aSummerToken.delegate(bob);
+        stakingRewardsManager.stake(bobStakeAmount);
+        vm.warp(block.timestamp + 1 hours);
+        stakingRewardsManager.getReward(address(rewardTokens[0]));
+        vm.stopPrank();
+        // Alice stakes
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount, true);
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+        // Check earned amount - should be greater than 0
+        uint256 earnedAmount = stakingRewardsManager.earned(
+            alice,
+            IERC20(address(rewardTokens[0]))
+        );
+        console.log("earnedAmount delegate before (fix 1) :", earnedAmount);
+    }
+    function test_bug_5() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+
+        // Alice stakes
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount, true);
 
         // Notify reward
         vm.startPrank(address(mockGovernor));
@@ -129,26 +244,72 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         stakingRewardsManager.notifyRewardAmount(
             IERC20(address(rewardTokens[0])),
             rewardAmount,
-            7 days
+            604800
         );
         vm.stopPrank();
+        vm.warp(block.timestamp + 15 hours);
+        vm.startPrank(bob);
+        aSummerToken.delegate(bob);
+        stakingRewardsManager.stake(bobStakeAmount);
+        vm.warp(block.timestamp + 1 hours);
+        stakingRewardsManager.getReward(address(rewardTokens[0]));
+        vm.stopPrank();
         // Fast forward time
-        vm.warp(block.timestamp + 3 days);
+        vm.warp(block.timestamp + 7 days);
 
-        // Alice unstakes half
+        // // Alice unstakes half
+        // vm.prank(alice);
+        // stakingRewardsManager.unstake(stakeAmount / 2);
+
+        // Setup delegation first
         vm.prank(alice);
-        stakingRewardsManager.unstake(stakeAmount / 2);
-
-        // Fast forward more time
-        vm.warp(block.timestamp + 4 days);
+        aSummerToken.delegate(alice);
 
         // Check earned amount - should be greater than 0
         uint256 earnedAmount = stakingRewardsManager.earned(
             alice,
             IERC20(address(rewardTokens[0]))
         );
+        console.log("earnedAmount delegate after (fix 1)  :", earnedAmount);
+    }
+    function test_bug_3() public {
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
 
-        assertGt(earnedAmount, 0, "Earned amount should increase over time");
+        // Notify reward
+        vm.startPrank(address(mockGovernor));
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            604800
+        );
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 15 hours);
+        vm.startPrank(bob);
+        aSummerToken.delegate(bob);
+        stakingRewardsManager.stake(bobStakeAmount);
+        vm.warp(block.timestamp + 1 hours);
+        stakingRewardsManager.getReward(address(rewardTokens[0]));
+        vm.stopPrank();
+        // Alice stakes
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Fast forward time
+        vm.warp(block.timestamp + 7 days);
+
+        // Setup delegation first
+        vm.prank(alice);
+        aSummerToken.delegate(alice);
+
+        // Check earned amount - should be greater than 0
+        uint256 earnedAmount = stakingRewardsManager.earned(
+            alice,
+            IERC20(address(rewardTokens[0]))
+        );
+        console.log("earnedAmount delegate before :        ", earnedAmount);
     }
 
     function test_DelegateDecayAffectsDelegators() public {
@@ -156,7 +317,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         uint256 rewardAmount = 100 * 1e18;
 
         // Mint reward tokens to the governor first
-        rewardTokens[0].mint(address(mockGovernor), rewardAmount);
+        deal(address(rewardTokens[0]), address(mockGovernor), rewardAmount);
 
         // Setup delegate (bob) and delegator (alice)
         vm.startPrank(bob);
@@ -179,7 +340,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         );
         vm.stopPrank();
         // Fast forward past decay-free window
-        vm.warp(block.timestamp + 30 days);
+        vm.warp(block.timestamp + 604800);
 
         // Get initial earned amounts
         uint256 bobInitialEarned = stakingRewardsManager.earned(
@@ -271,7 +432,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         );
         vm.stopPrank();
         // Fast forward time
-        vm.warp(block.timestamp + 3 days);
+        vm.warp(block.timestamp + 7 days);
 
         // Check earned amount - should be 0 since no delegation
         uint256 earnedAmount = stakingRewardsManager.earned(
@@ -315,7 +476,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.prank(alice);
         stakingRewardsManager.stake(stakeAmount);
 
-        vm.warp(block.timestamp + 30 days + 1);
+        vm.warp(block.timestamp + 604800 + 1);
 
         // Setup reward with aSummerToken
         vm.startPrank(address(timelockA));

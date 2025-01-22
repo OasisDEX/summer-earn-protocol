@@ -37,4 +37,6 @@ interface IGovernanceRewardsManager is
      * @param account The address to update the smoothed decay factor for
      */
     function updateSmoothedDecayFactor(address account) external;
+
+    function stake(uint256 amount, bool test) external;
 }

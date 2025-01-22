@@ -12,7 +12,7 @@ import {Constants} from "@summerfi/constants/Constants.sol";
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {DecayController} from "./DecayController.sol";
 import {WrappedStakingToken} from "./WrappedStakingToken.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title GovernanceRewardsManager
  * @notice Contract for managing governance rewards with multiple reward tokens in the Summer protocol
@@ -58,6 +58,7 @@ contract GovernanceRewardsManager is
      * @dev Updates reward data for all reward tokens
      */
     modifier updateReward(address account) override {
+        console.log("updateReward called");
         _updateReward(account);
         _;
     }
@@ -114,7 +115,12 @@ contract GovernanceRewardsManager is
     {
         _stake(_msgSender(), _msgSender(), amount);
     }
-
+    function stake(
+        uint256 amount,
+        bool
+    ) external updateDecay(_msgSender()) updateReward(_msgSender()) {
+        _stake(_msgSender(), _msgSender(), amount);
+    }
     /// @inheritdoc IStakingRewardsManagerBase
     function unstake(
         uint256 amount
@@ -236,6 +242,12 @@ contract GovernanceRewardsManager is
         if (address(stakingToken) == address(0)) {
             revert StakingTokenNotInitialized();
         }
+        address delegate = ISummerToken(address(stakingToken)).delegates(
+            account
+        );
+        if (delegate == address(0)) {
+            revert NotDelegated();
+        }
 
         // Pull tokens and wrap them
         stakingToken.safeTransferFrom(from, address(this), amount);
@@ -261,6 +273,12 @@ contract GovernanceRewardsManager is
         uint256 amount
     ) internal override {
         if (amount == 0) revert CannotUnstakeZero();
+                address delegate = ISummerToken(address(stakingToken)).delegates(
+            account
+        );
+        if (delegate == address(0)) {
+            revert NotDelegated();
+        }
 
         totalSupply -= amount;
         _balances[from] -= amount;
