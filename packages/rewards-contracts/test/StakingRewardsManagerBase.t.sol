@@ -218,7 +218,7 @@ contract StakingRewardsManagerBaseTest is Test {
         stakingRewardsManager.notifyRewardAmount(
             rewardToken,
             newRewardAmount,
-            newDuration // Attempting to change duration
+            newDuration
         );
         vm.stopPrank();
 

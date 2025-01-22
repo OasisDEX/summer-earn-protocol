@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 import {IGovernanceRewardsManagerErrors} from "../../src/errors/IGovernanceRewardsManagerErrors.sol";
+import {IStakingRewardsManagerBaseErrors} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBaseErrors.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
@@ -551,5 +552,114 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             stakeAmount,
             "Staked balance should not change"
         );
+    }
+
+    function test_setRewardsDurationAfterNotify() public {
+        uint256 rewardAmount = 1000 * 1e18;
+        uint256 validDuration = 30 days;
+        uint256 invalidDuration = 361 days; // Just over MAX_REWARD_DURATION (360 days)
+
+        deal(address(rewardTokens[0]), address(mockGovernor), rewardAmount);
+
+        // First test with valid duration
+        vm.startPrank(address(mockGovernor));
+        IERC20(address(rewardTokens[0])).approve(
+            address(stakingRewardsManager),
+            rewardAmount
+        );
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            validDuration
+        );
+        vm.stopPrank();
+
+        // Fast forward past the reward period
+        vm.warp(block.timestamp + validDuration + 1);
+
+        // Try to set an invalid duration
+        vm.prank(address(mockGovernor));
+        vm.expectRevert(
+            IStakingRewardsManagerBaseErrors.RewardsDurationTooLong.selector
+        );
+        stakingRewardsManager.setRewardsDuration(
+            IERC20(address(rewardTokens[0])),
+            invalidDuration
+        );
+
+        // Set a valid new duration
+        vm.prank(address(mockGovernor));
+        stakingRewardsManager.setRewardsDuration(
+            IERC20(address(rewardTokens[0])),
+            validDuration
+        );
+
+        // Verify the new duration was set
+        (, , uint256 duration, , ) = stakingRewardsManager.rewardData(
+            IERC20(address(rewardTokens[0]))
+        );
+        assertEq(
+            duration,
+            validDuration,
+            "Duration should be updated to new valid value"
+        );
+    }
+
+    function test_RevertWhen_NotifyRewardAmountWithInvalidDuration() public {
+        uint256 rewardAmount = 1000 * 1e18;
+        uint256 zeroDuration = 0;
+        uint256 tooLongDuration = 361 days; // MAX_REWARD_DURATION is 360 days
+
+        // Mint tokens to governor for testing
+        deal(address(rewardTokens[0]), address(mockGovernor), rewardAmount);
+
+        vm.startPrank(address(mockGovernor));
+        IERC20(address(rewardTokens[0])).approve(
+            address(stakingRewardsManager),
+            rewardAmount
+        );
+
+        // Test zero duration
+        vm.expectRevert(
+            IStakingRewardsManagerBaseErrors
+                .RewardsDurationCannotBeZero
+                .selector
+        );
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            zeroDuration
+        );
+
+        // Test too long duration
+        vm.expectRevert(
+            IStakingRewardsManagerBaseErrors.RewardsDurationTooLong.selector
+        );
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            tooLongDuration
+        );
+
+        // Set up initial reward with valid duration
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            30 days
+        );
+
+        // Try to notify again with different duration
+        vm.expectRevert(
+            IStakingRewardsManagerBaseErrors
+                .CannotChangeRewardsDuration
+                .selector
+        );
+        stakingRewardsManager.notifyRewardAmount(
+            IERC20(address(rewardTokens[0])),
+            rewardAmount,
+            60 days // Different duration than initial
+        );
+
+        vm.stopPrank();
     }
 }

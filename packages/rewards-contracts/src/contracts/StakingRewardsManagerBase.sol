@@ -60,6 +60,8 @@ abstract contract StakingRewardsManagerBase is
     uint256 public totalSupply;
     mapping(address account => uint256 balance) internal _balances;
 
+    uint256 private constant MAX_REWARD_DURATION = 360 days; // 1 year
+
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -218,8 +220,16 @@ abstract contract StakingRewardsManagerBase is
         IERC20 rewardToken,
         uint256 _rewardsDuration
     ) external onlyGovernor {
-        if (!_rewardTokensList.contains(address(rewardToken)))
+        if (!_rewardTokensList.contains(address(rewardToken))) {
             revert RewardTokenDoesNotExist();
+        }
+        if (_rewardsDuration == 0) {
+            revert RewardsDurationCannotBeZero();
+        }
+        if (_rewardsDuration > MAX_REWARD_DURATION) {
+            revert RewardsDurationTooLong();
+        }
+
         RewardData storage data = rewardData[rewardToken];
         if (block.timestamp <= data.periodFinish) {
             revert RewardPeriodNotComplete();
@@ -262,7 +272,8 @@ abstract contract StakingRewardsManagerBase is
         }
 
         // Remove the token from the rewardTokens map
-        _rewardTokensList.remove(address(rewardToken));
+        bool success = _rewardTokensList.remove(address(rewardToken));
+        if (!success) revert RewardTokenDoesNotExist();
 
         // Reset the reward data for this token
         delete rewardData[rewardToken];
@@ -372,21 +383,32 @@ abstract contract StakingRewardsManagerBase is
         uint256 newRewardsDuration
     ) internal {
         RewardData storage rewardTokenData = rewardData[rewardToken];
+        if (newRewardsDuration == 0) {
+            revert RewardsDurationCannotBeZero();
+        }
 
-        // If the reward token doesn't exist, add it
-        if (!_rewardTokensList.contains(address(rewardToken))) {
-            if (newRewardsDuration == 0) revert RewardsDurationCannotBeZero();
-            _rewardTokensList.add(address(rewardToken));
+        if (newRewardsDuration > MAX_REWARD_DURATION) {
+            revert RewardsDurationTooLong();
+        }
+
+        // For existing reward tokens, check if current period is complete
+        if (_rewardTokensList.contains(address(rewardToken))) {
+            if (newRewardsDuration != rewardTokenData.rewardsDuration) {
+                revert CannotChangeRewardsDuration();
+            }
+            if (block.timestamp <= rewardTokenData.periodFinish) {
+                revert RewardPeriodNotComplete();
+            }
+        } else {
+            // First time setup for new reward token
+            bool success = _rewardTokensList.add(address(rewardToken));
+            if (!success) revert RewardTokenAlreadyExists();
+
             rewardTokenData.rewardsDuration = newRewardsDuration;
             emit RewardTokenAdded(
                 address(rewardToken),
                 rewardTokenData.rewardsDuration
             );
-        } else if (
-            newRewardsDuration > 0 &&
-            newRewardsDuration != rewardTokenData.rewardsDuration
-        ) {
-            revert CannotChangeRewardsDuration();
         }
 
         // Transfer exact amount needed for new rewards
@@ -396,7 +418,6 @@ abstract contract StakingRewardsManagerBase is
         rewardTokenData.rewardRate =
             (reward * Constants.WAD) /
             rewardTokenData.rewardsDuration;
-
         rewardTokenData.lastUpdateTime = block.timestamp;
         rewardTokenData.periodFinish =
             block.timestamp +

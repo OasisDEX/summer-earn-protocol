@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import "./GovernanceRewardsManager.general.t.sol";
 import {console} from "forge-std/console.sol";
+
 contract GovernanceRewardsManagerCalculationsTest is
     GovernanceRewardsManagerTest
 {
