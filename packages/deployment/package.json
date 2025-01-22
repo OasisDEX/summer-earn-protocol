@@ -47,6 +47,7 @@
     "@nomicfoundation/hardhat-foundry": "^1.1.2",
     "@nomicfoundation/hardhat-ignition": "^0.15.9",
     "@nomicfoundation/hardhat-ignition-viem": "^0.15.9",
+    "@nomicfoundation/hardhat-verify": "^2.0.12",
     "@summerfi/access-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
