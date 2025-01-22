@@ -11,4 +11,9 @@ interface IGovernanceRewardsManagerErrors {
      * @dev Used to restrict certain functions to only be callable by the staking token contract
      */
     error InvalidCaller();
+
+    /**
+     * @notice Thrown when the receiver is the zero address
+     */
+    error CannotStakeToZeroAddress();
 }
