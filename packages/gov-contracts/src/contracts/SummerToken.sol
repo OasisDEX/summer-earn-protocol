@@ -614,7 +614,10 @@ contract SummerToken is
         address from,
         address to
     ) internal view returns (bool) {
-        if (from == address(rewardsManager) || to == address(rewardsManager)) {
+        if (
+            from == address(rewardsManager.wrappedStakingToken()) ||
+            to == address(rewardsManager)
+        ) {
             return true;
         }
         return false;

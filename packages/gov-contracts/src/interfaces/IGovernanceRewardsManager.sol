@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IGovernanceRewardsManagerErrors} from "../errors/IGovernanceRewardsManagerErrors.sol";
 import {IStakingRewardsManagerBase} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBase.sol";
+import {WrappedStakingToken} from "../contracts/WrappedStakingToken.sol";
+
 /**
  * @title IGovernanceRewardsManager
  * @notice Interface for the GovernanceRewardsManager contract
@@ -13,6 +15,12 @@ interface IGovernanceRewardsManager is
     IStakingRewardsManagerBase,
     IGovernanceRewardsManagerErrors
 {
+    /**
+     * @notice Returns the wrapped staking token
+     * @return The wrapped staking token
+     */
+    function wrappedStakingToken() external view returns (WrappedStakingToken);
+
     /**
      * @notice Emitted when unstakeAndWithdrawOnBehalfOf is called (operation not supported)
      * @param owner The address that owns the staked tokens

@@ -264,9 +264,8 @@ contract GovernanceRewardsManager is
         totalSupply -= amount;
         _balances[from] -= amount;
 
-        // Unwrap tokens to this contract first to ensure proper voting power accounting
-        // This prevents any interim state where voting units might be incorrectly calculated
-        wrappedStakingToken.withdrawTo(address(this), amount);
+        // Send direct to receiver to avoid any interim state where voting units might be incorrectly calculated
+        wrappedStakingToken.withdrawTo(msg.sender, amount);
 
         // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
         IERC20(stakingToken).transfer(receiver, amount);

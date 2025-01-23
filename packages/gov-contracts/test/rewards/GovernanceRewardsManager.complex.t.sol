@@ -3,12 +3,13 @@ pragma solidity 0.8.28;
 
 import {SummerGovernorTestBase} from "../governor/SummerGovernorTestBase.sol";
 import {IGovernanceRewardsManagerErrors} from "../../src/errors/IGovernanceRewardsManagerErrors.sol";
+import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
 import {IStakingRewardsManagerBaseErrors} from "@summerfi/rewards-contracts/interfaces/IStakingRewardsManagerBaseErrors.sol";
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
-    GovernanceRewardsManager public stakingRewardsManager;
+    IGovernanceRewardsManager public stakingRewardsManager;
     IERC20[] public rewardTokens;
 
     uint256 constant INITIAL_REWARD_AMOUNT = 1000000 * 1e18;
@@ -23,10 +24,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         }
 
         // Deploy GovernanceRewardsManager with aSummerToken
-        stakingRewardsManager = new GovernanceRewardsManager(
-            address(aSummerToken),
-            address(accessManagerA)
-        );
+        stakingRewardsManager = aSummerToken.rewardsManager();
 
         // Grant roles
         vm.startPrank(address(timelockA));
@@ -119,6 +117,8 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // Finally, failed undelegate
         // https://basescan.org/tx/0x7c8f1fd4905d66900504e86c57af5faf43f62ed05a6d08f5024d5896b8113702
+        // Should pass now due to changes in how voting units are handled. See _transferVotingUnits history
+        // Plus wrappedStakingToken.withdrawTo() is now called in _unstake() and sends directly to receiver
         aSummerToken.delegate(address(0));
         vm.stopPrank();
 
