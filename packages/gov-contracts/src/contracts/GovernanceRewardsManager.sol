@@ -50,7 +50,7 @@ contract GovernanceRewardsManager is
     /**
      * @notice Wrapped version of staking token for rewards
      */
-    WrappedStakingToken public immutable wrappedStakingToken;
+    address public immutable wrappedStakingToken;
 
     /**
      * @notice Updates rewards for an account before executing a function
@@ -76,7 +76,7 @@ contract GovernanceRewardsManager is
         address accessManager
     ) StakingRewardsManagerBase(accessManager) DecayController(_stakingToken) {
         stakingToken = _stakingToken;
-        wrappedStakingToken = new WrappedStakingToken(_stakingToken);
+        wrappedStakingToken = address(new WrappedStakingToken(stakingToken));
         _setRewardsManager(address(this));
     }
 
@@ -238,8 +238,11 @@ contract GovernanceRewardsManager is
 
         // Pull tokens and wrap them
         IERC20(stakingToken).safeTransferFrom(from, address(this), amount);
-        IERC20(stakingToken).forceApprove(address(wrappedStakingToken), amount);
-        wrappedStakingToken.depositFor(address(this), amount);
+        IERC20(stakingToken).forceApprove(wrappedStakingToken, amount);
+        WrappedStakingToken(wrappedStakingToken).depositFor(
+            address(this),
+            amount
+        );
 
         // Update balances with wrapped token amount
         totalSupply += amount;
@@ -258,17 +261,14 @@ contract GovernanceRewardsManager is
         address from,
         address receiver,
         uint256 amount
-    ) internal override {
+    ) internal virtual override {
         if (amount == 0) revert CannotUnstakeZero();
 
         totalSupply -= amount;
         _balances[from] -= amount;
 
         // Send direct to receiver to avoid any interim state where voting units might be incorrectly calculated
-        wrappedStakingToken.withdrawTo(msg.sender, amount);
-
-        // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
-        IERC20(stakingToken).transfer(receiver, amount);
+        WrappedStakingToken(wrappedStakingToken).withdrawTo(receiver, amount);
 
         emit Unstaked(from, receiver, amount);
     }

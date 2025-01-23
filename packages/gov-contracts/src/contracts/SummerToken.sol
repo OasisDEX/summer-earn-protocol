@@ -321,7 +321,8 @@ contract SummerToken is
         address delegatee
     ) public override(IVotes, Votes) updateDecay(_msgSender()) onlyHubChain {
         if (delegatee == address(0)) {
-            uint256 stakingBalance = rewardsManager.balanceOf(_msgSender());
+            uint256 stakingBalance = IGovernanceRewardsManager(rewardsManager)
+                .balanceOf(_msgSender());
 
             if (stakingBalance > 0) {
                 revert CannotUndelegateWhileStaked();
@@ -613,9 +614,10 @@ contract SummerToken is
     function _handleRewardsManagerVotingTransfer(
         address from,
         address to
-    ) internal view returns (bool) {
+    ) internal view virtual returns (bool) {
         if (
-            from == address(rewardsManager.wrappedStakingToken()) ||
+            from ==
+            IGovernanceRewardsManager(rewardsManager).wrappedStakingToken() ||
             to == address(rewardsManager)
         ) {
             return true;
