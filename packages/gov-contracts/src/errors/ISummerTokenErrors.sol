@@ -41,4 +41,9 @@ interface ISummerTokenErrors {
      * @dev Error thrown when attempting to initialize the contract after it has already been initialized
      */
     error AlreadyInitialized();
+
+    /**
+     * @dev Error thrown when attempting to undelegate while staked
+     */
+    error CannotUndelegateWhileStaked();
 }
