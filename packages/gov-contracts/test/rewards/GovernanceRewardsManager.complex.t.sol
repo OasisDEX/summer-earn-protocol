@@ -132,7 +132,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             type(uint256).max
         );
         buggedStakingRewardsManager.notifyRewardAmount(
-            IERC20(buggedSummerToken),
+            address(buggedSummerToken),
             100000000000000000000000,
             604800
         );
@@ -198,7 +198,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             type(uint256).max
         );
         workingStakingRewardsManager.notifyRewardAmount(
-            IERC20(aSummerToken),
+            address(aSummerToken),
             100000000000000000000000,
             604800
         );
@@ -249,6 +249,9 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // https://basescan.org/tx/0x8f6ad66f15206e12e45074513df330b279e114ac447893f482bae71dec96876e
         workingStakingRewardsManager.stake(8 * 1e18);
 
+        workingStakingRewardsManager.unstake(
+            workingStakingRewardsManager.balanceOf(alice)
+        );
         // Finally, failed undelegate - should work now
         // https://basescan.org/tx/0x7c8f1fd4905d66900504e86c57af5faf43f62ed05a6d08f5024d5896b8113702
         aSummerToken.delegate(address(0));
@@ -281,7 +284,7 @@ contract BuggedGovernanceRewardsManager is GovernanceRewardsManager {
         );
 
         // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
-        stakingToken.transfer(receiver, amount);
+        IERC20(stakingToken).transfer(receiver, amount);
 
         emit Unstaked(from, receiver, amount);
     }
