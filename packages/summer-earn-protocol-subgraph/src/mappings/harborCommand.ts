@@ -9,9 +9,9 @@ import {
   getOrCreatePositionHourlySnapshot,
   getOrCreatePositionWeeklySnapshot,
   getOrCreateVault,
+  getOrCreateVaultWeeklySnapshots,
   getOrCreateVaultsDailySnapshots,
   getOrCreateVaultsHourlySnapshots,
-  getOrCreateVaultWeeklySnapshots,
   getOrCreateYieldAggregator,
 } from '../common/initializers'
 import { getArkDetails } from '../utils/ark'
