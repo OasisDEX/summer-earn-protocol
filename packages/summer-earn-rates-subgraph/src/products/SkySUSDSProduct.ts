@@ -36,11 +36,11 @@ export class SkySUSDSProduct extends Product {
       // 3. Multiply by seconds per year to get yearly rate
       // 4. Convert to percentage
       const apr = ssr
-        .minus(BigIntConstants.ONE)
+        .minus(BigIntConstants.RAY)
         .toBigDecimal()
         .div(BigDecimalConstants.RAY)
         .times(BigDecimalConstants.SECONDS_PER_YEAR)
-      return apr.times(BigDecimalConstants.HUNDRED).div(BigDecimalConstants.SECONDS_PER_YEAR)
+      return apr.times(BigDecimalConstants.HUNDRED)
     }
   }
 }
