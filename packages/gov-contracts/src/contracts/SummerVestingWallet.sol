@@ -234,7 +234,8 @@ contract SummerVestingWallet is
         returns (uint256)
     {
         uint256 unvestedAmount = 0;
-        for (uint256 i = 0; i < goalAmounts.length; i++) {
+        uint256 _goalLen = goalAmounts.length;
+        for (uint256 i = 0; i < _goalLen; i++) {
             if (!goalsReached[i]) {
                 unvestedAmount += goalAmounts[i];
             }
@@ -261,7 +262,8 @@ contract SummerVestingWallet is
             return 0;
         }
         uint256 vested = 0;
-        for (uint256 i = 0; i < goalAmounts.length; i++) {
+        uint256 _goalLen = goalAmounts.length;
+        for (uint256 i = 0; i < _goalLen; i++) {
             if (goalsReached[i]) vested += goalAmounts[i];
         }
         return vested;
