@@ -40,17 +40,44 @@ library VotingDecayMath {
         uint256 decayRatePerSecond,
         uint256 decayTimeInSeconds
     ) internal pure returns (uint256) {
+        // Early returns
         if (decayTimeInSeconds == 0 || decayRatePerSecond == 0) {
             return initialValue;
         }
+        if (decayRatePerSecond >= WAD) {
+            return 0;
+        }
+        if (initialValue == 0) {
+            return 0;
+        }
 
-        UD60x18 retentionRatePerSecond = ud(WAD - decayRatePerSecond);
+        // Safe conversion to UD60x18
+        UD60x18 retentionRatePerSecond;
+        unchecked {
+            // WAD - decayRatePerSecond is safe because we checked decayRatePerSecond < WAD
+            retentionRatePerSecond = ud(WAD - decayRatePerSecond);
+        }
+
+        // If retention rate is 0 or time is too large, return 0
+        if (
+            unwrap(retentionRatePerSecond) == 0 ||
+            decayTimeInSeconds > type(uint32).max
+        ) {
+            return 0;
+        }
+
         UD60x18 retentionFactor = retentionRatePerSecond.powu(
             decayTimeInSeconds
         );
+
+        // If retention factor became 0 during calculation
+        if (unwrap(retentionFactor) == 0) {
+            return 0;
+        }
+
         UD60x18 result = ud(initialValue).mul(retentionFactor);
 
-        return unwrap(result.gt(ud(0)) ? result.div(ud(1e18)) : ud(0));
+        return unwrap(result.gt(ud(0)) ? result.div(ud(WAD)) : ud(0));
     }
 
     /**
@@ -65,9 +92,43 @@ library VotingDecayMath {
         uint256 decayRatePerSecond,
         uint256 decayTimeInSeconds
     ) internal pure returns (uint256) {
-        uint256 totalDecayFactor = decayRatePerSecond * decayTimeInSeconds;
-        uint256 retentionFactor = WAD - totalDecayFactor;
+        // Early returns
+        if (decayTimeInSeconds == 0 || decayRatePerSecond == 0) {
+            return initialValue;
+        }
+        if (decayRatePerSecond >= WAD) {
+            return 0;
+        }
+        if (initialValue == 0) {
+            return 0;
+        }
 
+        // Check for overflow in multiplication
+        if (
+            decayRatePerSecond > 0 &&
+            decayTimeInSeconds > WAD / decayRatePerSecond
+        ) {
+            return 0;
+        }
+
+        uint256 totalDecayFactor;
+        unchecked {
+            // Safe because of the check above
+            totalDecayFactor = decayRatePerSecond * decayTimeInSeconds;
+        }
+
+        // Check if total decay exceeds 100%
+        if (totalDecayFactor >= WAD) {
+            return 0;
+        }
+
+        uint256 retentionFactor;
+        unchecked {
+            // Safe because we checked totalDecayFactor < WAD
+            retentionFactor = WAD - totalDecayFactor;
+        }
+
+        // Final multiplication and division
         return (initialValue * retentionFactor) / WAD;
     }
 }

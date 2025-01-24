@@ -98,4 +98,74 @@ contract VotingDecayMathTest is Test {
             "Medium time should cause partial decay"
         );
     }
+
+    function test_ExtremeDecayCases() public pure {
+        // Test extremely long time period (100 years)
+        uint256 result = VotingDecayMath.exponentialDecay(
+            INITIAL_VALUE, // 100 tokens
+            INITIAL_DECAY_RATE, // ~10% per year decay
+            36500 days // 100 years
+        );
+        assertGt(
+            result,
+            0,
+            "Should not decay to complete zero even after 100 years"
+        );
+        assertLt(
+            result,
+            INITIAL_VALUE / 100,
+            "Should decay significantly over 100 years"
+        );
+
+        // Test very high decay rate
+        result = VotingDecayMath.exponentialDecay(
+            INITIAL_VALUE,
+            INITIAL_DECAY_RATE * 10000,
+            1 days
+        );
+        assertGt(
+            result,
+            0,
+            "Should not decay to complete zero even with high decay rate"
+        );
+        assertLt(
+            result,
+            INITIAL_VALUE / 10,
+            "Should decay significantly with high rate"
+        );
+
+        // Test combination of high value, high decay rate, and long time
+        result = VotingDecayMath.exponentialDecay(
+            1000000e18, // 1 million tokens
+            0.0000001e18, // 0.00001% per second (~58% per day)
+            365 days
+        );
+        assertGt(
+            result,
+            0,
+            "Should not overflow or underflow with extreme values"
+        );
+        assertLt(result, 1000000e18, "Should show decay for extreme values");
+
+        // Test linear decay with extreme values
+        result = VotingDecayMath.linearDecay(
+            INITIAL_VALUE,
+            1e18, // 100% per second
+            7 days
+        );
+        assertEq(result, 0, "Should fully decay with high linear rate");
+
+        // Test linear decay with very long time period
+        result = VotingDecayMath.linearDecay(
+            INITIAL_VALUE,
+            INITIAL_DECAY_RATE / 100,
+            36500 days // 100 years
+        );
+        assertGt(result, 0, "Should not underflow with long time periods");
+        assertLt(
+            result,
+            INITIAL_VALUE,
+            "Should show some decay over long period"
+        );
+    }
 }
