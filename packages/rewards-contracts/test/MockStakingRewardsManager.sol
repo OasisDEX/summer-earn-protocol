@@ -10,10 +10,6 @@ contract MockStakingRewardsManager is StakingRewardsManagerBase {
         address accessManager,
         address _stakingToken
     ) StakingRewardsManagerBase(accessManager) {
-        _initialize(IERC20(_stakingToken));
-    }
-
-    function _initialize(IERC20 _stakingToken) internal override {
         stakingToken = _stakingToken;
     }
 

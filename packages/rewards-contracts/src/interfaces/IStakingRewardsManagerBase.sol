@@ -27,7 +27,7 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @return The timestamp of the last applicable reward time
      */
     function lastTimeRewardApplicable(
-        IERC20 rewardToken
+        address rewardToken
     ) external view returns (uint256);
 
     /* @notice Get the reward per token for a specific reward token
@@ -36,7 +36,9 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @dev Returns a WAD-scaled value (1e18) to maintain precision in calculations
      * @dev This value represents: (rewardRate * timeElapsed * WAD) / totalSupply
      */
-    function rewardPerToken(IERC20 rewardToken) external view returns (uint256);
+    function rewardPerToken(
+        address rewardToken
+    ) external view returns (uint256);
 
     /* @notice Calculate the earned reward for an account and a specific reward token
      * @param account The address of the account
@@ -46,7 +48,7 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      */
     function earned(
         address account,
-        IERC20 rewardToken
+        address rewardToken
     ) external view returns (uint256);
 
     /* @notice Get the reward for the entire duration for a specific reward token
@@ -55,20 +57,20 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @dev Calculated as: (rewardRate * rewardsDuration) / WAD
      */
     function getRewardForDuration(
-        IERC20 rewardToken
+        address rewardToken
     ) external view returns (uint256);
 
     /* @notice Get the address of the staking token
-     * @return The IERC20 interface of the staking token
+     * @return The address of the staking token
      */
-    function stakingToken() external view returns (IERC20);
+    function stakingToken() external view returns (address);
 
     /* @notice Get the reward token at a specific index
      * @param index The index of the reward token
-     * @return The IERC20 interface of the reward token
+     * @return The address of the reward token
      * @dev Reverts with IndexOutOfBounds if index >= rewardTokensLength()
      */
-    function rewardTokens(uint256 index) external view returns (IERC20);
+    function rewardTokens(uint256 index) external view returns (address);
 
     /* @notice Get the total number of reward tokens
      * @return The length of the reward tokens list
@@ -130,7 +132,7 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @dev Internally sets rewardRate as (reward * WAD) / duration to maintain precision
      */
     function notifyRewardAmount(
-        IERC20 rewardToken,
+        address rewardToken,
         uint256 reward,
         uint256 newRewardsDuration
     ) external;
@@ -140,7 +142,7 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @param _rewardsDuration The new duration for rewards
      */
     function setRewardsDuration(
-        IERC20 rewardToken,
+        address rewardToken,
         uint256 _rewardsDuration
     ) external;
 
@@ -150,7 +152,7 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      * @dev Can only be called if remaining balance is below dust threshold
      * @param rewardToken The address of the reward token to remove
      */
-    function removeRewardToken(IERC20 rewardToken) external;
+    function removeRewardToken(address rewardToken) external;
 
     // Events
 

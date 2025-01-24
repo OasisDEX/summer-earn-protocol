@@ -146,7 +146,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             7 days
         );
@@ -164,7 +164,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // Check earned amount - should be greater than 0
         uint256 earnedAmount = stakingRewardsManager.earned(
             alice,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
 
         assertGt(earnedAmount, 0, "Earned amount should increase over time");
@@ -192,7 +192,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             7 days
         );
@@ -203,11 +203,11 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // Get initial earned amounts
         uint256 bobInitialEarned = stakingRewardsManager.earned(
             bob,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
         uint256 aliceInitialEarned = stakingRewardsManager.earned(
             alice,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
 
         // Verify Alice's rewards are affected by Bob's decay factor
@@ -223,11 +223,11 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // Get decayed earned amounts
         uint256 bobDecayedEarned = stakingRewardsManager.earned(
             bob,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
         uint256 aliceDecayedEarned = stakingRewardsManager.earned(
             alice,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
 
         // Verify both accounts are affected by decay
@@ -257,11 +257,11 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // Get new earned amounts after delegation change
         uint256 bobFinalEarned = stakingRewardsManager.earned(
             bob,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
         uint256 aliceFinalEarned = stakingRewardsManager.earned(
             alice,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
 
         // Verify Alice now has different rewards than Bob
@@ -284,7 +284,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             7 days
         );
@@ -295,7 +295,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // Check earned amount - should be 0 since no delegation
         uint256 earnedAmount = stakingRewardsManager.earned(
             alice,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
 
         assertEq(
@@ -314,7 +314,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // Check earned amount again - should be non-zero now
         uint256 earnedAfterDelegation = stakingRewardsManager.earned(
             alice,
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
 
         assertGt(
@@ -347,7 +347,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         aSummerToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(aSummerToken)),
+            address(aSummerToken),
             rewardAmount,
             7 days
         );
@@ -387,7 +387,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             7 days
         );
@@ -429,7 +429,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             duration
         );
@@ -441,7 +441,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             uint256 rewardsDuration,
             ,
 
-        ) = stakingRewardsManager.rewardData(IERC20(address(rewardTokens[0])));
+        ) = stakingRewardsManager.rewardData(address(rewardTokens[0]));
 
         assertEq(rewardsDuration, duration, "Duration should be set correctly");
         assertEq(
@@ -459,7 +459,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             7 days
         );
@@ -477,16 +477,12 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // Remove reward token
         vm.prank(address(mockGovernor));
-        stakingRewardsManager.removeRewardToken(
-            IERC20(address(rewardTokens[0]))
-        );
+        stakingRewardsManager.removeRewardToken(address(rewardTokens[0]));
 
         // Verify token was removed
         vm.prank(address(mockGovernor));
         vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
-        stakingRewardsManager.removeRewardToken(
-            IERC20(address(rewardTokens[0]))
-        );
+        stakingRewardsManager.removeRewardToken(address(rewardTokens[0]));
     }
 
     function test_SetRewardsDuration() public {
@@ -498,7 +494,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             initialDuration
         );
@@ -510,13 +506,13 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         // Set new duration
         vm.prank(address(mockGovernor));
         stakingRewardsManager.setRewardsDuration(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             newDuration
         );
 
         // Verify new duration
         (, , uint256 duration, , ) = stakingRewardsManager.rewardData(
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
         assertEq(duration, newDuration, "Duration should be updated");
     }
@@ -563,12 +559,9 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // First test with valid duration
         vm.startPrank(address(mockGovernor));
-        IERC20(address(rewardTokens[0])).approve(
-            address(stakingRewardsManager),
-            rewardAmount
-        );
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             validDuration
         );
@@ -583,20 +576,20 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             IStakingRewardsManagerBaseErrors.RewardsDurationTooLong.selector
         );
         stakingRewardsManager.setRewardsDuration(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             invalidDuration
         );
 
         // Set a valid new duration
         vm.prank(address(mockGovernor));
         stakingRewardsManager.setRewardsDuration(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             validDuration
         );
 
         // Verify the new duration was set
         (, , uint256 duration, , ) = stakingRewardsManager.rewardData(
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
         assertEq(
             duration,
@@ -614,10 +607,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         deal(address(rewardTokens[0]), address(mockGovernor), rewardAmount);
 
         vm.startPrank(address(mockGovernor));
-        IERC20(address(rewardTokens[0])).approve(
-            address(stakingRewardsManager),
-            rewardAmount
-        );
+        rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
 
         // Test zero duration
         vm.expectRevert(
@@ -626,7 +616,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
                 .selector
         );
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             zeroDuration
         );
@@ -636,14 +626,14 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             IStakingRewardsManagerBaseErrors.RewardsDurationTooLong.selector
         );
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             tooLongDuration
         );
 
         // Set up initial reward with valid duration
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             30 days
         );
@@ -655,7 +645,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
                 .selector
         );
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             60 days // Different duration than initial
         );

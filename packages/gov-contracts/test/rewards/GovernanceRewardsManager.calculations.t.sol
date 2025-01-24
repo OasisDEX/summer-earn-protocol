@@ -10,13 +10,11 @@ contract GovernanceRewardsManagerCalculationsTest is
     function test_RewardPerToken_NoSupply() public view {
         // When total supply is 0, should return stored value
         (, , , , uint256 storedValue) = stakingRewardsManager.rewardData(
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
 
         assertEq(
-            stakingRewardsManager.rewardPerToken(
-                IERC20(address(rewardTokens[0]))
-            ),
+            stakingRewardsManager.rewardPerToken(address(rewardTokens[0])),
             storedValue,
             "Should return stored value when supply is 0"
         );
@@ -36,7 +34,7 @@ contract GovernanceRewardsManagerCalculationsTest is
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             7 days
         );
@@ -53,15 +51,13 @@ contract GovernanceRewardsManagerCalculationsTest is
             ,
             ,
             uint256 rewardPerTokenStored
-        ) = stakingRewardsManager.rewardData(IERC20(address(rewardTokens[0])));
+        ) = stakingRewardsManager.rewardData(address(rewardTokens[0]));
 
         uint256 expectedRewardPerToken = rewardPerTokenStored +
             ((timePassed * rewardRate) / stakeAmount);
 
         assertEq(
-            stakingRewardsManager.rewardPerToken(
-                IERC20(address(rewardTokens[0]))
-            ),
+            stakingRewardsManager.rewardPerToken(address(rewardTokens[0])),
             expectedRewardPerToken,
             "RewardPerToken calculation mismatch"
         );
@@ -74,7 +70,7 @@ contract GovernanceRewardsManagerCalculationsTest is
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             duration
         );
@@ -82,7 +78,7 @@ contract GovernanceRewardsManagerCalculationsTest is
 
         assertApproxEqAbs(
             stakingRewardsManager.getRewardForDuration(
-                IERC20(address(rewardTokens[0]))
+                address(rewardTokens[0])
             ),
             rewardAmount,
             10, // Allow difference of up to 10 wei

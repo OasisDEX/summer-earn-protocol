@@ -236,25 +236,16 @@ interface ISummerToken is
     ) external view returns (uint256);
 
     /**
-     * @notice Returns the raw votes (before decay) for an account
+     * @notice Returns the raw votes (before decay) for an account at a specific timepoint
      * @param account The address to get raw votes for
+     * @param timestamp The timestamp to get raw votes at
      * @return The current voting power before applying any decay factor
      * @dev This returns the total voting units including direct balance, staked tokens,
      * and vesting wallet balances, but without applying the decay factor
      */
-    function getRawVotes(address account) external view returns (uint256);
-
-    /**
-     * @notice Returns the raw votes (before decay) for an account at a specific timepoint
-     * @param account The address to get raw votes for
-     * @param timepoint The block number to get votes at
-     * @return The historical voting power before applying any decay factor
-     * @dev This returns the total voting units at the specified timepoint including direct balance,
-     * staked tokens, and vesting wallet balances, but without applying the decay factor
-     */
-    function getRawPastVotes(
+    function getRawVotesAt(
         address account,
-        uint256 timepoint
+        uint256 timestamp
     ) external view returns (uint256);
 
     /**

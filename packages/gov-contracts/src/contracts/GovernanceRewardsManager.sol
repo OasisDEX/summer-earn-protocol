@@ -75,8 +75,8 @@ contract GovernanceRewardsManager is
         address _stakingToken,
         address accessManager
     ) StakingRewardsManagerBase(accessManager) DecayController(_stakingToken) {
-        stakingToken = IERC20(_stakingToken);
-        wrappedStakingToken = new WrappedStakingToken(stakingToken);
+        stakingToken = _stakingToken;
+        wrappedStakingToken = new WrappedStakingToken(_stakingToken);
         _setRewardsManager(address(this));
     }
 
@@ -157,16 +157,14 @@ contract GovernanceRewardsManager is
     /// @inheritdoc IStakingRewardsManagerBase
     function earned(
         address account,
-        IERC20 rewardToken
+        address rewardToken
     )
         public
         view
         override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
         returns (uint256)
     {
-        address delegate = ISummerToken(address(stakingToken)).delegates(
-            account
-        );
+        address delegate = ISummerToken(stakingToken).delegates(account);
         if (delegate == address(0)) {
             return 0; // No rewards if not delegated
         }
@@ -239,8 +237,8 @@ contract GovernanceRewardsManager is
         }
 
         // Pull tokens and wrap them
-        stakingToken.safeTransferFrom(from, address(this), amount);
-        stakingToken.forceApprove(address(wrappedStakingToken), amount);
+        IERC20(stakingToken).safeTransferFrom(from, address(this), amount);
+        IERC20(stakingToken).forceApprove(address(wrappedStakingToken), amount);
         wrappedStakingToken.depositFor(address(this), amount);
 
         // Update balances with wrapped token amount
@@ -271,7 +269,7 @@ contract GovernanceRewardsManager is
         wrappedStakingToken.withdrawTo(address(this), amount);
 
         // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
-        stakingToken.transfer(receiver, amount);
+        IERC20(stakingToken).transfer(receiver, amount);
 
         emit Unstaked(from, receiver, amount);
     }

@@ -85,11 +85,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function getRawVotes(address) external pure returns (uint256) {
-        revert("Not implemented");
-    }
-
-    function getRawPastVotes(address, uint256) external pure returns (uint256) {
+    function getRawVotesAt(address, uint256) external pure returns (uint256) {
         revert("Not implemented");
     }
 

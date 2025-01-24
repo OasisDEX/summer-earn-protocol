@@ -13,7 +13,6 @@ import {ERC20Capped} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20C
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -372,16 +371,14 @@ contract SummerToken is
     }
 
     /// @inheritdoc ISummerToken
-    function getRawVotes(address account) public view returns (uint256) {
-        return super.getVotes(account);
-    }
-
-    /// @inheritdoc ISummerToken
-    function getRawPastVotes(
+    function getRawVotesAt(
         address account,
-        uint256 timepoint
+        uint256 timestamp
     ) public view returns (uint256) {
-        return super.getPastVotes(account, timepoint);
+        return
+            timestamp == 0
+                ? super.getVotes(account)
+                : super.getPastVotes(account, timestamp);
     }
 
     /*//////////////////////////////////////////////////////////////
