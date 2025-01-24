@@ -623,7 +623,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             1 weeks
         );
@@ -809,7 +809,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         vm.startPrank(address(mockGovernor));
         rewardTokens[0].approve(address(unprotectedManager), rewardAmount);
         unprotectedManager.notifyRewardAmount(
-            IERC20(address(rewardTokens[0])),
+            address(rewardTokens[0]),
             rewardAmount,
             1 weeks
         );
@@ -902,7 +902,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
             string.concat("(", _formatScientific(userBalance), ")")
         );
 
-        uint256 earned = manager.earned(user, IERC20(address(rewardTokens[0])));
+        uint256 earned = manager.earned(user, address(rewardTokens[0]));
         console.log(
             "Amount can claim:                         ",
             earned,
@@ -917,7 +917,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         );
 
         uint256 rewardPerToken = manager.rewardPerToken(
-            IERC20(address(rewardTokens[0]))
+            address(rewardTokens[0])
         );
         console.log(
             "Reward Per Token:                         ",
@@ -926,7 +926,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         );
 
         uint256 userRewardPaid = StakingRewardsManagerBase(address(manager))
-            .userRewardPerTokenPaid(IERC20(address(rewardTokens[0])), user);
+            .userRewardPerTokenPaid(address(rewardTokens[0]), user);
         console.log(
             "User Reward Per Token Paid:               ",
             userRewardPaid,
