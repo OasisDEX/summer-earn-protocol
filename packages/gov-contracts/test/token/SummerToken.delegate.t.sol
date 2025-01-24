@@ -86,8 +86,9 @@ contract SummerTokenDelegateTest is SummerTokenTestBase {
         uint256 initialBalance = 100e18;
         deal(address(aSummerToken), user1, initialBalance);
 
-        IGovernanceRewardsManager rewardsManager = aSummerToken
-            .rewardsManager();
+        IGovernanceRewardsManager rewardsManager = IGovernanceRewardsManager(
+            aSummerToken.rewardsManager()
+        );
 
         // User1 delegates to user2 first
         vm.startPrank(user1);

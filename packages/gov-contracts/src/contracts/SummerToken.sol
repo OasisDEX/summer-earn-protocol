@@ -58,7 +58,7 @@ contract SummerToken is
 
     /// @notice The chain ID of the hub chain where governance actions are permitted
     uint32 public immutable hubChainId;
-    address public immutable rewardsManager;
+    address public rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
     address public immutable vestingWalletFactory;
     uint256 public immutable transferEnableDate;
@@ -321,7 +321,8 @@ contract SummerToken is
         address delegatee
     ) public override(IVotes, Votes) updateDecay(_msgSender()) onlyHubChain {
         if (delegatee == address(0)) {
-            uint256 stakingBalance = rewardsManager.balanceOf(_msgSender());
+            uint256 stakingBalance = IGovernanceRewardsManager(rewardsManager)
+                .balanceOf(_msgSender());
 
             if (stakingBalance > 0) {
                 revert CannotUndelegateWhileStaked();
@@ -608,13 +609,28 @@ contract SummerToken is
      * @dev Handles voting power transfers involving the rewards manager
      * @param from Source address
      * @param to Destination address
-     * @return bool True if the transfer was handled (rewards manager case), false otherwise
+     * @return bool True if vote tracking should be skipped (rewards manager case), false if normal vote tracking should occur
+     * @custom:internal-logic
+     * - Returns true to skip vote tracking for two specific cases:
+     *   1. When tokens come FROM the wrapped staking token (used for both unstaking and reward claims)
+     *   2. When staking: transfers TO the rewards manager
+     * - Returns false for all other transfers, allowing normal vote tracking
+     * @custom:rationale
+     * - Staking/unstaking/reward operations are handled separately by the rewards manager
+     * - The wrapped staking token is used as the source for both unstaking and claiming rewards
+     * - Skipping vote tracking here prevents double-counting of voting power since
+     *   the rewards manager maintains its own balance tracking for staked tokens
      */
     function _handleRewardsManagerVotingTransfer(
         address from,
         address to
-    ) internal view returns (bool) {
-        if (from == address(rewardsManager) || to == address(rewardsManager)) {
+    ) internal view virtual returns (bool) {
+        // Skip vote tracking for unstaking/rewards (from wrapped token) and staking (to rewards manager)
+        if (
+            from ==
+            IGovernanceRewardsManager(rewardsManager).wrappedStakingToken() ||
+            to == address(rewardsManager)
+        ) {
             return true;
         }
         return false;
