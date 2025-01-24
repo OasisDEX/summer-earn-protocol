@@ -7,6 +7,7 @@ import {IStakingRewardsManagerBaseErrors} from "@summerfi/rewards-contracts/inte
 import {GovernanceRewardsManager} from "../../src/contracts/GovernanceRewardsManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {console} from "forge-std/console.sol";
 
 contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
     GovernanceRewardsManager public stakingRewardsManager;
@@ -57,36 +58,6 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // In the test setup
         rewardTokens[0].mint(address(mockGovernor), 100000000000000000000); // Mint 100 tokens
-    }
-
-    function test_StakeOnBehalfOfUpdatesBalancesCorrectly() public {
-        uint256 stakeAmount = 1000 * 1e18;
-
-        vm.prank(address(alice));
-        stakingRewardsManager.stakeOnBehalfOf(bob, stakeAmount);
-
-        assertEq(
-            stakingRewardsManager.balanceOf(bob),
-            stakeAmount,
-            "Staked balance should be updated"
-        );
-    }
-
-    function test_RevertWhen_StakingToZeroAddress() public {
-        // Setup
-        uint256 amount = 100e18;
-        deal(address(aSummerToken), alice, amount);
-
-        vm.startPrank(alice);
-        aSummerToken.approve(address(stakingRewardsManager), amount);
-
-        // Test
-        vm.expectRevert(
-            IGovernanceRewardsManagerErrors.CannotStakeToZeroAddress.selector
-        );
-        stakingRewardsManager.stakeOnBehalfOf(address(0), amount);
-
-        vm.stopPrank();
     }
 
     function test_Unstake() public {
@@ -661,5 +632,20 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
         );
 
         vm.stopPrank();
+    }
+
+    function test_RevertWhen_StakeOnBehalfOfIsCalled() public {
+        uint256 stakeAmount = 1000 * 1e18;
+
+        // Approve staking from alice
+        vm.prank(alice);
+        aSummerToken.approve(address(stakingRewardsManager), stakeAmount);
+
+        // Try to stake on behalf of alice from bob's address
+        vm.prank(bob);
+        vm.expectRevert(
+            abi.encodeWithSignature("StakeOnBehalfOfNotSupported()")
+        );
+        stakingRewardsManager.stakeOnBehalfOf(alice, stakeAmount);
     }
 }

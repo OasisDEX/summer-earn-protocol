@@ -89,7 +89,7 @@ contract GovernanceRewardsManager is
         address receiver,
         uint256 amount
     ) external override updateDecay(receiver) updateReward(receiver) {
-        _stake(_msgSender(), receiver, amount);
+        revert StakeOnBehalfOfNotSupported();
     }
 
     /**

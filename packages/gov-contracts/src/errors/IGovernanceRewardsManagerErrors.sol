@@ -16,4 +16,9 @@ interface IGovernanceRewardsManagerErrors {
      * @notice Thrown when the receiver is the zero address
      */
     error CannotStakeToZeroAddress();
+
+    /**
+     * @notice Thrown when the stakeOnBehalfOf function is called (operation not supported)
+     */
+    error StakeOnBehalfOfNotSupported();
 }
