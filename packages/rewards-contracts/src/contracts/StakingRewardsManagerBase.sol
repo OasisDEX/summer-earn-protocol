@@ -407,9 +407,6 @@ abstract contract StakingRewardsManagerBase is
             if (newRewardsDuration != rewardTokenData.rewardsDuration) {
                 revert CannotChangeRewardsDuration();
             }
-            if (block.timestamp <= rewardTokenData.periodFinish) {
-                revert RewardPeriodNotComplete();
-            }
         } else {
             // First time setup for new reward token
             bool success = _rewardTokensList.add(rewardToken);
