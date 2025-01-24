@@ -172,7 +172,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // https://basescan.org/tx/0x80ab953ac9593495a383912f55624e80e1e8f46296dcfcb0144fc53a4186fdff
         vm.warp(block.timestamp + 15 hours);
-        buggedStakingRewardsManager.stake(1105 * 1e18);
+        buggedStakingRewardsManager.stake(993188807700050195903); // Used different amount because of updateReward on _staked fix from 1105 * 1e18
 
         // Unstake
         // https://basescan.org/tx/0x731798d5be3f4898cece88824d8da62681904c02b1c61715a10ce75a88f2e8fd
@@ -238,7 +238,7 @@ contract GovernanceRewardsManagerTest is SummerGovernorTestBase {
 
         // https://basescan.org/tx/0x80ab953ac9593495a383912f55624e80e1e8f46296dcfcb0144fc53a4186fdff
         vm.warp(block.timestamp + 15 hours);
-        workingStakingRewardsManager.stake(1105 * 1e18);
+        workingStakingRewardsManager.stake(993188807700050195903); // Used different amount because of updateReward on _staked fix
 
         // Unstake
         // https://basescan.org/tx/0x731798d5be3f4898cece88824d8da62681904c02b1c61715a10ce75a88f2e8fd
