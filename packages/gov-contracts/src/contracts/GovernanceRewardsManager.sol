@@ -236,17 +236,15 @@ contract GovernanceRewardsManager is
             revert NotDelegated();
         }
 
-        // Pull tokens and wrap them
+        totalSupply += amount;
+        _balances[receiver] += amount;
+
         IERC20(stakingToken).safeTransferFrom(from, address(this), amount);
         IERC20(stakingToken).forceApprove(wrappedStakingToken, amount);
         WrappedStakingToken(wrappedStakingToken).depositFor(
             address(this),
             amount
         );
-
-        // Update balances with wrapped token amount
-        totalSupply += amount;
-        _balances[receiver] += amount;
 
         emit Staked(from, receiver, amount);
     }
