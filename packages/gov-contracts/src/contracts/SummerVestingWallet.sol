@@ -47,7 +47,7 @@ contract SummerVestingWallet is
     bool[] public goalsReached;
 
     // Time-based vesting amount
-    uint256 public timeBasedVestingAmount;
+    uint256 public immutable timeBasedVestingAmount;
 
     //////////////////////////////////////////////
     ///              CONSTRUCTOR               ///
