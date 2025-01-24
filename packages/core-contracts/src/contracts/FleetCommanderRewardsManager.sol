@@ -29,12 +29,7 @@ contract FleetCommanderRewardsManager is
         address _fleetCommander
     ) StakingRewardsManagerBase(_accessManager) {
         fleetCommander = _fleetCommander;
-        _initialize(IERC20(fleetCommander));
-    }
-
-    function _initialize(IERC20 _stakingToken) internal override {
-        stakingToken = _stakingToken;
-        emit StakingTokenInitialized(address(_stakingToken));
+        stakingToken = IERC20(fleetCommander);
     }
 
     /// @inheritdoc IStakingRewardsManagerBase

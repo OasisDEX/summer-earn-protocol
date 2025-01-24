@@ -45,7 +45,7 @@ abstract contract StakingRewardsManagerBase is
     /* @notice List of all reward tokens supported by this contract */
     EnumerableSet.AddressSet internal _rewardTokensList;
     /* @notice The token that users stake to earn rewards */
-    IERC20 public stakingToken;
+    IERC20 public immutable stakingToken;
 
     /* @notice Mapping of reward token to its reward distribution data */
     mapping(IERC20 rewardToken => RewardData data) public rewardData;

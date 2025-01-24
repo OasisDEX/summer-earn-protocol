@@ -214,11 +214,6 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
      */
     event RewardTokenAdded(address rewardToken, uint256 rewardsDuration);
 
-    /* @notice Emitted when the staking token is initialized
-     * @param stakingToken The address of the staking token
-     */
-    event StakingTokenInitialized(address stakingToken);
-
     /* @notice Emitted when a reward token is removed
      * @param rewardToken The address of the reward token
      */
