@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {SummerToken} from "../../src/contracts/SummerToken.sol";
 import {ISummerToken, IERC20} from "../../src/interfaces/ISummerToken.sol";
+import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
 
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {EnforcedOptionParam, IOAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
@@ -202,12 +203,16 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
 
         // 2. Approve and partial stake
-        aSummerToken.approve(address(aSummerToken.rewardsManager()), amount);
-        aSummerToken.rewardsManager().stake(partialStakeAmount);
+        aSummerToken.approve(aSummerToken.rewardsManager(), amount);
+        IGovernanceRewardsManager(aSummerToken.rewardsManager()).stake(
+            partialStakeAmount
+        );
 
         // Verify state after partial stake
         assertEq(
-            aSummerToken.rewardsManager().balanceOf(user1),
+            IGovernanceRewardsManager(aSummerToken.rewardsManager()).balanceOf(
+                user1
+            ),
             partialStakeAmount,
             "Partial amount should be staked"
         );
@@ -223,11 +228,15 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
 
         // 3. Stake remaining amount
-        aSummerToken.rewardsManager().stake(amount - partialStakeAmount);
+        IGovernanceRewardsManager(aSummerToken.rewardsManager()).stake(
+            amount - partialStakeAmount
+        );
 
         // Verify state after full stake
         assertEq(
-            aSummerToken.rewardsManager().balanceOf(user1),
+            IGovernanceRewardsManager(aSummerToken.rewardsManager()).balanceOf(
+                user1
+            ),
             amount,
             "All tokens should be staked"
         );
@@ -243,11 +252,15 @@ contract SummerTokenTest is SummerTokenTestBase {
         );
 
         // 4. Unstake partial amount
-        aSummerToken.rewardsManager().unstake(unstakeAmount);
+        IGovernanceRewardsManager(aSummerToken.rewardsManager()).unstake(
+            unstakeAmount
+        );
 
         // Verify final state
         assertEq(
-            aSummerToken.rewardsManager().balanceOf(user1),
+            IGovernanceRewardsManager(aSummerToken.rewardsManager()).balanceOf(
+                user1
+            ),
             amount - unstakeAmount,
             "Staked balance should reflect unstaking"
         );

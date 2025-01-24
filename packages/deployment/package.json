@@ -16,7 +16,7 @@
   "scripts": {
     "start:node": "hardhat node",
     "build": "forge build --extra-output-files abi",
-    "build:hh": "hardhat compile",
+    "build:hh": "REPORT_CONTRACT_SIZE=true hardhat compile",
     "spawn:devnet": "export $(pnpx tsx scripts/node/spawn-devnet.ts)",
     "coverage": "forge coverage --ir-minimum",
     "coverage:lcov": "forge coverage --report lcov --ir-minimum",

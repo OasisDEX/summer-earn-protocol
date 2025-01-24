@@ -27,7 +27,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
-                accessManager: accessManagerA,
+                accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
@@ -42,7 +42,7 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: bSummerToken,
                 timelock: timelockB,
-                accessManager: accessManagerB,
+                accessManager: address(accessManagerB),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,

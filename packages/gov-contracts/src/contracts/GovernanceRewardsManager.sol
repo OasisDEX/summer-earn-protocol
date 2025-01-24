@@ -50,7 +50,7 @@ contract GovernanceRewardsManager is
     /**
      * @notice Wrapped version of staking token for rewards
      */
-    WrappedStakingToken public immutable wrappedStakingToken;
+    address public immutable wrappedStakingToken;
 
     /**
      * @notice Updates rewards for an account before executing a function
@@ -75,8 +75,8 @@ contract GovernanceRewardsManager is
         address _stakingToken,
         address accessManager
     ) StakingRewardsManagerBase(accessManager) DecayController(_stakingToken) {
-        stakingToken = IERC20(_stakingToken);
-        wrappedStakingToken = new WrappedStakingToken(stakingToken);
+        stakingToken = _stakingToken;
+        wrappedStakingToken = address(new WrappedStakingToken(stakingToken));
         _setRewardsManager(address(this));
     }
 
@@ -155,16 +155,14 @@ contract GovernanceRewardsManager is
     /// @inheritdoc IStakingRewardsManagerBase
     function earned(
         address account,
-        IERC20 rewardToken
+        address rewardToken
     )
         public
         view
         override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
         returns (uint256)
     {
-        address delegate = ISummerToken(address(stakingToken)).delegates(
-            account
-        );
+        address delegate = ISummerToken(stakingToken).delegates(account);
         if (delegate == address(0)) {
             return 0; // No rewards if not delegated
         }
@@ -237,9 +235,12 @@ contract GovernanceRewardsManager is
         }
 
         // Pull tokens and wrap them
-        stakingToken.safeTransferFrom(from, address(this), amount);
-        stakingToken.forceApprove(address(wrappedStakingToken), amount);
-        wrappedStakingToken.depositFor(address(this), amount);
+        IERC20(stakingToken).safeTransferFrom(from, address(this), amount);
+        IERC20(stakingToken).forceApprove(wrappedStakingToken, amount);
+        WrappedStakingToken(wrappedStakingToken).depositFor(
+            address(this),
+            amount
+        );
 
         // Update balances with wrapped token amount
         totalSupply += amount;
@@ -258,18 +259,14 @@ contract GovernanceRewardsManager is
         address from,
         address receiver,
         uint256 amount
-    ) internal override {
+    ) internal virtual override {
         if (amount == 0) revert CannotUnstakeZero();
 
         totalSupply -= amount;
         _balances[from] -= amount;
 
-        // Unwrap tokens to this contract first to ensure proper voting power accounting
-        // This prevents any interim state where voting units might be incorrectly calculated
-        wrappedStakingToken.withdrawTo(address(this), amount);
-
-        // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
-        stakingToken.transfer(receiver, amount);
+        // Send direct to receiver to avoid any interim state where voting units might be incorrectly calculated
+        WrappedStakingToken(wrappedStakingToken).withdrawTo(receiver, amount);
 
         emit Unstaked(from, receiver, amount);
     }

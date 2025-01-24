@@ -12,9 +12,9 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  */
 contract WrappedStakingToken is ERC20Wrapper {
     constructor(
-        IERC20 underlyingToken
+        address underlyingToken
     )
         ERC20(string.concat("Wrapped ", "Summer"), string.concat("w", "SUMR"))
-        ERC20Wrapper(underlyingToken)
+        ERC20Wrapper(IERC20(underlyingToken))
     {}
 }
