@@ -1,30 +1,38 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
+// Interfaces
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {OFT, OFTCore} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
+import {ISummerVestingWalletFactory} from "../interfaces/ISummerVestingWalletFactory.sol";
+import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+
+// OpenZeppelin Contracts
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC20Capped} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
+
+// LayerZero Contracts
+import {OFT, OFTCore} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+
+// Summer Protocol Contracts
 import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
+import {DecayController} from "./DecayController.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
-import {SummerVestingWallet} from "./SummerVestingWallet.sol";
-import {DecayController} from "./DecayController.sol";
-import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+
+// Utilities and Constants
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title SummerToken
@@ -50,9 +58,9 @@ contract SummerToken is
 
     /// @notice The chain ID of the hub chain where governance actions are permitted
     uint32 public immutable hubChainId;
-    IGovernanceRewardsManager public rewardsManager;
+    address public immutable rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
-    SummerVestingWalletFactory public vestingWalletFactory;
+    address public immutable vestingWalletFactory;
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
@@ -98,15 +106,13 @@ contract SummerToken is
         DecayController(address(this))
         Ownable(params.initialOwner)
     {
-        rewardsManager = new GovernanceRewardsManager(
-            address(this),
-            params.accessManager
+        rewardsManager = address(
+            new GovernanceRewardsManager(address(this), params.accessManager)
         );
-        _setRewardsManager(address(rewardsManager));
+        _setRewardsManager(rewardsManager);
 
-        vestingWalletFactory = new SummerVestingWalletFactory(
-            address(this),
-            params.accessManager
+        vestingWalletFactory = address(
+            new SummerVestingWalletFactory(address(this), params.accessManager)
         );
 
         hubChainId = params.hubChainId;
@@ -498,10 +504,15 @@ contract SummerToken is
     ) internal view override returns (uint256) {
         // Get raw voting units first
         uint256 directBalance = balanceOf(account);
-        uint256 stakingBalance = rewardsManager.balanceOf(account);
-        uint256 vestingBalance = vestingWalletFactory.vestingWallets(account) !=
-            address(0)
-            ? balanceOf(vestingWalletFactory.vestingWallets(account))
+        uint256 stakingBalance = IGovernanceRewardsManager(rewardsManager)
+            .balanceOf(account);
+        uint256 vestingBalance = ISummerVestingWalletFactory(
+            vestingWalletFactory
+        ).vestingWallets(account) != address(0)
+            ? balanceOf(
+                ISummerVestingWalletFactory(vestingWalletFactory)
+                    .vestingWallets(account)
+            )
             : 0;
 
         return directBalance + stakingBalance + vestingBalance;
@@ -556,9 +567,9 @@ contract SummerToken is
         uint256 amount
     ) internal returns (bool) {
         // Case 1: Transfer TO vesting wallet
-        address vestingWalletOwner = vestingWalletFactory.vestingWalletOwners(
-            to
-        );
+        address vestingWalletOwner = ISummerVestingWalletFactory(
+            vestingWalletFactory
+        ).vestingWalletOwners(to);
         if (vestingWalletOwner != address(0)) {
             // Skip if transfer is from the owner (they already have voting power)
             if (from != vestingWalletOwner) {
@@ -569,8 +580,9 @@ contract SummerToken is
         }
 
         // Case 2: Transfer FROM vesting wallet
-        address fromVestingWalletOwner = vestingWalletFactory
-            .vestingWalletOwners(from);
+        address fromVestingWalletOwner = ISummerVestingWalletFactory(
+            vestingWalletFactory
+        ).vestingWalletOwners(from);
         if (fromVestingWalletOwner != address(0)) {
             // Skip if transfer is to the beneficiary (they already have voting power)
             if (to == fromVestingWalletOwner) {

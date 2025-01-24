@@ -224,7 +224,7 @@ interface ISummerToken is
      * @notice Returns the address of the rewards manager contract
      * @return The address of the rewards manager
      */
-    function rewardsManager() external view returns (IGovernanceRewardsManager);
+    function rewardsManager() external view returns (address);
 
     /**
      * @notice Gets the length of the delegation chain for an account

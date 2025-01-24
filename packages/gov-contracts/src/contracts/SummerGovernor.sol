@@ -1,20 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+// Interfaces
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
-import {MessagingFee, OApp, Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ISummerToken} from "../interfaces/ISummerToken.sol";
+import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
+// LayerZero Contracts
+import {MessagingFee, OApp, Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+
+// OpenZeppelin Governance
+import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {GovernorTimelockControl, TimelockController} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
-import {Governor, GovernorVotes, IVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
-import {IERC6372} from "@openzeppelin/contracts/interfaces/IERC6372.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ISummerToken} from "../interfaces/ISummerToken.sol";
+
+// OpenZeppelin Utils
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+// Summer Protocol Contracts
 import {DecayController} from "./DecayController.sol";
-import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IProtocolAccessManager.sol";
 
 /*
  * @title SummerGovernor
