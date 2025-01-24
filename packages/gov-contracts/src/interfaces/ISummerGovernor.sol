@@ -28,7 +28,7 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
     struct GovernorParams {
         ISummerToken token;
         SummerTimelockController timelock;
-        IProtocolAccessManager accessManager;
+        address accessManager;
         uint48 votingDelay;
         uint32 votingPeriod;
         uint256 proposalThreshold;

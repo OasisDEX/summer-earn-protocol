@@ -43,7 +43,7 @@ contract SummerGovernor is
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    IProtocolAccessManager public immutable accessManager;
+    address public immutable accessManager;
 
     /*//////////////////////////////////////////////////////////////
                                 MODIFIERS
@@ -94,7 +94,7 @@ contract SummerGovernor is
         DecayController(address(params.token))
         Ownable(address(params.initialOwner))
     {
-        accessManager = IProtocolAccessManager(params.accessManager);
+        accessManager = params.accessManager;
         _setRewardsManager(
             address(ISummerToken(params.token).rewardsManager())
         );
@@ -350,7 +350,7 @@ contract SummerGovernor is
 
     /// @inheritdoc ISummerGovernor
     function isActiveGuardian(address account) public view returns (bool) {
-        return accessManager.isActiveGuardian(account);
+        return IProtocolAccessManager(accessManager).isActiveGuardian(account);
     }
 
     /*//////////////////////////////////////////////////////////////
