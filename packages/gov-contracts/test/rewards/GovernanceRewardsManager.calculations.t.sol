@@ -88,4 +88,88 @@ contract GovernanceRewardsManagerCalculationsTest is
             "GetRewardForDuration should return approximately total reward"
         );
     }
+
+    function test_CalculateSmoothedDecayFactor() public {
+        uint256 stakeAmount = 1000 * 1e18;
+
+        // Initial state - should be max value (1e18) when just staked
+        vm.startPrank(alice);
+        aSummerToken.delegate(alice);
+        stakingRewardsManager.stake(stakeAmount); //
+
+        assertEq(
+            stakingRewardsManager.calculateSmoothedDecayFactor(alice),
+            1e18,
+            "Initial decay factor should be 1e18"
+        );
+
+        // Move forward in time - decay factor should decrease
+        vm.warp(block.timestamp + 31 days);
+
+        uint256 decayFactor = stakingRewardsManager
+            .calculateSmoothedDecayFactor(alice);
+        assertLt(decayFactor, 1e18, "Decay factor should decrease over time");
+        assertGt(decayFactor, 0, "Decay factor should be greater than 0");
+
+        vm.stopPrank();
+    }
+
+    function test_CalculateSmoothedDecayFactor_WithEMA() public {
+        uint256 stakeAmount = 1000 * 1e18;
+
+        // Setup initial state
+        vm.startPrank(alice);
+        aSummerToken.delegate(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        // Initial decay factor should be 1e18
+        assertEq(
+            stakingRewardsManager.calculateSmoothedDecayFactor(alice),
+            1e18,
+            "Initial decay factor should be 1e18"
+        );
+        vm.stopPrank();
+
+        // Grant decay controller role to alice
+        vm.prank(address(mockGovernor));
+        accessManagerA.grantDecayControllerRole(alice);
+
+        // Move past decay free window and trigger an update
+        vm.warp(block.timestamp + 31 days);
+        vm.prank(alice);
+        stakingRewardsManager.updateSmoothedDecayFactor(alice);
+        uint256 firstDecayFactor = stakingRewardsManager
+            .calculateSmoothedDecayFactor(alice);
+
+        // Move forward again and check EMA behavior
+        vm.warp(block.timestamp + 31 days);
+        vm.prank(alice);
+        stakingRewardsManager.updateSmoothedDecayFactor(alice);
+        uint256 secondDecayFactor = stakingRewardsManager
+            .calculateSmoothedDecayFactor(alice);
+
+        // The second decay factor should be less than the first due to EMA
+        assertLt(
+            secondDecayFactor,
+            firstDecayFactor,
+            "Second decay factor should be less than first due to EMA"
+        );
+
+        // Verify the decay factors are within expected bounds
+        assertGt(
+            firstDecayFactor,
+            0,
+            "First decay factor should be greater than 0"
+        );
+        assertLt(
+            firstDecayFactor,
+            1e18,
+            "First decay factor should be less than 1e18"
+        );
+        assertGt(
+            secondDecayFactor,
+            0,
+            "Second decay factor should be greater than 0"
+        );
+    }
 }

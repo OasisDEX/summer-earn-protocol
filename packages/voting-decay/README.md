@@ -15,7 +15,9 @@ A Solidity library for tracking and managing the decay of voting power in govern
 
 ## Overview
 
-The Voting Decay Library provides a flexible and efficient way to implement voting power erosion in blockchain-based governance systems. It allows for customizable decay rates, supports delegation, and offers utilities for calculating and updating voting power based on user activity.
+The Voting Decay Library provides a flexible and efficient way to implement voting power erosion in
+blockchain-based governance systems. It allows for customizable decay rates, supports delegation,
+and offers utilities for calculating and updating voting power based on user activity.
 
 ## Features
 
@@ -38,30 +40,32 @@ forge install yourusername/voting-decay
 ```
 
 ## Usage
+
 Here's a basic example of how to use the Voting Decay Library:
 
 ```solidity
 pragma solidity ^0.8.0;
 
-import "voting-decay/VotingDecay.sol";
+import 'voting-decay/VotingDecay.sol';
 
 contract MyGovernance {
-    using VotingDecay for VotingDecay.Account;
+  using VotingDecay for VotingDecay.Account;
 
-    mapping(address => VotingDecay.Account) public accounts;
+  mapping(address => VotingDecay.Account) public accounts;
 
-    function vote(uint256 proposalId) external {
-        VotingDecay.Account storage account = accounts[msg.sender];
-        account.updateDecay();
-        uint256 votingPower = account.getCurrentVotingPower();
-        // Use votingPower for voting logic
-    }
+  function vote(uint256 proposalId) external {
+    VotingDecay.Account storage account = accounts[msg.sender];
+    account.updateDecay();
+    uint256 votingPower = account.getCurrentVotingPower();
+    // Use votingPower for voting logic
+  }
 
-    function refresh() external {
-        accounts[msg.sender].refreshDecay();
-    }
+  function refresh() external {
+    accounts[msg.sender].refreshDecay();
+  }
 }
 ```
+
 ## API Reference
 
 ### Key Functions
@@ -85,8 +89,11 @@ forge test
 ```
 
 ## Contributing
+
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
-This project is licensed under the MIT License.
-This markdown block includes everything from the API Reference section to the end of the README. You can now easily copy and paste this into your project's README file.
+
+This project is licensed under the MIT License. This markdown block includes everything from the API
+Reference section to the end of the README. You can now easily copy and paste this into your
+project's README file.
