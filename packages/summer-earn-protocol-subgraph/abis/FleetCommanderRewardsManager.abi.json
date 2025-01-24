@@ -258,25 +258,6 @@
   },
   {
     "type": "function",
-    "name": "isRewardToken",
-    "inputs": [
-      {
-        "name": "rewardToken",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "lastTimeRewardApplicable",
     "inputs": [
       {
@@ -1045,11 +1026,6 @@
   {
     "type": "error",
     "name": "RewardsDurationCannotBeZero",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "RewardsDurationTooLong",
     "inputs": []
   },
   {
