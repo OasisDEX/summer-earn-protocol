@@ -162,11 +162,6 @@ contract GovernanceRewardsManager is
         override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
         returns (uint256)
     {
-        address delegate = ISummerToken(stakingToken).delegates(account);
-        if (delegate == address(0)) {
-            return 0; // No rewards if not delegated
-        }
-
         uint256 rawEarned = _earned(account, rewardToken);
         uint256 latestSmoothedDecayFactor = _calculateSmoothedDecayFactor(
             account
@@ -234,17 +229,22 @@ contract GovernanceRewardsManager is
             revert StakingTokenNotInitialized();
         }
 
-        // Pull tokens and wrap them
+        address delegate = ISummerToken(address(stakingToken)).delegates(
+            receiver
+        );
+        if (delegate == address(0)) {
+            revert NotDelegated();
+        }
+
+        totalSupply += amount;
+        _balances[receiver] += amount;
+
         IERC20(stakingToken).safeTransferFrom(from, address(this), amount);
         IERC20(stakingToken).forceApprove(wrappedStakingToken, amount);
         WrappedStakingToken(wrappedStakingToken).depositFor(
             address(this),
             amount
         );
-
-        // Update balances with wrapped token amount
-        totalSupply += amount;
-        _balances[receiver] += amount;
 
         emit Staked(from, receiver, amount);
     }
@@ -261,6 +261,13 @@ contract GovernanceRewardsManager is
         uint256 amount
     ) internal virtual override {
         if (amount == 0) revert CannotUnstakeZero();
+
+        address delegate = ISummerToken(address(stakingToken)).delegates(
+            receiver
+        );
+        if (delegate == address(0)) {
+            revert NotDelegated();
+        }
 
         totalSupply -= amount;
         _balances[from] -= amount;

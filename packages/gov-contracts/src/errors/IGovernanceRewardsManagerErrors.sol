@@ -13,11 +13,6 @@ interface IGovernanceRewardsManagerErrors {
     error InvalidCaller();
 
     /**
-     * @notice Thrown when the receiver is the zero address
-     */
-    error CannotStakeToZeroAddress();
-
-    /**
      * @notice Thrown when the stakeOnBehalfOf function is called (operation not supported)
      */
     error StakeOnBehalfOfNotSupported();
@@ -26,4 +21,9 @@ interface IGovernanceRewardsManagerErrors {
      * @notice Thrown when the UnstakeOnBehalfOfNotSupported function is called (operation not supported)
      */
     error UnstakeOnBehalfOfNotSupported();
+
+    /**
+     * @notice Thrown when the caller is not delegated
+     */
+    error NotDelegated();
 }
