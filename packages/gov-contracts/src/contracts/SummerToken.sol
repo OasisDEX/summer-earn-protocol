@@ -320,6 +320,14 @@ contract SummerToken is
     function delegate(
         address delegatee
     ) public override(IVotes, Votes) updateDecay(_msgSender()) onlyHubChain {
+        if (delegatee == address(0)) {
+            uint256 stakingBalance = rewardsManager.balanceOf(_msgSender());
+
+            if (stakingBalance > 0) {
+                revert CannotUndelegateWhileStaked();
+            }
+        }
+
         // Only initialize delegatee if they don't have decay info yet
         if (delegatee != address(0) && !decayState.hasDecayInfo(delegatee)) {
             decayState.initializeAccount(delegatee);
