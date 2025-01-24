@@ -362,7 +362,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (this.isMarketExpired()) {
             uint256 amount = IERC20(PT).balanceOf(address(this));
             _redeemMarketAssetFromPtPostExpiry(amount, amount);
-            IERC20(marketAsset).transfer(
+            IERC20(marketAsset).safeTransfer(
                 msg.sender,
                 IERC20(marketAsset).balanceOf(address(this))
             );
@@ -462,7 +462,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         if (receiver != address(this)) revert InvalidReceiver();
         if (swapMarket != market) revert InvalidMarket();
 
-        IERC20(config.asset).approve(router, _amount);
+        IERC20(config.asset).forceApprove(router, _amount);
         (uint256 netPtOut, , ) = IPAllActionV3(router).swapExactTokenForPt(
             receiver,
             swapMarket,
@@ -517,7 +517,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
 
         if (exactPtIn > maxPtAmount) revert InvalidAmount();
 
-        IERC20(PT).approve(router, exactPtIn);
+        IERC20(PT).forceApprove(router, exactPtIn);
         IPAllActionV3(router).swapExactPtForToken(
             receiver,
             swapMarket,
@@ -670,7 +670,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
             swapData: emptySwap
         });
 
-        IERC20(marketAsset).approve(router, _amount);
+        IERC20(marketAsset).forceApprove(router, _amount);
         IPAllActionV3(router).swapExactTokenForPt(
             address(this),
             market,
@@ -727,7 +727,7 @@ contract PendlePtOracleArk is Ark, CurveExchangeRateProvider {
         uint256 minTokenOut
     ) internal {
         if (ptAmount > 0) {
-            IERC20(PT).approve(router, ptAmount);
+            IERC20(PT).forceApprove(router, ptAmount);
             TokenOutput memory tokenOutput = TokenOutput({
                 tokenOut: marketAsset,
                 minTokenOut: minTokenOut,

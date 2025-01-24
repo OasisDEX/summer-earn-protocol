@@ -2,20 +2,20 @@
   "base": {
     "deployedContracts": {
       "gov": {
-        "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x7e452F067c508f0661B3a5B5a828148442c15f28"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x45cD11ad16334B23ACCC27B8C5c9ACFC6fd2bc50"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x6ABd21b52fB7d62e07060Ef86537790633981928"
+        },
+        "protocolAccessManager": {
+          "address": "0x2dAb8DBA1633c742c8D2Fbf7129f3Aa075A575C3"
         },
         "rewardsRedeemer": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xc77974Ba8759946EDc61e1C176816DE09f03b89d"
         }
       },
       "buyAndBurn": {
@@ -123,17 +123,20 @@
   "arbitrum": {
     "deployedContracts": {
       "gov": {
-        "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
-        },
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xb4b6a9002C96e180c7029A92af005Ae1A774719F"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xA30d8077a1aCDE9a09d1FEeF93DF8E05b97D26d7"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xe05fb6411684dc2291A84074786009A7Aa399911"
+        },
+        "protocolAccessManager": {
+          "address": "0x534B8fD795A6A0433Cd965886885088B3068a8Eb"
+        },
+        "rewardsRedeemer": {
+          "address": "0x00EB50a098ebdae3727EdE96AEaDe5902235259C"
         }
       },
       "buyAndBurn": {
@@ -293,11 +296,11 @@
       "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
       "dai": "0x0000000000000000000000000000000000000000",
       "usde": "0x0000000000000000000000000000000000000000",
-      "usdt": "0x0000000000000000000000000000000000000000",
       "usdce": "0x0000000000000000000000000000000000000000",
       "weth": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
       "usds": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
-      "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD"
+      "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
+      "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7"
     },
     "common": {
       "treasury": "0x0000000000000000000000000000000000000000",
@@ -383,7 +386,7 @@
             "cToken": "0x0000000000000000000000000000000000000000"
           }
         },
-        "rewards": "0x0000000000000000000000000000000000000000"
+        "rewards": "0x1B0e765F6224C21223AeA2af16c1C46E38885a40"
       },
       "sky": {
         "psmLite": {

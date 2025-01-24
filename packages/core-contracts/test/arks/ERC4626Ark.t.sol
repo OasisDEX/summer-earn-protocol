@@ -13,38 +13,39 @@ import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IPro
 
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
+    using SafeERC20 for IERC20;
     ERC4626Ark public ark;
     IERC4626 public vault;
-    IERC20 public usdc;
+    IERC20 public usdt;
     ArkParams public params;
 
     address public constant VAULT_ADDRESS =
-        0xda00000035fef4082F78dEF6A8903bee419FbF8E;
-    address public constant USDC_ADDRESS =
-        0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+        0x05A811275fE9b4DE503B3311F51edF6A856D936e;
+    address public constant USDT_ADDRESS =
+        0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
-    uint256 forkBlock = 20000000; // A recent block number
+    uint256 forkBlock = 21666256; // A recent block number
     uint256 forkId;
 
     function setUp() public {
         initializeCoreContracts();
         forkId = vm.createSelectFork(vm.rpcUrl("mainnet"), forkBlock);
 
-        usdc = IERC20(USDC_ADDRESS);
+        usdt = IERC20(USDT_ADDRESS);
         vault = IERC4626(VAULT_ADDRESS);
 
         params = ArkParams({
-            name: "USDC ERC4626 Ark",
-            details: "USDC ERC4626 Ark details",
+            name: "USDT ERC4626 Ark",
+            details: "USDT ERC4626 Ark details",
             accessManager: address(accessManager),
             configurationManager: address(configurationManager),
-            asset: USDC_ADDRESS,
+            asset: USDT_ADDRESS,
             depositCap: type(uint256).max,
             maxRebalanceOutflow: type(uint256).max,
             maxRebalanceInflow: type(uint256).max,
@@ -92,23 +93,23 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
         );
         assertEq(
             address(ark.asset()),
-            USDC_ADDRESS,
-            "Token address should match USDC"
+            USDT_ADDRESS,
+            "Token address should match USDT"
         );
-        assertEq(ark.name(), "USDC ERC4626 Ark", "Ark name should match");
+        assertEq(ark.name(), "USDT ERC4626 Ark", "Ark name should match");
     }
 
     function test_Board() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDC
-        deal(USDC_ADDRESS, commander, amount);
+        uint256 amount = 1000 * 1e6; // 1000 USDT
+        deal(USDT_ADDRESS, commander, amount);
 
         vm.startPrank(commander);
-        usdc.approve(address(ark), amount);
+        usdt.forceApprove(address(ark), amount);
 
         uint256 initialVaultBalance = vault.balanceOf(address(ark));
 
         vm.expectEmit(true, true, true, true);
-        emit Boarded(commander, USDC_ADDRESS, amount);
+        emit Boarded(commander, USDT_ADDRESS, amount);
 
         ark.board(amount, bytes(""));
         vm.stopPrank();
@@ -122,38 +123,38 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function test_Disembark() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDC
-        deal(USDC_ADDRESS, commander, amount);
+        uint256 amount = 1000 * 1e6; // 1000 USDT
+        deal(USDT_ADDRESS, commander, amount);
 
         vm.startPrank(commander);
-        usdc.approve(address(ark), amount);
+        usdt.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
 
-        uint256 initialUSDCBalance = usdc.balanceOf(commander);
+        uint256 initialUSDCBalance = usdt.balanceOf(commander);
         uint256 amountToDisembark = IERC4626(VAULT_ADDRESS).maxWithdraw(
             address(ark)
         );
 
         vm.expectEmit();
-        emit Disembarked(commander, USDC_ADDRESS, amountToDisembark);
+        emit Disembarked(commander, USDT_ADDRESS, amountToDisembark);
 
         ark.disembark(amountToDisembark, bytes(""));
         vm.stopPrank();
 
-        uint256 finalUSDCBalance = usdc.balanceOf(commander);
+        uint256 finalUSDCBalance = usdt.balanceOf(commander);
         assertEq(
             finalUSDCBalance,
             initialUSDCBalance + amountToDisembark,
-            "USDC balance should increase by disembarked amount"
+            "USDT balance should increase by disembarked amount"
         );
     }
 
     function test_TotalAssets() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDC
-        deal(USDC_ADDRESS, commander, amount);
+        uint256 amount = 1000 * 1e6; // 1000 USDT
+        deal(USDT_ADDRESS, commander, amount);
 
         vm.startPrank(commander);
-        usdc.approve(address(ark), amount);
+        usdt.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
@@ -167,11 +168,11 @@ contract ERC4626ArkTestFork is Test, IArkEvents, ArkTestBase {
     }
 
     function test_Harvest() public {
-        uint256 amount = 1000 * 1e6; // 1000 USDC
-        deal(USDC_ADDRESS, commander, amount);
+        uint256 amount = 1000 * 1e6; // 1000 USDT
+        deal(USDT_ADDRESS, commander, amount);
 
         vm.startPrank(commander);
-        usdc.approve(address(ark), amount);
+        usdt.forceApprove(address(ark), amount);
         ark.board(amount, bytes(""));
         vm.stopPrank();
 

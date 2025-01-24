@@ -38,13 +38,15 @@
     "verify:arbitrum": "hardhat ignition verify chain-42161",
     "deploy:status:base": "hardhat ignition status chain-8453",
     "verify:base": "hardhat ignition verify chain-8453",
-    "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts"
+    "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts",
+    "createVestingWallets": "hardhat run scripts/governance/create-vesting-wallets.ts --network $NETWORK",
+    "createVestingWalletsSafe": "hardhat run scripts/governance/create-vesting-wallets-safe.ts --network $NETWORK"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "^2.3.39",
     "@nomicfoundation/hardhat-foundry": "^1.1.2",
-    "@nomicfoundation/hardhat-ignition": "^0.15.5",
-    "@nomicfoundation/hardhat-ignition-viem": "^0.15.5",
+    "@nomicfoundation/hardhat-ignition": "^0.15.9",
+    "@nomicfoundation/hardhat-ignition-viem": "^0.15.9",
     "@summerfi/access-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
     "@summerfi/dependencies": "workspace:*",
@@ -58,13 +60,14 @@
     "@summerfi/tenderly-utils": "workspace:*",
     "@summerfi/typescript-config": "workspace:*",
     "@types/prompts": "^2.4.9",
-    "hardhat": "^2.22.8",
+    "hardhat": "^2.22.14",
     "hardhat-contract-sizer": "^2.10.0",
     "kleur": "^4.1.5",
     "prompts": "^2.4.2",
     "ts-node": "^10.9.2"
   },
   "dependencies": {
+    "@safe-global/sdk-starter-kit": "^1.1.1",
     "@summerfi/earn-protocol-contracts": "workspace:*",
     "dotenv": "^16.4.5",
     "solhint-plugin-prettier": "^0.1.0",
