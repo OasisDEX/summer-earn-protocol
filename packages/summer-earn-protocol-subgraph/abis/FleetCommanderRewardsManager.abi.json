@@ -914,6 +914,11 @@
   },
   {
     "type": "error",
+    "name": "CannotStakeToZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "CannotStakeZero",
     "inputs": []
   },

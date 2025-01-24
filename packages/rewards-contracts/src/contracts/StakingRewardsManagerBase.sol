@@ -301,6 +301,7 @@ abstract contract StakingRewardsManagerBase is
         address receiver,
         uint256 amount
     ) internal virtual {
+        if (receiver == address(0)) revert CannotStakeToZeroAddress();
         if (amount == 0) revert CannotStakeZero();
         if (address(stakingToken) == address(0)) {
             revert StakingTokenNotInitialized();

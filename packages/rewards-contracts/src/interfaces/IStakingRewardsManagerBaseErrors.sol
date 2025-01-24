@@ -58,4 +58,9 @@ interface IStakingRewardsManagerBaseErrors {
 
     /* @notice Thrown when the rewards duration is too long */
     error RewardsDurationTooLong();
+
+    /**
+     * @notice Thrown when the receiver is the zero address
+     */
+    error CannotStakeToZeroAddress();
 }
