@@ -85,12 +85,18 @@ abstract contract StakingRewardsManagerBase is
                                 VIEWS
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IStakingRewardsManagerBase
     function rewardTokens(
         uint256 index
     ) external view override returns (IERC20) {
         if (index >= _rewardTokensList.length()) revert IndexOutOfBounds();
         address rewardTokenAddress = _rewardTokensList.at(index);
         return IERC20(rewardTokenAddress);
+    }
+
+    /// @inheritdoc IStakingRewardsManagerBase
+    function rewardTokensLength() external view returns (uint256) {
+        return _rewardTokensList.length();
     }
 
     /// @inheritdoc IStakingRewardsManagerBase

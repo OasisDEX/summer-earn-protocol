@@ -357,23 +357,11 @@ contract SummerToken is
             decayState.getVotingPower(account, rawVotingPower, _getDelegateTo);
     }
 
-    /**
-     * @notice Returns the votes for an account at a specific past block, with decay factor applied
-     * @param account The address to get votes for
-     * @param timepoint The block number to get votes at
-     * @return The historical voting power after applying the decay factor
-     * @dev This function:
-     * 1. Gets the historical raw votes using ERC20Votes' _getPastVotes
-     * 2. Applies the current decay factor from VotingDecayManager
-     * @custom:relationship-to-votingdecay
-     * - Uses VotingDecayManager.getVotingPower() to apply decay
-     * - Note: The decay factor is current, not historical
-     * - This means voting power can decrease over time even for past checkpoints
-     */
+    /// @inheritdoc ISummerToken
     function getPastVotes(
         address account,
         uint256 timepoint
-    ) public view override(IVotes, Votes) returns (uint256) {
+    ) public view override(ISummerToken, Votes) returns (uint256) {
         uint256 pastVotingUnits = super.getPastVotes(account, timepoint);
         uint256 historicalDecayFactor = decayState.getHistoricalDecayFactor(
             account,
@@ -381,6 +369,19 @@ contract SummerToken is
         );
 
         return (pastVotingUnits * historicalDecayFactor) / Constants.WAD;
+    }
+
+    /// @inheritdoc ISummerToken
+    function getRawVotes(address account) public view returns (uint256) {
+        return super.getVotes(account);
+    }
+
+    /// @inheritdoc ISummerToken
+    function getRawPastVotes(
+        address account,
+        uint256 timepoint
+    ) public view returns (uint256) {
+        return super.getPastVotes(account, timepoint);
     }
 
     /*//////////////////////////////////////////////////////////////

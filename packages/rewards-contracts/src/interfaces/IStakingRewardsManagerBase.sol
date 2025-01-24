@@ -66,8 +66,14 @@ interface IStakingRewardsManagerBase is IStakingRewardsManagerBaseErrors {
     /* @notice Get the reward token at a specific index
      * @param index The index of the reward token
      * @return The IERC20 interface of the reward token
+     * @dev Reverts with IndexOutOfBounds if index >= rewardTokensLength()
      */
     function rewardTokens(uint256 index) external view returns (IERC20);
+
+    /* @notice Get the total number of reward tokens
+     * @return The length of the reward tokens list
+     */
+    function rewardTokensLength() external view returns (uint256);
 
     /* @notice Check if a token is in the list of reward tokens
      * @param rewardToken The address to check

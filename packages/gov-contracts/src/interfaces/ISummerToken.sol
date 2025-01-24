@@ -234,4 +234,44 @@ interface ISummerToken is
     function getDelegationChainLength(
         address account
     ) external view returns (uint256);
+
+    /**
+     * @notice Returns the raw votes (before decay) for an account
+     * @param account The address to get raw votes for
+     * @return The current voting power before applying any decay factor
+     * @dev This returns the total voting units including direct balance, staked tokens,
+     * and vesting wallet balances, but without applying the decay factor
+     */
+    function getRawVotes(address account) external view returns (uint256);
+
+    /**
+     * @notice Returns the raw votes (before decay) for an account at a specific timepoint
+     * @param account The address to get raw votes for
+     * @param timepoint The block number to get votes at
+     * @return The historical voting power before applying any decay factor
+     * @dev This returns the total voting units at the specified timepoint including direct balance,
+     * staked tokens, and vesting wallet balances, but without applying the decay factor
+     */
+    function getRawPastVotes(
+        address account,
+        uint256 timepoint
+    ) external view returns (uint256);
+
+    /**
+     * @notice Returns the votes for an account at a specific past block, with decay factor applied
+     * @param account The address to get votes for
+     * @param timepoint The block number to get votes at
+     * @return The historical voting power after applying the decay factor
+     * @dev This function:
+     * 1. Gets the historical raw votes using ERC20Votes' _getPastVotes
+     * 2. Applies the current decay factor from VotingDecayManager
+     * @custom:relationship-to-votingdecay
+     * - Uses VotingDecayManager.getVotingPower() to apply decay
+     * - Note: The decay factor is current, not historical
+     * - This means voting power can decrease over time even for past checkpoints
+     */
+    function getPastVotes(
+        address account,
+        uint256 timepoint
+    ) external view returns (uint256);
 }
