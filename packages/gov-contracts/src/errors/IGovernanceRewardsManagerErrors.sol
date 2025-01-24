@@ -21,4 +21,9 @@ interface IGovernanceRewardsManagerErrors {
      * @notice Thrown when the stakeOnBehalfOf function is called (operation not supported)
      */
     error StakeOnBehalfOfNotSupported();
+
+    /**
+     * @notice Thrown when the UnstakeOnBehalfOfNotSupported function is called (operation not supported)
+     */
+    error UnstakeOnBehalfOfNotSupported();
 }

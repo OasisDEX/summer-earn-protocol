@@ -85,10 +85,7 @@ contract GovernanceRewardsManager is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function stakeOnBehalfOf(
-        address receiver,
-        uint256 amount
-    ) external override updateDecay(receiver) updateReward(receiver) {
+    function stakeOnBehalfOf(address, uint256) external pure override {
         revert StakeOnBehalfOfNotSupported();
     }
 
@@ -97,11 +94,11 @@ contract GovernanceRewardsManager is
      * @dev This operation is not supported and will only emit an event
      */
     function unstakeAndWithdrawOnBehalfOf(
-        address owner,
-        uint256 amount,
+        address,
+        uint256,
         bool
-    ) external override {
-        emit UnstakeOnBehalfOfIgnored(owner, owner, amount);
+    ) external pure override {
+        revert UnstakeOnBehalfOfNotSupported();
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -111,6 +108,7 @@ contract GovernanceRewardsManager is
         external
         override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
         updateDecay(_msgSender())
+        updateReward(_msgSender())
     {
         _stake(_msgSender(), _msgSender(), amount);
     }
