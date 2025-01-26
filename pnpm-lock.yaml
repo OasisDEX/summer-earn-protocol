@@ -174,9 +174,15 @@ importers:
 
   packages/deployment:
     dependencies:
+      '@openzeppelin/merkle-tree':
+        specifier: 1.0.7
+        version: 1.0.7
       '@safe-global/sdk-starter-kit':
         specifier: 1.1.1
         version: 1.1.1(typescript@5.4.5)(zod@3.22.4)
+      '@safe-global/types-kit':
+        specifier: ^1.0.1
+        version: 1.0.1(typescript@5.4.5)(zod@3.22.4)
       '@summerfi/earn-protocol-contracts':
         specifier: workspace:*
         version: link:../core-contracts
@@ -189,6 +195,9 @@ importers:
       solidity-bytes-utils:
         specifier: 0.8.2
         version: 0.8.2
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
     devDependencies:
       '@layerzerolabs/lz-v2-utilities':
         specifier: 2.3.39
@@ -534,9 +543,6 @@ importers:
 
   packages/rewards-contracts:
     dependencies:
-      '@openzeppelin/merkle-tree':
-        specifier: 1.0.7
-        version: 1.0.7
       '@summerfi/access-contracts':
         specifier: workspace:*
         version: link:../access-contracts
@@ -555,9 +561,6 @@ importers:
       prompts:
         specifier: 2.4.2
         version: 2.4.2
-      tsx:
-        specifier: 4.19.2
-        version: 4.19.2
 
   packages/summer-earn-protocol-subgraph:
     devDependencies:
