@@ -50,7 +50,7 @@ contract GovernanceRewardsManager is
     /**
      * @notice Wrapped version of staking token for rewards
      */
-    WrappedStakingToken public immutable wrappedStakingToken;
+    address public immutable wrappedStakingToken;
 
     /**
      * @notice Updates rewards for an account before executing a function
@@ -75,8 +75,8 @@ contract GovernanceRewardsManager is
         address _stakingToken,
         address accessManager
     ) StakingRewardsManagerBase(accessManager) DecayController(_stakingToken) {
-        stakingToken = IERC20(_stakingToken);
-        wrappedStakingToken = new WrappedStakingToken(stakingToken);
+        stakingToken = _stakingToken;
+        wrappedStakingToken = address(new WrappedStakingToken(stakingToken));
         _setRewardsManager(address(this));
     }
 
@@ -85,11 +85,8 @@ contract GovernanceRewardsManager is
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IStakingRewardsManagerBase
-    function stakeOnBehalfOf(
-        address receiver,
-        uint256 amount
-    ) external override updateDecay(receiver) updateReward(receiver) {
-        _stake(_msgSender(), receiver, amount);
+    function stakeOnBehalfOf(address, uint256) external pure override {
+        revert StakeOnBehalfOfNotSupported();
     }
 
     /**
@@ -97,11 +94,11 @@ contract GovernanceRewardsManager is
      * @dev This operation is not supported and will only emit an event
      */
     function unstakeAndWithdrawOnBehalfOf(
-        address owner,
-        uint256 amount,
+        address,
+        uint256,
         bool
-    ) external override {
-        emit UnstakeOnBehalfOfIgnored(owner, owner, amount);
+    ) external pure override {
+        revert UnstakeOnBehalfOfNotSupported();
     }
 
     /// @inheritdoc IStakingRewardsManagerBase
@@ -111,6 +108,7 @@ contract GovernanceRewardsManager is
         external
         override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
         updateDecay(_msgSender())
+        updateReward(_msgSender())
     {
         _stake(_msgSender(), _msgSender(), amount);
     }
@@ -157,20 +155,13 @@ contract GovernanceRewardsManager is
     /// @inheritdoc IStakingRewardsManagerBase
     function earned(
         address account,
-        IERC20 rewardToken
+        address rewardToken
     )
         public
         view
         override(IStakingRewardsManagerBase, StakingRewardsManagerBase)
         returns (uint256)
     {
-        address delegate = ISummerToken(address(stakingToken)).delegates(
-            account
-        );
-        if (delegate == address(0)) {
-            return 0; // No rewards if not delegated
-        }
-
         uint256 rawEarned = _earned(account, rewardToken);
         uint256 latestSmoothedDecayFactor = _calculateSmoothedDecayFactor(
             account
@@ -239,19 +230,28 @@ contract GovernanceRewardsManager is
         address receiver,
         uint256 amount
     ) internal override {
+        if (receiver == address(0)) revert CannotStakeToZeroAddress();
         if (amount == 0) revert CannotStakeZero();
         if (address(stakingToken) == address(0)) {
             revert StakingTokenNotInitialized();
         }
 
-        // Pull tokens and wrap them
-        stakingToken.safeTransferFrom(from, address(this), amount);
-        stakingToken.forceApprove(address(wrappedStakingToken), amount);
-        wrappedStakingToken.depositFor(address(this), amount);
+        address delegate = ISummerToken(address(stakingToken)).delegates(
+            receiver
+        );
+        if (delegate == address(0)) {
+            revert NotDelegated();
+        }
 
-        // Update balances with wrapped token amount
         totalSupply += amount;
         _balances[receiver] += amount;
+
+        IERC20(stakingToken).safeTransferFrom(from, address(this), amount);
+        IERC20(stakingToken).forceApprove(wrappedStakingToken, amount);
+        WrappedStakingToken(wrappedStakingToken).depositFor(
+            address(this),
+            amount
+        );
 
         emit Staked(from, receiver, amount);
     }
@@ -266,18 +266,21 @@ contract GovernanceRewardsManager is
         address from,
         address receiver,
         uint256 amount
-    ) internal override {
+    ) internal virtual override {
         if (amount == 0) revert CannotUnstakeZero();
+
+        address delegate = ISummerToken(address(stakingToken)).delegates(
+            receiver
+        );
+        if (delegate == address(0)) {
+            revert NotDelegated();
+        }
 
         totalSupply -= amount;
         _balances[from] -= amount;
 
-        // Unwrap tokens to this contract first to ensure proper voting power accounting
-        // This prevents any interim state where voting units might be incorrectly calculated
-        wrappedStakingToken.withdrawTo(address(this), amount);
-
-        // Transfer the unwrapped tokens to the receiver after voting power is properly adjusted
-        stakingToken.transfer(receiver, amount);
+        // Send direct to receiver to avoid any interim state where voting units might be incorrectly calculated
+        WrappedStakingToken(wrappedStakingToken).withdrawTo(receiver, amount);
 
         emit Unstaked(from, receiver, amount);
     }

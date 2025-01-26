@@ -3,13 +3,13 @@
   "description": "A Solidity library for tracking and managing the decay of voting power in governance systems",
   "version": "1.0.0",
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.1"
+    "@openzeppelin/contracts": "5.0.1"
   },
   "devDependencies": {
     "@summerfi/dependencies": "workspace:*",
     "@summerfi/constants": "workspace:*",
-    "prettier": "^3.0.0",
-    "solhint": "^3.6.2"
+    "prettier": "3.0.0",
+    "solhint": "3.6.2"
   },
   "keywords": [
     "blockchain",

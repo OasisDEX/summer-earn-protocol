@@ -4,6 +4,8 @@ pragma solidity 0.8.28;
 import {SummerTokenTestBase} from "./SummerTokenTestBase.sol";
 import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
+import {ISummerTokenErrors} from "../../src/errors/ISummerTokenErrors.sol";
 
 contract SummerTokenDelegateTest is SummerTokenTestBase {
     uint256 public constant WAD = 1e18;
@@ -76,6 +78,38 @@ contract SummerTokenDelegateTest is SummerTokenTestBase {
             user2Votes,
             (user1InitialBalance * aSummerToken.getDecayFactor(user2)) / WAD,
             "user2's voting power should match their balance"
+        );
+    }
+
+    function test_RevertWhen_UndelegatingWhileStaked() public {
+        // Setup initial balance and stake for user1
+        uint256 initialBalance = 100e18;
+        deal(address(aSummerToken), user1, initialBalance);
+
+        IGovernanceRewardsManager rewardsManager = IGovernanceRewardsManager(
+            aSummerToken.rewardsManager()
+        );
+
+        // User1 delegates to user2 first
+        vm.startPrank(user1);
+        aSummerToken.approve(address(rewardsManager), initialBalance);
+        aSummerToken.delegate(user2);
+
+        // Stake some tokens
+        rewardsManager.stake(50e18);
+
+        // Attempt to undelegate (delegate to address(0)) while staked
+        vm.expectRevert(
+            ISummerTokenErrors.CannotUndelegateWhileStaked.selector
+        );
+        aSummerToken.delegate(address(0));
+        vm.stopPrank();
+
+        // Verify delegation is still to user2
+        assertEq(
+            aSummerToken.delegates(user1),
+            user2,
+            "delegation should remain unchanged"
         );
     }
 }

@@ -40,7 +40,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
-                accessManager: accessManagerA,
+                accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
@@ -279,7 +279,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
-                accessManager: accessManagerA,
+                accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: belowMin,
@@ -838,7 +838,7 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
-                accessManager: accessManagerA,
+                accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,

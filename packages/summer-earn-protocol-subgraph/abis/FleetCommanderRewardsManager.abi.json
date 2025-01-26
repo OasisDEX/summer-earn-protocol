@@ -111,7 +111,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -225,7 +225,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -258,12 +258,31 @@
   },
   {
     "type": "function",
+    "name": "isRewardToken",
+    "inputs": [
+      {
+        "name": "rewardToken",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "lastTimeRewardApplicable",
     "inputs": [
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -282,7 +301,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "reward",
@@ -305,7 +324,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -318,7 +337,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -357,7 +376,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -383,7 +402,20 @@
       {
         "name": "",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "rewardTokensLength",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -395,7 +427,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "account",
@@ -419,7 +451,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "_rewardsDuration",
@@ -469,7 +501,7 @@
       {
         "name": "",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       }
     ],
     "stateMutability": "view"
@@ -530,7 +562,7 @@
       {
         "name": "rewardToken",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "account",
@@ -663,19 +695,6 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "StakingTokenInitialized",
-    "inputs": [
-      {
-        "name": "stakingToken",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -895,6 +914,11 @@
   },
   {
     "type": "error",
+    "name": "CannotStakeToZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "CannotStakeZero",
     "inputs": []
   },
@@ -1026,6 +1050,11 @@
   {
     "type": "error",
     "name": "RewardsDurationCannotBeZero",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RewardsDurationTooLong",
     "inputs": []
   },
   {

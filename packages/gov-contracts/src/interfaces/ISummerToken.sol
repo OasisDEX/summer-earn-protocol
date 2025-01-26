@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
@@ -224,7 +223,7 @@ interface ISummerToken is
      * @notice Returns the address of the rewards manager contract
      * @return The address of the rewards manager
      */
-    function rewardsManager() external view returns (IGovernanceRewardsManager);
+    function rewardsManager() external view returns (address);
 
     /**
      * @notice Gets the length of the delegation chain for an account
@@ -233,5 +232,36 @@ interface ISummerToken is
      */
     function getDelegationChainLength(
         address account
+    ) external view returns (uint256);
+
+    /**
+     * @notice Returns the raw votes (before decay) for an account at a specific timepoint
+     * @param account The address to get raw votes for
+     * @param timestamp The timestamp to get raw votes at
+     * @return The current voting power before applying any decay factor
+     * @dev This returns the total voting units including direct balance, staked tokens,
+     * and vesting wallet balances, but without applying the decay factor
+     */
+    function getRawVotesAt(
+        address account,
+        uint256 timestamp
+    ) external view returns (uint256);
+
+    /**
+     * @notice Returns the votes for an account at a specific past block, with decay factor applied
+     * @param account The address to get votes for
+     * @param timepoint The block number to get votes at
+     * @return The historical voting power after applying the decay factor
+     * @dev This function:
+     * 1. Gets the historical raw votes using ERC20Votes' _getPastVotes
+     * 2. Applies the current decay factor from VotingDecayManager
+     * @custom:relationship-to-votingdecay
+     * - Uses VotingDecayManager.getVotingPower() to apply decay
+     * - Note: The decay factor is current, not historical
+     * - This means voting power can decrease over time even for past checkpoints
+     */
+    function getPastVotes(
+        address account,
+        uint256 timepoint
     ) external view returns (uint256);
 }

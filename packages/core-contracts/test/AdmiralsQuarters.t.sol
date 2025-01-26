@@ -98,7 +98,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         deal(address(rewardTokens[0]), governor, 1000e6);
         rewardTokens[0].approve(address(_stakingRewardsManager), 1000e6);
         IFleetCommanderRewardsManager(_stakingRewardsManager)
-            .notifyRewardAmount(IERC20(rewardTokens[0]), 1000e6, 10 days);
+            .notifyRewardAmount(address(rewardTokens[0]), 1000e6, 10 days);
         vm.stopPrank();
 
         // Mint tokens for users
@@ -1903,7 +1903,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
             // Then notify the reward amount
             IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
-                rewardTokens[i],
+                address(rewardTokens[i]),
                 rewardAmount,
                 rewardDuration
             );
@@ -1947,7 +1947,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             assertGt(
                 IFleetCommanderRewardsManager(rewardsManager).earned(
                     user1,
-                    rewardTokens[i]
+                    address(rewardTokens[i])
                 ),
                 0,
                 "User should have earned rewards before unstaking"
@@ -2030,7 +2030,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         deal(address(rewardTokens[0]), governor, rewardAmount);
         rewardTokens[0].approve(address(rewardsManager), rewardAmount);
         IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
-            rewardTokens[0],
+            address(rewardTokens[0]),
             rewardAmount,
             rewardDuration
         );
@@ -2046,7 +2046,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
             )
         );
         IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(
-            rewardTokens[0]
+            address(rewardTokens[0])
         );
         vm.stopPrank();
     }
@@ -2076,7 +2076,7 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
         deal(address(usdc), governor, rewardAmount);
         usdc.approve(address(rewardsManager), rewardAmount);
         IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
-            usdc,
+            address(usdc),
             rewardAmount,
             rewardDuration
         );
@@ -2114,7 +2114,9 @@ contract AdmiralsQuartersTest is FleetCommanderTestBase, OneInchTestHelpers {
 
         // Now try to remove the reward token as governor
         vm.startPrank(governor);
-        IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(usdc);
+        IFleetCommanderRewardsManager(rewardsManager).removeRewardToken(
+            address(usdc)
+        );
         vm.stopPrank();
     }
 

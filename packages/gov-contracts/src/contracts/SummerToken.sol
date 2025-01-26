@@ -2,30 +2,32 @@
 pragma solidity 0.8.28;
 
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {OFT, OFTCore} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
+import {ISummerVestingWalletFactory} from "../interfaces/ISummerVestingWalletFactory.sol";
+import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC20Capped} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-import {ISummerToken} from "../interfaces/ISummerToken.sol";
-import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
+
+import {OFT, OFTCore} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+
 import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
+import {DecayController} from "./DecayController.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
-import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
-import {SummerVestingWallet} from "./SummerVestingWallet.sol";
-import {DecayController} from "./DecayController.sol";
-import {IGovernanceRewardsManager} from "../interfaces/IGovernanceRewardsManager.sol";
+
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
-import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 
 /**
  * @title SummerToken
@@ -51,9 +53,9 @@ contract SummerToken is
 
     /// @notice The chain ID of the hub chain where governance actions are permitted
     uint32 public immutable hubChainId;
-    IGovernanceRewardsManager public rewardsManager;
+    address public rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
-    SummerVestingWalletFactory public vestingWalletFactory;
+    address public immutable vestingWalletFactory;
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
@@ -99,15 +101,13 @@ contract SummerToken is
         DecayController(address(this))
         Ownable(params.initialOwner)
     {
-        rewardsManager = new GovernanceRewardsManager(
-            address(this),
-            params.accessManager
+        rewardsManager = address(
+            new GovernanceRewardsManager(address(this), params.accessManager)
         );
-        _setRewardsManager(address(rewardsManager));
+        _setRewardsManager(rewardsManager);
 
-        vestingWalletFactory = new SummerVestingWalletFactory(
-            address(this),
-            params.accessManager
+        vestingWalletFactory = address(
+            new SummerVestingWalletFactory(address(this), params.accessManager)
         );
 
         hubChainId = params.hubChainId;
@@ -315,6 +315,15 @@ contract SummerToken is
     function delegate(
         address delegatee
     ) public override(IVotes, Votes) updateDecay(_msgSender()) onlyHubChain {
+        if (delegatee == address(0)) {
+            uint256 stakingBalance = IGovernanceRewardsManager(rewardsManager)
+                .balanceOf(_msgSender());
+
+            if (stakingBalance > 0) {
+                revert CannotUndelegateWhileStaked();
+            }
+        }
+
         // Only initialize delegatee if they don't have decay info yet
         if (delegatee != address(0) && !decayState.hasDecayInfo(delegatee)) {
             decayState.initializeAccount(delegatee);
@@ -357,23 +366,11 @@ contract SummerToken is
             decayState.getVotingPower(account, rawVotingPower, _getDelegateTo);
     }
 
-    /**
-     * @notice Returns the votes for an account at a specific past block, with decay factor applied
-     * @param account The address to get votes for
-     * @param timepoint The block number to get votes at
-     * @return The historical voting power after applying the decay factor
-     * @dev This function:
-     * 1. Gets the historical raw votes using ERC20Votes' _getPastVotes
-     * 2. Applies the current decay factor from VotingDecayManager
-     * @custom:relationship-to-votingdecay
-     * - Uses VotingDecayManager.getVotingPower() to apply decay
-     * - Note: The decay factor is current, not historical
-     * - This means voting power can decrease over time even for past checkpoints
-     */
+    /// @inheritdoc ISummerToken
     function getPastVotes(
         address account,
         uint256 timepoint
-    ) public view override(IVotes, Votes) returns (uint256) {
+    ) public view override(ISummerToken, Votes) returns (uint256) {
         uint256 pastVotingUnits = super.getPastVotes(account, timepoint);
         uint256 historicalDecayFactor = decayState.getHistoricalDecayFactor(
             account,
@@ -381,6 +378,17 @@ contract SummerToken is
         );
 
         return (pastVotingUnits * historicalDecayFactor) / Constants.WAD;
+    }
+
+    /// @inheritdoc ISummerToken
+    function getRawVotesAt(
+        address account,
+        uint256 timestamp
+    ) public view returns (uint256) {
+        return
+            timestamp == 0
+                ? super.getVotes(account)
+                : super.getPastVotes(account, timestamp);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -500,10 +508,15 @@ contract SummerToken is
     ) internal view override returns (uint256) {
         // Get raw voting units first
         uint256 directBalance = balanceOf(account);
-        uint256 stakingBalance = rewardsManager.balanceOf(account);
-        uint256 vestingBalance = vestingWalletFactory.vestingWallets(account) !=
-            address(0)
-            ? balanceOf(vestingWalletFactory.vestingWallets(account))
+        uint256 stakingBalance = IGovernanceRewardsManager(rewardsManager)
+            .balanceOf(account);
+        uint256 vestingBalance = ISummerVestingWalletFactory(
+            vestingWalletFactory
+        ).vestingWallets(account) != address(0)
+            ? balanceOf(
+                ISummerVestingWalletFactory(vestingWalletFactory)
+                    .vestingWallets(account)
+            )
             : 0;
 
         return directBalance + stakingBalance + vestingBalance;
@@ -558,9 +571,9 @@ contract SummerToken is
         uint256 amount
     ) internal returns (bool) {
         // Case 1: Transfer TO vesting wallet
-        address vestingWalletOwner = vestingWalletFactory.vestingWalletOwners(
-            to
-        );
+        address vestingWalletOwner = ISummerVestingWalletFactory(
+            vestingWalletFactory
+        ).vestingWalletOwners(to);
         if (vestingWalletOwner != address(0)) {
             // Skip if transfer is from the owner (they already have voting power)
             if (from != vestingWalletOwner) {
@@ -571,8 +584,9 @@ contract SummerToken is
         }
 
         // Case 2: Transfer FROM vesting wallet
-        address fromVestingWalletOwner = vestingWalletFactory
-            .vestingWalletOwners(from);
+        address fromVestingWalletOwner = ISummerVestingWalletFactory(
+            vestingWalletFactory
+        ).vestingWalletOwners(from);
         if (fromVestingWalletOwner != address(0)) {
             // Skip if transfer is to the beneficiary (they already have voting power)
             if (to == fromVestingWalletOwner) {
@@ -590,13 +604,28 @@ contract SummerToken is
      * @dev Handles voting power transfers involving the rewards manager
      * @param from Source address
      * @param to Destination address
-     * @return bool True if the transfer was handled (rewards manager case), false otherwise
+     * @return bool True if vote tracking should be skipped (rewards manager case), false if normal vote tracking should occur
+     * @custom:internal-logic
+     * - Returns true to skip vote tracking for two specific cases:
+     *   1. When tokens come FROM the wrapped staking token (used for both unstaking and reward claims)
+     *   2. When staking: transfers TO the rewards manager
+     * - Returns false for all other transfers, allowing normal vote tracking
+     * @custom:rationale
+     * - Staking/unstaking/reward operations are handled separately by the rewards manager
+     * - The wrapped staking token is used as the source for both unstaking and claiming rewards
+     * - Skipping vote tracking here prevents double-counting of voting power since
+     *   the rewards manager maintains its own balance tracking for staked tokens
      */
     function _handleRewardsManagerVotingTransfer(
         address from,
         address to
-    ) internal view returns (bool) {
-        if (from == address(rewardsManager) || to == address(rewardsManager)) {
+    ) internal view virtual returns (bool) {
+        // Skip vote tracking for unstaking/rewards (from wrapped token) and staking (to rewards manager)
+        if (
+            from ==
+            IGovernanceRewardsManager(rewardsManager).wrappedStakingToken() ||
+            to == address(rewardsManager)
+        ) {
             return true;
         }
         return false;
