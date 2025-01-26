@@ -1149,4 +1149,179 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.expectRevert(abi.encodeWithSignature("RewardTokenDoesNotExist()"));
         stakingRewardsManager.getRewardFor(alice, address(0x123));
     }
+
+    function test_RewardTokenRemovalAndReaddition() public {
+        console.log("----------------------------------------");
+        console.log("Setting up initial variables");
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+        IERC20 rewardToken = rewardTokens[0];
+
+        console.log("----------------------------------------");
+        console.log("First reward period setup - notifying reward amount");
+        vm.startPrank(mockGovernor);
+        rewardToken.approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        console.log("----------------------------------------");
+        console.log("User staking tokens");
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        console.log("----------------------------------------");
+        console.log("Waiting 10 minutes and getting initial rewards");
+        vm.warp(block.timestamp + 10 minutes);
+
+        uint256 balanceBefore = rewardToken.balanceOf(alice);
+        vm.prank(alice);
+        stakingRewardsManager.getReward();
+        uint256 firstRewardAmount = rewardToken.balanceOf(alice) -
+            balanceBefore;
+        console.log("First reward amount:", firstRewardAmount);
+
+        assertGt(firstRewardAmount, 0, "Should have received first reward");
+
+        console.log("----------------------------------------");
+        console.log("Fast forwarding past reward period");
+        vm.warp(block.timestamp + 7 days);
+
+        console.log("----------------------------------------");
+        console.log(
+            "Simulating all rewards claimed by transferring out remaining balance"
+        );
+        vm.startPrank(address(stakingRewardsManager));
+        uint256 remainingBalance = rewardToken.balanceOf(
+            address(stakingRewardsManager)
+        );
+        console.log("Remaining balance to transfer:", remainingBalance);
+        rewardToken.transfer(address(1), remainingBalance);
+        vm.stopPrank();
+
+        console.log("----------------------------------------");
+        console.log("Removing reward token");
+        vm.prank(mockGovernor);
+        stakingRewardsManager.removeRewardToken(rewardToken);
+
+        console.log("----------------------------------------");
+        console.log("Adding same reward token again with new rewards");
+        vm.startPrank(mockGovernor);
+        rewardToken.approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        console.log("----------------------------------------");
+        console.log("Waiting 5 minutes and getting rewards again");
+        vm.warp(block.timestamp + 5 minutes);
+
+        balanceBefore = rewardToken.balanceOf(alice);
+        vm.prank(alice);
+        stakingRewardsManager.getReward();
+        uint256 secondRewardAmount = rewardToken.balanceOf(alice) -
+            balanceBefore;
+        console.log("Second reward amount:", secondRewardAmount);
+
+        assertGt(secondRewardAmount, 0, "Should have received second reward");
+
+        console.log("----------------------------------------");
+        console.log("Verifying reward proportions");
+        console.log("First reward (10 min period):", firstRewardAmount);
+        console.log("Second reward (5 min period):", secondRewardAmount);
+        console.log("Second reward * 2:", secondRewardAmount * 2);
+
+        assertApproxEqRel(
+            secondRewardAmount * 2,
+            firstRewardAmount,
+            0.01e18, // 1% tolerance
+            "Second reward should be approximately half of first reward due to time difference"
+        );
+        console.log("----------------------------------------");
+        console.log("Test completed successfully");
+    }
+
+    function test_BuggedRemoveRewardToken_UnderflowError() public {
+        console.log("----------------------------------------");
+        console.log("Setting up initial variables");
+        uint256 stakeAmount = 1000 * 1e18;
+        uint256 rewardAmount = 100 * 1e18;
+        IERC20 rewardToken = rewardTokens[0];
+
+        console.log("----------------------------------------");
+        console.log("First reward period setup - notifying reward amount");
+        vm.startPrank(mockGovernor);
+        rewardToken.approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        console.log("----------------------------------------");
+        console.log("User staking tokens");
+        vm.prank(alice);
+        stakingRewardsManager.stake(stakeAmount);
+
+        console.log("----------------------------------------");
+        console.log("Waiting 10 minutes and getting initial rewards");
+        vm.warp(block.timestamp + 10 minutes);
+
+        uint256 balanceBefore = rewardToken.balanceOf(alice);
+        vm.prank(alice);
+        stakingRewardsManager.getReward();
+        uint256 firstRewardAmount = rewardToken.balanceOf(alice) -
+            balanceBefore;
+        console.log("First reward amount:", firstRewardAmount);
+
+        assertGt(firstRewardAmount, 0, "Should have received first reward");
+
+        console.log("----------------------------------------");
+        console.log("Fast forwarding past reward period");
+        vm.warp(block.timestamp + 7 days);
+
+        console.log("----------------------------------------");
+        console.log(
+            "Simulating all rewards claimed by transferring out remaining balance"
+        );
+        vm.startPrank(address(stakingRewardsManager));
+        uint256 remainingBalance = rewardToken.balanceOf(
+            address(stakingRewardsManager)
+        );
+        console.log("Remaining balance to transfer:", remainingBalance);
+        rewardToken.transfer(address(1), remainingBalance);
+        vm.stopPrank();
+
+        console.log("----------------------------------------");
+        console.log("Removing reward token");
+        vm.prank(mockGovernor);
+        stakingRewardsManager.buggedRemoveRewardToken(rewardToken);
+
+        console.log("----------------------------------------");
+        console.log("Adding same reward token again with new rewards");
+        vm.startPrank(mockGovernor);
+        rewardToken.approve(address(stakingRewardsManager), rewardAmount);
+        stakingRewardsManager.notifyRewardAmount(
+            rewardToken,
+            rewardAmount,
+            7 days
+        );
+        vm.stopPrank();
+
+        console.log("----------------------------------------");
+        console.log("Waiting 5 minutes and getting rewards again");
+        vm.warp(block.timestamp + 5 minutes);
+
+        balanceBefore = rewardToken.balanceOf(alice);
+        vm.prank(alice);
+        vm.expectRevert();
+        stakingRewardsManager.getReward();
+    }
 }

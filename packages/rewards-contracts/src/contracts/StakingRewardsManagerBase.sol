@@ -264,9 +264,6 @@ abstract contract StakingRewardsManagerBase is
         // Remove the token from the rewardTokens map
         _rewardTokensList.remove(address(rewardToken));
 
-        // Reset the reward data for this token
-        delete rewardData[rewardToken];
-
         emit RewardTokenRemoved(address(rewardToken));
     }
 
