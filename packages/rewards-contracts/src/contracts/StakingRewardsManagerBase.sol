@@ -180,7 +180,7 @@ abstract contract StakingRewardsManagerBase is
 
     /// @inheritdoc IStakingRewardsManagerBase
     function getReward(address rewardToken) public virtual nonReentrant {
-        if (!isRewardToken(rewardToken)) revert RewardTokenDoesNotExist();
+        if (!_isRewardToken(rewardToken)) revert RewardTokenDoesNotExist();
         _getReward(_msgSender(), rewardToken);
     }
 
@@ -207,7 +207,7 @@ abstract contract StakingRewardsManagerBase is
         address account,
         address rewardToken
     ) public virtual nonReentrant {
-        if (!isRewardToken(rewardToken)) revert RewardTokenDoesNotExist();
+        if (!_isRewardToken(rewardToken)) revert RewardTokenDoesNotExist();
         _getReward(account, rewardToken);
     }
 
