@@ -150,7 +150,7 @@ abstract contract StakingRewardsManagerBase is
 
     /// @inheritdoc IStakingRewardsManagerBase
     function isRewardToken(address rewardToken) external view returns (bool) {
-        return _rewardTokensList.contains(rewardToken);
+        return _isRewardToken(rewardToken);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -180,8 +180,7 @@ abstract contract StakingRewardsManagerBase is
 
     /// @inheritdoc IStakingRewardsManagerBase
     function getReward(address rewardToken) public virtual nonReentrant {
-        if (!_rewardTokensList.contains(rewardToken))
-            revert RewardTokenDoesNotExist();
+        if (!isRewardToken(rewardToken)) revert RewardTokenDoesNotExist();
         _getReward(_msgSender(), rewardToken);
     }
 
@@ -208,8 +207,7 @@ abstract contract StakingRewardsManagerBase is
         address account,
         address rewardToken
     ) public virtual nonReentrant {
-        if (!_rewardTokensList.contains(rewardToken))
-            revert RewardTokenDoesNotExist();
+        if (!isRewardToken(rewardToken)) revert RewardTokenDoesNotExist();
         _getReward(account, rewardToken);
     }
 
@@ -231,7 +229,7 @@ abstract contract StakingRewardsManagerBase is
         address rewardToken,
         uint256 _rewardsDuration
     ) external onlyGovernor {
-        if (!_rewardTokensList.contains(rewardToken)) {
+        if (!_isRewardToken(rewardToken)) {
             revert RewardTokenDoesNotExist();
         }
         if (_rewardsDuration == 0) {
@@ -252,7 +250,7 @@ abstract contract StakingRewardsManagerBase is
     /// @notice Removes a reward token from the list of reward tokens
     /// @param rewardToken The address of the reward token to remove
     function removeRewardToken(address rewardToken) external onlyGovernor {
-        if (!_rewardTokensList.contains(rewardToken)) {
+        if (!_isRewardToken(rewardToken)) {
             revert RewardTokenDoesNotExist();
         }
 
@@ -295,6 +293,10 @@ abstract contract StakingRewardsManagerBase is
     /*//////////////////////////////////////////////////////////////
                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _isRewardToken(address rewardToken) internal view returns (bool) {
+        return _rewardTokensList.contains(rewardToken);
+    }
 
     function _stake(
         address staker,
@@ -404,7 +406,7 @@ abstract contract StakingRewardsManagerBase is
         }
 
         // For existing reward tokens, check if current period is complete
-        if (_rewardTokensList.contains(rewardToken)) {
+        if (_isRewardToken(rewardToken)) {
             if (newRewardsDuration != rewardTokenData.rewardsDuration) {
                 revert CannotChangeRewardsDuration();
             }

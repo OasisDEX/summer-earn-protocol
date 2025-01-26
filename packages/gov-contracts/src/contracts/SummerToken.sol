@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-// Interfaces
 import {ISummerToken} from "../interfaces/ISummerToken.sol";
 import {ISummerGovernor} from "../interfaces/ISummerGovernor.sol";
 import {ISummerVestingWalletFactory} from "../interfaces/ISummerVestingWalletFactory.sol";
@@ -10,7 +9,6 @@ import {IOFT, SendParam, OFTReceipt, MessagingReceipt, MessagingFee} from "@laye
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
-// OpenZeppelin Contracts
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -20,17 +18,14 @@ import {ERC20Capped} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20C
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
 
-// LayerZero Contracts
 import {OFT, OFTCore} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 
-// Summer Protocol Contracts
 import {GovernanceRewardsManager} from "./GovernanceRewardsManager.sol";
 import {SummerVestingWalletFactory} from "./SummerVestingWalletFactory.sol";
 import {DecayController} from "./DecayController.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
-// Utilities and Constants
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {Percentage} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 
