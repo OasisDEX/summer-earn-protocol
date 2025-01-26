@@ -28,7 +28,25 @@ contract SummerTokenVotingTest is SummerTokenTestBase {
 
         vm.prank(alice);
         aSummerToken.delegate(alice);
-        assertEq(aSummerToken.getVotes(alice), 100 ether);
+
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+
+        // Transfer half balance
+        vm.prank(alice);
+        aSummerToken.transfer(bob, 50 ether);
+
+        // Check historical votes
+        assertEq(
+            aSummerToken.getPastVotes(alice, block.timestamp - 1),
+            100 ether
+        );
+        assertEq(aSummerToken.getVotes(alice), 50 ether);
+
+        // Bob delegates to self
+        vm.prank(bob);
+        aSummerToken.delegate(bob);
+        assertEq(aSummerToken.getVotes(bob), 50 ether);
     }
 
     function test_Delegation() public {

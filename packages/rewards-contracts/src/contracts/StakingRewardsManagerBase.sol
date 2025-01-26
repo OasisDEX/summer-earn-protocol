@@ -284,9 +284,6 @@ abstract contract StakingRewardsManagerBase is
         bool success = _rewardTokensList.remove(address(rewardToken));
         if (!success) revert RewardTokenDoesNotExist();
 
-        // Reset the reward data for this token
-        delete rewardData[rewardToken];
-
         emit RewardTokenRemoved(address(rewardToken));
     }
 

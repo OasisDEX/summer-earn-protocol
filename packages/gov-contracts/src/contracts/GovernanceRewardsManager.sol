@@ -170,6 +170,13 @@ contract GovernanceRewardsManager is
         return (rawEarned * latestSmoothedDecayFactor) / Constants.WAD;
     }
 
+    /// @inheritdoc IGovernanceRewardsManager
+    function calculateSmoothedDecayFactor(
+        address account
+    ) external view returns (uint256) {
+        return _calculateSmoothedDecayFactor(account);
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 INTERNAL
     //////////////////////////////////////////////////////////////*/

@@ -44,4 +44,13 @@ interface IGovernanceRewardsManager is
      * @param account The address to update the smoothed decay factor for
      */
     function updateSmoothedDecayFactor(address account) external;
+
+    /**
+     * @notice Calculates the smoothed decay factor for a given account without modifying state
+     * @param account The address of the account to calculate for
+     * @return The calculated smoothed decay factor
+     */
+    function calculateSmoothedDecayFactor(
+        address account
+    ) external view returns (uint256);
 }

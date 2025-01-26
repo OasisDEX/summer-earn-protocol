@@ -4,7 +4,7 @@
   "assetSymbol": "WETH",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "3600",
-  "depositCap": "1000000000",
+  "depositCap": "1000000000000000000",
   "initialTipRate": "0",
   "network": "mainnet",
   "details": "",
