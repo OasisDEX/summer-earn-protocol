@@ -30,6 +30,7 @@ export function createFleetModule(moduleName: string) {
     const fleetCommanderRewardsManagerFactory = m.getParameter<string>(
       'fleetCommanderRewardsManagerFactory',
     )
+
     const fleetCommander = m.contract('FleetCommander', [
       {
         name: fleetName,

@@ -5,16 +5,44 @@ import path from 'path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
-import { BaseConfig, FleetDefinition } from '../types/config-types'
+import { BaseConfig, FleetConfig } from '../types/config-types'
+import { addArkToFleet } from './common/add-ark-to-fleet'
+import { deployArk } from './common/ark-deployment'
 import { GOVERNOR_ROLE } from './common/constants'
+import { getFleetConfigDir } from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
 import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { loadFleetDefinition } from './helpers/fleet-definition-handler'
+import { loadFleetConfig } from './helpers/fleet-definition-handler'
 import { getChainId } from './helpers/get-chainid'
 import { ModuleLogger } from './helpers/module-logger'
 import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import { validateToken } from './helpers/validation'
+
+/**
+ * Deploys all Arks specified in the fleet definition
+ * @param {FleetConfig} fleetDefinition - The fleet definition object
+ * @param {BaseConfig} config - The configuration object
+ * @returns {Promise<Address[]>} Array of deployed Ark addresses
+ */
+async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Promise<Address[]> {
+  const deployedArks: Address[] = []
+
+  for (const arkConfig of fleetDefinition.arks) {
+    console.log(
+      kleur.bgWhite().bold(`\n ------------------------------------------------------------`),
+    )
+    console.log(kleur.cyan().bold(`\nDeploying ${arkConfig.type}...`))
+
+    const arkAddress = await deployArk(arkConfig, config, fleetDefinition.depositCap)
+    deployedArks.push(arkAddress)
+
+    console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
+  }
+
+  return deployedArks
+}
 
 /**
  * Main function to deploy a fleet.
@@ -28,11 +56,13 @@ import { continueDeploymentCheck } from './helpers/prompt-helpers'
 async function deployFleet() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
-  const config = getConfigByNetwork(network)
+  const config = getConfigByNetwork(network, { common: true, gov: true, core: true })
 
   console.log(kleur.green().bold('Starting Fleet deployment process...'))
 
-  const fleetDefinition = await getFleetDefinition()
+  const fleetDefinition = await getFleetConfig()
+  validateToken(config, fleetDefinition.assetSymbol)
+
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
 
@@ -41,11 +71,22 @@ async function deployFleet() {
   if (await confirmDeployment(fleetDefinition)) {
     console.log(kleur.green().bold('Proceeding with deployment...'))
 
+    // Deploy Fleet first
     const deployedFleet = await deployFleetContracts(fleetDefinition, config, assetAddress)
 
     console.log(kleur.green().bold('Deployment completed successfully!'))
 
     const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
+
+    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
+
+    // Deploy all Arks later
+    const deployedArkAddresses = await deployArks(fleetDefinition, config)
+
+    // Add each Ark to the Fleet
+    for (const arkAddress of deployedArkAddresses) {
+      await addArkToFleet(arkAddress, config, hre, fleetDefinition)
+    }
 
     await grantCommanderRole(
       config.deployedContracts.gov.protocolAccessManager.address as Address,
@@ -55,7 +96,6 @@ async function deployFleet() {
     )
 
     logDeploymentResults(deployedFleet)
-    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -65,25 +105,25 @@ async function deployFleet() {
  * Prompts the user for the fleet definition file and loads it.
  * @returns The loaded fleet definition object.
  */
-async function getFleetDefinition(): Promise<FleetDefinition> {
-  const fleetsDir = path.resolve(__dirname, '..', 'config', 'fleets')
+async function getFleetConfig(): Promise<FleetConfig> {
+  const fleetsDir = getFleetConfigDir()
   const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
 
   if (fleetFiles.length === 0) {
-    throw new Error('No fleet definition files found in the fleets directory.')
+    throw new Error('No fleet config files found in the fleets directory.')
   }
 
   const response = await prompts({
     type: 'select',
-    name: 'fleetDefinitionFile',
-    message: 'Select the fleet definition file:',
+    name: 'fleetConfigFile',
+    message: 'Select the fleet config file:',
     choices: fleetFiles.map((file) => ({ title: file, value: file })),
   })
 
-  const fleetDefinitionPath = path.resolve(fleetsDir, response.fleetDefinitionFile)
-  console.log(kleur.green(`Loading fleet definition from: ${fleetDefinitionPath}`))
-  // todo: remove this once we have a details field in the fleet definition
-  return { ...loadFleetDefinition(fleetDefinitionPath), details: JSON.stringify('') }
+  const fleetConfigPath = path.resolve(fleetsDir, response.fleetConfigFile)
+  console.log(kleur.green(`Loading fleet config from: ${fleetConfigPath}`))
+  const fleetConfig = loadFleetConfig(fleetConfigPath)
+  return { ...fleetConfig, details: JSON.stringify(fleetConfig.details) }
 }
 
 /**
@@ -122,7 +162,7 @@ async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
  * @returns {Promise<FleetContracts>} The deployed fleet contracts.
  */
 async function deployFleetContracts(
-  fleetDefinition: FleetDefinition,
+  fleetDefinition: FleetConfig,
   config: BaseConfig,
   asset: string,
 ) {
@@ -131,6 +171,7 @@ async function deployFleetContracts(
 
   const name = fleetDefinition.fleetName.replace(/\W/g, '')
   const fleetModule = createFleetModule(`FleetModule_${name}`)
+
   const deployedModule = await hre.ignition.deploy(fleetModule, {
     parameters: {
       [`FleetModule_${name}`]: {
@@ -187,13 +228,20 @@ async function addFleetToHarbor(
     deployer.account.address,
   ])
   if (hasGovernorRole) {
-    const hash = await (
-      await hre.viem.getContractAt('HarborCommand' as string, harborCommandAddress)
-    ).write.enlistFleetCommander([fleetCommanderAddress])
-    await publicClient.waitForTransactionReceipt({
-      hash: hash,
-    })
-    console.log(kleur.green('Fleet added to Harbor Command successfully!'))
+    const harborCommand = await hre.viem.getContractAt(
+      'HarborCommand' as string,
+      harborCommandAddress,
+    )
+    const isEnlisted = await harborCommand.read.activeFleetCommanders([fleetCommanderAddress])
+    if (!isEnlisted) {
+      const hash = await harborCommand.write.enlistFleetCommander([fleetCommanderAddress])
+      await publicClient.waitForTransactionReceipt({
+        hash: hash,
+      })
+      console.log(kleur.green('Fleet added to Harbor Command successfully!'))
+    } else {
+      console.log(kleur.yellow('Fleet already enlisted in Harbor Command'))
+    }
   } else {
     console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
     console.log(

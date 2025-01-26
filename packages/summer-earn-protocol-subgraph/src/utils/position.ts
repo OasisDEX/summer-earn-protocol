@@ -1,5 +1,4 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
-import { Account } from '../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import * as constants from '../common/constants'
@@ -10,7 +9,7 @@ import { PositionDetails, VaultDetails } from '../types'
 
 export function getPositionDetails(
   vault: Address,
-  account: Account,
+  account: Address,
   vaultDetails: VaultDetails,
   block: ethereum.Block,
 ): PositionDetails {
@@ -19,11 +18,11 @@ export function getPositionDetails(
     vaultDetails.rewardsManager,
   )
   const unstakedShares = utils.readValue<BigInt>(
-    vaultContract.try_balanceOf(Address.fromString(account.id)),
+    vaultContract.try_balanceOf(account),
     constants.BigIntConstants.ZERO,
   )
   const stakedShares = utils.readValue<BigInt>(
-    rewardsManagerContract.try_balanceOf(Address.fromString(account.id)),
+    rewardsManagerContract.try_balanceOf(account),
     constants.BigIntConstants.ZERO,
   )
   const unstakedInputToken = utils.readValue<BigInt>(
@@ -49,7 +48,7 @@ export function getPositionDetails(
   const stakedInputTokenNormalizedUSD = stakedInputTokenNormalized.times(priceInUSD)
   const totalInputTokenNormalizedUSD = totalInputTokenNormalized.times(priceInUSD)
   const position = getOrCreatePosition(
-    utils.formatPositionId(account.id, vaultDetails.vaultId),
+    utils.formatPositionId(account.toHexString(), vaultDetails.vaultId),
     block,
   )
 
@@ -93,7 +92,7 @@ export function getPositionDetails(
   const totalInputTokenDeltaNormalizedUSD = totalInputTokenDeltaNormalized.times(priceInUSD)
 
   return new PositionDetails(
-    utils.formatPositionId(account.id, vaultDetails.vaultId),
+    utils.formatPositionId(account.toHexString(), vaultDetails.vaultId),
     unstakedShares.plus(stakedShares), // outputTokenBalance
     stakedShares, // stakedOutputTokenBalance
     unstakedShares, // unstakedOutputTokenBalance
@@ -116,7 +115,7 @@ export function getPositionDetails(
     totalInputTokenDeltaNormalized, // inputTokenDeltaNormalized
     totalInputTokenDeltaNormalizedUSD, // inputTokenDeltaNormalizedUSD
     vaultDetails.vaultId, // vault
-    account.id, // account
+    account.toHexString(), // account
     vaultDetails.inputToken, // inputToken
     vaultDetails.protocol, // protocol
   )

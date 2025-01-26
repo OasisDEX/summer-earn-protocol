@@ -213,7 +213,7 @@ contract AdmiralsQuartersRewardsTest is FleetCommanderTestBase {
         deal(address(rewardTokens[0]), governor, 1000e6);
         rewardTokens[0].approve(address(rewardsManager), 1000e6);
         IFleetCommanderRewardsManager(rewardsManager).notifyRewardAmount(
-            IERC20(rewardTokens[0]),
+            address(rewardTokens[0]),
             1000e6,
             10 days
         );

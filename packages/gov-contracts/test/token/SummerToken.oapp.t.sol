@@ -489,10 +489,7 @@ contract SummerTokenOAppTest is SummerTokenTestBase {
                 accessManager: address(accessManagerA),
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
                 transferEnableDate: block.timestamp + 1 days,
-                hubChainId: 31337,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                hubChainId: 31337
             });
 
         // Try to deploy the invalid decimals token - should revert

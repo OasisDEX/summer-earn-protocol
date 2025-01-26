@@ -25,13 +25,16 @@ import {
   getOrCreateRewardsManager,
   getOrCreateVault,
 } from '../common/initializers'
+import { getPositionDetails } from '../utils/position'
+import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
+import { updatePosition } from './entities/position'
 import { createStakedEventEntity } from './entities/stake'
 import { createUnstakedEventEntity } from './entities/unstake'
 import {
   addOrUpdateVaultRewardRates,
-  getAndUpdateVaultAndPositionDetails,
   removeVaultRewardRates,
+  updateVault,
   updateVaultAndArks,
 } from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
@@ -62,19 +65,47 @@ export function handleArkRemoved(event: ArkRemoved): void {
 }
 
 export function handleDeposit(event: DepositEvent): void {
+  const vaultAddress = event.address
   const account = getOrCreateAccount(event.params.owner.toHexString())
 
-  const result = getAndUpdateVaultAndPositionDetails(event, event.address, account, event.block)
+  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+  const positionDetails = getPositionDetails(
+    vaultAddress,
+    Address.fromString(account.id),
+    vaultDetails,
+    event.block,
+  )
 
-  createDepositEventEntity(event, result.positionDetails)
+  updateVault(vaultDetails, event.block, false)
+  updatePosition(positionDetails, event.block)
+
+  createDepositEventEntity(event, positionDetails)
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
-  const account = getOrCreateAccount(event.params.owner.toHexString())
+  const vaultAddress = event.address
 
-  const result = getAndUpdateVaultAndPositionDetails(event, event.address, account, event.block)
+  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+  updateVault(vaultDetails, event.block, false)
 
-  createWithdrawEventEntity(event, result.positionDetails)
+  const rewardsManager = vaultDetails.rewardsManager
+
+  if (rewardsManager.toHexString() == event.params.owner.toHexString()) {
+    // if the owner is the rewards manager, then we skip event creation and position update
+    return
+  }
+
+  getOrCreateAccount(event.params.owner.toHexString())
+
+  const positionDetails = getPositionDetails(
+    vaultAddress,
+    event.params.owner,
+    vaultDetails,
+    event.block,
+  )
+  updatePosition(positionDetails, event.block)
+
+  createWithdrawEventEntity(event, positionDetails)
 }
 
 // withdaraw already handled in handleWithdraw
@@ -127,35 +158,43 @@ export function handleFleetCommanderMaxRebalanceOperationsUpdated(
 }
 
 export function handleStaked(event: Staked): void {
-  const account = getOrCreateAccount(event.params.account.toHexString())
-
   const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vaultAddress = Address.fromString(rewardsManager.vault)
+  const account = getOrCreateAccount(event.params.receiver.toHexString())
 
-  const result = getAndUpdateVaultAndPositionDetails(
-    event,
-    Address.fromString(rewardsManager.vault),
-    account,
+  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+  const positionDetails = getPositionDetails(
+    vaultAddress,
+    Address.fromString(account.id),
+    vaultDetails,
     event.block,
   )
-  // todo ; add check if the staker was the admirals quarters when it becomes available in the event
-  createStakedEventEntity(event, result.positionDetails)
-  createDepositEventEntity(event, result.positionDetails)
+
+  updateVault(vaultDetails, event.block, false)
+  updatePosition(positionDetails, event.block)
+
+  createStakedEventEntity(event, positionDetails)
+  createDepositEventEntity(event, positionDetails)
 }
 
 export function handleUnstaked(event: Unstaked): void {
-  const account = getOrCreateAccount(event.params.account.toHexString())
-
   const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vaultAddress = Address.fromString(rewardsManager.vault)
+  const account = getOrCreateAccount(event.params.staker.toHexString())
 
-  const result = getAndUpdateVaultAndPositionDetails(
-    event,
-    Address.fromString(rewardsManager.vault),
-    account,
+  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+  const positionDetails = getPositionDetails(
+    vaultAddress,
+    Address.fromString(account.id),
+    vaultDetails,
     event.block,
   )
 
-  createUnstakedEventEntity(event, result.positionDetails)
-  createWithdrawEventEntity(event, result.positionDetails)
+  updateVault(vaultDetails, event.block, false)
+  updatePosition(positionDetails, event.block)
+
+  createUnstakedEventEntity(event, positionDetails)
+  createWithdrawEventEntity(event, positionDetails)
 }
 
 export function handleRewardTokenRemoved(event: RewardTokenRemoved): void {

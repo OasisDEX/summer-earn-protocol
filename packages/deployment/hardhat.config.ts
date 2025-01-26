@@ -1,7 +1,9 @@
+import '@nomicfoundation/hardhat-verify'
 import { default as dotenv } from 'dotenv'
 import 'hardhat-contract-sizer'
 import { resolve } from 'path'
 import './plugins/multiSourceCompile'
+
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
 import '@nomicfoundation/hardhat-foundry'
@@ -19,7 +21,7 @@ const config: HardhatUserConfig = {
   contractSizer: {
     alphaSort: true,
     disambiguatePaths: false,
-    runOnCompile: true,
+    runOnCompile: process.env.REPORT_CONTRACT_SIZE === 'true',
     strict: false,
   },
   etherscan: {

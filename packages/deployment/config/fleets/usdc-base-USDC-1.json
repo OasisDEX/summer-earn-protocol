@@ -1,0 +1,74 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDC",
+  "symbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0",
+  "network": "base",
+  "details": "",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "SkyUsdsPsm3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "sky"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_USDC_Core"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "Gauntlet_USDC_Prime"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "Steakhouse_USDC"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "Re7_USDC"
+      }
+    }
+  ]
+}

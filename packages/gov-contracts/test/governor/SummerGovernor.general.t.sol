@@ -40,15 +40,14 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
-                accessManager: accessManagerA,
+                accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                initialOwner: address(timelockA)
             });
         new SummerGovernor(params);
         assertEq(governorA.name(), "SummerGovernor");
@@ -280,15 +279,14 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
-                accessManager: accessManagerA,
+                accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: belowMin,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                initialOwner: address(timelockA)
             });
 
         vm.expectRevert(
@@ -840,15 +838,14 @@ contract SummerGovernorTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
-                accessManager: accessManagerA,
+                accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: address(endpoints[aEid]),
                 hubChainId: governanceChainId,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                initialOwner: address(timelockA)
             });
 
         ExposedSummerGovernor wrongChainGovernor = new ExposedSummerGovernor(

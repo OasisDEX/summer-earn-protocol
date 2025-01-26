@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "../src/VotingDecayLibrary.sol";
+import {Constants} from "@summerfi/constants/Constants.sol";
 
 contract TestVotingDecayManager {
     using VotingDecayLibrary for VotingDecayLibrary.DecayState;
@@ -199,21 +200,13 @@ contract VotingDecayFuzzTest is Test {
         decayManager.resetDecay(user);
         uint256 resetFactor = decayManager.getDecayFactor(user);
 
-        assertEq(
-            initialFactor,
-            VotingDecayLibrary.WAD,
-            "Initial factor should be WAD"
-        );
+        assertEq(initialFactor, Constants.WAD, "Initial factor should be WAD");
         assertLe(
             decayedFactor,
             initialFactor,
             "Decayed factor should be less than or equal to initial factor"
         );
-        assertEq(
-            resetFactor,
-            VotingDecayLibrary.WAD,
-            "Reset factor should be WAD"
-        );
+        assertEq(resetFactor, Constants.WAD, "Reset factor should be WAD");
         assertGe(
             resetFactor,
             decayedFactor,

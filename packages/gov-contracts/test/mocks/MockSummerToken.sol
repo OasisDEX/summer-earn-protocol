@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {ISummerToken, SummerVestingWallet} from "../../src/interfaces/ISummerToken.sol";
+import {ISummerToken} from "../../src/interfaces/ISummerToken.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {Constants} from "@summerfi/constants/Constants.sol";
 import {IGovernanceRewardsManager} from "../../src/interfaces/IGovernanceRewardsManager.sol";
@@ -19,15 +19,6 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
-    }
-
-    function createVestingWallet(
-        address,
-        uint256,
-        uint256[] memory,
-        SummerVestingWallet.VestingType
-    ) external pure {
-        revert("Not implemented");
     }
 
     function getVotes(address) external pure override returns (uint256) {
@@ -85,6 +76,10 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
+    function getRawVotesAt(address, uint256) external pure returns (uint256) {
+        revert("Not implemented");
+    }
+
     function addToWhitelist(address) external pure override {
         revert("Not implemented");
     }
@@ -105,11 +100,7 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
         revert("Not implemented");
     }
 
-    function rewardsManager()
-        external
-        pure
-        returns (IGovernanceRewardsManager)
-    {
+    function rewardsManager() external pure returns (address) {
         revert("Not implemented");
     }
 
@@ -131,6 +122,13 @@ contract MockSummerToken is ERC20, ERC20Burnable, ISummerToken {
 
     function getDecayFactor(address) external pure returns (uint256) {
         return Constants.WAD;
+    }
+
+    function getPastDecayFactor(
+        address,
+        uint256
+    ) external pure returns (uint256) {
+        revert("Not implemented");
     }
 
     function getVotingPower(address, uint256) external pure returns (uint256) {

@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {console, Test} from "forge-std/Test.sol";
 import {VotingDecayLibrary} from "../src/VotingDecayLibrary.sol";
-
+import {Constants} from "@summerfi/constants/Constants.sol";
 using VotingDecayLibrary for VotingDecayLibrary.DecayState;
 using VotingDecayLibrary for VotingDecayLibrary.DecayInfo;
 
@@ -41,10 +41,7 @@ contract VotingDecayTest is Test {
 
     function test_InitialRetentionFactor() public {
         state.resetDecay(user);
-        assertEq(
-            state.getDecayFactor(user, _getDelegateTo),
-            VotingDecayLibrary.WAD
-        );
+        assertEq(state.getDecayFactor(user, _getDelegateTo), Constants.WAD);
     }
 
     function test_DecayOverOneYear() public {
@@ -111,17 +108,11 @@ contract VotingDecayTest is Test {
 
         // Fast forward 59 days (within decay-free window)
         vm.warp(block.timestamp + 59 days);
-        assertEq(
-            state.getDecayFactor(user, _getDelegateTo),
-            VotingDecayLibrary.WAD
-        );
+        assertEq(state.getDecayFactor(user, _getDelegateTo), Constants.WAD);
 
         // Fast forward another 2 days (outside decay-free window)
         vm.warp(block.timestamp + 2 days);
-        assertLt(
-            state.getDecayFactor(user, _getDelegateTo),
-            VotingDecayLibrary.WAD
-        );
+        assertLt(state.getDecayFactor(user, _getDelegateTo), Constants.WAD);
     }
 
     function _mockDelegationChain(
@@ -277,7 +268,7 @@ contract VotingDecayTest is Test {
         uint256 initialDecayFactor = state.getDecayFactor(user, _getDelegateTo);
         assertEq(
             initialDecayFactor,
-            VotingDecayLibrary.WAD,
+            Constants.WAD,
             "Initial decay factor should be WAD"
         );
 
@@ -388,7 +379,7 @@ contract VotingDecayTest is Test {
         uint256 noWindowDecay = state.getDecayFactor(user, _getDelegateTo);
         assertLt(
             noWindowDecay,
-            VotingDecayLibrary.WAD,
+            Constants.WAD,
             "Should decay immediately without window"
         );
     }
@@ -417,14 +408,14 @@ contract VotingDecayTest is Test {
         // Reduce the time period to something more reasonable, like 10 years
         vm.warp(block.timestamp + (10 * 365 days));
         uint256 lowDecay = state.getDecayFactor(user, _getDelegateTo);
-        assertLt(lowDecay, VotingDecayLibrary.WAD);
+        assertLt(lowDecay, Constants.WAD);
 
         // Reset and check recovery
         state.resetDecay(user);
         uint256 recoveredDecay = state.getDecayFactor(user, _getDelegateTo);
         assertEq(
             recoveredDecay,
-            VotingDecayLibrary.WAD,
+            Constants.WAD,
             "Should fully recover after reset"
         );
     }
@@ -455,13 +446,13 @@ contract VotingDecayTest is Test {
 
         // Verify returned values
         assertEq(info.lastUpdateTimestamp, 1);
-        assertEq(info.decayFactor, VotingDecayLibrary.WAD); // Should be WAD for uninitialized account
+        assertEq(info.decayFactor, Constants.WAD); // Should be WAD for uninitialized account
     }
 
     function test_DelegationChainWithZeroAddress() public view {
-        function(
-            address
-        ) pure returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
+        function(address)
+            pure
+            returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
 
         uint256 chainLength = state.getDelegationChainLength(
             user,
@@ -474,9 +465,9 @@ contract VotingDecayTest is Test {
         address user1 = address(1);
 
         // Mock delegation chain
-        function(
-            address
-        ) view returns (address) mockGetDelegateTo = _mockComplexDelegation;
+        function(address)
+            view
+            returns (address) mockGetDelegateTo = _mockComplexDelegation;
 
         // Test chain length
         uint256 chainLength = state.getDelegationChainLength(
@@ -503,9 +494,9 @@ contract VotingDecayTest is Test {
         state.resetDecay(address(0));
 
         // Create a helper function that always returns address(0)
-        function(
-            address
-        ) view returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
+        function(address)
+            view
+            returns (address) mockGetDelegateTo = _mockZeroAddressDelegate;
 
         uint256 decayFactor = state.getDecayFactor(
             address(0),
@@ -581,11 +572,7 @@ contract VotingDecayTest is Test {
 
         // Get initial decay factor after decay period
         uint256 initialDecayFactor = state.getDecayFactor(user, _getDelegateTo);
-        assertLt(
-            initialDecayFactor,
-            VotingDecayLibrary.WAD,
-            "Should have decayed"
-        );
+        assertLt(initialDecayFactor, Constants.WAD, "Should have decayed");
 
         state.updateDecayFactor(user, _getDelegateTo);
         uint256 expectedDecayFactor = state.getDecayFactor(
@@ -608,7 +595,7 @@ contract VotingDecayTest is Test {
         // Double check it's not WAD
         assertLt(
             newDecayFactor,
-            VotingDecayLibrary.WAD,
+            Constants.WAD,
             "Decay factor should not reset to WAD"
         );
     }

@@ -27,15 +27,14 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: aSummerToken,
                 timelock: timelockA,
-                accessManager: accessManagerA,
+                accessManager: address(accessManagerA),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointA,
                 hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                initialOwner: address(timelockA)
             });
 
         // Set up Governor B (Satellite Chain)
@@ -43,15 +42,14 @@ contract SummerGovernorCrossChainTest is SummerGovernorTestBase {
             .GovernorParams({
                 token: bSummerToken,
                 timelock: timelockB,
-                accessManager: accessManagerB,
+                accessManager: address(accessManagerB),
                 votingDelay: VOTING_DELAY,
                 votingPeriod: VOTING_PERIOD,
                 proposalThreshold: PROPOSAL_THRESHOLD,
                 quorumFraction: QUORUM_FRACTION,
                 endpoint: lzEndpointB,
                 hubChainId: 31337,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                initialOwner: address(timelockB)
             });
 
         governorA = new ExposedSummerGovernor(paramsA);

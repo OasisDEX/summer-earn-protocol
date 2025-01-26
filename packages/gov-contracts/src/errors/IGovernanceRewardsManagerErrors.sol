@@ -11,4 +11,19 @@ interface IGovernanceRewardsManagerErrors {
      * @dev Used to restrict certain functions to only be callable by the staking token contract
      */
     error InvalidCaller();
+
+    /**
+     * @notice Thrown when the stakeOnBehalfOf function is called (operation not supported)
+     */
+    error StakeOnBehalfOfNotSupported();
+
+    /**
+     * @notice Thrown when the UnstakeOnBehalfOfNotSupported function is called (operation not supported)
+     */
+    error UnstakeOnBehalfOfNotSupported();
+
+    /**
+     * @notice Thrown when the caller is not delegated
+     */
+    error NotDelegated();
 }

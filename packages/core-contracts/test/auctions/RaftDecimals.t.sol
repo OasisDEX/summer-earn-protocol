@@ -69,6 +69,7 @@ contract RaftDecimalsTest is AuctionTestBase {
             18
         );
         accessManager.grantCuratorRole(MOCKED_FLEET_ADDRESS, address(governor));
+        accessManager.grantSuperKeeperRole(address(governor));
 
         vm.stopPrank();
         ArkParams memory params = ArkParams({

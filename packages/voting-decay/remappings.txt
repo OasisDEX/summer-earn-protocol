@@ -1,3 +1,4 @@
 @openzeppelin/contracts/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/
 forge-std/=node_modules/@summerfi/dependencies/lib/forge-std/src/
 @prb/math/=node_modules/@summerfi/dependencies/lib/prb-math/
+@summerfi/constants/=node_modules/@summerfi/constants/src/

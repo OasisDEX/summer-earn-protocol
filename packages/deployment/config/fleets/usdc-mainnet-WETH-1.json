@@ -1,0 +1,74 @@
+{
+  "fleetName": "LazyVault_LowerRisk_WETH",
+  "symbol": "LVWETH",
+  "assetSymbol": "WETH",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000000000000",
+  "initialTipRate": "0",
+  "network": "mainnet",
+  "details": "",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "WETH",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "WETH",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Gearbox",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Euler_Prime",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Gauntlet_WETH_Prime",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Re7_WETH",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "SparkArk",
+      "params": {
+        "asset": "WETH",
+        "protocol": "spark"
+      }
+    }
+  ]
+}

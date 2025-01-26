@@ -36,13 +36,6 @@ export const GovModule = buildModule('GovModule', (m) => {
   const deployer = m.getAccount(0)
   const lzEndpoint = m.getParameter('lzEndpoint')
   const initialSupply = m.getParameter('initialSupply', '0')
-  const peerEndpointIds = m.getParameter<number[]>('peerEndpointIds', [])
-  const peerAddresses = m.getParameter<string[]>('peerAddresses', [])
-
-  const governorPeerEndpointIds = m.getParameter<number[]>('governorPeerEndpointIds', [])
-  const governorPeerAddresses = m.getParameter<string[]>('governorPeerAddresses', [])
-
-  const votingDecayLibrary = m.contract('VotingDecayLibrary', [])
 
   /**
    * @dev Step 0: Deploy ProtocolAccessManager
@@ -79,25 +72,21 @@ export const GovModule = buildModule('GovModule', (m) => {
     name: 'SummerToken',
     symbol: 'SUMMER',
     lzEndpoint: lzEndpoint,
-    initialOwner: deployer,
+    initialOwner: deployer, // Swapped out for Timelock after Peering is complete
     accessManager: accessManager,
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
     transferEnableDate: 1731667188n,
     hubChainId: HUB_CHAIN_ID,
+  }
+
+  const summerTokenInitParams = {
+    initialSupply: initialSupply,
     initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
     initialYearlyDecayRate: BigInt(0.1e18), // ~10% per year
     initialDecayFunction: DecayType.Linear,
   }
 
-  const summerTokenInitParams = {
-    initialSupply: initialSupply,
-    peerEndpointIds: peerEndpointIds,
-    peerAddresses: peerAddresses,
-  }
-
-  const summerToken = m.contract('SummerToken', [summerTokenConstructorParams], {
-    libraries: { VotingDecayLibrary: votingDecayLibrary },
-  })
+  const summerToken = m.contract('SummerToken', [summerTokenConstructorParams])
 
   m.call(summerToken, 'initialize', [summerTokenInitParams])
 
@@ -124,8 +113,7 @@ export const GovModule = buildModule('GovModule', (m) => {
     quorumFraction: 4n,
     endpoint: lzEndpoint,
     hubChainId: HUB_CHAIN_ID,
-    peerEndpointIds: governorPeerEndpointIds,
-    peerAddresses: governorPeerAddresses,
+    initialOwner: deployer, // Swapped out for Timelock after Peering is complete
   }
 
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])

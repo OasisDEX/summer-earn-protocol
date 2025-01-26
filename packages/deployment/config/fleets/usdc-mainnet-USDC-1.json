@@ -1,0 +1,121 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDC",
+  "symbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0",
+  "network": "mainnet",
+  "details": "",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gearbox",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Euler_Prime",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Euler_Yield",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Euler_Stablecoin_Maxi",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Core",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Flagship_USDC",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Steakhouse",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gauntlet_USDC_Prime",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "RE7_USDC",
+        "protocol": "morpho"
+      }
+    },
+    {
+      "type": "SparkArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "spark"
+      }
+    },
+    {
+      "type": "SkyUsdsArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "sky"
+      }
+    }
+  ]
+}

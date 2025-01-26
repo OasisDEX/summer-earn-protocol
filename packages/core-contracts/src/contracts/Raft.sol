@@ -194,6 +194,7 @@ contract Raft is IRaft, ArkAccessManaged, AuctionManagerBase {
         bytes calldata rewardData
     )
         internal
+        onlySuperKeeper
         returns (
             address[] memory harvestedTokens,
             uint256[] memory harvestedAmounts

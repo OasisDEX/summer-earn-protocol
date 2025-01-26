@@ -1,0 +1,35 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDT",
+  "symbol": "LVUSDT",
+  "assetSymbol": "USDT",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0",
+  "network": "arbitrum",
+  "details": "",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDT",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDT",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    }
+  ]
+}

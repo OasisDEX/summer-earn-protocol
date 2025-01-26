@@ -6,17 +6,15 @@ import {
   CompoundV3ArkContracts,
   createCompoundV3ArkModule,
 } from '../../ignition/modules/arks/compoundv3-ark'
-import { BaseConfig, TokenType } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
-import { getConfigByNetwork } from '../helpers/config-handler'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
 import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
+import { validateAddress } from '../helpers/validation'
 
-interface CompoundV3ArkUserInput {
-  compoundV3Pool: Address
-  compoundV3Rewards: Address
-  token: { address: Address; symbol: string }
+export interface CompoundV3ArkUserInput {
+  token: { address: Address; symbol: Token }
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
@@ -31,14 +29,12 @@ interface CompoundV3ArkUserInput {
  * - Deploying the CompoundV3Ark contract
  * - Logging deployment results
  */
-export async function deployCompoundV3Ark() {
-  const config = getConfigByNetwork(hre.network.name)
-
+export async function deployCompoundV3Ark(config: BaseConfig, arkParams?: CompoundV3ArkUserInput) {
   console.log(kleur.green().bold('Starting CompoundV3Ark deployment process...'))
 
-  const userInput = await getUserInput(config)
+  const userInput = arkParams || (await getUserInput(config))
 
-  if (await confirmDeployment(userInput)) {
+  if (await confirmDeployment(userInput, config, arkParams != undefined)) {
     const deployedCompoundV3Ark = await deployCompoundV3ArkContract(config, userInput)
     return { ark: deployedCompoundV3Ark.compoundV3Ark }
   } else {
@@ -89,14 +85,12 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
   ])
 
   // Set the token address based on the selected pool
-  const selectedPool = responses.compoundV3Pool as TokenType
+  const selectedPool = responses.compoundV3Pool as Token
   const tokenAddress = config.tokens[selectedPool]
 
   return {
     ...responses,
     token: { address: tokenAddress, symbol: selectedPool },
-    compoundV3Pool: config.protocolSpecific.compoundV3.pools[selectedPool].cToken,
-    compoundV3Rewards: config.protocolSpecific.compoundV3.rewards,
   }
 }
 
@@ -105,16 +99,18 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
  * @param {CompoundV3ArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(userInput: CompoundV3ArkUserInput) {
+async function confirmDeployment(
+  userInput: CompoundV3ArkUserInput,
+  config: BaseConfig,
+  skip: boolean,
+) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Compound V3 Pool: ${userInput.compoundV3Pool}`))
-  console.log(kleur.yellow(`Compound V3 Rewards: ${userInput.compoundV3Rewards}`))
   console.log(kleur.yellow(`Token: ${userInput.token.symbol}`))
   console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
   console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
   console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
 
-  return await continueDeploymentCheck()
+  return skip ? true : await continueDeploymentCheck()
 }
 
 /**
@@ -132,11 +128,20 @@ async function deployCompoundV3ArkContract(
   const arkName = `CompoundV3-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
+  const compoundV3Pool = validateAddress(
+    config.protocolSpecific.compoundV3.pools[userInput.token.symbol].cToken,
+    'Compound V3 Pool',
+  )
+  const compoundV3Rewards = validateAddress(
+    config.protocolSpecific.compoundV3.rewards,
+    'Compound V3 Rewards',
+  )
+
   return (await hre.ignition.deploy(createCompoundV3ArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        compoundV3Pool: userInput.compoundV3Pool,
-        compoundV3Rewards: userInput.compoundV3Rewards,
+        compoundV3Pool: compoundV3Pool,
+        compoundV3Rewards: compoundV3Rewards,
         arkParams: {
           name: `CompoundV3-${userInput.token.symbol}-${chainId}`,
           details: JSON.stringify({
@@ -144,7 +149,7 @@ async function deployCompoundV3ArkContract(
             type: 'Lending',
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
-            pool: userInput.compoundV3Pool,
+            pool: compoundV3Pool,
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,

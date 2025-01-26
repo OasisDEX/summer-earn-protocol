@@ -1,0 +1,6 @@
+{
+  "network": "mainnet",
+  "harbor-command-address": "0xc7C9d0BcbEE418a4012C67d83cBd291860416DF9",
+  "harbor-command-start-block": 21666153,
+  "interval-handler-block-interval": 30
+}

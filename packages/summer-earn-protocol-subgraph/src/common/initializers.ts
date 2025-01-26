@@ -14,8 +14,8 @@ import {
   PositionWeeklySnapshot,
   PostActionArkSnapshot,
   PostActionVaultSnapshot,
-  RewardsManager,
   RewardToken,
+  RewardsManager,
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
@@ -425,12 +425,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.fees = [managementFeeId, performanceFeeId]
 
-    const initialVaultArks = utils.readValue<Address[]>(
-      vaultContract.try_getArks(),
-      new Array<Address>(),
-    )
-
-    vault.arksArray = initialVaultArks.map<string>((ark: Address) => ark.toHexString())
+    vault.arksArray = []
     vault.aprValues = []
     vault.apr7d = constants.BigDecimalConstants.ZERO
     vault.apr30d = constants.BigDecimalConstants.ZERO

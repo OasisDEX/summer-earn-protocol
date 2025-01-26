@@ -23,21 +23,19 @@ interface ISummerGovernor is IGovernor, ISummerGovernorErrors {
      * @param quorumFraction The quorum fraction in tokens
      * @param endpoint The LayerZero endpoint address
      * @param hubChainId The hub chain ID
-     * @param peerEndpointIds The peer endpoint IDs
-     * @param peerAddresses The peer addresses
+     * @param initialOwner The initial owner of the contract
      */
     struct GovernorParams {
         ISummerToken token;
         SummerTimelockController timelock;
-        IProtocolAccessManager accessManager;
+        address accessManager;
         uint48 votingDelay;
         uint32 votingPeriod;
         uint256 proposalThreshold;
         uint256 quorumFraction;
         address endpoint;
         uint32 hubChainId;
-        uint32[] peerEndpointIds;
-        address[] peerAddresses;
+        address initialOwner;
     }
 
     /**

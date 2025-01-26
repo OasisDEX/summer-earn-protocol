@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import {SummerVestingWallet} from "../contracts/SummerVestingWallet.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ISummerTokenErrors} from "../errors/ISummerTokenErrors.sol";
@@ -47,9 +46,6 @@ interface ISummerToken is
         uint256 maxSupply;
         uint256 transferEnableDate;
         uint32 hubChainId;
-        uint40 initialDecayFreeWindow;
-        Percentage initialYearlyDecayRate;
-        VotingDecayLibrary.DecayFunction initialDecayFunction;
     }
 
     /**
@@ -58,13 +54,12 @@ interface ISummerToken is
      * @param initialDecayFreeWindow The initial decay-free window duration in seconds
      * @param initialYearlyDecayRate The initial yearly decay rate as a percentage
      * @param initialDecayFunction The initial decay function type
-     * @param peerEndpointIds Array of chain IDs for peers
-     * @param peerAddresses Array of peer addresses corresponding to chainIds
      */
     struct InitializeParams {
         uint256 initialSupply;
-        uint32[] peerEndpointIds;
-        address[] peerAddresses;
+        uint40 initialDecayFreeWindow;
+        Percentage initialYearlyDecayRate;
+        VotingDecayLibrary.DecayFunction initialDecayFunction;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -150,6 +145,17 @@ interface ISummerToken is
     function getDecayFactor(address account) external view returns (uint256);
 
     /**
+     * @notice Returns the decay factor for an account at a specific timepoint
+     * @param account The address to get the decay factor for
+     * @param timepoint The timestamp to get the decay factor at
+     * @return The decay factor for the account at the specified timepoint
+     */
+    function getPastDecayFactor(
+        address account,
+        uint256 timepoint
+    ) external view returns (uint256);
+
+    /**
      * @notice Returns the current votes for an account with decay factor applied
      * @param account The address to get votes for
      * @return The current voting power after applying the decay factor
@@ -217,7 +223,7 @@ interface ISummerToken is
      * @notice Returns the address of the rewards manager contract
      * @return The address of the rewards manager
      */
-    function rewardsManager() external view returns (IGovernanceRewardsManager);
+    function rewardsManager() external view returns (address);
 
     /**
      * @notice Gets the length of the delegation chain for an account
@@ -226,5 +232,36 @@ interface ISummerToken is
      */
     function getDelegationChainLength(
         address account
+    ) external view returns (uint256);
+
+    /**
+     * @notice Returns the raw votes (before decay) for an account at a specific timepoint
+     * @param account The address to get raw votes for
+     * @param timestamp The timestamp to get raw votes at
+     * @return The current voting power before applying any decay factor
+     * @dev This returns the total voting units including direct balance, staked tokens,
+     * and vesting wallet balances, but without applying the decay factor
+     */
+    function getRawVotesAt(
+        address account,
+        uint256 timestamp
+    ) external view returns (uint256);
+
+    /**
+     * @notice Returns the votes for an account at a specific past block, with decay factor applied
+     * @param account The address to get votes for
+     * @param timepoint The block number to get votes at
+     * @return The historical voting power after applying the decay factor
+     * @dev This function:
+     * 1. Gets the historical raw votes using ERC20Votes' _getPastVotes
+     * 2. Applies the current decay factor from VotingDecayManager
+     * @custom:relationship-to-votingdecay
+     * - Uses VotingDecayManager.getVotingPower() to apply decay
+     * - Note: The decay factor is current, not historical
+     * - This means voting power can decrease over time even for past checkpoints
+     */
+    function getPastVotes(
+        address account,
+        uint256 timepoint
     ) external view returns (uint256);
 }

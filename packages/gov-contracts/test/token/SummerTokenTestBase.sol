@@ -121,17 +121,15 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 accessManager: address(accessManagerA),
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
                 transferEnableDate: block.timestamp + 1 days,
-                hubChainId: 31337,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                hubChainId: 31337
             });
 
         ISummerToken.InitializeParams memory initParamsA = ISummerToken
             .InitializeParams({
                 initialSupply: INITIAL_SUPPLY * 10 ** 18,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
 
         ISummerToken.ConstructorParams memory constructorParamsB = ISummerToken
@@ -143,17 +141,15 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 accessManager: address(accessManagerB),
                 maxSupply: INITIAL_SUPPLY * 10 ** 18,
                 transferEnableDate: block.timestamp + 1 days,
-                hubChainId: 31338,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                hubChainId: 31338
             });
 
         ISummerToken.InitializeParams memory initParamsB = ISummerToken
             .InitializeParams({
                 initialSupply: 0,
-                peerEndpointIds: new uint32[](0),
-                peerAddresses: new address[](0)
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
             });
 
         vm.label(owner, "Owner");
@@ -238,16 +234,14 @@ contract SummerTokenTestBase is TestHelperOz5 {
             accessManager: address(accessManagerA),
             maxSupply: INITIAL_SUPPLY * 10 ** 18,
             transferEnableDate: block.timestamp + 1 days,
-            hubChainId: 31337,
-            initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-            initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-            initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+            hubChainId: 31337
         });
 
         initializeParams = ISummerToken.InitializeParams({
             initialSupply: INITIAL_SUPPLY * 10 ** 18,
-            peerEndpointIds: new uint32[](0),
-            peerAddresses: new address[](0)
+            initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+            initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+            initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
         });
     }
 }
