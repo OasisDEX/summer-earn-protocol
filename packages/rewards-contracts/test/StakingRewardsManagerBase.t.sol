@@ -1166,7 +1166,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.startPrank(mockGovernor);
         rewardToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            rewardToken,
+            address(rewardToken),
             rewardAmount,
             7 days
         );
@@ -1209,14 +1209,14 @@ contract StakingRewardsManagerBaseTest is Test {
         console.log("----------------------------------------");
         console.log("Removing reward token");
         vm.prank(mockGovernor);
-        stakingRewardsManager.removeRewardToken(rewardToken);
+        stakingRewardsManager.removeRewardToken(address(rewardToken));
 
         console.log("----------------------------------------");
         console.log("Adding same reward token again with new rewards");
         vm.startPrank(mockGovernor);
         rewardToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            rewardToken,
+            address(rewardToken),
             rewardAmount,
             7 days
         );
@@ -1263,7 +1263,7 @@ contract StakingRewardsManagerBaseTest is Test {
         vm.startPrank(mockGovernor);
         rewardToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            rewardToken,
+            address(rewardToken),
             rewardAmount,
             7 days
         );
@@ -1306,14 +1306,14 @@ contract StakingRewardsManagerBaseTest is Test {
         console.log("----------------------------------------");
         console.log("Removing reward token");
         vm.prank(mockGovernor);
-        stakingRewardsManager.buggedRemoveRewardToken(rewardToken);
+        stakingRewardsManager.buggedRemoveRewardToken(address(rewardToken));
 
         console.log("----------------------------------------");
         console.log("Adding same reward token again with new rewards");
         vm.startPrank(mockGovernor);
         rewardToken.approve(address(stakingRewardsManager), rewardAmount);
         stakingRewardsManager.notifyRewardAmount(
-            rewardToken,
+            address(rewardToken),
             rewardAmount,
             7 days
         );

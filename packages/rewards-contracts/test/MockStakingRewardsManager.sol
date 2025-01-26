@@ -28,8 +28,10 @@ contract MockStakingRewardsManager is StakingRewardsManagerBase {
         /* no op */
     }
 
-    function buggedRemoveRewardToken(IERC20 rewardToken) external onlyGovernor {
-        if (!_rewardTokensList.contains(address(rewardToken))) {
+    function buggedRemoveRewardToken(
+        address rewardToken
+    ) external onlyGovernor {
+        if (!_isRewardToken(address(rewardToken))) {
             revert RewardTokenDoesNotExist();
         }
 
@@ -38,7 +40,7 @@ contract MockStakingRewardsManager is StakingRewardsManagerBase {
         }
 
         // Check if all tokens have been claimed, allowing a small dust balance
-        uint256 remainingBalance = rewardToken.balanceOf(address(this));
+        uint256 remainingBalance = IERC20(rewardToken).balanceOf(address(this));
         uint256 dustThreshold;
 
         try IERC20Metadata(address(rewardToken)).decimals() returns (
@@ -63,7 +65,7 @@ contract MockStakingRewardsManager is StakingRewardsManagerBase {
         _rewardTokensList.remove(address(rewardToken));
 
         // Reset the reward data for this token
-        delete rewardData[rewardToken];
+        delete rewardData[address(rewardToken)];
 
         emit RewardTokenRemoved(address(rewardToken));
     }
