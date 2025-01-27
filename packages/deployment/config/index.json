@@ -3,19 +3,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0xd76ad62Dd879F63a9f5e500a1684F598AA798d0c"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "summerToken": {
-          "address": "0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "timelock": {
-          "address": "0xC03B522eC9061b399AA3032d6Ce5320842EeDDcb"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "protocolAccessManager": {
-          "address": "0x603821f86DeDC794A3225d62Afe1F175fe4AE861"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "rewardsRedeemer": {
-          "address": "0x2aF041B4505743f0C01Dd4C6AA8e23bD22dE379e"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "buyAndBurn": {
@@ -116,19 +116,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x060C9d083A5ee5999b4EB817DbF906888d943D2c"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "summerToken": {
-          "address": "0x8c977a41aDCd7537498a3bC3a0cB30Fb210A247A"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "timelock": {
-          "address": "0x9fFC258F137e65F4686e4FB935ADEcad907B8347"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "protocolAccessManager": {
-          "address": "0x2e208e55075b1cF15A767C15Ee9bA14205CB8371"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "rewardsRedeemer": {
-          "address": "0x5e09d02aE0C1A5537F590152e999e577dA53ea5d"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "buyAndBurn": {
