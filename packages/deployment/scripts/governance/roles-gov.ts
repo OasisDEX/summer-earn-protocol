@@ -24,10 +24,16 @@ const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
  *    - Grant GOVERNOR_ROLE to TimelockController
  */
 export async function rolesGov(additionalGovernors: string[] = []) {
+  const multisigTokenReceiver = process.env.BVI_MULTISIG_ADDRESS
+  if (!multisigTokenReceiver) {
+    throw new Error('BVI_MULTISIG_ADDRESS is not set')
+  }
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
   const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
 
   const publicClient = await hre.viem.getPublicClient()
+
+  const deployer = (await hre.viem.getWalletClients())[0].account.address
 
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,
@@ -37,6 +43,11 @@ export async function rolesGov(additionalGovernors: string[] = []) {
     'SummerToken' as string,
     config.deployedContracts.gov.summerToken.address as Address,
   )
+  const deployerBalance = await summerToken.read.balanceOf([deployer])
+
+  await summerToken.write.addToWhitelist([deployer])
+  await summerToken.write.transfer([multisigTokenReceiver, deployerBalance])
+
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernor' as string,
     config.deployedContracts.gov.summerGovernor.address as Address,
