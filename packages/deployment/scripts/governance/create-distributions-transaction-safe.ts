@@ -12,15 +12,15 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 
 dotenv.config()
 
-if (!process.env.SAFE_ADDRESS) {
-  throw new Error('❌ SAFE_ADDRESS not set in environment')
+if (!process.env.BVI_MULTISIG_ADDRESS) {
+  throw new Error('❌ BVI_MULTISIG_ADDRESS not set in environment')
 }
 
 if (!process.env.DEPLOYER_PRIV_KEY) {
   throw new Error('❌ DEPLOYER_PRIV_KEY not set in environment')
 }
 
-const safeAddress = process.env.SAFE_ADDRESS as Address
+const safeAddress = process.env.BVI_MULTISIG_ADDRESS as Address
 
 type TotalAmounts = {
   vestingAmount: bigint
