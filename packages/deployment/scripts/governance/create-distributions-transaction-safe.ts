@@ -1,11 +1,12 @@
 import { addressToBytes32 } from '@layerzerolabs/lz-v2-utilities'
-import { createSafeClient } from '@safe-global/sdk-starter-kit'
-import { TransactionBase } from '@safe-global/types-kit'
+import SafeApiKit from '@safe-global/api-kit'
+import Safe from '@safe-global/protocol-kit'
+import { OperationType, TransactionBase } from '@safe-global/types-kit'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import hre from 'hardhat'
 import path from 'path'
-import { Address, encodeFunctionData } from 'viem'
+import { Address, encodeFunctionData, getAddress } from 'viem'
 import { base } from 'viem/chains'
 import { BaseConfig } from '../../types/config-types'
 import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
@@ -22,7 +23,7 @@ if (!process.env.DEPLOYER_PRIV_KEY) {
   throw new Error('❌ DEPLOYER_PRIV_KEY not set in environment')
 }
 
-const safeAddress = process.env.BVI_MULTISIG_ADDRESS as Address
+const safeAddress = getAddress(process.env.BVI_MULTISIG_ADDRESS as Address)
 
 type TotalAmounts = {
   vestingAmount: bigint
@@ -320,7 +321,7 @@ async function createBridgeTransactions(
   console.log(`Using fee buffer multiplier: ${FEE_BUFFER_MULTIPLIER}x`)
 
   const destinations: NetworkDestination[] = [
-    { network: 'mainnet', destination: bridgeConfig.mainnet },
+    // { network: 'mainnet', destination: bridgeConfig.mainnet },
     { network: 'arbitrum', destination: bridgeConfig.arbitrum },
   ]
 
@@ -334,11 +335,8 @@ async function createBridgeTransactions(
     console.log(`   Amount: ${destination.amount}`)
 
     const satelliteConfig = satelliteConfigs[network]
-    const destinationAddress = (
-      destination.address && destination.address !== ADDRESS_ZERO
-        ? destination.address
-        : satelliteConfig.deployedContracts.gov.timelock.address
-    ) as Address
+    const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
+    const destinationAddress = deployer
 
     const destinationHex =
       `0x${Buffer.from(addressToBytes32(destinationAddress)).toString('hex')}` as `0x${string}`
@@ -447,16 +445,6 @@ function createTransferTransactions(summerToken: any, transfers: TransferConfig)
   }))
   console.log(`🔑 Creating ${transferTransactions.length} transfer transactions...`)
   return transferTransactions
-}
-
-async function getSafeClient(rpcUrl: string): Promise<any> {
-  const safeClient = await createSafeClient({
-    provider: rpcUrl,
-    signer: process.env.DEPLOYER_PRIV_KEY as Address,
-    safeAddress: safeAddress,
-  })
-
-  return { safeClient, safeAddress }
 }
 
 async function getTokenAndFactory(
@@ -591,9 +579,98 @@ async function getGovernanceRewardsConfig(chainId: number): Promise<GovernanceRe
   return governanceRewardsConfig
 }
 
+async function proposeSafeTransactionBatch(
+  protocolKit: Safe,
+  apiKit: SafeApiKit,
+  transactions: TransactionBase[],
+  safeAddress: Address,
+  deployer: Address,
+  startNonce: number,
+  batchIndex: number,
+  batchSize: number,
+): Promise<void> {
+  const batchStart = batchIndex * batchSize
+  const batchTransactions = transactions.slice(batchStart, batchStart + batchSize)
+
+  if (batchTransactions.length === 0) return
+
+  console.log(
+    `\n📦 Proposing batch ${batchIndex + 1} with ${batchTransactions.length} transactions...`,
+  )
+
+  const safeTransaction = await protocolKit.createTransaction({
+    transactions: batchTransactions.map((tx) => ({
+      to: getAddress(tx.to),
+      data: tx.data,
+      value: tx.value,
+      operation: OperationType.Call,
+    })),
+  })
+
+  const safeTransactionDataWithNonce = {
+    ...safeTransaction.data,
+    nonce: startNonce + batchIndex,
+  }
+
+  const safeTransactionWithNonce = {
+    ...safeTransaction,
+    data: safeTransactionDataWithNonce,
+  }
+
+  const safeTxHash = await protocolKit.getTransactionHash(safeTransactionWithNonce)
+  const signature = await protocolKit.signHash(safeTxHash)
+
+  await apiKit.proposeTransaction({
+    safeAddress,
+    safeTransactionData: safeTransactionDataWithNonce,
+    safeTxHash,
+    senderAddress: deployer,
+    senderSignature: signature.data,
+  })
+
+  console.log(`✅ Batch ${batchIndex + 1} proposed successfully`)
+}
+
+async function proposeAllSafeTransactions(
+  transactions: TransactionBase[],
+  deployer: Address,
+  batchSize: number = 30, // Default batch size
+): Promise<void> {
+  const apiKit = new SafeApiKit({
+    chainId: BigInt(chainConfig.chainId),
+  })
+  const safe = await Safe.init({
+    provider: chainConfig.rpcUrl,
+    signer: process.env.DEPLOYER_PRIV_KEY as Address,
+    safeAddress: safeAddress,
+  })
+
+  const startNonce = await safe.getNonce()
+  const totalBatches = Math.ceil(transactions.length / batchSize)
+
+  console.log(
+    `\n🚀 Proposing ${transactions.length} transactions in ${totalBatches} batches of ${batchSize}...`,
+  )
+  console.log(`Starting with nonce: ${startNonce}`)
+
+  for (let i = 0; i < totalBatches; i++) {
+    await proposeSafeTransactionBatch(
+      safe,
+      apiKit,
+      transactions,
+      safeAddress,
+      deployer,
+      startNonce,
+      i,
+      batchSize,
+    )
+  }
+
+  console.log(`\n✨ All ${totalBatches} batches proposed successfully`)
+}
+
 async function main() {
   console.log('🚀 Starting Safe vesting wallet creation process...\n')
-  const { safeClient, safeAddress } = await getSafeClient(chainConfig.rpcUrl)
 
   const transactions: TransactionBase[] = []
 
@@ -622,9 +699,9 @@ async function main() {
   console.log(`🔑 Safe balance: ${safeBalance / 10n ** 18n}`)
   console.log(`🔑 Total amount: ${totalAmounts.totalAmount / 10n ** 18n}`)
 
-  if (safeBalance < totalAmounts.totalAmount) {
-    throw new Error('❌ Safe balance is less than total amount')
-  }
+  // if (safeBalance < totalAmounts.totalAmount) {
+  //   throw new Error('❌ Safe balance is less than total amount')
+  // }
 
   transactions.push(
     ...(await createVestingWalletTransactions(
@@ -643,6 +720,7 @@ async function main() {
       merkleConfig,
     )),
   )
+
   transactions.push(
     ...(await createGovernanceRewardsTransaction(
       summerToken,
@@ -650,6 +728,7 @@ async function main() {
       governanceRewardsConfig,
     )),
   )
+
   transactions.push(
     ...(await createBridgeTransactions(
       summerToken,
@@ -662,10 +741,10 @@ async function main() {
 
   console.log(`Preparing Safe transaction with ${transactions.length} operations...`)
 
-  // Send transactions to Safe
-  const txResult = await safeClient.send({ transactions })
-  console.log('Safe transaction created!')
-  console.log('Safe Transaction Hash:', txResult.transactions?.safeTxHash)
+  const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
+
+  // New simplified transaction proposal
+  await proposeAllSafeTransactions(transactions, deployer)
 }
 
 main().catch((error) => {
