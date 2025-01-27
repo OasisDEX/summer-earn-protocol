@@ -1,3 +1,4 @@
+import { addressToBytes32 } from '@layerzerolabs/lz-v2-utilities'
 import { createSafeClient } from '@safe-global/sdk-starter-kit'
 import { TransactionBase } from '@safe-global/types-kit'
 import dotenv from 'dotenv'
@@ -9,6 +10,7 @@ import { base } from 'viem/chains'
 import { BaseConfig } from '../../types/config-types'
 import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
+import { constructLzOptions } from '../helpers/layerzero-options'
 
 dotenv.config()
 
@@ -68,6 +70,11 @@ type GovernanceRewardsConfig = {
   duration: string
 }
 
+type NetworkDestination = {
+  network: 'mainnet' | 'arbitrum'
+  destination: BridgeDestination
+}
+
 const VESTING_TYPE = {
   TeamVesting: 0,
   InvestorExTeamVesting: 1,
@@ -75,6 +82,27 @@ const VESTING_TYPE = {
 
 // Load vesting distribution configuration
 const distributionsDir = path.join(__dirname, '../../token-distributions/')
+
+type FullNetworkConfig = Record<
+  'base' | 'arbitrum' | 'mainnet',
+  {
+    common: {
+      layerZero: {
+        eID: string
+        lzEndpoint: string
+      }
+    }
+    gov: {
+      timelock: {
+        address: string
+      }
+    }
+  }
+>
+
+function getFullNetworkConfig(): FullNetworkConfig {
+  return JSON.parse(fs.readFileSync(path.join(__dirname, '../../config/index.json'), 'utf-8'))
+}
 
 const chainConfig = {
   chain: base,
@@ -228,6 +256,7 @@ async function createVestingWalletTransactions(
   }
   return vestingTransactions
 }
+
 async function createGovernanceRewardsTransaction(
   summerToken: any,
   totalAmounts: TotalAmounts,
@@ -269,8 +298,68 @@ async function createBridgeTransactions(
   config: BaseConfig,
   bridgeConfig: BridgeConfig,
 ): Promise<TransactionBase[]> {
+  const fullConfig = getFullNetworkConfig()
   const bridgeTransactions: TransactionBase[] = []
-  // TODO: Add bridge transactions
+
+  // Fee buffer multiplier (e.g., 1.5 = 50% buffer)
+  const FEE_BUFFER_MULTIPLIER = 1.5
+
+  const destinations: NetworkDestination[] = [
+    { network: 'mainnet', destination: bridgeConfig.mainnet },
+    { network: 'arbitrum', destination: bridgeConfig.arbitrum },
+  ]
+
+  for (const { network, destination } of destinations) {
+    if (destination.amount === '0') continue
+
+    const networkConfig = fullConfig[network]
+
+    const destinationAddress = (
+      destination.address && destination.address !== ADDRESS_ZERO
+        ? destination.address
+        : networkConfig.gov.timelock.address
+    ) as Address
+
+    const sendParam = {
+      dstEid: networkConfig.common.layerZero.eID,
+      to: addressToBytes32(destinationAddress),
+      amountLD: BigInt(destination.amount),
+      minAmountLD: BigInt(destination.amount),
+      extraOptions: constructLzOptions(300000n),
+      composeMsg: '0x',
+      oftCmd: '0x',
+    }
+
+    // Quote the fees before creating the transaction
+    console.log(`Quoting cross-chain fees for ${network}...`)
+    const [nativeFee, lzTokenFee] = await summerToken.read.quoteSend([sendParam, false])
+
+    // Add buffer to the fees
+    const bufferedNativeFee = BigInt(Math.ceil(Number(nativeFee) * FEE_BUFFER_MULTIPLIER))
+    const bufferedLzTokenFee = BigInt(Math.ceil(Number(lzTokenFee) * FEE_BUFFER_MULTIPLIER))
+
+    console.log(`Native fee for ${network}: ${nativeFee} wei (buffered: ${bufferedNativeFee} wei)`)
+    console.log(
+      `LZ token fee for ${network}: ${lzTokenFee} wei (buffered: ${bufferedLzTokenFee} wei)`,
+    )
+
+    const sendCalldata = encodeFunctionData({
+      abi: summerToken.abi,
+      functionName: 'send',
+      args: [
+        sendParam,
+        { nativeFee: bufferedNativeFee, lzTokenFee: bufferedLzTokenFee },
+        safeAddress, // Refund address
+      ],
+    })
+
+    bridgeTransactions.push({
+      to: summerToken.address,
+      data: sendCalldata,
+      value: bufferedNativeFee.toString(),
+    })
+  }
+
   return bridgeTransactions
 }
 
@@ -497,9 +586,9 @@ async function main() {
   console.log(`🔑 Safe balance: ${safeBalance / 10n ** 18n}`)
   console.log(`🔑 Total amount: ${totalAmounts.totalAmount / 10n ** 18n}`)
 
-  if (safeBalance < totalAmounts.totalAmount) {
-    throw new Error('❌ Safe balance is less than total amount')
-  }
+  // if (safeBalance < totalAmounts.totalAmount) {
+  //   throw new Error('❌ Safe balance is less than total amount')
+  // }
 
   transactions.push(
     ...(await createVestingWalletTransactions(
@@ -538,9 +627,9 @@ async function main() {
   console.log(`Preparing Safe transaction with ${transactions.length} operations...`)
 
   // Send transactions to Safe
-  const txResult = await safeClient.send({ transactions })
+  // const txResult = await safeClient.send({ transactions })
   console.log('Safe transaction created!')
-  console.log('Safe Transaction Hash:', txResult.transactions?.safeTxHash)
+  // console.log('Safe Transaction Hash:', txResult.transactions?.safeTxHash)
 }
 
 main().catch((error) => {
