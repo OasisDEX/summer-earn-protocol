@@ -291,25 +291,11 @@ async function createGovernanceRewardsTransaction(
 
 async function createBridgeTransactions(
   summerToken: any,
-  totalAmounts: TotalAmounts,
   safeAddress: Address,
   chainConfig: ChainConfiguration,
   bridgeConfig: BridgeConfig,
 ): Promise<TransactionBase[]> {
   console.log('\n🌉 Preparing bridge transactions...')
-
-  // Check balance first
-  const safeBalance = await summerToken.read.balanceOf([safeAddress])
-  console.log(`Safe balance: ${safeBalance}`)
-  console.log(`Required bridge amount: ${totalAmounts.bridgeAmount}`)
-
-  if (safeBalance < totalAmounts.bridgeAmount) {
-    console.log('⚠️  Warning: Safe balance is insufficient for bridge transactions')
-    console.log(`   Balance: ${safeBalance}`)
-    console.log(`   Required: ${totalAmounts.bridgeAmount}`)
-    // You can choose to either throw an error or continue
-    throw new Error('Safe balance insufficient for bridge transactions')
-  }
 
   const satelliteConfigs = chainConfig.satelliteConfigs
   const bridgeTransactions: TransactionBase[] = []
@@ -647,13 +633,7 @@ async function main() {
     )),
   )
   transactions.push(
-    ...(await createBridgeTransactions(
-      summerToken,
-      totalAmounts,
-      safeAddress,
-      chainConfig,
-      bridgeConfig,
-    )),
+    ...(await createBridgeTransactions(summerToken, safeAddress, chainConfig, bridgeConfig)),
   )
 
   console.log(`Preparing Safe transaction with ${transactions.length} operations...`)
