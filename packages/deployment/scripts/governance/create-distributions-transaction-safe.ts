@@ -438,13 +438,17 @@ async function createMerkleRootTransaction(
   merkleConfig: MerkleConfig,
 ): Promise<TransactionBase[]> {
   const redeemerAddress = config.deployedContracts.gov.rewardsRedeemer.address as Address
-  const approvalTx = await handleApproval(
-    summerToken,
-    safeAddress,
-    redeemerAddress,
-    totalAmounts.merkleAmount,
-    'Merkle redeemer',
-  )
+  // transfer tokens to redeemer
+  const transferCalldata = encodeFunctionData({
+    abi: summerToken.abi,
+    functionName: 'transfer',
+    args: [redeemerAddress, totalAmounts.merkleAmount],
+  })
+  const transferTx = {
+    to: summerToken.address,
+    data: transferCalldata,
+    value: '0',
+  }
   const redeemerContract = await hre.viem.getContractAt(
     'SummerRewardsRedeemer' as string,
     redeemerAddress,
@@ -462,10 +466,7 @@ async function createMerkleRootTransaction(
     data: addRootCalldata,
     value: '0',
   }
-  if (approvalTx) {
-    return [approvalTx, addRootTx]
-  }
-  return [addRootTx]
+  return [transferTx, addRootTx]
 }
 
 function createTransferTransactions(summerToken: any, transfers: TransferConfig) {
