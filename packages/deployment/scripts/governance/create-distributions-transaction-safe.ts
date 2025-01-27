@@ -291,11 +291,26 @@ async function createGovernanceRewardsTransaction(
 
 async function createBridgeTransactions(
   summerToken: any,
+  totalAmounts: TotalAmounts,
   safeAddress: Address,
   chainConfig: ChainConfiguration,
   bridgeConfig: BridgeConfig,
 ): Promise<TransactionBase[]> {
   console.log('\n🌉 Preparing bridge transactions...')
+
+  // Check balance first
+  const safeBalance = await summerToken.read.balanceOf([safeAddress])
+  console.log(`Safe balance: ${safeBalance} (${safeBalance / 10n ** 18n} SUMMER)`)
+  console.log(
+    `Required bridge amount: ${totalAmounts.bridgeAmount} (${totalAmounts.bridgeAmount / 10n ** 18n} SUMMER)`,
+  )
+
+  if (safeBalance < totalAmounts.bridgeAmount) {
+    console.log('⚠️  Warning: Safe balance is insufficient for bridge transactions')
+    console.log(`   Balance: ${safeBalance / 10n ** 18n} SUMMER`)
+    console.log(`   Required: ${totalAmounts.bridgeAmount / 10n ** 18n} SUMMER`)
+    throw new Error('Safe balance insufficient for bridge transactions')
+  }
 
   const satelliteConfigs = chainConfig.satelliteConfigs
   const bridgeTransactions: TransactionBase[] = []
@@ -347,7 +362,10 @@ async function createBridgeTransactions(
 
     // Quote the fees before creating the transaction
     console.log('   📊 Quoting cross-chain fees...')
-    const [nativeFee, lzTokenFee] = await summerToken.read.quoteSend([sendParam, false])
+    const quote = await summerToken.read.quoteSend([sendParam, false])
+    console.log('   📊 Quote:', quote)
+    const nativeFee = quote.nativeFee
+    const lzTokenFee = quote.lzTokenFee
 
     // Add buffer to the fees
     const bufferedNativeFee = BigInt(Math.ceil(Number(nativeFee) * FEE_BUFFER_MULTIPLIER))
@@ -633,7 +651,13 @@ async function main() {
     )),
   )
   transactions.push(
-    ...(await createBridgeTransactions(summerToken, safeAddress, chainConfig, bridgeConfig)),
+    ...(await createBridgeTransactions(
+      summerToken,
+      totalAmounts,
+      safeAddress,
+      chainConfig,
+      bridgeConfig,
+    )),
   )
 
   console.log(`Preparing Safe transaction with ${transactions.length} operations...`)
