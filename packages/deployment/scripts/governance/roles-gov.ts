@@ -54,6 +54,7 @@ export async function rolesGov(additionalGovernors: string[] = []) {
   if (!isMultisigWhitelisted) {
     await summerToken.write.addToWhitelist([multisigTokenReceiver])
   }
+  console.log(`DEPLOYER - transferring ${deployerBalance} tokens to multisig...`)
 
   await summerToken.write.transfer([multisigTokenReceiver, deployerBalance])
 
