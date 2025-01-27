@@ -83,14 +83,15 @@ const VESTING_TYPE = {
 // Load vesting distribution configuration
 const distributionsDir = path.join(__dirname, '../../token-distributions/')
 
-type NetworkConfigs = Record<'base' | 'arbitrum' | 'mainnet', BaseConfig>
+// Update NetworkConfigs to exclude 'base'
+type NetworkConfigs = Record<'mainnet' | 'arbitrum', BaseConfig>
 
 type ChainConfiguration = {
   chain: typeof base
   chainId: number
-  config: BaseConfig
+  config: BaseConfig // This is the base chain config
   rpcUrl: string
-  satelliteConfigs: NetworkConfigs
+  satelliteConfigs: NetworkConfigs // Only contains mainnet and arbitrum configs
 }
 
 const chainConfig: ChainConfiguration = {
@@ -98,9 +99,14 @@ const chainConfig: ChainConfiguration = {
   chainId: 8453,
   config: getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true }),
   rpcUrl: process.env.BASE_RPC_URL as string,
-  satelliteConfigs: JSON.parse(
-    fs.readFileSync(path.join(__dirname, '../../config/index.json'), 'utf-8'),
-  ),
+  // Filter out 'base' from the loaded config
+  satelliteConfigs: (() => {
+    const allConfigs = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../../config/index.json'), 'utf-8'),
+    )
+    const { base, ...satelliteConfigs } = allConfigs
+    return satelliteConfigs
+  })(),
 }
 
 async function handleRoles(
