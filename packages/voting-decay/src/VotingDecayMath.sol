@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
 import {UD60x18, ud, unwrap} from "@prb/math/src/UD60x18.sol";

@@ -1,13 +1,8 @@
-// SPDX-License-Identifier: AGPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/**
- * @title IAToken
- * @author Aave
- * @notice Defines the basic interface for an AToken.
- */
 interface IAToken is IERC20 {
     /**
      * @dev Emitted during the transfer action

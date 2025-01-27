@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 // OpenZeppelin Contracts (last updated v5.0.1) (utils/Multicall.sol)
 
 pragma solidity ^0.8.20;
