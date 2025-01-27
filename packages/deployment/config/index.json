@@ -3,19 +3,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x1bd84d0Abe55f00890A0737d9213DdC306dD28F4"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "summerToken": {
-          "address": "0x52A94964b494A4dc6912A10949f88c0770E0a514"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "timelock": {
-          "address": "0x565C070505196c4ff684d9aE70e2405325dd921B"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "protocolAccessManager": {
-          "address": "0x49C50db8704Fc14367a089690f8560739A123E49"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "rewardsRedeemer": {
-          "address": "0xD7c18F5df960617fa409f9D7c6BFDAfBbCA13462"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "buyAndBurn": {
@@ -25,22 +25,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0xB5168c70F5a81E315959E1A96629175E2f3cF93D"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "raft": {
-          "address": "0x0a14Edaf9e835525B3c5e0648C64A2A0D262255a"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "configurationManager": {
-          "address": "0xB566eeacd4B9c6904A467B3250d895041B94D655"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "harborCommand": {
-          "address": "0x79BDBaa087175aA490F311EC743264bD6268C933"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "admiralsQuarters": {
-          "address": "0x34f72f4B4979f0EA13d2AD80243c1f1Bd4E750db"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x09276B3013C606F8aABB7701Accbab5fFD0bb189"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
@@ -116,19 +116,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0xE52d32df7752E8Da97fD093CEC1Dacd633198910"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "summerToken": {
-          "address": "0xc4E635b196Fb8B1f0AB58Ec3cCC73e79188741a0"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "timelock": {
-          "address": "0x8C3d2BC0F5ad577FE2FcA70b8E5319067b5dD70D"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "protocolAccessManager": {
-          "address": "0xCfe9Ec0BE2e692667eb9a4Ee362299520C620D20"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "rewardsRedeemer": {
-          "address": "0x5DDf8a03A327A0e9c3B2E71e9720e69735406447"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "buyAndBurn": {
@@ -138,22 +138,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0xc1F47C95f313e2738f1eE8f37d817884F1bf0038"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "raft": {
-          "address": "0x6c54Ac96C6BE868ebb5c04fcCA0B9081ab9dC87A"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "configurationManager": {
-          "address": "0x90295011Cd38c76f54948cfea4CD31C316be0d68"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "harborCommand": {
-          "address": "0x2eA9c38Bf6170C47a2B7D81F9AB01EcF0849E6B4"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "admiralsQuarters": {
-          "address": "0xebA00532bd17B01229d70c48F838F715f5571C41"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0xE38F9440e02F54ECa1E07cBeE5C2860E101e362E"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
@@ -249,19 +249,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x2aA6DFDB53517243B5abB97FDAF2d6003b7FeB0d"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "summerToken": {
-          "address": "0x424aA31D64cabd39ea8B133BE844d935d666f40e"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "timelock": {
-          "address": "0xc5cAB79A195497ec19495a7ffa8E263557c41AAC"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "protocolAccessManager": {
-          "address": "0xf7D6fBD250EF3EB083c7Bca2998AD82E1946E479"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "rewardsRedeemer": {
-          "address": "0x394C95eC48B36C458335435C6a3E74BbD0B35237"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       },
       "buyAndBurn": {
@@ -271,22 +271,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0xBA57eaB5B4e8560061b7237db2dC3226b2DAc064"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "raft": {
-          "address": "0x64EB3C12EAC910ceC0B2527B91288Ec2653D2b86"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "configurationManager": {
-          "address": "0x694F9c802909CeaBa936230354de95968cE36aB5"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "harborCommand": {
-          "address": "0xc7C9d0BcbEE418a4012C67d83cBd291860416DF9"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "admiralsQuarters": {
-          "address": "0x05Da9eE95BF7f0a37e79a1341706eFB65e385979"
+          "address": "0x0000000000000000000000000000000000000000"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0xaF5506dB6a8c7Bfad5e70D1f2fDBB7b1FC89E249"
+          "address": "0x0000000000000000000000000000000000000000"
         }
       }
     },
