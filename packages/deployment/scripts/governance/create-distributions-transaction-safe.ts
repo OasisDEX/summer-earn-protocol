@@ -12,9 +12,32 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 
 dotenv.config()
 
+if (!process.env.SAFE_ADDRESS) {
+  throw new Error('❌ SAFE_ADDRESS not set in environment')
+}
+
+if (!process.env.DEPLOYER_PRIV_KEY) {
+  throw new Error('❌ DEPLOYER_PRIV_KEY not set in environment')
+}
+
+const safeAddress = process.env.SAFE_ADDRESS as Address
+
+type TotalAmounts = {
+  vestingAmount: bigint
+  transfersAmount: bigint
+  merkleAmount: bigint
+  governanceRewardsAmount: bigint
+  bridgeAmount: bigint
+  totalAmount: bigint
+}
+
 type Transfer = {
   address: string
   amount: string
+}
+
+type TransferConfig = {
+  [key: string]: Transfer
 }
 
 type VestingConfig = {
@@ -25,30 +48,30 @@ type VestingConfig = {
 }
 
 type MerkleConfig = {
+  distributionId: string
   merkleRoot: string
   totalAmount: string
+}
+
+type BridgeDestination = {
+  address: string
+  amount: string
+}
+
+type BridgeConfig = {
+  mainnet: BridgeDestination
+  arbitrum: BridgeDestination
+}
+
+type GovernanceRewardsConfig = {
+  amount: string
+  duration: string
 }
 
 const VESTING_TYPE = {
   TeamVesting: 0,
   InvestorExTeamVesting: 1,
 }
-
-const oazoAppsLimitedTransfer = {
-  address: '0xDE1Bf64033Fa4BabB5d047C18E858c0f272B2f32',
-  amount: '154261300000000000000000000',
-}
-const foundationTransfer = {
-  address: '0xE470684D279386Ce126d0576086C123a930312B3',
-  amount: '70000000000000000000000000',
-}
-const oazoMultisigTransfer = { address: 'TBD', amount: '64900000000000000000000000' }
-
-const tokenTransfers: Transfer[] = [
-  oazoAppsLimitedTransfer,
-  foundationTransfer,
-  oazoMultisigTransfer,
-]
 
 // Load vesting distribution configuration
 const distributionsDir = path.join(__dirname, '../../token-distributions/')
@@ -140,36 +163,46 @@ async function handleWhitelist(
 
 async function handleApproval(
   summerToken: any,
-  safeAddress: Address,
-  factoryAddress: Address,
-  totalAmount: bigint,
-  transactions: TransactionBase[],
-): Promise<void> {
-  const allowance = (await summerToken.read.allowance([safeAddress, factoryAddress])) as bigint
-  if (allowance < totalAmount) {
-    console.log('❌ Allowance is less than total amount, adding approval tx...')
+  source: Address,
+  target: Address,
+  amount: bigint,
+  context: string,
+): Promise<TransactionBase | undefined> {
+  const allowance = (await summerToken.read.allowance([source, target])) as bigint
+  console.log(`🔑 ${context} allowance: ${allowance}, amount is: ${amount}`)
+  if (allowance < amount) {
+    console.log(`❌ ${context} allowance is less than required amount, adding approval tx...`)
     const approvalCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'approve',
-      args: [factoryAddress, totalAmount.toString()],
+      args: [target, amount.toString()],
     })
-    transactions.push({
+    return {
       to: summerToken.address,
       data: approvalCalldata,
       value: '0',
-    })
+    }
   } else {
-    console.log('✅ Allowance is greater than total amount, skipping approval...')
+    console.log(`✅ ${context} allowance is sufficient, skipping approval...`)
   }
 }
 
-function createVestingWalletTransactions(
+async function createVestingWalletTransactions(
+  summerToken: any,
+  totalAmounts: TotalAmounts,
   vestingWalletFactory: any,
-  factoryAddress: Address,
-  beneficiaries: string[],
   vestingConfig: VestingConfig,
-): TransactionBase[] {
-  return beneficiaries.map((beneficiary) => {
+): Promise<TransactionBase[]> {
+  const factoryAddress = vestingWalletFactory.address
+  const approvalTx = await handleApproval(
+    summerToken,
+    safeAddress,
+    factoryAddress,
+    totalAmounts.vestingAmount,
+    'Factory',
+  )
+  const beneficiaries = Object.keys(vestingConfig)
+  const vestingTransactions: TransactionBase[] = beneficiaries.map((beneficiary) => {
     const vestingData = vestingConfig[beneficiary]
     const timeBasedAmount = BigInt(vestingData.timeBased)
     const goalAmounts = vestingData.goals ? vestingData.goals.map(BigInt) : []
@@ -190,39 +223,109 @@ function createVestingWalletTransactions(
       value: '0',
     }
   })
+  if (approvalTx) {
+    vestingTransactions.unshift(approvalTx)
+  }
+  return vestingTransactions
+}
+async function createGovernanceRewardsTransaction(
+  summerToken: any,
+  totalAmounts: TotalAmounts,
+  govRewardsConfig: GovernanceRewardsConfig,
+): Promise<TransactionBase[]> {
+  const governanceStakingAddress = await summerToken.read.rewardsManager()
+  console.log(`🔑 Governance staking address: ${governanceStakingAddress}`)
+  const approvalTx = await handleApproval(
+    summerToken,
+    safeAddress,
+    governanceStakingAddress,
+    totalAmounts.governanceRewardsAmount,
+    'Governance rewards',
+  )
+  const governanceRewardsContract = await hre.viem.getContractAt(
+    'GovernanceRewardsManager' as string,
+    governanceStakingAddress,
+  )
+  const notifyRewardAmountCalldata = encodeFunctionData({
+    abi: governanceRewardsContract.abi,
+    functionName: 'notifyRewardAmount',
+    args: [summerToken.address, govRewardsConfig.amount, govRewardsConfig.duration],
+  })
+  const notifyRewardAmountTx = {
+    to: governanceStakingAddress,
+    data: notifyRewardAmountCalldata,
+    value: '0',
+  }
+  if (approvalTx) {
+    return [approvalTx, notifyRewardAmountTx]
+  }
+  return [notifyRewardAmountTx]
+}
+
+async function createBridgeTransactions(
+  summerToken: any,
+  totalAmounts: TotalAmounts,
+  safeAddress: Address,
+  config: BaseConfig,
+  bridgeConfig: BridgeConfig,
+): Promise<TransactionBase[]> {
+  const bridgeTransactions: TransactionBase[] = []
+  // TODO: Add bridge transactions
+  return bridgeTransactions
 }
 
 async function createMerkleRootTransaction(
+  summerToken: any,
+  totalAmounts: TotalAmounts,
   config: BaseConfig,
-  merkleRoot: string,
-): Promise<TransactionBase> {
-  const summerRewardsRedeemerContract = await hre.viem.getContractAt(
+  merkleConfig: MerkleConfig,
+): Promise<TransactionBase[]> {
+  const redeemerAddress = config.deployedContracts.gov.rewardsRedeemer.address as Address
+  const approvalTx = await handleApproval(
+    summerToken,
+    safeAddress,
+    redeemerAddress,
+    totalAmounts.merkleAmount,
+    'Merkle redeemer',
+  )
+  const redeemerContract = await hre.viem.getContractAt(
     'SummerRewardsRedeemer' as string,
-    config.deployedContracts.gov.rewardsRedeemer.address as Address,
+    redeemerAddress,
+  )
+  console.log(
+    `🔑 Adding merkleRoot to rewards redeemer... hash: ${merkleConfig.merkleRoot} index: ${merkleConfig.distributionId}`,
   )
   const addRootCalldata = encodeFunctionData({
-    abi: summerRewardsRedeemerContract.abi,
+    abi: redeemerContract.abi,
     functionName: 'addRoot',
-    args: [1, merkleRoot],
+    args: [merkleConfig.distributionId, merkleConfig.merkleRoot],
   })
-  console.log(`🔑 Adding root to rewards redeemer... hash: ${merkleRoot} index: 1`)
-  return {
-    to: summerRewardsRedeemerContract.address,
+  const addRootTx = {
+    to: redeemerAddress,
     data: addRootCalldata,
     value: '0',
   }
+  if (approvalTx) {
+    return [approvalTx, addRootTx]
+  }
+  return [addRootTx]
+}
+
+function createTransferTransactions(summerToken: any, transfers: TransferConfig) {
+  const transferTransactions = Object.values(transfers).map(({ address, amount }) => ({
+    to: summerToken.address,
+    data: encodeFunctionData({
+      abi: summerToken.abi,
+      functionName: 'transfer',
+      args: [address as Address, amount],
+    }),
+    value: '0',
+  }))
+  console.log(`🔑 Creating ${transferTransactions.length} transfer transactions...`)
+  return transferTransactions
 }
 
 async function getSafeClient(rpcUrl: string): Promise<any> {
-  if (!process.env.SAFE_ADDRESS) {
-    throw new Error('❌ SAFE_ADDRESS not set in environment')
-  }
-
-  if (!process.env.DEPLOYER_PRIV_KEY) {
-    throw new Error('❌ DEPLOYER_PRIV_KEY not set in environment')
-  }
-
-  const safeAddress = process.env.SAFE_ADDRESS as Address
   const safeClient = await createSafeClient({
     provider: rpcUrl,
     signer: process.env.DEPLOYER_PRIV_KEY as Address,
@@ -261,11 +364,20 @@ async function getTokenAndFactory(
   return { summerToken, vestingWalletFactory, factoryAddress }
 }
 
-function getTotalAmount(
-  vestingConfig: Record<string, any>,
-  transfers: Transfer[],
-  merkleAmount: bigint,
-): bigint {
+function getTotalAmounts(
+  vestingConfig: VestingConfig,
+  transfers: TransferConfig,
+  merkleConfig: MerkleConfig,
+  governanceRewardsConfig: GovernanceRewardsConfig,
+  bridgeConfig: BridgeConfig,
+): {
+  vestingAmount: bigint
+  transfersAmount: bigint
+  merkleAmount: bigint
+  governanceRewardsAmount: bigint
+  bridgeAmount: bigint
+  totalAmount: bigint
+} {
   const beneficiaries = Object.keys(vestingConfig)
 
   const totalVestingAmount = beneficiaries.reduce((sum, beneficiary) => {
@@ -275,12 +387,82 @@ function getTotalAmount(
     return sum + timeBasedAmount + goalAmounts.reduce((sum, amount) => sum + amount, 0n)
   }, 0n)
 
-  const totalTransfersAmount = transfers.reduce(
+  const totalTransfersAmount = Object.values(transfers).reduce(
     (sum, transfer) => sum + BigInt(transfer.amount),
     0n,
   )
+  const totalGovernanceRewardsAmount = BigInt(governanceRewardsConfig.amount)
+  const totalBridgeAmount =
+    BigInt(bridgeConfig.mainnet.amount) + BigInt(bridgeConfig.arbitrum.amount)
+  return {
+    vestingAmount: totalVestingAmount,
+    transfersAmount: totalTransfersAmount,
+    merkleAmount: BigInt(merkleConfig.totalAmount),
+    governanceRewardsAmount: totalGovernanceRewardsAmount,
+    bridgeAmount: totalBridgeAmount,
+    totalAmount:
+      totalVestingAmount +
+      totalTransfersAmount +
+      BigInt(merkleConfig.totalAmount) +
+      totalGovernanceRewardsAmount +
+      totalBridgeAmount,
+  }
+}
 
-  return totalVestingAmount + totalTransfersAmount + merkleAmount
+async function getVestingConfig(chainId: number): Promise<VestingConfig> {
+  const vestingPath = path.resolve(distributionsDir, 'input', chainId.toString(), 'vesting.json')
+  return JSON.parse(fs.readFileSync(vestingPath, 'utf-8'))
+}
+
+async function getMerkleConfig(chainId: number): Promise<MerkleConfig> {
+  const merkleRedeemerPath = path.resolve(
+    distributionsDir,
+    'output',
+    chainId.toString(),
+    'merkle-redeemer',
+    'distribution-1.json',
+  )
+  const merkleRedeemerConfig: MerkleConfig = JSON.parse(
+    fs.readFileSync(merkleRedeemerPath, 'utf-8'),
+  )
+  return {
+    distributionId: merkleRedeemerConfig.distributionId,
+    merkleRoot: merkleRedeemerConfig.merkleRoot,
+    totalAmount: merkleRedeemerConfig.totalAmount,
+  }
+}
+
+async function getTransfersConfig(chainId: number): Promise<TransferConfig> {
+  const transfersPath = path.resolve(
+    distributionsDir,
+    'input',
+    chainId.toString(),
+    'transfers.json',
+  )
+  const transfersConfig: TransferConfig = JSON.parse(fs.readFileSync(transfersPath, 'utf-8'))
+
+  return transfersConfig
+}
+
+async function getBridgeConfig(chainId: number): Promise<BridgeConfig> {
+  const bridgePath = path.resolve(distributionsDir, 'input', chainId.toString(), 'bridge.json')
+  const bridgeConfig: BridgeConfig = JSON.parse(fs.readFileSync(bridgePath, 'utf-8'))
+
+  return bridgeConfig
+}
+
+async function getGovernanceRewardsConfig(chainId: number): Promise<GovernanceRewardsConfig> {
+  const governanceRewardsPath = path.resolve(
+    distributionsDir,
+    'input',
+    chainId.toString(),
+    'governance-rewards.json',
+  )
+  const governanceRewardsConfig: GovernanceRewardsConfig = JSON.parse(
+    fs.readFileSync(governanceRewardsPath, 'utf-8'),
+  )
+
+  return governanceRewardsConfig
 }
 
 async function main() {
@@ -289,26 +471,11 @@ async function main() {
 
   const transactions: TransactionBase[] = []
 
-  const vestingPath = path.resolve(
-    distributionsDir,
-    'input',
-    chainConfig.chainId.toString(),
-    'vesting.json',
-  )
-  const merkleRedeemerPath = path.resolve(
-    distributionsDir,
-    'output',
-    chainConfig.chainId.toString(),
-    'merkle-redeemer',
-    'distribution-1.json',
-  )
-
-  const vestingConfig: VestingConfig = JSON.parse(fs.readFileSync(vestingPath, 'utf-8'))
-  const merkleRedeemerConfig: MerkleConfig = JSON.parse(
-    fs.readFileSync(merkleRedeemerPath, 'utf-8'),
-  )
-  const merkleRoot = merkleRedeemerConfig.merkleRoot
-  const merkleAmount = BigInt(merkleRedeemerConfig.totalAmount)
+  const transfersConfig = await getTransfersConfig(chainConfig.chainId)
+  const vestingConfig = await getVestingConfig(chainConfig.chainId)
+  const merkleConfig = await getMerkleConfig(chainConfig.chainId)
+  const bridgeConfig = await getBridgeConfig(chainConfig.chainId)
+  const governanceRewardsConfig = await getGovernanceRewardsConfig(chainConfig.chainId)
 
   const { summerToken, vestingWalletFactory, factoryAddress } = await getTokenAndFactory(
     chainConfig.config,
@@ -318,28 +485,55 @@ async function main() {
   await handleWhitelist(summerToken, safeAddress, factoryAddress, transactions)
 
   // Calculate total amount needed for approval
-  const totalAmount = getTotalAmount(vestingConfig, tokenTransfers, merkleAmount)
+  const totalAmounts = getTotalAmounts(
+    vestingConfig,
+    transfersConfig,
+    merkleConfig,
+    governanceRewardsConfig,
+    bridgeConfig,
+  )
 
   const safeBalance = (await summerToken.read.balanceOf([safeAddress])) as bigint
-  if (safeBalance < totalAmount) {
+  console.log(`🔑 Safe balance: ${safeBalance / 10n ** 18n}`)
+  console.log(`🔑 Total amount: ${totalAmounts.totalAmount / 10n ** 18n}`)
+
+  if (safeBalance < totalAmounts.totalAmount) {
     throw new Error('❌ Safe balance is less than total amount')
   }
 
-  console.log(`🔑 Safe balance: ${safeBalance}`)
-  console.log(`🔑 Total amount: ${totalAmount}`)
-
-  await handleApproval(summerToken, safeAddress, factoryAddress, totalAmount, transactions)
-
   transactions.push(
-    ...createVestingWalletTransactions(
+    ...(await createVestingWalletTransactions(
+      summerToken,
+      totalAmounts,
       vestingWalletFactory,
-      factoryAddress,
-      Object.keys(vestingConfig),
       vestingConfig,
-    ),
+    )),
   )
-  transactions.push(...createTransferTransactions(summerToken, tokenTransfers))
-  transactions.push(await createMerkleRootTransaction(chainConfig.config, merkleRoot))
+  transactions.push(...createTransferTransactions(summerToken, transfersConfig))
+  transactions.push(
+    ...(await createMerkleRootTransaction(
+      summerToken,
+      totalAmounts,
+      chainConfig.config,
+      merkleConfig,
+    )),
+  )
+  transactions.push(
+    ...(await createGovernanceRewardsTransaction(
+      summerToken,
+      totalAmounts,
+      governanceRewardsConfig,
+    )),
+  )
+  transactions.push(
+    ...(await createBridgeTransactions(
+      summerToken,
+      totalAmounts,
+      safeAddress,
+      chainConfig.config,
+      bridgeConfig,
+    )),
+  )
 
   console.log(`Preparing Safe transaction with ${transactions.length} operations...`)
 
@@ -347,20 +541,6 @@ async function main() {
   const txResult = await safeClient.send({ transactions })
   console.log('Safe transaction created!')
   console.log('Safe Transaction Hash:', txResult.transactions?.safeTxHash)
-}
-
-function createTransferTransactions(summerToken: any, transfers: Transfer[]) {
-  const transferTransactions = transfers.map(({ address, amount }) => ({
-    to: summerToken.address,
-    data: encodeFunctionData({
-      abi: summerToken.abi,
-      functionName: 'transfer',
-      args: [address as Address, amount],
-    }),
-    value: '0',
-  }))
-  console.log(`🔑 Creating ${transferTransactions.length} transfer transactions...`)
-  return transferTransactions
 }
 
 main().catch((error) => {
