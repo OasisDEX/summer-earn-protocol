@@ -83,44 +83,34 @@ const VESTING_TYPE = {
 // Load vesting distribution configuration
 const distributionsDir = path.join(__dirname, '../../token-distributions/')
 
-type FullNetworkConfig = Record<
-  'base' | 'arbitrum' | 'mainnet',
-  {
-    common: {
-      layerZero: {
-        eID: string
-        lzEndpoint: string
-      }
-    }
-    deployedContracts: {
-      gov: {
-        timelock: {
-          address: string
-        }
-      }
-    }
-  }
->
+type NetworkConfigs = Record<'base' | 'arbitrum' | 'mainnet', BaseConfig>
 
-function getFullNetworkConfig(): FullNetworkConfig {
-  return JSON.parse(fs.readFileSync(path.join(__dirname, '../../config/index.json'), 'utf-8'))
+type ChainConfiguration = {
+  chain: typeof base
+  chainId: number
+  config: BaseConfig
+  rpcUrl: string
+  satelliteConfigs: NetworkConfigs
 }
 
-const chainConfig = {
+const chainConfig: ChainConfiguration = {
   chain: base,
   chainId: 8453,
   config: getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true }),
   rpcUrl: process.env.BASE_RPC_URL as string,
+  satelliteConfigs: JSON.parse(
+    fs.readFileSync(path.join(__dirname, '../../config/index.json'), 'utf-8'),
+  ),
 }
 
 async function handleRoles(
-  chainConfig: BaseConfig,
+  chainConfig: ChainConfiguration,
   safeAddress: Address,
   transactions: TransactionBase[],
 ): Promise<void> {
   const accessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,
-    chainConfig.deployedContracts.gov.protocolAccessManager.address as Address,
+    chainConfig.config.deployedContracts.gov.protocolAccessManager.address as Address,
   )
   const hasGovernanceRole = await accessManager.read.hasRole([GOVERNOR_ROLE, safeAddress])
   if (!hasGovernanceRole) {
@@ -297,7 +287,7 @@ async function createBridgeTransactions(
   summerToken: any,
   totalAmounts: TotalAmounts,
   safeAddress: Address,
-  config: BaseConfig,
+  chainConfig: ChainConfiguration,
   bridgeConfig: BridgeConfig,
 ): Promise<TransactionBase[]> {
   console.log('\n🌉 Preparing bridge transactions...')
@@ -315,7 +305,7 @@ async function createBridgeTransactions(
     throw new Error('Safe balance insufficient for bridge transactions')
   }
 
-  const fullConfig = getFullNetworkConfig()
+  const satelliteConfigs = chainConfig.satelliteConfigs
   const bridgeTransactions: TransactionBase[] = []
 
   // Fee buffer multiplier (e.g., 1.5 = 50% buffer)
@@ -336,11 +326,11 @@ async function createBridgeTransactions(
     console.log(`\n🔗 Processing bridge to ${network}:`)
     console.log(`   Amount: ${destination.amount}`)
 
-    const networkConfig = fullConfig[network]
+    const satelliteConfig = satelliteConfigs[network]
     const destinationAddress = (
       destination.address && destination.address !== ADDRESS_ZERO
         ? destination.address
-        : networkConfig.deployedContracts.gov.timelock.address
+        : satelliteConfig.deployedContracts.gov.timelock.address
     ) as Address
 
     const destinationHex =
@@ -348,13 +338,13 @@ async function createBridgeTransactions(
 
     console.log(`   Destination address: ${destinationAddress}`)
     console.log(`   Destination hex: ${destinationHex}`)
-    console.log(`   Destination EID: ${networkConfig.common.layerZero.eID}`)
+    console.log(`   Destination EID: ${satelliteConfig.common.layerZero.eID}`)
 
     const options = constructLzOptions(300000n)
     console.log('   Generated options:', options)
 
     const sendParam = {
-      dstEid: Number(networkConfig.common.layerZero.eID),
+      dstEid: Number(satelliteConfig.common.layerZero.eID),
       to: destinationHex,
       amountLD: BigInt(destination.amount),
       minAmountLD: BigInt(destination.amount),
@@ -460,20 +450,22 @@ async function getSafeClient(rpcUrl: string): Promise<any> {
 }
 
 async function getTokenAndFactory(
-  chainConfig: BaseConfig,
+  chainConfig: ChainConfiguration,
 ): Promise<{ summerToken: any; vestingWalletFactory: any; factoryAddress: Address }> {
   if (
-    !chainConfig.deployedContracts.gov.summerToken.address ||
-    chainConfig.deployedContracts.gov.summerToken.address === ADDRESS_ZERO
+    !chainConfig.config.deployedContracts.gov.summerToken.address ||
+    chainConfig.config.deployedContracts.gov.summerToken.address === ADDRESS_ZERO
   ) {
     throw new Error('❌ SummerToken is not deployed')
   }
 
-  console.log(`🔑 SummerToken address: ${chainConfig.deployedContracts.gov.summerToken.address}`)
+  console.log(
+    `🔑 SummerToken address: ${chainConfig.config.deployedContracts.gov.summerToken.address}`,
+  )
 
   const summerToken = await hre.viem.getContractAt(
     'SummerToken' as string,
-    chainConfig.deployedContracts.gov.summerToken.address as Address,
+    chainConfig.config.deployedContracts.gov.summerToken.address as Address,
   )
 
   console.log(' Instantiating SummerVestingWalletFactory...')
@@ -601,11 +593,10 @@ async function main() {
   const bridgeConfig = await getBridgeConfig(chainConfig.chainId)
   const governanceRewardsConfig = await getGovernanceRewardsConfig(chainConfig.chainId)
 
-  const { summerToken, vestingWalletFactory, factoryAddress } = await getTokenAndFactory(
-    chainConfig.config,
-  )
+  const { summerToken, vestingWalletFactory, factoryAddress } =
+    await getTokenAndFactory(chainConfig)
 
-  await handleRoles(chainConfig.config, safeAddress, transactions)
+  await handleRoles(chainConfig, safeAddress, transactions)
   await handleWhitelist(summerToken, safeAddress, factoryAddress, transactions)
 
   // Calculate total amount needed for approval
@@ -621,9 +612,9 @@ async function main() {
   console.log(`🔑 Safe balance: ${safeBalance / 10n ** 18n}`)
   console.log(`🔑 Total amount: ${totalAmounts.totalAmount / 10n ** 18n}`)
 
-  // if (safeBalance < totalAmounts.totalAmount) {
-  //   throw new Error('❌ Safe balance is less than total amount')
-  // }
+  if (safeBalance < totalAmounts.totalAmount) {
+    throw new Error('❌ Safe balance is less than total amount')
+  }
 
   transactions.push(
     ...(await createVestingWalletTransactions(
@@ -654,7 +645,7 @@ async function main() {
       summerToken,
       totalAmounts,
       safeAddress,
-      chainConfig.config,
+      chainConfig,
       bridgeConfig,
     )),
   )
@@ -662,9 +653,9 @@ async function main() {
   console.log(`Preparing Safe transaction with ${transactions.length} operations...`)
 
   // Send transactions to Safe
-  // const txResult = await safeClient.send({ transactions })
+  const txResult = await safeClient.send({ transactions })
   console.log('Safe transaction created!')
-  // console.log('Safe Transaction Hash:', txResult.transactions?.safeTxHash)
+  console.log('Safe Transaction Hash:', txResult.transactions?.safeTxHash)
 }
 
 main().catch((error) => {
