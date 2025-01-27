@@ -86,6 +86,15 @@ export async function rolesGov(additionalGovernors: string[] = []) {
     await publicClient.waitForTransactionReceipt({ hash })
   }
 
+  const hasMultisigGovernorRole = await protocolAccessManager.read.hasRole([
+    GOVERNOR_ROLE,
+    multisigTokenReceiver,
+  ])
+  if (!hasMultisigGovernorRole) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to multisig...')
+    const hash = await protocolAccessManager.write.grantGovernorRole([multisigTokenReceiver])
+    await publicClient.waitForTransactionReceipt({ hash })
+  }
   // Handle additional governors
   if (additionalGovernors.length > 0) {
     console.log('[PROTOCOL ACCESS MANAGER] - Setting up additional governors...')
