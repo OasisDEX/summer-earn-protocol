@@ -39,8 +39,8 @@
     "deploy:status:base": "hardhat ignition status chain-8453",
     "verify:base": "hardhat ignition verify chain-8453",
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts",
-    "createVestingWallets": "hardhat run scripts/governance/create-vesting-wallets.ts --network $NETWORK",
-    "createVestingWalletsSafe": "hardhat run scripts/governance/create-vesting-wallets-safe.ts --network $NETWORK"
+    "create-distributions-tx": "hardhat run scripts/governance/create-distributions-transaction-safe.ts --network $NETWORK",
+    "generate-merkle-root": "tsx scripts/generate-merkle-root.ts"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",
@@ -69,10 +69,13 @@
     "ts-node": "10.9.2"
   },
   "dependencies": {
+    "@openzeppelin/merkle-tree": "1.0.7",
     "@safe-global/sdk-starter-kit": "1.1.1",
+    "@safe-global/types-kit": "^1.0.1",
     "@summerfi/earn-protocol-contracts": "workspace:*",
     "dotenv": "16.4.5",
     "solhint-plugin-prettier": "0.1.0",
-    "solidity-bytes-utils": "0.8.2"
+    "solidity-bytes-utils": "0.8.2",
+    "tsx": "4.19.2"
   }
 }

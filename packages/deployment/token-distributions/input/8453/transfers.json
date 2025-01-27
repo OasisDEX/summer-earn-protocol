@@ -1,0 +1,14 @@
+{
+  "oazoAppsLimited": {
+    "address": "0xDE1Bf64033Fa4BabB5d047C18E858c0f272B2f32",
+    "amount": "153785300000000000000000000"
+  },
+  "foundation": {
+    "address": "0xE470684D279386Ce126d0576086C123a930312B3",
+    "amount": "70476000000000000000000000"
+  },
+  "oazoMultisig": {
+    "address": "0x370CF698CF1433532F39D231175F83dC71D03122",
+    "amount": "64900000000000000000000000"
+  }
+}
