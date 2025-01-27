@@ -112,6 +112,10 @@ contract SummerTokenTestBase is TestHelperOz5 {
         vm.label(address(timelockA), "SummerTimelockController A");
         vm.label(address(timelockB), "SummerTimelockController B");
 
+        vm.label(owner, "Owner");
+
+        vm.startPrank(owner);
+
         ISummerToken.ConstructorParams memory constructorParamsA = ISummerToken
             .ConstructorParams({
                 name: "SummerToken A",
@@ -123,14 +127,7 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 transferEnableDate: block.timestamp + 1 days,
                 hubChainId: 31337
             });
-
-        ISummerToken.InitializeParams memory initParamsA = ISummerToken
-            .InitializeParams({
-                initialSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
-            });
+        aSummerToken = new SupplyControlSummerToken(constructorParamsA);
 
         ISummerToken.ConstructorParams memory constructorParamsB = ISummerToken
             .ConstructorParams({
@@ -143,31 +140,37 @@ contract SummerTokenTestBase is TestHelperOz5 {
                 transferEnableDate: block.timestamp + 1 days,
                 hubChainId: 31338
             });
+        bSummerToken = new SupplyControlSummerToken(constructorParamsB);
 
+        vestingWalletFactoryA = new SummerVestingWalletFactory(
+            address(aSummerToken),
+            address(accessManagerA)
+        );
+        ISummerToken.InitializeParams memory initParamsA = ISummerToken
+            .InitializeParams({
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                vestingWalletFactory: address(vestingWalletFactoryA)
+            });
+
+        vestingWalletFactoryB = new SummerVestingWalletFactory(
+            address(bSummerToken),
+            address(accessManagerB)
+        );
         ISummerToken.InitializeParams memory initParamsB = ISummerToken
             .InitializeParams({
                 initialSupply: 0,
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                vestingWalletFactory: address(vestingWalletFactoryB)
             });
 
-        vm.label(owner, "Owner");
-
-        vm.startPrank(owner);
-        aSummerToken = new SupplyControlSummerToken(constructorParamsA);
         aSummerToken.initialize(initParamsA);
-
-        bSummerToken = new SupplyControlSummerToken(constructorParamsB);
         bSummerToken.initialize(initParamsB);
         vm.stopPrank();
-
-        vestingWalletFactoryA = SummerVestingWalletFactory(
-            address(aSummerToken.vestingWalletFactory())
-        );
-        vestingWalletFactoryB = SummerVestingWalletFactory(
-            address(bSummerToken.vestingWalletFactory())
-        );
 
         // Config and wire the tokens
         address[] memory tokens = new address[](2);
@@ -241,7 +244,8 @@ contract SummerTokenTestBase is TestHelperOz5 {
             initialSupply: INITIAL_SUPPLY * 10 ** 18,
             initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
             initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-            initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+            initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+            vestingWalletFactory: address(vestingWalletFactoryA)
         });
     }
 }

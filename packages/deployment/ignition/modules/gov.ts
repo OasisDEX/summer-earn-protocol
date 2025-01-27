@@ -85,14 +85,19 @@ export const GovModule = buildModule('GovModule', (m) => {
     hubChainId: HUB_CHAIN_ID,
   }
 
+  const summerToken = m.contract('SummerToken', [summerTokenConstructorParams])
+  const vestingWalletFactory = m.contract('SummerVestingWalletFactory', [
+    summerToken,
+    accessManager,
+  ])
+
   const summerTokenInitParams = {
     initialSupply: initialSupply,
     initialDecayFreeWindow: 60n * 24n * 60n * 60n, // 60 days
     initialYearlyDecayRate: BigInt(0.1e18), // ~10% per year
     initialDecayFunction: DecayType.Linear,
+    vestingWalletFactory: vestingWalletFactory,
   }
-
-  const summerToken = m.contract('SummerToken', [summerTokenConstructorParams])
 
   m.call(summerToken, 'initialize', [summerTokenInitParams])
 

@@ -54,12 +54,14 @@ interface ISummerToken is
      * @param initialDecayFreeWindow The initial decay-free window duration in seconds
      * @param initialYearlyDecayRate The initial yearly decay rate as a percentage
      * @param initialDecayFunction The initial decay function type
+     * @param vestingWalletFactory The address of the vesting wallet factory contract
      */
     struct InitializeParams {
         uint256 initialSupply;
         uint40 initialDecayFreeWindow;
         Percentage initialYearlyDecayRate;
         VotingDecayLibrary.DecayFunction initialDecayFunction;
+        address vestingWalletFactory;
     }
 
     /*//////////////////////////////////////////////////////////////
