@@ -183,12 +183,12 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
         uint256 queueTime = block.timestamp;
         governorA.queue(targets, values, calldatas, descriptionHash);
 
-        // Try to execute immediately (should fail)
+        //Try to execute immediately (should fail)
         vm.expectRevert(
             abi.encodeWithSelector(
                 TimelockController.TimelockUnexpectedOperationState.selector,
                 bytes32(
-                    0x81297373e089cb2bba7fe732a206753121d91648a36fb2584c2cf0c8f8afd1fc
+                    0x7e6abb1e72b1f25d9128cead45603aeee47b9ae7443b55445810bb453ec24c33
                 ),
                 bytes32(1 << uint8(TimelockController.OperationState.Ready))
             )
@@ -201,7 +201,7 @@ contract SummerGovernorTimelockTest is SummerGovernorTestBase {
             abi.encodeWithSelector(
                 TimelockController.TimelockUnexpectedOperationState.selector,
                 bytes32(
-                    0x81297373e089cb2bba7fe732a206753121d91648a36fb2584c2cf0c8f8afd1fc
+                    0x7e6abb1e72b1f25d9128cead45603aeee47b9ae7443b55445810bb453ec24c33
                 ),
                 bytes32(1 << uint8(TimelockController.OperationState.Ready))
             )
