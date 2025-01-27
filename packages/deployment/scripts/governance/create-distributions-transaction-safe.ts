@@ -97,7 +97,7 @@ type ChainConfiguration = {
 const chainConfig: ChainConfiguration = {
   chain: base,
   chainId: 8453,
-  config: getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true }),
+  config: getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false }),
   rpcUrl: process.env.BASE_RPC_URL as string,
   // Filter out 'base' from the loaded config
   satelliteConfigs: (() => {
@@ -320,7 +320,7 @@ async function createBridgeTransactions(
   console.log(`Using fee buffer multiplier: ${FEE_BUFFER_MULTIPLIER}x`)
 
   const destinations: NetworkDestination[] = [
-    { network: 'mainnet', destination: bridgeConfig.mainnet },
+   // { network: 'mainnet', destination: bridgeConfig.mainnet },
     { network: 'arbitrum', destination: bridgeConfig.arbitrum },
   ]
 
@@ -626,13 +626,13 @@ async function main() {
     throw new Error('❌ Safe balance is less than total amount')
   }
 
-  transactions.push(
-    ...(await createVestingWalletTransactions(
-      summerToken,
-      totalAmounts,
-      vestingWalletFactory,
-      vestingConfig,
-    )),
+ transactions.push(
+  ...(await createVestingWalletTransactions(
+   summerToken,
+  totalAmounts,
+    vestingWalletFactory,
+    vestingConfig,
+  )),
   )
   transactions.push(...createTransferTransactions(summerToken, transfersConfig))
   transactions.push(
@@ -650,15 +650,15 @@ async function main() {
       governanceRewardsConfig,
     )),
   )
-  transactions.push(
-    ...(await createBridgeTransactions(
-      summerToken,
-      totalAmounts,
-      safeAddress,
-      chainConfig,
-      bridgeConfig,
-    )),
-  )
+//  transactions.push(
+//    ...(await createBridgeTransactions(
+//      summerToken,
+  //    totalAmounts,
+//      safeAddress,
+   //   chainConfig,
+//      bridgeConfig,
+//    )),
+ //  )
 
   console.log(`Preparing Safe transaction with ${transactions.length} operations...`)
 

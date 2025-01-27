@@ -56,7 +56,8 @@ export async function rolesGov(additionalGovernors: string[] = []) {
   }
   console.log(`DEPLOYER - transferring ${deployerBalance} tokens to multisig...`)
 
-  await summerToken.write.transfer([multisigTokenReceiver, deployerBalance])
+const transferHash =  await summerToken.write.transfer([multisigTokenReceiver, deployerBalance])
+await publicClient.waitForTransactionReceipt({ hash: transferHash })
 
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernor' as string,
