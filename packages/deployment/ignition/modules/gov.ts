@@ -35,7 +35,15 @@ const HUB_CHAIN_ID = 8453n // BASE
 export const GovModule = buildModule('GovModule', (m) => {
   const deployer = m.getAccount(0)
   const lzEndpoint = m.getParameter('lzEndpoint')
-  const initialSupply = m.getParameter('initialSupply', '0')
+  const initialSupply = m.getParameter('initialSupply', 0n)
+  const tokenName = m.getParameter('tokenName', 'SUMMER')
+  const tokenSymbol = m.getParameter('tokenSymbol', 'SUMMER')
+  const transferEnableDate = m.getParameter('transferEnableDate', 0n)
+  const minDelay = m.getParameter('minDelay', 0n)
+  const votingDelay = m.getParameter('votingDelay', 60n)
+  const votingPeriod = m.getParameter('votingPeriod', 600n)
+  const proposalThreshold = m.getParameter('proposalThreshold', 10000n * 10n ** 18n)
+  const quorumFraction = m.getParameter('quorumFraction', 4n)
 
   /**
    * @dev Step 0: Deploy ProtocolAccessManager
@@ -51,10 +59,8 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - ADDRESS_ZERO as executor (anyone can execute)
    * - deployer as admin (temporary)
    */
-  const MIN_DELAY = 86400n
-  const TEMP_MIN_DELAY_DURING_TESTING = 300n // 5 minutes for testing
   const timelock = m.contract('SummerTimelockController', [
-    TEMP_MIN_DELAY_DURING_TESTING,
+    minDelay,
     [deployer],
     [ADDRESS_ZERO],
     deployer,
@@ -69,13 +75,13 @@ export const GovModule = buildModule('GovModule', (m) => {
    * - Configured with initial decay parameters for voting power
    */
   const summerTokenConstructorParams = {
-    name: 'SummerToken',
-    symbol: 'SUMMER',
+    name: tokenName,
+    symbol: tokenSymbol,
     lzEndpoint: lzEndpoint,
     initialOwner: deployer, // Swapped out for Timelock after Peering is complete
     accessManager: accessManager,
     maxSupply: 1_000_000_000n * 10n ** 18n, // 1B tokens
-    transferEnableDate: 1731667188n,
+    transferEnableDate: transferEnableDate,
     hubChainId: HUB_CHAIN_ID,
   }
 
@@ -105,15 +111,13 @@ export const GovModule = buildModule('GovModule', (m) => {
     token: summerToken,
     timelock: timelock,
     accessManager: accessManager,
-    // Note: Voting delay is set to 60 second to allow for testing
-    votingDelay: 60n,
-    // Note: Voting period is set to 10 minutes to allow for testing
-    votingPeriod: 600n, // 10 minutes
-    proposalThreshold: 10000n * 10n ** 18n,
-    quorumFraction: 4n,
+    votingDelay: votingDelay,
+    votingPeriod: votingPeriod,
+    proposalThreshold: proposalThreshold,
+    quorumFraction: quorumFraction,
     endpoint: lzEndpoint,
     hubChainId: HUB_CHAIN_ID,
-    initialOwner: deployer, // Swapped out for Timelock after Peering is complete
+    initialOwner: deployer,
   }
 
   const summerGovernor = m.contract('SummerGovernor', [summerGovernorDeployParams])
