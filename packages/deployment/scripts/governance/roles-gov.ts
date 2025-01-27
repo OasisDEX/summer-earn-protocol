@@ -45,7 +45,16 @@ export async function rolesGov(additionalGovernors: string[] = []) {
   )
   const deployerBalance = await summerToken.read.balanceOf([deployer])
 
-  await summerToken.write.addToWhitelist([deployer])
+  const isDeployerWhitelisted = await summerToken.read.whitelistedAddresses([deployer])
+  if (!isDeployerWhitelisted) {
+    await summerToken.write.addToWhitelist([deployer])
+  }
+
+  const isMultisigWhitelisted = await summerToken.read.whitelistedAddresses([multisigTokenReceiver])
+  if (!isMultisigWhitelisted) {
+    await summerToken.write.addToWhitelist([multisigTokenReceiver])
+  }
+
   await summerToken.write.transfer([multisigTokenReceiver, deployerBalance])
 
   const summerGovernor = await hre.viem.getContractAt(
