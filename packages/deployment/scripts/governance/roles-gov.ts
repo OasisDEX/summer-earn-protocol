@@ -47,17 +47,21 @@ export async function rolesGov(additionalGovernors: string[] = []) {
 
   const isDeployerWhitelisted = await summerToken.read.whitelistedAddresses([deployer])
   if (!isDeployerWhitelisted) {
-    await summerToken.write.addToWhitelist([deployer])
+    console.log(`DEPLOYER - adding to whitelist...`)
+    const addToWhitelistHash = await summerToken.write.addToWhitelist([deployer])
+    await publicClient.waitForTransactionReceipt({ hash: addToWhitelistHash })
   }
 
   const isMultisigWhitelisted = await summerToken.read.whitelistedAddresses([multisigTokenReceiver])
   if (!isMultisigWhitelisted) {
-    await summerToken.write.addToWhitelist([multisigTokenReceiver])
+    console.log(`MULTISIG - adding to whitelist...`)
+    const addToWhitelistHash = await summerToken.write.addToWhitelist([multisigTokenReceiver])
+    await publicClient.waitForTransactionReceipt({ hash: addToWhitelistHash })
   }
-  console.log(`DEPLOYER - transferring ${deployerBalance} tokens to multisig...`)
 
-const transferHash =  await summerToken.write.transfer([multisigTokenReceiver, deployerBalance])
-await publicClient.waitForTransactionReceipt({ hash: transferHash })
+  console.log(`DEPLOYER - transferring ${deployerBalance} tokens to multisig...`)
+  const transferHash = await summerToken.write.transfer([multisigTokenReceiver, deployerBalance])
+  await publicClient.waitForTransactionReceipt({ hash: transferHash })
 
   const summerGovernor = await hre.viem.getContractAt(
     'SummerGovernor' as string,
