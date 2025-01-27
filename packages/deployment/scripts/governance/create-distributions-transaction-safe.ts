@@ -97,7 +97,7 @@ type ChainConfiguration = {
 const chainConfig: ChainConfiguration = {
   chain: base,
   chainId: 8453,
-  config: getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true }),
+  config: getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false }),
   rpcUrl: process.env.BASE_RPC_URL as string,
   // Filter out 'base' from the loaded config
   satelliteConfigs: (() => {
