@@ -92,9 +92,11 @@ type FullNetworkConfig = Record<
         lzEndpoint: string
       }
     }
-    gov: {
-      timelock: {
-        address: string
+    deployedContracts: {
+      gov: {
+        timelock: {
+          address: string
+        }
       }
     }
   }
@@ -298,11 +300,27 @@ async function createBridgeTransactions(
   config: BaseConfig,
   bridgeConfig: BridgeConfig,
 ): Promise<TransactionBase[]> {
+  console.log('\n🌉 Preparing bridge transactions...')
+
+  // Check balance first
+  const safeBalance = await summerToken.read.balanceOf([safeAddress])
+  console.log(`Safe balance: ${safeBalance}`)
+  console.log(`Required bridge amount: ${totalAmounts.bridgeAmount}`)
+
+  if (safeBalance < totalAmounts.bridgeAmount) {
+    console.log('⚠️  Warning: Safe balance is insufficient for bridge transactions')
+    console.log(`   Balance: ${safeBalance}`)
+    console.log(`   Required: ${totalAmounts.bridgeAmount}`)
+    // You can choose to either throw an error or continue
+    throw new Error('Safe balance insufficient for bridge transactions')
+  }
+
   const fullConfig = getFullNetworkConfig()
   const bridgeTransactions: TransactionBase[] = []
 
   // Fee buffer multiplier (e.g., 1.5 = 50% buffer)
   const FEE_BUFFER_MULTIPLIER = 1.5
+  console.log(`Using fee buffer multiplier: ${FEE_BUFFER_MULTIPLIER}x`)
 
   const destinations: NetworkDestination[] = [
     { network: 'mainnet', destination: bridgeConfig.mainnet },
@@ -310,38 +328,53 @@ async function createBridgeTransactions(
   ]
 
   for (const { network, destination } of destinations) {
-    if (destination.amount === '0') continue
+    if (destination.amount === '0') {
+      console.log(`\n⏩ Skipping ${network} - amount is 0`)
+      continue
+    }
+
+    console.log(`\n🔗 Processing bridge to ${network}:`)
+    console.log(`   Amount: ${destination.amount}`)
 
     const networkConfig = fullConfig[network]
-
     const destinationAddress = (
       destination.address && destination.address !== ADDRESS_ZERO
         ? destination.address
-        : networkConfig.gov.timelock.address
+        : networkConfig.deployedContracts.gov.timelock.address
     ) as Address
 
+    const destinationHex =
+      `0x${Buffer.from(addressToBytes32(destinationAddress)).toString('hex')}` as `0x${string}`
+
+    console.log(`   Destination address: ${destinationAddress}`)
+    console.log(`   Destination hex: ${destinationHex}`)
+    console.log(`   Destination EID: ${networkConfig.common.layerZero.eID}`)
+
+    const options = constructLzOptions(300000n)
+    console.log('   Generated options:', options)
+
     const sendParam = {
-      dstEid: networkConfig.common.layerZero.eID,
-      to: addressToBytes32(destinationAddress),
+      dstEid: Number(networkConfig.common.layerZero.eID),
+      to: destinationHex,
       amountLD: BigInt(destination.amount),
       minAmountLD: BigInt(destination.amount),
-      extraOptions: constructLzOptions(300000n),
-      composeMsg: '0x',
-      oftCmd: '0x',
+      extraOptions: options,
+      composeMsg: '0x' as `0x${string}`,
+      oftCmd: '0x' as `0x${string}`,
     }
 
     // Quote the fees before creating the transaction
-    console.log(`Quoting cross-chain fees for ${network}...`)
+    console.log('   📊 Quoting cross-chain fees...')
     const [nativeFee, lzTokenFee] = await summerToken.read.quoteSend([sendParam, false])
 
     // Add buffer to the fees
     const bufferedNativeFee = BigInt(Math.ceil(Number(nativeFee) * FEE_BUFFER_MULTIPLIER))
     const bufferedLzTokenFee = BigInt(Math.ceil(Number(lzTokenFee) * FEE_BUFFER_MULTIPLIER))
 
-    console.log(`Native fee for ${network}: ${nativeFee} wei (buffered: ${bufferedNativeFee} wei)`)
-    console.log(
-      `LZ token fee for ${network}: ${lzTokenFee} wei (buffered: ${bufferedLzTokenFee} wei)`,
-    )
+    console.log(`   💰 Native fee: ${nativeFee} wei`)
+    console.log(`      Buffered to: ${bufferedNativeFee} wei`)
+    console.log(`   🎟️  LZ token fee: ${lzTokenFee} wei`)
+    console.log(`      Buffered to: ${bufferedLzTokenFee} wei`)
 
     const sendCalldata = encodeFunctionData({
       abi: summerToken.abi,
@@ -353,6 +386,7 @@ async function createBridgeTransactions(
       ],
     })
 
+    console.log('   ✅ Created bridge transaction')
     bridgeTransactions.push({
       to: summerToken.address,
       data: sendCalldata,
@@ -360,6 +394,7 @@ async function createBridgeTransactions(
     })
   }
 
+  console.log(`\n✨ Created ${bridgeTransactions.length} bridge transactions`)
   return bridgeTransactions
 }
 
