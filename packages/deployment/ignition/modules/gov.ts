@@ -87,7 +87,7 @@ export const GovModule = buildModule('GovModule', (m) => {
 
   const summerTokenInitParams = {
     initialSupply: initialSupply,
-    initialDecayFreeWindow: 30n * 24n * 60n * 60n, // 30 days
+    initialDecayFreeWindow: 60n * 24n * 60n * 60n, // 60 days
     initialYearlyDecayRate: BigInt(0.1e18), // ~10% per year
     initialDecayFunction: DecayType.Linear,
   }

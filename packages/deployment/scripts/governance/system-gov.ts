@@ -123,15 +123,16 @@ async function getDeploymentConfig() {
 
   const defaultName = isTest ? 'BummerToken' : 'SummerToken'
   const defaultSymbol = isTest ? 'BUMMER' : 'SUMR'
-  const defaultMinDelay = isTest ? 300n : 86400n // 5 mins or 1 day
+  const defaultMinDelay = isTest ? 300n : 172800n // 5 mins or 2 day
   const defaultVotingDelay = isTest ? 60n : 86400n // 1 min or 1 day
-  const defaultVotingPeriod = isTest ? 600n : 604800n // 10 mins or 1 week
+  const defaultVotingPeriod = isTest ? 600n : 345600n // 10 mins or 4 days
 
   // Calculate default transfer enable date
   const now = Math.floor(Date.now() / 1000)
+  const july1st2025UTC = 1751328000 // July 1st, 2025 00:00 UTC
   const defaultTransferEnableDate = isTest
     ? now + 5 * 60 // 5 minutes from now
-    : now + 180 * 24 * 60 * 60 // 6 months from now
+    : july1st2025UTC
 
   const responses = await prompts([
     {
