@@ -152,6 +152,40 @@ async function handleWhitelist(
   factoryAddress: Address,
   transactions: TransactionBase[],
 ): Promise<void> {
+  const governanceStakingAddress = await summerToken.read.rewardsManager()
+  const isGovernanceStakingWhitelisted = await summerToken.read.whitelistedAddresses([
+    governanceStakingAddress,
+  ])
+  if (!isGovernanceStakingWhitelisted) {
+    console.log('❌ Governance staking address is not whitelisted, adding to whitelist...')
+    const whitelistCalldata = encodeFunctionData({
+      abi: summerToken.abi,
+      functionName: 'addToWhitelist',
+      args: [governanceStakingAddress],
+    })
+    transactions.push({
+      to: summerToken.address,
+      data: whitelistCalldata,
+      value: '0',
+    })
+  }
+  const isRewardsRedeemerWhitelisted = await summerToken.read.whitelistedAddresses([
+    chainConfig.config.deployedContracts.gov.rewardsRedeemer.address as Address,
+  ])
+  if (!isRewardsRedeemerWhitelisted) {
+    console.log('❌ Rewards redeemer is not whitelisted, adding to whitelist...')
+    const whitelistCalldata = encodeFunctionData({
+      abi: summerToken.abi,
+      functionName: 'addToWhitelist',
+      args: [chainConfig.config.deployedContracts.gov.rewardsRedeemer.address as Address],
+    })
+    transactions.push({
+      to: summerToken.address,
+      data: whitelistCalldata,
+      value: '0',
+    })
+  }
+
   const isWhitelisted = await summerToken.read.whitelistedAddresses([safeAddress])
   if (!isWhitelisted) {
     console.log('❌ Not whitelisted, adding to whitelist...')
@@ -262,6 +296,7 @@ async function createGovernanceRewardsTransaction(
   govRewardsConfig: GovernanceRewardsConfig,
 ): Promise<TransactionBase[]> {
   const governanceStakingAddress = await summerToken.read.rewardsManager()
+
   console.log(`🔑 Governance staking address: ${governanceStakingAddress}`)
   const approvalTx = await handleApproval(
     summerToken,
@@ -699,9 +734,9 @@ async function main() {
   console.log(`🔑 Safe balance: ${safeBalance / 10n ** 18n}`)
   console.log(`🔑 Total amount: ${totalAmounts.totalAmount / 10n ** 18n}`)
 
-  // if (safeBalance < totalAmounts.totalAmount) {
-  //   throw new Error('❌ Safe balance is less than total amount')
-  // }
+  if (safeBalance < totalAmounts.totalAmount) {
+    throw new Error('❌ Safe balance is less than total amount')
+  }
 
   transactions.push(
     ...(await createVestingWalletTransactions(
