@@ -23,7 +23,7 @@ const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
  *    - Grant DECAY_CONTROLLER_ROLE to SummerGovernor
  *    - Grant GOVERNOR_ROLE to TimelockController
  */
-export async function rolesGov() {
+export async function rolesGov(additionalGovernors: string[] = []) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
   const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
 
@@ -54,6 +54,8 @@ export async function rolesGov() {
 
   // Set timelock as governor in ProtocolAccessManager
   console.log('[PROTOCOL ACCESS MANAGER] - Setting up governance...')
+
+  // Handle timelock governor role
   const hasGovernorRole = await protocolAccessManager.read.hasRole([
     GOVERNOR_ROLE,
     timelock.address,
@@ -62,6 +64,21 @@ export async function rolesGov() {
     console.log('[PROTOCOL ACCESS MANAGER] - Granting governor role to timelock...')
     const hash = await protocolAccessManager.write.grantGovernorRole([timelock.address])
     await publicClient.waitForTransactionReceipt({ hash })
+  }
+
+  // Handle additional governors
+  if (additionalGovernors.length > 0) {
+    console.log('[PROTOCOL ACCESS MANAGER] - Setting up additional governors...')
+    for (const governor of additionalGovernors) {
+      const hasRole = await protocolAccessManager.read.hasRole([GOVERNOR_ROLE, governor])
+      if (!hasRole) {
+        console.log(`[PROTOCOL ACCESS MANAGER] - Granting governor role to ${governor}...`)
+        const hash = await protocolAccessManager.write.grantGovernorRole([governor])
+        await publicClient.waitForTransactionReceipt({ hash })
+      } else {
+        console.log(`[PROTOCOL ACCESS MANAGER] - Address ${governor} already has governor role`)
+      }
+    }
   }
 
   // On satellite chains, grant CANCELLER_ROLE to timelock and PROPOSER_ROLE to governor

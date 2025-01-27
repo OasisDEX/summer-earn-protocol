@@ -1,9 +1,11 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address } from 'viem'
+import { Address, keccak256, toBytes } from 'viem'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
-export async function finalizeGov() {
+const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
+
+export async function finalizeGov(governorAddressesToRevoke: string[] = []) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
   const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
 
@@ -18,6 +20,10 @@ export async function finalizeGov() {
   const timelock = await hre.viem.getContractAt(
     'TimelockController' as string,
     config.deployedContracts.gov.timelock.address as Address,
+  )
+  const protocolAccessManager = await hre.viem.getContractAt(
+    'ProtocolAccessManager' as string,
+    config.deployedContracts.gov.protocolAccessManager.address as Address,
   )
   const publicClient = await hre.viem.getPublicClient()
 
@@ -49,11 +55,30 @@ export async function finalizeGov() {
     console.log(kleur.yellow('! SummerGovernor ownership already transferred'))
   }
 
+  // Revoke governor roles from additional addresses
+  if (governorAddressesToRevoke.length > 0) {
+    console.log(kleur.cyan().bold('\nRevoking governor roles from additional addresses...'))
+    for (const address of governorAddressesToRevoke) {
+      const hasRole = await protocolAccessManager.read.hasRole([GOVERNOR_ROLE, address])
+      if (hasRole) {
+        console.log(`[PROTOCOL ACCESS MANAGER] - Revoking governor role from ${address}...`)
+        const hash = await protocolAccessManager.write.revokeGovernorRole([address])
+        await publicClient.waitForTransactionReceipt({ hash })
+        console.log(kleur.green(`✓ Governor role revoked from ${address}`))
+      } else {
+        console.log(kleur.yellow(`! Address ${address} does not have governor role`))
+      }
+    }
+  }
+
   console.log(kleur.green().bold('\nGovernance finalization completed!'))
 }
 
 if (require.main === module) {
-  finalizeGov().catch((error) => {
+  const args = process.argv.slice(2)
+  const governorAddressesToRevoke = args.length > 0 ? args : []
+
+  finalizeGov(governorAddressesToRevoke).catch((error) => {
     console.error(kleur.red().bold('An error occurred:'), error)
     process.exit(1)
   })

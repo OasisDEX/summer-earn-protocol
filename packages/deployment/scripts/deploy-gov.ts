@@ -100,7 +100,22 @@ async function deployGov() {
           }
           break
         case STEPS.ROLES:
-          await rolesGov()
+          const { additionalGovernors } = await prompts({
+            type: 'text',
+            name: 'additionalGovernors',
+            message:
+              'Enter additional governor addresses (comma-separated) or press enter to skip:',
+            validate: (value) =>
+              value === '' || // Allow empty input
+              value.split(',').every((addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr.trim())) ||
+              'Please enter valid Ethereum addresses separated by commas',
+          })
+
+          const governorAddresses = additionalGovernors
+            ? additionalGovernors.split(',').map((addr: string) => addr.trim())
+            : []
+
+          await rolesGov(governorAddresses)
           break
         case STEPS.PEER:
           const { confirmPeering } = await prompts({
@@ -135,7 +150,22 @@ async function deployGov() {
             initial: false,
           })
           if (confirmed) {
-            await finalizeGov()
+            const { addressesToRevoke } = await prompts({
+              type: 'text',
+              name: 'addressesToRevoke',
+              message:
+                'Enter governor addresses to revoke (comma-separated) or press enter to skip:',
+              validate: (value) =>
+                value === '' || // Allow empty input
+                value.split(',').every((addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr.trim())) ||
+                'Please enter valid Ethereum addresses separated by commas',
+            })
+
+            const governorAddressesToRevoke = addressesToRevoke
+              ? addressesToRevoke.split(',').map((addr: string) => addr.trim())
+              : []
+
+            await finalizeGov(governorAddressesToRevoke)
           } else {
             console.log(kleur.yellow('Finalization cancelled'))
           }
