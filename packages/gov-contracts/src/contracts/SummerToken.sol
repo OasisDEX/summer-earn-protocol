@@ -53,9 +53,10 @@ contract SummerToken is
 
     /// @notice The chain ID of the hub chain where governance actions are permitted
     uint32 public immutable hubChainId;
+    address public vestingWalletFactory;
     address public rewardsManager;
     VotingDecayLibrary.DecayState internal decayState;
-    address public immutable vestingWalletFactory;
+
     uint256 public immutable transferEnableDate;
     bool public transfersEnabled;
     mapping(address account => bool isWhitelisted) public whitelistedAddresses;
@@ -106,10 +107,6 @@ contract SummerToken is
         );
         _setRewardsManager(rewardsManager);
 
-        vestingWalletFactory = address(
-            new SummerVestingWalletFactory(address(this), params.accessManager)
-        );
-
         hubChainId = params.hubChainId;
         transferEnableDate = params.transferEnableDate;
     }
@@ -124,7 +121,7 @@ contract SummerToken is
         }
         _validateDecayRate(params.initialYearlyDecayRate);
         _validateDecayFreeWindow(params.initialDecayFreeWindow);
-
+        vestingWalletFactory = params.vestingWalletFactory;
         // Convert yearly rate to per-second rate
         uint256 perSecondRate = Percentage.unwrap(
             params.initialYearlyDecayRate

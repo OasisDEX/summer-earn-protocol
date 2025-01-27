@@ -7,6 +7,7 @@ import {ISummerTokenErrors} from "../../src/errors/ISummerTokenErrors.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {VotingDecayLibrary} from "@summerfi/voting-decay/VotingDecayLibrary.sol";
 import {SupplyControlSummerToken} from "../utils/SupplyControlSummerToken.sol";
+import {SummerVestingWalletFactory} from "../../src/contracts/SummerVestingWalletFactory.sol";
 
 contract SummerTokenOwnershipTest is SummerTokenTestBase {
     address public alice;
@@ -103,19 +104,27 @@ contract SummerTokenOwnershipTest is SummerTokenTestBase {
                 hubChainId: 31337
             });
 
-        ISummerToken.InitializeParams memory initializeParams = ISummerToken
-            .InitializeParams({
-                initialSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
-            });
-
         vm.expectEmit(true, true, false, true);
         emit Ownable.OwnershipTransferred(address(0), alice);
         SupplyControlSummerToken newToken = new SupplyControlSummerToken(
             constructorParams
         );
+
+        address summerVestingWalletFactory = address(
+            new SummerVestingWalletFactory(
+                address(newToken),
+                address(accessManagerA)
+            )
+        );
+
+        ISummerToken.InitializeParams memory initializeParams = ISummerToken
+            .InitializeParams({
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                vestingWalletFactory: summerVestingWalletFactory
+            });
 
         vm.prank(alice);
         newToken.initialize(initializeParams);
@@ -136,17 +145,24 @@ contract SummerTokenOwnershipTest is SummerTokenTestBase {
                 hubChainId: 31337
             });
 
+        SupplyControlSummerToken newToken = new SupplyControlSummerToken(
+            constructorParams
+        );
+
+        address summerVestingWalletFactory = address(
+            new SummerVestingWalletFactory(
+                address(newToken),
+                address(accessManagerA)
+            )
+        );
         ISummerToken.InitializeParams memory initializeParams = ISummerToken
             .InitializeParams({
                 initialSupply: INITIAL_SUPPLY * 10 ** 18,
                 initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
                 initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                vestingWalletFactory: summerVestingWalletFactory
             });
-
-        SupplyControlSummerToken newToken = new SupplyControlSummerToken(
-            constructorParams
-        );
 
         // First initialization should succeed
         vm.prank(owner);
@@ -171,19 +187,27 @@ contract SummerTokenOwnershipTest is SummerTokenTestBase {
                 hubChainId: 31337
             });
 
-        ISummerToken.InitializeParams memory initializeParams = ISummerToken
-            .InitializeParams({
-                initialSupply: INITIAL_SUPPLY * 10 ** 18,
-                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
-                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
-                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear
-            });
-
         vm.expectEmit(true, true, false, true);
         emit Ownable.OwnershipTransferred(address(0), alice);
         SupplyControlSummerToken newToken = new SupplyControlSummerToken(
             constructorParams
         );
+
+        address summerVestingWalletFactory = address(
+            new SummerVestingWalletFactory(
+                address(newToken),
+                address(accessManagerA)
+            )
+        );
+
+        ISummerToken.InitializeParams memory initializeParams = ISummerToken
+            .InitializeParams({
+                initialSupply: INITIAL_SUPPLY * 10 ** 18,
+                initialDecayFreeWindow: INITIAL_DECAY_FREE_WINDOW,
+                initialYearlyDecayRate: INITIAL_DECAY_RATE_PER_YEAR,
+                initialDecayFunction: VotingDecayLibrary.DecayFunction.Linear,
+                vestingWalletFactory: summerVestingWalletFactory
+            });
 
         // Verify owner is set correctly after deployment
         assertEq(newToken.owner(), alice);
