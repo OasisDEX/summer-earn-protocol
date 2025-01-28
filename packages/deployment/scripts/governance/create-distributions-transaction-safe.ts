@@ -25,6 +25,17 @@ if (!process.env.DEPLOYER_PRIV_KEY) {
 
 const safeAddress = getAddress(process.env.BVI_MULTISIG_ADDRESS as Address)
 
+const ADDITIONAL_WHITELIST_ADDRESSES = [
+  {
+    address: '0xDE1Bf64033Fa4BabB5d047C18E858c0f272B2f32' as Address,
+    description: 'Oazo Token Treasury',
+  },
+  {
+    address: '0xE470684D279386Ce126d0576086C123a930312B3' as Address,
+    description: 'Foundation Token Treasury',
+  },
+]
+
 type TotalAmounts = {
   vestingAmount: bigint
   transfersAmount: bigint
@@ -145,17 +156,6 @@ async function handleRoles(
     console.log('GOVERNANCE:✅ Safe is a foundation - all good!')
   }
 }
-
-const ADDITIONAL_WHITELIST_ADDRESSES = [
-  {
-    address: '0xDE1Bf64033Fa4BabB5d047C18E858c0f272B2f32' as Address,
-    description: 'Oazo Token Treasury',
-  },
-  {
-    address: '0xE470684D279386Ce126d0576086C123a930312B3' as Address,
-    description: 'Foundation Token Treasury',
-  },
-]
 
 async function handleWhitelist(
   summerToken: any,
