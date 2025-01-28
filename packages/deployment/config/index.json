@@ -3,19 +3,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796"
         },
         "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694"
         },
         "rewardsRedeemer": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x54a2ea2B8f57D62c149ace01d7Ac1fd9A880B8dd"
         }
       },
       "buyAndBurn": {
@@ -116,19 +116,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796"
         },
         "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694"
         },
         "rewardsRedeemer": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x54a2ea2B8f57D62c149ace01d7Ac1fd9A880B8dd"
         }
       },
       "buyAndBurn": {
@@ -249,19 +249,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xBE5A4DD68c3526F32B454fE28C9909cA0601e9Fa"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796"
         },
         "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xf389BCEa078acD9516414F5dabE3dDd5f7e39694"
         },
         "rewardsRedeemer": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x54a2ea2B8f57D62c149ace01d7Ac1fd9A880B8dd"
         }
       },
       "buyAndBurn": {
