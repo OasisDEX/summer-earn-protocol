@@ -3,7 +3,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { createPublicClient, http } from 'viem'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
-async function verifyGovernanceRewardsManager(hre: HardhatRuntimeEnvironment) {
+export async function verifyGovernanceRewardsManager(hre: HardhatRuntimeEnvironment) {
   const config = getConfigByNetwork(hre.network.name, {
     common: true,
     gov: true,
