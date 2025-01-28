@@ -191,7 +191,9 @@ async function handleWhitelist(
     governanceStakingAddress,
   ])
   if (!isGovernanceStakingWhitelisted) {
-    console.log('WHITELIST: ❌ Governance staking address is not whitelisted, adding to whitelist...')
+    console.log(
+      'WHITELIST: ❌ Governance staking address is not whitelisted, adding to whitelist...',
+    )
     const whitelistCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'addToWhitelist',
@@ -288,9 +290,13 @@ async function handleApproval(
   context: string,
 ): Promise<TransactionBase | undefined> {
   const allowance = (await summerToken.read.allowance([source, target])) as bigint
-    console.log(`TOKEN :    🔑 ${context} current allowance: ${allowance}, required allowance: ${amount}`)
+  console.log(
+    `TOKEN :    🔑 ${context} current allowance: ${allowance}, required allowance: ${amount}`,
+  )
   if (allowance < amount) {
-    console.log(`TOKEN:     ❌ ${context} allowance is less than required amount, adding approval tx...`)
+    console.log(
+      `TOKEN:     ❌ ${context} allowance is less than required amount, adding approval tx...`,
+    )
     const approvalCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'approve',
@@ -321,31 +327,38 @@ async function createVestingWalletTransactions(
     'Factory',
   )
   const beneficiaries = Object.keys(vestingConfig)
-  const vestingTransactions: TransactionBase[] = beneficiaries.map((beneficiary) => {
-    const vestingData = vestingConfig[beneficiary]
-    const timeBasedAmount = BigInt(vestingData.timeBased)
-    const goalAmounts = vestingData.goals ? vestingData.goals.map(BigInt) : []
-    const vestingType = vestingData.goals
-      ? VESTING_TYPE.TeamVesting
-      : VESTING_TYPE.InvestorExTeamVesting
+  const vestingTransactions: (TransactionBase | undefined)[] = await Promise.all(
+    beneficiaries.map(async (beneficiary) => {
+      const hasVestingWallet = await vestingWalletFactory.read.vestingWallets([beneficiary])
+      if (hasVestingWallet !== ADDRESS_ZERO) {
+        console.log(`VESTING:   🔑 Vesting wallet already exists for ${beneficiary}, skipping...`)
+        return undefined
+      }
+      const vestingData = vestingConfig[beneficiary]
+      const timeBasedAmount = BigInt(vestingData.timeBased)
+      const goalAmounts = vestingData.goals ? vestingData.goals.map(BigInt) : []
+      const vestingType = vestingData.goals
+        ? VESTING_TYPE.TeamVesting
+        : VESTING_TYPE.InvestorExTeamVesting
 
-    const createVestingCalldata = encodeFunctionData({
-      abi: vestingWalletFactory.abi,
-      functionName: 'createVestingWallet',
-      args: [beneficiary as Address, timeBasedAmount, goalAmounts, vestingType],
-    })
+      const createVestingCalldata = encodeFunctionData({
+        abi: vestingWalletFactory.abi,
+        functionName: 'createVestingWallet',
+        args: [beneficiary as Address, timeBasedAmount, goalAmounts, vestingType],
+      })
 
-    console.log(`VESTING:   🔑 Creating vesting wallet for ${beneficiary}...`)
-    return {
-      to: factoryAddress,
-      data: createVestingCalldata,
-      value: '0',
-    }
-  })
+      console.log(`VESTING:   🔑 Creating vesting wallet for ${beneficiary}...`)
+      return {
+        to: factoryAddress,
+        data: createVestingCalldata,
+        value: '0',
+      }
+    }),
+  )
   if (approvalTx) {
     vestingTransactions.unshift(approvalTx)
   }
-  return vestingTransactions
+  return vestingTransactions.filter((tx): tx is TransactionBase => tx !== undefined)
 }
 
 async function createGovernanceRewardsTransaction(
@@ -414,7 +427,7 @@ async function createBridgeTransactions(
   console.log(`Using fee buffer multiplier: ${FEE_BUFFER_MULTIPLIER}x`)
 
   const destinations: NetworkDestination[] = [
-    // { network: 'mainnet', destination: bridgeConfig.mainnet },
+    { network: 'mainnet', destination: bridgeConfig.mainnet },
     { network: 'arbitrum', destination: bridgeConfig.arbitrum },
   ]
 
@@ -791,7 +804,9 @@ async function main() {
 
   const safeBalance = (await summerToken.read.balanceOf([safeAddress])) as bigint
   console.log(`SUMMER:    🔑 Safe balance               : ${safeBalance / 10n ** 18n} SUMMER`)
-  console.log(`SUMMER:    🔑 Total amount to distribute : ${totalAmounts.totalAmount / 10n ** 18n} SUMMER`)
+  console.log(
+    `SUMMER:    🔑 Total amount to distribute : ${totalAmounts.totalAmount / 10n ** 18n} SUMMER`,
+  )
 
   if (safeBalance < totalAmounts.totalAmount) {
     throw new Error('❌ Safe balance is less than total amount')
