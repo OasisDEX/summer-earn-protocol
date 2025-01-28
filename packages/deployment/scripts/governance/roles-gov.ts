@@ -9,6 +9,7 @@ const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
+const ADDITIONAL_GOVERNORS = ['0x8888013451507E8DD7996509735E15F591886CD2']
 /**
  * @dev Post-deployment governance setup
  *
@@ -23,7 +24,7 @@ const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
  *    - Grant DECAY_CONTROLLER_ROLE to SummerGovernor
  *    - Grant GOVERNOR_ROLE to TimelockController
  */
-export async function rolesGov(additionalGovernors: string[] = []) {
+export async function rolesGov(_additionalGovernors: string[] = []) {
   const multisigTokenReceiver = process.env.BVI_MULTISIG_ADDRESS
   if (!multisigTokenReceiver) {
     throw new Error('BVI_MULTISIG_ADDRESS is not set')
@@ -101,6 +102,7 @@ export async function rolesGov(additionalGovernors: string[] = []) {
     const hash = await protocolAccessManager.write.grantGovernorRole([multisigTokenReceiver])
     await publicClient.waitForTransactionReceipt({ hash })
   }
+  const additionalGovernors = [...ADDITIONAL_GOVERNORS, ..._additionalGovernors]
   // Handle additional governors
   if (additionalGovernors.length > 0) {
     console.log('[PROTOCOL ACCESS MANAGER] - Setting up additional governors...')
