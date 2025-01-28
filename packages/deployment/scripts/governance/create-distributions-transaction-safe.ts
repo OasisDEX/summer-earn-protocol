@@ -146,6 +146,17 @@ async function handleRoles(
   }
 }
 
+const ADDITIONAL_WHITELIST_ADDRESSES = [
+  {
+    address: '0xDE1Bf64033Fa4BabB5d047C18E858c0f272B2f32' as Address,
+    description: 'Oazo Token Treasury',
+  },
+  {
+    address: '0xE470684D279386Ce126d0576086C123a930312B3' as Address,
+    description: 'Foundation Token Treasury',
+  },
+]
+
 async function handleWhitelist(
   summerToken: any,
   safeAddress: Address,
@@ -158,7 +169,9 @@ async function handleWhitelist(
     governanceStakingAddress,
   )
   const wrappedStakingToken = await governanceRewardsContract.read.wrappedStakingToken()
-  const isWrappedStakingTokenWhitelisted = await summerToken.read.whitelistedAddresses([wrappedStakingToken])
+  const isWrappedStakingTokenWhitelisted = await summerToken.read.whitelistedAddresses([
+    wrappedStakingToken,
+  ])
   if (!isWrappedStakingTokenWhitelisted) {
     console.log('❌ Wrapped staking token is not whitelisted, adding to whitelist...')
     const whitelistCalldata = encodeFunctionData({
@@ -238,6 +251,26 @@ async function handleWhitelist(
     console.log('✅ Added factory to whitelist!')
   } else {
     console.log('✅ Factory is already whitelisted, skipping...')
+  }
+
+  // Handle additional whitelist addresses
+  for (const { address, description } of ADDITIONAL_WHITELIST_ADDRESSES) {
+    const isWhitelisted = await summerToken.read.whitelistedAddresses([address])
+    if (!isWhitelisted) {
+      console.log(`❌ ${description} is not whitelisted, adding to whitelist...`)
+      const whitelistCalldata = encodeFunctionData({
+        abi: summerToken.abi,
+        functionName: 'addToWhitelist',
+        args: [address],
+      })
+      transactions.push({
+        to: summerToken.address,
+        data: whitelistCalldata,
+        value: '0',
+      })
+    } else {
+      console.log(`✅ ${description} is already whitelisted, skipping...`)
+    }
   }
 }
 
