@@ -441,8 +441,7 @@ async function createBridgeTransactions(
     console.log(`   Amount: ${destination.amount}`)
 
     const satelliteConfig = satelliteConfigs[network]
-    const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
-    const destinationAddress = deployer
+    const destinationAddress = safeAddress
 
     const destinationHex =
       `0x${Buffer.from(addressToBytes32(destinationAddress)).toString('hex')}` as `0x${string}`
@@ -753,6 +752,7 @@ async function proposeAllSafeTransactions(
   })
 
   const startNonce = await safe.getNonce()
+
   const totalBatches = Math.ceil(transactions.length / batchSize)
 
   console.log(
