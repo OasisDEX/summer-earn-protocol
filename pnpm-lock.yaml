@@ -177,9 +177,12 @@ importers:
       '@openzeppelin/merkle-tree':
         specifier: 1.0.7
         version: 1.0.7
-      '@safe-global/sdk-starter-kit':
-        specifier: 1.1.1
-        version: 1.1.1(typescript@5.4.5)(zod@3.22.4)
+      '@safe-global/api-kit':
+        specifier: ^2.5.7
+        version: 2.5.7(typescript@5.4.5)(zod@3.22.4)
+      '@safe-global/protocol-kit':
+        specifier: ^5.2.0
+        version: 5.2.0(typescript@5.4.5)(zod@3.22.4)
       '@safe-global/types-kit':
         specifier: ^1.0.1
         version: 1.0.1(typescript@5.4.5)(zod@3.22.4)
@@ -650,10 +653,6 @@ packages:
 
   /@adraffy/ens-normalize@1.11.0:
     resolution: {integrity: sha512-/3DDPKHqqIqxUULp8yP4zODUY1i+2xvVWsv8A79xGWdCAG+8sb0hRh0Rk2QyOJUnnbyPUAZYcpBuRe3nS2OIUg==}
-    dev: false
-
-  /@adraffy/ens-normalize@1.9.2:
-    resolution: {integrity: sha512-0h+FrQDqe2Wn+IIGFkTCd4aAwTJ+7834Ek1COohCyV26AXhwQ7WQaz+4F/nLOeVl/3BtWHOHLPsq46V8YB46Eg==}
     dev: false
 
   /@ampproject/remapping@2.3.0:
@@ -1849,20 +1848,6 @@ packages:
       js-yaml: 4.1.0
     dev: true
 
-  /@gelatonetwork/relay-sdk@5.5.6:
-    resolution: {integrity: sha512-wGUbBhz9iJUhagzW/+rik5nQ+X6YVDMQcH0PWxvSNB4Swu/EnPjqTVOJzf3CnS+pvCMNLChOEUw4caRbZXyq0w==}
-    engines: {node: '>=14.0.0'}
-    dependencies:
-      axios: 0.27.2
-      ethers: 6.7.0
-      isomorphic-ws: 5.0.0(ws@8.18.0)
-      ws: 8.18.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - utf-8-validate
-    dev: false
-
   /@graphprotocol/graph-cli@0.82.0(@types/node@20.12.7)(node-fetch@3.3.2)(typescript@5.4.5):
     resolution: {integrity: sha512-Azuqlv6SaNnpyMQGD4GXRkRJMPO83R2ts8WpKG0XN6rpCeaJJGZSWo2Q38jVmkEsgw0GDroLTQ7tvP/f4KbxJg==}
     engines: {node: '>=18'}
@@ -2518,10 +2503,6 @@ packages:
       '@noble/hashes': 1.7.1
     dev: false
 
-  /@noble/hashes@1.1.2:
-    resolution: {integrity: sha512-KYRCASVTv6aeUi1tsF8/vpyR7zpfs3FUzy2Jqm+MU+LmUKhQ0y2FpfwqkCcxSg2ua4GALJd8k2R76WxwZGbQpA==}
-    dev: false
-
   /@noble/hashes@1.2.0:
     resolution: {integrity: sha512-FZfhjEDbT5GRswV3C6uvLPHMiVD6lQBmpoX5+eSiPaMTXte/IKqI5dykDxzZB/WBeK/CDuQRBWarPdi3FNY2zQ==}
     dev: true
@@ -2536,6 +2517,7 @@ packages:
 
   /@noble/secp256k1@1.7.1:
     resolution: {integrity: sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw==}
+    dev: true
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -3206,22 +3188,6 @@ packages:
       - zod
     dev: false
 
-  /@safe-global/relay-kit@3.4.0(typescript@5.4.5)(zod@3.22.4):
-    resolution: {integrity: sha512-QMBXrF8h30WrhcD2NucusDOviVx00rxAM/3LvZoofe7kCUaDNsjtQ+2VZjWf77ns51bKcvG8FfY8WT7fa2MgqQ==}
-    dependencies:
-      '@gelatonetwork/relay-sdk': 5.5.6
-      '@safe-global/protocol-kit': 5.2.0(typescript@5.4.5)(zod@3.22.4)
-      '@safe-global/safe-modules-deployments': 2.2.4
-      '@safe-global/types-kit': 1.0.1(typescript@5.4.5)(zod@3.22.4)
-      viem: 2.22.15(typescript@5.4.5)(zod@3.22.4)
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - typescript
-      - utf-8-validate
-      - zod
-    dev: false
-
   /@safe-global/safe-deployments@1.37.25:
     resolution: {integrity: sha512-x4hReJ2LuqKt/O27iSz7JYbLwhho5oYkwmCU/hsZgl5ky5MjgsNd+2+wO+Ay1h1/hp422w9iIwdDMSyVyEf20Q==}
     dependencies:
@@ -3230,23 +3196,6 @@ packages:
 
   /@safe-global/safe-modules-deployments@2.2.4:
     resolution: {integrity: sha512-m396ZrBPhZVYkapTTIuizyOOtoZsCKbicl0ztgDFfDbi7KbS6AtDP6cV89AYosQxUQS+v0q4ksQd30/j3L1BtQ==}
-    dev: false
-
-  /@safe-global/sdk-starter-kit@1.1.1(typescript@5.4.5)(zod@3.22.4):
-    resolution: {integrity: sha512-aOrfxTecxWwAVrMLbxQ/Usvkc8fQBfvtf1/7kRuA9XVw4nP0DyriZiBvjEqRA0lYv8vuvU71A35JxO7h44PbbQ==}
-    dependencies:
-      '@safe-global/api-kit': 2.5.7(typescript@5.4.5)(zod@3.22.4)
-      '@safe-global/protocol-kit': 5.2.0(typescript@5.4.5)(zod@3.22.4)
-      '@safe-global/relay-kit': 3.4.0(typescript@5.4.5)(zod@3.22.4)
-      '@safe-global/types-kit': 1.0.1(typescript@5.4.5)(zod@3.22.4)
-      viem: 2.22.15(typescript@5.4.5)(zod@3.22.4)
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - encoding
-      - typescript
-      - utf-8-validate
-      - zod
     dev: false
 
   /@safe-global/types-kit@1.0.1(typescript@5.4.5)(zod@3.22.4):
@@ -3570,6 +3519,7 @@ packages:
 
   /@types/node@18.15.13:
     resolution: {integrity: sha512-N+0kuo9KgrUQ1Sn/ifDXsvg0TTleP7rIy4zOBGECxAljqvqfqpTfzx0Q1NUedOixRMBfe2Whhb056a42cWs26Q==}
+    dev: true
 
   /@types/node@20.12.7:
     resolution: {integrity: sha512-wq0cICSkRLVaf3UGLMGItu/PtdY7oaXaI/RVU+xliKVOtRna3PRY57ZDfztpDL0n11vfymMUnXv8QwYCO7L1wg==}
@@ -3988,6 +3938,7 @@ packages:
 
   /aes-js@4.0.0-beta.5:
     resolution: {integrity: sha512-G965FqalsNyrPqgEGON7nIx1e/OVENSgiEIzyC63haUMuvNnwIgIjMs52hlTCKhkBny7A2ORNlfY9Zu+jmGk1Q==}
+    dev: true
 
   /agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -4293,15 +4244,6 @@ packages:
       follow-redirects: 1.15.9(debug@4.4.0)
     transitivePeerDependencies:
       - debug
-
-  /axios@0.27.2:
-    resolution: {integrity: sha512-t+yRIyySRTp/wua5xEr+z1q60QmLq8ABsS5O9Me1AsE5dfKqgnCFzwiCZZ/cGNd1lq4/7akDWMxdhVlucjmnOQ==}
-    dependencies:
-      follow-redirects: 1.15.9(debug@4.3.4)
-      form-data: 4.0.1
-    transitivePeerDependencies:
-      - debug
-    dev: false
 
   /axios@1.6.8:
     resolution: {integrity: sha512-v/ZHtJDU39mDpyBoFVkETcd/uNdxrWRrg3bKpOKzXFA6Bvqopts6ALSMU3y6ijYxbw2B+wPrIv46egTzJXCLGQ==}
@@ -5157,6 +5099,7 @@ packages:
     dependencies:
       ms: 2.1.2
       supports-color: 8.1.1
+    dev: true
 
   /debug@4.4.0(supports-color@8.1.1):
     resolution: {integrity: sha512-6WTZ/IxCY/T6BALoZHaE4ctp9xm+Z5kY/pzYaCHRFeyVhojxlrm+46y68HA6hr0TcwEssoxNiDEUJQjfPZ/RYA==}
@@ -6181,22 +6124,6 @@ packages:
       - utf-8-validate
     dev: true
 
-  /ethers@6.7.0:
-    resolution: {integrity: sha512-pxt5hK82RNwcTX2gOZP81t6qVPVspnkpeivwEgQuK9XUvbNtghBnT8GNIb/gPh+WnVSfi8cXC9XlfT8sqc6D6w==}
-    engines: {node: '>=14.0.0'}
-    dependencies:
-      '@adraffy/ens-normalize': 1.9.2
-      '@noble/hashes': 1.1.2
-      '@noble/secp256k1': 1.7.1
-      '@types/node': 18.15.13
-      aes-js: 4.0.0-beta.5
-      tslib: 2.4.0
-      ws: 8.5.0
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-    dev: false
-
   /ethjs-unit@0.1.6:
     resolution: {integrity: sha512-/Sn9Y0oKl0uqQuvgFk/zQgR7aw1g36qX/jzSQ5lSwlO0GigPymk4eGQfeNTD03w1dPOqfz8V77Cy43jH56pagw==}
     engines: {node: '>=6.5.0', npm: '>=3'}
@@ -6458,6 +6385,7 @@ packages:
         optional: true
     dependencies:
       debug: 4.3.4(supports-color@8.1.1)
+    dev: true
 
   /follow-redirects@1.15.9(debug@4.4.0):
     resolution: {integrity: sha512-gew4GsXizNgdoRyqmyfMHyAmXsZDk6mHkSxZFCzW9gwlbtOW44CDtYavM+y+72qD/Vq2l550kMF52DT8fOLJqQ==}
@@ -7667,14 +7595,6 @@ packages:
       ws: 7.5.10
     dev: true
 
-  /isomorphic-ws@5.0.0(ws@8.18.0):
-    resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
-    peerDependencies:
-      ws: '*'
-    dependencies:
-      ws: 8.18.0
-    dev: false
-
   /isows@1.0.3(ws@8.13.0):
     resolution: {integrity: sha512-2cKei4vlmg2cxEjm3wVSqn8pcoRF/LX/wpifuuNquFO4SQmPwarClT+SUCA2lt+l581tTeZIPIZuIDo2jWN1fg==}
     peerDependencies:
@@ -8810,6 +8730,7 @@ packages:
 
   /ms@2.1.2:
     resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
+    dev: true
 
   /ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
@@ -10703,6 +10624,7 @@ packages:
 
   /tslib@2.4.0:
     resolution: {integrity: sha512-d6xOpEDfsi2CZVlPQzGeux8XMwLT9hssAsaPYExaQMuYskwb+x1x7J371tWlbBdWHroy99KnVB6qIkUbs5X3UQ==}
+    dev: true
 
   /tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
@@ -11280,6 +11202,7 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+    dev: true
 
   /xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
