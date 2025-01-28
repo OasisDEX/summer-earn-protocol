@@ -121,16 +121,16 @@ async function handleRoles(
   )
   const hasGovernanceRole = await accessManager.read.hasRole([GOVERNOR_ROLE, safeAddress])
   if (!hasGovernanceRole) {
-    console.log('❌ Safe is not a governor - adding...')
+    console.log('GOVERNANCE:❌ Safe is not a governor - adding...')
     await accessManager.write.grantGovernorRole([safeAddress])
-    console.log('✅ Safe is a governor - all good!')
+    console.log('GOVERNANCE:✅ Safe is a governor - all good!')
   } else {
-    console.log('✅ Safe is a governor - all good!')
+    console.log('GOVERNANCE:✅ Safe is a governor - all good!')
   }
 
   const hasFoundationRole = await accessManager.read.hasRole([FOUNDATION_ROLE, safeAddress])
   if (!hasFoundationRole) {
-    console.log('❌ Safe is not a foundation - adding...')
+    console.log('GOVERNANCE:❌ Safe is not a foundation - adding...')
     const grantFoundationRoleCalldata = encodeFunctionData({
       abi: accessManager.abi,
       functionName: 'grantFoundationRole',
@@ -142,7 +142,7 @@ async function handleRoles(
       value: '0',
     })
   } else {
-    console.log('✅ Safe is a foundation - all good!')
+    console.log('GOVERNANCE:✅ Safe is a foundation - all good!')
   }
 }
 
@@ -173,7 +173,7 @@ async function handleWhitelist(
     wrappedStakingToken,
   ])
   if (!isWrappedStakingTokenWhitelisted) {
-    console.log('❌ Wrapped staking token is not whitelisted, adding to whitelist...')
+    console.log('WHITELIST: ❌ Wrapped staking token is not whitelisted, adding to whitelist...')
     const whitelistCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'addToWhitelist',
@@ -184,12 +184,14 @@ async function handleWhitelist(
       data: whitelistCalldata,
       value: '0',
     })
+  } else {
+    console.log('WHITELIST: ✅ Wrapped staking token is already whitelisted, skipping...')
   }
   const isGovernanceStakingWhitelisted = await summerToken.read.whitelistedAddresses([
     governanceStakingAddress,
   ])
   if (!isGovernanceStakingWhitelisted) {
-    console.log('❌ Governance staking address is not whitelisted, adding to whitelist...')
+    console.log('WHITELIST: ❌ Governance staking address is not whitelisted, adding to whitelist...')
     const whitelistCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'addToWhitelist',
@@ -200,12 +202,14 @@ async function handleWhitelist(
       data: whitelistCalldata,
       value: '0',
     })
+  } else {
+    console.log('WHITELIST: ✅ Governance staking address is already whitelisted, skipping...')
   }
   const isRewardsRedeemerWhitelisted = await summerToken.read.whitelistedAddresses([
     chainConfig.config.deployedContracts.gov.rewardsRedeemer.address as Address,
   ])
   if (!isRewardsRedeemerWhitelisted) {
-    console.log('❌ Rewards redeemer is not whitelisted, adding to whitelist...')
+    console.log('WHITELIST: ❌ Rewards redeemer is not whitelisted, adding to whitelist...')
     const whitelistCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'addToWhitelist',
@@ -216,11 +220,13 @@ async function handleWhitelist(
       data: whitelistCalldata,
       value: '0',
     })
+  } else {
+    console.log('WHITELIST: ✅ Rewards redeemer is already whitelisted, skipping...')
   }
 
   const isSafeWhitelisted = await summerToken.read.whitelistedAddresses([safeAddress])
   if (!isSafeWhitelisted) {
-    console.log('❌ Safe is not whitelisted, adding to whitelist...')
+    console.log('WHITELIST: ❌ Safe is not whitelisted, adding to whitelist...')
     const whitelistCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'addToWhitelist',
@@ -232,12 +238,12 @@ async function handleWhitelist(
       value: '0',
     })
   } else {
-    console.log('✅ Safe is already whitelisted, skipping...')
+    console.log('WHITELIST: ✅ Safe is already whitelisted, skipping...')
   }
 
   const isFactoryWhitelisted = await summerToken.read.whitelistedAddresses([factoryAddress])
   if (!isFactoryWhitelisted) {
-    console.log('❌ Factory is not whitelisted, adding to whitelist...')
+    console.log('WHITELIST: ❌ Factory is not whitelisted, adding to whitelist...')
     const whitelistCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'addToWhitelist',
@@ -250,14 +256,14 @@ async function handleWhitelist(
     })
     console.log('✅ Added factory to whitelist!')
   } else {
-    console.log('✅ Factory is already whitelisted, skipping...')
+    console.log('WHITELIST: ✅ Factory is already whitelisted, skipping...')
   }
 
   // Handle additional whitelist addresses
   for (const { address, description } of ADDITIONAL_WHITELIST_ADDRESSES) {
     const isWhitelisted = await summerToken.read.whitelistedAddresses([address])
     if (!isWhitelisted) {
-      console.log(`❌ ${description} is not whitelisted, adding to whitelist...`)
+      console.log(`WHITELIST: ❌ ${description} is not whitelisted, adding to whitelist...`)
       const whitelistCalldata = encodeFunctionData({
         abi: summerToken.abi,
         functionName: 'addToWhitelist',
@@ -269,7 +275,7 @@ async function handleWhitelist(
         value: '0',
       })
     } else {
-      console.log(`✅ ${description} is already whitelisted, skipping...`)
+      console.log(`WHITELIST: ✅ ${description} is already whitelisted, skipping...`)
     }
   }
 }
@@ -282,9 +288,9 @@ async function handleApproval(
   context: string,
 ): Promise<TransactionBase | undefined> {
   const allowance = (await summerToken.read.allowance([source, target])) as bigint
-  console.log(`🔑 ${context} allowance: ${allowance}, amount is: ${amount}`)
+    console.log(`TOKEN :    🔑 ${context} current allowance: ${allowance}, required allowance: ${amount}`)
   if (allowance < amount) {
-    console.log(`❌ ${context} allowance is less than required amount, adding approval tx...`)
+    console.log(`TOKEN:     ❌ ${context} allowance is less than required amount, adding approval tx...`)
     const approvalCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'approve',
@@ -296,7 +302,7 @@ async function handleApproval(
       value: '0',
     }
   } else {
-    console.log(`✅ ${context} allowance is sufficient, skipping approval...`)
+    console.log(`TOKEN:    ✅ ${context} allowance is sufficient, skipping approval...`)
   }
 }
 
@@ -329,7 +335,7 @@ async function createVestingWalletTransactions(
       args: [beneficiary as Address, timeBasedAmount, goalAmounts, vestingType],
     })
 
-    console.log(`🔑 Creating vesting wallet for ${beneficiary}...`)
+    console.log(`VESTING:   🔑 Creating vesting wallet for ${beneficiary}...`)
     return {
       to: factoryAddress,
       data: createVestingCalldata,
@@ -349,7 +355,7 @@ async function createGovernanceRewardsTransaction(
 ): Promise<TransactionBase[]> {
   const governanceStakingAddress = await summerToken.read.rewardsManager()
 
-  console.log(`🔑 Governance staking address: ${governanceStakingAddress}`)
+  console.log(`REWARDS:   🔑 Governance staking address: ${governanceStakingAddress}`)
   const approvalTx = await handleApproval(
     summerToken,
     safeAddress,
@@ -384,7 +390,7 @@ async function createBridgeTransactions(
   chainConfig: ChainConfiguration,
   bridgeConfig: BridgeConfig,
 ): Promise<TransactionBase[]> {
-  console.log('\n🌉 Preparing bridge transactions...')
+  console.log('\nBRIDGE: 🌉 Preparing bridge transactions...')
 
   // Check balance first
   const safeBalance = await summerToken.read.balanceOf([safeAddress])
@@ -506,7 +512,7 @@ async function createMerkleRootTransaction(
     redeemerAddress,
   )
   console.log(
-    `🔑 Adding merkleRoot to rewards redeemer... hash: ${merkleConfig.merkleRoot} index: ${merkleConfig.distributionId}`,
+    `REWARDS:   🔑 Adding merkleRoot to rewards redeemer... hash: ${merkleConfig.merkleRoot} index: ${merkleConfig.distributionId}`,
   )
   const addRootCalldata = encodeFunctionData({
     abi: redeemerContract.abi,
@@ -531,7 +537,7 @@ function createTransferTransactions(summerToken: any, transfers: TransferConfig)
     }),
     value: '0',
   }))
-  console.log(`🔑 Creating ${transferTransactions.length} transfer transactions...`)
+  console.log(`TRANSFERS: 🔑 Creating ${transferTransactions.length} transfer transactions...`)
   return transferTransactions
 }
 
@@ -546,7 +552,7 @@ async function getTokenAndFactory(
   }
 
   console.log(
-    `🔑 SummerToken address: ${chainConfig.config.deployedContracts.gov.summerToken.address}`,
+    `SUMMER: 🔑 SummerToken address: ${chainConfig.config.deployedContracts.gov.summerToken.address}`,
   )
 
   const summerToken = await hre.viem.getContractAt(
@@ -784,8 +790,8 @@ async function main() {
   )
 
   const safeBalance = (await summerToken.read.balanceOf([safeAddress])) as bigint
-  console.log(`🔑 Safe balance: ${safeBalance / 10n ** 18n}`)
-  console.log(`🔑 Total amount: ${totalAmounts.totalAmount / 10n ** 18n}`)
+  console.log(`SUMMER:    🔑 Safe balance               : ${safeBalance / 10n ** 18n} SUMMER`)
+  console.log(`SUMMER:    🔑 Total amount to distribute : ${totalAmounts.totalAmount / 10n ** 18n} SUMMER`)
 
   if (safeBalance < totalAmounts.totalAmount) {
     throw new Error('❌ Safe balance is less than total amount')
