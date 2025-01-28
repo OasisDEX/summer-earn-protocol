@@ -1,11 +1,6 @@
-// SPDX-License-Identifier: AGPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-/**
- * @title IRewardsController
- * @author Aave
- * @notice Defines the basic interface for a Rewards Controller.
- */
 interface IRewardsController {
     /**
      * @dev Claims reward for msg.sender, on all the assets of the pool, accumulating the pending rewards
