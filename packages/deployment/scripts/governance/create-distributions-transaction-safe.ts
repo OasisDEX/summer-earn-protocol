@@ -153,6 +153,25 @@ async function handleWhitelist(
   transactions: TransactionBase[],
 ): Promise<void> {
   const governanceStakingAddress = await summerToken.read.rewardsManager()
+  const governanceRewardsContract = await hre.viem.getContractAt(
+    'GovernanceRewardsManager' as string,
+    governanceStakingAddress,
+  )
+  const wrappedStakingToken = await governanceRewardsContract.read.wrappedStakingToken()
+  const isWrappedStakingTokenWhitelisted = await summerToken.read.whitelistedAddresses([wrappedStakingToken])
+  if (!isWrappedStakingTokenWhitelisted) {
+    console.log('❌ Wrapped staking token is not whitelisted, adding to whitelist...')
+    const whitelistCalldata = encodeFunctionData({
+      abi: summerToken.abi,
+      functionName: 'addToWhitelist',
+      args: [wrappedStakingToken],
+    })
+    transactions.push({
+      to: summerToken.address,
+      data: whitelistCalldata,
+      value: '0',
+    })
+  }
   const isGovernanceStakingWhitelisted = await summerToken.read.whitelistedAddresses([
     governanceStakingAddress,
   ])
@@ -186,9 +205,9 @@ async function handleWhitelist(
     })
   }
 
-  const isWhitelisted = await summerToken.read.whitelistedAddresses([safeAddress])
-  if (!isWhitelisted) {
-    console.log('❌ Not whitelisted, adding to whitelist...')
+  const isSafeWhitelisted = await summerToken.read.whitelistedAddresses([safeAddress])
+  if (!isSafeWhitelisted) {
+    console.log('❌ Safe is not whitelisted, adding to whitelist...')
     const whitelistCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'addToWhitelist',
