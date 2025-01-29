@@ -7,6 +7,7 @@ import { finalizeGov } from './governance/finalize-gov'
 import { peerGov } from './governance/peer-gov'
 import { rolesGov } from './governance/roles-gov'
 import { deployGov as systemGov } from './governance/system-gov'
+import { verifyGovernanceRewardsManager } from './verify/governance-reward-managers'
 
 const STEPS = {
   SYSTEM: 'system-gov',
@@ -92,6 +93,10 @@ async function deployGov() {
 
             if (stdout) console.log(stdout)
             if (stderr) console.error(kleur.red(stderr))
+
+            // Add verification for governance rewards manager
+            console.log(kleur.yellow().bold('\nVerifying Governance Rewards Manager...\n'))
+            await verifyGovernanceRewardsManager(hre)
 
             console.log(kleur.green().bold('\nContract verification completed successfully!'))
           } catch (error) {
