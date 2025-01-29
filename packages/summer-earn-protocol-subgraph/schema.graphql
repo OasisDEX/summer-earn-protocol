@@ -1295,8 +1295,6 @@ type Ark @entity @regularPolling {
   " Arks require keeper data to board/disembark if true "
   requiresKeeperData: Boolean!
 
-  " Type of fees incurred to the user. Should include all fees that apply to the vault "
-  fees: [VaultFee!]!
 
   " Creation timestamp "
   createdTimestamp: BigInt!

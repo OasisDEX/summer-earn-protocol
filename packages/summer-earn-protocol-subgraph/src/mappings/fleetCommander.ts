@@ -1,8 +1,9 @@
 import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
-  RewardsDurationUpdated,
   RewardTokenRemoved,
+  RewardsDurationUpdated,
   Staked,
   Unstaked,
 } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
@@ -13,13 +14,14 @@ import {
   FleetCommander as FleetCommanderContract,
   FleetCommanderDepositCapUpdated,
   FleetCommanderMaxRebalanceOperationsUpdated,
-  FleetCommanderminimumBufferBalanceUpdated,
   FleetCommanderStakingRewardsUpdated,
   FleetCommanderWithdrawnFromArks,
+  FleetCommanderminimumBufferBalanceUpdated,
   Rebalanced,
   TipAccrued,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
+import * as constants from '../common/constants'
 import { ADDRESS_ZERO, BigIntConstants, VaultFeeType } from '../common/constants'
 import {
   getOrCreateAccount,
@@ -28,6 +30,9 @@ import {
   getOrCreateToken,
   getOrCreateVault,
 } from '../common/initializers'
+import { getTokenPriceInUSD } from '../common/priceHelpers'
+import * as utils from '../common/utils'
+import { formatAmount } from '../common/utils'
 import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
@@ -41,11 +46,6 @@ import {
   updateVaultAndArks,
 } from './entities/vault'
 import { createWithdrawEventEntity } from './entities/withdraw'
-import { VaultFee } from '../../generated/schema'
-import * as constants from '../common/constants'
-import * as utils from '../common/utils'
-import { getTokenPriceInUSD } from '../common/priceHelpers'
-import { formatAmount } from '../common/utils'
 
 export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
@@ -241,7 +241,10 @@ export function handleTipAccrued(event: TipAccrued): void {
     vaultContract.try_convertToAssets(shares),
     constants.BigIntConstants.ZERO,
   )
-  const inputTokenAmountNormalized = formatAmount(inputTokenAmount, BigInt.fromI32(inputToken.decimals))
+  const inputTokenAmountNormalized = formatAmount(
+    inputTokenAmount,
+    BigInt.fromI32(inputToken.decimals),
+  )
   const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(vault.inputToken), event.block)
   const inputTokenAmountNormalizedInUSD = inputTokenAmountNormalized.times(inputTokenPriceUSD.price)
 
