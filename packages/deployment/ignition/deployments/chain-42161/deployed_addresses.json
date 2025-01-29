@@ -4,5 +4,12 @@
   "GovModule#SummerTimelockController": "0x9fFC258F137e65F4686e4FB935ADEcad907B8347",
   "GovModule#SummerGovernor": "0x060C9d083A5ee5999b4EB817DbF906888d943D2c",
   "GovModule#SummerRewardsRedeemer": "0x5e09d02aE0C1A5537F590152e999e577dA53ea5d",
-  "GovModule#SummerVestingWalletFactory": "0xD32B88C8b2964694a02BBF3EB3D36D285D01ec12"
+  "GovModule#SummerVestingWalletFactory": "0xD32B88C8b2964694a02BBF3EB3D36D285D01ec12",
+  "CoreModule#ConfigurationManager": "0xd03af7ADF8739ac396160A91B59aC0F33aEcF1C1",
+  "CoreModule#DutchAuctionLibrary": "0x093E3D62D78bB9f39b5AF95873F4d1caD0cEbA68",
+  "CoreModule#FleetCommanderRewardsManagerFactory": "0xA6040c5A92FFf881b8e74E6a5576DE156C0B6B1a",
+  "CoreModule#HarborCommand": "0x6De9F53c553e1511E1dBBd43E86148868400CbFb",
+  "CoreModule#AdmiralsQuarters": "0xef5f01B3363186B13f48a8db82aDaAFA6fEF3287",
+  "CoreModule#Raft": "0xa57EFa57592E00a307477D840B931406921fEF36",
+  "CoreModule#TipJar": "0x75095daA4486a6423a285DAD29661e16e8517E47"
 }

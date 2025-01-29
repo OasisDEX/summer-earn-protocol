@@ -25,22 +25,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x7601609218E51533133ddFe71E8E0a3a71c0cd87"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xB5113dA0CaE7DDf19b8e25103B2F411148b8BAeb"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x17134eCce2bfDE9cfbd05D0faFfCB2e262E81eA1"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xE355F38F0144a9f07A1Dc8f95ED23658d96613AF"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x80E30b2dA2d2de1d78F99125Dfe9bcdbb5450331"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x90CaD67E09F79436F51E6a07B9267b002DfDFF03"
         }
       }
     },
@@ -138,22 +138,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x75095daA4486a6423a285DAD29661e16e8517E47"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xa57EFa57592E00a307477D840B931406921fEF36"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xd03af7ADF8739ac396160A91B59aC0F33aEcF1C1"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x6De9F53c553e1511E1dBBd43E86148868400CbFb"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xef5f01B3363186B13f48a8db82aDaAFA6fEF3287"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xA6040c5A92FFf881b8e74E6a5576DE156C0B6B1a"
         }
       }
     },
