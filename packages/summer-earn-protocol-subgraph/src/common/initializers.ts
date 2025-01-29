@@ -377,6 +377,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.protocol = constants.PROTOCOL_ID
     const config = vaultContract.getConfig()
+
     vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance
@@ -417,13 +418,6 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
       utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + vaultAddress.toHexString()
     const managementFee = constants.BigIntConstants.ZERO
     utils.createFeeType(managementFeeId, constants.VaultFeeType.MANAGEMENT_FEE, managementFee)
-
-    const performanceFeeId =
-      utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) + vaultAddress.toHexString()
-    const performanceFee = constants.BigIntConstants.ZERO
-    utils.createFeeType(performanceFeeId, constants.VaultFeeType.PERFORMANCE_FEE, performanceFee)
-
-    vault.fees = [managementFeeId, performanceFeeId]
 
     vault.arksArray = []
     vault.aprValues = []

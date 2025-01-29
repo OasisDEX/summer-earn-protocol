@@ -127,7 +127,10 @@ templates:
           receipt: true
         - event: FleetCommanderminimumBufferBalanceUpdated(uint256)
           handler: handleFleetCommanderMinimumBufferBalanceUpdated
-          receipt: true        
+          receipt: true      
+        - event: TipAccrued(uint256)
+          handler: handleTipAccrued
+          receipt: true
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
