@@ -36,6 +36,8 @@ async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Pro
     console.log(kleur.cyan().bold(`\nDeploying ${arkConfig.type}...`))
 
     const arkAddress = await deployArk(arkConfig, config, fleetDefinition.depositCap)
+    // wait 90 seconds
+    await new Promise((resolve) => setTimeout(resolve, 90000))
     deployedArks.push(arkAddress)
 
     console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))

@@ -1,0 +1,22 @@
+{
+  "fleetName": "LazyVault_LowerRisk_WETH",
+  "fleetSymbol": "LVWETH",
+  "assetSymbol": "WETH",
+  "fleetAddress": "0x1f221B5C47BcB4B5fA5E9ae31a9A35963cde67dd",
+  "bufferArkAddress": "0x98D3C2dFC2b6b8d4b9D39b1Fd0F76662d0BFec22",
+  "network": "mainnet",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000000000000",
+  "initialTipRate": "0",
+  "arks": [
+    "0xF931E83C33583dc8Cd168c2b0dE9B0CFeEC79998",
+    "0x85AA5809f3ce928b658Dd17876DC414962456563",
+    "0x135179Fb4F1292E82CE787Ac18467f372dB8582c",
+    "0x325536e497CD7D5FC25a888e9f55456B2948f0E5",
+    "0x72f0D737169DC9dFB9C17cFD624Efe9082F5C6A6",
+    "0x8db1c3f004325914E412EF631008dADEd04fd09A",
+    "0xB5C819d18e591d15168a71405a068B2DFc7d0b7e",
+    "0x1003aaeB64B9fc1BB8BB4dcEb7c65A59BA61a0f8"
+  ]
+}
