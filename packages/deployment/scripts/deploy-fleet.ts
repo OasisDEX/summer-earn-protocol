@@ -28,6 +28,8 @@ import { validateToken } from './helpers/validation'
  */
 async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Promise<Address[]> {
   const deployedArks: Address[] = []
+  const MAX_RETRIES = 5
+  const DELAY = 13000 // 13 seconds
 
   for (const arkConfig of fleetDefinition.arks) {
     console.log(
@@ -35,10 +37,28 @@ async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Pro
     )
     console.log(kleur.cyan().bold(`\nDeploying ${arkConfig.type}...`))
 
-    const arkAddress = await deployArk(arkConfig, config, fleetDefinition.depositCap)
-    deployedArks.push(arkAddress)
+    let retries = 0
+    while (retries <= MAX_RETRIES) {
+      try {
+        const arkAddress = await deployArk(arkConfig, config, fleetDefinition.depositCap)
+        deployedArks.push(arkAddress)
+        console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
+        break
+      } catch (error) {
+        if (retries === MAX_RETRIES) {
+          console.error(
+            kleur.red().bold(`Failed to deploy ${arkConfig.type} after ${MAX_RETRIES} attempts`),
+          )
+          throw error
+        }
 
-    console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
+        retries++
+        console.log(
+          kleur.yellow().bold(`Deployment attempt ${retries} failed, retrying in 13 seconds...`),
+        )
+        await new Promise((resolve) => setTimeout(resolve, DELAY))
+      }
+    }
   }
 
   return deployedArks
