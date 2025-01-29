@@ -1,0 +1,25 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDT",
+  "fleetSymbol": "LVUSDT",
+  "assetSymbol": "USDT",
+  "fleetAddress": "0xd94d5f8969825c5fBCC127195f08F0762a010BA8",
+  "bufferArkAddress": "0x2B45bD11B7C8eD43B698e10437dc7b5E5D3715c0",
+  "network": "mainnet",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "3600",
+  "depositCap": "1000000000",
+  "initialTipRate": "0",
+  "arks": [
+    "0xB86b8e46BCbab69863AcA06f19c7A4FbA505a2E6",
+    "0x89395dB95571c6d25761b8E6702f876e9fe8d7E5",
+    "0x71e76f605E1132A953aDBC43434614BcC2592534",
+    "0xB02FA0F2E6C342E64176e139C2f77e299FFbE016",
+    "0x05f459Edf9494ea451A9107622eDED6E0E450d66",
+    "0x65Ff457F7f3CDf38034c274a72e26cfcAA5E4b45",
+    "0x43bD704B3bb6C1a64B9ca3FaEb49d3DD3D33e0BE",
+    "0xB2Bb7B9216f5680984E27d7cE982a43E7890Ff1A",
+    "0xfe6B31f1A6605A4c6e6d371326ACE64283956Ea8",
+    "0x7BFe141b1D6FED49CD2e49E4403736e95c041CEe",
+    "0x9b0B041bb9AeA251aCdb56F39A258695f00E7901"
+  ]
+}
