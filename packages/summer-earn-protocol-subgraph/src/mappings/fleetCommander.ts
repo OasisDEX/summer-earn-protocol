@@ -1,8 +1,9 @@
-import { Address } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
+import { VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
-  RewardsDurationUpdated,
   RewardTokenRemoved,
+  RewardsDurationUpdated,
   Staked,
   Unstaked,
 } from '../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
@@ -10,21 +11,28 @@ import {
   ArkAdded,
   ArkRemoved,
   Deposit as DepositEvent,
+  FleetCommander as FleetCommanderContract,
   FleetCommanderDepositCapUpdated,
   FleetCommanderMaxRebalanceOperationsUpdated,
-  FleetCommanderminimumBufferBalanceUpdated,
   FleetCommanderStakingRewardsUpdated,
   FleetCommanderWithdrawnFromArks,
+  FleetCommanderminimumBufferBalanceUpdated,
   Rebalanced,
+  TipAccrued,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
-import { ADDRESS_ZERO, BigIntConstants } from '../common/constants'
+import * as constants from '../common/constants'
+import { ADDRESS_ZERO, BigIntConstants, VaultFeeType } from '../common/constants'
 import {
   getOrCreateAccount,
   getOrCreateArk,
   getOrCreateRewardsManager,
+  getOrCreateToken,
   getOrCreateVault,
 } from '../common/initializers'
+import { getTokenPriceInUSD } from '../common/priceHelpers'
+import * as utils from '../common/utils'
+import { formatAmount } from '../common/utils'
 import { getPositionDetails } from '../utils/position'
 import { getVaultDetails } from '../utils/vault'
 import { createDepositEventEntity } from './entities/deposit'
@@ -220,4 +228,35 @@ export function handleRewardsDurationUpdated(event: RewardsDurationUpdated): voi
   addOrUpdateVaultRewardRates(vault, event.address, event.params.rewardToken)
 
   rewardsManager.save()
+}
+
+export function handleTipAccrued(event: TipAccrued): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  const vaultContract = FleetCommanderContract.bind(event.address)
+  const tipRate = vaultContract.tipRate()
+  const shares = event.params.tipAmount
+
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
+  const inputTokenAmount = utils.readValue<BigInt>(
+    vaultContract.try_convertToAssets(shares),
+    constants.BigIntConstants.ZERO,
+  )
+  const inputTokenAmountNormalized = formatAmount(
+    inputTokenAmount,
+    BigInt.fromI32(inputToken.decimals),
+  )
+  const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(vault.inputToken), event.block)
+  const inputTokenAmountNormalizedInUSD = inputTokenAmountNormalized.times(inputTokenPriceUSD.price)
+
+  const fee = new VaultFee(event.address.toHexString() + '-' + event.block.timestamp.toString())
+  fee.feeType = VaultFeeType.MANAGEMENT_FEE
+  fee.token = inputToken.id
+  fee.feePercentage = BigDecimal.fromString(tipRate.toString())
+  fee.outputTokenAmount = event.params.tipAmount
+  fee.inputTokenAmount = inputTokenAmount
+  fee.inputTokenAmountNormalizedInUSD = inputTokenAmountNormalizedInUSD
+  fee.blockNumber = event.block.number
+  fee.timestamp = event.block.timestamp
+  fee.vault = vault.id
+  fee.save()
 }

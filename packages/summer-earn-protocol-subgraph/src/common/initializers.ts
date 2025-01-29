@@ -20,7 +20,6 @@ import {
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
   VaultDailySnapshot,
-  VaultFee,
   VaultHourlySnapshot,
   Vault as VaultStore,
   VaultWeeklySnapshot,
@@ -377,6 +376,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.protocol = constants.PROTOCOL_ID
     const config = vaultContract.getConfig()
+
     vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance
@@ -412,18 +412,6 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.createdBlockNumber = block.number
     vault.createdTimestamp = block.timestamp
     vault.lastUpdateTimestamp = block.timestamp
-
-    const managementFeeId =
-      utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + vaultAddress.toHexString()
-    const managementFee = constants.BigIntConstants.ZERO
-    utils.createFeeType(managementFeeId, constants.VaultFeeType.MANAGEMENT_FEE, managementFee)
-
-    const performanceFeeId =
-      utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) + vaultAddress.toHexString()
-    const performanceFee = constants.BigIntConstants.ZERO
-    utils.createFeeType(performanceFeeId, constants.VaultFeeType.PERFORMANCE_FEE, performanceFee)
-
-    vault.fees = [managementFeeId, performanceFeeId]
 
     vault.arksArray = []
     vault.aprValues = []
@@ -500,22 +488,6 @@ export function getOrCreateArk(
     ark.createdBlockNumber = block.number
     ark.createdTimestamp = block.timestamp
     ark.lastUpdateTimestamp = block.timestamp
-
-    const managementFeeId =
-      utils.enumToPrefix(constants.VaultFeeType.MANAGEMENT_FEE) + arkAddress.toHexString()
-    const managementFee = new VaultFee(managementFeeId)
-    managementFee.feeType = constants.VaultFeeType.MANAGEMENT_FEE
-    managementFee.feePercentage = constants.BigDecimalConstants.ZERO
-    managementFee.save()
-
-    const performanceFeeId =
-      utils.enumToPrefix(constants.VaultFeeType.PERFORMANCE_FEE) + arkAddress.toHexString()
-    const performanceFee = new VaultFee(performanceFeeId)
-    performanceFee.feeType = constants.VaultFeeType.PERFORMANCE_FEE
-    performanceFee.feePercentage = constants.BigDecimalConstants.ZERO
-    performanceFee.save()
-
-    ark.fees = [managementFeeId, performanceFeeId]
 
     // Initialize arrays
     ark.rewardTokens = []

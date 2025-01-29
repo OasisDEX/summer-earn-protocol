@@ -1,6 +1,6 @@
 import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { ERC20 as ERC20Contract } from '../../generated/HarborCommand/ERC20'
-import { VaultFee, Vault as VaultStore } from '../../generated/schema'
+import { Vault as VaultStore } from '../../generated/schema'
 import * as constants from '../common/constants'
 import { getOrCreateYieldAggregator } from './initializers'
 
@@ -22,15 +22,6 @@ export function getTokenDecimals(tokenAddr: Address): BigDecimal {
   const decimals = readValue<BigInt>(token.try_decimals(), constants.DEFAULT_DECIMALS)
 
   return constants.BIGINT_TEN.pow(decimals.toI32() as u8).toBigDecimal()
-}
-
-export function createFeeType(feeId: string, feeType: string, feePercentage: BigInt): void {
-  const fees = new VaultFee(feeId)
-
-  fees.feeType = feeType
-  fees.feePercentage = feePercentage.toBigDecimal().div(constants.BIGDECIMAL_HUNDRED)
-
-  fees.save()
 }
 
 export function updateProtocolTotalValueLockedUSD(): void {

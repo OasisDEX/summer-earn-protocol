@@ -96,8 +96,30 @@ type VaultFee @entity @regularPolling {
   " Fee as a percentage of the trade (swap) amount. Does not always apply "
   feePercentage: BigDecimal
 
+  " Amount of output token that is charged for the fee "
+  outputTokenAmount: BigInt
+
+  " Amount of input token that is charged for the fee "
+  inputTokenAmount: BigInt
+
+  " Amount of input token that is charged for the fee, normalized in USD "
+  inputTokenAmountNormalizedInUSD: BigDecimal
+
+  " Token that is charged for the fee "
+  token: Token!
+
   " Type of fee this vault uses "
   feeType: VaultFeeType!
+
+  " Block number of the transaction "
+  blockNumber: BigInt!
+
+  " Timestamp of the transaction "
+  timestamp: BigInt!
+
+  " Vault that is charged for the fee "
+
+  vault: Vault!
 }
 
 #############################
@@ -380,8 +402,8 @@ type Vault @entity @regularPolling {
   " Some vaults have a maximum number of rebalance operations. "
   maxRebalanceOperations: BigInt!
 
-  " Type of fees incurred to the user. Should include all fees that apply to the vault "
-  fees: [VaultFee!]!
+  " fees incurred to the user "
+  fees: [VaultFee!]! @derivedFrom(field: "vault")
 
   " Creation timestamp "
   createdTimestamp: BigInt!
@@ -1272,9 +1294,6 @@ type Ark @entity @regularPolling {
 
   " Arks require keeper data to board/disembark if true "
   requiresKeeperData: Boolean!
-
-  " Type of fees incurred to the user. Should include all fees that apply to the vault "
-  fees: [VaultFee!]!
 
   " Creation timestamp "
   createdTimestamp: BigInt!
