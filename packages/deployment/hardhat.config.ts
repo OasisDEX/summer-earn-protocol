@@ -16,6 +16,9 @@ if (!process.env.API_KEY_ARBISCAN) {
 if (!process.env.API_KEY_BASESCAN) {
   throw new Error('Please set your process.env.API_KEY_BASESCAN in a .env file')
 }
+if (!process.env.API_KEY_ETHERSCAN) {
+  throw new Error('Please set your process.env.API_KEY_ETHERSCAN in a .env file')
+}
 
 const config: HardhatUserConfig = {
   contractSizer: {
@@ -28,6 +31,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       arbitrumOne: process.env.API_KEY_ARBISCAN,
       base: process.env.API_KEY_BASESCAN,
+      mainnet: process.env.API_KEY_ETHERSCAN,
     },
   },
   ignition: {

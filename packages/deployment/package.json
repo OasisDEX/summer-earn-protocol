@@ -36,6 +36,7 @@
     "deploy:list": "hardhat ignition deployments",
     "deploy:status:arbitrum": "hardhat ignition status chain-42161",
     "verify:arbitrum": "hardhat ignition verify chain-42161",
+    "verify:mainnet": "hardhat ignition verify chain-1",
     "deploy:status:base": "hardhat ignition status chain-8453",
     "verify:base": "hardhat ignition verify chain-8453",
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts",
