@@ -73,7 +73,9 @@ async function main() {
       continue
     }
 
-    console.log(`📝 Creating whitelist transaction for ${beneficiary}'s vesting wallet at ${vestingWalletAddress}...`)
+    console.log(
+      `📝 Creating whitelist transaction for ${beneficiary}'s vesting wallet at ${vestingWalletAddress}...`,
+    )
     const whitelistCalldata = encodeFunctionData({
       abi: summerToken.abi,
       functionName: 'addToWhitelist',

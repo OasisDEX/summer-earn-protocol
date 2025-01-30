@@ -36,10 +36,7 @@ export function handleInterestRate(
 ): void {
   const rate = product.getRate(block.timestamp, block.number)
   const interestRate = new InterestRate(
-    protocolName +
-      product.token.id.toHexString() +
-      block.number.toString() +
-      crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString(),
+    `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString()}`,
   )
 
   const hourlyResult = getHourlyRateIdAndTimestamp(block, protocolName, product)
@@ -56,6 +53,7 @@ export function handleInterestRate(
   interestRate.protocol = protocolName
   interestRate.token = product.token.id
   interestRate.productId = product.name
+  interestRate.product = product.name
   interestRate.save()
 
   updateDailyAverage(protocolName, product, rate, dailyResult.dayTimestamp, dailyResult.dailyRateId)
@@ -145,6 +143,7 @@ function updateDailyAverage(
     dailyRate.protocol = protocolName
     dailyRate.token = product.token.id
     dailyRate.productId = product.name
+    dailyRate.product = product.name
   }
 
   dailyRate.sumRates = dailyRate.sumRates.plus(newRate)
@@ -173,6 +172,7 @@ function updateHourlyAverage(
     hourlyRate.protocol = protocolName
     hourlyRate.token = product.token.id
     hourlyRate.productId = product.name
+    hourlyRate.product = product.name
   }
 
   hourlyRate.sumRates = hourlyRate.sumRates.plus(newRate)
@@ -201,6 +201,7 @@ function updateWeeklyAverage(
     weeklyRate.protocol = protocolName
     weeklyRate.token = product.token.id
     weeklyRate.productId = product.name
+    weeklyRate.product = product.name
   }
 
   weeklyRate.sumRates = weeklyRate.sumRates.plus(newRate)
