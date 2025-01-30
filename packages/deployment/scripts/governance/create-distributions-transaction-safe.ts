@@ -1,7 +1,5 @@
 import { addressToBytes32 } from '@layerzerolabs/lz-v2-utilities'
-import SafeApiKit from '@safe-global/api-kit'
-import Safe from '@safe-global/protocol-kit'
-import { OperationType, TransactionBase } from '@safe-global/types-kit'
+import { TransactionBase } from '@safe-global/types-kit'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import hre from 'hardhat'
@@ -12,6 +10,7 @@ import { BaseConfig } from '../../types/config-types'
 import { ADDRESS_ZERO, FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { constructLzOptions } from '../helpers/layerzero-options'
+import { proposeAllSafeTransactions } from '../helpers/safe-transaction'
 
 dotenv.config()
 
@@ -685,97 +684,6 @@ async function getGovernanceRewardsConfig(chainId: number): Promise<GovernanceRe
   return governanceRewardsConfig
 }
 
-async function proposeSafeTransactionBatch(
-  protocolKit: Safe,
-  apiKit: SafeApiKit,
-  transactions: TransactionBase[],
-  safeAddress: Address,
-  deployer: Address,
-  startNonce: number,
-  batchIndex: number,
-  batchSize: number,
-): Promise<void> {
-  const batchStart = batchIndex * batchSize
-  const batchTransactions = transactions.slice(batchStart, batchStart + batchSize)
-
-  if (batchTransactions.length === 0) return
-
-  console.log(
-    `\n📦 Proposing batch ${batchIndex + 1} with ${batchTransactions.length} transactions...`,
-  )
-
-  const safeTransaction = await protocolKit.createTransaction({
-    transactions: batchTransactions.map((tx) => ({
-      to: getAddress(tx.to),
-      data: tx.data,
-      value: tx.value,
-      operation: OperationType.Call,
-    })),
-  })
-
-  const safeTransactionDataWithNonce = {
-    ...safeTransaction.data,
-    nonce: startNonce + batchIndex,
-  }
-
-  const safeTransactionWithNonce = {
-    ...safeTransaction,
-    data: safeTransactionDataWithNonce,
-  }
-
-  const safeTxHash = await protocolKit.getTransactionHash(safeTransactionWithNonce)
-  const signature = await protocolKit.signHash(safeTxHash)
-
-  await apiKit.proposeTransaction({
-    safeAddress,
-    safeTransactionData: safeTransactionDataWithNonce,
-    safeTxHash,
-    senderAddress: deployer,
-    senderSignature: signature.data,
-  })
-
-  console.log(`✅ Batch ${batchIndex + 1} proposed successfully`)
-}
-
-async function proposeAllSafeTransactions(
-  transactions: TransactionBase[],
-  deployer: Address,
-  batchSize: number = 30, // Default batch size
-): Promise<void> {
-  const apiKit = new SafeApiKit({
-    chainId: BigInt(chainConfig.chainId),
-  })
-  const safe = await Safe.init({
-    provider: chainConfig.rpcUrl,
-    signer: process.env.DEPLOYER_PRIV_KEY as Address,
-    safeAddress: safeAddress,
-  })
-
-  const startNonce = await safe.getNonce()
-
-  const totalBatches = Math.ceil(transactions.length / batchSize)
-
-  console.log(
-    `\n🚀 Proposing ${transactions.length} transactions in ${totalBatches} batches of ${batchSize}...`,
-  )
-  console.log(`Starting with nonce: ${startNonce}`)
-
-  for (let i = 0; i < totalBatches; i++) {
-    await proposeSafeTransactionBatch(
-      safe,
-      apiKit,
-      transactions,
-      safeAddress,
-      deployer,
-      startNonce,
-      i,
-      batchSize,
-    )
-  }
-
-  console.log(`\n✨ All ${totalBatches} batches proposed successfully`)
-}
-
 async function main() {
   console.log('🚀 Starting Safe vesting wallet creation process...\n')
 
@@ -853,7 +761,14 @@ async function main() {
   const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
 
   // New simplified transaction proposal
-  await proposeAllSafeTransactions(transactions, deployer)
+  await proposeAllSafeTransactions(
+    transactions,
+    deployer,
+    safeAddress,
+    chainConfig.chainId,
+    chainConfig.rpcUrl,
+    process.env.DEPLOYER_PRIV_KEY as Address,
+  )
 }
 
 main().catch((error) => {

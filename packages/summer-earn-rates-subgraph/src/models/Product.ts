@@ -1,5 +1,5 @@
 import { Address, BigDecimal, BigInt, dataSource } from '@graphprotocol/graph-ts'
-import { Token } from '../../generated/schema'
+import { Product as ProductSchema, Token } from '../../generated/schema'
 import { getChainIdByNetworkName } from '../utils/chainId'
 
 /**
@@ -47,6 +47,11 @@ export class Product {
     this.startBlock = startBlock
     this.oracle = oracle
     this.name = `${groupName}-${token.address.toHexString()}-${poolAddress.toHexString()}-${getChainIdByNetworkName(dataSource.network()).toString().split('.')[0]}`
+    const product = new ProductSchema(this.name)
+    product.name = this.name
+    product.protocol = groupName
+    product.token = this.token.id
+    product.save()
   }
   getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
     return BigDecimal.zero()
