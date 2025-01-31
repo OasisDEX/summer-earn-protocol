@@ -163,6 +163,12 @@ class ProtocolConfig {
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
+          Address.fromString('0x8db1c3f004325914E412EF631008dADEd04fd09A'),
+          BigInt.fromI32(18928285),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
           Address.fromString('0x186514400e52270cef3D80e1c6F8d10A75d47344'),
           BigInt.fromI32(18928285),
           'Morpho',
@@ -295,7 +301,7 @@ class ProtocolConfig {
       new Protocol('Sky', [
         new SkySUSDSProduct(
           getOrCreateToken(addresses.USDC),
-          addresses.SUSDS,
+          Address.fromString('0xa188eec8f81263234da3622a406892f3d630f98c'),
           BigInt.fromI32(18928285),
           'Sky',
         ),
