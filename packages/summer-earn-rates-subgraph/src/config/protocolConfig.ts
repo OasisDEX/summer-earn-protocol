@@ -163,7 +163,7 @@ class ProtocolConfig {
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
-          Address.fromString('0x8db1c3f004325914E412EF631008dADEd04fd09A'),
+          Address.fromString('0x2371e134e3455e0593363cbf89d3b6cf53740618'),
           BigInt.fromI32(18928285),
           'Morpho',
         ),
