@@ -36,11 +36,13 @@ export function updateVault(
         pricePerShareDiff.lt(BigDecimalConstants.TEN_BPS) &&
         vault.lastUpdatePricePerShare.gt(previousLastUpdatePricePerShare)
       ) {
-        vault.calculatedApr = getAprForTimePeriod(
+        const baseApr = getAprForTimePeriod(
           previousLastUpdatePricePerShare,
           vaultDetails.pricePerShare,
           deltaTime,
         )
+        const fee = vault.tipRate.toBigDecimal().div(BigDecimalConstants.WAD)
+        vault.calculatedApr = fee.plus(baseApr)
       }
     }
   }

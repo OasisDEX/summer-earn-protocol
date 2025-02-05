@@ -7,8 +7,8 @@ dataSources:
     network: base
     source:
       abi: HarborCommand
-      address: "0x79BDBaa087175aA490F311EC743264bD6268C933"
-      startBlock: 25165573
+      address: "0xE355F38F0144a9f07A1Dc8f95ED23658d96613AF"
+      startBlock: 25675535
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -130,6 +130,9 @@ templates:
           receipt: true      
         - event: TipAccrued(uint256)
           handler: handleTipAccrued
+          receipt: true
+        - event: TipRateUpdated(uint256)
+          handler: handleTipRateUpdated
           receipt: true
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract

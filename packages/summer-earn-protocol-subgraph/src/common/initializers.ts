@@ -376,7 +376,10 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.protocol = constants.PROTOCOL_ID
     const config = vaultContract.getConfig()
-
+    vault.tipRate = utils.readValue<BigInt>(
+      vaultContract.try_tipRate(),
+      constants.BigIntConstants.ZERO,
+    )
     vault.depositCap = config.depositCap
     vault.depositLimit = config.depositCap
     vault.minimumBufferBalance = config.minimumBufferBalance
@@ -412,6 +415,8 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.createdBlockNumber = block.number
     vault.createdTimestamp = block.timestamp
     vault.lastUpdateTimestamp = block.timestamp
+
+    vault.tipRate = constants.BigIntConstants.ZERO
 
     vault.arksArray = []
     vault.aprValues = []

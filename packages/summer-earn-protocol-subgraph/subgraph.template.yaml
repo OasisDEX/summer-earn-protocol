@@ -131,6 +131,9 @@ templates:
         - event: TipAccrued(uint256)
           handler: handleTipAccrued
           receipt: true
+        - event: TipRateUpdated(uint256)
+          handler: handleTipRateUpdated
+          receipt: true
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate

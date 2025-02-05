@@ -19,6 +19,7 @@ import {
   FleetCommanderminimumBufferBalanceUpdated,
   Rebalanced,
   TipAccrued,
+  TipRateUpdated,
   Withdraw as WithdrawEvent,
 } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import * as constants from '../common/constants'
@@ -259,4 +260,10 @@ export function handleTipAccrued(event: TipAccrued): void {
   fee.timestamp = event.block.timestamp
   fee.vault = vault.id
   fee.save()
+}
+
+export function handleTipRateUpdated(event: TipRateUpdated): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  vault.tipRate = event.params.newTipRate
+  vault.save()
 }
