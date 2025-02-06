@@ -4,8 +4,8 @@
   "assetSymbol": "USDC",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "3600",
-  "depositCap": "1000000000",
-  "initialTipRate": "0",
+  "depositCap": "100000000",
+  "initialTipRate": "1000000000000000000",
   "network": "mainnet",
   "details": "",
   "arks": [
