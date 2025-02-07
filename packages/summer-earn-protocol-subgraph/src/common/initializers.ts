@@ -191,7 +191,7 @@ export function getOrCreateFinancialDailySnapshots(block: ethereum.Block): Finan
 
   if (!financialMetrics) {
     financialMetrics = new FinancialsDailySnapshot(id.toString())
-    financialMetrics.protocol = constants.PROTOCOL_ID
+    financialMetrics.protocol = constants.Protocol.NAME
 
     financialMetrics.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
     financialMetrics.dailySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
@@ -219,7 +219,7 @@ export function getOrCreateUsageMetricsDailySnapshot(
 
   if (!usageMetrics) {
     usageMetrics = new UsageMetricsDailySnapshot(id)
-    usageMetrics.protocol = constants.PROTOCOL_ID
+    usageMetrics.protocol = constants.Protocol.NAME
 
     usageMetrics.dailyActiveUsers = 0
     usageMetrics.cumulativeUniqueUsers = 0
@@ -247,7 +247,7 @@ export function getOrCreateUsageMetricsHourlySnapshot(
 
   if (!usageMetrics) {
     usageMetrics = new UsageMetricsHourlySnapshot(metricsID)
-    usageMetrics.protocol = constants.PROTOCOL_ID
+    usageMetrics.protocol = constants.Protocol.NAME
 
     usageMetrics.hourlyActiveUsers = 0
     usageMetrics.cumulativeUniqueUsers = 0
@@ -378,7 +378,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.name = utils.readValue<string>(vaultContract.try_name(), '')
     vault.symbol = utils.readValue<string>(vaultContract.try_symbol(), '')
 
-    vault.protocol = constants.PROTOCOL_ID
+    vault.protocol = constants.Protocol.NAME
     const config = vaultContract.getConfig()
     vault.tipRate = utils.readValue<BigInt>(
       vaultContract.try_tipRate(),
