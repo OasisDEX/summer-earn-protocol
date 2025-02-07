@@ -1,6 +1,6 @@
 {
   "network": "mainnet",
   "entry_point_address": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-  "entry_point_start_block": 21453416,
+  "entry_point_start_block": 21575816,
   "interval-handler-block-interval": 50
 }

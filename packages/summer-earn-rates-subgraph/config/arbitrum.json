@@ -1,6 +1,6 @@
 {
   "network": "arbitrum-one",
   "entry_point_address": "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3",
-  "entry_point_start_block": 270009806,
+  "entry_point_start_block": 293165006,
   "interval-handler-block-interval": 2400
 }

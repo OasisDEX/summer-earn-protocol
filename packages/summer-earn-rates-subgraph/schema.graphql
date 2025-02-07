@@ -72,6 +72,8 @@ type Product @entity {
   name: String!
   protocol: String!
   token: Token!
+  network: String!
+  pool: String!
   interestRates: [InterestRate!]! @derivedFrom(field: "product")
   dailyInterestRates: [DailyInterestRate!]! @derivedFrom(field: "product")
   hourlyInterestRates: [HourlyInterestRate!]! @derivedFrom(field: "product")

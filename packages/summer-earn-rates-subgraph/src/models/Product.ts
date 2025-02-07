@@ -49,6 +49,8 @@ export class Product {
     this.name = `${groupName}-${token.address.toHexString()}-${poolAddress.toHexString()}-${getChainIdByNetworkName(dataSource.network()).toString().split('.')[0]}`
     const product = new ProductSchema(this.name)
     product.name = this.name
+    product.network = dataSource.network()
+    product.pool = poolAddress.toHexString()
     product.protocol = groupName
     product.token = this.token.id
     product.save()
