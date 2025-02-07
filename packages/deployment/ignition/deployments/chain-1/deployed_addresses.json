@@ -11,5 +11,21 @@
   "CoreModule#HarborCommand": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
   "CoreModule#AdmiralsQuarters": "0x275CA55c32258CE10870CA4e44c071aa14A2C836",
   "CoreModule#Raft": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E",
-  "CoreModule#TipJar": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6"
+  "CoreModule#TipJar": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6",
+  "FleetModule_LazyVault_LowerRisk_USDC#FleetCommander": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
+  "AaveV3_usdc_1#AaveV3Ark": "0xC9dd080C9ecCFcdbf379714D84CdC8Bd01046AE1",
+  "CompoundV3_usdc_1#CompoundV3Ark": "0xedC6a603B31391B7D13fBa6A721fd4DDa401f9eA",
+  "ERC4626_Fluid_usdc_1#ERC4626Ark": "0xDB6d68d571FbEF7D67827844DD800884EA9cc02E",
+  "ERC4626_Gearbox_usdc_1#ERC4626Ark": "0x36D0501D07619274a398AFf16007337041873A6F",
+  "ERC4626_Euler_Prime_usdc_1#ERC4626Ark": "0xCCBd61b6c2fB58Da5bbD8937Ca25164eF29c1cc4",
+  "ERC4626_Euler_Yield_usdc_1#ERC4626Ark": "0x165D1accC5C6326e7EE4deeF75Ac3ffC8ce4D79B",
+  "ERC4626_Euler_Stablecoin_Maxi_usdc_1#ERC4626Ark": "0xCa75E855a33acC44DDA9d48578Df5Df7602b5c35",
+  "MorphoVault_usdc_Gauntlet_USDC_Core_1#MorphoVaultArk": "0x78f466314b2A69685e464431eDF7688cB77De131",
+  "MorphoVault_usdc_Flagship_USDC_1#MorphoVaultArk": "0x99d21C9c1D68CE0e9bbF77AE0c965Daa3Ab02c7e",
+  "MorphoVault_usdc_Steakhouse_1#MorphoVaultArk": "0x1Ae10e9425653177282E6054a5c828391a533aC7",
+  "MorphoVault_usdc_Gauntlet_USDC_Prime_1#MorphoVaultArk": "0xB10c29b85E388f3EC1189f8EBC78b3f71408Cd34",
+  "MorphoVault_usdc_RE7_USDC_1#MorphoVaultArk": "0xb5e9c7Ad5bB1e21B12aD62066FF1Fb388ebdeB37",
+  "Spark_usdc_1#SparkArk": "0x8948a5F3D24F7A6d50FF36064e8cff33B2aF062f",
+  "SkyUsds_usdc_1#SkyUsdsArk": "0x9890C99f504337C3500AC05c267c38dfcd41C3e2",
+  "MorphoVault_usdc_Smokehouse_USDC_1#MorphoVaultArk": "0xf8Db64D39D1c7382fE47De8B72435c7e9DFB2894"
 }

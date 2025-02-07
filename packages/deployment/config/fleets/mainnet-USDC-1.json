@@ -116,6 +116,14 @@
         "asset": "USDC",
         "protocol": "sky"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Smokehouse_USDC",
+        "protocol": "morpho"
+      }
     }
   ]
 }

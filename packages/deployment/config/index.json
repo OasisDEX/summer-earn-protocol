@@ -373,7 +373,8 @@
             "Flagship_USDC": "0x186514400e52270cef3D80e1c6F8d10A75d47344",
             "Steakhouse": "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
             "Gauntlet_USDC_Prime": "0xdd0f28e19C1780eb6396170735D45153D261490d",
-            "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78"
+            "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78",
+            "Smokehouse_USDC": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC"
           },
           "dai": {},
           "usde": {},
