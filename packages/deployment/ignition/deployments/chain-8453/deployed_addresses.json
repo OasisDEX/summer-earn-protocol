@@ -11,5 +11,14 @@
   "CoreModule#HarborCommand": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F",
   "CoreModule#AdmiralsQuarters": "0x275CA55c32258CE10870CA4e44c071aa14A2C836",
   "CoreModule#Raft": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E",
-  "CoreModule#TipJar": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6"
+  "CoreModule#TipJar": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6",
+  "FleetModule_LazyVault_LowerRisk_USDC#FleetCommander": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
+  "AaveV3_usdc_8453#AaveV3Ark": "0xC9dd080C9ecCFcdbf379714D84CdC8Bd01046AE1",
+  "CompoundV3_usdc_8453#CompoundV3Ark": "0xedC6a603B31391B7D13fBa6A721fd4DDa401f9eA",
+  "ERC4626_Fluid_usdc_8453#ERC4626Ark": "0xDB6d68d571FbEF7D67827844DD800884EA9cc02E",
+  "SkyUsds_usdc_8453#SkyUsdsPsm3Ark": "0x36D0501D07619274a398AFf16007337041873A6F",
+  "MorphoVault_usdc_Gauntlet_USDC_Core_8453#MorphoVaultArk": "0xCCBd61b6c2fB58Da5bbD8937Ca25164eF29c1cc4",
+  "MorphoVault_usdc_Gauntlet_USDC_Prime_8453#MorphoVaultArk": "0x165D1accC5C6326e7EE4deeF75Ac3ffC8ce4D79B",
+  "MorphoVault_usdc_Steakhouse_USDC_8453#MorphoVaultArk": "0xCa75E855a33acC44DDA9d48578Df5Df7602b5c35",
+  "MorphoVault_usdc_Re7_USDC_8453#MorphoVaultArk": "0x78f466314b2A69685e464431eDF7688cB77De131"
 }
