@@ -27,5 +27,18 @@
   "MorphoVault_usdc_RE7_USDC_1#MorphoVaultArk": "0xb5e9c7Ad5bB1e21B12aD62066FF1Fb388ebdeB37",
   "Spark_usdc_1#SparkArk": "0x8948a5F3D24F7A6d50FF36064e8cff33B2aF062f",
   "SkyUsds_usdc_1#SkyUsdsArk": "0x9890C99f504337C3500AC05c267c38dfcd41C3e2",
-  "MorphoVault_usdc_Smokehouse_USDC_1#MorphoVaultArk": "0xf8Db64D39D1c7382fE47De8B72435c7e9DFB2894"
+  "MorphoVault_usdc_Smokehouse_USDC_1#MorphoVaultArk": "0xf8Db64D39D1c7382fE47De8B72435c7e9DFB2894",
+  "FleetModule_LazyVault_LowerRisk_USDT#FleetCommander": "0x17Ee2D03e88b55E762c66C76ec99C3A28A54AD8d",
+  "AaveV3_usdt_1#AaveV3Ark": "0xa4A6bd19FfF5d7b9772E1967B2f53F94924e6C1C",
+  "CompoundV3_usdt_1#CompoundV3Ark": "0x593F7246c38a6F1AD34ADd932d6274B846F367e6",
+  "ERC4626_Fluid_usdt_1#ERC4626Ark": "0x6A60336bc45aE0C9aabAe13acc4bcc0cbd962e44",
+  "ERC4626_Gearbox_usdt_1#ERC4626Ark": "0x4b7752b3EE55c792784b5431C98D4bdb25D49728",
+  "ERC4626_Euler_Prime_usdt_1#ERC4626Ark": "0x2d0Afbf4f6bB188638E281c430EdED5610F0AF14",
+  "ERC4626_Euler_Yield_usdt_1#ERC4626Ark": "0x5DA1C579175dD284106cCAC84d0F4E614a93cB66",
+  "MorphoVault_usdt_Flagship_USDT_1#MorphoVaultArk": "0x66D635171B5760fd28E41a2f8E4B926c64720542",
+  "MorphoVault_usdt_Steakhouse_USDT_1#MorphoVaultArk": "0x26c50781f592Cf4c7389615A38Dc927C81F8a0a4",
+  "MorphoVault_usdt_Gauntlet_USDT_Prime_1#MorphoVaultArk": "0xFA1f432b93B71A8c3cDC0AC32D18F64c80D0f882",
+  "MorphoVault_usdt_RE7_USDT_1#MorphoVaultArk": "0xf2425751c945c3AC0FcdE9E638Ed5A30829C9294",
+  "Spark_usdt_1#SparkArk": "0xf28b3262E2bB0F11eD25A4c4dC87f7F33DD1b5c5",
+  "MorphoVault_usdt_Smokehouse_USDT_1#MorphoVaultArk": "0x650012Ba5369d051e381435e8161454C1A0fcbdc"
 }

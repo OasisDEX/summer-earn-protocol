@@ -383,12 +383,14 @@
             "Flagship_USDT": "0x2C25f6C25770fFEC5959D34B94Bf898865e5D6b1",
             "Steakhouse_USDT": "0xbEef047a543E45807105E51A8BBEFCc5950fcfBa",
             "Gauntlet_USDT_Prime": "0x8CB3649114051cA5119141a34C200D65dc0Faa73",
-            "RE7_USDT": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8"
+            "RE7_USDT": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8",
+            "Smokehouse_USDT": "0xA0804346780b4c2e3bE118ac957D1DB82F9d7484"
           },
           "usdce": {},
           "weth": {
             "Gauntlet_WETH_Prime": "0x2371e134e3455e0593363cBF89d3b6cf53740618",
-            "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0"
+            "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0",
+            "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4"
           }
         },
         "markets": {

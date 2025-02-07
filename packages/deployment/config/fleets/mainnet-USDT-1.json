@@ -93,6 +93,14 @@
         "asset": "USDT",
         "protocol": "spark"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDT",
+        "vaultName": "Smokehouse_USDT",
+        "protocol": "morpho"
+      }
     }
   ]
 }
