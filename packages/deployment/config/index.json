@@ -74,7 +74,8 @@
             "Gauntlet_USDC_Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12",
             "Gauntlet_USDC_Prime": "0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61",
             "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
-            "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
+            "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183",
+            "Spark_USDC": "0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A"
           }
         },
         "markets": {
