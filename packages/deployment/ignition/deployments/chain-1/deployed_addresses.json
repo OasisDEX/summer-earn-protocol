@@ -40,5 +40,13 @@
   "MorphoVault_usdt_Gauntlet_USDT_Prime_1#MorphoVaultArk": "0xFA1f432b93B71A8c3cDC0AC32D18F64c80D0f882",
   "MorphoVault_usdt_RE7_USDT_1#MorphoVaultArk": "0xf2425751c945c3AC0FcdE9E638Ed5A30829C9294",
   "Spark_usdt_1#SparkArk": "0xf28b3262E2bB0F11eD25A4c4dC87f7F33DD1b5c5",
-  "MorphoVault_usdt_Smokehouse_USDT_1#MorphoVaultArk": "0x650012Ba5369d051e381435e8161454C1A0fcbdc"
+  "MorphoVault_usdt_Smokehouse_USDT_1#MorphoVaultArk": "0x650012Ba5369d051e381435e8161454C1A0fcbdc",
+  "FleetModule_LazyVault_LowerRisk_WETH#FleetCommander": "0x67e536797570b3d8919Df052484273815A0aB506",
+  "AaveV3_weth_1#AaveV3Ark": "0x1A91e4Bc8b5DC910BC58C3DdF35405edb9c2022e",
+  "CompoundV3_weth_1#CompoundV3Ark": "0xCc9691BE0b06f98803585c308d20Aa0497DaC88C",
+  "ERC4626_Fluid_weth_1#ERC4626Ark": "0x5093dAE3BDCaf136D4DfD684e1FBA87A86C21C14",
+  "ERC4626_Gearbox_weth_1#ERC4626Ark": "0x6D3ef0C74050BA40CeF2D2FFf34B869AA1e2668f",
+  "ERC4626_Euler_Prime_weth_1#ERC4626Ark": "0x78bFc6c846fF91F6029F0D94DB1c455Afbe27d78",
+  "MorphoVault_weth_Gauntlet_WETH_Prime_1#MorphoVaultArk": "0x5f32a2eef8e96ADf4A9199527255a69Ea457C0e9",
+  "MorphoVault_weth_Re7_WETH_1#MorphoVaultArk": "0xC991F9DeC95e33389132A4d91F71cFe6235aCAAf"
 }
