@@ -239,6 +239,7 @@ async function addFleetToHarbor(
 ) {
   const publicClient = await hre.viem.getPublicClient()
   const [deployer] = await hre.viem.getWalletClients()
+  console.log('Deployer: ', deployer.account.address)
   const protocolAccessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,
     protocolAccessManagerAddress,
