@@ -2,6 +2,7 @@ import { Address, BigDecimal, BigInt } from '@graphprotocol/graph-ts'
 import { VaultFee } from '../../generated/schema'
 import {
   RewardAdded,
+  RewardPaid,
   RewardTokenRemoved,
   RewardsDurationUpdated,
   Staked,
@@ -27,6 +28,7 @@ import { ADDRESS_ZERO, BigIntConstants, VaultFeeType } from '../common/constants
 import {
   getOrCreateAccount,
   getOrCreateArk,
+  getOrCreatePosition,
   getOrCreateRewardsManager,
   getOrCreateToken,
   getOrCreateVault,
@@ -266,4 +268,25 @@ export function handleTipRateUpdated(event: TipRateUpdated): void {
   const vault = getOrCreateVault(event.address, event.block)
   vault.tipRate = event.params.newTipRate
   vault.save()
+}
+
+export function handleRewardPaid(event: RewardPaid): void {
+  const rewardsManager = getOrCreateRewardsManager(event.address)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
+
+  if (vault.rewardTokens.includes(event.params.rewardToken.toHexString())) {
+    const account = getOrCreateAccount(event.params.user.toHexString())
+    account.claimedSummerToken = account.claimedSummerToken.plus(event.params.reward)
+    account.claimedSummerTokenNormalized = account.claimedSummerTokenNormalized.plus(
+      formatAmount(event.params.reward, BigInt.fromI32(18)),
+    )
+    account.save()
+
+    const position = getOrCreatePosition(utils.formatPositionId(account.id, vault.id), event.block)
+    position.claimedSummerToken = position.claimedSummerToken.plus(event.params.reward)
+    position.claimedSummerTokenNormalized = position.claimedSummerTokenNormalized.plus(
+      formatAmount(event.params.reward, BigInt.fromI32(18)),
+    )
+    position.save()
+  }
 }

@@ -252,4 +252,7 @@ templates:
         - event: RewardsDurationUpdated(indexed address,uint256)
           handler: handleRewardsDurationUpdated
           receipt: true
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleRewardPaid
+          receipt: true
       file: ./src/mappings/fleetCommander.ts

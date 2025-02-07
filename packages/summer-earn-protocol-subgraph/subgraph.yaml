@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: base
+    network: mainnet
     source:
       abi: HarborCommand
-      address: "0xE355F38F0144a9f07A1Dc8f95ED23658d96613AF"
-      startBlock: 25675535
+      address: "0x07060E282bd0FB99607c8915f1E538F8CebF5FC4"
+      startBlock: 21728579
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -59,7 +59,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: base
+    network: mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -137,7 +137,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: base
+    network: mainnet
     source:
       abi: Ark
     mapping:
@@ -198,7 +198,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: base
+    network: mainnet
     source:
       abi: FleetCommanderRewardsManager
     mapping:
@@ -251,5 +251,8 @@ templates:
           receipt: true
         - event: RewardsDurationUpdated(indexed address,uint256)
           handler: handleRewardsDurationUpdated
+          receipt: true
+        - event: RewardPaid(indexed address,indexed address,uint256)
+          handler: handleRewardPaid
           receipt: true
       file: ./src/mappings/fleetCommander.ts

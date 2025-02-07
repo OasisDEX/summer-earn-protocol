@@ -8,7 +8,7 @@ import {
   getOrCreateVault,
   getOrCreateVaultsPostActionSnapshots,
 } from '../../common/initializers'
-import { getAprForTimePeriod } from '../../common/utils'
+import { getAprForTimePeriod, updateProtocolTotalValueLockedUSD } from '../../common/utils'
 import { VaultDetails } from '../../types'
 import { getArkDetails } from '../../utils/ark'
 import { getVaultDetails } from '../../utils/vault'
@@ -57,6 +57,7 @@ export function updateVault(
   vault.rewardTokenEmissionsAmountsPerOutputToken =
     vaultDetails.rewardTokenEmissionsAmountsPerOutputToken
   vault.save()
+  updateProtocolTotalValueLockedUSD()
 }
 
 export function updateVaultAndArks(event: ethereum.Event, vaultId: string): void {

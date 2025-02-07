@@ -55,6 +55,8 @@ export function getOrCreateAccount(id: string): Account {
 
   if (!account) {
     account = new Account(id)
+    account.claimedSummerToken = constants.BigIntConstants.ZERO
+    account.claimedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
     account.save()
 
     const protocol = getOrCreateYieldAggregator(BigInt.fromI32(0))
@@ -114,6 +116,8 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.inputTokenWithdrawals = constants.BigIntConstants.ZERO
     position.inputTokenDepositsNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    position.claimedSummerToken = constants.BigIntConstants.ZERO
+    position.claimedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
     position.save()
   }
 
@@ -121,11 +125,11 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
 }
 
 export function getOrCreateYieldAggregator(timestamp: BigInt): YieldAggregator {
-  let protocol = YieldAggregator.load(constants.PROTOCOL_ID)
+  let protocol = YieldAggregator.load(constants.Protocol.NAME)
   log.debug('getOrCreateYieldAggregator', [])
   if (!protocol) {
     log.debug('Creating new protocol', [])
-    protocol = new YieldAggregator(constants.PROTOCOL_ID)
+    protocol = new YieldAggregator(constants.Protocol.NAME)
     protocol.name = constants.Protocol.NAME
     protocol.slug = constants.Protocol.SLUG
     protocol.schemaVersion = '1.3.1'

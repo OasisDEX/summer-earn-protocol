@@ -118,7 +118,6 @@ type VaultFee @entity @regularPolling {
   timestamp: BigInt!
 
   " Vault that is charged for the fee "
-
   vault: Vault!
 }
 
@@ -945,6 +944,8 @@ type Account @entity @regularPolling {
   " Address of the account "
   id: ID!
   positions: [Position!]! @derivedFrom(field: "account")
+  claimedSummerToken: BigInt!
+  claimedSummerTokenNormalized: BigDecimal!
 }
 
 # Helper entity for calculating daily/hourly active users
@@ -1127,7 +1128,7 @@ type Position @entity {
   " Unstaked balance of the input token for the position "
   unstakedInputTokenBalance: BigInt!
 
-  " Unstaked balance of the output token for the position " 
+  " Unstaked balance of the output token for the position "
   unstakedOutputTokenBalance: BigInt!
 
   " Normalized supply of the input token "
@@ -1162,6 +1163,9 @@ type Position @entity {
   hourlySnapshots: [PositionHourlySnapshot!]! @derivedFrom(field: "position")
   dailySnapshots: [PositionDailySnapshot!]! @derivedFrom(field: "position")
   weeklySnapshots: [PositionWeeklySnapshot!]! @derivedFrom(field: "position")
+
+  claimedSummerToken: BigInt!
+  claimedSummerTokenNormalized: BigDecimal!
 }
 
 type PositionHourlySnapshot @entity @hourlySnapshot {
