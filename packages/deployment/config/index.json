@@ -74,7 +74,8 @@
             "Gauntlet_USDC_Core": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12",
             "Gauntlet_USDC_Prime": "0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61",
             "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
-            "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
+            "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183",
+            "Spark_USDC": "0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A"
           }
         },
         "markets": {
@@ -373,7 +374,8 @@
             "Flagship_USDC": "0x186514400e52270cef3D80e1c6F8d10A75d47344",
             "Steakhouse": "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
             "Gauntlet_USDC_Prime": "0xdd0f28e19C1780eb6396170735D45153D261490d",
-            "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78"
+            "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78",
+            "Smokehouse_USDC": "0xBEeFFF209270748ddd194831b3fa287a5386f5bC"
           },
           "dai": {},
           "usde": {},
@@ -381,12 +383,14 @@
             "Flagship_USDT": "0x2C25f6C25770fFEC5959D34B94Bf898865e5D6b1",
             "Steakhouse_USDT": "0xbEef047a543E45807105E51A8BBEFCc5950fcfBa",
             "Gauntlet_USDT_Prime": "0x8CB3649114051cA5119141a34C200D65dc0Faa73",
-            "RE7_USDT": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8"
+            "RE7_USDT": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8",
+            "Smokehouse_USDT": "0xA0804346780b4c2e3bE118ac957D1DB82F9d7484"
           },
           "usdce": {},
           "weth": {
             "Gauntlet_WETH_Prime": "0x2371e134e3455e0593363cBF89d3b6cf53740618",
-            "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0"
+            "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0",
+            "Steakhouse_WETH": "0xBEEf050ecd6a16c4e7bfFbB52Ebba7846C4b8cD4"
           }
         },
         "markets": {

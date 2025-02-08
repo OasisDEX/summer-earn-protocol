@@ -69,6 +69,14 @@
         "asset": "WETH",
         "protocol": "spark"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "WETH",
+        "vaultName": "Steakhouse_WETH",
+        "protocol": "morpho"
+      }
     }
   ]
 }

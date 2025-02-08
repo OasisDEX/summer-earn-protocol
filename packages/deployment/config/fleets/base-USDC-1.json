@@ -69,6 +69,14 @@
         "protocol": "morpho",
         "vaultName": "Re7_USDC"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "Spark_USDC"
+      }
     }
   ]
 }
