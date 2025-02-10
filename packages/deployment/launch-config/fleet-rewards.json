@@ -1,0 +1,44 @@
+{
+  "base": {
+    "fleetRewards": [
+      {
+        "address": "0xFleetRewardManager1Address",
+        "amount": "2427226030000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Base USDC"
+      }
+    ]
+  },
+  "arbitrum": {
+    "fleetRewards": [
+      {
+        "address": "0xArbitrumFleetRewardManagerAddress",
+        "amount": "2427226030000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Arbitrum USDC"
+      }
+    ]
+  },
+  "mainnet": {
+    "fleetRewards": [
+      {
+        "address": "0xMainnetFleetRewardManagerAddress",
+        "amount": "4854450000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Mainnet USDC"
+      },
+      {
+        "address": "0xMainnetFleetRewardManagerAddress",
+        "amount": "4854450000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Mainnet USDT"
+      },
+      {
+        "address": "0xMainnetFleetRewardManagerAddress",
+        "amount": "4854450000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Mainnet ETH"
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "base": {
+    "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+    "foundation": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"
+  },
+  "arbitrum": {
+    "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d"
+  },
+  "mainnet": {
+    "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d"
+  }
+}

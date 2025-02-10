@@ -12,6 +12,7 @@ export type ChainConfig = {
       summerGovernor: { address: string }
       summerToken: { address: string }
       timelock: { address: string }
+      protocolAccessManager: { address: string }
     }
     core: {
       tipJar: { address: string }
