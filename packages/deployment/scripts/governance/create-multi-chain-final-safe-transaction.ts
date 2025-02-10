@@ -3,15 +3,7 @@ import dotenv from 'dotenv'
 import fs from 'fs'
 import hre from 'hardhat'
 import path from 'path'
-import {
-  Address,
-  PublicClient,
-  encodeAbiParameters,
-  encodeFunctionData,
-  getAddress,
-  keccak256,
-  parseAbi,
-} from 'viem'
+import { Address, PublicClient, encodeFunctionData, formatUnits, getAddress, parseAbi } from 'viem'
 import { FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { promptForChainFromHre } from '../helpers/chain-prompt'
 import { createClients } from '../helpers/wallet-helper'
@@ -37,20 +29,43 @@ interface GlobalRoles {
   [key: string]: any
 }
 
-interface GovRoles {
-  current: Address[]
-  endgame: Address
+/**
+ * Formats a token amount (assumed to be in wei with 18 decimals) into a human-readable string.
+ * E.g. "300000000000000000" becomes "0.3".
+ */
+function formatTokenAmount(amount: string): string {
+  // viem's formatUnits expects a bigint or a bigint-formatted string.
+  return formatUnits(BigInt(amount), 18)
 }
 
-interface FoundationRoles {
-  current: Address[]
-  endgame: Address
+/**
+ * Converts a duration given in seconds into a human-readable format.
+ * For example, 7776000 seconds returns "90 days".
+ */
+function formatDuration(seconds: number): string {
+  // Days are 86400 seconds.
+  if (seconds % 86400 === 0) {
+    const days = seconds / 86400
+    return `${days} day${days > 1 ? 's' : ''}`
+  }
+  // Fallback to hours if evenly divisible.
+  if (seconds % 3600 === 0) {
+    const hours = seconds / 3600
+    return `${hours} hour${hours > 1 ? 's' : ''}`
+  }
+  return `${seconds} second${seconds > 1 ? 's' : ''}`
 }
 
-interface SpecificRoles {
-  fleetCommanders?: Address[]
-  gov?: GovRoles
-  foundation?: FoundationRoles
+/**
+ * Converts a fractional allocation (in wei, where e.g. "300000000000000000" represents 0.3)
+ * into a percentage share. For example, 0.3 becomes "30% share".
+ */
+function formatPercentage(amount: string): string {
+  // Convert the amount to a decimal string first (e.g. "0.3")
+  const shareDecimal = Number(formatUnits(BigInt(amount), 18))
+  // Multiply by 100 to get the percentage value
+  const percentage = shareDecimal * 100
+  return `${percentage % 1 === 0 ? percentage.toFixed(0) : percentage.toFixed(2)}% share`
 }
 
 /**
@@ -74,7 +89,7 @@ async function handleGovRole(
     console.log('No gov configuration found in roles config for base.')
     return
   }
-  console.log('Gov globalGovRole:', globalGovRole)
+
   const govRemoved: string[] = globalGovRole.remove || []
   if (!govTimelock) {
     console.log('No gov timelock address configured in roles config.')
@@ -174,13 +189,13 @@ async function handleRoles(
 
   for (const fleetCommanderAddress of fleetCommanders) {
     console.log(`Processing fleet commander: ${fleetCommanderAddress}`)
-    // Compute the role ID for curator on a fleet-by-fleet basis.
-    const curatorRoleId = keccak256(
-      encodeAbiParameters(
-        [{ type: 'uint8' }, { type: 'address' }],
-        [CURATOR_ROLE_ENUM, fleetCommanderAddress as Address],
-      ),
-    )
+
+    // Read the curator role ID using the on-chain generateRole method
+    const curatorRoleId = await accessManager.read.generateRole([
+      CURATOR_ROLE_ENUM,
+      fleetCommanderAddress,
+    ])
+
     console.log(
       `Generated curator role ID for fleet commander ${fleetCommanderAddress}: ${curatorRoleId}`,
     )
@@ -284,7 +299,6 @@ async function handleSuperKeeperRole(
   }
 
   const superKeeperRole = await accessManager.read.SUPER_KEEPER_ROLE()
-  console.log(`SUPER_KEEPER_ROLE constant: ${superKeeperRole}`)
   const hasSuperKeeperRole = await accessManager.read.hasRole([superKeeperRole, superKeeperAddress])
 
   if (!hasSuperKeeperRole) {
@@ -321,13 +335,12 @@ async function handleTipStreams(
     )
     for (const tip of tipStreamsData.tipStreams) {
       console.log(
-        `TIP STREAM: Adding tip stream for ${tip.recipient} with allocation ${tip.allocation} and min term ${tip.minTerm} seconds.`,
+        `TIP STREAM: Adding tip stream for ${tip.recipient} with allocation ${formatPercentage(tip.allocation)} (${tip.allocation}) and min term ${formatDuration(Number(tip.minTerm))} (${tip.minTerm} seconds).`,
       )
-      // Build the TipStream struct as expected by the TipJar contract.
       const tipStreamStruct = {
         recipient: tip.recipient,
         allocation: tip.allocation,
-        lockedUntilEpoch: tip.minTerm, // Adjust if you need a different calculation.
+        lockedUntilEpoch: tip.minTerm,
       }
       const tipStreamCalldata = encodeFunctionData({
         abi: tipJar.abi,
@@ -365,7 +378,7 @@ async function handleFleetRewards(
     )
     for (const rewardManager of fleetRewardsData.fleetRewards) {
       console.log(
-        `APPROVE: Approving ${rewardManager.description} (${rewardManager.address}) to pull ${rewardManager.amount} tokens`,
+        `APPROVE: Approving ${rewardManager.description} (${rewardManager.address}) to pull ${formatTokenAmount(rewardManager.amount)} tokens (${rewardManager.amount}).`,
       )
       const approveCalldata = encodeFunctionData({
         abi: summerToken.abi,
@@ -383,7 +396,7 @@ async function handleFleetRewards(
         'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
       ])
       console.log(
-        `NOTIFY: Notifying reward amount for ${rewardManager.description} (${rewardManager.address})`,
+        `NOTIFY: Notifying reward amount for ${rewardManager.description} (${rewardManager.address}) with ${formatTokenAmount(rewardManager.amount)} tokens and duration ${formatDuration(Number(rewardManager.rewardsDuration))} (${rewardManager.rewardsDuration} seconds).`,
       )
       const notifyCalldata = encodeFunctionData({
         abi: rewardManagerABI,
@@ -504,7 +517,6 @@ async function main() {
     throw new Error('❌ SummerToken is not deployed on this network')
   }
   const summerTokenAddress = chainConfig.config.deployedContracts.gov.summerToken.address as Address
-  console.log(`Using SummerToken at address: ${summerTokenAddress}`)
   const summerToken = await hre.viem.getContractAt('SummerToken' as string, summerTokenAddress)
   await handleFleetRewards(chainKey, chainFleetRewardsData, summerToken, transactions)
 
