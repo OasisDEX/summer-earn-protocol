@@ -438,6 +438,13 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
     vault.rewardTokenEmissionsFinish = []
     vault.positions = []
 
+    const bufferArkAddress = vaultContract.bufferArk()
+
+    vault.save()
+
+    const bufferArk = getOrCreateArk(vaultAddress, bufferArkAddress, block)
+
+    vault.bufferArk = bufferArk.id
     vault.save()
 
     const yeildAggregator = getOrCreateYieldAggregator(block.timestamp)
@@ -449,9 +456,6 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     FleetCommanderTemplate.create(vaultAddress)
     FleetCommanderRewardsManagerTemplate.create(config.stakingRewardsManager)
-
-    const bufferArk = vaultContract.bufferArk()
-    getOrCreateArk(vaultAddress, bufferArk, block)
   }
 
   return vault
