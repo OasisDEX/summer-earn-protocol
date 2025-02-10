@@ -532,14 +532,14 @@ async function main() {
   console.log('Private key: ', process.env.DEPLOYER_PRIV_KEY?.slice(0, 6) + '...')
 
   console.log('Proposing transactions...')
-  //   await proposeAllSafeTransactions(
-  //     transactions,
-  //     deployer,
-  //     safeAddress,
-  //     currentChainId,
-  //     chainConfig.rpcUrl,
-  //     process.env.DEPLOYER_PRIV_KEY as Address,
-  //   )
+  await proposeAllSafeTransactions(
+    transactions,
+    deployer,
+    safeAddress,
+    currentChainId,
+    chainConfig.rpcUrl,
+    process.env.DEPLOYER_PRIV_KEY as Address,
+  )
 }
 
 main().catch((error) => {
