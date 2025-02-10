@@ -6,10 +6,11 @@ import path from 'path'
 import { Address, PublicClient, encodeFunctionData, formatUnits, getAddress, parseAbi } from 'viem'
 import { FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { promptForChainFromHre } from '../helpers/chain-prompt'
+import { proposeAllSafeTransactions } from '../helpers/safe-transaction'
 import { createClients } from '../helpers/wallet-helper'
 
 // Load environment variables
-dotenv.config()
+dotenv.config({ path: '../../.env' })
 
 if (!process.env.BVI_MULTISIG_ADDRESS) {
   throw new Error('❌ BVI_MULTISIG_ADDRESS not set in environment')
@@ -534,9 +535,10 @@ async function main() {
   // Get the deployer address.
   const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
   console.log(`Deployer address: ${deployer}`)
+  console.log(`Safe address: ${safeAddress}`)
+  console.log('Private key: ', process.env.DEPLOYER_PRIV_KEY?.slice(0, 6) + '...')
 
-  // Final propose step commented out for testing purposes.
-  /*
+  console.log('Proposing transactions...')
   await proposeAllSafeTransactions(
     transactions,
     deployer,
@@ -545,8 +547,6 @@ async function main() {
     chainConfig.rpcUrl,
     process.env.DEPLOYER_PRIV_KEY as Address,
   )
-  */
-  console.log('Propose step commented out. End of testing script.')
 }
 
 main().catch((error) => {
