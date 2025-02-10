@@ -468,7 +468,7 @@ async function main() {
   console.log('ProtocolAccessManager contract instance created.')
 
   // Create clients using createClients instead of hre.viem.getPublicClient.
-  const { publicClient } = createClients(chain, rpcUrl)
+  const { publicClient } = createClients(chain, rpcUrl, process.env.DEPLOYER_PRIV_KEY as Address)
 
   const transactions: TransactionBase[] = []
 
