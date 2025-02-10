@@ -1,0 +1,19 @@
+{
+  "tipStreams": [
+    {
+      "recipient": "0x6e7aE26175F9972e266B0e39288108597C152604",
+      "allocation": "300000000000000000",
+      "minTerm": "63072000"
+    },
+    {
+      "recipient": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2",
+      "allocation": "200000000000000000",
+      "minTerm": "7776000"
+    },
+    {
+      "recipient": "0xeaef8fb615a7d5ab6a356dec0549fd749460e970",
+      "allocation": "200000000000000000",
+      "minTerm": "31536000"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "base": {
+    "fleetRewards": [
+      {
+        "address": "0xb1a851b8c70a4749408754d398702153a61dfc78",
+        "fleetCommanderAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
+        "amount": "2427226030000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Base USDC"
+      }
+    ]
+  },
+  "arbitrum": {
+    "fleetRewards": [
+      {
+        "address": "0xb1a851b8c70a4749408754d398702153a61dfc78",
+        "fleetCommanderAddress": "0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17",
+        "amount": "2427226030000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Arbitrum USDT"
+      }
+    ]
+  },
+  "mainnet": {
+    "fleetRewards": [
+      {
+        "address": "0xb1a851b8c70a4749408754d398702153a61dfc78",
+        "fleetCommanderAddress": "0x98c49e13bf99d7cad8069faa2a370933ec9ecf17",
+        "amount": "4854450000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Mainnet USDC"
+      },
+      {
+        "address": "0x8dca3e548c8b80c93ee8404cfc3ca46010c81679",
+        "fleetCommanderAddress": "0x17ee2d03e88b55e762c66c76ec99c3a28a54ad8d",
+        "amount": "4854450000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Mainnet USDT"
+      },
+      {
+        "address": "0xc1768910a0e22a282f1d36725ab2eb29de5334f4",
+        "fleetCommanderAddress": "0x67e536797570b3d8919df052484273815a0ab506",
+        "amount": "4854450000000000000000000",
+        "rewardsDuration": "7776000",
+        "description": "Mainnet ETH"
+      }
+    ]
+  }
+}
