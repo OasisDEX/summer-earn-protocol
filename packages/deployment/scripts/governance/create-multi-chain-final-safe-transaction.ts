@@ -6,7 +6,6 @@ import path from 'path'
 import { Address, PublicClient, encodeFunctionData, formatUnits, getAddress, parseAbi } from 'viem'
 import { FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { promptForChainFromHre } from '../helpers/chain-prompt'
-import { proposeAllSafeTransactions } from '../helpers/safe-transaction'
 import { createClients } from '../helpers/wallet-helper'
 
 // Load environment variables
@@ -225,9 +224,6 @@ async function handleRoles(
     }
   }
 
-  // ---------- GOVERNOR ROLE (Gov) - Process on EVERY chain ----------
-  await handleGovRole(globalRoles, govTimelock, accessManager, transactions, publicClient)
-
   // ---------- FOUNDATION ROLE (Only on Base) ----------
   if (chainKey === 'base') {
     console.log("Processing FOUNDATION roles for chain 'base'")
@@ -279,45 +275,52 @@ async function handleRoles(
   }
 
   console.log('==== Completed handling roles ====')
-}
 
-/**
- * Handles granting the Super Keeper role.
- *
- * This reads the superKeeper address from global roles, checks if the role is already held,
- * and if not, encodes a transaction to grant the role in ProtocolAccessManager.
- */
-async function handleSuperKeeperRole(
-  globalRoles: GlobalRoles,
-  accessManager: any,
-  transactions: TransactionBase[],
-): Promise<void> {
+  // ---------- GOVERNOR ROLE (Gov) - Process on EVERY chain ----------
+  await handleGovRole(globalRoles, govTimelock, accessManager, transactions, publicClient)
+
+  // ---------- SUPER KEEPER ROLE (Global) ----------
   console.log('==== Handling Super Keeper Role ====')
   const superKeeperAddress = globalRoles.superKeeper
   if (!superKeeperAddress) {
     console.log('No super keeper address found in global roles configuration.')
-    return
-  }
-
-  const superKeeperRole = await accessManager.read.SUPER_KEEPER_ROLE()
-  const hasSuperKeeperRole = await accessManager.read.hasRole([superKeeperRole, superKeeperAddress])
-
-  if (!hasSuperKeeperRole) {
-    console.log(`Granting Super Keeper role to ${superKeeperAddress}`)
-    const grantSuperKeeperCalldata = encodeFunctionData({
-      abi: accessManager.abi,
-      functionName: 'grantSuperKeeperRole',
-      args: [superKeeperAddress],
-    })
-    transactions.push({
-      to: accessManager.address,
-      data: grantSuperKeeperCalldata,
-      value: '0',
-    })
   } else {
-    console.log(`Super Keeper ${superKeeperAddress} already has the role. Skipping.`)
+    const superKeeperRole = await accessManager.read.SUPER_KEEPER_ROLE()
+    const hasSuperKeeperRole = await accessManager.read.hasRole([
+      superKeeperRole,
+      superKeeperAddress,
+    ])
+    if (!hasSuperKeeperRole) {
+      console.log(`Granting Super Keeper role to ${superKeeperAddress}`)
+      const grantSuperKeeperCalldata = encodeFunctionData({
+        abi: accessManager.abi,
+        functionName: 'grantSuperKeeperRole',
+        args: [superKeeperAddress],
+      })
+      transactions.push({
+        to: accessManager.address,
+        data: grantSuperKeeperCalldata,
+        value: '0',
+      })
+    } else {
+      console.log(`Super Keeper ${superKeeperAddress} already has the role. Skipping.`)
+    }
   }
   console.log('==== Completed handling Super Keeper Role ====')
+
+  // ---------- FINAL REVOCATION OF BVI_MULTISIG ----------
+  console.log('==== Appending final transaction: Revoke governor role from BVI_MULTISIG ====')
+  const finalRevokeCalldata = encodeFunctionData({
+    abi: accessManager.abi,
+    functionName: 'revokeGovernorRole',
+    args: [safeAddress],
+  })
+  transactions.push({
+    to: accessManager.address,
+    data: finalRevokeCalldata,
+    value: '0',
+  })
+  console.log('==== Completed final revocation of BVI_MULTISIG ====')
 }
 
 /**
@@ -441,13 +444,12 @@ async function main() {
     process.exit(1)
   }
 
-  // Load roles configuration.
+  // Load configurations.
   const rolesConfigPath = path.join(__dirname, '../../launch-config/roles.json')
   const rolesConfig = JSON.parse(fs.readFileSync(rolesConfigPath, 'utf-8'))
   console.log('Loaded roles configuration:')
   console.log(JSON.stringify(rolesConfig, null, 2))
 
-  // Load tip streams configuration.
   const tipStreamsConfigPath = path.join(__dirname, '../../launch-config/tip-streams.json')
   const tipStreamsData = JSON.parse(fs.readFileSync(tipStreamsConfigPath, 'utf-8'))
   if (!tipStreamsData || !tipStreamsData.tipStreams) {
@@ -456,7 +458,6 @@ async function main() {
     console.log('Tip streams configuration loaded.')
   }
 
-  // Load fleet rewards configuration.
   const fleetRewardsConfigPath = path.join(__dirname, '../../launch-config/fleet-rewards.json')
   const fleetRewardsConfig = JSON.parse(fs.readFileSync(fleetRewardsConfigPath, 'utf-8'))
   const chainFleetRewardsData = fleetRewardsConfig[chainKey]
@@ -481,21 +482,12 @@ async function main() {
   )
   console.log('ProtocolAccessManager contract instance created.')
 
-  // Create clients using createClients instead of hre.viem.getPublicClient.
+  // Create clients.
   const { publicClient } = createClients(chain, rpcUrl, process.env.DEPLOYER_PRIV_KEY as Address)
 
   const transactions: TransactionBase[] = []
 
-  /***** ROLES *****/
-  const govTimelock = chainConfig.config.deployedContracts.gov.timelock.address as Address
-  // Handle roles with logging.
-  await handleRoles(chainKey, rolesConfig, govTimelock, accessManager, transactions, publicClient)
-  // Handle Super Keeper Role.
-  await handleSuperKeeperRole(rolesConfig.all, accessManager, transactions)
-
   /***** TIP STREAMS *****/
-  // Instead of using SummerToken for tip streams, we use TipJar.
-  // Pull TipJar address from the "core" section of your deployment config.
   if (
     !chainConfig.config.deployedContracts.core.tipJar.address ||
     chainConfig.config.deployedContracts.core.tipJar.address ===
@@ -509,7 +501,6 @@ async function main() {
   await handleTipStreams(tipJar, tipStreamsData, transactions)
 
   /***** FLEET REWARDS: Approval & Notify *****/
-  // For fleet rewards, we still use the SummerToken instance.
   if (
     !chainConfig.config.deployedContracts.gov.summerToken.address ||
     chainConfig.config.deployedContracts.gov.summerToken.address ===
@@ -521,9 +512,12 @@ async function main() {
   const summerToken = await hre.viem.getContractAt('SummerToken' as string, summerTokenAddress)
   await handleFleetRewards(chainKey, chainFleetRewardsData, summerToken, transactions)
 
-  console.log(`\nFinal Safe transaction will include ${transactions.length} operation(s).`)
+  /***** ROLES (includes Super Keeper handling and final revocation) *****/
+  const govTimelock = chainConfig.config.deployedContracts.gov.timelock.address as Address
+  await handleRoles(chainKey, rolesConfig, govTimelock, accessManager, transactions, publicClient)
 
-  // Additional individual logging for clarity.
+  // --- Continue with logging and final proposal ---
+  console.log(`\nFinal Safe transaction will include ${transactions.length} operation(s).`)
   console.log('\nDetailed Transaction Log:')
   transactions.forEach((tx, index) => {
     console.log(`Transaction ${index + 1}:`)
@@ -532,21 +526,20 @@ async function main() {
     console.log(`  Value: ${tx.value}`)
   })
 
-  // Get the deployer address.
   const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
   console.log(`Deployer address: ${deployer}`)
   console.log(`Safe address: ${safeAddress}`)
   console.log('Private key: ', process.env.DEPLOYER_PRIV_KEY?.slice(0, 6) + '...')
 
   console.log('Proposing transactions...')
-  await proposeAllSafeTransactions(
-    transactions,
-    deployer,
-    safeAddress,
-    currentChainId,
-    chainConfig.rpcUrl,
-    process.env.DEPLOYER_PRIV_KEY as Address,
-  )
+  //   await proposeAllSafeTransactions(
+  //     transactions,
+  //     deployer,
+  //     safeAddress,
+  //     currentChainId,
+  //     chainConfig.rpcUrl,
+  //     process.env.DEPLOYER_PRIV_KEY as Address,
+  //   )
 }
 
 main().catch((error) => {
