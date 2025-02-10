@@ -12,7 +12,7 @@ import {
   keccak256,
   parseAbi,
 } from 'viem'
-import { FOUNDATION_ROLE } from '../common/constants'
+import { FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { promptForChainFromHre } from '../helpers/chain-prompt'
 import { createClients } from '../helpers/wallet-helper'
 
@@ -26,8 +26,6 @@ if (!process.env.BVI_MULTISIG_ADDRESS) {
 if (!process.env.DEPLOYER_PRIV_KEY) {
   throw new Error('❌ DEPLOYER_PRIV_KEY not set in environment')
 }
-
-const GOVERNANCE_ROLE = '0x7935bd0ae54bc31f548c14dba4d37c5c64b3f8ca900cb468fb8abd54d5894f55'
 
 // Get the Safe address from environment variables.
 const safeAddress = getAddress(process.env.BVI_MULTISIG_ADDRESS as Address)
@@ -84,7 +82,7 @@ async function handleGovRole(
   }
 
   // First, grant the gov role to the timelock if it hasn't been granted.
-  const hasGovRole = await accessManager.read.hasRole([GOVERNANCE_ROLE, govTimelock], {
+  const hasGovRole = await accessManager.read.hasRole([GOVERNOR_ROLE, govTimelock], {
     publicClient,
   })
   if (!hasGovRole) {
@@ -107,7 +105,7 @@ async function handleGovRole(
   for (const govAddr of govRemoved) {
     if (govAddr.toLowerCase() !== govTimelock.toLowerCase()) {
       // Check if this address currently holds the GOV role
-      const hasGovRoleForAddr = await accessManager.read.hasRole([GOVERNANCE_ROLE, govAddr], {
+      const hasGovRoleForAddr = await accessManager.read.hasRole([GOVERNOR_ROLE, govAddr], {
         publicClient,
       })
       if (hasGovRoleForAddr) {
@@ -211,7 +209,7 @@ async function handleRoles(
     }
   }
 
-  // ---------- GOVERNANCE ROLE (Gov) - Process on EVERY chain ----------
+  // ---------- GOVERNOR ROLE (Gov) - Process on EVERY chain ----------
   await handleGovRole(globalRoles, govTimelock, accessManager, transactions, publicClient)
 
   // ---------- FOUNDATION ROLE (Only on Base) ----------
