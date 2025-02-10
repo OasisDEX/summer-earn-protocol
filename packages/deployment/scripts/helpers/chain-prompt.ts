@@ -1,4 +1,5 @@
 import dotenv from 'dotenv'
+import hre from 'hardhat'
 import prompts from 'prompts'
 import { Chain } from 'viem'
 import { chainConfigs, ChainName } from './chain-configs'
@@ -38,6 +39,9 @@ export interface ChainSetup {
   rpcUrl: string
 }
 
+/**
+ * Prompts the user for the chain selection (manual prompt).
+ */
 export async function promptForChain(
   message = 'Which chain would you like to execute this operation on?',
 ): Promise<ChainSetup> {
@@ -67,6 +71,41 @@ export async function promptForChain(
   }
 
   return selectedChain
+}
+
+/**
+ * Automatically infers the chain from hre and asks the user to confirm.
+ *
+ * Instead of prompting the user with a list of chains, this function uses the detected
+ * chainId (from hre.network.config.chainId) to look up its configuration from chainConfigs.
+ */
+export async function promptForChainFromHre(
+  message = 'Do you want to execute this operation on the current network?',
+): Promise<ChainSetup> {
+  // Get chain id from Hardhat runtime environment.
+  const detectedChainId = hre.network.config.chainId
+  // Find the matching chain config by comparing the chain.id value.
+  const entry = Object.entries(chainConfigs).find(([_, config]) => {
+    return config.chain.id === detectedChainId
+  })
+
+  if (!entry) {
+    throw new Error(`Chain with id ${detectedChainId} not found in chainConfigs`)
+  }
+
+  const [chainName, config] = entry
+  // Build the ChainSetup object (same structure returned by promptForChain).
+  const chainSetup: ChainSetup = { name: chainName as ChainName, ...config }
+
+  const { confirmed } = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: `${message} ${chainSetup.name} (chainId ${detectedChainId})?`,
+    initial: true,
+  })
+  if (!confirmed) throw new Error('Operation cancelled by user')
+
+  return chainSetup
 }
 
 export async function promptForTargetChain(currentChain: ChainName): Promise<ChainSetup> {

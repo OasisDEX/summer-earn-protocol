@@ -3,9 +3,18 @@ import dotenv from 'dotenv'
 import fs from 'fs'
 import hre from 'hardhat'
 import path from 'path'
-import { Address, encodeFunctionData, getAddress } from 'viem'
+import {
+  Address,
+  PublicClient,
+  encodeAbiParameters,
+  encodeFunctionData,
+  getAddress,
+  keccak256,
+  parseAbi,
+} from 'viem'
 import { FOUNDATION_ROLE } from '../common/constants'
-import { promptForChain } from '../helpers/chain-prompt'
+import { promptForChainFromHre } from '../helpers/chain-prompt'
+import { createClients } from '../helpers/wallet-helper'
 
 // Load environment variables
 dotenv.config()
@@ -22,6 +31,29 @@ const GOVERNANCE_ROLE = '0x7935bd0ae54bc31f548c14dba4d37c5c64b3f8ca900cb468fb8ab
 
 // Get the Safe address from environment variables.
 const safeAddress = getAddress(process.env.BVI_MULTISIG_ADDRESS as Address)
+
+// Define types for the roles configuration
+interface GlobalRoles {
+  curator: Address
+  superKeeper: Address
+  [key: string]: any
+}
+
+interface GovRoles {
+  current: Address[]
+  endgame: Address
+}
+
+interface FoundationRoles {
+  current: Address[]
+  endgame: Address
+}
+
+interface SpecificRoles {
+  fleetCommanders?: Address[]
+  gov?: GovRoles
+  foundation?: FoundationRoles
+}
 
 /**
  * Handles role-related transactions.
@@ -41,10 +73,11 @@ const safeAddress = getAddress(process.env.BVI_MULTISIG_ADDRESS as Address)
  */
 async function handleRoles(
   chainKey: string,
-  globalRoles: any,
-  specificRoles: any,
+  globalRoles: GlobalRoles,
+  specificRoles: SpecificRoles,
   accessManager: any,
   transactions: TransactionBase[],
+  publicClient: PublicClient,
 ): Promise<void> {
   console.log('==== Handling Roles ====')
 
@@ -53,32 +86,38 @@ async function handleRoles(
   const CURATOR_ROLE_ENUM = 0 // CURATOR_ROLE corresponds to enum value 0.
 
   // Get fleet commanders from roles configuration.
-  let fleetCommanders: string[] = []
+  let fleetCommanders: Address[] = []
   if (specificRoles.fleetCommanders && Array.isArray(specificRoles.fleetCommanders)) {
     fleetCommanders = specificRoles.fleetCommanders
     console.log(
-      `Found ${fleetCommanders.length} fleet commander(s) for chain ${chainKey}: ${fleetCommanders.join(', ')}`,
+      `Found ${fleetCommanders.length} fleet commander(s) for chain ${chainKey}: ${fleetCommanders.map((a) => a.toString()).join(', ')}`,
     )
   } else {
     console.log(`No fleet commanders specified for chain ${chainKey}`)
   }
 
-  // Use viem public client to generate the fleet-specific role.
-  const publicClient = await hre.viem.getPublicClient()
-
   for (const fleetCommanderAddress of fleetCommanders) {
     console.log(`Processing fleet commander: ${fleetCommanderAddress}`)
-    const curatorRoleId = await publicClient.readContract({
-      address: accessManager.address,
-      abi: accessManager.abi,
-      functionName: 'generateRole',
-      args: [CURATOR_ROLE_ENUM, fleetCommanderAddress],
-    })
+    // Compute the role ID off-chain.
+    // Assumes generateRole computes keccak256(abi.encode(role, roleTarget)).
+    const curatorRoleId = keccak256(
+      encodeAbiParameters(
+        [{ type: 'uint8' }, { type: 'address' }],
+        [CURATOR_ROLE_ENUM, fleetCommanderAddress],
+      ),
+    )
     console.log(
       `Generated curator role ID for fleet commander ${fleetCommanderAddress}: ${curatorRoleId}`,
     )
 
-    const hasCuratorRole = await accessManager.read.hasRole([curatorRoleId, curatorAddress])
+    console.log('Checking if curator role exists...')
+    console.log('curatorRoleId:', curatorRoleId)
+    console.log('curatorAddress:', curatorAddress)
+    console.log('accessManager.address:', accessManager.address)
+
+    const hasCuratorRole = await accessManager.read.hasRole([curatorRoleId, curatorAddress], {
+      publicClient,
+    })
     if (!hasCuratorRole) {
       console.log(
         `Granting fleet-specific curator role for ${curatorAddress} on fleet ${fleetCommanderAddress}`,
@@ -109,7 +148,9 @@ async function handleRoles(
       const govEndgame = specificRoles.gov.endgame
       console.log(`Gov endgame target: ${govEndgame}`)
 
-      const hasGovRole = await accessManager.read.hasRole([GOVERNANCE_ROLE, govEndgame])
+      const hasGovRole = await accessManager.read.hasRole([GOVERNANCE_ROLE, govEndgame], {
+        publicClient,
+      })
       if (!hasGovRole) {
         console.log(`Granting GOV role to ${govEndgame}`)
         const grantGovRoleCalldata = encodeFunctionData({
@@ -153,10 +194,10 @@ async function handleRoles(
       const foundationEndgame = specificRoles.foundation.endgame
       console.log(`Foundation endgame target: ${foundationEndgame}`)
 
-      const hasFoundationRole = await accessManager.read.hasRole([
-        FOUNDATION_ROLE,
-        foundationEndgame,
-      ])
+      const hasFoundationRole = await accessManager.read.hasRole(
+        [FOUNDATION_ROLE, foundationEndgame],
+        { publicClient },
+      )
       if (!hasFoundationRole) {
         console.log(`Granting FOUNDATION role to ${foundationEndgame}`)
         const grantFoundationRoleCalldata = encodeFunctionData({
@@ -205,7 +246,7 @@ async function handleRoles(
  * and if not, encodes a transaction to grant the role in ProtocolAccessManager.
  */
 async function handleSuperKeeperRole(
-  globalRoles: any,
+  globalRoles: GlobalRoles,
   accessManager: any,
   transactions: TransactionBase[],
 ): Promise<void> {
@@ -243,7 +284,7 @@ async function handleSuperKeeperRole(
  * Processes the tip streams configuration and adds transactions to call addTipStream.
  */
 async function handleTipStreams(
-  summerToken: any,
+  tipJar: any,
   tipStreamsData: any,
   transactions: TransactionBase[],
 ): Promise<void> {
@@ -256,14 +297,19 @@ async function handleTipStreams(
       console.log(
         `TIP STREAM: Adding tip stream for ${tip.recipient} with allocation ${tip.allocation} and min term ${tip.minTerm} seconds.`,
       )
-      // For simplicity, we assume SummerToken has addTipStream.
+      // Build the TipStream struct as expected by the TipJar contract.
+      const tipStreamStruct = {
+        recipient: tip.recipient,
+        allocation: tip.allocation,
+        lockedUntilEpoch: tip.minTerm, // Adjust if you need a different calculation.
+      }
       const tipStreamCalldata = encodeFunctionData({
-        abi: summerToken.abi,
+        abi: tipJar.abi,
         functionName: 'addTipStream',
-        args: [tip.recipient, tip.allocation],
+        args: [tipStreamStruct],
       })
       transactions.push({
-        to: summerToken.address,
+        to: tipJar.address,
         data: tipStreamCalldata,
         value: '0',
       })
@@ -306,9 +352,10 @@ async function handleFleetRewards(
         value: '0',
       })
 
-      const rewardManagerABI = [
+      // Convert the string-based ABI to a proper ABI object using parseAbi.
+      const rewardManagerABI = parseAbi([
         'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
-      ]
+      ])
       console.log(
         `NOTIFY: Notifying reward amount for ${rewardManager.description} (${rewardManager.address})`,
       )
@@ -334,16 +381,25 @@ async function handleFleetRewards(
 async function main() {
   console.log('🚀 Starting multi-chain final Safe transaction process...\n')
 
-  // Prompt for the target chain.
+  // Instead of asking the user which chain, infer it from hre and ask for confirmation.
   const {
     config: chainDeployConfig,
     chain,
     rpcUrl,
     name: chainName,
-  } = await promptForChain('Select the target chain:')
+  } = await promptForChainFromHre(
+    'Automatically detected chain. Confirm execution on this network:',
+  )
   const chainKey = chainName.toLowerCase()
   const currentChainId: number = chain.id
   console.log(`Selected Chain: ${chainName} (chainId ${currentChainId})`)
+
+  const detectedChainId = hre.network.config.chainId || 'unknown'
+
+  if (detectedChainId !== currentChainId) {
+    console.log('❌ Chain ID mismatch detected. Exiting.')
+    process.exit(1)
+  }
 
   // Load roles configuration.
   const rolesConfigPath = path.join(__dirname, '../../launch-config/roles.json')
@@ -387,16 +443,34 @@ async function main() {
   )
   console.log('ProtocolAccessManager contract instance created.')
 
+  // Create clients using createClients instead of hre.viem.getPublicClient.
+  const { publicClient } = createClients(chain, rpcUrl)
+
   const transactions: TransactionBase[] = []
 
   /***** ROLES *****/
   // Handle roles with logging.
-  await handleRoles(chainKey, globalRoles, specificRoles, accessManager, transactions)
+  await handleRoles(chainKey, globalRoles, specificRoles, accessManager, transactions, publicClient)
   // Handle Super Keeper Role.
   await handleSuperKeeperRole(globalRoles, accessManager, transactions)
 
   /***** TIP STREAMS *****/
-  // Get the SummerToken contract instance.
+  // Instead of using SummerToken for tip streams, we use TipJar.
+  // Pull TipJar address from the "core" section of your deployment config.
+  if (
+    !chainConfig.config.deployedContracts.core.tipJar.address ||
+    chainConfig.config.deployedContracts.core.tipJar.address ===
+      '0x0000000000000000000000000000000000000000'
+  ) {
+    throw new Error('❌ TipJar is not deployed on this network')
+  }
+  const tipJarAddress = chainConfig.config.deployedContracts.core.tipJar.address as Address
+  console.log(`Using TipJar at address: ${tipJarAddress}`)
+  const tipJar = await hre.viem.getContractAt('TipJar' as string, tipJarAddress)
+  await handleTipStreams(tipJar, tipStreamsData, transactions)
+
+  /***** FLEET REWARDS: Approval & Notify *****/
+  // For fleet rewards, we still use the SummerToken instance.
   if (
     !chainConfig.config.deployedContracts.gov.summerToken.address ||
     chainConfig.config.deployedContracts.gov.summerToken.address ===
@@ -407,15 +481,9 @@ async function main() {
   const summerTokenAddress = chainConfig.config.deployedContracts.gov.summerToken.address as Address
   console.log(`Using SummerToken at address: ${summerTokenAddress}`)
   const summerToken = await hre.viem.getContractAt('SummerToken' as string, summerTokenAddress)
-  await handleTipStreams(summerToken, tipStreamsData, transactions)
-
-  /***** FLEET REWARDS: Approval & Notify *****/
   await handleFleetRewards(chainKey, chainFleetRewardsData, summerToken, transactions)
 
   console.log(`\nFinal Safe transaction will include ${transactions.length} operation(s).`)
-  // Log complete JSON dump
-  console.log('Complete Transactions JSON:')
-  console.log(JSON.stringify(transactions, null, 2))
 
   // Additional individual logging for clarity.
   console.log('\nDetailed Transaction Log:')
