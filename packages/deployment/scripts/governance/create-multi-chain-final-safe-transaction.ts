@@ -19,72 +19,230 @@ if (!process.env.DEPLOYER_PRIV_KEY) {
   throw new Error('❌ DEPLOYER_PRIV_KEY not set in environment')
 }
 
-// In many protocols, roles are defined as the keccak256 hash of the role name.
-// This is a placeholder for the curator role.
-const CURATOR_ROLE = '0x5fe3d73f69d7a4cb61e46a1a6515e00333708f454f7d7fbb5b411e60e3309f4a'
+// Governance role hash for gov role changes – update with your actual hash if needed.
+const GOVERNANCE_ROLE = '0xGovRolePlaceholder'
 
-// Get the Safe address from the environment variables
+// Get the Safe address from environment variables.
 const safeAddress = getAddress(process.env.BVI_MULTISIG_ADDRESS as Address)
 
 /**
- * Handles role-related transactions:
- * - Grants the curator role on all chains.
- * - Grants the foundation role only on the 'base' chain.
+ * Handles role-related transactions.
+ *
+ * Global roles:
+ * - Grants the curator role on a fleet-by-fleet basis, using the fleet commander address.
+ *
+ * For chain "base":
+ * - Grants the gov role to the endgame (timelock) address and revokes it from the current addresses.
+ * - Grants the foundation role to the endgame (foundation multisig) address and revokes it from current holders.
+ *
+ * @param chainKey - The current chain key (lowercase, e.g. "base")
+ * @param globalRoles - Global roles configuration (from rolesConfig.all)
+ * @param specificRoles - Chain-specific roles configuration (for Base, gov and foundation)
+ * @param accessManager - The ProtocolAccessManager contract instance.
+ * @param transactions - The list of transactions being built.
  */
 async function handleRoles(
   chainKey: string,
-  roles: any,
+  globalRoles: any,
+  specificRoles: any,
   accessManager: any,
   transactions: TransactionBase[],
 ): Promise<void> {
-  // Grant the curator role (applies on all chains)
-  const curatorAddress = roles.curator
-  const hasCuratorRole = await accessManager.read.hasRole([CURATOR_ROLE, curatorAddress])
-  if (!hasCuratorRole) {
-    console.log(`CURATOR: ❌ ${curatorAddress} does not have the curator role. Adding...`)
-    const grantCuratorRoleCalldata = encodeFunctionData({
-      abi: accessManager.abi,
-      functionName: 'grantCuratorRole',
-      args: [curatorAddress],
-    })
-    transactions.push({
-      to: accessManager.address,
-      data: grantCuratorRoleCalldata,
-      value: '0',
-    })
+  // ---------- CURATOR ROLE (Fleet-Specific) ----------
+  // Get the curator account from global configuration.
+  const curatorAddress = globalRoles.curator
+  const CURATOR_ROLE_ENUM = 0 // equivalent to ContractSpecificRoles.CURATOR_ROLE
+
+  // Ensure we have fleet commander addresses from roles config.
+  let fleetCommanders: string[] = []
+  if (specificRoles.fleetCommanders && Array.isArray(specificRoles.fleetCommanders)) {
+    fleetCommanders = specificRoles.fleetCommanders
   } else {
-    console.log(`CURATOR: ✅ ${curatorAddress} already has the curator role. Skipping...`)
+    console.log(`No fleet commanders found in roles config for chain: ${chainKey}`)
   }
 
-  // Grant the foundation role only on 'base' and if defined
-  if (chainKey === 'base' && roles.foundation) {
-    const foundationAddress = roles.foundation
-    const hasFoundationRole = await accessManager.read.hasRole([FOUNDATION_ROLE, foundationAddress])
-    if (!hasFoundationRole) {
+  // Use viem public client to call readContract.
+  const publicClient = await hre.viem.getPublicClient()
+
+  for (const fleetCommanderAddress of fleetCommanders) {
+    // Compute the fleet-specific curator role ID.
+    const curatorRoleId = await publicClient.readContract({
+      address: accessManager.address,
+      abi: accessManager.abi,
+      functionName: 'generateRole',
+      args: [CURATOR_ROLE_ENUM, fleetCommanderAddress],
+    })
+
+    // Check if the curator already holds this role.
+    const hasCuratorRole = await accessManager.read.hasRole([curatorRoleId, curatorAddress])
+    if (!hasCuratorRole) {
       console.log(
-        `FOUNDATION: ❌ ${foundationAddress} does not have the foundation role. Adding...`,
+        `CURATOR: ${curatorAddress} does not have the fleet-specific curator role for fleet commander ${fleetCommanderAddress}. Adding...`,
       )
-      const grantFoundationRoleCalldata = encodeFunctionData({
+      // Encode the call to grantCuratorRole.
+      const grantCuratorRoleCalldata = encodeFunctionData({
         abi: accessManager.abi,
-        functionName: 'grantFoundationRole',
-        args: [foundationAddress],
+        functionName: 'grantCuratorRole',
+        args: [fleetCommanderAddress, curatorAddress],
       })
       transactions.push({
         to: accessManager.address,
-        data: grantFoundationRoleCalldata,
+        data: grantCuratorRoleCalldata,
         value: '0',
       })
     } else {
       console.log(
-        `FOUNDATION: ✅ ${foundationAddress} already has the foundation role. Skipping...`,
+        `CURATOR: ${curatorAddress} already has the fleet-specific curator role for fleet commander ${fleetCommanderAddress}. Skipping...`,
       )
     }
+  }
+
+  // ---------- GOVERNANCE & FOUNDATION (Only on Base) ----------
+  if (chainKey === 'base') {
+    // Process GOV Role changes.
+    if (specificRoles.gov) {
+      const govEndgame = specificRoles.gov.endgame
+      // First, grant gov role to the timelock (endgame).
+      const hasGovRole = await accessManager.read.hasRole([GOVERNANCE_ROLE, govEndgame])
+      if (!hasGovRole) {
+        console.log(`GOV: ${govEndgame} does not have the gov role. Granting...`)
+        const grantGovRoleCalldata = encodeFunctionData({
+          abi: accessManager.abi,
+          functionName: 'grantGovernorRole',
+          args: [govEndgame],
+        })
+        transactions.push({
+          to: accessManager.address,
+          data: grantGovRoleCalldata,
+          value: '0',
+        })
+      } else {
+        console.log(`GOV: ${govEndgame} already has the gov role. Skipping...`)
+      }
+      // Then revoke gov role from each current address (except the endgame).
+      for (const currentGov of specificRoles.gov.current) {
+        if (currentGov.toLowerCase() !== govEndgame.toLowerCase()) {
+          const hasGov = await accessManager.read.hasRole([GOVERNANCE_ROLE, currentGov])
+          if (hasGov) {
+            console.log(`GOV: Revoking gov role from ${currentGov}...`)
+            const revokeGovRoleCalldata = encodeFunctionData({
+              abi: accessManager.abi,
+              functionName: 'revokeGovernorRole',
+              args: [currentGov],
+            })
+            transactions.push({
+              to: accessManager.address,
+              data: revokeGovRoleCalldata,
+              value: '0',
+            })
+          } else {
+            console.log(`GOV: ${currentGov} does not have gov role. Skipping...`)
+          }
+        }
+      }
+    }
+
+    // Process FOUNDATION Role changes.
+    if (specificRoles.foundation) {
+      const foundationEndgame = specificRoles.foundation.endgame
+      // First, grant the foundation role to the foundation multisig (endgame).
+      const hasFoundationRole = await accessManager.read.hasRole([
+        FOUNDATION_ROLE,
+        foundationEndgame,
+      ])
+      if (!hasFoundationRole) {
+        console.log(
+          `FOUNDATION: ${foundationEndgame} does not have the foundation role. Granting...`,
+        )
+        const grantFoundationRoleCalldata = encodeFunctionData({
+          abi: accessManager.abi,
+          functionName: 'grantFoundationRole',
+          args: [foundationEndgame],
+        })
+        transactions.push({
+          to: accessManager.address,
+          data: grantFoundationRoleCalldata,
+          value: '0',
+        })
+      } else {
+        console.log(`FOUNDATION: ${foundationEndgame} already has foundation role. Skipping...`)
+      }
+      // Then revoke the foundation role from each current address (except the endgame).
+      for (const currentFnd of specificRoles.foundation.current) {
+        if (currentFnd.toLowerCase() !== foundationEndgame.toLowerCase()) {
+          const hasFnd = await accessManager.read.hasRole([FOUNDATION_ROLE, currentFnd])
+          if (hasFnd) {
+            console.log(`FOUNDATION: Revoking foundation role from ${currentFnd}...`)
+            const revokeFoundationRoleCalldata = encodeFunctionData({
+              abi: accessManager.abi,
+              functionName: 'revokeFoundationRole',
+              args: [currentFnd],
+            })
+            transactions.push({
+              to: accessManager.address,
+              data: revokeFoundationRoleCalldata,
+              value: '0',
+            })
+          } else {
+            console.log(`FOUNDATION: ${currentFnd} does not have foundation role. Skipping...`)
+          }
+        }
+      }
+    }
+  }
+
+  // Handle Super Keeper role
+  await handleSuperKeeperRole(globalRoles, accessManager, transactions)
+}
+
+/**
+ * Handles granting the Super Keeper role.
+ *
+ * Reads the super keeper address from the global roles config. If the address does not
+ * already have the super keeper role (as defined by ProtocolAccessManager), this function
+ * encodes a transaction to grant it.
+ *
+ * @param globalRoles - Global roles configuration (from rolesConfig.all)
+ * @param accessManager - The ProtocolAccessManager contract instance.
+ * @param transactions - The list of transactions being built.
+ */
+async function handleSuperKeeperRole(
+  globalRoles: any,
+  accessManager: any,
+  transactions: TransactionBase[],
+): Promise<void> {
+  const superKeeperAddress = globalRoles.superKeeper
+  if (!superKeeperAddress) {
+    console.log('No super keeper address found in global roles configuration.')
+    return
+  }
+
+  // Retrieve the SUPER_KEEPER_ROLE constant from the contract.
+  const superKeeperRole = await accessManager.read.SUPER_KEEPER_ROLE()
+
+  // Check if the super keeper already has the role.
+  const hasSuperKeeperRole = await accessManager.read.hasRole([superKeeperRole, superKeeperAddress])
+
+  if (!hasSuperKeeperRole) {
+    console.log(`SUPER KEEPER: ${superKeeperAddress} does not have the role. Granting...`)
+    const grantSuperKeeperCalldata = encodeFunctionData({
+      abi: accessManager.abi,
+      functionName: 'grantSuperKeeperRole',
+      args: [superKeeperAddress],
+    })
+    transactions.push({
+      to: accessManager.address,
+      data: grantSuperKeeperCalldata,
+      value: '0',
+    })
+  } else {
+    console.log(`SUPER KEEPER: ${superKeeperAddress} already has the role. Skipping...`)
   }
 }
 
 /**
  * Handles tip stream transactions.
- * This uses the simplified tip streams config which is identical across chains.
+ * Processes the tip streams configuration and adds transactions to call addTipStream.
  */
 async function handleTipStreams(
   summerToken: any,
@@ -97,12 +255,13 @@ async function handleTipStreams(
     )
     for (const tip of tipStreamsData.tipStreams) {
       console.log(
-        `TIP STREAM: Adding tip stream for ${tip.address} - ${tip.description || ''} with amount ${tip.amount}`,
+        `TIP STREAM: Adding tip stream for ${tip.recipient} with allocation ${tip.allocation} and min term ${tip.minTerm} seconds.`,
       )
+      // For simplicity, we assume SummerToken has addTipStream.
       const tipStreamCalldata = encodeFunctionData({
         abi: summerToken.abi,
         functionName: 'addTipStream',
-        args: [tip.address, tip.amount],
+        args: [tip.recipient, tip.allocation],
       })
       transactions.push({
         to: summerToken.address,
@@ -119,7 +278,7 @@ async function handleTipStreams(
  * Handles fleet rewards transactions.
  * For each fleet reward manager specified in the config:
  *  1. Approves the manager to pull the configured reward amount from the multisig.
- *  2. Calls notifyRewardAmount on the manager contract to fund reward distribution.
+ *  2. Calls notifyRewardAmount on the manager contract to start reward distribution.
  */
 async function handleFleetRewards(
   chainKey: string,
@@ -132,14 +291,6 @@ async function handleFleetRewards(
       `\nFLEET REWARDS: Preparing approval and notify transactions for ${fleetRewardsData.fleetRewards.length} manager(s)...`,
     )
     for (const rewardManager of fleetRewardsData.fleetRewards) {
-      // Skip managers that should only be handled on Base
-      if (rewardManager.onlyOnBase && chainKey !== 'base') {
-        console.log(
-          `ℹ️ Skipping ${rewardManager.description} (${rewardManager.address}) since it is only for Base`,
-        )
-        continue
-      }
-      // Approve the fleet reward manager to pull the specified amount from the Safe's token balance
       console.log(
         `APPROVE: Approving ${rewardManager.description} (${rewardManager.address}) to pull ${rewardManager.amount} tokens`,
       )
@@ -154,8 +305,6 @@ async function handleFleetRewards(
         value: '0',
       })
 
-      // Encode notifyRewardAmount for the fleet reward manager.
-      // We use a minimal ABI fragment for the notifyRewardAmount function found in StakingRewardsManagerBase.
       const rewardManagerABI = [
         'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
       ]
@@ -183,7 +332,7 @@ async function handleFleetRewards(
 async function main() {
   console.log('🚀 Starting multi-chain final Safe transaction process...\n')
 
-  // Use promptForChain to select the target chain.
+  // Prompt for the target chain.
   const {
     config: chainDeployConfig,
     chain,
@@ -191,31 +340,28 @@ async function main() {
     name: chainName,
   } = await promptForChain('Select the target chain:')
   const chainKey = chainName.toLowerCase()
-  // Use the chain config returned by the prompt (assumes chainDeployConfig contains chainId and deployedContracts).
   const currentChainId: number = chain.id
   console.log(`Selected Chain: ${chainName} (chainId ${currentChainId})`)
 
-  // Load chain-specific roles configuration
+  // Load roles configuration.
   const rolesConfigPath = path.join(__dirname, '../../launch-config/roles.json')
   const rolesConfig = JSON.parse(fs.readFileSync(rolesConfigPath, 'utf-8'))
-  const chainRolesData = rolesConfig[chainKey]
-  if (!chainRolesData) {
-    throw new Error(`❌ No roles configuration found for chain ${chainKey}`)
-  }
+  const globalRoles = rolesConfig.all
+  const specificRoles = rolesConfig[chainKey] || {} // Gov/foundation roles only exist for Base.
 
-  // Load the simplified tip streams configuration (same across all chains)
+  // Load tip streams configuration.
   const tipStreamsConfigPath = path.join(__dirname, '../../launch-config/tip-streams.json')
   const tipStreamsData = JSON.parse(fs.readFileSync(tipStreamsConfigPath, 'utf-8'))
   if (!tipStreamsData || !tipStreamsData.tipStreams) {
     console.log('⚠️ No tip streams configuration found. Continuing without tip streams...')
   }
 
-  // Load fleet rewards configuration (keyed by chain name)
+  // Load fleet rewards configuration.
   const fleetRewardsConfigPath = path.join(__dirname, '../../launch-config/fleet-rewards.json')
   const fleetRewardsConfig = JSON.parse(fs.readFileSync(fleetRewardsConfigPath, 'utf-8'))
   const chainFleetRewardsData = fleetRewardsConfig[chainKey]
 
-  // Build chain configuration using the network name and deployed contracts config.
+  // Build chain configuration.
   const chainConfig = {
     chain: chain,
     chainId: currentChainId,
@@ -226,17 +372,17 @@ async function main() {
   const transactions: TransactionBase[] = []
 
   /***** ROLES *****/
-  // Get the ProtocolAccessManager contract instance
+  // Get the ProtocolAccessManager contract instance.
   const accessManagerAddress = chainConfig.config.deployedContracts.gov.protocolAccessManager
     .address as Address
   const accessManager = await hre.viem.getContractAt(
     'ProtocolAccessManager' as string,
     accessManagerAddress,
   )
-  await handleRoles(chainKey, chainRolesData, accessManager, transactions)
+  await handleRoles(chainKey, globalRoles, specificRoles, accessManager, transactions)
 
   /***** TIP STREAMS *****/
-  // Get the SummerToken contract instance
+  // Get the SummerToken contract instance.
   if (
     !chainConfig.config.deployedContracts.gov.summerToken.address ||
     chainConfig.config.deployedContracts.gov.summerToken.address ===
@@ -253,7 +399,7 @@ async function main() {
 
   console.log(`\nFinal Safe transaction will include ${transactions.length} operation(s).`)
 
-  // Get the deployer address
+  // Get the deployer address.
   const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
   await proposeAllSafeTransactions(
     transactions,
