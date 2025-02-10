@@ -1,17 +1,16 @@
 {
   "all": {
     "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
-    "superKeeper": "0x452487d71A4e94282BAe30265aac9CA26A775f29"
-  },
-  "base": {
+    "superKeeper": "0x452487d71A4e94282BAe30265aac9CA26A775f29",
     "gov": {
-      "current": [
+      "remove": [
         "0x91028Dda7760F771f9Edbd304A2c9271667B5878",
         "0x9999Cb59242e8cE485F52eBF82654F3664D63E4f",
         "0x8888013451507E8DD7996509735E15F591886CD2"
-      ],
-      "endgame": "0x447BF9d1485ABDc4C1778025DfdfbE8b894C3796"
-    },
+      ]
+    }
+  },
+  "base": {
     "foundation": {
       "current": ["0x91028Dda7760F771f9Edbd304A2c9271667B5878"],
       "endgame": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"

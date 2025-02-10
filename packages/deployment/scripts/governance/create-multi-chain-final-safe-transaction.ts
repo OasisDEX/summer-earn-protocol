@@ -56,6 +56,81 @@ interface SpecificRoles {
 }
 
 /**
+ * Handles the governor role on every chain:
+ *   - Grants the gov role only to the timelock (gov endgame) address from the config.
+ *   - Revokes the gov role from all other addresses.
+ *
+ * Note: We use the gov configuration from rolesConfig.base.gov as the canonical source.
+ */
+async function handleGovRole(
+  globalRoles: any,
+  govTimelock: string,
+  accessManager: any,
+  transactions: TransactionBase[],
+  publicClient: PublicClient,
+): Promise<void> {
+  console.log('==== Handling Gov Roles (Removal and Timelock Assignment) ====')
+  // Use the gov configuration from the base key as the canonical source.
+  const globalGovRole = globalRoles.gov
+  if (!globalGovRole) {
+    console.log('No gov configuration found in roles config for base.')
+    return
+  }
+  console.log('Gov globalGovRole:', globalGovRole)
+  const govRemoved: string[] = globalGovRole.remove || []
+  if (!govTimelock) {
+    console.log('No gov timelock address configured in roles config.')
+    return
+  }
+
+  // First, grant the gov role to the timelock if it hasn't been granted.
+  const hasGovRole = await accessManager.read.hasRole([GOVERNANCE_ROLE, govTimelock], {
+    publicClient,
+  })
+  if (!hasGovRole) {
+    console.log(`Granting GOV role to timelock governor: ${govTimelock}`)
+    const grantGovRoleCalldata = encodeFunctionData({
+      abi: accessManager.abi,
+      functionName: 'grantGovernorRole',
+      args: [govTimelock],
+    })
+    transactions.push({
+      to: accessManager.address,
+      data: grantGovRoleCalldata,
+      value: '0',
+    })
+  } else {
+    console.log(`Timelock governor ${govTimelock} already has GOV role.`)
+  }
+
+  // Then, revoke the gov role from every address that is NOT the timelock.
+  for (const govAddr of govRemoved) {
+    if (govAddr.toLowerCase() !== govTimelock.toLowerCase()) {
+      // Check if this address currently holds the GOV role
+      const hasGovRoleForAddr = await accessManager.read.hasRole([GOVERNANCE_ROLE, govAddr], {
+        publicClient,
+      })
+      if (hasGovRoleForAddr) {
+        console.log(`Revoking GOV role from address: ${govAddr}`)
+        const revokeGovRoleCalldata = encodeFunctionData({
+          abi: accessManager.abi,
+          functionName: 'revokeGovernorRole',
+          args: [govAddr],
+        })
+        transactions.push({
+          to: accessManager.address,
+          data: revokeGovRoleCalldata,
+          value: '0',
+        })
+      } else {
+        console.log(`Skipping revocation for ${govAddr}: does not have the GOV role.`)
+      }
+    }
+  }
+  console.log('==== Completed Gov Role handling ====')
+}
+
+/**
  * Handles role-related transactions.
  *
  * Global roles:
@@ -66,31 +141,34 @@ interface SpecificRoles {
  * - Grants the foundation role to the endgame (foundation multisig) address and revokes it from current holders.
  *
  * @param chainKey - The current chain key (lowercase, e.g. "base")
- * @param globalRoles - Global roles configuration (from rolesConfig.all)
- * @param specificRoles - Chain-specific roles configuration (for Base, gov and foundation)
+ * @param rolesConfig - Full roles configuration from roles.json
  * @param accessManager - The ProtocolAccessManager contract instance.
  * @param transactions - The list of transactions being built.
  */
 async function handleRoles(
   chainKey: string,
-  globalRoles: GlobalRoles,
-  specificRoles: SpecificRoles,
+  rolesConfig: any,
+  govTimelock: string,
   accessManager: any,
   transactions: TransactionBase[],
   publicClient: PublicClient,
 ): Promise<void> {
   console.log('==== Handling Roles ====')
 
-  // ---------- CURATOR ROLE (Fleet-Specific) ----------
+  // Extract the global roles (from rolesConfig.all)
+  const globalRoles = rolesConfig.all
   const curatorAddress = globalRoles.curator
   const CURATOR_ROLE_ENUM = 0 // CURATOR_ROLE corresponds to enum value 0.
 
-  // Get fleet commanders from roles configuration.
-  let fleetCommanders: Address[] = []
+  // Grab chain-specific roles (if any) for the current chain.
+  const specificRoles = rolesConfig[chainKey] || {}
+
+  // ---------- CURATOR ROLE (Fleet-Specific) ----------
+  let fleetCommanders: string[] = []
   if (specificRoles.fleetCommanders && Array.isArray(specificRoles.fleetCommanders)) {
     fleetCommanders = specificRoles.fleetCommanders
     console.log(
-      `Found ${fleetCommanders.length} fleet commander(s) for chain ${chainKey}: ${fleetCommanders.map((a) => a.toString()).join(', ')}`,
+      `Found ${fleetCommanders.length} fleet commander(s) for chain ${chainKey}: ${fleetCommanders.join(', ')}`,
     )
   } else {
     console.log(`No fleet commanders specified for chain ${chainKey}`)
@@ -98,22 +176,16 @@ async function handleRoles(
 
   for (const fleetCommanderAddress of fleetCommanders) {
     console.log(`Processing fleet commander: ${fleetCommanderAddress}`)
-    // Compute the role ID off-chain.
-    // Assumes generateRole computes keccak256(abi.encode(role, roleTarget)).
+    // Compute the role ID for curator on a fleet-by-fleet basis.
     const curatorRoleId = keccak256(
       encodeAbiParameters(
         [{ type: 'uint8' }, { type: 'address' }],
-        [CURATOR_ROLE_ENUM, fleetCommanderAddress],
+        [CURATOR_ROLE_ENUM, fleetCommanderAddress as Address],
       ),
     )
     console.log(
       `Generated curator role ID for fleet commander ${fleetCommanderAddress}: ${curatorRoleId}`,
     )
-
-    console.log('Checking if curator role exists...')
-    console.log('curatorRoleId:', curatorRoleId)
-    console.log('curatorAddress:', curatorAddress)
-    console.log('accessManager.address:', accessManager.address)
 
     const hasCuratorRole = await accessManager.read.hasRole([curatorRoleId, curatorAddress], {
       publicClient,
@@ -139,57 +211,12 @@ async function handleRoles(
     }
   }
 
-  // ---------- GOVERNANCE & FOUNDATION (Only on Base) ----------
+  // ---------- GOVERNANCE ROLE (Gov) - Process on EVERY chain ----------
+  await handleGovRole(globalRoles, govTimelock, accessManager, transactions, publicClient)
+
+  // ---------- FOUNDATION ROLE (Only on Base) ----------
   if (chainKey === 'base') {
-    console.log("Processing GOV and FOUNDATION roles for chain 'base'")
-
-    // Process GOV role: grant to timelock endgame and revoke from current.
-    if (specificRoles.gov) {
-      const govEndgame = specificRoles.gov.endgame
-      console.log(`Gov endgame target: ${govEndgame}`)
-
-      const hasGovRole = await accessManager.read.hasRole([GOVERNANCE_ROLE, govEndgame], {
-        publicClient,
-      })
-      if (!hasGovRole) {
-        console.log(`Granting GOV role to ${govEndgame}`)
-        const grantGovRoleCalldata = encodeFunctionData({
-          abi: accessManager.abi,
-          functionName: 'grantGovernorRole',
-          args: [govEndgame],
-        })
-        transactions.push({
-          to: accessManager.address,
-          data: grantGovRoleCalldata,
-          value: '0',
-        })
-      } else {
-        console.log(`Gov role already granted to ${govEndgame}.`)
-      }
-
-      const currentGovs = specificRoles.gov.current
-      if (Array.isArray(currentGovs)) {
-        for (const govAddress of currentGovs) {
-          console.log(`Revoking GOV role from current gov: ${govAddress}`)
-          const revokeGovRoleCalldata = encodeFunctionData({
-            abi: accessManager.abi,
-            functionName: 'revokeGovernorRole',
-            args: [govAddress],
-          })
-          transactions.push({
-            to: accessManager.address,
-            data: revokeGovRoleCalldata,
-            value: '0',
-          })
-        }
-      } else {
-        console.log('No current GOV addresses found.')
-      }
-    } else {
-      console.log("No GOV role configuration present for chain 'base'")
-    }
-
-    // Process FOUNDATION role: grant endgame and revoke from current.
+    console.log("Processing FOUNDATION roles for chain 'base'")
     if (specificRoles.foundation) {
       const foundationEndgame = specificRoles.foundation.endgame
       console.log(`Foundation endgame target: ${foundationEndgame}`)
@@ -236,6 +263,7 @@ async function handleRoles(
       console.log("No FOUNDATION role configuration present for chain 'base'")
     }
   }
+
   console.log('==== Completed handling roles ====')
 }
 
@@ -404,8 +432,6 @@ async function main() {
   // Load roles configuration.
   const rolesConfigPath = path.join(__dirname, '../../launch-config/roles.json')
   const rolesConfig = JSON.parse(fs.readFileSync(rolesConfigPath, 'utf-8'))
-  const globalRoles = rolesConfig.all
-  const specificRoles = rolesConfig[chainKey] || {} // Gov/foundation roles only exist for Base.
   console.log('Loaded roles configuration:')
   console.log(JSON.stringify(rolesConfig, null, 2))
 
@@ -449,10 +475,11 @@ async function main() {
   const transactions: TransactionBase[] = []
 
   /***** ROLES *****/
+  const govTimelock = chainConfig.config.deployedContracts.gov.timelock.address as Address
   // Handle roles with logging.
-  await handleRoles(chainKey, globalRoles, specificRoles, accessManager, transactions, publicClient)
+  await handleRoles(chainKey, rolesConfig, govTimelock, accessManager, transactions, publicClient)
   // Handle Super Keeper Role.
-  await handleSuperKeeperRole(globalRoles, accessManager, transactions)
+  await handleSuperKeeperRole(rolesConfig.all, accessManager, transactions)
 
   /***** TIP STREAMS *****/
   // Instead of using SummerToken for tip streams, we use TipJar.
