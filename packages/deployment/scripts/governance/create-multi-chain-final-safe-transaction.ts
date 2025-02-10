@@ -6,6 +6,7 @@ import path from 'path'
 import { Address, PublicClient, encodeFunctionData, formatUnits, getAddress, parseAbi } from 'viem'
 import { FOUNDATION_ROLE, GOVERNOR_ROLE } from '../common/constants'
 import { promptForChainFromHre } from '../helpers/chain-prompt'
+import { proposeAllSafeTransactions } from '../helpers/safe-transaction'
 import { createClients } from '../helpers/wallet-helper'
 
 // Load environment variables
