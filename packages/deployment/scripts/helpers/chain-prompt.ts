@@ -2,39 +2,14 @@ import dotenv from 'dotenv'
 import hre from 'hardhat'
 import prompts from 'prompts'
 import { Chain } from 'viem'
+import { BaseConfig } from '../../types/config-types'
 import { chainConfigs, ChainName } from './chain-configs'
 
 dotenv.config()
 
-// Define config types
-export type ChainConfig = {
-  deployedContracts: {
-    gov: {
-      summerGovernor: { address: string }
-      summerToken: { address: string }
-      timelock: { address: string }
-      protocolAccessManager: { address: string }
-    }
-    core: {
-      tipJar: { address: string }
-      raft: { address: string }
-      configurationManager: { address: string }
-      harborCommand: { address: string }
-    }
-  }
-  common: {
-    layerZero: {
-      eID: string
-      lzEndpoint: string
-    }
-    treasury: string
-    tipRate: string
-  }
-}
-
 export interface ChainSetup {
   name: ChainName
-  config: ChainConfig
+  config: BaseConfig
   chain: Chain
   rpcUrl: string
 }
