@@ -259,6 +259,9 @@ importers:
       '@types/prompts':
         specifier: 2.4.9
         version: 2.4.9
+      chalk:
+        specifier: ^4.1.2
+        version: 4.1.2
       hardhat:
         specifier: 2.22.14
         version: 2.22.14(ts-node@10.9.2)(typescript@5.4.5)
