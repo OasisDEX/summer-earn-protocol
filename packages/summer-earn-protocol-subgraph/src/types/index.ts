@@ -104,6 +104,7 @@ export class VaultDetails {
   withdrawableTotalAssetsUSD: BigDecimal
   rewardTokenEmissionsAmountsPerOutputToken: BigInt[]
   arks: Address[]
+  bufferBalance: BigInt
   constructor(
     vaultId: string,
     totalValueLockedUSD: BigDecimal,
@@ -119,6 +120,7 @@ export class VaultDetails {
     withdrawableTotalAssetsUSD: BigDecimal,
     rewardTokenEmissionsAmountsPerOutputToken: BigInt[],
     arks: Address[],
+    bufferBalance: BigInt,
   ) {
     this.vaultId = vaultId
     this.totalValueLockedUSD = totalValueLockedUSD
@@ -134,6 +136,7 @@ export class VaultDetails {
     this.withdrawableTotalAssetsUSD = withdrawableTotalAssetsUSD
     this.rewardTokenEmissionsAmountsPerOutputToken = rewardTokenEmissionsAmountsPerOutputToken
     this.arks = arks
+    this.bufferBalance = bufferBalance
   }
 }
 

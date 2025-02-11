@@ -15,6 +15,7 @@ import {
   FleetCommander as FleetCommanderContract,
   FleetCommanderDepositCapUpdated,
   FleetCommanderMaxRebalanceOperationsUpdated,
+  FleetCommanderRedeemedFromArks,
   FleetCommanderStakingRewardsUpdated,
   FleetCommanderWithdrawnFromArks,
   FleetCommanderminimumBufferBalanceUpdated,
@@ -123,6 +124,10 @@ export function handleWithdraw(event: WithdrawEvent): void {
 export function handleFleetCommanderWithdrawnFromArks(
   event: FleetCommanderWithdrawnFromArks,
 ): void {
+  const vault = getOrCreateVault(event.address, event.block)
+  updateVaultAndArks(event, vault.id)
+}
+export function handleFleetCommanderRedeemedFromArks(event: FleetCommanderRedeemedFromArks): void {
   const vault = getOrCreateVault(event.address, event.block)
   updateVaultAndArks(event, vault.id)
 }
