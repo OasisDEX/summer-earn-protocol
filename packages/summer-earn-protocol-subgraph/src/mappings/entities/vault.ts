@@ -3,6 +3,7 @@ import { Vault } from '../../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
 import {
+  getOrCreateArk,
   getOrCreateArksPostActionSnapshots,
   getOrCreateRewardToken,
   getOrCreateVault,
@@ -57,7 +58,23 @@ export function updateVault(
   vault.rewardTokenEmissionsAmountsPerOutputToken =
     vaultDetails.rewardTokenEmissionsAmountsPerOutputToken
   vault.save()
+  // Update buffer ark - as it's integral part of the vault
+  updateBufferArk(vault, vaultDetails, block)
   updateProtocolTotalValueLockedUSD()
+}
+
+export function updateBufferArk(
+  vault: Vault,
+  vaultDetails: VaultDetails,
+  block: ethereum.Block,
+): void {
+  const bufferArk = getOrCreateArk(
+    Address.fromString(vault.id),
+    Address.fromString(vault.bufferArk),
+    block,
+  )
+  bufferArk.inputTokenBalance = vaultDetails.bufferBalance
+  bufferArk.save()
 }
 
 export function updateVaultAndArks(event: ethereum.Event, vaultId: string): void {
