@@ -3,9 +3,9 @@ import hre from 'hardhat'
 import prompts from 'prompts'
 import { Chain } from 'viem'
 import { BaseConfig } from '../../types/config-types'
-import { chainConfigs, ChainName } from './chain-configs'
+import { ChainName, getChainConfigs } from './chain-configs'
 
-dotenv.config()
+dotenv.config({ path: '../../.env' })
 
 export interface ChainSetup {
   name: ChainName
@@ -19,7 +19,10 @@ export interface ChainSetup {
  */
 export async function promptForChain(
   message = 'Which chain would you like to execute this operation on?',
+  useTestConfig = false,
 ): Promise<ChainSetup> {
+  console.log(`Using ${useTestConfig ? 'test' : 'production'} config in promptForChain`)
+  const chainConfigs = getChainConfigs(useTestConfig)
   const chainOptions = Object.keys(chainConfigs).map((key) => ({
     title: key,
     value: { name: key as ChainName, ...chainConfigs[key as ChainName] },
@@ -56,7 +59,11 @@ export async function promptForChain(
  */
 export async function promptForChainFromHre(
   message = 'Do you want to execute this operation on the current network?',
+  useTestConfig = false,
 ): Promise<ChainSetup> {
+  console.log(`Using ${useTestConfig ? 'test' : 'production'} config in promptForChainFromHre`)
+
+  const chainConfigs = getChainConfigs(useTestConfig)
   // Get chain id from Hardhat runtime environment.
   const detectedChainId = hre.network.config.chainId
   // Find the matching chain config by comparing the chain.id value.
@@ -83,7 +90,12 @@ export async function promptForChainFromHre(
   return chainSetup
 }
 
-export async function promptForTargetChain(currentChain: ChainName): Promise<ChainSetup> {
+export async function promptForTargetChain(
+  currentChain: ChainName,
+  useTestConfig = false,
+): Promise<ChainSetup> {
+  console.log(`Using ${useTestConfig ? 'test' : 'production'} config in promptForTargetChain`)
+  const chainConfigs = getChainConfigs(useTestConfig)
   const chainOptions = Object.entries(chainConfigs)
     .filter(([key]) => key !== currentChain)
     .map(([key]) => ({

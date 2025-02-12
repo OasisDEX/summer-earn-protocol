@@ -8,6 +8,7 @@ import { createClients } from '../../helpers/wallet-helper'
 const governorAbi = parseAbi([
   'function state(uint256 proposalId) view returns (uint8)',
   'function execute(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) public returns (uint256)',
+  'function hashProposal(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) public pure returns (uint256)',
 ])
 
 enum ProposalState {
@@ -78,6 +79,19 @@ async function promptForProposalDetails() {
       name: 'description',
       message: 'Enter the proposal description:',
     },
+    {
+      type: 'text',
+      name: 'descriptionHash',
+      message:
+        'Optional: Enter a precomputed description hash (leave blank to auto-compute from the description):',
+      initial: '',
+      validate: (value) => {
+        if (value.trim() !== '' && !value.startsWith('0x')) {
+          return 'Precomputed description hash must start with 0x'
+        }
+        return true
+      },
+    },
   ])
 
   return {
@@ -87,6 +101,7 @@ async function promptForProposalDetails() {
     executionValue: BigInt(response.executionValue),
     calldatas: response.calldatas as `0x${string}`[],
     description: response.description,
+    descriptionHash: response.descriptionHash.trim() || undefined,
   }
 }
 
@@ -103,8 +118,42 @@ async function main() {
   })
 
   const governorAddress = governorResponse.governorAddress as Address
-  const { proposalId, targets, values, executionValue, calldatas, description } =
-    await promptForProposalDetails()
+  const {
+    proposalId,
+    targets,
+    values,
+    executionValue,
+    calldatas,
+    description,
+    descriptionHash: providedDescriptionHash,
+  } = await promptForProposalDetails()
+
+  // Use the provided descriptionHash if available, otherwise compute it from the description.
+  const descriptionHash = providedDescriptionHash
+    ? providedDescriptionHash
+    : hashDescription(description)
+
+  //0x00000000000000000000000000000000000000000000000000000000000000e0
+  console.log('descriptionHash', descriptionHash)
+
+  const computedProposalId = await publicClient.readContract({
+    address: governorAddress,
+    abi: governorAbi,
+    functionName: 'hashProposal',
+    args: [targets, values, calldatas, descriptionHash],
+  })
+
+  if (computedProposalId !== proposalId) {
+    console.error(
+      `Mismatch in proposal id:
+  Provided proposal id: ${proposalId}
+  Computed proposal id: ${computedProposalId}
+Please verify that the proposal details are correct.`,
+    )
+    return
+  } else {
+    console.log('Proposal id verified: computed proposal id matches the provided proposal id.')
+  }
 
   console.log('Checking proposal state...')
 
@@ -141,8 +190,6 @@ async function main() {
   }
 
   try {
-    const descriptionHash = hashDescription(description)
-
     console.log('\nExecuting proposal with:')
     console.log('Governor:', governorAddress)
     console.log('Targets:', targets)

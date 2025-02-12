@@ -1,22 +1,28 @@
 import { arbitrum, base, mainnet } from 'viem/chains'
-import config from '../../config/index.json'
+import prodConfig from '../../config/index.json'
+import testConfig from '../../config/index.test.json'
+import type { BaseConfig } from '../../types/config-types'
 
-export const chainConfigs = {
-  base: {
-    chain: base,
-    config: config.base,
-    rpcUrl: process.env.BASE_RPC_URL as string,
-  },
-  arbitrum: {
-    chain: arbitrum,
-    config: config.arbitrum,
-    rpcUrl: process.env.ARBITRUM_RPC_URL as string,
-  },
-  mainnet: {
-    chain: mainnet,
-    config: config.mainnet,
-    rpcUrl: process.env.MAINNET_RPC_URL as string,
-  },
-} as const
+export function getChainConfigs(useTestConfig: boolean = false) {
+  const config = useTestConfig ? testConfig : prodConfig
 
-export type ChainName = keyof typeof chainConfigs
+  return {
+    base: {
+      chain: base,
+      config: config.base as unknown as BaseConfig,
+      rpcUrl: process.env.BASE_RPC_URL as string,
+    },
+    arbitrum: {
+      chain: arbitrum,
+      config: config.arbitrum as unknown as BaseConfig,
+      rpcUrl: process.env.ARBITRUM_RPC_URL as string,
+    },
+    mainnet: {
+      chain: mainnet,
+      config: config.mainnet as unknown as BaseConfig,
+      rpcUrl: process.env.MAINNET_RPC_URL as string,
+    },
+  } as const
+}
+
+export type ChainName = keyof ReturnType<typeof getChainConfigs>
