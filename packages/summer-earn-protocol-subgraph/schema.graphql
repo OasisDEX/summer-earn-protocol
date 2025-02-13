@@ -553,6 +553,9 @@ type VaultDailySnapshot @entity @dailySnapshot {
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
 
+  " Amount of input token in the pool normalized "
+  inputTokenBalanceNormalized: BigDecimal!
+
   " Total supply of output token "
   outputTokenSupply: BigInt!
 
@@ -619,6 +622,10 @@ type VaultHourlySnapshot @entity @hourlySnapshot {
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
 
+      " Amount of input token in the position normalized "
+  inputTokenBalanceNormalized: BigDecimal!
+
+
   " Total supply of output token "
   outputTokenSupply: BigInt!
 
@@ -684,6 +691,9 @@ type VaultWeeklySnapshot @entity @weeklySnapshot {
 
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
+
+  " Amount of input token in the pool normalized "
+  inputTokenBalanceNormalized: BigDecimal!
 
   " Total supply of output token "
   outputTokenSupply: BigInt!
@@ -1447,6 +1457,9 @@ type PostActionVaultSnapshot @entity @hourlySnapshot {
 
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
+
+  " Amount of input token in the pool normalized "
+  inputTokenBalanceNormalized: BigDecimal!
 
   " Total supply of output token "
   outputTokenSupply: BigInt!

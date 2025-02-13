@@ -269,6 +269,7 @@ export function getOrCreateVaultsDailySnapshots(
   block: ethereum.Block,
 ): VaultDailySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   const currentDay = block.timestamp.toI64() / constants.SECONDS_PER_DAY
   const dailyTimestamp = getDailyTimestamp(block.timestamp)
   const dailyRateId = getDailyVaultRateIdAndTimestamp(block, vault.id)
@@ -284,6 +285,10 @@ export function getOrCreateVaultsDailySnapshots(
 
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
+    vaultSnapshots.inputTokenBalanceNormalized = utils.formatAmount(
+      vault.inputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
@@ -322,6 +327,7 @@ export function getOrCreateVaultsHourlySnapshots(
   block: ethereum.Block,
 ): VaultHourlySnapshot {
   const vault = getOrCreateVault(vaultAddress, block)
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   const hourTimestamp = getHourlyOffsetTimestamp(block.timestamp)
   const currentHour = block.timestamp
     .minus(BigIntConstants.SECONDS_PER_HOUR)
@@ -340,6 +346,10 @@ export function getOrCreateVaultsHourlySnapshots(
 
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
+    vaultSnapshots.inputTokenBalanceNormalized = utils.formatAmount(
+      vault.inputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
@@ -635,6 +645,7 @@ export function getOrCreateVaultsPostActionSnapshots(
   const vault = getOrCreateVault(vaultAddress, block)
   const id: string = vault.id.concat('-').concat(block.timestamp.toI64().toString())
   let vaultSnapshots = PostActionVaultSnapshot.load(id)
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
 
   if (!vaultSnapshots) {
     vaultSnapshots = new PostActionVaultSnapshot(id)
@@ -643,6 +654,10 @@ export function getOrCreateVaultsPostActionSnapshots(
 
     vaultSnapshots.totalValueLockedUSD = vault.totalValueLockedUSD
     vaultSnapshots.inputTokenBalance = vault.inputTokenBalance
+    vaultSnapshots.inputTokenBalanceNormalized = utils.formatAmount(
+      vault.inputTokenBalance,
+      BigInt.fromI32(inputToken.decimals),
+    )
     vaultSnapshots.outputTokenSupply = vault.outputTokenSupply
     vaultSnapshots.outputTokenPriceUSD = vault.outputTokenPriceUSD
       ? vault.outputTokenPriceUSD!
@@ -752,6 +767,7 @@ export function getOrCreatePositionDailySnapshot(
   let snapshot = PositionDailySnapshot.load(snapshotId)
   const vault = getOrCreateVault(vaultId, block)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
+
   if (!snapshot) {
     snapshot = new PositionDailySnapshot(snapshotId)
     snapshot.position = positionId
@@ -808,6 +824,7 @@ export function getOrCreatePositionWeeklySnapshot(
     snapshot.inputTokenBalance = snapshot.outputTokenBalance
       .times(vault.inputTokenBalance)
       .div(vault.outputTokenSupply)
+
     snapshot.inputTokenBalanceNormalizedInUSD = utils
       .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
       .times(vault.inputTokenPriceUSD!)
@@ -830,10 +847,10 @@ export function getOrCreateVaultWeeklySnapshots(
 
   const weeklyRateId = getWeeklyVaultRateIdAndTimestamp(block, vaultAddress.toHexString())
   const weeklyRate = WeeklyInterestRate.load(weeklyRateId.weeklyRateId)
-
+  const vault = getOrCreateVault(vaultAddress, block)
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   if (!snapshot) {
     snapshot = new VaultWeeklySnapshot(snapshotId)
-    const vault = getOrCreateVault(vaultAddress, block)
     const protocol = getOrCreateYieldAggregator(block.timestamp)
 
     snapshot.protocol = protocol.id
@@ -844,6 +861,7 @@ export function getOrCreateVaultWeeklySnapshots(
     // Initialize metrics
     snapshot.totalValueLockedUSD = constants.BigDecimalConstants.ZERO
     snapshot.inputTokenBalance = constants.BigIntConstants.ZERO
+    snapshot.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
     snapshot.outputTokenSupply = constants.BigIntConstants.ZERO
     snapshot.weeklySupplySideRevenueUSD = constants.BigDecimalConstants.ZERO
     snapshot.weeklyProtocolSideRevenueUSD = constants.BigDecimalConstants.ZERO
@@ -857,9 +875,12 @@ export function getOrCreateVaultWeeklySnapshots(
   }
 
   // Update snapshot with current values
-  const vault = getOrCreateVault(vaultAddress, block)
   snapshot.totalValueLockedUSD = vault.totalValueLockedUSD
   snapshot.inputTokenBalance = vault.inputTokenBalance
+  snapshot.inputTokenBalanceNormalized = utils.formatAmount(
+    snapshot.inputTokenBalance,
+    BigInt.fromI32(inputToken.decimals),
+  )
   snapshot.outputTokenSupply = vault.outputTokenSupply
   snapshot.outputTokenPriceUSD = vault.outputTokenPriceUSD
   snapshot.inputTokenPriceUSD = vault.inputTokenPriceUSD
