@@ -1,8 +1,7 @@
 import prompts from 'prompts'
 import { Address, Hex, encodeFunctionData, formatEther, parseAbi, parseEther } from 'viem'
-import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
-import { hashDescription } from '../../helpers/hash-description'
-import { constructLzOptions } from '../../helpers/layerzero-options'
+import { ChainSetup, promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
+import { buildCrossChainProposalAction } from '../../helpers/cross-chain-proposal'
 import { promptForAddresses, useTestConfig } from '../../helpers/prompt-helpers'
 import { createClients } from '../../helpers/wallet-helper'
 
@@ -35,56 +34,35 @@ function buildHubWhitelistActions(addresses: Address[], tokenAddress: Address): 
   }))
 }
 
-// Builds cross-chain satellite proposals; one action per address.
-// The extra parameter "useTest" is used to set the ETH amount to send.
 async function buildSatelliteWhitelistActions(
-  satelliteConfig: { config: any; chain: any; rpcUrl: string; name: string },
+  satelliteConfig: ChainSetup,
   addresses: Address[],
   governorAddress: Address,
-  useTest: boolean,
-): Promise<Action[]> {
-  const actions: Action[] = []
+): Promise<Action> {
   const satelliteTokenAddress = satelliteConfig.config.deployedContracts.gov.summerToken
     .address as Address
-  const satelliteEndpointId = satelliteConfig.config.common.layerZero.eID
 
-  for (const addr of addresses) {
-    const dstTargets = [satelliteTokenAddress]
-    const dstValues = [0n]
-    const dstCalldatas = [
+  const targets = addresses.map(() => satelliteTokenAddress)
+  const values = addresses.map(() => 0n)
+  const calldatas = addresses.map(
+    (addr) =>
       encodeFunctionData({
         abi: summerTokenAbi,
         functionName: 'addToWhitelist',
         args: [addr],
       }) as Hex,
-    ]
-    const dstDescription = `Add ${addr} to SUMMER token whitelist on satellite chain (${satelliteConfig.name})`
-    const lzOptions = constructLzOptions(350000n)
-    const crossChainCalldata = encodeFunctionData({
-      abi: parseAbi([
-        'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
-      ]),
-      args: [
-        Number(satelliteEndpointId),
-        dstTargets,
-        dstValues,
-        dstCalldatas,
-        hashDescription(dstDescription),
-        lzOptions,
-      ],
-    }) as Hex
+  )
 
-    actions.push({
-      target: governorAddress,
-      value: 0n,
-      calldata: crossChainCalldata,
-    })
+  const description = `Add ${addresses.join(', ')} to SUMMER token whitelist on satellite chain (${satelliteConfig.name})`
 
-    console.log(
-      `Prepared satellite proposal action for address ${addr} on chain ${satelliteConfig.name}`,
-    )
-  }
-  return actions
+  return buildCrossChainProposalAction({
+    targetChain: satelliteConfig,
+    targets,
+    values,
+    calldatas,
+    description,
+    governorAddress,
+  })
 }
 
 /**
@@ -131,6 +109,23 @@ function generateProposalDescription(
   description += `As outlined in this forum post: ${forumPostUrl}.`
 
   return description
+}
+
+async function promptForForumPostUrl(
+  message: string = 'Enter the forum post URL:',
+): Promise<string> {
+  const response = await prompts({
+    type: 'text',
+    name: 'forumPostUrl',
+    message,
+    validate: (value: string) => {
+      if (!value.startsWith('https://forum.summer.fi/')) {
+        return 'Invalid forum post URL format. Must start with https://forum.summer.fi/'
+      }
+      return true
+    },
+  })
+  return response.forumPostUrl
 }
 
 async function main() {
@@ -254,13 +249,12 @@ async function main() {
       `Satellite Chain (${satelliteConfig.name}) input addresses: ${satelliteInputAddresses.join(', ')}`,
     )
 
-    const actionsForSatellite = await buildSatelliteWhitelistActions(
+    const actionContainingSatelliteProposal = await buildSatelliteWhitelistActions(
       satelliteConfig,
       satelliteInputAddresses,
       GOVERNOR_ADDRESS,
-      useTest,
     )
-    satelliteActions = satelliteActions.concat(actionsForSatellite)
+    satelliteActions.push(actionContainingSatelliteProposal)
     satelliteProposals.push({ chainName: satelliteConfig.name, addresses: satelliteInputAddresses })
 
     console.log(`==== Satellite Whitelisting Summary for ${satelliteConfig.name} ====`)
