@@ -85,26 +85,26 @@ function generateProposalDescription(
     return `Whitelist Reward Managers Proposal + Deposit (TEST v4)`
   }
 
-  let description = `Whitelist Reward Managers Proposal\n`
+  let description = `Proposal: Whitelist Fleet Reward Managers\n`
   description += '====================\n\n'
-  description += 'Hub Chain:\n'
+  description += 'Hub Chain (base):\n'
   if (hubAddresses.length > 0) {
-    description += `  - Add the following addresses (Reward Managers) to the SUMMER token whitelist: ${hubAddresses.join(', ')}\n`
+    description += `  - Whitelist the following Fleet Reward Managers to enable rewards claiming: ${hubAddresses.join(', ')}\n`
   }
   if (fundTransferAmount !== undefined) {
-    description += `  - Transfer ${formatEther(fundTransferAmount)} ETH from Timelock to Governor.\n`
+    description += `  - Transfer ${formatEther(fundTransferAmount)} ETH from Timelock (Treasury) to Governor.\n`
   }
   description += '\n'
 
   if (satelliteProposals.length > 0) {
     description += 'Satellite Chains:\n'
     for (const proposal of satelliteProposals) {
-      description += `  - For Satellite Chain (${proposal.chainName}): Add the following addresses (Reward Managers) to the SUMMER token whitelist: ${proposal.addresses.join(', ')}\n`
+      description += `  - For Satellite Chain (${proposal.chainName}): Whitelist the following Fleet Reward Managers to enable rewards claiming: ${proposal.addresses.join(', ')}\n`
     }
   }
   description += '\n'
   description +=
-    'This proposal is to whitelist the Reward Managers for the SUMMER token on the Hub Chain and all connected Satellite Chains.'
+    'This proposal whitelists Fleet Reward Managers to allow rewards to be claimed on Hub and connected Satellite Chains.'
   description += '\n'
   description += `As outlined in this forum post: ${forumPostUrl}.`
 
