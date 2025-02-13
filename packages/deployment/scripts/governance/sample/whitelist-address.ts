@@ -3,6 +3,7 @@ import { Address, Hex, encodeFunctionData, formatEther, parseAbi, parseEther } f
 import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
 import { hashDescription } from '../../helpers/hash-description'
 import { constructLzOptions } from '../../helpers/layerzero-options'
+import { promptForAddresses, useTestConfig } from '../../helpers/prompt-helpers'
 import { createClients } from '../../helpers/wallet-helper'
 
 const governorAbi = parseAbi([
@@ -19,44 +20,6 @@ interface Action {
   target: Address
   value: bigint
   calldata: Hex
-}
-
-// Prompts for a comma-separated list of addresses with a custom message.
-async function promptForAddresses(
-  message: string = 'Enter the addresses to whitelist (comma separated):',
-): Promise<Address[]> {
-  const response = await prompts({
-    type: 'text',
-    name: 'addresses',
-    message,
-    validate: (value: string) => {
-      const addresses = value.split(',').map((v) => v.trim())
-      for (const addr of addresses) {
-        if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
-          return `Invalid address format: ${addr}`
-        }
-      }
-      return true
-    },
-  })
-  return response.addresses.split(',').map((s: string) => s.trim())
-}
-
-async function promptForForumPostUrl(
-  message: string = 'Enter the forum post URL:',
-): Promise<string> {
-  const response = await prompts({
-    type: 'text',
-    name: 'forumPostUrl',
-    message,
-    validate: (value: string) => {
-      if (!value.startsWith('https://forum.summer.fi/')) {
-        return 'Invalid forum post URL format. Must start with https://forum.summer.fi/'
-      }
-      return true
-    },
-  })
-  return response.forumPostUrl
 }
 
 // Builds whitelisting actions for the hub chain.
@@ -84,23 +47,6 @@ async function buildSatelliteWhitelistActions(
   const satelliteTokenAddress = satelliteConfig.config.deployedContracts.gov.summerToken
     .address as Address
   const satelliteEndpointId = satelliteConfig.config.common.layerZero.eID
-
-  // Set fee amounts based on configuration.
-  // const feeAmount = useTest ? 20000000000000000n : 1000000000000000000n
-  // const feeEth = `${formatEther(feeAmount)} ETH`
-
-  // Confirm the fee details with the user.
-  // const { confirmFee } = await prompts({
-  //   type: 'confirm',
-  //   name: 'confirmFee',
-  //   message: `For satellite chain ${satelliteConfig.name}, the cross-chain fee is set to ${feeEth} (${feeAmount} wei). Do you want to proceed?`,
-  //   initial: true,
-  // })
-
-  // if (!confirmFee) {
-  //   console.log(`Skipping satellite chain ${satelliteConfig.name} based on fee confirmation.`)
-  //   throw new Error('Skipping satellite chain')
-  // }
 
   for (const addr of addresses) {
     const dstTargets = [satelliteTokenAddress]
@@ -188,16 +134,7 @@ function generateProposalDescription(
 }
 
 async function main() {
-  // Prompt the user to select whether to use test or production config.
-  const { useTest } = await prompts({
-    type: 'select',
-    name: 'useTest',
-    message: 'Select configuration to use:',
-    choices: [
-      { title: 'Production', value: false },
-      { title: 'Test', value: true },
-    ],
-  })
+  const useTest = await useTestConfig()
 
   // ---------------- Hub Whitelisting ----------------
   const {
