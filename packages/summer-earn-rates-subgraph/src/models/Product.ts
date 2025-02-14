@@ -1,6 +1,7 @@
 import { Address, BigDecimal, BigInt, dataSource } from '@graphprotocol/graph-ts'
 import { Product as ProductSchema, Token } from '../../generated/schema'
 import { getChainIdByNetworkName } from '../utils/chainId'
+import { aprToApy } from '../utils/math'
 
 /**
  * Base Product class
@@ -28,7 +29,7 @@ import { getChainIdByNetworkName } from '../utils/chainId'
  *   }
  * }
  */
-export class Product {
+export abstract class Product {
   token: Token
   poolAddress: Address
   startBlock: BigInt
@@ -55,7 +56,11 @@ export class Product {
     product.token = this.token.id
     product.save()
   }
-  getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
-    return BigDecimal.zero()
+
+  getAPY(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal {
+    const apr = this.getRate(currentTimestamp, currentBlock)
+    return aprToApy(apr)
   }
+
+  abstract getRate(currentTimestamp: BigInt, currentBlock: BigInt): BigDecimal
 }
