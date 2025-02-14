@@ -1,4 +1,4 @@
-import { Address, BigDecimal, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
 import { Vault } from '../../../generated/schema'
 import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } from '../../../generated/templates/FleetCommanderRewardsManagerTemplate/FleetCommanderRewardsManager'
 import { BigDecimalConstants, BigIntConstants } from '../../common/constants'
@@ -6,10 +6,15 @@ import {
   getOrCreateArk,
   getOrCreateArksPostActionSnapshots,
   getOrCreateRewardToken,
+  getOrCreateToken,
   getOrCreateVault,
   getOrCreateVaultsPostActionSnapshots,
 } from '../../common/initializers'
-import { getAprForTimePeriod, updateProtocolTotalValueLockedUSD } from '../../common/utils'
+import {
+  formatAmount,
+  getAprForTimePeriod,
+  updateProtocolTotalValueLockedUSD,
+} from '../../common/utils'
 import { VaultDetails } from '../../types'
 import { getArkDetails } from '../../utils/ark'
 import { getVaultDetails } from '../../utils/vault'
@@ -73,7 +78,13 @@ export function updateBufferArk(
     Address.fromString(vault.bufferArk!),
     block,
   )
+  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   bufferArk.inputTokenBalance = vaultDetails.bufferBalance
+  const normalizedBalance = formatAmount(
+    vaultDetails.bufferBalance,
+    BigInt.fromI32(inputToken.decimals),
+  )
+  bufferArk.totalValueLockedUSD = normalizedBalance.times(vaultDetails.inputTokenPriceUSD)
   bufferArk.save()
 }
 
