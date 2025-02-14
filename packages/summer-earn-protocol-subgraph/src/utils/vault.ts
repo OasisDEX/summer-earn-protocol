@@ -47,7 +47,7 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
   const arksAddresses = arks.map<Address>((ark) => Address.fromString(ark))
 
   const assetTokenContract = ERC20.bind(Address.fromString(vault.inputToken))
-  const bufferBalance = assetTokenContract.balanceOf(Address.fromString(vault.bufferArk))
+  const bufferBalance = assetTokenContract.balanceOf(Address.fromString(vault.bufferArk!))
   return new VaultDetails(
     vault.id,
     formatAmount(totalAssets, BigInt.fromI32(inputToken.decimals)).times(inputTokenPriceUSD.price),

@@ -35,6 +35,7 @@ import { FleetCommanderRewardsManager as FleetCommanderRewardsManagerContract } 
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import { updateVaultAPRs } from '../mappings/entities/vault'
+import { getArkProductId } from '../utils/ark'
 import {
   getDailyTimestamp,
   getDailyVaultRateIdAndTimestamp,
@@ -48,7 +49,6 @@ import { addresses } from './addressProvider'
 import * as constants from './constants'
 import { BigIntConstants, RewardTokenType } from './constants'
 import * as utils from './utils'
-getWeeklyVaultRateIdAndTimestamp
 
 export function getOrCreateAccount(id: string): Account {
   let account = Account.load(id)
@@ -516,7 +516,8 @@ export function getOrCreateArk(
     ark.rewardTokens = []
     ark.rewardTokenEmissionsAmount = []
     ark.rewardTokenEmissionsUSD = []
-
+    const productId = getArkProductId(ark)
+    ark.productId = productId ? productId : ''
     ark.save()
 
     const arksArray = vault.arksArray

@@ -1283,6 +1283,9 @@ type Ark @entity @regularPolling {
   " The protocol this vault belongs to "
   vault: Vault!
 
+  " Product ID of the ark "
+  productId: String!
+
   " Name of liquidity pool (e.g. Curve.fi DAI/USDC/USDT) "
   name: String
 

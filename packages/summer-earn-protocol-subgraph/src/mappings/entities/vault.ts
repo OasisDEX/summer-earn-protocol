@@ -70,7 +70,7 @@ export function updateBufferArk(
 ): void {
   const bufferArk = getOrCreateArk(
     Address.fromString(vault.id),
-    Address.fromString(vault.bufferArk),
+    Address.fromString(vault.bufferArk!),
     block,
   )
   bufferArk.inputTokenBalance = vaultDetails.bufferBalance
