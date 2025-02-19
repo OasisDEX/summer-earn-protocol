@@ -28,13 +28,21 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
       position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD.plus(
         positionDetails.inputTokenDeltaNormalizedUSD,
       )
+      position.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized.plus(
+        positionDetails.inputTokenDeltaNormalized,
+      )
       position.inputTokenWithdrawals = position.inputTokenWithdrawals
+      position.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
       position.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
     } else {
       position.inputTokenDeposits = position.inputTokenDeposits
       position.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+      position.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized
       position.inputTokenWithdrawals = position.inputTokenWithdrawals.plus(
         positionDetails.inputTokenDelta,
+      )
+      position.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized.plus(
+        positionDetails.inputTokenDeltaNormalized,
       )
       position.inputTokenWithdrawalsNormalizedInUSD =
         position.inputTokenWithdrawalsNormalizedInUSD.plus(

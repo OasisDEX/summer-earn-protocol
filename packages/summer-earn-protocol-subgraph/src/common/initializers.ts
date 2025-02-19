@@ -118,6 +118,9 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
     position.claimedSummerToken = constants.BigIntConstants.ZERO
     position.claimedSummerTokenNormalized = constants.BigDecimalConstants.ZERO
+    position.inputTokenDepositsNormalized = constants.BigDecimalConstants.ZERO
+    position.inputTokenWithdrawalsNormalized = constants.BigDecimalConstants.ZERO
+    position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
     position.save()
   }
 
@@ -750,6 +753,10 @@ export function getOrCreatePositionHourlySnapshot(
     snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
     snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
     snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+    snapshot.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized
+    snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
+    snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
+
     position.save()
   }
 
@@ -792,6 +799,10 @@ export function getOrCreatePositionDailySnapshot(
     snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
     snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
     snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+
+    snapshot.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized
+    snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
+    snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
   }
 
   snapshot.save()
@@ -833,6 +844,10 @@ export function getOrCreatePositionWeeklySnapshot(
     snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
     snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
     snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+
+    snapshot.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized
+    snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
+    snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
   }
 
   snapshot.save()
