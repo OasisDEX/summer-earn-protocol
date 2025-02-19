@@ -1,0 +1,119 @@
+{
+  "extends": [
+    "solhint:recommended"
+  ],
+  "plugins": [
+    "prettier"
+  ],
+  "rules": {
+    "prettier/prettier": [
+      "error",
+      {
+        "singleQuote": true,
+        "semi": true,
+        "trailingComma": "es5",
+        "useTabs": false,
+        "tabWidth": 2,
+        "printWidth": 80,
+        "bracketSpacing": true,
+        "arrowParens": "always"
+      }
+    ],
+    "no-unused-vars": "error",
+    "var-name-mixed-case": "error",
+    "naming-convention": [
+      "error",
+      {
+        "selector": "variable",
+        "modifiers": ["constant"],
+        "format": ["UPPER_CASE"]
+      },
+      {
+        "selector": "variable",
+        "modifiers": ["immutable"],
+        "format": ["camelCase", "UPPER_CASE"]
+      },
+      {
+        "selector": "function",
+        "format": ["camelCase"]
+      },
+      {
+        "selector": "event",
+        "format": ["PascalCase"]
+      },
+      {
+        "selector": "modifier",
+        "format": ["camelCase"]
+      },
+      {
+        "selector": "struct",
+        "format": ["PascalCase"]
+      },
+      {
+        "selector": "enum",
+        "format": ["PascalCase"]
+      },
+      {
+        "selector": "enumMember",
+        "format": ["PascalCase", "UPPER_CASE"]
+      },
+      {
+        "selector": "fallback",
+        "format": ["camelCase"]
+      },
+      {
+        "selector": "receive",
+        "format": ["camelCase"]
+      },
+      {
+        "selector": "error",
+        "format": ["PascalCase"]
+      }
+    ],
+    "visibility": ["error", { "level": "public" }],
+    "quotes": ["error", "double"], 
+    "no-console": "warn",
+    "avoid-low-level-calls": "warn",
+    "avoid-sha3": "warn",
+    "no-inline-assembly": "warn",
+    "not-rely-on-time": "warn",
+    "gas-limit-must-be-specified": "warn",
+    "state-visibility-modifier-must-be-specified": "warn",
+    "no-empty-blocks": "warn",
+    "no-complex-fallback": "warn",
+    "no-assign-in-condition": "warn",
+    "no-import-regex": "off", 
+    "max-line-length": ["warn", 120], 
+    "max-states-count": ["warn", 10], 
+    "no-nono": "error",
+    "no-debugger": "warn",
+    "func-visibility-modifier-must-be-specified": "warn",
+    "event-name-convention": ["error", "^[A-Z][a-zA-Z0-9]*$"],
+    "error-name-convention": ["error", "^[A-Z][a-zA-Z0-9]*$"],
+    "modifier-name-convention": ["error", "^[a-z][a-zA-Z0-9]*$"],
+    "struct-name-convention": ["error", "^[A-Z][a-zA-Z0-9]*$"],
+    "enum-name-convention": ["error", "^[A-Z][a-zA-Z0-9]*$"],
+    "enum-members-name-convention": ["error", "^[A-Z][a-zA-Z0-9]*$"],
+    "variable-name-convention": ["error", "^[a-zA-Z_$][a-zA-Z0-9_$]*$"],
+    "constant-name-convention": ["error", "^[A-Z][a-zA-Z0-9_]*$"],
+    "immutable-name-convention": ["error", "^[a-zA-Z_$][a-zA-Z0-9_$]*$"],
+    "function-name-convention": ["error", "^[a-z][a-zA-Z0-9]*$"],
+    "no-low-level-calls": "warn",
+    "avoid-tx-origin": "warn",
+    "avoid-block-timestamp": "warn",
+    "code-complexity": ["warn", 10],
+    "no-unused-imports": "warn",
+    "no-shadow": "warn",
+    "no-mixed-spaces-and-tabs": "error",
+    "indent": ["error", 2],
+    "newline-per-chained-call": ["warn"],
+    "no-trailing-spaces": ["error"],
+    "operator-linebreak": ["warn", "before"],
+    "padding-line-between-statements": [
+      "warn",
+      { "blankLine": "always", "prev": "*", "next": "return" },
+      { "blankLine": "always", "prev": ["const", "let", "var"], "next": "*" },
+      { "blankLine": "any", "prev": ["const", "let", "var"], "next": ["const", "let", "var"] }
+    ]
+  }
+}
