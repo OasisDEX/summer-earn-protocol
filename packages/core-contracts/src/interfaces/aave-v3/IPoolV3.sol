@@ -77,6 +77,30 @@ interface IPoolV3 {
     ) external view returns (DataTypes.ReserveData memory);
 
     /**
+     * @notice Returns the user account data across all the reserves
+     * @param user The address of the user
+     * @return totalCollateralBase The total collateral of the user in the base currency used by the price feed
+     * @return totalDebtBase The total debt of the user in the base currency used by the price feed
+     * @return availableBorrowsBase The borrowing power left of the user in the base currency used by the price feed
+     * @return currentLiquidationThreshold The liquidation threshold of the user
+     * @return ltv The loan to value of The user
+     * @return healthFactor The current health factor of the user
+     */
+    function getUserAccountData(
+        address user
+    )
+        external
+        view
+        returns (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase,
+            uint256 availableBorrowsBase,
+            uint256 currentLiquidationThreshold,
+            uint256 ltv,
+            uint256 healthFactor
+        );
+
+    /**
      * @notice Allows users to borrow a specific `amount` of the reserve underlying asset, provided that the borrower
      * already supplied enough collateral, or he was given enough allowance by a credit delegator on the
      * corresponding debt token (StableDebtToken or VariableDebtToken)

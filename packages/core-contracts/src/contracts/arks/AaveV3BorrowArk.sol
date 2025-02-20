@@ -8,23 +8,34 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./CarryTradeArk.sol";
+import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
+import {IPriceOracleGetter} from "../../interfaces/aave-v3/IPriceOracleGetter.sol";
 
 /**
  * @title AaveV3BorrowArk
  * @notice Ark for depositing collateral to Aave V3, borrowing assets, and depositing to yield fleet
  */
 abstract contract AaveV3BorrowArk is CarryTradeArk {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20WithDecimals;
 
     IPoolV3 public immutable aaveV3Pool;
     IRewardsController public immutable rewardsController;
+    IPriceOracleGetter public immutable priceOracle;
+    address public immutable aToken;
+    address public immutable variableDebtToken;
+
+    uint256 public constant ORACLE_BASE = 1e8;
+
+    error EmptyAddress(string service);
 
     constructor(
         address _aaveV3Pool,
         address _rewardsController,
+        address _poolAddressesProvider,
         address _borrowedAsset,
         address _fleet,
-        ArkParams memory _params
+        ArkParams memory _params,
+        uint256 _maxLtv
     )
         CarryTradeArk(
             CarryTradeParams({
@@ -32,23 +43,101 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
                 _collateralAsset: _params.asset,
                 _borrowedAsset: _borrowedAsset,
                 _yieldVault: _fleet,
-                _collateralToken: IPoolV3(_aaveV3Pool)
-                    .getReserveData(_params.asset)
-                    .aTokenAddress,
-                _debtToken: IPoolV3(_aaveV3Pool)
-                    .getReserveData(_borrowedAsset)
-                    .variableDebtTokenAddress,
+                _maxLtv: _maxLtv,
                 baseParams: _params
             })
         )
     {
+        if (_aaveV3Pool == address(0)) {
+            revert EmptyAddress("aave v3 pool");
+        }
         aaveV3Pool = IPoolV3(_aaveV3Pool);
-        rewardsController = IRewardsController(_rewardsController);
-    }
 
+        if (_rewardsController == address(0)) {
+            revert EmptyAddress("rewards controller");
+        }
+        rewardsController = IRewardsController(_rewardsController);
+
+        if (_poolAddressesProvider == address(0)) {
+            revert EmptyAddress("pool addresses provider");
+        }
+
+        IPoolAddressesProvider poolAddressesProvider = IPoolAddressesProvider(
+            _poolAddressesProvider
+        );
+        address priceOracleAddress = poolAddressesProvider.getPriceOracle();
+        if (priceOracleAddress == address(0)) {
+            revert EmptyAddress("price oracle");
+        }
+        priceOracle = IPriceOracleGetter(priceOracleAddress);
+        aToken = IPoolV3(_aaveV3Pool)
+            .getReserveData(_params.asset)
+            .aTokenAddress;
+        variableDebtToken = IPoolV3(_aaveV3Pool)
+            .getReserveData(_borrowedAsset)
+            .variableDebtTokenAddress;
+    }
+    function _totalAssets() internal view override returns (uint256) {
+        return IERC20(aToken).balanceOf(address(this));
+    }
     function _supplyCollateral(uint256 amount) internal override {
         collateralAsset.forceApprove(address(aaveV3Pool), amount);
         aaveV3Pool.supply(address(collateralAsset), amount, address(this), 0);
+    }
+
+    function _getCurrentLtv() internal view override returns (uint256) {
+        (
+            uint256 totalCollateralBase,
+            uint256 totalDebtBase,
+            ,
+            ,
+            ,
+
+        ) = aaveV3Pool.getUserAccountData(address(this));
+
+        // Calculate the loan-to-value (LTV) ratio for Aave V3
+        // LTV is the ratio of the total debt to the total collateral, expressed as a percentage
+        // The result is multiplied by 10000 to preserve precision
+        // eg 0.67 (67%) LTV is stored as 6700
+        uint256 ltv = (totalDebtBase * BASIS_POINTS) / totalCollateralBase;
+        return ltv;
+    }
+
+    function _getCollateralValueInBorrowedAsset()
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        uint256 collateralAmount = _getTotalCollateral();
+        // Get asset prices in USD from Aave oracle
+        uint256 collateralPrice = priceOracle.getAssetPrice(
+            address(collateralAsset)
+        );
+        uint256 borrowedPrice = priceOracle.getAssetPrice(
+            address(borrowedAsset)
+        );
+
+        if (borrowedPrice == 0) {
+            revert("Invalid borrowed asset price");
+        }
+
+        // Adjust for decimals
+        uint256 collateralDecimals = collateralAsset.decimals();
+        uint256 borrowedDecimals = borrowedAsset.decimals();
+
+        // Calculate collateral value in terms of borrowed asset
+        // Formula: (collateralAmount * collateralPrice * 10**borrowedDecimals) / (borrowedPrice * 10**collateralDecimals)
+        return
+            (collateralAmount * collateralPrice * (10 ** borrowedDecimals)) /
+            (borrowedPrice * (10 ** collateralDecimals));
+    }
+    function _getTotalDebt() internal view override returns (uint256) {
+        return IERC20WithDecimals(variableDebtToken).balanceOf(address(this));
+    }
+
+    function _getTotalCollateral() internal view override returns (uint256) {
+        return IERC20WithDecimals(aToken).balanceOf(address(this));
     }
 
     function _borrowAsset(uint256 amount) internal override {
@@ -87,8 +176,8 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
         address[] memory assets = new address[](2);
-        assets[0] = collateralToken;
-        assets[1] = debtToken;
+        assets[0] = aToken;
+        assets[1] = variableDebtToken;
 
         rewardTokens = new address[](0);
         rewardAmounts = new uint256[](0);
