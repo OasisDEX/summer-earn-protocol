@@ -2,9 +2,9 @@ import dotenv from 'dotenv'
 import { Chain, createPublicClient, createWalletClient, Hex, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 
-dotenv.config()
+dotenv.config({ path: '../../.env' })
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY as Hex
+const DEPLOYER_PRIV_KEY = process.env.DEPLOYER_PRIV_KEY as Hex
 
 export function createClients(chain: Chain, rpcUrl: string, privateKey?: Hex) {
   console.log('Creating clients for chain:', chain.name)
@@ -14,7 +14,7 @@ export function createClients(chain: Chain, rpcUrl: string, privateKey?: Hex) {
     transport: http(rpcUrl),
   })
 
-  const _privateKey = privateKey || PRIVATE_KEY
+  const _privateKey = privateKey || DEPLOYER_PRIV_KEY
   const account = privateKeyToAccount(`0x${_privateKey}`)
   const walletClient = createWalletClient({
     account,

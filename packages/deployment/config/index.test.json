@@ -1,0 +1,434 @@
+{
+  "base": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0xd76ad62Dd879F63a9f5e500a1684F598AA798d0c"
+        },
+        "summerToken": {
+          "address": "0x932CCb7D2A6F1821a1Ecee9e1279aC30E0d4db32"
+        },
+        "timelock": {
+          "address": "0xC03B522eC9061b399AA3032d6Ce5320842EeDDcb"
+        },
+        "protocolAccessManager": {
+          "address": "0x603821f86DeDC794A3225d62Afe1F175fe4AE861"
+        },
+        "rewardsRedeemer": {
+          "address": "0x2aF041B4505743f0C01Dd4C6AA8e23bD22dE379e"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "raft": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "configurationManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "harborCommand": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "admiralsQuarters": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+      "weth": "0x4200000000000000000000000000000000000006",
+      "usds": "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
+      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a"
+    },
+    "common": {
+      "initialSupply": "1000000000",
+      "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "tipRate": "100",
+      "layerZero": {
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "eID": "30184"
+      }
+    },
+    "protocolSpecific": {
+      "aaveV3": {
+        "pool": "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5",
+        "rewards": "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44"
+      },
+      "morpho": {
+        "blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+        "urdFactory": "0x7276454fc1cf9C408deeed722fd6b5E7A4CA25D8",
+        "vaults": {
+          "usdc": {
+            "Moonwell_Flagship_USDC_1": "0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca",
+            "Gauntlet_USDC_Core_1": "0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12",
+            "Gauntlet_USDC_Prime_1": "0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61",
+            "Re7_USDC_1": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
+            "Steakhouse_USDC_1": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183"
+          }
+        },
+        "markets": {
+          "usdc": {
+            "wstETH_USDC": "0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"
+          },
+          "dai": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usde": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usdt": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          }
+        }
+      },
+      "compoundV3": {
+        "pools": {
+          "usdc": {
+            "cToken": "0xb125E6687d4313864e53df431d5425969c15Eb2F"
+          }
+        },
+        "rewards": "0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1"
+      },
+      "erc4626": {
+        "usdc": {
+          "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+        }
+      },
+      "sky": {
+        "psm3": {
+          "usdc": "0x1601843c5E9bC251A3272907010AFa41Fa18347E"
+        }
+      }
+    }
+  },
+  "arbitrum": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0x060C9d083A5ee5999b4EB817DbF906888d943D2c"
+        },
+        "summerToken": {
+          "address": "0x8c977a41aDCd7537498a3bC3a0cB30Fb210A247A"
+        },
+        "timelock": {
+          "address": "0x9fFC258F137e65F4686e4FB935ADEcad907B8347"
+        },
+        "protocolAccessManager": {
+          "address": "0x2e208e55075b1cF15A767C15Ee9bA14205CB8371"
+        },
+        "rewardsRedeemer": {
+          "address": "0x5e09d02aE0C1A5537F590152e999e577dA53ea5d"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "raft": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "configurationManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "harborCommand": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "admiralsQuarters": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+      "dai": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+      "usdt": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+      "usdce": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+      "weth": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+    },
+    "common": {
+      "initialSupply": "0",
+      "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
+      "tipRate": "100",
+      "layerZero": {
+        "eID": "30110",
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+      }
+    },
+    "protocolSpecific": {
+      "erc4626": {
+        "usdc": {
+          "Gearbox": "0x890A69EF363C9c7BdD5E36eb95Ceb569F63ACbF6",
+          "Fluid": "0x1A996cb54bb95462040408C06122D45D6Cdb6096"
+        },
+        "usdce": {
+          "Gearbox": "0xa76c604145D7394DEc36C49Af494C144Ff327861"
+        },
+        "usdt": {
+          "Fluid": "0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03"
+        }
+      },
+      "pendle": {
+        "router": "0x888888888889758F76e7103c6CbF23ABbF58F946",
+        "lp-oracle": "0x9a9fa8338dd5e5b2188006f1cd2ef26d921650c2",
+        "markets": {
+          "usde": {
+            "marketAddresses": {
+              "USDE_28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d",
+              "USDE_Karak_28Nov2024": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+            },
+            "swapInTokens": [
+              {
+                "token": "usdc",
+                "oracle": "0x281fe15fd3e08a282f52d5cf09a4d13c3709e66d"
+              }
+            ]
+          }
+        }
+      },
+      "aaveV3": {
+        "pool": "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
+        "rewards": "0x929EC64c34a17401F460460D4B9390518E5B473e"
+      },
+      "morpho": {
+        "blue": "0x0000000000000000000000000000000000000000",
+        "markets": {
+          "usdc": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "dai": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usde": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usdt": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          },
+          "usdce": {
+            "nomarket": "0x0000000000000000000000000000000000000000"
+          }
+        }
+      },
+      "compoundV3": {
+        "pools": {
+          "usdc": {
+            "cToken": "0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf"
+          },
+          "usdce": {
+            "cToken": "0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA"
+          },
+          "usdt": {
+            "cToken": "0xd98Be00b5D27fc98112BdE293e487f8D4cA57d07"
+          }
+        },
+        "rewards": "0x88730d254A2f7e6AC8388c3198aFd694bA9f7fae"
+      }
+    }
+  },
+  "mainnet": {
+    "deployedContracts": {
+      "gov": {
+        "summerGovernor": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "summerToken": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "timelock": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "protocolAccessManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "rewardsRedeemer": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "buyAndBurn": {
+        "buyAndBurn": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      },
+      "core": {
+        "tipJar": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "raft": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "configurationManager": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "harborCommand": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "admiralsQuarters": {
+          "address": "0x0000000000000000000000000000000000000000"
+        },
+        "fleetCommanderRewardsManagerFactory": {
+          "address": "0x0000000000000000000000000000000000000000"
+        }
+      }
+    },
+    "tokens": {
+      "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "weth": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "usds": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
+      "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
+      "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+    },
+    "common": {
+      "initialSupply": "0",
+      "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
+      "tipRate": "100",
+      "layerZero": {
+        "eID": "30101",
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+      }
+    },
+    "protocolSpecific": {
+      "erc4626": {
+        "usdc": {
+          "Gearbox": "0xda00000035fef4082f78def6a8903bee419fbf8e",
+          "Fluid": "0x9Fb7b4477576Fe5B32be4C1843aFB1e55F251B33",
+          "Euler_Prime": "0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9",
+          "Euler_Yield": "0xe0a80d35bB6618CBA260120b279d357978c42BCE",
+          "Euler_Stablecoin_Maxi": "0xce45EF0414dE3516cAF1BCf937bF7F2Cf67873De"
+        },
+        "dai": {},
+        "usde": {},
+        "usdt": {
+          "Gearbox": "0x05a811275fe9b4de503b3311f51edf6a856d936e",
+          "Fluid": "0x5C20B550819128074FD538Edf79791733ccEdd18",
+          "Euler_Prime": "0x313603FA690301b0CaeEf8069c065862f9162162",
+          "Euler_Yield": "0x7c280DBDEf569e96c7919251bD2B0edF0734C5A8"
+        },
+        "usdce": {},
+        "weth": {
+          "Gearbox": "0xda0002859b2d05f66a753d8241fcde8623f26f4f",
+          "Fluid": "0x90551c1795392094FE6D29B758EcCD233cFAa260",
+          "Euler_Prime": "0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2"
+        }
+      },
+      "pendle": {
+        "router": "0x0000000000000000000000000000000000000000",
+        "lp-oracle": "0x0000000000000000000000000000000000000000",
+        "markets": {
+          "usdc": {
+            "marketAddresses": {},
+            "swapInTokens": []
+          },
+          "dai": {
+            "marketAddresses": {},
+            "swapInTokens": []
+          },
+          "usde": {
+            "marketAddresses": {},
+            "swapInTokens": []
+          },
+          "usdt": {
+            "marketAddresses": {},
+            "swapInTokens": []
+          },
+          "usdce": {
+            "marketAddresses": {},
+            "swapInTokens": []
+          }
+        }
+      },
+      "aaveV3": {
+        "pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+        "rewards": "0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb"
+      },
+      "spark": {
+        "pool": "0xC13e21B648A5Ee794902342038FF3aDAB66BE987",
+        "rewards": "0x4370D3b6C9588E02ce9D22e684387859c7Ff5b34"
+      },
+      "morpho": {
+        "blue": "0x0000000000000000000000000000000000000000",
+        "urdFactory": "0x9baA51245CDD28D8D74Afe8B3959b616E9ee7c8D",
+        "vaults": {
+          "usdc": {
+            "Gauntlet_USDC_Core": "0x8eB67A509616cd6A7c1B3c8C21D48FF57df3d458",
+            "Flagship_USDC": "0x186514400e52270cef3D80e1c6F8d10A75d47344",
+            "Steakhouse": "0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB",
+            "Gauntlet_USDC_Prime": "0xdd0f28e19C1780eb6396170735D45153D261490d",
+            "RE7_USDC": "0x60d715515d4411f7F43e4206dc5d4a3677f0eC78"
+          },
+          "dai": {},
+          "usde": {},
+          "usdt": {
+            "Flagship_USDT": "0x2C25f6C25770fFEC5959D34B94Bf898865e5D6b1",
+            "Steakhouse_USDT": "0xbEef047a543E45807105E51A8BBEFCc5950fcfBa",
+            "Gauntlet_USDT_Prime": "0x8CB3649114051cA5119141a34C200D65dc0Faa73",
+            "RE7_USDT": "0x95EeF579155cd2C5510F312c8fA39208c3Be01a8"
+          },
+          "usdce": {},
+          "weth": {
+            "Gauntlet_WETH_Prime": "0x2371e134e3455e0593363cBF89d3b6cf53740618",
+            "Re7_WETH": "0x78Fc2c2eD1A4cDb5402365934aE5648aDAd094d0"
+          }
+        },
+        "markets": {
+          "usdc": {},
+          "dai": {},
+          "usde": {},
+          "usdt": {},
+          "usdce": {}
+        }
+      },
+      "compoundV3": {
+        "pools": {
+          "usdc": {
+            "cToken": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
+          },
+          "dai": {
+            "cToken": "0x0000000000000000000000000000000000000000"
+          },
+          "usde": {
+            "cToken": "0x0000000000000000000000000000000000000000"
+          },
+          "usdt": {
+            "cToken": "0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840"
+          },
+          "usdce": {
+            "cToken": "0x0000000000000000000000000000000000000000"
+          },
+          "weth": {
+            "cToken": "0xA17581A9E3356d9A858b789D68B4d866e593aE94"
+          }
+        },
+        "rewards": "0x1B0e765F6224C21223AeA2af16c1C46E38885a40"
+      },
+      "sky": {
+        "psmLite": {
+          "usdc": "0xA188EEC8F81263234dA3622A406892F3D630f98c",
+          "dai": "0x0000000000000000000000000000000000000000",
+          "usde": "0x0000000000000000000000000000000000000000",
+          "usdt": "0x0000000000000000000000000000000000000000",
+          "usdce": "0x0000000000000000000000000000000000000000"
+        }
+      }
+    }
+  }
+}

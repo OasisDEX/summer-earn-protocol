@@ -10,8 +10,24 @@ const governorAbi = parseAbi([
 ])
 
 async function main() {
+  // Prompt the user to select whether to use test or production config.
+  const { useTest } = await prompts({
+    type: 'select',
+    name: 'useTest',
+    message: 'Select configuration to use:',
+    choices: [
+      { title: 'Production', value: false },
+      { title: 'Test', value: true },
+    ],
+  })
+
   // Get chain configuration through prompt
-  const { config, chain, name: chainName, rpcUrl } = await promptForChain('Select the chain:')
+  const {
+    config,
+    chain,
+    name: chainName,
+    rpcUrl,
+  } = await promptForChain('Select the chain:', useTest)
 
   const { publicClient, walletClient } = createClients(chain, rpcUrl)
 

@@ -1,3 +1,4 @@
+import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import { promptForChain, promptForTargetChain } from '../../helpers/chain-prompt'
 import { hashDescription } from '../../helpers/hash-description'
@@ -10,18 +11,29 @@ const governorAbi = parseAbi([
 ])
 
 async function main() {
-  // Get hub chain configuration through prompt
+  // Prompt the user to select whether to use test or production config.
+  const { useTest } = await prompts({
+    type: 'select',
+    name: 'useTest',
+    message: 'Select configuration to use:',
+    choices: [
+      { title: 'Production', value: false },
+      { title: 'Test', value: true },
+    ],
+  })
+
+  // Get chain configuration through prompt
   const {
     config: hubConfig,
     chain,
+    name: chainName,
     rpcUrl,
-    name: hubChainName,
-  } = await promptForChain('Select the hub chain:')
+  } = await promptForChain('Select the chain:', useTest)
 
   const { publicClient, walletClient } = createClients(chain, rpcUrl)
 
   // Get target (satellite) chain configuration
-  const { config: targetConfig } = await promptForTargetChain(hubChainName)
+  const { config: targetConfig } = await promptForTargetChain(chainName, useTest)
 
   // Extract addresses and IDs from configs
   const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
@@ -49,7 +61,7 @@ async function main() {
   // Prepare the hub chain proposal parameters (source proposal)
   const srcTargets = [HUB_GOVERNOR_ADDRESS]
   const srcValues = [0n]
-  const lzOptions = constructLzOptions(200000n)
+  const lzOptions = constructLzOptions(300000n)
 
   // Encode the cross-chain message parameters
   const srcCalldatas = [

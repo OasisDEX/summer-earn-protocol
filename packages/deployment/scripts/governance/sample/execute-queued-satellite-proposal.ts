@@ -1,6 +1,7 @@
 import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
 import { promptForChain } from '../../helpers/chain-prompt'
+import { useTestConfig } from '../../helpers/prompt-helpers'
 import { createClients } from '../../helpers/wallet-helper'
 
 const timelockAbi = parseAbi([
@@ -12,7 +13,12 @@ const timelockAbi = parseAbi([
 ])
 
 async function main() {
-  const { config: targetConfig, chain, rpcUrl } = await promptForChain('Select the target chain:')
+  const useTest = await useTestConfig()
+  const {
+    config: targetConfig,
+    chain,
+    rpcUrl,
+  } = await promptForChain('Select the target chain:', useTest)
 
   const { publicClient, walletClient } = createClients(chain, rpcUrl)
 
