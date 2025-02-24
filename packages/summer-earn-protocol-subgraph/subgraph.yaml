@@ -8,7 +8,7 @@ dataSources:
     source:
       abi: HarborCommand
       address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
-      startBlock: 21728579
+      startBlock: 21745351
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -115,6 +115,9 @@ templates:
           receipt: true
         - event: FleetCommanderWithdrawnFromArks(indexed address,address,uint256)
           handler: handleFleetCommanderWithdrawnFromArks
+          receipt: true
+        - event: FleetCommanderRedeemedFromArks(indexed address,address,uint256)
+          handler: handleFleetCommanderRedeemedFromArks
           receipt: true
         - event: FleetCommanderDepositCapUpdated(uint256)
           handler: handleFleetCommanderDepositCapUpdated

@@ -42,7 +42,8 @@
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts",
     "create-distributions-tx": "hardhat run scripts/governance/create-distributions-transaction-safe.ts --network $NETWORK",
     "whitelist-vesting-wallets-tx": "hardhat run scripts/governance/whitelist-vesting-wallets-safe.ts --network $NETWORK",
-    "generate-merkle-root": "tsx scripts/generate-merkle-root.ts"
+    "generate-merkle-root": "tsx scripts/generate-merkle-root.ts",
+    "update-fleet-configurations": "hardhat run scripts/governance/update-fleet-configurations-safe.ts --network $NETWORK"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",
@@ -64,6 +65,7 @@
     "@summerfi/typescript-config": "workspace:*",
     "@summerfi/voting-decay": "workspace:*",
     "@types/prompts": "2.4.9",
+    "chalk": "^4.1.2",
     "hardhat": "2.22.14",
     "hardhat-contract-sizer": "2.10.0",
     "kleur": "4.1.5",

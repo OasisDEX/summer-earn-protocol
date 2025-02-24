@@ -504,6 +504,8 @@ type Vault @entity @regularPolling {
   arks: [Ark!]! @derivedFrom(field: "vault")
   arksArray: [Ark!]!
 
+  bufferArk: Ark
+
   rebalances: [Rebalance!]! @derivedFrom(field: "vault")
   rebalanceCount: BigInt!
   actionSnapshots: [PostActionVaultSnapshot!]! @derivedFrom(field: "vault")
@@ -550,6 +552,9 @@ type VaultDailySnapshot @entity @dailySnapshot {
 
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
+
+  " Amount of input token in the pool normalized "
+  inputTokenBalanceNormalized: BigDecimal!
 
   " Total supply of output token "
   outputTokenSupply: BigInt!
@@ -617,6 +622,10 @@ type VaultHourlySnapshot @entity @hourlySnapshot {
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
 
+      " Amount of input token in the position normalized "
+  inputTokenBalanceNormalized: BigDecimal!
+
+
   " Total supply of output token "
   outputTokenSupply: BigInt!
 
@@ -682,6 +691,9 @@ type VaultWeeklySnapshot @entity @weeklySnapshot {
 
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
+
+  " Amount of input token in the pool normalized "
+  inputTokenBalanceNormalized: BigDecimal!
 
   " Total supply of output token "
   outputTokenSupply: BigInt!
@@ -1104,6 +1116,13 @@ type Position @entity {
   " Sum of deposits in the position - in input token precision"
   inputTokenDeposits: BigInt!
 
+  " Sum of deposits in the position - in input token precision normalized"
+  inputTokenDepositsNormalized: BigDecimal!
+
+  " Sum of withdrawals in the position - in input token precision normalized"
+  inputTokenWithdrawalsNormalized: BigDecimal!
+
+
   " Sum of deposits in the position - in input token precision normalized to USD"
   inputTokenDepositsNormalizedInUSD: BigDecimal!
 
@@ -1178,6 +1197,15 @@ type PositionHourlySnapshot @entity @hourlySnapshot {
   " Sum of deposits in the position - in input token precision"
   inputTokenDeposits: BigInt!
 
+  " Sum of deposits in the position - in input token precision normalized"
+  inputTokenDepositsNormalized: BigDecimal!
+
+  " Sum of withdrawals in the position - in input token precision normalized"
+  inputTokenWithdrawalsNormalized: BigDecimal!
+
+  " Input token balance in the position normalized"
+  inputTokenBalanceNormalized: BigDecimal!
+
   " Sum of deposits in the position - in input token precision normalized to USD"
   inputTokenDepositsNormalizedInUSD: BigDecimal!
 
@@ -1209,6 +1237,15 @@ type PositionDailySnapshot @entity @dailySnapshot {
 
   " Sum of deposits in the position - in input token precision"
   inputTokenDeposits: BigInt!
+
+    " Sum of deposits in the position - in input token precision normalized"
+  inputTokenDepositsNormalized: BigDecimal!
+
+  " Sum of withdrawals in the position - in input token precision normalized"
+  inputTokenWithdrawalsNormalized: BigDecimal!
+
+  " Input token balance in the position normalized"
+  inputTokenBalanceNormalized: BigDecimal!
 
   " Sum of deposits in the position - in input token precision normalized to USD"
   inputTokenDepositsNormalizedInUSD: BigDecimal!
@@ -1242,6 +1279,15 @@ type PositionWeeklySnapshot @entity @weeklySnapshot {
   " Sum of deposits in the position - in input token precision"
   inputTokenDeposits: BigInt!
 
+    " Sum of deposits in the position - in input token precision normalized"
+  inputTokenDepositsNormalized: BigDecimal!
+
+  " Sum of withdrawals in the position - in input token precision normalized"
+  inputTokenWithdrawalsNormalized: BigDecimal!
+
+  " Input token balance in the position normalized"
+  inputTokenBalanceNormalized: BigDecimal!
+
   " Sum of deposits in the position - in input token precision normalized to USD"
   inputTokenDepositsNormalizedInUSD: BigDecimal!
 
@@ -1270,6 +1316,9 @@ type Ark @entity @regularPolling {
 
   " The protocol this vault belongs to "
   vault: Vault!
+
+  " Product ID of the ark "
+  productId: String!
 
   " Name of liquidity pool (e.g. Curve.fi DAI/USDC/USDT) "
   name: String
@@ -1445,6 +1494,9 @@ type PostActionVaultSnapshot @entity @hourlySnapshot {
 
   " Amount of input token in the pool "
   inputTokenBalance: BigInt!
+
+  " Amount of input token in the pool normalized "
+  inputTokenBalanceNormalized: BigDecimal!
 
   " Total supply of output token "
   outputTokenSupply: BigInt!

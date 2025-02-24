@@ -1,4 +1,5 @@
 import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { ERC20 } from '../../generated/HarborCommand/ERC20'
 import { FleetCommander as FleetCommanderContract } from '../../generated/templates/FleetCommanderTemplate/FleetCommander'
 import * as constants from '../common/constants'
 import { getOrCreateToken, getOrCreateVault } from '../common/initializers'
@@ -45,6 +46,8 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
   const arks = vault.arksArray
   const arksAddresses = arks.map<Address>((ark) => Address.fromString(ark))
 
+  const assetTokenContract = ERC20.bind(Address.fromString(vault.inputToken))
+  const bufferBalance = assetTokenContract.balanceOf(Address.fromString(vault.bufferArk!))
   return new VaultDetails(
     vault.id,
     formatAmount(totalAssets, BigInt.fromI32(inputToken.decimals)).times(inputTokenPriceUSD.price),
@@ -60,5 +63,6 @@ export function getVaultDetails(vaultAddress: Address, block: ethereum.Block): V
     withdrawableAssetsUSD,
     rewardTokenEmissionsAmountsPerOutputToken,
     arksAddresses,
+    bufferBalance,
   )
 }

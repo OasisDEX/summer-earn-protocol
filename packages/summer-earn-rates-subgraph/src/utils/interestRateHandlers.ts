@@ -34,7 +34,7 @@ export function handleInterestRate(
   protocolName: string,
   product: Product,
 ): void {
-  const rate = product.getRate(block.timestamp, block.number)
+  const rate = product.getAPY(block.timestamp, block.number)
   const interestRate = new InterestRate(
     `${protocolName}-${product.token.id.toHexString()}-${block.number.toString()}-${crypto.keccak256(ByteArray.fromUTF8(product.name)).toHexString()}`,
   )
