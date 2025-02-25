@@ -10,7 +10,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import "./CarryTradeArk.sol";
 import {IPoolAddressesProvider} from "../../interfaces/aave-v3/IPoolAddressesProvider.sol";
 import {IPriceOracleGetter} from "../../interfaces/aave-v3/IPriceOracleGetter.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @title AaveV3BorrowArk
  * @notice Ark for depositing collateral to Aave V3, borrowing assets, and depositing to yield fleet
@@ -94,7 +94,13 @@ abstract contract AaveV3BorrowArk is CarryTradeArk {
             ,
 
         ) = aaveV3Pool.getUserAccountData(address(this));
-
+        console.log("totalCollateralBase", totalCollateralBase);
+        console.log("totalDebtBase", totalDebtBase);
+        console.log("varaible debt token balance", IERC20(variableDebtToken).balanceOf(address(this)));
+        console.log("aToken balance", IERC20(aToken).balanceOf(address(this)));
+        if (totalCollateralBase == 0) {
+            return 0;
+        }
         // Calculate the loan-to-value (LTV) ratio for Aave V3
         // LTV is the ratio of the total debt to the total collateral, expressed as a percentage
         // The result is multiplied by 10000 to preserve precision
