@@ -82,7 +82,7 @@ async function deployFleet() {
   const config = getConfigByNetwork(network, { common: true, gov: true, core: true })
 
   // Determine if this is a hub or satellite chain
-  const isHubChain = network === 'base' || network === 'baseSepolia' // Adjust as needed
+  const isHubChain = network === 'base' || network === 'baseBummer'
   console.log(kleur.blue('Chain Type:'), isHubChain ? kleur.cyan('Hub') : kleur.cyan('Satellite'))
 
   console.log(kleur.green().bold('Starting Fleet deployment process...'))
@@ -142,6 +142,14 @@ async function deployFleet() {
         deployedFleet.fleetCommander.address,
         hre,
       )
+      for (const arkAddress of deployedArkAddresses) {
+        await grantCommanderRole(
+          config.deployedContracts.gov.protocolAccessManager.address as Address,
+          arkAddress,
+          deployedFleet.fleetCommander.address,
+          hre,
+        )
+      }
     } else {
       // Create governance proposal
       console.log(
@@ -336,7 +344,35 @@ async function createHubGovernanceProposal(
   config: BaseConfig,
   fleetDefinition: FleetConfig,
 ) {
-  const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+  // Check if we're on baseBummer network and load the proper config
+  let governorConfig = config
+
+  const hubChainResponse = await prompts({
+    type: 'select',
+    name: 'hubChain',
+    message: 'Select the hub chain:',
+    choices: [
+      { title: 'Base (Production)', value: 'base' },
+      { title: 'Base (Bummer)', value: 'baseBummer' },
+    ],
+  })
+
+  const hubChainName = hubChainResponse.hubChain
+
+  // Load the appropriate config based on the selection
+  let hubConfig: BaseConfig
+
+  if (hubChainName === 'baseBummer') {
+    // Load config from test file
+    const testConfigPath = path.resolve(__dirname, '../config/index.test.json')
+    const testConfig = JSON.parse(fs.readFileSync(testConfigPath, 'utf8'))
+    hubConfig = testConfig.base
+  } else {
+    // Use regular config
+    hubConfig = getConfigByNetwork(hubChainName, { common: true, gov: true, core: true })
+  }
+
+  const governorAddress = governorConfig.deployedContracts.gov.summerGovernor.address as Address
   const harborCommandAddress = config.deployedContracts.core.harborCommand.address as Address
   const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
     .address as Address
@@ -365,6 +401,20 @@ async function createHubGovernanceProposal(
       args: [bufferArkAddress, deployedFleet.fleetCommander.address],
     }) as Hex,
   )
+
+  // 2.1 Grant COMMANDER_ROLE to Fleet Commander for each Ark
+  for (const arkAddress of deployedArkAddresses) {
+    targets.push(protocolAccessManagerAddress)
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: parseAbi([
+          'function grantCommanderRole(address arkAddress, address account) external',
+        ]),
+        args: [arkAddress, deployedFleet.fleetCommander.address],
+      }) as Hex,
+    )
+  }
 
   // 3. Add each Ark to the Fleet Commander
   for (const arkAddress of deployedArkAddresses) {
@@ -471,13 +521,25 @@ async function createSatelliteGovernanceProposal(
     name: 'hubChain',
     message: 'Select the hub chain:',
     choices: [
-      { title: 'Base Mainnet', value: 'base' },
-      { title: 'Base Sepolia', value: 'baseSepolia' },
+      { title: 'Base (Production)', value: 'base' },
+      { title: 'Base (Bummer)', value: 'baseBummer' },
     ],
   })
 
   const hubChainName = hubChainResponse.hubChain
-  const hubConfig = getConfigByNetwork(hubChainName, { common: true, gov: true, core: true })
+
+  // Load the appropriate config based on the selection
+  let hubConfig: BaseConfig
+
+  if (hubChainName === 'baseBummer') {
+    // Load config from test file
+    const testConfigPath = path.resolve(__dirname, '../config/index.test.json')
+    const testConfig = JSON.parse(fs.readFileSync(testConfigPath, 'utf8'))
+    hubConfig = testConfig.base
+  } else {
+    // Use regular config
+    hubConfig = getConfigByNetwork(hubChainName, { common: true, gov: true, core: true })
+  }
 
   // 2. Set up clients for the hub chain
   console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(hubChainName))
@@ -504,6 +566,7 @@ async function createSatelliteGovernanceProposal(
   // 3.2 Grant COMMANDER_ROLE to Fleet Commander for BufferArk
   const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
     .address as Address
+
   dstTargets.push(protocolAccessManagerAddress)
   dstValues.push(0n)
   dstCalldatas.push(
@@ -521,6 +584,20 @@ async function createSatelliteGovernanceProposal(
       encodeFunctionData({
         abi: parseAbi(['function addArk(address ark) external']),
         args: [arkAddress],
+      }) as Hex,
+    )
+  }
+
+  // 3.4 Grant COMMANDER_ROLE to Fleet Commander for each Ark
+  for (const arkAddress of deployedArkAddresses) {
+    dstTargets.push(protocolAccessManagerAddress)
+    dstValues.push(0n)
+    dstCalldatas.push(
+      encodeFunctionData({
+        abi: parseAbi([
+          'function grantCommanderRole(address arkAddress, address account) external',
+        ]),
+        args: [arkAddress, deployedFleet.fleetCommander.address],
       }) as Hex,
     )
   }
