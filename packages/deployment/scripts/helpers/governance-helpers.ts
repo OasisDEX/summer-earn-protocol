@@ -24,12 +24,17 @@ export async function checkProposerTokenRequirements(): Promise<{
     const delegatedVotes = await sumrToken.read.getVotes([deployer.account.address])
     const totalVotingPower = BigInt(String(balance)) + BigInt(String(delegatedVotes))
 
-    const minRequiredTokens = 10000n * 10n ** 18n // 10,000 SUMR with 18 decimals
+    // Get the proposal threshold from the governor contract
+    const network = hre.network.name
+    const config = getConfigByNetwork(network, { common: true, gov: true, core: true })
+    const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+    const governor = await hre.viem.getContractAt('SummerGovernor' as string, governorAddress)
+    const minRequiredTokens = await governor.read.proposalThreshold()
 
     return {
-      hasEnoughTokens: totalVotingPower >= minRequiredTokens,
+      hasEnoughTokens: totalVotingPower >= BigInt(String(minRequiredTokens)),
       votingPower: formatEther(totalVotingPower),
-      requiredTokens: formatEther(minRequiredTokens),
+      requiredTokens: formatEther(BigInt(String(minRequiredTokens))),
     }
   } catch (error) {
     return {

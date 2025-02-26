@@ -608,7 +608,8 @@ async function createSatelliteGovernanceProposal(
   const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
   const srcTargets = [HUB_GOVERNOR_ADDRESS]
   const srcValues = [0n]
-  const lzOptions = constructLzOptions(300000n)
+  const ESTIMATED_GAS = 400000n
+  const lzOptions = constructLzOptions(ESTIMATED_GAS)
 
   const srcCalldatas = [
     encodeFunctionData({
