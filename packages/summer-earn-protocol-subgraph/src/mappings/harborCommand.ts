@@ -145,7 +145,6 @@ export function handleInterval(block: ethereum.Block): void {
       continue
     }
 
-    // Simple validation - ensure it starts with 0x and has correct length
     if (!vaults[i].startsWith('0x') || vaults[i].length != 42) {
       log.warning('Invalid vault address format at index ' + i.toString(), [])
       continue
@@ -154,7 +153,6 @@ export function handleInterval(block: ethereum.Block): void {
     const vaultAddress = Address.fromString(vaults[i])
     const vault = getOrCreateVault(vaultAddress, block)
 
-    // Validate vault exists and has required properties
     if (!vault || !vault.id) {
       log.warning('Invalid vault at address ' + vaultAddress.toHexString(), [])
       continue
