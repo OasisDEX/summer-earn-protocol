@@ -94,15 +94,18 @@ function processHourlyVaultUpdate(
       updateArkSnapshots(vaultAddress, arkAddress, block, dayPassed)
     }
 
-    const positions = vault.positions // Assuming you have a way to get positions related to the vault
-    for (let k = 0; k < positions.length; k++) {
-      const positionId = positions[k]
-      getOrCreatePositionHourlySnapshot(positionId, vaultAddress, block)
-      if (dayPassed) {
-        getOrCreatePositionDailySnapshot(positionId, vaultAddress, block)
-      }
-      if (weekPassed) {
-        getOrCreatePositionWeeklySnapshot(positionId, vaultAddress, block)
+    // Check if positions array exists and has elements before iterating
+    const positions = vault.positions
+    if (positions && positions.length > 0) {
+      for (let k = 0; k < positions.length; k++) {
+        const positionId = positions[k]
+        getOrCreatePositionHourlySnapshot(positionId, vaultAddress, block)
+        if (dayPassed) {
+          getOrCreatePositionDailySnapshot(positionId, vaultAddress, block)
+        }
+        if (weekPassed) {
+          getOrCreatePositionWeeklySnapshot(positionId, vaultAddress, block)
+        }
       }
     }
   }
