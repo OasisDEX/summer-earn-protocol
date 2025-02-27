@@ -720,16 +720,23 @@ export function getOrCreatePositionHourlySnapshot(
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
-    position.inputTokenBalance = position.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
-    position.stakedInputTokenBalance = position.stakedOutputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+    // Add safety check to prevent division by zero
+    if (vault.outputTokenSupply && vault.outputTokenSupply.gt(constants.BIGINT_ZERO)) {
+      position.inputTokenBalance = position.outputTokenBalance
+        .times(vault.inputTokenBalance)
+        .div(vault.outputTokenSupply)
+      position.stakedInputTokenBalance = position.stakedOutputTokenBalance
+        .times(vault.inputTokenBalance)
+        .div(vault.outputTokenSupply)
 
-    snapshot.inputTokenBalance = snapshot.outputTokenBalance
-      .times(vault.inputTokenBalance)
-      .div(vault.outputTokenSupply)
+      snapshot.inputTokenBalance = snapshot.outputTokenBalance
+        .times(vault.inputTokenBalance)
+        .div(vault.outputTokenSupply)
+    } else {
+      position.inputTokenBalance = constants.BIGINT_ZERO
+      position.stakedInputTokenBalance = constants.BIGINT_ZERO
+      snapshot.inputTokenBalance = constants.BIGINT_ZERO
+    }
 
     // Update normalized values
     position.inputTokenBalanceNormalized = utils.formatAmount(
@@ -740,15 +747,24 @@ export function getOrCreatePositionHourlySnapshot(
       position.stakedInputTokenBalance,
       BigInt.fromI32(inputToken.decimals),
     )
-    position.inputTokenBalanceNormalizedInUSD = position.inputTokenBalanceNormalized.times(
-      vault.inputTokenPriceUSD!,
-    )
-    position.stakedInputTokenBalanceNormalizedInUSD =
-      position.stakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
 
-    snapshot.inputTokenBalanceNormalizedInUSD = utils
-      .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
-      .times(vault.inputTokenPriceUSD!)
+    // Handle null values explicitly for type safety
+    if (vault.inputTokenPriceUSD) {
+      position.inputTokenBalanceNormalizedInUSD = position.inputTokenBalanceNormalized.times(
+        vault.inputTokenPriceUSD!,
+      )
+      position.stakedInputTokenBalanceNormalizedInUSD =
+        position.stakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
+
+      snapshot.inputTokenBalanceNormalizedInUSD = utils
+        .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
+        .times(vault.inputTokenPriceUSD!)
+    } else {
+      position.inputTokenBalanceNormalizedInUSD = constants.BIGDECIMAL_ZERO
+      position.stakedInputTokenBalanceNormalizedInUSD = constants.BIGDECIMAL_ZERO
+      snapshot.inputTokenBalanceNormalizedInUSD = constants.BIGDECIMAL_ZERO
+    }
+
     snapshot.inputTokenDeposits = position.inputTokenDeposits
     snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
     snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
