@@ -515,7 +515,6 @@ export function getOrCreateArk(
     ark.createdTimestamp = block.timestamp
     ark.lastUpdateTimestamp = block.timestamp
 
-    // Initialize arrays
     ark.rewardTokens = []
     ark.rewardTokenEmissionsAmount = []
     ark.rewardTokenEmissionsUSD = []
@@ -523,8 +522,12 @@ export function getOrCreateArk(
     ark.productId = productId ? productId : ''
     ark.save()
 
-    const arksArray = vault.arksArray
-    if (!arksArray.includes(ark.id)) {
+    let arksArray = vault.arksArray
+    if (!arksArray) {
+      arksArray = [ark.id]
+      vault.arksArray = arksArray
+      vault.save()
+    } else if (!arksArray.includes(ark.id)) {
       arksArray.push(ark.id)
       vault.arksArray = arksArray
       vault.save()

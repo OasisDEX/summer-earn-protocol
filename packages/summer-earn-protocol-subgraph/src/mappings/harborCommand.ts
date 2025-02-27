@@ -1,4 +1,4 @@
-import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
 import { YieldAggregator } from '../../generated/schema'
 import { BigIntConstants } from '../common/constants'
@@ -82,23 +82,36 @@ function processHourlyVaultUpdate(
   if (hourPassed) {
     const vault = getOrCreateVault(vaultAddress, block)
 
-    // Update main data
     updateVaultData(vaultAddress, block)
     updateVaultSnapshots(vaultAddress, block, dayPassed, weekPassed)
 
-    // Update associated arks
     const arks = vault.arksArray
-    for (let j = 0; j < arks.length; j++) {
-      const arkAddress = Address.fromString(arks[j])
-      updateArkData(vaultAddress, arkAddress, block)
-      updateArkSnapshots(vaultAddress, arkAddress, block, dayPassed)
+    if (arks && arks.length > 0) {
+      for (let j = 0; j < arks.length; j++) {
+        if (!arks[j]) {
+          log.warning('Empty ark ID at index ' + j.toString(), [])
+          continue
+        }
+
+        if (!arks[j].startsWith('0x') || arks[j].length != 42) {
+          log.warning('Invalid ark address format at index ' + j.toString(), [])
+          continue
+        }
+
+        const arkAddress = Address.fromString(arks[j])
+        updateArkData(vaultAddress, arkAddress, block)
+        updateArkSnapshots(vaultAddress, arkAddress, block, dayPassed)
+      }
     }
 
-    // Check if positions array exists and has elements before iterating
     const positions = vault.positions
     if (positions && positions.length > 0) {
       for (let k = 0; k < positions.length; k++) {
         const positionId = positions[k]
+        if (!positionId) {
+          log.warning('Empty position ID at index ' + k.toString(), [])
+          continue
+        }
         getOrCreatePositionHourlySnapshot(positionId, vaultAddress, block)
         if (dayPassed) {
           getOrCreatePositionDailySnapshot(positionId, vaultAddress, block)
@@ -112,11 +125,41 @@ function processHourlyVaultUpdate(
 }
 
 export function handleInterval(block: ethereum.Block): void {
+  if (!block || !block.timestamp) {
+    log.warning('Invalid block or timestamp in handleInterval', [])
+    return
+  }
+
   const protocol = getOrCreateYieldAggregator(block.timestamp)
 
+  if (!protocol || !protocol.vaultsArray) {
+    log.warning('Protocol or vaultsArray is null', [])
+    return
+  }
+
   const vaults = protocol.vaultsArray
+
   for (let i = 0; i < vaults.length; i++) {
+    if (!vaults[i]) {
+      log.warning('Empty vault ID at index ' + i.toString(), [])
+      continue
+    }
+
+    // Simple validation - ensure it starts with 0x and has correct length
+    if (!vaults[i].startsWith('0x') || vaults[i].length != 42) {
+      log.warning('Invalid vault address format at index ' + i.toString(), [])
+      continue
+    }
+
     const vaultAddress = Address.fromString(vaults[i])
+    const vault = getOrCreateVault(vaultAddress, block)
+
+    // Validate vault exists and has required properties
+    if (!vault || !vault.id) {
+      log.warning('Invalid vault at address ' + vaultAddress.toHexString(), [])
+      continue
+    }
+
     processHourlyVaultUpdate(
       vaultAddress,
       block,

@@ -52,9 +52,15 @@ export function updatePosition(positionDetails: PositionDetails, block: ethereum
     position.save()
 
     const vault = getOrCreateVault(Address.fromString(position.vault), block)
-    const positions = vault.positions
-    positions.push(position.id)
-    vault.positions = positions
-    vault.save()
+    let positions = vault.positions
+    if (!positions) {
+      positions = []
+    }
+
+    if (positions.indexOf(position.id) === -1) {
+      positions.push(position.id)
+      vault.positions = positions
+      vault.save()
+    }
   }
 }
