@@ -706,74 +706,68 @@ export function getOrCreatePositionHourlySnapshot(
   let snapshot = PositionHourlySnapshot.load(snapshotId)
 
   const vault = getOrCreateVault(vaultId, block)
-  const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
+
   if (!snapshot) {
     snapshot = new PositionHourlySnapshot(snapshotId)
     snapshot.position = positionId
-    snapshot.timestamp = hourTimestamp
-    snapshot.inputTokenBalance = constants.BIGINT_ZERO
-    snapshot.outputTokenBalance = constants.BIGINT_ZERO
+    snapshot.inputTokenBalance = constants.BigIntConstants.ZERO
+    snapshot.outputTokenBalance = constants.BigIntConstants.ZERO
+    snapshot.inputTokenDeposits = constants.BigIntConstants.ZERO
+    snapshot.inputTokenWithdrawals = constants.BigIntConstants.ZERO
+    snapshot.inputTokenDepositsNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    snapshot.inputTokenWithdrawalsNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    snapshot.inputTokenDepositsNormalized = constants.BigDecimalConstants.ZERO
+    snapshot.inputTokenWithdrawalsNormalized = constants.BigDecimalConstants.ZERO
+    snapshot.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
+    snapshot.inputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    snapshot.timestamp = block.timestamp
   }
 
-  // Update balances
   const position = Position.load(positionId)
   if (position) {
+    snapshot.inputTokenBalance = position.inputTokenBalance
     snapshot.outputTokenBalance = position.outputTokenBalance
 
-    // Add safety check to prevent division by zero
-    if (vault.outputTokenSupply && vault.outputTokenSupply.gt(constants.BIGINT_ZERO)) {
-      position.inputTokenBalance = position.outputTokenBalance
-        .times(vault.inputTokenBalance)
-        .div(vault.outputTokenSupply)
-      position.stakedInputTokenBalance = position.stakedOutputTokenBalance
-        .times(vault.inputTokenBalance)
-        .div(vault.outputTokenSupply)
-
-      snapshot.inputTokenBalance = snapshot.outputTokenBalance
-        .times(vault.inputTokenBalance)
-        .div(vault.outputTokenSupply)
-    } else {
-      position.inputTokenBalance = constants.BIGINT_ZERO
-      position.stakedInputTokenBalance = constants.BIGINT_ZERO
-      snapshot.inputTokenBalance = constants.BIGINT_ZERO
+    // Safe copying of values with null checks
+    if (position.inputTokenDeposits) {
+      snapshot.inputTokenDeposits = position.inputTokenDeposits
     }
 
-    // Update normalized values
-    position.inputTokenBalanceNormalized = utils.formatAmount(
-      position.inputTokenBalance,
-      BigInt.fromI32(inputToken.decimals),
-    )
-    position.stakedInputTokenBalanceNormalized = utils.formatAmount(
-      position.stakedInputTokenBalance,
-      BigInt.fromI32(inputToken.decimals),
-    )
-
-    // Handle null values explicitly for type safety
-    if (vault.inputTokenPriceUSD) {
-      position.inputTokenBalanceNormalizedInUSD = position.inputTokenBalanceNormalized.times(
-        vault.inputTokenPriceUSD!,
-      )
-      position.stakedInputTokenBalanceNormalizedInUSD =
-        position.stakedInputTokenBalanceNormalized.times(vault.inputTokenPriceUSD!)
-
-      snapshot.inputTokenBalanceNormalizedInUSD = utils
-        .formatAmount(snapshot.inputTokenBalance, BigInt.fromI32(inputToken.decimals))
-        .times(vault.inputTokenPriceUSD!)
-    } else {
-      position.inputTokenBalanceNormalizedInUSD = constants.BIGDECIMAL_ZERO
-      position.stakedInputTokenBalanceNormalizedInUSD = constants.BIGDECIMAL_ZERO
-      snapshot.inputTokenBalanceNormalizedInUSD = constants.BIGDECIMAL_ZERO
+    if (position.inputTokenWithdrawals) {
+      snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
     }
 
-    snapshot.inputTokenDeposits = position.inputTokenDeposits
-    snapshot.inputTokenWithdrawals = position.inputTokenWithdrawals
-    snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
-    snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
-    snapshot.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized
-    snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
-    snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
+    // Calculate price-based values safely with null check
+    const inputTokenPriceUSD = vault.inputTokenPriceUSD
+    if (inputTokenPriceUSD && position.inputTokenBalanceNormalized) {
+      snapshot.inputTokenBalanceNormalizedInUSD =
+        position.inputTokenBalanceNormalized.times(inputTokenPriceUSD)
+    } else {
+      snapshot.inputTokenBalanceNormalizedInUSD = constants.BigDecimalConstants.ZERO
+    }
 
-    position.save()
+    // Copy normalized values safely
+    if (position.inputTokenDepositsNormalized) {
+      snapshot.inputTokenDepositsNormalized = position.inputTokenDepositsNormalized
+    }
+
+    if (position.inputTokenWithdrawalsNormalized) {
+      snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
+    }
+
+    if (position.inputTokenBalanceNormalized) {
+      snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
+    }
+
+    if (position.inputTokenDepositsNormalizedInUSD) {
+      snapshot.inputTokenDepositsNormalizedInUSD = position.inputTokenDepositsNormalizedInUSD
+    }
+
+    if (position.inputTokenWithdrawalsNormalizedInUSD) {
+      snapshot.inputTokenWithdrawalsNormalizedInUSD = position.inputTokenWithdrawalsNormalizedInUSD
+    }
+
+    snapshot.timestamp = block.timestamp
   }
 
   snapshot.save()
