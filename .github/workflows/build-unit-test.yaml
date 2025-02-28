@@ -44,6 +44,8 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly-2024-12-28
 
       - name: Prebuild
         run: pnpm prebuild
