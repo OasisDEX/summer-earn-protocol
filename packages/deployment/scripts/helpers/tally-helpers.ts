@@ -35,6 +35,8 @@ export async function createTallyProposal(
     throw new Error('TALLY_API_KEY environment variable is not set')
   }
 
+  throw new Error('Tally api mutations not supported yet')
+
   const query = `
     mutation CreateTallyProposal($input: CreateProposalInput!) {
       createProposal(input: $input) {
