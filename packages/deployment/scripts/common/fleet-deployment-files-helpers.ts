@@ -1,5 +1,7 @@
+import kleur from 'kleur'
 import fs from 'node:fs'
 import path from 'node:path'
+import prompts from 'prompts'
 import { FleetConfig, FleetDeployment } from '../../types/config-types'
 
 /**
@@ -61,4 +63,53 @@ export function getFleetConfigDir() {
  */
 export function getFleetDeploymentPath(fleetDeployment: FleetDeployment | FleetConfig) {
   return path.join(getFleetDeploymentDir(), getFleetDeploymentFileName(fleetDeployment))
+}
+
+/**
+ * Prompts the user for the fleet definition file and loads it.
+ * @returns The loaded fleet definition object.
+ */
+export async function getFleetConfig(): Promise<FleetConfig> {
+  const fleetsDir = getFleetConfigDir()
+  const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
+
+  if (fleetFiles.length === 0) {
+    throw new Error('No fleet config files found in the fleets directory.')
+  }
+
+  const response = await prompts({
+    type: 'select',
+    name: 'fleetConfigFile',
+    message: 'Select the fleet config file:',
+    choices: fleetFiles.map((file) => ({ title: file, value: file })),
+  })
+
+  const fleetConfigPath = path.resolve(fleetsDir, response.fleetConfigFile)
+  console.log(kleur.green(`Loading fleet config from: ${fleetConfigPath}`))
+  const fleetConfig = loadFleetConfig(fleetConfigPath)
+  return { ...fleetConfig, details: JSON.stringify(fleetConfig.details) }
+}
+
+export function loadFleetConfig(filePath: string): FleetConfig {
+  const fullPath = path.resolve(filePath)
+  if (!fs.existsSync(fullPath)) {
+    throw new Error(`Fleet definition file not found: ${fullPath}`)
+  }
+
+  const fileContent = fs.readFileSync(fullPath, 'utf8')
+  const fleetConfig = JSON.parse(fileContent) as FleetConfig
+  if (
+    !fleetConfig.fleetName ||
+    !fleetConfig.symbol ||
+    !fleetConfig.assetSymbol ||
+    !fleetConfig.initialMinimumBufferBalance ||
+    !fleetConfig.initialRebalanceCooldown ||
+    !fleetConfig.depositCap ||
+    !fleetConfig.initialTipRate ||
+    !fleetConfig.network ||
+    fleetConfig.details === undefined
+  ) {
+    throw new Error(`Fleet config file is missing required fields: ${fullPath}`)
+  }
+  return fleetConfig
 }

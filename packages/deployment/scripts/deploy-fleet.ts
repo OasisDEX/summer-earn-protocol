@@ -1,7 +1,5 @@
-import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
-import path from 'path'
 import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
@@ -9,12 +7,12 @@ import { BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { deployArk } from './common/ark-deployment'
 import { GOVERNOR_ROLE, HUB_CHAIN_ID, HUB_CHAIN_NAME } from './common/constants'
-import { getFleetConfigDir } from './common/fleet-deployment-files-helpers'
+import { getFleetConfig } from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
 import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
+import { warnIfTenderlyVirtualTestnet } from './common/tenderly-helpers'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { loadFleetConfig } from './helpers/fleet-definition-handler'
 import { getChainId } from './helpers/get-chainid'
 import { hashDescription } from './helpers/hash-description'
 import { constructLzOptions } from './helpers/layerzero-options'
@@ -86,6 +84,26 @@ async function deployFleet() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
 
+  // Check if using Tenderly virtual testnet
+  const isTenderly = warnIfTenderlyVirtualTestnet(
+    'Deployments on Tenderly virtual testnets are temporary and will be lost when the session ends. Consider using a persistent testnet for actual deployments.',
+  )
+
+  if (isTenderly) {
+    // Maybe ask for confirmation before proceeding
+    const response = await prompts({
+      type: 'confirm',
+      name: 'continue',
+      message: 'Do you want to continue with deployment on this Tenderly virtual testnet?',
+      initial: false,
+    })
+
+    if (!response.continue) {
+      console.log(kleur.red('Deployment cancelled.'))
+      return
+    }
+  }
+
   // Ask about using bummer config at the beginning
   const configResponse = await prompts({
     type: 'select',
@@ -99,17 +117,33 @@ async function deployFleet() {
 
   const useBummerConfig = configResponse.configType
 
+  if (useBummerConfig && !isTenderly) {
+    console.log(kleur.red('Bummer config is only available on Tenderly virtual testnets.'))
+
+    return
+  }
+
+  const configForGovernance = getConfigByNetwork(network, { gov: true }, useBummerConfig)
+
+  const configForCore = getConfigByNetwork(
+    network,
+    { core: true },
+    // useBummerConfig, // Bummer core was never deployed
+  )
+
+  // Combine the two configs
+  // Note: We throw if tenderly virtual testnet is NOT detected when using bummer config
+  // This is to prevent accidental changes to our primary deployment config
+  const config = {
+    ...configForGovernance,
+    ...configForCore,
+  }
+
   // Determine if this is a hub or satellite chain
   const isHubChain = network === HUB_CHAIN_NAME
   console.log(kleur.blue('Chain Type:'), isHubChain ? kleur.cyan('Hub') : kleur.cyan('Satellite'))
 
   console.log(kleur.green().bold('Starting Fleet deployment process...'))
-
-  const config = getConfigByNetwork(
-    network,
-    { common: true, gov: true, core: true },
-    useBummerConfig,
-  )
 
   const fleetDefinition = await getFleetConfig()
   validateToken(config, fleetDefinition.assetSymbol)
@@ -197,6 +231,7 @@ async function deployFleet() {
           config,
           fleetDefinition,
           useBummerConfig,
+          isTenderly,
         )
       }
     }
@@ -205,31 +240,6 @@ async function deployFleet() {
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
-}
-
-/**
- * Prompts the user for the fleet definition file and loads it.
- * @returns The loaded fleet definition object.
- */
-async function getFleetConfig(): Promise<FleetConfig> {
-  const fleetsDir = getFleetConfigDir()
-  const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
-
-  if (fleetFiles.length === 0) {
-    throw new Error('No fleet config files found in the fleets directory.')
-  }
-
-  const response = await prompts({
-    type: 'select',
-    name: 'fleetConfigFile',
-    message: 'Select the fleet config file:',
-    choices: fleetFiles.map((file) => ({ title: file, value: file })),
-  })
-
-  const fleetConfigPath = path.resolve(fleetsDir, response.fleetConfigFile)
-  console.log(kleur.green(`Loading fleet config from: ${fleetConfigPath}`))
-  const fleetConfig = loadFleetConfig(fleetConfigPath)
-  return { ...fleetConfig, details: JSON.stringify(fleetConfig.details) }
 }
 
 /**
@@ -484,15 +494,28 @@ async function createSatelliteGovernanceProposal(
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
+  isTenderlyVirtualTestnet: boolean,
 ) {
   console.log(kleur.yellow('Creating cross-chain governance proposal...'))
 
-  // Load the hub chain config with the same bummer setting
-  const hubConfig = getConfigByNetwork(
+  if (!isTenderlyVirtualTestnet && useBummerConfig) {
+    throw new Error('Bummer config is only available on Tenderly virtual testnets.')
+  }
+  const hubConfigForGovernance = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true }, useBummerConfig)
+
+  const hubConfigForCore = getConfigByNetwork(
     HUB_CHAIN_NAME,
-    { common: true, gov: true, core: true },
-    useBummerConfig,
+    { core: true },
+    // useBummerConfig, // Bummer core was never deployed
   )
+
+  // Combine the two configs
+  // Note: We throw if tenderly virtual testnet is NOT detected when using bummer config
+  // This is to prevent accidental changes to our primary deployment config
+  const hubConfig = {
+    ...hubConfigForGovernance,
+    ...hubConfigForCore,
+  }
 
   // 2. Set up clients for the hub chain
   console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))

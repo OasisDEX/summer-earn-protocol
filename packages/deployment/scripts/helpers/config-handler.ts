@@ -7,9 +7,9 @@ import { BaseConfig, Config } from '../../types/config-types'
 import { validateAddress, validateNumber } from './validation'
 
 type ValidateConfig = {
-  common: boolean
-  gov: boolean
-  core: boolean
+  common?: boolean
+  gov?: boolean
+  core?: boolean
 }
 
 /**
