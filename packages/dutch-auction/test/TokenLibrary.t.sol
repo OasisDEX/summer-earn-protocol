@@ -195,7 +195,7 @@ contract TokenLibraryTest is Test {
         // Converting max uint256 from 0 decimals to 18 decimals should overflow
         // Instead of using vm.expectRevert, let's check if it's correctly handled
         try this.convertDecimalsWrapper(maxUint, 0, 18) {
-            fail("Should have reverted due to overflow");
+            fail();
         } catch {
             // This is expected to fail, so test passes
         }
