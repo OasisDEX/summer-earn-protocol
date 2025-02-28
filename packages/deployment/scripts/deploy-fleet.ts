@@ -13,14 +13,21 @@ import { getFleetConfigDir } from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
 import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
 import { getConfigByNetwork } from './helpers/config-handler'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from './helpers/constants'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { loadFleetConfig } from './helpers/fleet-definition-handler'
 import { getChainId } from './helpers/get-chainid'
-import { submitProposal } from './helpers/governance-helpers'
 import { hashDescription } from './helpers/hash-description'
 import { constructLzOptions } from './helpers/layerzero-options'
 import { ModuleLogger } from './helpers/module-logger'
 import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import {
+  CrossChainContent,
+  generateFleetProposalDescription,
+  SingleChainContent,
+} from './helpers/proposal-helpers'
+import { createTallyProposal, formatTallyProposalUrl } from './helpers/tally-helpers'
+import { getAssetAddress } from './helpers/token-helpers'
 import { validateToken } from './helpers/validation'
 
 /**
@@ -79,13 +86,31 @@ async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Pro
 async function deployFleet() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
-  const config = getConfigByNetwork(network, { common: true, gov: true, core: true })
+
+  // Ask about using bummer config at the beginning
+  const configResponse = await prompts({
+    type: 'select',
+    name: 'configType',
+    message: 'Select the configuration to use:',
+    choices: [
+      { title: 'Production Config', value: false },
+      { title: 'Bummer/Test Config', value: true },
+    ],
+  })
+
+  const useBummerConfig = configResponse.configType
 
   // Determine if this is a hub or satellite chain
-  const isHubChain = network === 'base' || network === 'baseBummer'
+  const isHubChain = network === HUB_CHAIN_NAME
   console.log(kleur.blue('Chain Type:'), isHubChain ? kleur.cyan('Hub') : kleur.cyan('Satellite'))
 
   console.log(kleur.green().bold('Starting Fleet deployment process...'))
+
+  const config = getConfigByNetwork(
+    network,
+    { common: true, gov: true, core: true },
+    useBummerConfig,
+  )
 
   const fleetDefinition = await getFleetConfig()
   validateToken(config, fleetDefinition.assetSymbol)
@@ -163,6 +188,7 @@ async function deployFleet() {
           deployedArkAddresses,
           config,
           fleetDefinition,
+          useBummerConfig,
         )
       } else {
         await createSatelliteGovernanceProposal(
@@ -171,6 +197,7 @@ async function deployFleet() {
           deployedArkAddresses,
           config,
           fleetDefinition,
+          useBummerConfig,
         )
       }
     }
@@ -204,21 +231,6 @@ async function getFleetConfig(): Promise<FleetConfig> {
   console.log(kleur.green(`Loading fleet config from: ${fleetConfigPath}`))
   const fleetConfig = loadFleetConfig(fleetConfigPath)
   return { ...fleetConfig, details: JSON.stringify(fleetConfig.details) }
-}
-
-/**
- * Retrieves the asset address from the config based on the asset symbol.
- * @param {string} assetSymbol - The symbol of the asset.
- * @param {BaseConfig} config - The configuration object.
- * @returns {string} The address of the asset.
- * @throws {Error} If the asset symbol is not found in the config.
- */
-function getAssetAddress(assetSymbol: string, config: BaseConfig): string {
-  const assetSymbolLower = assetSymbol.toLowerCase() as keyof typeof config.tokens
-  if (!Object.keys(config.tokens).includes(assetSymbolLower)) {
-    throw new Error(`No token address for symbol ${assetSymbol} found in config`)
-  }
-  return config.tokens[assetSymbolLower]
 }
 
 /**
@@ -343,36 +355,10 @@ async function createHubGovernanceProposal(
   deployedArkAddresses: Address[],
   config: BaseConfig,
   fleetDefinition: FleetConfig,
+  useBummerConfig: boolean,
 ) {
-  // Check if we're on baseBummer network and load the proper config
-  let governorConfig = config
-
-  const hubChainResponse = await prompts({
-    type: 'select',
-    name: 'hubChain',
-    message: 'Select the hub chain:',
-    choices: [
-      { title: 'Base (Production)', value: 'base' },
-      { title: 'Base (Bummer)', value: 'baseBummer' },
-    ],
-  })
-
-  const hubChainName = hubChainResponse.hubChain
-
-  // Load the appropriate config based on the selection
-  let hubConfig: BaseConfig
-
-  if (hubChainName === 'baseBummer') {
-    // Load config from test file
-    const testConfigPath = path.resolve(__dirname, '../config/index.test.json')
-    const testConfig = JSON.parse(fs.readFileSync(testConfigPath, 'utf8'))
-    hubConfig = testConfig.base
-  } else {
-    // Use regular config
-    hubConfig = getConfigByNetwork(hubChainName, { common: true, gov: true, core: true })
-  }
-
-  const governorAddress = governorConfig.deployedContracts.gov.summerGovernor.address as Address
+  // Use the correct governor address from the config
+  const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
   const harborCommandAddress = config.deployedContracts.core.harborCommand.address as Address
   const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
     .address as Address
@@ -428,76 +414,56 @@ async function createHubGovernanceProposal(
     )
   }
 
-  const description = `Activate ${fleetDefinition.fleetName} Fleet with ${deployedArkAddresses.length} Arks`
-
-  // Submit the proposal
+  // Replace the try/catch block for proposal submission with Tally API usage
   try {
-    const publicClient = await hre.viem.getPublicClient()
-    const [walletClient] = await hre.viem.getWalletClients()
-
-    console.log(kleur.cyan('Creating governance proposal with the following actions:'))
+    console.log(kleur.cyan('Creating Tally draft proposal with the following actions:'))
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
     console.log(kleur.yellow('- Grant COMMANDER_ROLE to Fleet Commander for BufferArk'))
     console.log(kleur.yellow(`- Add ${deployedArkAddresses.length} Arks to the Fleet`))
 
-    const governorAbi = parseAbi([
-      'function propose(address[] targets, uint256[] values, bytes[] calldatas, string description) public returns (uint256)',
-      'function hashProposal(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) public pure returns (uint256)',
-    ])
+    const proposalContent = generateFleetProposalDescription(
+      deployedFleet,
+      fleetDefinition,
+      deployedArkAddresses,
+      bufferArkAddress,
+      false, // isCrossChain
+      hre.network.name, // targetChain
+      HUB_CHAIN_NAME + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
+    ) as SingleChainContent
 
-    const hash = await walletClient.writeContract({
-      address: governorAddress,
-      abi: governorAbi,
-      functionName: 'propose',
-      args: [targets, values, calldatas, description],
-      gas: 500000n,
-      maxFeePerGas: await publicClient.getGasPrice(),
-    })
+    // Generate proposal details - use the correct chain ID based on whether we're using bummer config
+    const chainId = HUB_CHAIN_ID
+    const governorId = `eip155:${chainId}:${governorAddress}`
+    const title = proposalContent.sourceTitle
 
-    console.log(kleur.green('Proposal submitted. Transaction hash:'), kleur.cyan(hash))
+    // Create executable calls array for Tally
+    const executableCalls = targets.map((target, index) => ({
+      target,
+      calldata: calldatas[index],
+      signature: '',
+      value: values[index].toString(),
+      type: 'custom',
+    }))
 
-    // Wait for the transaction to be mined
-    const receipt = await publicClient.waitForTransactionReceipt({ hash })
-    console.log(
-      kleur.green('Proposal transaction mined. Block number:'),
-      kleur.cyan(receipt.blockNumber.toString()),
+    // Submit to Tally API
+    const response = await createTallyProposal(
+      governorId,
+      title,
+      proposalContent.sourceDescription,
+      executableCalls,
     )
 
-    // Get the proposal ID
-    const proposalId = await publicClient.readContract({
-      address: governorAddress,
-      abi: governorAbi,
-      functionName: 'hashProposal',
-      args: [targets, values, calldatas, hashDescription(description)],
-    })
+    // Get proposal ID and display URL
+    const proposalId = response.data.createProposal.id
+    console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
+    const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
+    console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
 
-    console.log(kleur.green('Proposal ID:'), kleur.cyan(proposalId.toString()))
     console.log(kleur.yellow('The fleet will be activated once this proposal is executed.'))
-
-    try {
-      await submitProposal({
-        title: `Deploy Fleet: ${fleetDefinition.fleetName}`,
-        description: generateProposalDescription(
-          deployedFleet,
-          fleetDefinition,
-          deployedArkAddresses,
-          bufferArkAddress,
-        ),
-        targets,
-        values,
-        calldatas,
-        governorAddress,
-      })
-    } catch (error) {
-      console.error(kleur.red('Failed to create Tally draft proposal:'), error)
-    }
   } catch (error: any) {
-    console.error(kleur.red('Error submitting proposal:'), error)
-    if (error.cause) {
-      console.error(kleur.red('Error cause:'), error.cause)
-      if (error.cause.data) {
-        console.error(kleur.red('Error data:'), error.cause.data)
-      }
+    console.error(kleur.red('Error creating Tally draft proposal:'), error)
+    if (error.response) {
+      console.error(kleur.red('Error response:'), error.response.data)
     }
   }
 }
@@ -511,38 +477,23 @@ async function createSatelliteGovernanceProposal(
   deployedArkAddresses: Address[],
   config: BaseConfig,
   fleetDefinition: FleetConfig,
+  useBummerConfig: boolean,
 ) {
   console.log(kleur.yellow('Creating cross-chain governance proposal...'))
 
-  // For cross-chain proposals, we need to:
-  // 1. Prompt for hub chain details
-  const hubChainResponse = await prompts({
-    type: 'select',
-    name: 'hubChain',
-    message: 'Select the hub chain:',
-    choices: [
-      { title: 'Base (Production)', value: 'base' },
-      { title: 'Base (Bummer)', value: 'baseBummer' },
-    ],
-  })
-
-  const hubChainName = hubChainResponse.hubChain
-
-  // Load the appropriate config based on the selection
-  let hubConfig: BaseConfig
-
-  if (hubChainName === 'baseBummer') {
-    // Load config from test file
-    const testConfigPath = path.resolve(__dirname, '../config/index.test.json')
-    const testConfig = JSON.parse(fs.readFileSync(testConfigPath, 'utf8'))
-    hubConfig = testConfig.base
-  } else {
-    // Use regular config
-    hubConfig = getConfigByNetwork(hubChainName, { common: true, gov: true, core: true })
-  }
+  // Load the hub chain config with the same bummer setting
+  const hubConfig = getConfigByNetwork(
+    HUB_CHAIN_NAME,
+    { common: true, gov: true, core: true },
+    useBummerConfig,
+  )
 
   // 2. Set up clients for the hub chain
-  console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(hubChainName))
+  console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))
+  console.log(
+    kleur.blue('Using config:'),
+    useBummerConfig ? kleur.cyan('Bummer/Test') : kleur.cyan('Production'),
+  )
 
   // Get current chain's endpoint ID
   const currentChainEndpointId = config.common.layerZero.eID
@@ -602,10 +553,24 @@ async function createSatelliteGovernanceProposal(
     )
   }
 
-  const dstDescription = `Activate ${fleetDefinition.fleetName} Fleet with ${deployedArkAddresses.length} Arks`
+  const proposalDescriptions = generateFleetProposalDescription(
+    deployedFleet,
+    fleetDefinition,
+    deployedArkAddresses,
+    bufferArkAddress,
+    true, // isCrossChain
+    hre.network.name, // targetChain
+    HUB_CHAIN_NAME + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
+  ) as CrossChainContent
+
+  const dstDescription = proposalDescriptions.destinationDescription
+  const srcDescription = proposalDescriptions.sourceDescription
+  const title = proposalDescriptions.sourceTitle
 
   // 4. Prepare the source (hub) proposal
   const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  console.log(kleur.blue('Using hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
+
   const srcTargets = [HUB_GOVERNOR_ADDRESS]
   const srcValues = [0n]
   const ESTIMATED_GAS = 400000n
@@ -627,9 +592,7 @@ async function createSatelliteGovernanceProposal(
     }) as Hex,
   ]
 
-  const srcDescription = `Cross-chain proposal: ${dstDescription}`
-
-  // 5. Submit the hub proposal
+  // 5. Create Tally draft proposal
   try {
     console.log(kleur.cyan('Creating cross-chain governance proposal with the following actions:'))
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
@@ -638,62 +601,41 @@ async function createSatelliteGovernanceProposal(
 
     console.log(kleur.blue('Hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
-    const hubProposalTitle = `Cross-chain Proposal: Deploy ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
+    // Generate proposal details - use the correct chain ID based on whether we're using bummer config
+    const governorId = `eip155:${HUB_CHAIN_ID}:${HUB_GOVERNOR_ADDRESS}`
 
-    // Generate full proposal description with more context
-    const proposalDescription = `# Cross-chain Fleet Deployment Proposal
+    // Create executable calls array for Tally
+    const executableCalls = srcTargets.map((target, index) => ({
+      target,
+      calldata: srcCalldatas[index],
+      signature: '',
+      value: srcValues[index].toString(),
+      type: 'custom',
+    }))
 
-## Summary
-This is a cross-chain governance proposal to activate the ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
+    // Submit to Tally API
+    try {
+      const response = await createTallyProposal(governorId, title, srcDescription, executableCalls)
 
-## Technical Details
-- Hub Chain: ${hubChainName}
-- Target Chain: ${hre.network.name}
-- Fleet Commander: ${deployedFleet.fleetCommander.address}
-- Buffer Ark: ${bufferArkAddress}
-- Number of Arks: ${deployedArkAddresses.length}
+      // Get proposal ID and display URL
+      const proposalId = response.data.createProposal.id
+      console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
+      const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
+      console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
+      console.log(kleur.yellow('The fleet will be activated once this proposal is executed.'))
+    } catch (error: any) {
+      console.error(kleur.red('Error creating Tally draft proposal:'), error)
+      if (error.response) {
+        console.error(kleur.red('Error response:'), error.response.data)
+      }
 
-## Actions
-This proposal will execute the following actions on ${hre.network.name}:
-1. Add Fleet to Harbor Command
-2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
-3. Add ${deployedArkAddresses.length} Arks to the Fleet
-
-## Cross-chain Mechanism
-This proposal uses LayerZero to execute governance actions across chains.`
-
-    console.log(kleur.blue('\nOptions for proceeding:'))
-    console.log(kleur.yellow('1. Submit this proposal on the hub chain directly'))
-    console.log(kleur.yellow('2. Note the details for manual submission'))
-
-    const submitResponse = await prompts({
-      type: 'select',
-      name: 'option',
-      message: 'How would you like to proceed?',
-      choices: [
-        { title: 'Submit proposal on hub chain', value: 'submit' },
-        { title: 'Just show details for manual submission', value: 'manual' },
-      ],
-    })
-
-    if (submitResponse.option === 'submit') {
-      // Submit the proposal using our helper
-      await submitProposal({
-        title: hubProposalTitle,
-        description: proposalDescription,
-        targets: srcTargets,
-        values: srcValues,
-        calldatas: srcCalldatas,
-        governorAddress: HUB_GOVERNOR_ADDRESS,
-      })
-    } else {
-      // Just display the details for manual submission
+      // Fall back to showing manual submission details
       console.log(kleur.yellow('\nProposal details for manual submission:'))
       console.log(kleur.blue('Governor Address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
       console.log(kleur.blue('Targets:'), kleur.cyan(JSON.stringify(srcTargets)))
       console.log(kleur.blue('Values:'), kleur.cyan(srcValues.toString()))
       console.log(kleur.blue('Calldatas:'))
-      srcCalldatas.forEach((data, i) => {
+      srcCalldatas.forEach((data) => {
         console.log(kleur.cyan(data))
       })
       console.log(kleur.blue('Description:'), kleur.cyan(srcDescription))
@@ -702,38 +644,6 @@ This proposal uses LayerZero to execute governance actions across chains.`
   } catch (error: any) {
     console.error(kleur.red('Error preparing cross-chain proposal:'), error)
   }
-}
-
-/**
- * Generate a formatted description for a fleet deployment proposal
- */
-function generateProposalDescription(
-  deployedFleet: FleetContracts,
-  fleetDefinition: FleetConfig,
-  deployedArkAddresses: Address[],
-  bufferArkAddress: Address,
-): string {
-  return `# Fleet Deployment: ${fleetDefinition.fleetName}
-
-## Summary
-This proposal activates the ${fleetDefinition.fleetName} Fleet (${fleetDefinition.symbol}).
-
-## Technical Details
-- Fleet Commander: ${deployedFleet.fleetCommander.address}
-- Buffer Ark: ${bufferArkAddress}
-- Number of Arks: ${deployedArkAddresses.length}
-
-## Actions
-1. Add Fleet to Harbor Command
-2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
-3. Add ${deployedArkAddresses.length} Arks to the Fleet
-
-## Fleet Configuration
-- Deposit Cap: ${fleetDefinition.depositCap}
-- Initial Minimum Buffer Balance: ${fleetDefinition.initialMinimumBufferBalance}
-- Initial Rebalance Cooldown: ${fleetDefinition.initialRebalanceCooldown}
-- Initial Tip Rate: ${fleetDefinition.initialTipRate}
-`
 }
 
 // Execute the deployFleet function and handle any errors
