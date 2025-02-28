@@ -21,6 +21,7 @@ interface TallyExecutableCall {
  * @param title The proposal title
  * @param description The proposal description in markdown format
  * @param executableCalls Array of executable calls for the proposal
+ * @param discourseURL Optional URL to a Discourse discussion about the proposal
  * @returns The response from Tally API including the proposal ID
  */
 export async function createTallyProposal(
@@ -28,6 +29,7 @@ export async function createTallyProposal(
   title: string,
   description: string,
   executableCalls: TallyExecutableCall[],
+  discourseURL: string = '',
 ): Promise<any> {
   if (!TALLY_API_KEY) {
     throw new Error('TALLY_API_KEY environment variable is not set')
@@ -51,7 +53,7 @@ export async function createTallyProposal(
       description,
       executableCalls,
       snapshotURL: '',
-      discourseURL: '',
+      discourseURL,
     },
   }
 
@@ -59,6 +61,9 @@ export async function createTallyProposal(
   console.log('Governor ID:', governorId)
   console.log('Title:', title)
   console.log('Number of executable calls:', executableCalls.length)
+  if (discourseURL) {
+    console.log('Discourse URL:', discourseURL)
+  }
 
   try {
     const response = await fetch(TALLY_API_URL, {

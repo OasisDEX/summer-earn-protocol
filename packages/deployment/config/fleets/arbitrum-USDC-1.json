@@ -1,0 +1,45 @@
+{
+  "fleetName": "LazyVault_LowerRisk_USDC",
+  "symbol": "LVUSDC",
+  "assetSymbol": "USDC",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "100000000",
+  "initialTipRate": "1000000000000000000",
+  "network": "arbitrum",
+  "details": "",
+  "discourseURL": "https://forum.summer.fi/t/sip1-x-onboard-usdc-vault-onto-arbitrum/89",
+  "sipNumber": "1",
+  "arks": [
+    {
+      "type": "AaveV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "aaveV3"
+      }
+    },
+    {
+      "type": "CompoundV3Ark",
+      "params": {
+        "asset": "USDC",
+        "protocol": "compoundV3"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Fluid",
+        "protocol": "erc4626"
+      }
+    },
+    {
+      "type": "ERC4626Ark",
+      "params": {
+        "asset": "USDC",
+        "vaultName": "Gearbox",
+        "protocol": "erc4626"
+      }
+    }
+  ]
+}

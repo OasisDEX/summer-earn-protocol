@@ -32,26 +32,30 @@ export function generateFleetProposalDescription(
   targetChain?: string,
   hubChain?: string,
 ): SingleChainContent | CrossChainContent {
-  const sourceTitle = `${isCrossChain ? 'Cross-chain ' : ''}Fleet Deployment: ${fleetDefinition.fleetName} on ${targetChain}`
+  const sourceTitle = `SIP2.${fleetDefinition.sipNumber || 'X'}: ${isCrossChain ? 'Cross-chain ' : ''}Fleet Deployment: ${fleetDefinition.fleetName} on ${targetChain}`
 
   // Standard description for the destination chain (or single-chain proposal)
-  const standardDescription = `# Fleet Deployment: ${fleetDefinition.fleetName}
+  const standardDescription = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Fleet Deployment: ${fleetDefinition.fleetName}
 
 ## Summary
 This proposal activates the ${fleetDefinition.fleetName} Fleet (${fleetDefinition.symbol}).
+
+## Motivation
+This fleet deployment will expand the protocol's capabilities by adding ${deployedArkAddresses.length} new Arks to the ecosystem.
 
 ## Technical Details
 - Fleet Commander: ${deployedFleet.fleetCommander.address}
 - Buffer Ark: ${bufferArkAddress}
 - Number of Arks: ${deployedArkAddresses.length}
 
-## Actions
+## Specifications
+### Actions
 1. Add Fleet to Harbor Command
 2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
 3. Add ${deployedArkAddresses.length} Arks to the Fleet
 4. Grant COMMANDER_ROLE to Fleet Commander for each Ark
 
-## Fleet Configuration
+### Fleet Configuration
 - Deposit Cap: ${fleetDefinition.depositCap}
 - Initial Minimum Buffer Balance: ${fleetDefinition.initialMinimumBufferBalance}
 - Initial Rebalance Cooldown: ${fleetDefinition.initialRebalanceCooldown}
@@ -73,10 +77,13 @@ This proposal activates the ${fleetDefinition.fleetName} Fleet (${fleetDefinitio
   const destinationDescription = standardDescription
 
   // Source chain description (what will be shown on the hub chain)
-  const sourceDescription = `# Cross-chain Fleet Deployment Proposal
+  const sourceDescription = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Cross-chain Fleet Deployment Proposal
 
 ## Summary
 This is a cross-chain governance proposal to activate the ${fleetDefinition.fleetName} Fleet on ${targetChain}.
+
+## Motivation
+This cross-chain fleet deployment will expand the protocol's capabilities across multiple networks, enhancing interoperability and user access.
 
 ## Technical Details
 - Hub Chain: ${hubChain}
@@ -85,17 +92,18 @@ This is a cross-chain governance proposal to activate the ${fleetDefinition.flee
 - Buffer Ark: ${bufferArkAddress}
 - Number of Arks: ${deployedArkAddresses.length}
 
-## Actions
+## Specifications
+### Actions
 This proposal will execute the following actions on ${targetChain}:
 1. Add Fleet to Harbor Command
 2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
 3. Add ${deployedArkAddresses.length} Arks to the Fleet
 4. Grant COMMANDER_ROLE to Fleet Commander for each Ark
 
-## Cross-chain Mechanism
+### Cross-chain Mechanism
 This proposal uses LayerZero to execute governance actions across chains.
 
-## Fleet Configuration
+### Fleet Configuration
 - Deposit Cap: ${fleetDefinition.depositCap}
 - Initial Minimum Buffer Balance: ${fleetDefinition.initialMinimumBufferBalance}
 - Initial Rebalance Cooldown: ${fleetDefinition.initialRebalanceCooldown}

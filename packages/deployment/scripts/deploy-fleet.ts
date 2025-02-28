@@ -8,12 +8,11 @@ import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { deployArk } from './common/ark-deployment'
-import { GOVERNOR_ROLE } from './common/constants'
+import { GOVERNOR_ROLE, HUB_CHAIN_ID, HUB_CHAIN_NAME } from './common/constants'
 import { getFleetConfigDir } from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
 import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
 import { getConfigByNetwork } from './helpers/config-handler'
-import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from './helpers/constants'
 import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { loadFleetConfig } from './helpers/fleet-definition-handler'
 import { getChainId } from './helpers/get-chainid'
@@ -235,10 +234,10 @@ async function getFleetConfig(): Promise<FleetConfig> {
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {any} fleetDefinition - The fleet definition object.
+ * @param {FleetConfig} fleetDefinition - The fleet definition object.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
+async function confirmDeployment(fleetDefinition: FleetConfig): Promise<boolean> {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
@@ -445,12 +444,19 @@ async function createHubGovernanceProposal(
       type: 'custom',
     }))
 
-    // Submit to Tally API
+    // Get the discourse URL from the fleet definition if available
+    const discourseURL = fleetDefinition.discourseURL || ''
+    if (discourseURL) {
+      console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
+    }
+
+    // Submit to Tally API with discourse URL
     const response = await createTallyProposal(
       governorId,
       title,
       proposalContent.sourceDescription,
       executableCalls,
+      discourseURL,
     )
 
     // Get proposal ID and display URL
@@ -613,9 +619,21 @@ async function createSatelliteGovernanceProposal(
       type: 'custom',
     }))
 
-    // Submit to Tally API
+    // Get the discourse URL from the fleet definition if available
+    const discourseURL = fleetDefinition.discourseURL || ''
+    if (discourseURL) {
+      console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
+    }
+
+    // Submit to Tally API with discourse URL
     try {
-      const response = await createTallyProposal(governorId, title, srcDescription, executableCalls)
+      const response = await createTallyProposal(
+        governorId,
+        title,
+        srcDescription,
+        executableCalls,
+        discourseURL,
+      )
 
       // Get proposal ID and display URL
       const proposalId = response.data.createProposal.id

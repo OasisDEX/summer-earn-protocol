@@ -10,3 +10,6 @@ export const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
 export const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
 export const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 export const FOUNDATION_ROLE = keccak256(toBytes('FOUNDATION_ROLE'))
+
+export const HUB_CHAIN_ID = 8453
+export const HUB_CHAIN_NAME = 'base'
