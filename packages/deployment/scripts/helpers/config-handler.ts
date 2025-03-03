@@ -7,15 +7,33 @@ import { BaseConfig, Config } from '../../types/config-types'
 import { validateAddress, validateNumber } from './validation'
 
 type ValidateConfig = {
-  common: boolean
-  gov: boolean
-  core: boolean
+  common?: boolean
+  gov?: boolean
+  core?: boolean
 }
 
-export function getConfigByNetwork(network: string, validateConfig: ValidateConfig): BaseConfig {
-  const configPath = path.resolve(__dirname, '..', '..', 'config', 'index.json')
+/**
+ * Gets the configuration for a specific network
+ * @param network The network name
+ * @param validateConfig Configuration validation options
+ * @param useBummerConfig Whether to use the test/bummer configuration
+ * @returns The network configuration
+ */
+export function getConfigByNetwork(
+  network: string,
+  validateConfig: ValidateConfig,
+  useBummerConfig: boolean = false,
+): BaseConfig {
+  // Determine which config file to use
+  const configFileName = useBummerConfig ? 'index.test.json' : 'index.json'
+  const configPath = path.resolve(__dirname, '..', '..', 'config', configFileName)
+
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`)
+  }
+
+  if (useBummerConfig) {
+    console.log(kleur.yellow().bold(`\nUsing bummer config from ${configFileName}!`))
   }
 
   const config: Config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
