@@ -102,6 +102,7 @@ contract AdmiralsQuarters is
             _validateNativeAmount(amount, address(this).balance);
             IWETH(WRAPPED_NATIVE).deposit{value: address(this).balance}();
         } else {
+            _validateNativeAmount(0, address(this).balance);
             asset.safeTransferFrom(_msgSender(), address(this), amount);
         }
         emit TokensDeposited(_msgSender(), address(asset), amount);
@@ -135,14 +136,7 @@ contract AdmiralsQuarters is
         address fleetCommander,
         uint256 assets,
         address receiver
-    )
-        external
-        payable
-        onlyMulticall
-        nonReentrant
-        noNativeToken
-        returns (uint256 shares)
-    {
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
