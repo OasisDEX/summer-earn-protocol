@@ -102,7 +102,6 @@ contract AdmiralsQuarters is
             _validateNativeAmount(amount, address(this).balance);
             IWETH(WRAPPED_NATIVE).deposit{value: address(this).balance}();
         } else {
-            _validateNativeAmount(0, address(this).balance);
             asset.safeTransferFrom(_msgSender(), address(this), amount);
         }
         emit TokensDeposited(_msgSender(), address(asset), amount);
@@ -356,8 +355,15 @@ contract AdmiralsQuarters is
         address to,
         uint256 amount
     ) external onlyOwner {
-        token.safeTransfer(to, amount);
-        emit TokensRescued(address(token), to, amount);
+        if (address(token) == NATIVE_PSEUDO_ADDRESS) {
+            uint256 ethAmount = amount == 0 ? address(this).balance : amount;
+            (bool success, ) = payable(to).call{value: ethAmount}("");
+            if (!success) revert ETHTransferFailed();
+            emit TokensRescued(NATIVE_PSEUDO_ADDRESS, to, ethAmount);
+        } else {
+            token.safeTransfer(to, amount);
+            emit TokensRescued(address(token), to, amount);
+        }
     }
 
     /**
