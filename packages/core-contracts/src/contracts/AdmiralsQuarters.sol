@@ -136,7 +136,14 @@ contract AdmiralsQuarters is
         address fleetCommander,
         uint256 assets,
         address receiver
-    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
+    )
+        external
+        payable
+        onlyMulticall
+        nonReentrant
+        noNativeToken
+        returns (uint256 shares)
+    {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
