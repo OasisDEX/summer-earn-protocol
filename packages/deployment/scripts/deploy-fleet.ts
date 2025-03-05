@@ -95,14 +95,7 @@ async function deployFleet() {
 
   const useBummerConfig = configResponse.configType
 
-  const configForGovernance = getConfigByNetwork(network, { gov: true }, useBummerConfig)
-  const configForCore = getConfigByNetwork(network, { core: true }, useBummerConfig)
-
-  // Combine the two configs
-  const config = {
-    ...configForGovernance,
-    ...configForCore,
-  }
+  const config = getConfigByNetwork(network, { gov: true, core: true }, useBummerConfig)
 
   // Determine if this is a hub or satellite chain
   const isHubChain = network === HUB_CHAIN_NAME

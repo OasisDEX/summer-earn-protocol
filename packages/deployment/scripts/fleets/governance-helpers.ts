@@ -597,14 +597,7 @@ export async function createSatelliteGovernanceProposal(
 ) {
   console.log(kleur.yellow('Creating cross-chain governance proposal...'))
 
-  const hubConfigForGovernance = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true }, useBummerConfig)
-  const hubConfigForCore = getConfigByNetwork(HUB_CHAIN_NAME, { core: true }, useBummerConfig)
-
-  // Combine the two configs
-  const hubConfig = {
-    ...hubConfigForGovernance,
-    ...hubConfigForCore,
-  }
+  const hubConfig = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true, core: true }, useBummerConfig)
 
   // 2. Set up clients for the hub chain
   console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))
@@ -854,14 +847,7 @@ export async function createArkAdditionCrossChainProposal(
 ): Promise<void> {
   console.log(kleur.yellow('Creating cross-chain governance proposal to add arks...'))
 
-  const hubConfigForGovernance = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true }, useBummerConfig)
-  const hubConfigForCore = getConfigByNetwork(HUB_CHAIN_NAME, { core: true }, useBummerConfig)
-
-  // Combine the two configs
-  const hubConfig = {
-    ...hubConfigForGovernance,
-    ...hubConfigForCore,
-  }
+  const hubConfig = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true, core: true }, useBummerConfig)
 
   // Set up clients for the hub chain
   console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))
