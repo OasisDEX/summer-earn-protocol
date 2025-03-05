@@ -159,45 +159,6 @@ export async function setupFleetRewards(
     console.log(kleur.yellow(`  Amount: ${rewardAmount}`))
     console.log(kleur.yellow(`  Duration: ${rewardDuration} seconds`))
 
-    // Check if token is already a reward token, if not add it
-    try {
-      // Check if the token already exists as a reward token
-      const isExistingToken = await rewardsManager.read
-        .rewardTokensLength()
-        .then(async (length) => {
-          for (let j = 0; j < Number(length); j++) {
-            const token = await rewardsManager.read.rewardTokens([j])
-            if (token === rewardToken) return true
-          }
-          return false
-        })
-
-      if (!isExistingToken) {
-        console.log(kleur.yellow(`  Adding reward token to rewards manager...`))
-        const addTxHash = await rewardsManager.write.addRewardToken([rewardToken])
-        await publicClient.waitForTransactionReceipt({ hash: addTxHash })
-        console.log(kleur.green(`  Reward token added successfully`))
-      }
-    } catch (error: unknown) {
-      console.log(
-        kleur.yellow(
-          `  Error checking reward tokens, will attempt to add: ${error instanceof Error ? error.message : String(error)}`,
-        ),
-      )
-      try {
-        const addTxHash = await rewardsManager.write.addRewardToken([rewardToken])
-        await publicClient.waitForTransactionReceipt({ hash: addTxHash })
-        console.log(kleur.green(`  Reward token added successfully`))
-      } catch (addError: unknown) {
-        console.log(
-          kleur.red(
-            `  Failed to add reward token: ${addError instanceof Error ? addError.message : String(addError)}`,
-          ),
-        )
-        // Continue to approval step as token may already exist
-      }
-    }
-
     // Get token contract to approve spending
     const tokenContract = await hre.viem.getContractAt('IERC20' as string, rewardToken)
 
@@ -209,16 +170,23 @@ export async function setupFleetRewards(
     ])
     await publicClient.waitForTransactionReceipt({ hash: approveTxHash })
 
-    // Notify reward amount
+    // Notify reward amount - this will also add the token if it doesn't exist yet
     console.log(kleur.yellow(`  Notifying reward amount...`))
-    const notifyTxHash = await rewardsManager.write.notifyRewardAmount([
-      rewardToken,
-      rewardAmount,
-      BigInt(rewardDuration),
-    ])
-    await publicClient.waitForTransactionReceipt({ hash: notifyTxHash })
-
-    console.log(kleur.green(`  Successfully configured rewards for token ${rewardToken}`))
+    try {
+      const notifyTxHash = await rewardsManager.write.notifyRewardAmount([
+        rewardToken,
+        rewardAmount,
+        BigInt(rewardDuration),
+      ])
+      await publicClient.waitForTransactionReceipt({ hash: notifyTxHash })
+      console.log(kleur.green(`  Successfully configured rewards for token ${rewardToken}`))
+    } catch (error: unknown) {
+      console.error(
+        kleur.red(
+          `  Failed to notify reward amount: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
+    }
   }
 
   console.log(kleur.green().bold('Fleet rewards setup complete'))

@@ -9,6 +9,7 @@ import { hashDescription } from '../helpers/hash-description'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import { createGovernanceProposal, ProposalContent } from '../helpers/proposal-helpers'
 import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
+import { getRewardsManagerAddress } from './fleet-deployment-helpers'
 
 export interface FleetSingleChainContent extends ProposalContent {
   sourceDescription: string
@@ -22,7 +23,7 @@ export interface FleetCrossChainContent extends FleetSingleChainContent {
 /**
  * Generates a formatted description for a fleet deployment proposal
  */
-export function generateFleetProposalDescription(
+export async function generateFleetProposalDescription(
   deployedFleet: FleetContracts,
   fleetDefinition: FleetConfig,
   deployedArkAddresses: Address[],
@@ -32,21 +33,60 @@ export function generateFleetProposalDescription(
   hubChain?: string,
   curatorAddress?: Address,
   rewardInfo?: { tokens?: string[]; amounts?: string[]; duration?: string },
-): FleetSingleChainContent | FleetCrossChainContent {
+): Promise<FleetSingleChainContent | FleetCrossChainContent> {
   const sourceTitle = `SIP2.${fleetDefinition.sipNumber || 'X'}: ${isCrossChain ? 'Cross-chain ' : ''}Fleet Deployment: ${fleetDefinition.fleetName} on ${targetChain}`
 
   // Create curator section if curator is provided
   const curatorSection = curatorAddress ? `- Curator: ${curatorAddress}` : ''
 
-  // Create rewards section if rewards info is provided
-  const rewardsSection =
-    rewardInfo && rewardInfo.tokens && rewardInfo.amounts && rewardInfo.duration
-      ? `
+  // Format reward information if provided
+  let rewardsSection = ''
+  if (rewardInfo && rewardInfo.tokens && rewardInfo.amounts && rewardInfo.duration) {
+    const formattedAmounts: string[] = []
+
+    // Format each token amount
+    for (let i = 0; i < rewardInfo.tokens.length; i++) {
+      const rawAmount = rewardInfo.amounts[i]
+      try {
+        const tokenAddress = rewardInfo.tokens[i] as Address
+
+        // Try to get token decimals
+        let decimals = 18 // Default to 18 if we can't get the actual value
+        try {
+          const tokenContract = await hre.viem.getContractAt(
+            'IERC20Metadata' as string,
+            tokenAddress,
+          )
+          decimals = (await tokenContract.read.decimals()) as number
+        } catch (error) {
+          console.log(
+            kleur.yellow(`Could not get decimals for token ${tokenAddress}, using default 18`),
+          )
+        }
+
+        // Calculate human-readable amount
+        const amount = BigInt(rawAmount)
+        const readableAmount =
+          Number(amount / BigInt(10 ** Math.min(decimals, 18))) /
+          (decimals > 18 ? 10 ** (decimals - 18) : 1)
+
+        formattedAmounts.push(`${readableAmount.toLocaleString()} tokens (${rawAmount})`)
+      } catch (error) {
+        formattedAmounts.push(rawAmount) // Fall back to raw amount if formatting fails
+      }
+    }
+
+    // Format duration
+    const durationSeconds = parseInt(rewardInfo.duration)
+    const durationDays = Math.round(durationSeconds / 86400) // Convert seconds to days
+    const formattedDuration = `${durationDays} days (${durationSeconds} seconds)`
+
+    rewardsSection = `
 ### Rewards Configuration
 - Reward Tokens: ${rewardInfo.tokens.join(', ')}
-- Reward Amounts: ${rewardInfo.amounts.join(', ')}
-- Rewards Duration: ${rewardInfo.duration}`
-      : ''
+- Reward Amounts: ${formattedAmounts.join(', ')}
+- Rewards Duration: ${formattedDuration}`
+  }
 
   // Standard description for the destination chain (or single-chain proposal)
   const standardDescription = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Fleet Deployment: ${fleetDefinition.fleetName}
@@ -70,6 +110,7 @@ ${curatorSection}
 3. Add ${deployedArkAddresses.length} Arks to the Fleet
 4. Grant COMMANDER_ROLE to Fleet Commander for each Ark
 ${curatorAddress ? '5. Grant CURATOR_ROLE to Curator for the Fleet' : ''}
+${rewardInfo?.tokens ? `${curatorAddress ? '6' : '5'}. Set up rewards for ${rewardInfo.tokens.length} tokens` : ''}
 
 ### Fleet Configuration
 - Deposit Cap: ${fleetDefinition.depositCap}
@@ -120,6 +161,7 @@ This proposal will execute the following actions on ${targetChain}:
 3. Add ${deployedArkAddresses.length} Arks to the Fleet
 4. Grant COMMANDER_ROLE to Fleet Commander for each Ark
 ${curatorAddress ? '5. Grant CURATOR_ROLE to Curator for the Fleet' : ''}
+${rewardInfo?.tokens ? `${curatorAddress ? '6' : '5'}. Set up rewards for ${rewardInfo.tokens.length} tokens` : ''}
 
 ### Cross-chain Mechanism
 This proposal uses LayerZero to execute governance actions across chains.
@@ -238,6 +280,48 @@ export function prepareCuratorActions(
       args: [fleetCommanderAddress, curatorAddress],
     }) as Hex,
   ]
+
+  return { targets, values, calldatas }
+}
+
+/**
+ * Prepares actions to set up fleet rewards
+ */
+export function prepareRewardSetupActions(
+  rewardsManagerAddress: Address,
+  rewardTokens: Address[],
+  rewardAmounts: bigint[],
+  rewardsDurations: number[],
+): { targets: Address[]; values: bigint[]; calldatas: Hex[] } {
+  const targets: Address[] = []
+  const values: bigint[] = []
+  const calldatas: Hex[] = []
+
+  for (let i = 0; i < rewardTokens.length; i++) {
+    // Add action to approve token transfer to rewards manager
+    targets.push(rewardTokens[i])
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: parseAbi([
+          'function approve(address spender, uint256 amount) external returns (bool)',
+        ]),
+        args: [rewardsManagerAddress, rewardAmounts[i]],
+      }) as Hex,
+    )
+
+    // Add action to notify reward amount
+    targets.push(rewardsManagerAddress)
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: parseAbi([
+          'function notifyRewardAmount(address rewardToken, uint256 reward, uint256 newRewardsDuration) external',
+        ]),
+        args: [rewardTokens[i], rewardAmounts[i], BigInt(rewardsDurations[i])],
+      }) as Hex,
+    )
+  }
 
   return { targets, values, calldatas }
 }
@@ -413,6 +497,40 @@ export async function createHubGovernanceProposal(
     calldatas = [...calldatas, ...curatorActions.calldatas]
   }
 
+  // 5. Add reward setup actions if rewards are specified
+  if (
+    fleetDefinition.rewardTokens &&
+    fleetDefinition.rewardAmounts &&
+    fleetDefinition.rewardsDuration
+  ) {
+    try {
+      const rewardsManagerAddress = await getRewardsManagerAddress(
+        deployedFleet.fleetCommander.address,
+      )
+
+      const rewardActions = prepareRewardSetupActions(
+        rewardsManagerAddress,
+        fleetDefinition.rewardTokens.map((token) => token as Address),
+        fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
+        Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
+      )
+
+      targets = [...targets, ...rewardActions.targets]
+      values = [...values, ...rewardActions.values]
+      calldatas = [...calldatas, ...rewardActions.calldatas]
+
+      console.log(
+        kleur.yellow(`- Set up rewards for ${fleetDefinition.rewardTokens.length} tokens`),
+      )
+    } catch (error: unknown) {
+      console.error(
+        kleur.red(
+          `Error preparing reward setup actions: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
+    }
+  }
+
   // Replace the try/catch block with common submission logic
   try {
     console.log(kleur.cyan('Creating Tally draft proposal with the following actions:'))
@@ -422,8 +540,13 @@ export async function createHubGovernanceProposal(
     if (curatorAddress) {
       console.log(kleur.yellow(`- Grant CURATOR_ROLE to ${curatorAddress} for the fleet`))
     }
+    if (fleetDefinition.rewardTokens) {
+      console.log(
+        kleur.yellow(`- Set up rewards for ${fleetDefinition.rewardTokens.length} tokens`),
+      )
+    }
 
-    const proposalContent = generateFleetProposalDescription(
+    const proposalContent = await generateFleetProposalDescription(
       deployedFleet,
       fleetDefinition,
       deployedArkAddresses,
@@ -566,7 +689,41 @@ export async function createSatelliteGovernanceProposal(
     )
   }
 
-  const proposalDescriptions = generateFleetProposalDescription(
+  // 3.6 Add reward setup actions if rewards are specified
+  if (
+    fleetDefinition.rewardTokens &&
+    fleetDefinition.rewardAmounts &&
+    fleetDefinition.rewardsDuration
+  ) {
+    try {
+      const rewardsManagerAddress = await getRewardsManagerAddress(
+        deployedFleet.fleetCommander.address,
+      )
+
+      const rewardActions = prepareRewardSetupActions(
+        rewardsManagerAddress,
+        fleetDefinition.rewardTokens.map((token) => token as Address),
+        fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
+        Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
+      )
+
+      dstTargets.push(...rewardActions.targets)
+      dstValues.push(...rewardActions.values)
+      dstCalldatas.push(...rewardActions.calldatas)
+
+      console.log(
+        kleur.yellow(`- Set up rewards for ${fleetDefinition.rewardTokens.length} tokens`),
+      )
+    } catch (error: unknown) {
+      console.error(
+        kleur.red(
+          `Error preparing reward setup actions: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
+    }
+  }
+
+  const proposalDescriptions = (await generateFleetProposalDescription(
     deployedFleet,
     fleetDefinition,
     deployedArkAddresses,
@@ -583,7 +740,7 @@ export async function createSatelliteGovernanceProposal(
           duration: fleetDefinition.rewardsDuration?.toString(),
         }
       : undefined,
-  ) as FleetCrossChainContent
+  )) as FleetCrossChainContent
 
   const dstDescription = proposalDescriptions.destinationDescription
   const srcDescription = proposalDescriptions.sourceDescription
@@ -622,6 +779,11 @@ export async function createSatelliteGovernanceProposal(
     console.log(kleur.yellow(`- Add ${deployedArkAddresses.length} Arks to the Fleet`))
     if (curatorAddress) {
       console.log(kleur.yellow(`- Grant CURATOR_ROLE to ${curatorAddress} for the fleet`))
+    }
+    if (fleetDefinition.rewardTokens) {
+      console.log(
+        kleur.yellow(`- Set up rewards for ${fleetDefinition.rewardTokens.length} tokens`),
+      )
     }
 
     console.log(kleur.blue('Hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
