@@ -10,9 +10,9 @@
   "details": "",
   "discourseURL": "https://forum.summer.fi/t/sip1-x-onboard-usdc-vault-onto-arbitrum/89",
   "sipNumber": "1",
-  "rewardTokens": ["0xaf88d065e77c8cC2239327C5EDb3A432268e5831"],
-  "rewardAmounts": ["1000000000"],
-  "rewardsDuration": 2592000,
+  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
+  "rewardAmounts": ["1537243"],
+  "rewardsDuration": 4924800,
   "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
   "arks": [
     {
