@@ -223,3 +223,54 @@ export async function setupFleetRewards(
 
   console.log(kleur.green().bold('Fleet rewards setup complete'))
 }
+
+/**
+ * Gets the rewards manager address for a fleet commander
+ * @param fleetCommander Address of the FleetCommander
+ * @returns Promise<Address> Address of the rewards manager
+ */
+export async function getRewardsManagerAddress(fleetCommander: Address): Promise<Address> {
+  console.log(kleur.yellow(`Getting rewards manager address for fleet ${fleetCommander}...`))
+
+  const publicClient = await hre.viem.getPublicClient()
+  const fleetCommanderContract = await hre.viem.getContractAt(
+    'FleetCommander' as string,
+    fleetCommander,
+  )
+
+  // Get the factory address from the fleet commander
+  const factoryAddress = (await fleetCommanderContract.read.rewardsManagerFactory()) as Address
+  console.log(kleur.blue(`Rewards manager factory: ${factoryAddress}`))
+
+  if (!factoryAddress || factoryAddress === '0x0000000000000000000000000000000000000000') {
+    throw new Error('Rewards manager factory not set or invalid')
+  }
+
+  // Get event logs for RewardsManagerCreated events
+  const logs = await publicClient.getLogs({
+    address: factoryAddress,
+    event: {
+      type: 'event',
+      name: 'RewardsManagerCreated',
+      inputs: [
+        { type: 'address', name: 'rewardsManager', indexed: true },
+        { type: 'address', name: 'fleetCommander', indexed: true },
+      ],
+    },
+    args: {
+      fleetCommander: fleetCommander,
+    },
+    fromBlock: 'earliest',
+  })
+
+  if (logs.length === 0) {
+    throw new Error(`No rewards manager found for fleet commander ${fleetCommander}`)
+  }
+
+  // Get the most recent event if there are multiple
+  const mostRecentLog = logs[logs.length - 1]
+  const rewardsManagerAddress = mostRecentLog.args.rewardsManager as Address
+
+  console.log(kleur.green(`Found rewards manager at ${rewardsManagerAddress}`))
+  return rewardsManagerAddress
+}

@@ -2,6 +2,7 @@ import kleur from 'kleur'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
+import { HUB_CHAIN_ID } from '../common/constants'
 import { hashDescription } from '../helpers/hash-description'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import {
@@ -209,8 +210,7 @@ Discourse: ${fleetDefinition.discourseURL || 'N/A'}
   `
 
   // Generate proposal details
-  const chainId = config.common.chainId
-  const governorId = `eip155:${chainId}:${governorAddress}`
+  const governorId = `eip155:${HUB_CHAIN_ID}:${governorAddress}`
 
   // Get the discourse URL from the fleet definition if available
   const discourseURL = fleetDefinition.discourseURL || ''
@@ -306,9 +306,8 @@ export async function createHubGovernanceProposal(
       'mainnet' + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
     ) as SingleChainContent
 
-    // Generate proposal details - use the correct chain ID based on whether we're using bummer config
-    const chainId = config.common.chainId
-    const governorId = `eip155:${chainId}:${governorAddress}`
+    // Generate proposal details
+    const governorId = `eip155:${HUB_CHAIN_ID}:${governorAddress}`
     const title = proposalContent.sourceTitle
     const description = proposalContent.sourceDescription
 
@@ -487,8 +486,7 @@ export async function createSatelliteGovernanceProposal(
 
     console.log(kleur.blue('Hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
-    // Generate proposal details - use the correct chain ID based on whether we're using bummer config
-    const HUB_CHAIN_ID = hubConfig.common.chainId
+    // Generate proposal details
     const governorId = `eip155:${HUB_CHAIN_ID}:${HUB_GOVERNOR_ADDRESS}`
 
     // Create executable calls array for Tally
