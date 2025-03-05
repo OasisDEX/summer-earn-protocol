@@ -96,7 +96,7 @@ async function deployFleet() {
   const useBummerConfig = configResponse.configType
 
   const configForGovernance = getConfigByNetwork(network, { gov: true }, useBummerConfig)
-  const configForCore = getConfigByNetwork(network, { core: true })
+  const configForCore = getConfigByNetwork(network, { core: true }, useBummerConfig)
 
   // Combine the two configs
   const config = {
