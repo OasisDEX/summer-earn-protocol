@@ -13,6 +13,7 @@
   "rewardTokens": ["0xaf88d065e77c8cC2239327C5EDb3A432268e5831"],
   "rewardAmounts": ["1000000000"],
   "rewardsDuration": 2592000,
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
   "arks": [
     {
       "type": "AaveV3Ark",

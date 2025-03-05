@@ -65,6 +65,7 @@ async function deployFleet() {
   // Ask the user what type of deployment they want to perform
   const modeChoices = [
     { title: 'Deploy New Fleet', value: DeploymentMode.NEW_FLEET },
+    { title: 'Continue interrupted new fleet deployment', value: DeploymentMode.NEW_FLEET },
     { title: 'Add Ark to Existing Fleet', value: DeploymentMode.ADD_ARK },
   ]
 
@@ -144,23 +145,13 @@ async function handleNewFleetDeployment(
   useBummerConfig: boolean,
   isTenderly: boolean,
 ) {
-  // Collect curator address
-  const curatorResponse = await prompts({
-    type: 'confirm',
-    name: 'configureCurator',
-    message: 'Do you want to configure a curator for this fleet?',
-    initial: false,
-  })
+  // Get curator from fleet definition
+  let curatorAddress = fleetDefinition.curator as Address | undefined
 
-  let curatorAddress: Address | undefined
-  if (curatorResponse.configureCurator) {
-    const curatorAddressResponse = await prompts({
-      type: 'text',
-      name: 'address',
-      message: 'Enter the curator address:',
-      validate: (value) => (/^0x[a-fA-F0-9]{40}$/.test(value) ? true : 'Invalid Ethereum address'),
-    })
-    curatorAddress = curatorAddressResponse.address as Address
+  if (curatorAddress) {
+    console.log(kleur.blue('Curator Address:'), kleur.cyan(curatorAddress))
+  } else {
+    console.log(kleur.yellow('No curator address specified in fleet definition'))
   }
 
   console.log(kleur.blue('Fleet Definition:'))
@@ -225,6 +216,32 @@ async function handleNewFleetDeployment(
           hre,
         )
       }
+
+      // Set up rewards if configured
+      if (
+        fleetDefinition.rewardTokens &&
+        fleetDefinition.rewardAmounts &&
+        fleetDefinition.rewardsDuration
+      ) {
+        try {
+          const rewardsManagerAddress = await getRewardsManagerAddress(
+            deployedFleet.fleetCommander.address,
+          )
+
+          await setupFleetRewards(
+            rewardsManagerAddress,
+            fleetDefinition.rewardTokens.map((token) => token as Address),
+            fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
+            Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
+          )
+        } catch (error: unknown) {
+          console.error(
+            kleur.red(
+              `Error setting up fleet rewards: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          )
+        }
+      }
     } else {
       // Create governance proposal
       console.log(
@@ -256,32 +273,6 @@ async function handleNewFleetDeployment(
     }
 
     logDeploymentResults(deployedFleet)
-
-    // Setup rewards if configured in the fleet definition
-    if (
-      fleetDefinition.rewardTokens &&
-      fleetDefinition.rewardAmounts &&
-      fleetDefinition.rewardsDuration
-    ) {
-      try {
-        const rewardsManagerAddress = await getRewardsManagerAddress(
-          deployedFleet.fleetCommander.address,
-        )
-
-        await setupFleetRewards(
-          rewardsManagerAddress,
-          fleetDefinition.rewardTokens.map((token) => token as Address),
-          fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
-          Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
-        )
-      } catch (error: unknown) {
-        console.error(
-          kleur.red(
-            `Error setting up fleet rewards: ${error instanceof Error ? error.message : String(error)}`,
-          ),
-        )
-      }
-    }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }

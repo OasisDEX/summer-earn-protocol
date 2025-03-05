@@ -143,6 +143,7 @@ export interface FleetConfig {
   discourseURL?: string
   sipNumber?: string
   details: string
+  curator?: Address
 }
 
 export interface FleetDeployment {

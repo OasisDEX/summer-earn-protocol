@@ -1,8 +1,10 @@
+import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
-import { HUB_CHAIN_ID } from '../common/constants'
+import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
+import { getConfigByNetwork } from '../helpers/config-handler'
 import { hashDescription } from '../helpers/hash-description'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import {
@@ -153,8 +155,14 @@ export async function submitProposal(
     console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
   } catch (error: unknown) {
     console.error(kleur.red('Error creating Tally draft proposal:'), error)
-    if (error instanceof Error && 'response' in error) {
-      console.error(kleur.red('Error response:'), error.response.data)
+    if (
+      error instanceof Error &&
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error &&
+      typeof (error as any).response === 'object'
+    ) {
+      console.error(kleur.red('Error response:'), (error as any).response.data)
     }
 
     // Fall back to showing manual submission details
@@ -342,13 +350,8 @@ export async function createSatelliteGovernanceProposal(
     throw new Error('Bummer config is only available on Tenderly virtual testnets.')
   }
 
-  const hubConfigForGovernance = await import('../helpers/config-handler').then((module) =>
-    module.getConfigByNetwork('mainnet', { gov: true }, useBummerConfig),
-  )
-
-  const hubConfigForCore = await import('../helpers/config-handler').then((module) =>
-    module.getConfigByNetwork('mainnet', { core: true }),
-  )
+  const hubConfigForGovernance = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true }, useBummerConfig)
+  const hubConfigForCore = getConfigByNetwork(HUB_CHAIN_NAME, { core: true })
 
   // Combine the two configs
   const hubConfig = {
@@ -441,7 +444,7 @@ export async function createSatelliteGovernanceProposal(
     deployedArkAddresses,
     bufferArkAddress,
     true, // isCrossChain
-    config.common.name, // targetChain
+    hre.network.name, // targetChain
     'mainnet' + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
   ) as CrossChainContent
 
