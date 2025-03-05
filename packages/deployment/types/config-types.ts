@@ -136,6 +136,9 @@ export interface FleetConfig {
   depositCap: string
   initialTipRate: string
   network: string
+  rewardTokens: string[]
+  rewardAmounts: string[]
+  rewardsDuration: number[]
   arks: ArkConfig[]
   discourseURL?: string
   sipNumber?: string

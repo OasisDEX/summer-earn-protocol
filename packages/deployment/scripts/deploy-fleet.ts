@@ -10,7 +10,12 @@ import { grantCommanderRole } from './common/grant-commander-role'
 import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
 import { warnIfTenderlyVirtualTestnet } from './common/tenderly-helpers'
 import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
-import { addFleetToHarbor, deployArks, grantCuratorRole } from './fleets/fleet-deployment-helpers'
+import {
+  addFleetToHarbor,
+  deployArks,
+  grantCuratorRole,
+  setupFleetRewards,
+} from './fleets/fleet-deployment-helpers'
 import {
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
@@ -27,7 +32,6 @@ import { validateToken } from './helpers/validation'
  * - Getting core contract addresses
  * - Collecting BufferArk parameters
  * - Deploying the fleet and BufferArk contracts
-import { FleetConfig } from '../types/config-types'
  * - Logging deployment results
  */
 async function deployFleet() {
@@ -202,6 +206,28 @@ async function deployFleet() {
     }
 
     logDeploymentResults(deployedFleet)
+
+    // Setup rewards if configured in the fleet definition
+    if (
+      fleetDefinition.rewardTokens &&
+      fleetDefinition.rewardAmounts &&
+      fleetDefinition.rewardsDuration
+    ) {
+      try {
+        await setupFleetRewards(
+          deployedFleet.fleetCommander.address,
+          fleetDefinition.rewardTokens.map((token) => token as Address),
+          fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
+          fleetDefinition.rewardsDuration,
+        )
+      } catch (error: unknown) {
+        console.error(
+          kleur.red(
+            `Error setting up fleet rewards: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        )
+      }
+    }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
@@ -223,6 +249,6 @@ async function confirmDeployment(fleetDefinition: FleetConfig): Promise<boolean>
 // Execute the deployFleet function and handle any errors
 deployFleet().catch((error) => {
   console.error(kleur.red('Error during fleet deployment:'))
-  console.error(error)
+  console.error(error instanceof Error ? error.message : String(error))
   process.exit(1)
 })
