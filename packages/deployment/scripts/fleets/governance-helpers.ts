@@ -7,12 +7,7 @@ import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { hashDescription } from '../helpers/hash-description'
 import { constructLzOptions } from '../helpers/layerzero-options'
-import {
-  CrossChainContent,
-  generateFleetProposalDescription,
-  ProposalContent,
-  SingleChainContent,
-} from '../helpers/proposal-helpers'
+import { createGovernanceProposal, ProposalContent } from '../helpers/proposal-helpers'
 import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
 
 export interface FleetSingleChainContent extends ProposalContent {
@@ -22,6 +17,128 @@ export interface FleetSingleChainContent extends ProposalContent {
 
 export interface FleetCrossChainContent extends FleetSingleChainContent {
   destinationDescription: string
+}
+
+/**
+ * Generates a formatted description for a fleet deployment proposal
+ */
+export function generateFleetProposalDescription(
+  deployedFleet: FleetContracts,
+  fleetDefinition: FleetConfig,
+  deployedArkAddresses: Address[],
+  bufferArkAddress: Address,
+  isCrossChain: boolean = false,
+  targetChain?: string,
+  hubChain?: string,
+  curatorAddress?: Address,
+  rewardInfo?: { tokens?: string[]; amounts?: string[]; duration?: string },
+): FleetSingleChainContent | FleetCrossChainContent {
+  const sourceTitle = `SIP2.${fleetDefinition.sipNumber || 'X'}: ${isCrossChain ? 'Cross-chain ' : ''}Fleet Deployment: ${fleetDefinition.fleetName} on ${targetChain}`
+
+  // Create curator section if curator is provided
+  const curatorSection = curatorAddress ? `- Curator: ${curatorAddress}` : ''
+
+  // Create rewards section if rewards info is provided
+  const rewardsSection =
+    rewardInfo && rewardInfo.tokens && rewardInfo.amounts && rewardInfo.duration
+      ? `
+### Rewards Configuration
+- Reward Tokens: ${rewardInfo.tokens.join(', ')}
+- Reward Amounts: ${rewardInfo.amounts.join(', ')}
+- Rewards Duration: ${rewardInfo.duration}`
+      : ''
+
+  // Standard description for the destination chain (or single-chain proposal)
+  const standardDescription = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Fleet Deployment: ${fleetDefinition.fleetName}
+
+## Summary
+This proposal activates the ${fleetDefinition.fleetName} Fleet (${fleetDefinition.symbol}).
+
+## Motivation
+This fleet deployment will expand the protocol's capabilities by adding ${deployedArkAddresses.length} new Arks to the ecosystem.
+
+## Technical Details
+- Fleet Commander: ${deployedFleet.fleetCommander.address}
+- Buffer Ark: ${bufferArkAddress}
+- Number of Arks: ${deployedArkAddresses.length}
+${curatorSection}
+
+## Specifications
+### Actions
+1. Add Fleet to Harbor Command
+2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
+3. Add ${deployedArkAddresses.length} Arks to the Fleet
+4. Grant COMMANDER_ROLE to Fleet Commander for each Ark
+${curatorAddress ? '5. Grant CURATOR_ROLE to Curator for the Fleet' : ''}
+
+### Fleet Configuration
+- Deposit Cap: ${fleetDefinition.depositCap}
+- Initial Minimum Buffer Balance: ${fleetDefinition.initialMinimumBufferBalance}
+- Initial Rebalance Cooldown: ${fleetDefinition.initialRebalanceCooldown}
+- Initial Tip Rate: ${fleetDefinition.initialTipRate}
+${rewardsSection}
+`
+
+  if (!isCrossChain) {
+    return {
+      title: sourceTitle,
+      description: standardDescription,
+      sourceTitle,
+      sourceDescription: standardDescription,
+    }
+  }
+
+  if (!targetChain || !hubChain) {
+    throw new Error('Target chain and hub chain must be provided for cross-chain proposals')
+  }
+
+  // Destination chain description (what will be executed on the target chain)
+  const destinationDescription = standardDescription
+
+  // Source chain description (what will be shown on the hub chain)
+  const sourceDescription = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Cross-chain Fleet Deployment Proposal
+
+## Summary
+This is a cross-chain governance proposal to activate the ${fleetDefinition.fleetName} Fleet on ${targetChain}.
+
+## Motivation
+This cross-chain fleet deployment will expand the protocol's capabilities across multiple networks.
+
+## Technical Details
+- Hub Chain: ${hubChain}
+- Target Chain: ${targetChain}
+- Fleet Commander: ${deployedFleet.fleetCommander.address}
+- Buffer Ark: ${bufferArkAddress}
+- Number of Arks: ${deployedArkAddresses.length}
+${curatorSection}
+
+## Specifications
+### Actions
+This proposal will execute the following actions on ${targetChain}:
+1. Add Fleet to Harbor Command
+2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
+3. Add ${deployedArkAddresses.length} Arks to the Fleet
+4. Grant COMMANDER_ROLE to Fleet Commander for each Ark
+${curatorAddress ? '5. Grant CURATOR_ROLE to Curator for the Fleet' : ''}
+
+### Cross-chain Mechanism
+This proposal uses LayerZero to execute governance actions across chains.
+
+### Fleet Configuration
+- Deposit Cap: ${fleetDefinition.depositCap}
+- Initial Minimum Buffer Balance: ${fleetDefinition.initialMinimumBufferBalance}
+- Initial Rebalance Cooldown: ${fleetDefinition.initialRebalanceCooldown}
+- Initial Tip Rate: ${fleetDefinition.initialTipRate}
+${rewardsSection}
+`
+
+  return {
+    title: sourceTitle,
+    description: sourceDescription,
+    sourceTitle,
+    sourceDescription,
+    destinationDescription,
+  }
 }
 
 /**
@@ -136,54 +253,40 @@ export async function submitProposal(
   values: bigint[],
   calldatas: Hex[],
   discourseURL: string = '',
+  actionSummary: string[] = [],
 ): Promise<void> {
+  // Extract chainId and governorAddress from governorId
+  // Format is "eip155:${chainId}:${governorAddress}"
+  const parts = governorId.split(':')
+  if (parts.length !== 3) {
+    throw new Error(`Invalid governorId format: ${governorId}`)
+  }
+
+  const chainId = parseInt(parts[1])
+  const governorAddress = parts[2] as Address
+
+  // Convert targets, values, and calldatas into ProposalAction array
+  const actions = targets.map((target, index) => ({
+    target,
+    value: values[index],
+    calldata: calldatas[index],
+  }))
+
   try {
-    console.log(kleur.blue('Submitting proposal to Tally...'))
-
-    // Create executable calls array for Tally
-    const executableCalls = targets.map((target, index) => ({
-      target,
-      calldata: calldatas[index],
-      signature: '',
-      value: values[index].toString(),
-      type: 'custom',
-    }))
-
-    // Submit to Tally API with discourse URL
-    const response = await createTallyProposal(
-      governorId,
+    // Use the generic createGovernanceProposal function
+    await createGovernanceProposal(
       title,
       description,
-      executableCalls,
+      actions,
+      governorAddress,
+      chainId,
       discourseURL,
+      actionSummary,
     )
-
-    // Get proposal ID and display URL
-    const proposalId = response.data.createProposal.id
-    console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
-    const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
-    console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
-  } catch (error: unknown) {
-    console.error(kleur.red('Error creating Tally draft proposal:'), error)
-    if (
-      error instanceof Error &&
-      typeof error === 'object' &&
-      error !== null &&
-      'response' in error &&
-      typeof (error as any).response === 'object'
-    ) {
-      console.error(kleur.red('Error response:'), (error as any).response.data)
-    }
-
-    // Fall back to showing manual submission details
-    console.log(kleur.yellow('\nProposal details for manual submission:'))
-    console.log(kleur.blue('Targets:'), kleur.cyan(JSON.stringify(targets)))
-    console.log(kleur.blue('Values:'), kleur.cyan(values.toString()))
-    console.log(kleur.blue('Calldatas:'))
-    calldatas.forEach((data) => {
-      console.log(kleur.cyan(data))
-    })
-    console.log(kleur.blue('Description:'), kleur.cyan(description))
+  } catch (error) {
+    // The createGovernanceProposal function already handles error logging
+    // and manual submission details, so we can just re-throw
+    throw error
   }
 }
 
@@ -331,7 +434,7 @@ export async function createHubGovernanceProposal(
             duration: fleetDefinition.rewardsDuration?.toString(),
           }
         : undefined,
-    ) as SingleChainContent
+    )
 
     // Generate proposal details
     const governorId = `eip155:${HUB_CHAIN_ID}:${governorAddress}`
@@ -474,7 +577,7 @@ export async function createSatelliteGovernanceProposal(
           duration: fleetDefinition.rewardsDuration?.toString(),
         }
       : undefined,
-  ) as CrossChainContent
+  ) as FleetCrossChainContent
 
   const dstDescription = proposalDescriptions.destinationDescription
   const srcDescription = proposalDescriptions.sourceDescription
