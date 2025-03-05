@@ -675,3 +675,182 @@ export async function createSatelliteGovernanceProposal(
     console.error(kleur.red('Error preparing cross-chain proposal:'), error)
   }
 }
+
+/**
+ * Creates a cross-chain governance proposal to add arks to an existing fleet on a satellite chain
+ */
+export async function createArkAdditionCrossChainProposal(
+  fleetCommanderAddress: Address,
+  arkAddresses: Address[],
+  config: BaseConfig,
+  fleetDefinition: FleetConfig,
+  useBummerConfig: boolean,
+  isTenderlyVirtualTestnet: boolean,
+): Promise<void> {
+  console.log(kleur.yellow('Creating cross-chain governance proposal to add arks...'))
+
+  if (!isTenderlyVirtualTestnet && useBummerConfig) {
+    throw new Error('Bummer config is only available on Tenderly virtual testnets.')
+  }
+
+  const hubConfigForGovernance = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true }, useBummerConfig)
+  const hubConfigForCore = getConfigByNetwork(HUB_CHAIN_NAME, { core: true })
+
+  // Combine the two configs
+  const hubConfig = {
+    ...hubConfigForGovernance,
+    ...hubConfigForCore,
+  }
+
+  // Set up clients for the hub chain
+  console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))
+  console.log(
+    kleur.blue('Using config:'),
+    useBummerConfig ? kleur.cyan('Bummer/Test') : kleur.cyan('Production'),
+  )
+
+  // Get current chain's endpoint ID
+  const currentChainEndpointId = config.common.layerZero.eID
+
+  // Prepare the destination (satellite) proposal actions
+  const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
+    .address as Address
+
+  // Get the actions for adding arks
+  const {
+    targets: dstTargets,
+    values: dstValues,
+    calldatas: dstCalldatas,
+  } = prepareArkAdditionActions(fleetCommanderAddress, arkAddresses, protocolAccessManagerAddress)
+
+  // Create proposal title and descriptions
+  const title = `Add ${arkAddresses.length} Ark(s) to ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
+
+  // Destination chain description (what will be executed on the satellite chain)
+  const dstDescription = `# Add Arks to ${fleetDefinition.fleetName} Fleet
+
+## Summary
+This proposal adds ${arkAddresses.length} new Ark(s) to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
+
+## Actions
+1. Grant COMMANDER_ROLE to Fleet Commander for each Ark
+2. Add each Ark to the Fleet Commander
+
+## References
+${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : ''}
+`
+
+  // Source chain description (what will be shown on the hub chain)
+  const srcDescription = `# Cross-chain Proposal: Add Arks to ${fleetDefinition.fleetName} Fleet
+
+## Summary
+This is a cross-chain governance proposal to add ${arkAddresses.length} new Ark(s) to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
+
+## Motivation
+Expanding this fleet with additional Arks will enhance the protocol's capabilities on ${hre.network.name}.
+
+## Technical Details
+- Hub Chain: ${HUB_CHAIN_NAME}${useBummerConfig ? ' (Bummer)' : ' (Production)'}
+- Target Chain: ${hre.network.name}
+- Fleet Commander: ${fleetCommanderAddress}
+- Number of Arks to add: ${arkAddresses.length}
+
+## Specifications
+### Actions
+This proposal will execute the following actions on ${hre.network.name}:
+1. Grant COMMANDER_ROLE to Fleet Commander for each Ark
+2. Add each Ark to the Fleet Commander
+
+### Cross-chain Mechanism
+This proposal uses LayerZero to execute governance actions across chains.
+
+## References
+${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : ''}
+`
+
+  // Prepare the source (hub) proposal
+  const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  console.log(kleur.blue('Using hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
+
+  const srcTargets = [HUB_GOVERNOR_ADDRESS]
+  const srcValues = [0n]
+  const ESTIMATED_GAS = 400000n
+  const lzOptions = constructLzOptions(ESTIMATED_GAS)
+
+  const srcCalldatas = [
+    encodeFunctionData({
+      abi: parseAbi([
+        'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
+      ]),
+      args: [
+        Number(currentChainEndpointId),
+        dstTargets,
+        dstValues,
+        dstCalldatas,
+        hashDescription(dstDescription),
+        lzOptions,
+      ],
+    }) as Hex,
+  ]
+
+  // Create Tally draft proposal
+  try {
+    console.log(kleur.cyan('Creating cross-chain governance proposal to add arks'))
+    console.log(kleur.blue('Hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
+
+    // Generate proposal details
+    const governorId = `eip155:${HUB_CHAIN_ID}:${HUB_GOVERNOR_ADDRESS}`
+
+    // Create executable calls array for Tally
+    const executableCalls = srcTargets.map((target, index) => ({
+      target,
+      calldata: srcCalldatas[index],
+      signature: '',
+      value: srcValues[index].toString(),
+      type: 'custom',
+    }))
+
+    // Get the discourse URL from the fleet definition if available
+    const discourseURL = fleetDefinition.discourseURL || ''
+    if (discourseURL) {
+      console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
+    }
+
+    // Submit to Tally API with discourse URL
+    try {
+      const response = await createTallyProposal(
+        governorId,
+        title,
+        srcDescription,
+        executableCalls,
+        discourseURL,
+      )
+
+      // Get proposal ID and display URL
+      const proposalId = response.data.createProposal.id
+      console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
+      const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
+      console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
+      console.log(kleur.yellow('The arks will be added once this proposal is executed.'))
+    } catch (error: any) {
+      console.error(kleur.red('Error creating Tally draft proposal:'), error)
+      if (error.response) {
+        console.error(kleur.red('Error response:'), error.response.data)
+      }
+
+      // Fall back to showing manual submission details
+      console.log(kleur.yellow('\nProposal details for manual submission:'))
+      console.log(kleur.blue('Governor Address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
+      console.log(kleur.blue('Targets:'), kleur.cyan(JSON.stringify(srcTargets)))
+      console.log(kleur.blue('Values:'), kleur.cyan(srcValues.toString()))
+      console.log(kleur.blue('Calldatas:'))
+      srcCalldatas.forEach((data) => {
+        console.log(kleur.cyan(data))
+      })
+      console.log(kleur.blue('Description:'), kleur.cyan(srcDescription))
+      console.log(kleur.yellow('The cross-chain proposal needs to be submitted on the hub chain.'))
+    }
+  } catch (error: any) {
+    console.error(kleur.red('Error preparing cross-chain proposal:'), error)
+  }
+}

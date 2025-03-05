@@ -21,6 +21,7 @@ import {
   setupFleetRewards,
 } from './fleets/fleet-deployment-helpers'
 import {
+  createArkAdditionCrossChainProposal,
   createArkAdditionProposal,
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
@@ -405,14 +406,26 @@ async function handleArkAddition(
         kleur.yellow('Deployer does not have governor role. Creating governance proposal...'),
       )
 
-      // Create proposal for just adding arks
-      await createArkAdditionProposal(
-        fleetCommanderAddress,
-        deployedArkAddresses, // Only the newly deployed arks
-        config,
-        fleetDefinition,
-        useBummerConfig,
-      )
+      if (isHubChain) {
+        // Create proposal for just adding arks on the hub chain
+        await createArkAdditionProposal(
+          fleetCommanderAddress,
+          deployedArkAddresses, // Only the newly deployed arks
+          config,
+          fleetDefinition,
+          useBummerConfig,
+        )
+      } else {
+        // Create cross-chain proposal for adding arks on a satellite chain
+        await createArkAdditionCrossChainProposal(
+          fleetCommanderAddress,
+          deployedArkAddresses,
+          config,
+          fleetDefinition,
+          useBummerConfig,
+          isTenderly,
+        )
+      }
     }
 
     // Update deployment JSON with new Ark addresses
