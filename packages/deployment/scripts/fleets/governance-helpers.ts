@@ -314,16 +314,23 @@ export async function createArkAdditionProposal(
     protocolAccessManagerAddress,
   )
 
+  // Format ark addresses for display in proposal
+  const arkAddressList = arkAddresses.map((addr, i) => `${i + 1}. \`${addr}\``).join('\n')
+
   // Create simplified proposal title and description
-  const title = `Add ${arkAddresses.length} Ark(s) to ${fleetDefinition.fleetName} Fleet`
-  const description = `# Add Arks to ${fleetDefinition.fleetName} Fleet
+  const isMultiple = arkAddresses.length > 1
+  const title = `Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet`
+  const description = `# Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
 
 ## Summary
-This proposal adds ${arkAddresses.length} new Ark(s) to the existing ${fleetDefinition.fleetName} Fleet.
+This proposal adds ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet.
+
+## New ${isMultiple ? 'Ark Addresses' : 'Ark Address'}
+${arkAddressList}
 
 ## Actions
-1. Grant COMMANDER_ROLE to Fleet Commander for each Ark
-2. Add each Ark to the Fleet Commander
+1. Grant COMMANDER_ROLE to Fleet Commander for ${isMultiple ? 'each Ark' : 'the Ark'}
+2. Add ${isMultiple ? 'each Ark' : 'the Ark'} to the Fleet Commander
 
 ## References
 ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : ''}
@@ -723,43 +730,55 @@ export async function createArkAdditionCrossChainProposal(
     calldatas: dstCalldatas,
   } = prepareArkAdditionActions(fleetCommanderAddress, arkAddresses, protocolAccessManagerAddress)
 
+  // Format ark addresses for display in proposal
+  const arkAddressList = arkAddresses.map((addr, i) => `${i + 1}. \`${addr}\``).join('\n')
+
+  // Determine singular or plural based on number of arks
+  const isMultiple = arkAddresses.length > 1
+
   // Create proposal title and descriptions
-  const title = `Add ${arkAddresses.length} Ark(s) to ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
+  const title = `Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
 
   // Destination chain description (what will be executed on the satellite chain)
-  const dstDescription = `# Add Arks to ${fleetDefinition.fleetName} Fleet
+  const dstDescription = `# Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
 
 ## Summary
-This proposal adds ${arkAddresses.length} new Ark(s) to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
+This proposal adds ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
+
+## New ${isMultiple ? 'Ark Addresses' : 'Ark Address'}
+${arkAddressList}
 
 ## Actions
-1. Grant COMMANDER_ROLE to Fleet Commander for each Ark
-2. Add each Ark to the Fleet Commander
+1. Grant COMMANDER_ROLE to Fleet Commander for ${isMultiple ? 'each Ark' : 'the Ark'}
+2. Add ${isMultiple ? 'each Ark' : 'the Ark'} to the Fleet Commander
 
 ## References
 ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : ''}
 `
 
   // Source chain description (what will be shown on the hub chain)
-  const srcDescription = `# Cross-chain Proposal: Add Arks to ${fleetDefinition.fleetName} Fleet
+  const srcDescription = `# Cross-chain Proposal: Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
 
 ## Summary
-This is a cross-chain governance proposal to add ${arkAddresses.length} new Ark(s) to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
+This is a cross-chain governance proposal to add ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet on ${hre.network.name}.
 
 ## Motivation
-Expanding this fleet with additional Arks will enhance the protocol's capabilities on ${hre.network.name}.
+Expanding this fleet with additional ${isMultiple ? 'Arks' : 'an Ark'} will enhance the protocol's capabilities on ${hre.network.name}.
 
 ## Technical Details
 - Hub Chain: ${HUB_CHAIN_NAME}${useBummerConfig ? ' (Bummer)' : ' (Production)'}
 - Target Chain: ${hre.network.name}
 - Fleet Commander: ${fleetCommanderAddress}
-- Number of Arks to add: ${arkAddresses.length}
+- Number of ${isMultiple ? 'Arks' : 'Ark'} to add: ${arkAddresses.length}
+
+## New ${isMultiple ? 'Ark Addresses' : 'Ark Address'}
+${arkAddressList}
 
 ## Specifications
 ### Actions
 This proposal will execute the following actions on ${hre.network.name}:
-1. Grant COMMANDER_ROLE to Fleet Commander for each Ark
-2. Add each Ark to the Fleet Commander
+1. Grant COMMANDER_ROLE to Fleet Commander for ${isMultiple ? 'each Ark' : 'the Ark'}
+2. Add ${isMultiple ? 'each Ark' : 'the Ark'} to the Fleet Commander
 
 ### Cross-chain Mechanism
 This proposal uses LayerZero to execute governance actions across chains.
