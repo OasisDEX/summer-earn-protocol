@@ -239,6 +239,30 @@ export async function getRewardsManagerAddress(fleetCommander: Address): Promise
   const mostRecentLog = logs[logs.length - 1]
   const rewardsManagerAddress = mostRecentLog.args.rewardsManager as Address
 
+  // Verify that the rewards manager belongs to the fleet commander
+  try {
+    const rewardsManagerContract = await hre.viem.getContractAt(
+      'FleetCommanderRewardsManager' as string,
+      rewardsManagerAddress,
+    )
+    const linkedFleetCommander = (await rewardsManagerContract.read.fleetCommander()) as Address
+
+    if (linkedFleetCommander.toLowerCase() !== fleetCommander.toLowerCase()) {
+      throw new Error(
+        `Rewards manager verification failed: linked to ${linkedFleetCommander} instead of ${fleetCommander}`,
+      )
+    }
+
+    console.log(kleur.green(`Verified rewards manager at ${rewardsManagerAddress}`))
+  } catch (error) {
+    console.error(
+      kleur.red(
+        `Failed to verify rewards manager: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    )
+    throw error
+  }
+
   console.log(kleur.green(`Found rewards manager at ${rewardsManagerAddress}`))
   return rewardsManagerAddress
 }
