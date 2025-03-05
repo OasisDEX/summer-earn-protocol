@@ -207,7 +207,8 @@ export async function getRewardsManagerAddress(fleetCommander: Address): Promise
   )
 
   // Get the factory address from the fleet commander
-  const factoryAddress = (await fleetCommanderContract.read.rewardsManagerFactory()) as Address
+  const factoryAddress =
+    (await fleetCommanderContract.read.fleetCommanderRewardsManagerFactory()) as Address
   console.log(kleur.blue(`Rewards manager factory: ${factoryAddress}`))
 
   if (!factoryAddress || factoryAddress === '0x0000000000000000000000000000000000000000') {
