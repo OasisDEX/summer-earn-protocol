@@ -5,9 +5,12 @@ import { Address } from 'viem'
 import { FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
 import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
-import { getFleetConfig } from './common/fleet-deployment-files-helpers'
+import {
+  getFleetConfig,
+  loadFleetDeploymentJson,
+  saveFleetDeploymentJson,
+} from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
-import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
 import { warnIfTenderlyVirtualTestnet } from './common/tenderly-helpers'
 import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
 import {
@@ -287,15 +290,18 @@ async function handleArkAddition(
   useBummerConfig: boolean,
   isTenderly: boolean,
 ) {
-  // Get existing fleet address
-  const fleetResponse = await prompts({
-    type: 'text',
-    name: 'address',
-    message: 'Enter the address of the existing fleet commander:',
-    validate: (value) => (/^0x[a-fA-F0-9]{40}$/.test(value) ? true : 'Invalid Ethereum address'),
-  })
+  console.log(kleur.green().bold('Loading fleet deployment data...'))
 
-  const fleetCommanderAddress = fleetResponse.address as Address
+  // Load the fleet deployment JSON instead of asking for address
+  const deploymentData = await loadFleetDeploymentJson(fleetDefinition)
+
+  if (!deploymentData || !deploymentData.fleetCommander) {
+    console.log(kleur.red('Error: Could not find deployment data for this fleet.'))
+    console.log(kleur.yellow('Please ensure you have deployed this fleet previously.'))
+    return
+  }
+
+  const fleetCommanderAddress = deploymentData.fleetCommander as Address
 
   // Get the fleet commander contract
   const fleetCommander = await hre.viem.getContractAt(
@@ -313,6 +319,7 @@ async function handleArkAddition(
     console.log(kleur.blue('Name:'), kleur.cyan(fleetName))
     console.log(kleur.blue('Symbol:'), kleur.cyan(fleetSymbol))
     console.log(kleur.blue('Buffer Ark:'), kleur.cyan(bufferArkAddress))
+    console.log(kleur.blue('Fleet Commander:'), kleur.cyan(fleetCommanderAddress))
 
     // Verify this is the correct fleet
     const verifyResponse = await prompts({
@@ -370,6 +377,23 @@ async function handleArkAddition(
         useBummerConfig,
       )
     }
+
+    // Update deployment JSON with new Ark addresses
+    if (deploymentData.arks) {
+      deploymentData.arks = [...deploymentData.arks, ...deployedArkAddresses]
+    } else {
+      deploymentData.arks = deployedArkAddresses
+    }
+
+    // Save updated deployment data
+    saveFleetDeploymentJson(
+      fleetDefinition,
+      { fleetCommander: deploymentData.fleetCommander },
+      deploymentData.bufferArk,
+      deploymentData.arks,
+    )
+
+    console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))
   } catch (error: unknown) {
     console.error(
       kleur.red(

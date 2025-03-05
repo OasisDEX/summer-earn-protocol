@@ -314,21 +314,20 @@ export async function createArkAdditionProposal(
     protocolAccessManagerAddress,
   )
 
-  // Create proposal title and description
+  // Create simplified proposal title and description
   const title = `Add ${arkAddresses.length} Ark(s) to ${fleetDefinition.fleetName} Fleet`
-  const description = `This proposal adds ${arkAddresses.length} new Ark(s) to the existing ${fleetDefinition.fleetName} Fleet (${fleetCommanderAddress}).
-  
-Fleet Details:
-Symbol: ${fleetDefinition.symbol}
-Asset: ${fleetDefinition.assetSymbol}
-Network: ${fleetDefinition.network}
+  const description = `# Add Arks to ${fleetDefinition.fleetName} Fleet
 
-Ark Addresses:
-${arkAddresses.map((addr, i) => `${i + 1}. ${addr}`).join('\n')}
+## Summary
+This proposal adds ${arkAddresses.length} new Ark(s) to the existing ${fleetDefinition.fleetName} Fleet.
 
-SIP: ${fleetDefinition.sipNumber || 'N/A'}
-Discourse: ${fleetDefinition.discourseURL || 'N/A'}
-  `
+## Actions
+1. Grant COMMANDER_ROLE to Fleet Commander for each Ark
+2. Add each Ark to the Fleet Commander
+
+## References
+${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : ''}
+`
 
   // Generate proposal details
   const governorId = `eip155:${HUB_CHAIN_ID}:${governorAddress}`
