@@ -6,6 +6,7 @@ import prompts from 'prompts'
 import { Address } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { FleetConfig, FleetDeployment } from '../../types/config-types'
+
 /**
  * Retrieves available fleets for the current network from the deployments folder.
  * @param  networkName - The name of the current network.
@@ -120,10 +121,11 @@ export function loadFleetConfig(filePath: string): FleetConfig {
  * Loads the fleet deployment JSON file for a given fleet definition
  */
 export async function loadFleetDeploymentJson(fleetDefinition: FleetConfig): Promise<any> {
-  const fleetName = fleetDefinition.fleetName.replace(/\s+/g, '')
+  const fleetName = fleetDefinition.fleetName.replace(/\s+/g, '').replace(/\\/g, '')
   const network = hre.network.name
-  const fileName = `${fleetName}-${network}.json`
+  const fileName = `${fleetName}_${network}_deployment.json`
   const filePath = path.join(process.cwd(), 'deployments', 'fleets', fileName)
+  console.log(kleur.green().bold(`Loading fleet deployment output file: ${filePath}`))
 
   try {
     if (fs.existsSync(filePath)) {

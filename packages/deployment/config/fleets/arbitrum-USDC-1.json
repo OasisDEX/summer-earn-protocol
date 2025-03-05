@@ -36,14 +36,6 @@
         "vaultName": "Fluid",
         "protocol": "erc4626"
       }
-    },
-    {
-      "type": "ERC4626Ark",
-      "params": {
-        "asset": "USDC",
-        "vaultName": "Gearbox",
-        "protocol": "erc4626"
-      }
     }
   ]
 }
