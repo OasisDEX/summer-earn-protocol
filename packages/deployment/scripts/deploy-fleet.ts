@@ -27,6 +27,9 @@ import { createTallyProposal, formatTallyProposalUrl } from './helpers/tally-hel
 import { getAssetAddress } from './helpers/token-helpers'
 import { validateToken } from './helpers/validation'
 
+// Add this constant with the other constants
+const CURATOR_ROLE = '0x9d65f741...' // Add actual curator role hash
+
 /**
  * Deploys all Arks specified in the fleet definition
  * @param {FleetConfig} fleetDefinition - The fleet definition object
@@ -148,6 +151,25 @@ async function deployFleet() {
   const fleetDefinition = await getFleetConfig()
   validateToken(config, fleetDefinition.assetSymbol)
 
+  // Collect curator address
+  const curatorResponse = await prompts({
+    type: 'confirm',
+    name: 'configureCurator',
+    message: 'Do you want to configure a curator for this fleet?',
+    initial: false,
+  })
+
+  let curatorAddress: Address | undefined
+  if (curatorResponse.configureCurator) {
+    const curatorAddressResponse = await prompts({
+      type: 'text',
+      name: 'address',
+      message: 'Enter the curator address:',
+      validate: (value) => (/^0x[a-fA-F0-9]{40}$/.test(value) ? true : 'Invalid Ethereum address'),
+    })
+    curatorAddress = curatorAddressResponse.address as Address
+  }
+
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
 
@@ -200,11 +222,13 @@ async function deployFleet() {
         deployedFleet.fleetCommander.address,
         hre,
       )
-      for (const arkAddress of deployedArkAddresses) {
-        await grantCommanderRole(
+
+      // Grant curator role if a curator address was provided
+      if (curatorAddress) {
+        await grantCuratorRole(
           config.deployedContracts.gov.protocolAccessManager.address as Address,
-          arkAddress,
           deployedFleet.fleetCommander.address,
+          curatorAddress,
           hre,
         )
       }
@@ -222,6 +246,7 @@ async function deployFleet() {
           config,
           fleetDefinition,
           useBummerConfig,
+          curatorAddress,
         )
       } else {
         await createSatelliteGovernanceProposal(
@@ -232,6 +257,7 @@ async function deployFleet() {
           fleetDefinition,
           useBummerConfig,
           isTenderly,
+          curatorAddress,
         )
       }
     }
@@ -365,6 +391,7 @@ async function createHubGovernanceProposal(
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
+  curatorAddress?: Address,
 ) {
   // Use the correct governor address from the config
   const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
@@ -423,12 +450,43 @@ async function createHubGovernanceProposal(
     )
   }
 
+  // 3.4 Grant COMMANDER_ROLE to Fleet Commander for each Ark
+  for (const arkAddress of deployedArkAddresses) {
+    targets.push(protocolAccessManagerAddress)
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: parseAbi([
+          'function grantCommanderRole(address arkAddress, address account) external',
+        ]),
+        args: [arkAddress, deployedFleet.fleetCommander.address],
+      }) as Hex,
+    )
+  }
+
+  // 3.5 Grant CURATOR_ROLE to the curator for the fleet if provided
+  if (curatorAddress) {
+    targets.push(protocolAccessManagerAddress)
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: parseAbi([
+          'function grantCuratorRole(address fleetAddress, address account) external',
+        ]),
+        args: [deployedFleet.fleetCommander.address, curatorAddress],
+      }) as Hex,
+    )
+  }
+
   // Replace the try/catch block for proposal submission with Tally API usage
   try {
     console.log(kleur.cyan('Creating Tally draft proposal with the following actions:'))
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
     console.log(kleur.yellow('- Grant COMMANDER_ROLE to Fleet Commander for BufferArk'))
     console.log(kleur.yellow(`- Add ${deployedArkAddresses.length} Arks to the Fleet`))
+    if (curatorAddress) {
+      console.log(kleur.yellow(`- Grant CURATOR_ROLE to ${curatorAddress} for the fleet`))
+    }
 
     const proposalContent = generateFleetProposalDescription(
       deployedFleet,
@@ -495,6 +553,7 @@ async function createSatelliteGovernanceProposal(
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
   isTenderlyVirtualTestnet: boolean,
+  curatorAddress?: Address,
 ) {
   console.log(kleur.yellow('Creating cross-chain governance proposal...'))
 
@@ -582,6 +641,20 @@ async function createSatelliteGovernanceProposal(
     )
   }
 
+  // 3.5 Grant CURATOR_ROLE to the curator for the fleet if provided
+  if (curatorAddress) {
+    dstTargets.push(protocolAccessManagerAddress)
+    dstValues.push(0n)
+    dstCalldatas.push(
+      encodeFunctionData({
+        abi: parseAbi([
+          'function grantCuratorRole(address fleetAddress, address account) external',
+        ]),
+        args: [deployedFleet.fleetCommander.address, curatorAddress],
+      }) as Hex,
+    )
+  }
+
   const proposalDescriptions = generateFleetProposalDescription(
     deployedFleet,
     fleetDefinition,
@@ -627,6 +700,9 @@ async function createSatelliteGovernanceProposal(
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
     console.log(kleur.yellow('- Grant COMMANDER_ROLE to Fleet Commander for BufferArk'))
     console.log(kleur.yellow(`- Add ${deployedArkAddresses.length} Arks to the Fleet`))
+    if (curatorAddress) {
+      console.log(kleur.yellow(`- Grant CURATOR_ROLE to ${curatorAddress} for the fleet`))
+    }
 
     console.log(kleur.blue('Hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
@@ -685,6 +761,33 @@ async function createSatelliteGovernanceProposal(
   } catch (error: any) {
     console.error(kleur.red('Error preparing cross-chain proposal:'), error)
   }
+}
+
+// Add a new function to grant curator role
+async function grantCuratorRole(
+  protocolAccessManagerAddress: Address,
+  fleetCommanderAddress: Address,
+  curatorAddress: Address,
+  hre: any,
+) {
+  const publicClient = await hre.viem.getPublicClient()
+  const protocolAccessManager = await hre.viem.getContractAt(
+    'ProtocolAccessManager' as string,
+    protocolAccessManagerAddress,
+  )
+
+  console.log(
+    kleur.blue('Granting CURATOR_ROLE to'),
+    kleur.cyan(curatorAddress),
+    kleur.blue('for fleet'),
+    kleur.cyan(fleetCommanderAddress),
+  )
+  const hash = await protocolAccessManager.write.grantCuratorRole([
+    fleetCommanderAddress,
+    curatorAddress,
+  ])
+  await publicClient.waitForTransactionReceipt({ hash })
+  console.log(kleur.green('CURATOR_ROLE granted successfully!'))
 }
 
 // Execute the deployFleet function and handle any errors
