@@ -423,8 +423,8 @@ export async function createHubGovernanceProposal(
       deployedArkAddresses,
       bufferArkAddress,
       false, // isCrossChain
-      'mainnet', // targetChain (will be overridden)
-      'mainnet' + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
+      HUB_CHAIN_NAME, // targetChain (will be overridden)
+      HUB_CHAIN_NAME + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
       curatorAddress, // Add curator address
       fleetDefinition.rewardTokens
         ? {
@@ -482,7 +482,7 @@ export async function createSatelliteGovernanceProposal(
   }
 
   // 2. Set up clients for the hub chain
-  console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan('mainnet'))
+  console.log(kleur.blue('Connecting to hub chain:'), kleur.cyan(HUB_CHAIN_NAME))
   console.log(
     kleur.blue('Using config:'),
     useBummerConfig ? kleur.cyan('Bummer/Test') : kleur.cyan('Production'),
@@ -567,7 +567,7 @@ export async function createSatelliteGovernanceProposal(
     bufferArkAddress,
     true, // isCrossChain
     hre.network.name, // targetChain
-    'mainnet' + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
+    HUB_CHAIN_NAME + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
     curatorAddress, // Add curator address
     fleetDefinition.rewardTokens
       ? {

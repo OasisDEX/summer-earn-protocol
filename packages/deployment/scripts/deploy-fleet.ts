@@ -169,10 +169,9 @@ async function handleNewFleetDeployment(
 
     const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
 
-    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
-
-    // Deploy all Arks later
     const deployedArkAddresses = await deployArks(fleetDefinition, config)
+
+    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress, deployedArkAddresses)
 
     // Check if deployer has governor role
     const protocolAccessManager = await hre.viem.getContractAt(

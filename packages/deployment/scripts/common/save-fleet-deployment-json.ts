@@ -1,5 +1,6 @@
 import kleur from 'kleur'
 import fs from 'node:fs'
+import { Address } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { FleetConfig } from '../../types/config-types'
 import { getFleetDeploymentDir, getFleetDeploymentPath } from './fleet-deployment-files-helpers'
@@ -12,19 +13,21 @@ import { getFleetDeploymentDir, getFleetDeploymentPath } from './fleet-deploymen
 export function saveFleetDeploymentJson(
   fleetDefinition: FleetConfig,
   deployedFleet: FleetContracts,
-  bufferArkAddress: string,
+  bufferArkAddress: Address,
+  deployedArkAddresses?: Address[],
 ) {
   const deploymentInfo = {
     fleetName: fleetDefinition.fleetName,
     fleetSymbol: fleetDefinition.symbol,
     assetSymbol: fleetDefinition.assetSymbol,
     fleetAddress: deployedFleet.fleetCommander.address,
-    bufferArkAddress: bufferArkAddress,
+    bufferArkAddress: bufferArkAddress.toString(),
     network: fleetDefinition.network,
     initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
     initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
     depositCap: fleetDefinition.depositCap,
     initialTipRate: fleetDefinition.initialTipRate,
+    arkAddresses: deployedArkAddresses?.map((address) => address.toString()),
   }
 
   const deploymentDir = getFleetDeploymentDir()
