@@ -12,6 +12,217 @@ import {
 import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
 
 /**
+ * Prepares proposal actions for adding arks to a fleet
+ * This is a common function used by multiple proposal types
+ */
+export function prepareArkAdditionActions(
+  fleetCommanderAddress: Address,
+  arkAddresses: Address[],
+  protocolAccessManagerAddress: Address,
+): { targets: Address[]; values: bigint[]; calldatas: Hex[] } {
+  const targets: Address[] = []
+  const values: bigint[] = []
+  const calldatas: Hex[] = []
+
+  // Grant COMMANDER_ROLE to Fleet Commander for each Ark
+  for (const arkAddress of arkAddresses) {
+    targets.push(protocolAccessManagerAddress)
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: parseAbi([
+          'function grantCommanderRole(address arkAddress, address account) external',
+        ]),
+        args: [arkAddress, fleetCommanderAddress],
+      }) as Hex,
+    )
+  }
+
+  // Add each Ark to the Fleet Commander
+  for (const arkAddress of arkAddresses) {
+    targets.push(fleetCommanderAddress)
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: parseAbi(['function addArk(address ark) external']),
+        args: [arkAddress],
+      }) as Hex,
+    )
+  }
+
+  return { targets, values, calldatas }
+}
+
+/**
+ * Prepares proposal actions for adding a fleet to Harbor Command
+ */
+export function prepareHarborAdditionActions(
+  fleetCommanderAddress: Address,
+  harborCommandAddress: Address,
+): { targets: Address[]; values: bigint[]; calldatas: Hex[] } {
+  const targets: Address[] = [harborCommandAddress]
+  const values: bigint[] = [0n]
+  const calldatas: Hex[] = [
+    encodeFunctionData({
+      abi: parseAbi(['function enlistFleetCommander(address fleetCommander) external']),
+      args: [fleetCommanderAddress],
+    }) as Hex,
+  ]
+
+  return { targets, values, calldatas }
+}
+
+/**
+ * Prepares proposal actions for granting commander role for BufferArk
+ */
+export function prepareBufferArkActions(
+  bufferArkAddress: Address,
+  fleetCommanderAddress: Address,
+  protocolAccessManagerAddress: Address,
+): { targets: Address[]; values: bigint[]; calldatas: Hex[] } {
+  const targets: Address[] = [protocolAccessManagerAddress]
+  const values: bigint[] = [0n]
+  const calldatas: Hex[] = [
+    encodeFunctionData({
+      abi: parseAbi(['function grantCommanderRole(address arkAddress, address account) external']),
+      args: [bufferArkAddress, fleetCommanderAddress],
+    }) as Hex,
+  ]
+
+  return { targets, values, calldatas }
+}
+
+/**
+ * Prepares proposal actions for granting curator role
+ */
+export function prepareCuratorActions(
+  fleetCommanderAddress: Address,
+  curatorAddress: Address,
+  protocolAccessManagerAddress: Address,
+): { targets: Address[]; values: bigint[]; calldatas: Hex[] } {
+  const targets: Address[] = [protocolAccessManagerAddress]
+  const values: bigint[] = [0n]
+  const calldatas: Hex[] = [
+    encodeFunctionData({
+      abi: parseAbi(['function grantCuratorRole(address fleetAddress, address account) external']),
+      args: [fleetCommanderAddress, curatorAddress],
+    }) as Hex,
+  ]
+
+  return { targets, values, calldatas }
+}
+
+/**
+ * Submits a proposal to Tally or logs manual submission details on failure
+ */
+export async function submitProposal(
+  governorId: string,
+  title: string,
+  description: string,
+  targets: Address[],
+  values: bigint[],
+  calldatas: Hex[],
+  discourseURL: string = '',
+): Promise<void> {
+  try {
+    console.log(kleur.blue('Submitting proposal to Tally...'))
+
+    // Create executable calls array for Tally
+    const executableCalls = targets.map((target, index) => ({
+      target,
+      calldata: calldatas[index],
+      signature: '',
+      value: values[index].toString(),
+      type: 'custom',
+    }))
+
+    // Submit to Tally API with discourse URL
+    const response = await createTallyProposal(
+      governorId,
+      title,
+      description,
+      executableCalls,
+      discourseURL,
+    )
+
+    // Get proposal ID and display URL
+    const proposalId = response.data.createProposal.id
+    console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
+    const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
+    console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
+  } catch (error: unknown) {
+    console.error(kleur.red('Error creating Tally draft proposal:'), error)
+    if (error instanceof Error && 'response' in error) {
+      console.error(kleur.red('Error response:'), error.response.data)
+    }
+
+    // Fall back to showing manual submission details
+    console.log(kleur.yellow('\nProposal details for manual submission:'))
+    console.log(kleur.blue('Targets:'), kleur.cyan(JSON.stringify(targets)))
+    console.log(kleur.blue('Values:'), kleur.cyan(values.toString()))
+    console.log(kleur.blue('Calldatas:'))
+    calldatas.forEach((data) => {
+      console.log(kleur.cyan(data))
+    })
+    console.log(kleur.blue('Description:'), kleur.cyan(description))
+  }
+}
+
+/**
+ * Creates a governance proposal that only adds arks to an existing fleet
+ */
+export async function createArkAdditionProposal(
+  fleetCommanderAddress: Address,
+  arkAddresses: Address[],
+  config: BaseConfig,
+  fleetDefinition: FleetConfig,
+  useBummerConfig: boolean,
+): Promise<void> {
+  console.log(kleur.cyan('Creating governance proposal to add arks to existing fleet'))
+
+  // Use the correct governor address from the config
+  const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+  const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
+    .address as Address
+
+  // Get the actions for adding arks
+  const { targets, values, calldatas } = prepareArkAdditionActions(
+    fleetCommanderAddress,
+    arkAddresses,
+    protocolAccessManagerAddress,
+  )
+
+  // Create proposal title and description
+  const title = `Add ${arkAddresses.length} Ark(s) to ${fleetDefinition.fleetName} Fleet`
+  const description = `This proposal adds ${arkAddresses.length} new Ark(s) to the existing ${fleetDefinition.fleetName} Fleet (${fleetCommanderAddress}).
+  
+Fleet Details:
+Symbol: ${fleetDefinition.symbol}
+Asset: ${fleetDefinition.assetSymbol}
+Network: ${fleetDefinition.network}
+
+Ark Addresses:
+${arkAddresses.map((addr, i) => `${i + 1}. ${addr}`).join('\n')}
+
+SIP: ${fleetDefinition.sipNumber || 'N/A'}
+Discourse: ${fleetDefinition.discourseURL || 'N/A'}
+  `
+
+  // Generate proposal details
+  const chainId = config.common.chainId
+  const governorId = `eip155:${chainId}:${governorAddress}`
+
+  // Get the discourse URL from the fleet definition if available
+  const discourseURL = fleetDefinition.discourseURL || ''
+  if (discourseURL) {
+    console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
+  }
+
+  // Submit proposal
+  await submitProposal(governorId, title, description, targets, values, calldatas, discourseURL)
+}
+
+/**
  * Creates a governance proposal on the hub chain and optionally submits a draft to Tally
  */
 export async function createHubGovernanceProposal(
@@ -30,85 +241,52 @@ export async function createHubGovernanceProposal(
     .address as Address
 
   // Prepare the proposal targets, values, and calldatas
-  const targets: Address[] = []
-  const values: bigint[] = []
-  const calldatas: Hex[] = []
+  let targets: Address[] = []
+  let values: bigint[] = []
+  let calldatas: Hex[] = []
 
   // 1. Add Fleet to Harbor Command
-  targets.push(harborCommandAddress)
-  values.push(0n)
-  calldatas.push(
-    encodeFunctionData({
-      abi: parseAbi(['function enlistFleetCommander(address fleetCommander) external']),
-      args: [deployedFleet.fleetCommander.address],
-    }) as Hex,
+  const harborActions = prepareHarborAdditionActions(
+    deployedFleet.fleetCommander.address,
+    harborCommandAddress,
   )
+  targets = [...targets, ...harborActions.targets]
+  values = [...values, ...harborActions.values]
+  calldatas = [...calldatas, ...harborActions.calldatas]
 
   // 2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
-  targets.push(protocolAccessManagerAddress)
-  values.push(0n)
-  calldatas.push(
-    encodeFunctionData({
-      abi: parseAbi(['function grantCommanderRole(address arkAddress, address account) external']),
-      args: [bufferArkAddress, deployedFleet.fleetCommander.address],
-    }) as Hex,
+  const bufferArkActions = prepareBufferArkActions(
+    bufferArkAddress,
+    deployedFleet.fleetCommander.address,
+    protocolAccessManagerAddress,
   )
+  targets = [...targets, ...bufferArkActions.targets]
+  values = [...values, ...bufferArkActions.values]
+  calldatas = [...calldatas, ...bufferArkActions.calldatas]
 
-  // 2.1 Grant COMMANDER_ROLE to Fleet Commander for each Ark
-  for (const arkAddress of deployedArkAddresses) {
-    targets.push(protocolAccessManagerAddress)
-    values.push(0n)
-    calldatas.push(
-      encodeFunctionData({
-        abi: parseAbi([
-          'function grantCommanderRole(address arkAddress, address account) external',
-        ]),
-        args: [arkAddress, deployedFleet.fleetCommander.address],
-      }) as Hex,
-    )
-  }
+  // 3. Add Arks and grant COMMANDER_ROLE
+  const arkActions = prepareArkAdditionActions(
+    deployedFleet.fleetCommander.address,
+    deployedArkAddresses,
+    protocolAccessManagerAddress,
+  )
+  targets = [...targets, ...arkActions.targets]
+  values = [...values, ...arkActions.values]
+  calldatas = [...calldatas, ...arkActions.calldatas]
 
-  // 3. Add each Ark to the Fleet Commander
-  for (const arkAddress of deployedArkAddresses) {
-    targets.push(deployedFleet.fleetCommander.address)
-    values.push(0n)
-    calldatas.push(
-      encodeFunctionData({
-        abi: parseAbi(['function addArk(address ark) external']),
-        args: [arkAddress],
-      }) as Hex,
-    )
-  }
-
-  // 3.4 Grant COMMANDER_ROLE to Fleet Commander for each Ark
-  for (const arkAddress of deployedArkAddresses) {
-    targets.push(protocolAccessManagerAddress)
-    values.push(0n)
-    calldatas.push(
-      encodeFunctionData({
-        abi: parseAbi([
-          'function grantCommanderRole(address arkAddress, address account) external',
-        ]),
-        args: [arkAddress, deployedFleet.fleetCommander.address],
-      }) as Hex,
-    )
-  }
-
-  // 3.5 Grant CURATOR_ROLE to the curator for the fleet if provided
+  // 4. Grant CURATOR_ROLE if provided
   if (curatorAddress) {
-    targets.push(protocolAccessManagerAddress)
-    values.push(0n)
-    calldatas.push(
-      encodeFunctionData({
-        abi: parseAbi([
-          'function grantCuratorRole(address fleetAddress, address account) external',
-        ]),
-        args: [deployedFleet.fleetCommander.address, curatorAddress],
-      }) as Hex,
+    const curatorActions = prepareCuratorActions(
+      deployedFleet.fleetCommander.address,
+      curatorAddress,
+      protocolAccessManagerAddress,
     )
+    targets = [...targets, ...curatorActions.targets]
+    values = [...values, ...curatorActions.values]
+    calldatas = [...calldatas, ...curatorActions.calldatas]
   }
 
-  // Replace the try/catch block for proposal submission with Tally API usage
+  // Replace the try/catch block with common submission logic
   try {
     console.log(kleur.cyan('Creating Tally draft proposal with the following actions:'))
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
@@ -132,43 +310,17 @@ export async function createHubGovernanceProposal(
     const chainId = config.common.chainId
     const governorId = `eip155:${chainId}:${governorAddress}`
     const title = proposalContent.sourceTitle
-
-    // Create executable calls array for Tally
-    const executableCalls = targets.map((target, index) => ({
-      target,
-      calldata: calldatas[index],
-      signature: '',
-      value: values[index].toString(),
-      type: 'custom',
-    }))
+    const description = proposalContent.sourceDescription
 
     // Get the discourse URL from the fleet definition if available
     const discourseURL = fleetDefinition.discourseURL || ''
-    if (discourseURL) {
-      console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
-    }
 
-    // Submit to Tally API with discourse URL
-    const response = await createTallyProposal(
-      governorId,
-      title,
-      proposalContent.sourceDescription,
-      executableCalls,
-      discourseURL,
-    )
-
-    // Get proposal ID and display URL
-    const proposalId = response.data.createProposal.id
-    console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
-    const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
-    console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
+    // Submit the proposal
+    await submitProposal(governorId, title, description, targets, values, calldatas, discourseURL)
 
     console.log(kleur.yellow('The fleet will be activated once this proposal is executed.'))
   } catch (error: any) {
-    console.error(kleur.red('Error creating Tally draft proposal:'), error)
-    if (error.response) {
-      console.error(kleur.red('Error response:'), error.response.data)
-    }
+    console.error(kleur.red('Error creating proposal:'), error)
   }
 }
 
