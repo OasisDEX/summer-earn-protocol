@@ -95,11 +95,6 @@ async function deployFleet() {
 
   const useBummerConfig = configResponse.configType
 
-  if (useBummerConfig && !isTenderly) {
-    console.log(kleur.red('Bummer config is only available on Tenderly virtual testnets.'))
-    return
-  }
-
   const configForGovernance = getConfigByNetwork(network, { gov: true }, useBummerConfig)
   const configForCore = getConfigByNetwork(network, { core: true })
 

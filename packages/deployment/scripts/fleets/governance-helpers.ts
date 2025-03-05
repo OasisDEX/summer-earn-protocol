@@ -597,10 +597,6 @@ export async function createSatelliteGovernanceProposal(
 ) {
   console.log(kleur.yellow('Creating cross-chain governance proposal...'))
 
-  if (!isTenderlyVirtualTestnet && useBummerConfig) {
-    throw new Error('Bummer config is only available on Tenderly virtual testnets.')
-  }
-
   const hubConfigForGovernance = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true }, useBummerConfig)
   const hubConfigForCore = getConfigByNetwork(HUB_CHAIN_NAME, { core: true })
 
@@ -857,10 +853,6 @@ export async function createArkAdditionCrossChainProposal(
   isTenderlyVirtualTestnet: boolean,
 ): Promise<void> {
   console.log(kleur.yellow('Creating cross-chain governance proposal to add arks...'))
-
-  if (!isTenderlyVirtualTestnet && useBummerConfig) {
-    throw new Error('Bummer config is only available on Tenderly virtual testnets.')
-  }
 
   const hubConfigForGovernance = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true }, useBummerConfig)
   const hubConfigForCore = getConfigByNetwork(HUB_CHAIN_NAME, { core: true })
