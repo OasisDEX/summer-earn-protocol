@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
@@ -356,8 +357,17 @@ export async function submitProposal(
     calldata: calldatas[index],
   }))
 
+  // Generate a save path for the proposal JSON
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const networkName = hre.network.name
+  const savePath = path.join(
+    process.cwd(),
+    'packages/deployment/proposals',
+    `${networkName}_proposal_${timestamp}.json`,
+  )
+
   try {
-    // Use the generic createGovernanceProposal function
+    // Use the generic createGovernanceProposal function with savePath
     await createGovernanceProposal(
       title,
       description,
@@ -366,6 +376,7 @@ export async function submitProposal(
       chainId,
       discourseURL,
       actionSummary,
+      savePath,
     )
   } catch (error) {
     // The createGovernanceProposal function already handles error logging
@@ -723,7 +734,6 @@ export async function createSatelliteGovernanceProposal(
     curatorAddress, // Add curator address
     fleetDefinition.rewardTokens
       ? {
-          // Add reward info if available
           tokens: fleetDefinition.rewardTokens,
           amounts: fleetDefinition.rewardAmounts,
           duration: fleetDefinition.rewardsDuration?.toString(),
@@ -760,7 +770,7 @@ export async function createSatelliteGovernanceProposal(
     }) as Hex,
   ]
 
-  // 5. Create Tally draft proposal
+  // 5. Create proposal using the common submitProposal function
   try {
     console.log(kleur.cyan('Creating cross-chain governance proposal with the following actions:'))
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
@@ -775,62 +785,33 @@ export async function createSatelliteGovernanceProposal(
       )
     }
 
-    console.log(kleur.blue('Hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
-
     // Generate proposal details
     const governorId = `eip155:${HUB_CHAIN_ID}:${HUB_GOVERNOR_ADDRESS}`
 
-    // Create executable calls array for Tally
-    const executableCalls = srcTargets.map((target, index) => ({
-      target,
-      calldata: srcCalldatas[index],
-      signature: '',
-      value: srcValues[index].toString(),
-      type: 'custom',
-    }))
-
     // Get the discourse URL from the fleet definition if available
     const discourseURL = fleetDefinition.discourseURL || ''
-    if (discourseURL) {
-      console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
-    }
 
-    // Submit to Tally API with discourse URL
-    try {
-      const response = await createTallyProposal(
-        governorId,
-        title,
-        srcDescription,
-        executableCalls,
-        discourseURL,
-      )
+    // Create action summary for better display in proposal
+    const actionSummary = [
+      `Send cross-chain proposal to ${hre.network.name}`,
+      `Execute ${dstTargets.length} actions on the destination chain`,
+    ]
 
-      // Get proposal ID and display URL
-      const proposalId = response.data.createProposal.id
-      console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
-      const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
-      console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
-      console.log(kleur.yellow('The fleet will be activated once this proposal is executed.'))
-    } catch (error: any) {
-      console.error(kleur.red('Error creating Tally draft proposal:'), error)
-      if (error.response) {
-        console.error(kleur.red('Error response:'), error.response.data)
-      }
+    // Submit proposal using the common helper function
+    await submitProposal(
+      governorId,
+      title,
+      srcDescription,
+      srcTargets,
+      srcValues,
+      srcCalldatas,
+      discourseURL,
+      actionSummary,
+    )
 
-      // Fall back to showing manual submission details
-      console.log(kleur.yellow('\nProposal details for manual submission:'))
-      console.log(kleur.blue('Governor Address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
-      console.log(kleur.blue('Targets:'), kleur.cyan(JSON.stringify(srcTargets)))
-      console.log(kleur.blue('Values:'), kleur.cyan(srcValues.toString()))
-      console.log(kleur.blue('Calldatas:'))
-      srcCalldatas.forEach((data) => {
-        console.log(kleur.cyan(data))
-      })
-      console.log(kleur.blue('Description:'), kleur.cyan(srcDescription))
-      console.log(kleur.yellow('The cross-chain proposal needs to be submitted on the hub chain.'))
-    }
+    console.log(kleur.yellow('The fleet will be activated once this proposal is executed.'))
   } catch (error: any) {
-    console.error(kleur.red('Error preparing cross-chain proposal:'), error)
+    console.error(kleur.red('Error creating cross-chain proposal:'), error)
   }
 }
 
