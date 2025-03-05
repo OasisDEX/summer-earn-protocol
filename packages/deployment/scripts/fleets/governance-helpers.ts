@@ -10,9 +10,19 @@ import { constructLzOptions } from '../helpers/layerzero-options'
 import {
   CrossChainContent,
   generateFleetProposalDescription,
+  ProposalContent,
   SingleChainContent,
 } from '../helpers/proposal-helpers'
 import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
+
+export interface FleetSingleChainContent extends ProposalContent {
+  sourceDescription: string
+  sourceTitle: string
+}
+
+export interface FleetCrossChainContent extends FleetSingleChainContent {
+  destinationDescription: string
+}
 
 /**
  * Prepares proposal actions for adding arks to a fleet
@@ -312,6 +322,15 @@ export async function createHubGovernanceProposal(
       false, // isCrossChain
       'mainnet', // targetChain (will be overridden)
       'mainnet' + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
+      curatorAddress, // Add curator address
+      fleetDefinition.rewardTokens
+        ? {
+            // Add reward info if available
+            tokens: fleetDefinition.rewardTokens,
+            amounts: fleetDefinition.rewardAmounts,
+            duration: fleetDefinition.rewardsDuration?.toString(),
+          }
+        : undefined,
     ) as SingleChainContent
 
     // Generate proposal details
@@ -446,6 +465,15 @@ export async function createSatelliteGovernanceProposal(
     true, // isCrossChain
     hre.network.name, // targetChain
     'mainnet' + (useBummerConfig ? ' (Bummer)' : ' (Production)'), // hubChain
+    curatorAddress, // Add curator address
+    fleetDefinition.rewardTokens
+      ? {
+          // Add reward info if available
+          tokens: fleetDefinition.rewardTokens,
+          amounts: fleetDefinition.rewardAmounts,
+          duration: fleetDefinition.rewardsDuration?.toString(),
+        }
+      : undefined,
   ) as CrossChainContent
 
   const dstDescription = proposalDescriptions.destinationDescription
