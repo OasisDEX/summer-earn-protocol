@@ -1,0 +1,17 @@
+[
+  {
+    "rewardTokenSymbol": "morpho",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.000606,
+      "usdt": 1.77,
+      "usdc": 1.77,
+      "dai": 1.77,
+      "usde": 1.77,
+      "usdce": 1.77
+    },
+    "duration": "3d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear"
+  }
+]

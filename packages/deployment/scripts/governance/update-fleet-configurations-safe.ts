@@ -4,7 +4,7 @@ import fs from 'fs'
 import hre from 'hardhat'
 import path from 'path'
 import { Address, encodeFunctionData, getAddress } from 'viem'
-import { BaseConfig } from '../../types/config-types'
+import { BaseConfig, Token } from '../../types/config-types'
 import { promptForChainFromHre } from '../helpers/chain-prompt'
 import {
   logPercentageComparison,
@@ -66,9 +66,24 @@ interface FleetDeployment {
   arks: string[]
 }
 
+// Add new interface for auction config
+interface AuctionConfig {
+  rewardTokenSymbol: string
+  rewardTokenDecimals: number
+  prices: {
+    [key in Token]: number
+  }
+  duration: string
+  kickerRewardPercentage: number
+  decayType: string
+}
+
 async function loadConfigurations() {
   const arksConfigPath = path.join(__dirname, '../../config/curation/arks.json')
   const arksConfig: ArkConfig[] = JSON.parse(fs.readFileSync(arksConfigPath, 'utf-8'))
+
+  const auctionsConfigPath = path.join(__dirname, '../../config/curation/auctions.json')
+  const auctionsConfig: AuctionConfig[] = JSON.parse(fs.readFileSync(auctionsConfigPath, 'utf-8'))
 
   const fleetsPath = path.join(__dirname, '../../deployments/fleets')
   const fleetFiles = fs.readdirSync(fleetsPath)
@@ -76,7 +91,7 @@ async function loadConfigurations() {
     .filter((file) => file.endsWith('_deployment.json'))
     .map((file) => JSON.parse(fs.readFileSync(path.join(fleetsPath, file), 'utf-8')))
 
-  return { arksConfig, fleetDeployments }
+  return { arksConfig, fleetDeployments, auctionsConfig }
 }
 
 function parseTimeString(timeStr: string): number {
@@ -84,6 +99,8 @@ function parseTimeString(timeStr: string): number {
   const value = parseInt(timeStr.slice(0, -1))
 
   switch (unit) {
+    case 'd':
+      return value * 86400 // days to seconds
     case 'h':
       return value * 3600
     case 'm':
@@ -140,9 +157,127 @@ function parsePercentage(percentValue: string | number): bigint {
   return BigInt(BigInt(percent * 100) * WAD)
 }
 
+// Update the multiplier calculation to handle decimals correctly
+function calculateAuctionMultipliers(
+  basePrice: number,
+  assetDecimals: bigint,
+): { startPrice: bigint; endPrice: bigint } {
+  // Convert base price to asset decimals
+  const baseWithDecimals = BigInt(Math.round(basePrice * Math.pow(10, Number(assetDecimals))))
+
+  // Start at 3x price and end at 0.1x price
+  const startPrice = baseWithDecimals * 3n
+  const endPrice = baseWithDecimals / 10n // 0.1x
+
+  return { startPrice, endPrice }
+}
+
+async function createAuctionConfigurationTransaction(
+  arkConfig: ArkConfig,
+  fleetDeployment: FleetDeployment,
+  auctionsConfig: AuctionConfig[],
+  chainConfig: ChainConfiguration,
+  raft: any, // TODO: Add proper type
+): Promise<TransactionBase | null> {
+  // Only configure auction parameters for Morpho arks
+  if (arkConfig.ark !== 'morpho') {
+    return null
+  }
+
+  // Find matching auction config for Morpho
+  const morphoAuctionConfig = auctionsConfig.find(
+    (config) => config.rewardTokenSymbol.toLowerCase() === 'morpho',
+  )
+
+  if (!morphoAuctionConfig) {
+    throw new Error('No auction configuration found for Morpho')
+  }
+
+  // Get base price for the fleet's asset
+  const assetKey = fleetDeployment.assetSymbol.toLowerCase() as Token
+  const basePrice = morphoAuctionConfig.prices[assetKey]
+  if (basePrice === undefined) {
+    throw new Error(`No price configuration found for asset ${assetKey} in Morpho auctions`)
+  }
+
+  const assetDecimals = getAssetDecimals(fleetDeployment.assetSymbol)
+  const { startPrice, endPrice } = calculateAuctionMultipliers(basePrice, assetDecimals)
+  const duration = parseTimeString(morphoAuctionConfig.duration)
+  const kickerRewardPercentage = parsePercentage(morphoAuctionConfig.kickerRewardPercentage)
+  const decayType = morphoAuctionConfig.decayType === 'linear' ? 0 : 1
+
+  // Get current auction parameters
+  const rewardTokenAddress =
+    chainConfig.config.tokens[morphoAuctionConfig.rewardTokenSymbol.toLowerCase() as Token]
+  if (!rewardTokenAddress) {
+    throw new Error(`No reward token address found for ${morphoAuctionConfig.rewardTokenSymbol}`)
+  }
+
+  const currentAuctionParams = (await raft.read.arkAuctionParameters([
+    arkConfig.arkAddress,
+    rewardTokenAddress,
+  ])) as bigint[]
+
+  const currentDuration = currentAuctionParams[0] as bigint
+  const currentStartPrice = currentAuctionParams[1] as bigint
+  const currentEndPrice = currentAuctionParams[2] as bigint
+  const currentKickerRewardPercentage = currentAuctionParams[3] as bigint
+  const currentDecayType = currentAuctionParams[4] as bigint
+
+  console.log('\n🔄 Configuring Morpho auction parameters: \n')
+
+  logValueComparison('Duration', currentDuration, duration, ' seconds')
+  logValueComparison(
+    'Start price',
+    currentStartPrice,
+    startPrice,
+    ` ${fleetDeployment.assetSymbol}`,
+  )
+  logValueComparison('End price', currentEndPrice, endPrice, ` ${fleetDeployment.assetSymbol}`)
+  logValueComparison('Kicker reward', currentKickerRewardPercentage, kickerRewardPercentage, ' %')
+  logValueComparison('Decay type', currentDecayType, decayType)
+
+  // Only update if any parameter has changed
+  if (
+    BigInt(duration) !== currentDuration ||
+    startPrice !== currentStartPrice ||
+    endPrice !== currentEndPrice ||
+    kickerRewardPercentage !== currentKickerRewardPercentage ||
+    decayType !== Number(currentDecayType)
+  ) {
+    const setAuctionParamsCalldata = encodeFunctionData({
+      abi: raft.abi,
+      functionName: 'setArkAuctionParameters',
+      args: [
+        arkConfig.arkAddress,
+        rewardTokenAddress,
+        {
+          duration,
+          startPrice,
+          endPrice,
+          kickerRewardPercentage,
+          decayType,
+        },
+      ],
+    })
+
+    console.log('📝 Auction parameters update transaction created')
+    return {
+      to: raft.address,
+      data: setAuctionParamsCalldata,
+      value: '0',
+    }
+  }
+
+  console.log('✅ Auction parameters are up to date')
+  return null
+}
+
 async function createConfigurationTransactions(
   fleetDeployment: FleetDeployment,
   arkConfig: ArkConfig,
+  auctionsConfig: AuctionConfig[],
+  chainConfig: ChainConfiguration,
   isFirstArkForFleet: boolean,
 ): Promise<TransactionBase[]> {
   const transactions: TransactionBase[] = []
@@ -223,6 +358,24 @@ async function createConfigurationTransactions(
     }
   }
 
+  // Handle auction configuration
+  const raft = await hre.viem.getContractAt(
+    'Raft' as string,
+    chainConfig.config.deployedContracts.core.raft.address as `0x${string}`,
+  )
+
+  const auctionTransaction = await createAuctionConfigurationTransaction(
+    arkConfig,
+    fleetDeployment,
+    auctionsConfig,
+    chainConfig,
+    raft,
+  )
+
+  if (auctionTransaction) {
+    transactions.push(auctionTransaction)
+  }
+
   // Configure ark parameters
   const arkAddress = arkConfig.arkAddress
   console.log(`\n📊 Reading current ark configuration for ${arkAddress}...`)
@@ -232,6 +385,7 @@ async function createConfigurationTransactions(
 
   // Set ark deposit cap
   const arkCap = parseAmount(arkConfig.arkMaxCap, fleetDeployment.assetSymbol)
+
   logValueComparison(
     'Ark deposit cap',
     currentArkConfig.depositCap,
@@ -347,7 +501,7 @@ async function main() {
   }
 
   // Load and filter configurations for current chain
-  const { arksConfig: allArksConfig, fleetDeployments } = await loadConfigurations()
+  const { arksConfig: allArksConfig, fleetDeployments, auctionsConfig } = await loadConfigurations()
 
   // Filter arks for current chain
   const arksConfig = allArksConfig.filter((arkConfig) => {
@@ -420,6 +574,8 @@ async function main() {
     const fleetTransactions = await createConfigurationTransactions(
       matchingFleet,
       arkConfig,
+      auctionsConfig,
+      chainConfig,
       isFirstArkForFleet,
     )
     transactions.push(...fleetTransactions)

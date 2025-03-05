@@ -49,7 +49,8 @@
       "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
       "weth": "0x4200000000000000000000000000000000000006",
       "usds": "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
-      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a"
+      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
+      "morpho": "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842"
     },
     "common": {
       "initialSupply": "1000000000",
@@ -164,7 +165,8 @@
       "usde": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
       "usdt": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
       "usdce": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
-      "weth": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+      "weth": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+      "morpho": "0x0000000000000000000000000000000000000000"
     },
     "common": {
       "initialSupply": "0",
@@ -296,7 +298,8 @@
       "weth": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
       "usds": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
       "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
-      "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+      "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "morpho": "0x58D97B57BB95320F9a05dC918Aef65434969c2B2"
     },
     "common": {
       "initialSupply": "0",
