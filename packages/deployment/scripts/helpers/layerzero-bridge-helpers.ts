@@ -1,7 +1,65 @@
+import { addressToBytes32, Options } from '@layerzerolabs/lz-v2-utilities'
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
-import { constructLzOptions } from './layerzero-options'
+import { Address, encodeFunctionData, Hex } from 'viem'
+
+const OFT_ABI = [
+  {
+    name: 'quoteSend',
+    inputs: [
+      {
+        name: 'sendParam',
+        type: 'tuple',
+        components: [
+          { name: 'dstEid', type: 'uint32' },
+          { name: 'to', type: 'bytes32' },
+          { name: 'amountLD', type: 'uint256' },
+          { name: 'minAmountLD', type: 'uint256' },
+          { name: 'extraOptions', type: 'bytes' },
+          { name: 'composeMsg', type: 'bytes' },
+          { name: 'oftCmd', type: 'bytes' },
+        ],
+      },
+      { name: 'payInLzToken', type: 'bool' },
+    ],
+    outputs: [
+      { name: 'nativeFee', type: 'uint256' },
+      { name: 'lzTokenFee', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'send',
+    inputs: [
+      {
+        name: 'sendParam',
+        type: 'tuple',
+        components: [
+          { name: 'dstEid', type: 'uint32' },
+          { name: 'to', type: 'bytes32' },
+          { name: 'amountLD', type: 'uint256' },
+          { name: 'minAmountLD', type: 'uint256' },
+          { name: 'extraOptions', type: 'bytes' },
+          { name: 'composeMsg', type: 'bytes' },
+          { name: 'oftCmd', type: 'bytes' },
+        ],
+      },
+      {
+        name: 'fee',
+        type: 'tuple',
+        components: [
+          { name: 'nativeFee', type: 'uint256' },
+          { name: 'lzTokenFee', type: 'uint256' },
+        ],
+      },
+      { name: 'refundAddress', type: 'address' },
+    ],
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+] as const
 
 /**
  * Prepares actions for bridging tokens across chains using LayerZero
@@ -37,24 +95,26 @@ export async function prepareBridgeTransaction(
   try {
     // Create the LayerZero options
     const ESTIMATED_GAS = 300000n
-    const options = constructLzOptions(ESTIMATED_GAS)
 
-    // For LayerZero, this needs to be in bytes32 format
-    let recipientBytes32: Hex =
-      `0x${Buffer.from(recipient.slice(2).padStart(64, '0'), 'hex').toString('hex')}` as Hex
+    // Use the proper Options class from LayerZero utilities
+    const options = Options.newOptions()
+      .addExecutorLzReceiveOption(Number(ESTIMATED_GAS), 0)
+      .toBytes()
+
+    const optionsHex = `0x${Buffer.from(options).toString('hex')}` as Hex
+
+    // Properly format the recipient address using LayerZero's utility
+    const recipientHex = `0x${Buffer.from(addressToBytes32(recipient)).toString('hex')}` as Hex
 
     // Get the bridge contract
-    const abi = parseAbi([
-      'function quoteSend(tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd) sendParam, bool useZro) view returns (uint256 nativeFee, uint256 lzTokenFee)',
-    ])
     const publicClient = await hre.viem.getPublicClient()
 
     const sendParam = {
       dstEid: destinationChainEid,
-      to: recipientBytes32,
+      to: recipientHex,
       amountLD: amount,
       minAmountLD: amount,
-      extraOptions: options,
+      extraOptions: optionsHex,
       composeMsg: '0x' as Hex,
       oftCmd: '0x' as Hex,
     }
@@ -62,7 +122,7 @@ export async function prepareBridgeTransaction(
     // Get quote for native fee
     const quoteResult = await publicClient.readContract({
       address: bridgeContractAddress,
-      abi,
+      abi: OFT_ABI,
       functionName: 'quoteSend',
       args: [sendParam, false],
     })
@@ -81,9 +141,8 @@ export async function prepareBridgeTransaction(
     values.push(0n) // Ensure there is already ETH balance on timelock
     calldatas.push(
       encodeFunctionData({
-        abi: parseAbi([
-          'function send(tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd) _sendParam, tuple(uint256 nativeFee, uint256 lzTokenFee) _fee, address _refundAddress) external payable',
-        ]),
+        abi: OFT_ABI,
+        functionName: 'send',
         args: [
           sendParam,
           {

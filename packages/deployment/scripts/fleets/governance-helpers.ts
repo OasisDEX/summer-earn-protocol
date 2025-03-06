@@ -12,6 +12,7 @@ import { constructLzOptions } from '../helpers/layerzero-options'
 import { createGovernanceProposal, ProposalContent } from '../helpers/proposal-helpers'
 import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
 import { getRewardsManagerAddress } from './fleet-deployment-helpers'
+import  _ from 'lodash'
 
 export interface FleetSingleChainContent extends ProposalContent {
   sourceDescription: string
@@ -35,6 +36,7 @@ export async function generateFleetProposalDescription(
   hubChain?: string,
   curatorAddress?: Address,
   rewardInfo?: { tokens?: string[]; amounts?: string[]; duration?: string },
+  useBummerConfig: boolean = false,
 ): Promise<FleetSingleChainContent | FleetCrossChainContent> {
   const sourceTitle = `SIP1.${fleetDefinition.sipNumber || 'X'}: ${isCrossChain ? 'Cross-chain ' : ''}Fleet Deployment: ${fleetDefinition.fleetName} on ${targetChain}`
 
@@ -93,7 +95,9 @@ export async function generateFleetProposalDescription(
   // Format bridge amount if provided
   let bridgeSection = ''
   const bridgeAmount = fleetDefinition.bridgeAmount
-  if (bridgeAmount) {
+
+  if (bridgeAmount && targetChain) {
+    const targetChainConfig = getConfigByNetwork(targetChain,  {gov: true}, useBummerConfig)
     try {
       // Try to format the bridge amount in a human-readable way
       const amount = BigInt(bridgeAmount)
@@ -102,7 +106,7 @@ export async function generateFleetProposalDescription(
       bridgeSection = `
 ### Token Bridge
 - Amount: ${readableAmount.toLocaleString()} tokens (${bridgeAmount} raw)
-- Destination: ${targetChain} Timelock
+- Destination: ${_.capitalize(targetChain)} - Treasury (SummerTimelock) ${targetChainConfig.deployedContracts.gov.timelock.address}
 `
     } catch (error) {
       // Fallback if parsing fails
@@ -115,6 +119,7 @@ export async function generateFleetProposalDescription(
   }
 
   // Format configuration values to be human-readable
+  const formattedBridgeAmount = formatBridgeAmount(bridgeAmount)
   const formattedDepositCap = formatDepositCap(fleetDefinition.depositCap)
   const formattedBufferBalance = formatBufferBalance(fleetDefinition.initialMinimumBufferBalance)
   const formattedRebalanceCooldown = formatRebalanceCooldown(
@@ -191,7 +196,7 @@ ${bridgeSection}
 ## Specifications
 ### Actions
 This proposal will execute the following actions on ${targetChain}:
-${bridgeAmount ? '1. Bridge ${bridgeAmount} tokens to the target chain\n' : ''}${bridgeAmount ? '2' : '1'}. Add Fleet to Harbor Command
+${bridgeAmount ? `1. Bridge ${formattedBridgeAmount} tokens to the target chain\n` : ''}${bridgeAmount ? '2' : '1'}. Add Fleet to Harbor Command
 ${bridgeAmount ? '3' : '2'}. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
 ${bridgeAmount ? '4' : '3'}. Add ${deployedArkAddresses.length} Arks to the Fleet
 ${bridgeAmount ? '5' : '4'}. Grant COMMANDER_ROLE to Fleet Commander for each Ark
@@ -218,74 +223,84 @@ ${rewardsSection}
   }
 }
 
+function formatBridgeAmount(bridgeAmount: string): string {
+  try {
+    const amount = BigInt(bridgeAmount)
+    const readableAmount = Number(amount / BigInt(10 ** 18))
+    return `${readableAmount.toLocaleString()} (${bridgeAmount} raw)`
+  }
+}
+
+/**
+ * Generic formatter for token amounts with decimals
+ * @param value The raw value as a string
+ * @param decimals Number of decimals to apply
+ * @param type Optional type identifier for special formatting
+ */
+function formatValue(value: string, decimals: number = 18, type: 'token' | 'percentage' | 'time' = 'token'): string {
+  try {
+    if (type === 'time') {
+      // Handle time-based values (seconds)
+      const seconds = parseInt(value)
+      let readableTime = ''
+
+      if (seconds < 60) {
+        readableTime = `${seconds} seconds`
+      } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60)
+        readableTime = `${minutes} minute${minutes > 1 ? 's' : ''} (${seconds} seconds)`
+      } else {
+        const hours = Math.floor(seconds / 3600)
+        const minutes = Math.floor((seconds % 3600) / 60)
+        readableTime = `${hours} hour${hours > 1 ? 's' : ''}${minutes > 0 ? ` ${minutes} minute${minutes > 1 ? 's' : ''}` : ''} (${seconds} seconds)`
+      }
+
+      return readableTime
+    }
+
+    const amount = BigInt(value)
+    
+    if (type === 'percentage') {
+      // Handle percentage values
+      const percentage = Number((amount * BigInt(100)) / BigInt(10 ** decimals))
+      return `${percentage}% (${value} raw)`
+    }
+    
+    // Default: handle token amounts
+    const divisor = BigInt(10 ** Math.min(decimals, 18))
+    const readableAmount = Number(amount / divisor) / (decimals > 18 ? 10 ** (decimals - 18) : 1)
+    return `${readableAmount.toLocaleString()} (${value} raw)`
+  } catch (error) {
+    return value // Return original if parsing fails
+  }
+}
+
 /**
  * Format deposit cap to be human-readable
  */
 function formatDepositCap(depositCap: string): string {
-  try {
-    // Assuming depositCap is in wei (18 decimals)
-    const amount = BigInt(depositCap)
-    const readableAmount = Number(amount / BigInt(10 ** 18))
-
-    return `${readableAmount.toLocaleString()} (${depositCap} raw)`
-  } catch (error) {
-    return depositCap // Return original if parsing fails
-  }
+  return formatValue(depositCap)
 }
 
 /**
  * Format buffer balance to be human-readable
  */
 function formatBufferBalance(bufferBalance: string): string {
-  try {
-    // Assuming buffer balance uses 6 decimals based on example
-    const amount = BigInt(bufferBalance)
-    const readableAmount = Number(amount) / 10 ** 6
-
-    return `${readableAmount.toLocaleString()} (${bufferBalance} raw)`
-  } catch (error) {
-    return bufferBalance // Return original if parsing fails
-  }
+  return formatValue(bufferBalance, 6)
 }
 
 /**
  * Format rebalance cooldown to be human-readable
  */
 function formatRebalanceCooldown(cooldown: string): string {
-  try {
-    const seconds = parseInt(cooldown)
-    let readableTime = ''
-
-    if (seconds < 60) {
-      readableTime = `${seconds} seconds`
-    } else if (seconds < 3600) {
-      const minutes = Math.floor(seconds / 60)
-      readableTime = `${minutes} minute${minutes > 1 ? 's' : ''} (${seconds} seconds)`
-    } else {
-      const hours = Math.floor(seconds / 3600)
-      const minutes = Math.floor((seconds % 3600) / 60)
-      readableTime = `${hours} hour${hours > 1 ? 's' : ''}${minutes > 0 ? ` ${minutes} minute${minutes > 1 ? 's' : ''}` : ''} (${seconds} seconds)`
-    }
-
-    return readableTime
-  } catch (error) {
-    return cooldown // Return original if parsing fails
-  }
+  return formatValue(cooldown, 0, 'time')
 }
 
 /**
  * Format tip rate to be human-readable
  */
 function formatTipRate(tipRate: string): string {
-  try {
-    const amount = BigInt(tipRate)
-    // Assuming tip rate is in basis points with 18 decimals (1e18 = 100%)
-    const percentage = Number((amount * BigInt(100)) / BigInt(10 ** 18))
-
-    return `${percentage}% (${tipRate} raw)`
-  } catch (error) {
-    return tipRate // Return original if parsing fails
-  }
+  return formatValue(tipRate, 18, 'percentage')
 }
 
 /**
@@ -543,7 +558,7 @@ export async function createArkAdditionProposal(
   // Format ark addresses for display in proposal
   const arkAddressList = arkAddresses.map((addr, i) => `${i + 1}. \`${addr}\``).join('\n')
 
-  // Create simplified proposal title and description
+  // Create simplified proposal title and description with SIP2 prefix for ARK management
   const isMultiple = arkAddresses.length > 1
   const title = `SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet`
   const description = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
@@ -705,6 +720,7 @@ export async function createHubGovernanceProposal(
             duration: fleetDefinition.rewardsDuration?.toString(),
           }
         : undefined,
+      useBummerConfig,
     )
 
     // Generate proposal details
