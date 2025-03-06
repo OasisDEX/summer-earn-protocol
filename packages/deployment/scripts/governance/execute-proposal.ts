@@ -333,7 +333,7 @@ async function executeCrossChainProposal(proposal: ProposalData) {
     const hash = await timelock.write.executeBatch(
       [targets, values, payloads, predecessorBytes, salt],
       {
-        gas: 800000n,
+        gas: 1200000n,
         maxFeePerGas: (await publicClient.getGasPrice()) * 2n,
       },
     )
