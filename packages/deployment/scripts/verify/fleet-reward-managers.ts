@@ -20,13 +20,18 @@ async function verifyFactoryContracts(hre: HardhatRuntimeEnvironment) {
     __dirname,
     `../../ignition/deployments/chain-${chainId}/journal.jsonl`,
   )
+  console.log('journalPath', journalPath)
 
   // Get config for current network
-  const config = getConfigByNetwork(hre.network.name, {
-    common: true,
-    gov: true,
-    core: false,
-  })
+  const config = getConfigByNetwork(
+    hre.network.name,
+    {
+      common: true,
+      gov: true,
+      core: false,
+    },
+    true,
+  )
 
   const accessManagerAddress = config.deployedContracts.gov.protocolAccessManager.address
 
@@ -36,27 +41,37 @@ async function verifyFactoryContracts(hre: HardhatRuntimeEnvironment) {
     .filter(Boolean)
     .map((line) => JSON.parse(line))
 
-  // Find RewardsManagerCreated event
-  const rewardsManagerEvent = journal.find((entry) =>
+  // Find all RewardsManagerCreated events
+  const rewardsManagerEvents = journal.filter((entry) =>
     entry.receipt?.logs?.some((log) => log.topics[0] === REWARDS_MANAGER_CREATED_EVENT),
   )
 
-  if (rewardsManagerEvent) {
-    const rewardsManagerLog = rewardsManagerEvent.receipt.logs.find(
+  console.log(`Found ${rewardsManagerEvents.length} rewards manager events`)
+
+  for (const rewardsManagerEvent of rewardsManagerEvents) {
+    // Find all logs in this event that match our topic
+    const rewardsManagerLogs = rewardsManagerEvent.receipt.logs.filter(
       (log) => log.topics[0] === REWARDS_MANAGER_CREATED_EVENT,
     )
 
-    const rewardsManagerAddress = `0x${rewardsManagerLog.topics[1].slice(26)}`
-    const fleetCommanderAddress = `0x${rewardsManagerLog.topics[2].slice(26)}`
+    for (const rewardsManagerLog of rewardsManagerLogs) {
+      const rewardsManagerAddress = `0x${rewardsManagerLog.topics[1].slice(26)}`
+      const fleetCommanderAddress = `0x${rewardsManagerLog.topics[2].slice(26)}`
 
-    try {
-      await hre.run('verify:verify', {
-        address: rewardsManagerAddress,
-        contract: 'src/contracts/FleetCommanderRewardsManager.sol:FleetCommanderRewardsManager',
-        constructorArguments: [accessManagerAddress, fleetCommanderAddress],
-      })
-    } catch (error) {
-      console.error('Error verifying contract:', error)
+      console.log(
+        `Verifying rewards manager at ${rewardsManagerAddress} for fleet commander ${fleetCommanderAddress}`,
+      )
+
+      try {
+        await hre.run('verify:verify', {
+          address: rewardsManagerAddress,
+          contract: 'src/contracts/FleetCommanderRewardsManager.sol:FleetCommanderRewardsManager',
+          constructorArguments: [accessManagerAddress, fleetCommanderAddress],
+        })
+        console.log(`Successfully verified rewards manager at ${rewardsManagerAddress}`)
+      } catch (error) {
+        console.error(`Error verifying contract at ${rewardsManagerAddress}:`, error)
+      }
     }
   }
 }

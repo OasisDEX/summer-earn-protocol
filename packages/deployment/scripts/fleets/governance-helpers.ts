@@ -2,7 +2,8 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import _ from 'lodash'
 import path from 'path'
-import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
+import { Address, encodeFunctionData, Hex, parseAbi, PublicClient } from 'viem'
+import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
@@ -415,15 +416,39 @@ export function prepareCuratorActions(
 /**
  * Prepares actions to set up fleet rewards
  */
-export function prepareRewardSetupActions(
+export async function prepareRewardSetupActions(
   rewardsManagerAddress: Address,
   rewardTokens: Address[],
   rewardAmounts: bigint[],
   rewardsDurations: number[],
-): { targets: Address[]; values: bigint[]; calldatas: Hex[] } {
+  timelock?: Address,
+  summerTokenAddress?: Address,
+  publicClient?: PublicClient,
+): Promise<{ targets: Address[]; values: bigint[]; calldatas: Hex[] }> {
   const targets: Address[] = []
   const values: bigint[] = []
   const calldatas: Hex[] = []
+
+  if (timelock && publicClient && summerTokenAddress) {
+    // Add action to whitelist timelock as a rewarder if provided
+    const isTimelockWhitelisted = await publicClient.readContract({
+      address: summerTokenAddress,
+      abi: SummerTokenABI.abi,
+      functionName: 'whitelistedAddresses',
+      args: [timelock],
+    })
+    if (!isTimelockWhitelisted) {
+      targets.push(timelock)
+      values.push(0n)
+      calldatas.push(
+        encodeFunctionData({
+          abi: SummerTokenABI.abi,
+          functionName: 'addToWhitelist',
+          args: [timelock],
+        }) as Hex,
+      )
+    }
+  }
 
   for (let i = 0; i < rewardTokens.length; i++) {
     // Add action to approve token transfer to rewards manager
@@ -673,7 +698,7 @@ export async function createHubGovernanceProposal(
         deployedFleet.fleetCommander.address,
       )
 
-      const rewardActions = prepareRewardSetupActions(
+      const rewardActions = await prepareRewardSetupActions(
         rewardsManagerAddress,
         fleetDefinition.rewardTokens.map((token) => token as Address),
         fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
@@ -763,6 +788,16 @@ export async function createSatelliteGovernanceProposal(
 ) {
   console.log(kleur.yellow('Creating cross-chain governance proposal...'))
 
+  // Prepare bridge actions with the new helper function
+  const result = await getChainConfigByChainId(HUB_CHAIN_ID)
+  if (!result) throw new Error(`No chain config found for chain ID ${HUB_CHAIN_ID}`)
+  const { publicClient: hubChainPublicClient } = await createClients(
+    result.chainConfig.chain,
+    result.chainConfig.rpcUrl,
+    process.env.DEPLOYER_PRIV_KEY as Address,
+  )
+  const targetChainPublicClient = await hre.viem.getPublicClient()
+
   const hubConfig = getConfigByNetwork(HUB_CHAIN_NAME, { gov: true, core: true }, useBummerConfig)
 
   // 2. Set up clients for the hub chain
@@ -840,11 +875,14 @@ export async function createSatelliteGovernanceProposal(
         deployedFleet.fleetCommander.address,
       )
 
-      const rewardActions = prepareRewardSetupActions(
+      const rewardActions = await prepareRewardSetupActions(
         rewardsManagerAddress,
         fleetDefinition.rewardTokens.map((token) => token as Address),
         fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
         Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
+        targetChainConfig.deployedContracts.gov.timelock.address as Address,
+        targetChainConfig.deployedContracts.gov.summerToken.address as Address,
+        targetChainPublicClient,
       )
 
       dstTargets.push(...rewardActions.targets)
@@ -909,14 +947,6 @@ export async function createSatelliteGovernanceProposal(
       const targetTimelockAddress = targetChainConfig.deployedContracts.gov.timelock
         .address as Address
 
-      // Prepare bridge actions with the new helper function
-      const result = await getChainConfigByChainId(HUB_CHAIN_ID)
-      if (!result) throw new Error(`No chain config found for chain ID ${HUB_CHAIN_ID}`)
-      const { publicClient } = await createClients(
-        result.chainConfig.chain,
-        result.chainConfig.rpcUrl,
-        process.env.DEPLOYER_PRIV_KEY as Address,
-      )
       const {
         targets: bridgeTargets,
         values: bridgeValues,
@@ -927,7 +957,7 @@ export async function createSatelliteGovernanceProposal(
         Number(currentChainEndpointId),
         targetTimelockAddress,
         HUB_TIMELOCK_ADDRESS,
-        publicClient,
+        hubChainPublicClient,
       )
 
       // Add the bridge actions to the source chain proposal
