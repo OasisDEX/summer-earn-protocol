@@ -444,7 +444,7 @@ export async function prepareRewardSetupActions(
 
     if (!isTimelockWhitelisted) {
       console.log(kleur.yellow('Timelock is not whitelisted as a rewarder, adding to whitelist'))
-      targets.push(timelock)
+      targets.push(summerTokenAddress)
       values.push(0n)
       calldatas.push(
         encodeFunctionData({
