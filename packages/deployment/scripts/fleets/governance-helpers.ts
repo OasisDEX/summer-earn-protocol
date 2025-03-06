@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import _ from 'lodash'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
@@ -12,7 +13,6 @@ import { constructLzOptions } from '../helpers/layerzero-options'
 import { createGovernanceProposal, ProposalContent } from '../helpers/proposal-helpers'
 import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
 import { getRewardsManagerAddress } from './fleet-deployment-helpers'
-import  _ from 'lodash'
 
 export interface FleetSingleChainContent extends ProposalContent {
   sourceDescription: string
@@ -97,7 +97,7 @@ export async function generateFleetProposalDescription(
   const bridgeAmount = fleetDefinition.bridgeAmount
 
   if (bridgeAmount && targetChain) {
-    const targetChainConfig = getConfigByNetwork(targetChain,  {gov: true}, useBummerConfig)
+    const targetChainConfig = getConfigByNetwork(targetChain, { gov: true }, useBummerConfig)
     try {
       // Try to format the bridge amount in a human-readable way
       const amount = BigInt(bridgeAmount)
@@ -228,6 +228,8 @@ function formatBridgeAmount(bridgeAmount: string): string {
     const amount = BigInt(bridgeAmount)
     const readableAmount = Number(amount / BigInt(10 ** 18))
     return `${readableAmount.toLocaleString()} (${bridgeAmount} raw)`
+  } catch (error) {
+    return bridgeAmount
   }
 }
 
@@ -237,7 +239,11 @@ function formatBridgeAmount(bridgeAmount: string): string {
  * @param decimals Number of decimals to apply
  * @param type Optional type identifier for special formatting
  */
-function formatValue(value: string, decimals: number = 18, type: 'token' | 'percentage' | 'time' = 'token'): string {
+function formatValue(
+  value: string,
+  decimals: number = 18,
+  type: 'token' | 'percentage' | 'time' = 'token',
+): string {
   try {
     if (type === 'time') {
       // Handle time-based values (seconds)
@@ -259,13 +265,13 @@ function formatValue(value: string, decimals: number = 18, type: 'token' | 'perc
     }
 
     const amount = BigInt(value)
-    
+
     if (type === 'percentage') {
       // Handle percentage values
       const percentage = Number((amount * BigInt(100)) / BigInt(10 ** decimals))
       return `${percentage}% (${value} raw)`
     }
-    
+
     // Default: handle token amounts
     const divisor = BigInt(10 ** Math.min(decimals, 18))
     const readableAmount = Number(amount / divisor) / (decimals > 18 ? 10 ** (decimals - 18) : 1)
