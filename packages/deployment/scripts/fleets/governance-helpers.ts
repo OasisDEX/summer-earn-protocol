@@ -271,7 +271,7 @@ function formatValue(
 
     if (type === 'percentage') {
       // Handle percentage values
-      const percentage = Number((amount * BigInt(100)) / BigInt(10 ** decimals))
+      const percentage = (Number(amount) / 10 ** decimals) * 100
       return `${percentage}% (${value} raw)`
     }
 
