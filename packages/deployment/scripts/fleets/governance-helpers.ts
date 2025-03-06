@@ -440,6 +440,8 @@ export async function prepareRewardSetupActions(
       functionName: 'whitelistedAddresses',
       args: [timelock],
     })
+    console.log(kleur.yellow('Is timelock whitelisted:'), isTimelockWhitelisted)
+
     if (!isTimelockWhitelisted) {
       console.log(kleur.yellow('Timelock is not whitelisted as a rewarder, adding to whitelist'))
       targets.push(timelock)
