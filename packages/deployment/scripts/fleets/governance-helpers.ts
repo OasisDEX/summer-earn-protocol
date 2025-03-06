@@ -545,8 +545,8 @@ export async function createArkAdditionProposal(
 
   // Create simplified proposal title and description
   const isMultiple = arkAddresses.length > 1
-  const title = `Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet`
-  const description = `# Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
+  const title = `SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet`
+  const description = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
 
 ## Summary
 This proposal adds ${arkAddresses.length} new ${isMultiple ? 'Ark(s)' : 'Ark'} to the existing ${fleetDefinition.fleetName} Fleet.
@@ -1058,7 +1058,7 @@ export async function createArkAdditionCrossChainProposal(
   const isMultiple = arkAddresses.length > 1
 
   // Create proposal title and descriptions
-  const title = `Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
+  const title = `SIP2.${fleetDefinition.sipNumber || 'X'}: Add ${arkAddresses.length} ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet on ${hre.network.name}`
 
   // Destination chain description (what will be executed on the satellite chain)
   const dstDescription = `# Add ${isMultiple ? 'Arks' : 'Ark'} to ${fleetDefinition.fleetName} Fleet
