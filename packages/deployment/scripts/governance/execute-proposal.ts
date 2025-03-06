@@ -2,6 +2,7 @@ import hre from 'hardhat'
 import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, parseAbi } from 'viem'
+import { HUB_CHAIN_NAME } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { hashDescription } from '../helpers/hash-description'
 import { promptForConfigType } from '../helpers/prompt-helpers'
@@ -64,46 +65,10 @@ async function executeStandardProposal(
   // Create a contract instance
   const governor = await hre.viem.getContractAt('SummerGovernor' as string, governorAddress)
 
-  // Verify the proposal ID
-  const computedProposalId = await governor.read.hashProposal([
-    targets,
-    values,
-    calldatas,
-    descriptionHash,
-  ])
-
-  // For comparing bytes32 values
-  const formattedProposalId = proposalId.padStart(64, '0')
-
-  // Convert the bytes32 result to a comparable string format
-  let formattedComputedId: string
-  if (typeof computedProposalId === 'string') {
-    // If it's already a string, remove 0x prefix if present and ensure lowercase
-    formattedComputedId = computedProposalId.replace(/^0x/, '').toLowerCase().padStart(64, '0')
-  } else {
-    // Otherwise try to convert from bigint or number
-    formattedComputedId = (computedProposalId as any).toString(16).toLowerCase().padStart(64, '0')
-  }
-
-  if (formattedProposalId !== formattedComputedId) {
-    console.error(
-      kleur.red(`Mismatch in proposal id:
-  Provided proposal id:  0x${formattedProposalId}
-  Computed proposal id:  0x${formattedComputedId}
-Please verify that the proposal details are correct.`),
-    )
-    return
-  } else {
-    console.log(
-      kleur.green('Proposal id verified: computed proposal id matches the provided proposal id.'),
-    )
-    console.log(kleur.blue(`Using proposal id: 0x${formattedProposalId}`))
-  }
-
   console.log('Checking proposal state...')
 
   while (true) {
-    const state = await governor.read.state([BigInt('0x' + proposalId)])
+    const state = await governor.read.state([BigInt(proposalId)])
     console.log(`Current proposal state: ${ProposalState[state as number]}`)
 
     if (state === ProposalState.Queued) {
@@ -414,10 +379,10 @@ async function main() {
     const hubChainName = proposal.crossChainExecution?.hubChain.name.toLowerCase()
     const currentNetwork = network.toLowerCase()
 
-    if (currentNetwork === targetChainName) {
+    if (currentNetwork !== HUB_CHAIN_NAME) {
       // We're on the target chain, execute the cross-chain proposal
       await executeCrossChainProposal(proposal)
-    } else if (currentNetwork === hubChainName) {
+    } else {
       // We're on the hub chain, use the stored proposal ID if available or prompt for it
       console.log(kleur.cyan('You are on the hub chain. Executing the hub chain proposal...'))
 
@@ -438,12 +403,6 @@ async function main() {
 
       // Execute the standard proposal
       await executeStandardProposal(proposal, proposalId, governorAddress)
-    } else {
-      console.error(
-        kleur.red(
-          `Network mismatch: Connected to ${network} but proposal is for hub chain ${hubChainName} or target chain ${targetChainName}`,
-        ),
-      )
     }
   } else {
     // Standard single-chain proposal

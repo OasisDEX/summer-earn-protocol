@@ -89,7 +89,7 @@ export async function prepareBridgeTransaction(
     // Add the bridge transaction
     targets.push(bridgeContractAddress)
     // Include the fee in the transaction value
-    values.push(0n)
+    values.push(safetyBuffer)
     calldatas.push(
       encodeFunctionData({
         abi: SummerTokenABI.abi, // Use the full ABI from the JSON file
