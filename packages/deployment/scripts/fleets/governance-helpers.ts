@@ -430,6 +430,9 @@ export async function prepareRewardSetupActions(
   const calldatas: Hex[] = []
 
   if (timelock && publicClient && summerTokenAddress) {
+    console.log(kleur.yellow('Checking if timelock is whitelisted as a rewarder'))
+    console.log(kleur.yellow('Timelock:'), timelock)
+    console.log(kleur.yellow('Summer token address:'), summerTokenAddress)
     // Add action to whitelist timelock as a rewarder if provided
     const isTimelockWhitelisted = await publicClient.readContract({
       address: summerTokenAddress,
@@ -438,6 +441,7 @@ export async function prepareRewardSetupActions(
       args: [timelock],
     })
     if (!isTimelockWhitelisted) {
+      console.log(kleur.yellow('Timelock is not whitelisted as a rewarder, adding to whitelist'))
       targets.push(timelock)
       values.push(0n)
       calldatas.push(
