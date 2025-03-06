@@ -333,8 +333,8 @@ async function executeCrossChainProposal(proposal: ProposalData) {
     const hash = await timelock.write.executeBatch(
       [targets, values, payloads, predecessorBytes, salt],
       {
-        gas: 500000n,
-        maxFeePerGas: await publicClient.getGasPrice(),
+        gas: 800000n,
+        maxFeePerGas: (await publicClient.getGasPrice()) * 2n,
       },
     )
 
@@ -375,8 +375,6 @@ async function main() {
     console.log(kleur.cyan('This is a cross-chain proposal.'))
 
     // Check if the current network matches the target chain
-    const targetChainName = proposal.crossChainExecution?.targetChain.name.toLowerCase()
-    const hubChainName = proposal.crossChainExecution?.hubChain.name.toLowerCase()
     const currentNetwork = network.toLowerCase()
 
     if (currentNetwork !== HUB_CHAIN_NAME) {
