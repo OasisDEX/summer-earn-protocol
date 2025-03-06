@@ -148,8 +148,8 @@ ${curatorSection}
 ### Actions
 1. Add Fleet to Harbor Command
 2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
-3. Add ${deployedArkAddresses.length} Arks to the Fleet
-4. Grant COMMANDER_ROLE to Fleet Commander for each Ark
+3. Grant COMMANDER_ROLE to Fleet Commander for each Ark
+4. Add ${deployedArkAddresses.length} Arks to the Fleet
 ${curatorAddress ? '5. Grant CURATOR_ROLE to Curator for the Fleet' : ''}
 ${rewardInfo?.tokens ? `${curatorAddress ? '6' : '5'}. Set up rewards for ${rewardInfo.tokens.length} tokens` : ''}
 
@@ -805,31 +805,15 @@ export async function createSatelliteGovernanceProposal(
     }) as Hex,
   )
 
-  // 3.3 Add each Ark to the Fleet Commander
-  for (const arkAddress of deployedArkAddresses) {
-    dstTargets.push(deployedFleet.fleetCommander.address)
-    dstValues.push(0n)
-    dstCalldatas.push(
-      encodeFunctionData({
-        abi: parseAbi(['function addArk(address ark) external']),
-        args: [arkAddress],
-      }) as Hex,
-    )
-  }
-
-  // 3.4 Grant COMMANDER_ROLE to Fleet Commander for each Ark
-  for (const arkAddress of deployedArkAddresses) {
-    dstTargets.push(protocolAccessManagerAddress)
-    dstValues.push(0n)
-    dstCalldatas.push(
-      encodeFunctionData({
-        abi: parseAbi([
-          'function grantCommanderRole(address arkAddress, address account) external',
-        ]),
-        args: [arkAddress, deployedFleet.fleetCommander.address],
-      }) as Hex,
-    )
-  }
+  // 3.3 & 3.4 Add Arks and grant COMMANDER_ROLE
+  const arkActions = prepareArkAdditionActions(
+    deployedFleet.fleetCommander.address,
+    deployedArkAddresses,
+    protocolAccessManagerAddress,
+  )
+  dstTargets.push(...arkActions.targets)
+  dstValues.push(...arkActions.values)
+  dstCalldatas.push(...arkActions.calldatas)
 
   // 3.5 Grant CURATOR_ROLE to the curator for the fleet if provided
   if (curatorAddress) {
