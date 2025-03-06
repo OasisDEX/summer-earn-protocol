@@ -36,7 +36,7 @@ export async function generateFleetProposalDescription(
   curatorAddress?: Address,
   rewardInfo?: { tokens?: string[]; amounts?: string[]; duration?: string },
 ): Promise<FleetSingleChainContent | FleetCrossChainContent> {
-  const sourceTitle = `SIP2.${fleetDefinition.sipNumber || 'X'}: ${isCrossChain ? 'Cross-chain ' : ''}Fleet Deployment: ${fleetDefinition.fleetName} on ${targetChain}`
+  const sourceTitle = `SIP1.${fleetDefinition.sipNumber || 'X'}: ${isCrossChain ? 'Cross-chain ' : ''}Fleet Deployment: ${fleetDefinition.fleetName} on ${targetChain}`
 
   // Create curator section if curator is provided
   const curatorSection = curatorAddress ? `- Curator: ${curatorAddress}` : ''
@@ -114,8 +114,16 @@ export async function generateFleetProposalDescription(
     }
   }
 
+  // Format configuration values to be human-readable
+  const formattedDepositCap = formatDepositCap(fleetDefinition.depositCap)
+  const formattedBufferBalance = formatBufferBalance(fleetDefinition.initialMinimumBufferBalance)
+  const formattedRebalanceCooldown = formatRebalanceCooldown(
+    fleetDefinition.initialRebalanceCooldown,
+  )
+  const formattedTipRate = formatTipRate(fleetDefinition.initialTipRate)
+
   // Standard description for the destination chain (or single-chain proposal)
-  const standardDescription = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Fleet Deployment: ${fleetDefinition.fleetName}
+  const standardDescription = `# SIP1.${fleetDefinition.sipNumber || 'X'}: Fleet Deployment: ${fleetDefinition.fleetName}
 
 ## Summary
 This proposal activates the ${fleetDefinition.fleetName} Fleet (${fleetDefinition.symbol}).
@@ -139,10 +147,10 @@ ${curatorAddress ? '5. Grant CURATOR_ROLE to Curator for the Fleet' : ''}
 ${rewardInfo?.tokens ? `${curatorAddress ? '6' : '5'}. Set up rewards for ${rewardInfo.tokens.length} tokens` : ''}
 
 ### Fleet Configuration
-- Deposit Cap: ${fleetDefinition.depositCap}
-- Initial Minimum Buffer Balance: ${fleetDefinition.initialMinimumBufferBalance}
-- Initial Rebalance Cooldown: ${fleetDefinition.initialRebalanceCooldown}
-- Initial Tip Rate: ${fleetDefinition.initialTipRate}
+- Deposit Cap: ${formattedDepositCap}
+- Initial Minimum Buffer Balance: ${formattedBufferBalance}
+- Initial Rebalance Cooldown: ${formattedRebalanceCooldown}
+- Initial Tip Rate: ${formattedTipRate}
 ${rewardsSection}
 `
 
@@ -163,7 +171,7 @@ ${rewardsSection}
   const destinationDescription = standardDescription
 
   // Source chain description (what will be shown on the hub chain)
-  const sourceDescription = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Cross-chain Fleet Deployment Proposal
+  const sourceDescription = `# SIP1.${fleetDefinition.sipNumber || 'X'}: Cross-chain Fleet Deployment Proposal
 
 ## Summary
 This is a cross-chain governance proposal to activate the ${fleetDefinition.fleetName} Fleet on ${targetChain}.
@@ -183,7 +191,7 @@ ${bridgeSection}
 ## Specifications
 ### Actions
 This proposal will execute the following actions on ${targetChain}:
-${bridgeAmount ? '1. Bridge tokens to the target chain\n' : ''}${bridgeAmount ? '2' : '1'}. Add Fleet to Harbor Command
+${bridgeAmount ? '1. Bridge ${bridgeAmount} tokens to the target chain\n' : ''}${bridgeAmount ? '2' : '1'}. Add Fleet to Harbor Command
 ${bridgeAmount ? '3' : '2'}. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
 ${bridgeAmount ? '4' : '3'}. Add ${deployedArkAddresses.length} Arks to the Fleet
 ${bridgeAmount ? '5' : '4'}. Grant COMMANDER_ROLE to Fleet Commander for each Ark
@@ -194,10 +202,10 @@ ${rewardInfo?.tokens ? `${curatorAddress ? (bridgeAmount ? '7' : '6') : bridgeAm
 This proposal uses LayerZero to execute governance actions across chains.
 
 ### Fleet Configuration
-- Deposit Cap: ${fleetDefinition.depositCap}
-- Initial Minimum Buffer Balance: ${fleetDefinition.initialMinimumBufferBalance}
-- Initial Rebalance Cooldown: ${fleetDefinition.initialRebalanceCooldown}
-- Initial Tip Rate: ${fleetDefinition.initialTipRate}
+- Deposit Cap: ${formattedDepositCap}
+- Initial Minimum Buffer Balance: ${formattedBufferBalance}
+- Initial Rebalance Cooldown: ${formattedRebalanceCooldown}
+- Initial Tip Rate: ${formattedTipRate}
 ${rewardsSection}
 `
 
@@ -207,6 +215,76 @@ ${rewardsSection}
     sourceTitle,
     sourceDescription,
     destinationDescription,
+  }
+}
+
+/**
+ * Format deposit cap to be human-readable
+ */
+function formatDepositCap(depositCap: string): string {
+  try {
+    // Assuming depositCap is in wei (18 decimals)
+    const amount = BigInt(depositCap)
+    const readableAmount = Number(amount / BigInt(10 ** 18))
+
+    return `${readableAmount.toLocaleString()} (${depositCap} raw)`
+  } catch (error) {
+    return depositCap // Return original if parsing fails
+  }
+}
+
+/**
+ * Format buffer balance to be human-readable
+ */
+function formatBufferBalance(bufferBalance: string): string {
+  try {
+    // Assuming buffer balance uses 6 decimals based on example
+    const amount = BigInt(bufferBalance)
+    const readableAmount = Number(amount) / 10 ** 6
+
+    return `${readableAmount.toLocaleString()} (${bufferBalance} raw)`
+  } catch (error) {
+    return bufferBalance // Return original if parsing fails
+  }
+}
+
+/**
+ * Format rebalance cooldown to be human-readable
+ */
+function formatRebalanceCooldown(cooldown: string): string {
+  try {
+    const seconds = parseInt(cooldown)
+    let readableTime = ''
+
+    if (seconds < 60) {
+      readableTime = `${seconds} seconds`
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60)
+      readableTime = `${minutes} minute${minutes > 1 ? 's' : ''} (${seconds} seconds)`
+    } else {
+      const hours = Math.floor(seconds / 3600)
+      const minutes = Math.floor((seconds % 3600) / 60)
+      readableTime = `${hours} hour${hours > 1 ? 's' : ''}${minutes > 0 ? ` ${minutes} minute${minutes > 1 ? 's' : ''}` : ''} (${seconds} seconds)`
+    }
+
+    return readableTime
+  } catch (error) {
+    return cooldown // Return original if parsing fails
+  }
+}
+
+/**
+ * Format tip rate to be human-readable
+ */
+function formatTipRate(tipRate: string): string {
+  try {
+    const amount = BigInt(tipRate)
+    // Assuming tip rate is in basis points with 18 decimals (1e18 = 100%)
+    const percentage = Number((amount * BigInt(100)) / BigInt(10 ** 18))
+
+    return `${percentage}% (${tipRate} raw)`
+  } catch (error) {
+    return tipRate // Return original if parsing fails
   }
 }
 
