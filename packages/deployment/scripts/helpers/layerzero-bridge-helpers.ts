@@ -2,64 +2,7 @@ import { addressToBytes32, Options } from '@layerzerolabs/lz-v2-utilities'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import { Address, encodeFunctionData, Hex } from 'viem'
-
-const OFT_ABI = [
-  {
-    name: 'quoteSend',
-    inputs: [
-      {
-        name: 'sendParam',
-        type: 'tuple',
-        components: [
-          { name: 'dstEid', type: 'uint32' },
-          { name: 'to', type: 'bytes32' },
-          { name: 'amountLD', type: 'uint256' },
-          { name: 'minAmountLD', type: 'uint256' },
-          { name: 'extraOptions', type: 'bytes' },
-          { name: 'composeMsg', type: 'bytes' },
-          { name: 'oftCmd', type: 'bytes' },
-        ],
-      },
-      { name: 'payInLzToken', type: 'bool' },
-    ],
-    outputs: [
-      { name: 'nativeFee', type: 'uint256' },
-      { name: 'lzTokenFee', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    name: 'send',
-    inputs: [
-      {
-        name: 'sendParam',
-        type: 'tuple',
-        components: [
-          { name: 'dstEid', type: 'uint32' },
-          { name: 'to', type: 'bytes32' },
-          { name: 'amountLD', type: 'uint256' },
-          { name: 'minAmountLD', type: 'uint256' },
-          { name: 'extraOptions', type: 'bytes' },
-          { name: 'composeMsg', type: 'bytes' },
-          { name: 'oftCmd', type: 'bytes' },
-        ],
-      },
-      {
-        name: 'fee',
-        type: 'tuple',
-        components: [
-          { name: 'nativeFee', type: 'uint256' },
-          { name: 'lzTokenFee', type: 'uint256' },
-        ],
-      },
-      { name: 'refundAddress', type: 'address' },
-    ],
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-] as const
+import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
 
 /**
  * Prepares actions for bridging tokens across chains using LayerZero
@@ -93,7 +36,7 @@ export async function prepareBridgeTransaction(
   )
 
   try {
-    // Create the LayerZero options
+    // Create the LayerZero options with gas limit
     const ESTIMATED_GAS = 300000n
 
     // Use the proper Options class from LayerZero utilities
@@ -106,9 +49,9 @@ export async function prepareBridgeTransaction(
     // Properly format the recipient address using LayerZero's utility
     const recipientHex = `0x${Buffer.from(addressToBytes32(recipient)).toString('hex')}` as Hex
 
-    // Get the bridge contract
     const publicClient = await hre.viem.getPublicClient()
 
+    // Send parameter structure matching the contract's expectation
     const sendParam = {
       dstEid: destinationChainEid,
       to: recipientHex,
@@ -119,16 +62,23 @@ export async function prepareBridgeTransaction(
       oftCmd: '0x' as Hex,
     }
 
-    // Get quote for native fee
+    // Get quote for native fee using the complete ABI
     const quoteResult = await publicClient.readContract({
       address: bridgeContractAddress,
-      abi: OFT_ABI,
+      abi: SummerTokenABI.abi,
       functionName: 'quoteSend',
       args: [sendParam, false],
     })
 
-    // Apply safety multiplier to native fee
-    const estimatedFee = quoteResult[0]
+    // Handle different possible return structures
+    const estimatedFee =
+      typeof quoteResult === 'object' && quoteResult !== null
+        ? 'nativeFee' in quoteResult
+          ? quoteResult.nativeFee
+          : Array.isArray(quoteResult)
+            ? quoteResult[0]
+            : quoteResult
+        : quoteResult
     const safetyBuffer = BigInt(Math.floor(Number(estimatedFee) * safetyMultiplier))
 
     console.log(
@@ -136,12 +86,14 @@ export async function prepareBridgeTransaction(
         `- Estimated fee: ${estimatedFee}, with safety buffer: ${safetyBuffer} (${safetyMultiplier}x)`,
       ),
     )
+
     // Add the bridge transaction
     targets.push(bridgeContractAddress)
-    values.push(0n) // Ensure there is already ETH balance on timelock
+    // Include the fee in the transaction value
+    values.push(safetyBuffer)
     calldatas.push(
       encodeFunctionData({
-        abi: OFT_ABI,
+        abi: SummerTokenABI.abi, // Use the full ABI from the JSON file
         functionName: 'send',
         args: [
           sendParam,
@@ -154,8 +106,7 @@ export async function prepareBridgeTransaction(
       }) as Hex,
     )
 
-    console.log(kleur.yellow(`- Ensure there is already ETH balance on timelock`))
-
+    console.log(kleur.yellow(`- ETH value for fee: ${safetyBuffer}`))
     console.log(
       kleur.green(
         `- Added bridge transaction for token ${bridgeContractAddress} with amount ${amount}`,
