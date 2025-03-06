@@ -544,7 +544,7 @@ async function main() {
     if (!matchingFleet) {
       console.log(
         `⚠️ No matching fleet found for ${arkConfig.chain} ${arkConfig.fleetAsset} ` +
-          `at address ${arkConfig.fleetAddress}`,
+        `at address ${arkConfig.fleetAddress}`,
       )
       throw new Error(
         `No matching fleet found for ${arkConfig.chain} ${arkConfig.fleetAsset} at address ${arkConfig.fleetAddress}`,
@@ -558,7 +558,7 @@ async function main() {
     if (isFirstArkForFleet) {
       console.log(
         `\n📝 Configuring new fleet ${matchingFleet.fleetSymbol} ` +
-          `(${matchingFleet.fleetAddress}) on ${matchingFleet.network}...`,
+        `(${matchingFleet.fleetAddress}) on ${matchingFleet.network}...`,
       )
       configuredFleets.add(fleetKey)
     }
@@ -583,16 +583,42 @@ async function main() {
 
   console.log(`\n🔧 Created ${transactions.length} configuration transactions`)
 
-  const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
+  // const deployer = getAddress((await hre.viem.getWalletClients())[0].account.address)
+  // await proposeAllSafeTransactions(
+  //   transactions,
+  //   deployer,
+  //   safeAddress,
+  //   Number(hre.network.config.chainId),
+  //   chainConfig.rpcUrl,
+  //   process.env.CURATOR_MULTISIG_PROPOSER_PRIV_KEY as Address,
+  // )
 
-  await proposeAllSafeTransactions(
-    transactions,
-    deployer,
-    safeAddress,
-    Number(hre.network.config.chainId),
-    chainConfig.rpcUrl,
-    process.env.CURATOR_MULTISIG_PROPOSER_PRIV_KEY as Address,
-  )
+  // Replace Safe proposal with JSON export
+  const safeTransactionsJson = {
+    version: "1.0",
+    chainId: hre.network.config.chainId?.toString(),
+    createdAt: Date.now(),
+    meta: {
+      name: "Fleet Configuration Update",
+      description: "Update fleet and ark configurations",
+      txBuilderVersion: "1.18.0",
+      createdFromSafeAddress: safeAddress,
+      createdFromOwnerAddress: "",
+      checksum: ""
+    },
+    transactions: transactions.map(tx => ({
+      to: tx.to,
+      value: tx.value || "0",
+      data: tx.data,
+      contractMethod: null,
+      contractInputsValues: null
+    }))
+  };
+
+  // Write to file
+  const outputPath = path.join(__dirname, `../../safe-transactions-${chainName}-${Date.now()}.json`);
+  fs.writeFileSync(outputPath, JSON.stringify(safeTransactionsJson, null, 2));
+  console.log(`\n✅ Saved transactions to ${outputPath}`);
 }
 
 main().catch((error) => {

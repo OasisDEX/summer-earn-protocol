@@ -3,14 +3,14 @@
     "rewardTokenSymbol": "morpho",
     "rewardTokenDecimals": 18,
     "prices": {
-      "weth": 0.000606,
-      "usdt": 1.77,
-      "usdc": 1.77,
-      "dai": 1.77,
-      "usde": 1.77,
-      "usdce": 1.77
+      "weth": 0.000744,
+      "usdt": 1.66,
+      "usdc": 1.66,
+      "dai": 1.66,
+      "usde": 1.66,
+      "usdce": 1.66
     },
-    "duration": "3d",
+    "duration": "4d",
     "kickerRewardPercentage": 0,
     "decayType": "linear"
   }
