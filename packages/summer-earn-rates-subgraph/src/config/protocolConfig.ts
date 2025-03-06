@@ -452,6 +452,12 @@ class ProtocolConfig {
           BigInt.fromI32(159160679),
           'Fluid',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x1A996cb54bb95462040408C06122D45D6Cdb6096'),
+          BigInt.fromI32(312900000),
+          'Fluid',
+        ),
       ]),
     ]
   }
