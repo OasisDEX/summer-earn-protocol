@@ -11,7 +11,6 @@ import {
   saveFleetDeploymentJson,
 } from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
-import { warnIfTenderlyVirtualTestnet } from './common/tenderly-helpers'
 import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
 import {
   addFleetToHarbor,
@@ -27,7 +26,8 @@ import {
   createSatelliteGovernanceProposal,
 } from './fleets/governance-helpers'
 import { getConfigByNetwork } from './helpers/config-handler'
-import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
+import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
 import { getAssetAddress } from './helpers/token-helpers'
 import { validateToken } from './helpers/validation'
 
@@ -83,17 +83,7 @@ async function deployFleet() {
   const deploymentMode = modeResponse.mode as DeploymentMode
 
   // Ask about using bummer config at the beginning
-  const configResponse = await prompts({
-    type: 'select',
-    name: 'configType',
-    message: 'Select the configuration to use:',
-    choices: [
-      { title: 'Production Config', value: false },
-      { title: 'Bummer/Test Config', value: true },
-    ],
-  })
-
-  const useBummerConfig = configResponse.configType
+  const useBummerConfig = await promptForConfigType()
 
   const config = getConfigByNetwork(network, { gov: true, core: true }, useBummerConfig)
 

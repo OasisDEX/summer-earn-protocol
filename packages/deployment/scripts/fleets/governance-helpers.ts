@@ -7,6 +7,7 @@ import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { hashDescription } from '../helpers/hash-description'
+import { prepareBridgeTransaction } from '../helpers/layerzero-bridge-helpers'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import { createGovernanceProposal, ProposalContent } from '../helpers/proposal-helpers'
 import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
@@ -89,6 +90,30 @@ export async function generateFleetProposalDescription(
 - Rewards Duration: ${formattedDuration}`
   }
 
+  // Format bridge amount if provided
+  let bridgeSection = ''
+  const bridgeAmount = fleetDefinition.bridgeAmount
+  if (bridgeAmount) {
+    try {
+      // Try to format the bridge amount in a human-readable way
+      const amount = BigInt(bridgeAmount)
+      const readableAmount = Number(amount / BigInt(10 ** 18)) // Assuming 18 decimals
+
+      bridgeSection = `
+### Token Bridge
+- Amount: ${readableAmount.toLocaleString()} tokens (${bridgeAmount} raw)
+- Destination: ${targetChain} Timelock
+`
+    } catch (error) {
+      // Fallback if parsing fails
+      bridgeSection = `
+### Token Bridge
+- Amount: ${bridgeAmount}
+- Destination: ${targetChain} Timelock
+`
+    }
+  }
+
   // Standard description for the destination chain (or single-chain proposal)
   const standardDescription = `# SIP2.${fleetDefinition.sipNumber || 'X'}: Fleet Deployment: ${fleetDefinition.fleetName}
 
@@ -153,16 +178,17 @@ This cross-chain fleet deployment will expand the protocol's capabilities across
 - Buffer Ark: ${bufferArkAddress}
 - Number of Arks: ${deployedArkAddresses.length}
 ${curatorSection}
+${bridgeSection}
 
 ## Specifications
 ### Actions
 This proposal will execute the following actions on ${targetChain}:
-1. Add Fleet to Harbor Command
-2. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
-3. Add ${deployedArkAddresses.length} Arks to the Fleet
-4. Grant COMMANDER_ROLE to Fleet Commander for each Ark
-${curatorAddress ? '5. Grant CURATOR_ROLE to Curator for the Fleet' : ''}
-${rewardInfo?.tokens ? `${curatorAddress ? '6' : '5'}. Set up rewards for ${rewardInfo.tokens.length} tokens` : ''}
+${bridgeAmount ? '1. Bridge tokens to the target chain\n' : ''}${bridgeAmount ? '2' : '1'}. Add Fleet to Harbor Command
+${bridgeAmount ? '3' : '2'}. Grant COMMANDER_ROLE to Fleet Commander for BufferArk
+${bridgeAmount ? '4' : '3'}. Add ${deployedArkAddresses.length} Arks to the Fleet
+${bridgeAmount ? '5' : '4'}. Grant COMMANDER_ROLE to Fleet Commander for each Ark
+${curatorAddress ? `${bridgeAmount ? '6' : '5'}. Grant CURATOR_ROLE to Curator for the Fleet` : ''}
+${rewardInfo?.tokens ? `${curatorAddress ? (bridgeAmount ? '7' : '6') : bridgeAmount ? '6' : '5'}. Set up rewards for ${rewardInfo.tokens.length} tokens` : ''}
 
 ### Cross-chain Mechanism
 This proposal uses LayerZero to execute governance actions across chains.
@@ -339,6 +365,13 @@ export async function submitProposal(
   calldatas: Hex[],
   discourseURL: string = '',
   actionSummary: string[] = [],
+  crossChainDetails?: {
+    targetChainName: string
+    targetChainId: number
+    targets: Address[]
+    values: bigint[]
+    calldatas: Hex[]
+  },
 ): Promise<void> {
   // Extract chainId and governorAddress from governorId
   // Format is "eip155:${chainId}:${governorAddress}"
@@ -362,12 +395,31 @@ export async function submitProposal(
   const networkName = hre.network.name
   const savePath = path.join(
     process.cwd(),
-    'packages/deployment/proposals',
+    '/proposals',
     `${networkName}_proposal_${timestamp}.json`,
   )
 
   try {
-    // Use the generic createGovernanceProposal function with savePath
+    // Prepare cross-chain execution details if provided
+    let crossChainExecution
+    if (crossChainDetails) {
+      crossChainExecution = {
+        hubChain: {
+          name: networkName,
+          chainId,
+          governorAddress,
+        },
+        targetChain: {
+          name: crossChainDetails.targetChainName,
+          chainId: crossChainDetails.targetChainId,
+          targets: crossChainDetails.targets.map((t) => t.toString()),
+          values: crossChainDetails.values.map((v) => v.toString()),
+          datas: crossChainDetails.calldatas.map((c) => c.toString()),
+        },
+      }
+    }
+
+    // Use the generic createGovernanceProposal function with savePath and cross-chain details
     await createGovernanceProposal(
       title,
       description,
@@ -377,6 +429,7 @@ export async function submitProposal(
       discourseURL,
       actionSummary,
       savePath,
+      crossChainExecution,
     )
   } catch (error) {
     // The createGovernanceProposal function already handles error logging
@@ -600,7 +653,7 @@ export async function createSatelliteGovernanceProposal(
   deployedFleet: FleetContracts,
   bufferArkAddress: Address,
   deployedArkAddresses: Address[],
-  config: BaseConfig,
+  targetChainConfig: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
   isTenderlyVirtualTestnet: boolean,
@@ -618,7 +671,7 @@ export async function createSatelliteGovernanceProposal(
   )
 
   // Get current chain's endpoint ID
-  const currentChainEndpointId = config.common.layerZero.eID
+  const currentChainEndpointId = targetChainConfig.common.layerZero.eID
 
   // 3. Prepare the destination (satellite) proposal
   const dstTargets: Address[] = []
@@ -626,7 +679,8 @@ export async function createSatelliteGovernanceProposal(
   const dstCalldatas: Hex[] = []
 
   // 3.1 Add Fleet to Harbor Command
-  const harborCommandAddress = config.deployedContracts.core.harborCommand.address as Address
+  const harborCommandAddress = targetChainConfig.deployedContracts.core.harborCommand
+    .address as Address
   dstTargets.push(harborCommandAddress)
   dstValues.push(0n)
   dstCalldatas.push(
@@ -637,7 +691,7 @@ export async function createSatelliteGovernanceProposal(
   )
 
   // 3.2 Grant COMMANDER_ROLE to Fleet Commander for BufferArk
-  const protocolAccessManagerAddress = config.deployedContracts.gov.protocolAccessManager
+  const protocolAccessManagerAddress = targetChainConfig.deployedContracts.gov.protocolAccessManager
     .address as Address
 
   dstTargets.push(protocolAccessManagerAddress)
@@ -747,14 +801,63 @@ export async function createSatelliteGovernanceProposal(
 
   // 4. Prepare the source (hub) proposal
   const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+  const HUB_TIMELOCK_ADDRESS = hubConfig.deployedContracts.gov.timelock.address as Address
   console.log(kleur.blue('Using hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
-  const srcTargets = [HUB_GOVERNOR_ADDRESS]
-  const srcValues = [0n]
+  const srcTargets: Address[] = []
+  const srcValues: bigint[] = []
+  const srcCalldatas: Hex[] = []
+
+  // 4.1 Add bridge transactions if rewards are specified
+  if (fleetDefinition.bridgeAmount) {
+    try {
+      console.log(kleur.yellow('Adding token bridge actions for rewards...'))
+
+      // Get the bridge contract address from the hub config
+      const bridgeContractAddress = hubConfig.deployedContracts.gov.summerToken.address as Address
+      if (!bridgeContractAddress) {
+        throw new Error('Bridge contract address not found in hub config')
+      }
+
+      // Get the timelock address for the target chain
+      const targetTimelockAddress = targetChainConfig.deployedContracts.gov.timelock
+        .address as Address
+
+      // Prepare bridge actions with the new helper function
+      const {
+        targets: bridgeTargets,
+        values: bridgeValues,
+        calldatas: bridgeCalldatas,
+      } = await prepareBridgeTransaction(
+        bridgeContractAddress,
+        BigInt(fleetDefinition.bridgeAmount),
+        Number(currentChainEndpointId),
+        targetTimelockAddress,
+        HUB_TIMELOCK_ADDRESS,
+      )
+
+      // Add the bridge actions to the source chain proposal
+      srcTargets.push(...bridgeTargets)
+      srcValues.push(...bridgeValues)
+      srcCalldatas.push(...bridgeCalldatas)
+
+      console.log(kleur.green(`- Added aggregated bridge transactions for rewards`))
+    } catch (error: unknown) {
+      console.error(
+        kleur.red(
+          `Error preparing bridge actions: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
+    }
+  }
+
+  // 4.2 Add the cross-chain proposal action
   const ESTIMATED_GAS = 400000n
   const lzOptions = constructLzOptions(ESTIMATED_GAS)
 
-  const srcCalldatas = [
+  srcTargets.push(HUB_GOVERNOR_ADDRESS)
+  srcValues.push(0n)
+  srcCalldatas.push(
     encodeFunctionData({
       abi: parseAbi([
         'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
@@ -768,11 +871,14 @@ export async function createSatelliteGovernanceProposal(
         lzOptions,
       ],
     }) as Hex,
-  ]
+  )
 
   // 5. Create proposal using the common submitProposal function
   try {
     console.log(kleur.cyan('Creating cross-chain governance proposal with the following actions:'))
+    if (fleetDefinition.rewardTokens) {
+      console.log(kleur.yellow(`- Bridge reward tokens to target chain timelock`))
+    }
     console.log(kleur.yellow('- Add Fleet to Harbor Command'))
     console.log(kleur.yellow('- Grant COMMANDER_ROLE to Fleet Commander for BufferArk'))
     console.log(kleur.yellow(`- Add ${deployedArkAddresses.length} Arks to the Fleet`))
@@ -793,9 +899,24 @@ export async function createSatelliteGovernanceProposal(
 
     // Create action summary for better display in proposal
     const actionSummary = [
+      fleetDefinition.rewardTokens
+        ? `Bridge aggregated reward tokens to ${hre.network.name} timelock`
+        : '',
+      fleetDefinition.bridgeAmount
+        ? `Bridge ${fleetDefinition.bridgeAmount} to ${hre.network.name} timelock`
+        : '',
       `Send cross-chain proposal to ${hre.network.name}`,
       `Execute ${dstTargets.length} actions on the destination chain`,
-    ]
+    ].filter(Boolean)
+
+    // Add cross-chain details
+    const crossChainDetails = {
+      targetChainName: hre.network.name,
+      targetChainId: hre.network.config.chainId || 0,
+      targets: dstTargets,
+      values: dstValues,
+      calldatas: dstCalldatas,
+    }
 
     // Submit proposal using the common helper function
     await submitProposal(
@@ -807,6 +928,7 @@ export async function createSatelliteGovernanceProposal(
       srcCalldatas,
       discourseURL,
       actionSummary,
+      crossChainDetails,
     )
 
     console.log(kleur.yellow('The fleet will be activated once this proposal is executed.'))

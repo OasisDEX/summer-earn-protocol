@@ -139,6 +139,7 @@ export interface FleetConfig {
   rewardTokens: string[]
   rewardAmounts: string[]
   rewardsDuration: number[]
+  bridgeAmount: string
   arks: ArkConfig[]
   discourseURL?: string
   sipNumber?: string
