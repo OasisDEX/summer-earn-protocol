@@ -6,12 +6,14 @@ import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import { FleetContracts } from '../../ignition/modules/fleet'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
+import { getChainConfigByChainId } from '../helpers/chain-configs'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { hashDescription } from '../helpers/hash-description'
 import { prepareBridgeTransaction } from '../helpers/layerzero-bridge-helpers'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import { createGovernanceProposal, ProposalContent } from '../helpers/proposal-helpers'
 import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
+import { createClients } from '../helpers/wallet-helper'
 import { getRewardsManagerAddress } from './fleet-deployment-helpers'
 
 export interface FleetSingleChainContent extends ProposalContent {
@@ -924,6 +926,13 @@ export async function createSatelliteGovernanceProposal(
         .address as Address
 
       // Prepare bridge actions with the new helper function
+      const result = await getChainConfigByChainId(HUB_CHAIN_ID)
+      if (!result) throw new Error(`No chain config found for chain ID ${HUB_CHAIN_ID}`)
+      const { publicClient } = await createClients(
+        result.chainConfig.chain,
+        result.chainConfig.rpcUrl,
+        process.env.DEPLOYER_PRIV_KEY as Address,
+      )
       const {
         targets: bridgeTargets,
         values: bridgeValues,
@@ -934,6 +943,7 @@ export async function createSatelliteGovernanceProposal(
         Number(currentChainEndpointId),
         targetTimelockAddress,
         HUB_TIMELOCK_ADDRESS,
+        publicClient,
       )
 
       // Add the bridge actions to the source chain proposal

@@ -1,7 +1,6 @@
 import { addressToBytes32, Options } from '@layerzerolabs/lz-v2-utilities'
-import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, encodeFunctionData, Hex } from 'viem'
+import { Address, encodeFunctionData, Hex, PublicClient } from 'viem'
 import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
 
 /**
@@ -13,7 +12,8 @@ import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/Summer
  * @param amount The amount to bridge
  * @param destinationChainEid The LayerZero endpoint ID of the destination chain
  * @param recipient Recipient address on the destination chain (defaults to executing address)
- * @param refundAddress Optional refund address for excess fees (defaults to executing address)
+ * @param refundAddress Refund address for excess fees (defaults to executing address)
+ * @param publicClient The public client to use for the transaction
  * @param safetyMultiplier The safety multiplier for the bridge transaction
  * @returns Object containing targets, values, and calldatas for governance proposal
  */
@@ -23,6 +23,7 @@ export async function prepareBridgeTransaction(
   destinationChainEid: number,
   recipient: Address,
   refundAddress: Address,
+  publicClient: PublicClient,
   safetyMultiplier: number = 1.5,
 ): Promise<{ targets: Address[]; values: bigint[]; calldatas: Hex[] }> {
   const targets: Address[] = []
@@ -48,8 +49,6 @@ export async function prepareBridgeTransaction(
 
     // Properly format the recipient address using LayerZero's utility
     const recipientHex = `0x${Buffer.from(addressToBytes32(recipient)).toString('hex')}` as Hex
-
-    const publicClient = await hre.viem.getPublicClient()
 
     // Send parameter structure matching the contract's expectation
     const sendParam = {
@@ -90,7 +89,7 @@ export async function prepareBridgeTransaction(
     // Add the bridge transaction
     targets.push(bridgeContractAddress)
     // Include the fee in the transaction value
-    values.push(safetyBuffer)
+    values.push(0n)
     calldatas.push(
       encodeFunctionData({
         abi: SummerTokenABI.abi, // Use the full ABI from the JSON file
