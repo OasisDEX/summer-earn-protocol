@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: arbitrum-one
+    network: base
     source:
       abi: Comet
-      startBlock: 293165006
-      address: "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3"
+      startBlock: 24744895
+      address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.8
@@ -42,9 +42,11 @@ dataSources:
           file: ./abis/SkySSRAuthOracle.json
         - name: SkySUSDS
           file: ./abis/SkySUSDS.json
+        - name: MoonwellToken
+          file: ./abis/MoonwellToken.json
       blockHandlers:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 2400    
+            every: 300    
       file: ./src/mapping.ts
