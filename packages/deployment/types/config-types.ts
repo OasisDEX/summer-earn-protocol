@@ -137,6 +137,8 @@ export interface FleetConfig {
   initialTipRate: string
   network: string
   arks: ArkConfig[]
+  discourseURL?: string
+  sipNumber?: string
   details: string
 }
 

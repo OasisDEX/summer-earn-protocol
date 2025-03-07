@@ -192,9 +192,13 @@ contract TokenLibraryTest is Test {
         // Test with maximum uint256 value
         uint256 maxUint = type(uint256).max;
 
-        // Converting max uint256 from 0 decimals to 18 decimals (should revert due to overflow)
-        vm.expectRevert();
-        TokenLibrary.convertDecimals(maxUint, 0, 18);
+        // Converting max uint256 from 0 decimals to 18 decimals should overflow
+        // Instead of using vm.expectRevert, let's check if it's correctly handled
+        try this.convertDecimalsWrapper(maxUint, 0, 18) {
+            fail();
+        } catch {
+            // This is expected to fail, so test passes
+        }
 
         // Converting max uint256 from 18 decimals to 0 decimals
         assertEq(TokenLibrary.convertDecimals(maxUint, 18, 0), maxUint / 1e18);
@@ -207,5 +211,14 @@ contract TokenLibraryTest is Test {
 
         // Converting 1 from 0 decimals to 18 decimals
         assertEq(TokenLibrary.convertDecimals(smallValue, 0, 18), 1e18);
+    }
+
+    // External function to test revert
+    function convertDecimalsWrapper(
+        uint256 amount,
+        uint8 fromDecimals,
+        uint8 toDecimals
+    ) external pure returns (uint256) {
+        return TokenLibrary.convertDecimals(amount, fromDecimals, toDecimals);
     }
 }

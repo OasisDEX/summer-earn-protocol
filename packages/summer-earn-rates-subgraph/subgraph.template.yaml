@@ -42,6 +42,8 @@ dataSources:
           file: ./abis/SkySSRAuthOracle.json
         - name: SkySUSDS
           file: ./abis/SkySUSDS.json
+        - name: MoonwellToken
+          file: ./abis/MoonwellToken.json
       blockHandlers:
         - handler: handleBlock
           filter:
