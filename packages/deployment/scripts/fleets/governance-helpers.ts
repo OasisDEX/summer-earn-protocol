@@ -1032,6 +1032,7 @@ export async function createSatelliteGovernanceProposal(
       console.log(
         kleur.yellow(`- Set up rewards for ${fleetDefinition.rewardTokens.length} tokens`),
       )
+      console.log(kleur.yellow('- Whitelisting rewards manager as a rewarder'))
     }
 
     // Generate proposal details
