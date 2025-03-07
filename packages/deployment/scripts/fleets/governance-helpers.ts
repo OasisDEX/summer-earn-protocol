@@ -159,8 +159,7 @@ ${rewardInfo?.tokens ? `${curatorAddress ? '6' : '5'}. Set up rewards for ${rewa
 - Initial Minimum Buffer Balance: ${formattedBufferBalance}
 - Initial Rebalance Cooldown: ${formattedRebalanceCooldown}
 - Initial Tip Rate: ${formattedTipRate}
-${rewardsSection}
-`
+${rewardsSection}`
 
   if (!isCrossChain) {
     return {
@@ -309,7 +308,9 @@ function formatRebalanceCooldown(cooldown: string): string {
  * Format tip rate to be human-readable
  */
 function formatTipRate(tipRate: string): string {
-  return formatValue(tipRate, 18, 'percentage')
+  const tipRateNumber = BigInt(Number(tipRate))
+  const tipRatePercentage = tipRateNumber / 100n // 1e18 is actually 1% with our percentages library
+  return formatValue(tipRatePercentage.toString(), 18, 'percentage')
 }
 
 /**
