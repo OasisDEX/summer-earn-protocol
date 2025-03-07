@@ -122,6 +122,18 @@ export function getOrCreatePosition(positionId: string, block: ethereum.Block): 
     position.inputTokenWithdrawalsNormalized = constants.BigDecimalConstants.ZERO
     position.inputTokenBalanceNormalized = constants.BigDecimalConstants.ZERO
     position.save()
+
+    const vault = getOrCreateVault(Address.fromString(position.vault), block)
+    let positions = vault.positions
+    if (!positions) {
+      positions = []
+    }
+
+    if (positions.indexOf(position.id) === -1) {
+      positions.push(position.id)
+      vault.positions = positions
+      vault.save()
+    }
   }
 
   return position
