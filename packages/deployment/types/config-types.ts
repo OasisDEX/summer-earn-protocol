@@ -115,6 +115,14 @@ export interface BaseConfig {
         [key in Token]: Address
       }
     }
+    moonwell: {
+      pools: {
+        [key in Token]: {
+          mToken: Address
+        }
+      }
+      comptroller: Address
+    }
   }
 }
 

@@ -49,7 +49,8 @@
       "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
       "weth": "0x4200000000000000000000000000000000000006",
       "usds": "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
-      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a"
+      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
+      "eurc": "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42"
     },
     "common": {
       "initialSupply": "1000000000",
@@ -76,6 +77,11 @@
             "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
             "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183",
             "Spark_USDC": "0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A"
+          },
+          "eurc": {
+            "Steakhouse_EURC": "0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5",
+            "Gauntlet_EURC_Core": "0x1c155be6bC51F2c37d472d4C2Eba7a637806e122",
+            "Moonwell_Flagship_EURC": "0xf24608E0CCb972b0b0f4A6446a0BBf58c701a026"
           }
         },
         "markets": {
@@ -104,7 +110,18 @@
       "erc4626": {
         "usdc": {
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+        },
+        "eurc": {
+          "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"
         }
+      },
+      "moonwell": {
+        "pools": {
+          "eurc": {
+            "mToken": "0xb682c840B5F4FC58B20769E691A6fa1305A501a2"
+          }
+        },
+        "comptroller": "0xfBb21d0380beE3312B33c4353c8936a0F13EF26C"
       },
       "sky": {
         "psm3": {
