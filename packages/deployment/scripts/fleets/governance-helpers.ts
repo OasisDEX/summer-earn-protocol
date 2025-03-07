@@ -455,31 +455,16 @@ export async function prepareRewardSetupActions(
     )
   }
 
-  // Check if rewards manager is whitelisted as a rewarder
-  console.log(kleur.yellow('Checking if rewards manager is whitelisted as a rewarder'))
-  console.log(kleur.yellow('Rewards Manager:'), rewardsManagerAddress)
-  const isRewardsManagerWhitelisted = await publicClient.readContract({
-    address: summerTokenAddress,
-    abi: SummerTokenABI.abi,
-    functionName: 'whitelistedAddresses',
-    args: [rewardsManagerAddress],
-  })
-  console.log(kleur.yellow('Is rewards manager whitelisted:'), isRewardsManagerWhitelisted)
-
-  if (!isRewardsManagerWhitelisted) {
-    console.log(
-      kleur.yellow('Rewards manager is not whitelisted as a rewarder, adding to whitelist'),
-    )
-    targets.push(summerTokenAddress)
-    values.push(0n)
-    calldatas.push(
-      encodeFunctionData({
-        abi: SummerTokenABI.abi,
-        functionName: 'addToWhitelist',
-        args: [rewardsManagerAddress],
-      }) as Hex,
-    )
-  }
+  console.log(kleur.yellow('Whitelisting rewards manager as a rewarder'))
+  targets.push(summerTokenAddress)
+  values.push(0n)
+  calldatas.push(
+    encodeFunctionData({
+      abi: SummerTokenABI.abi,
+      functionName: 'addToWhitelist',
+      args: [rewardsManagerAddress],
+    }) as Hex,
+  )
 
   for (let i = 0; i < rewardTokens.length; i++) {
     // Add action to approve token transfer to rewards manager
