@@ -113,5 +113,6 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
             remainingAssets == 0,
             "Remaining assets should be less than initial deposit"
         );
+        assertEq(IERC20(MTOKEN_ADDRESS).balanceOf(address(ark)), 0);
     }
 }

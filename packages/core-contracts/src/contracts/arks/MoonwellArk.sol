@@ -4,21 +4,23 @@ pragma solidity 0.8.28;
 import "../Ark.sol";
 import {IMToken} from "../../interfaces/moonwell/IMToken.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {console} from "forge-std/console.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IInterestRateModel} from "../../interfaces/moonwell/IInterestRateModel.sol";
-import {Exponential} from "@summerfi/dependencies/moonwell/Exponential.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 /**
  * @title MoonwellArk
  * @notice Ark contract for managing token supply and yield generation through any Moonwell-compliant mToken.
  * @dev Implements strategy for depositing tokens, withdrawing tokens, and tracking yield from Moonwell vaults.
  */
-contract MoonwellArk is Ark, Exponential {
+contract MoonwellArk is Ark {
+    using FixedPointMathLib for uint256;
     using SafeERC20 for IERC20;
 
     error MoonwellMintFailed();
     error MoonwellRedeemUnderlyingFailed();
     error MoonwellAssetMismatch();
     error InvalidMoonwellAddress();
+    error MoonwellRedeemFailed();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -96,8 +98,14 @@ contract MoonwellArk is Ark, Exponential {
      * @param /// data Additional data (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
-        if (mToken.redeemUnderlying(amount) != 0) {
-            revert MoonwellRedeemUnderlyingFailed();
+        if (amount == balanceOfUnderlyingWithInterest(address(this))) {
+            if (mToken.redeem(mToken.balanceOf(address(this))) != 0) {
+                revert MoonwellRedeemUnderlyingFailed();
+            }
+        } else {
+            if (mToken.redeemUnderlying(amount) != 0) {
+                revert MoonwellRedeemFailed();
+            }
         }
     }
 
@@ -136,179 +144,6 @@ contract MoonwellArk is Ark, Exponential {
      */
     function _validateDisembarkData(bytes calldata) internal override {}
 
-    // Add this struct near the top of the contract
-    struct AccrualInfo {
-        uint256 currentBlockTimestamp;
-        uint256 accrualBlockTimestamp;
-        uint256 cashPrior;
-        uint256 borrowsPrior;
-        uint256 reservesPrior;
-        uint256 totalSupply;
-        uint256 borrowRateMantissa;
-    }
-
-    struct InterestCalcs {
-        uint256 interestAccumulated;
-        uint256 totalBorrowsNew;
-        uint256 totalReservesNew;
-        uint256 newExchangeRate;
-    }
-
-    /**
-     * @notice Calculate interest accumulated and new borrow amount
-     */
-    function _calculateInterestAndBorrows(
-        uint256 blockDelta,
-        uint256 borrowRateMantissa,
-        uint256 borrowsPrior
-    )
-        internal
-        pure
-        returns (uint256 interestAccumulated, uint256 totalBorrowsNew)
-    {
-        // Calculate interest factor
-        (MathError err1, Exp memory simpleInterestFactor) = mulScalar(
-            Exp({mantissa: borrowRateMantissa}),
-            blockDelta
-        );
-        require(
-            err1 == MathError.NO_ERROR,
-            "interest factor calculation failed"
-        );
-
-        // Calculate interest accumulated
-        (MathError err2, uint256 interest) = mulScalarTruncate(
-            simpleInterestFactor,
-            borrowsPrior
-        );
-        require(
-            err2 == MathError.NO_ERROR,
-            "interest accumulated calculation failed"
-        );
-
-        // Calculate new borrows
-        (MathError err3, uint256 newBorrows) = addUInt(borrowsPrior, interest);
-        require(err3 == MathError.NO_ERROR, "total borrows calculation failed");
-
-        return (interest, newBorrows);
-    }
-
-    /**
-     * @notice Calculate new reserves
-     */
-    function _calculateNewReserves(
-        uint256 reservesPrior,
-        uint256 interestAccumulated
-    ) internal view returns (uint256) {
-        (MathError err4, Exp memory reserveFactor) = getExp(
-            mToken.reserveFactorMantissa(),
-            expScale
-        );
-        require(
-            err4 == MathError.NO_ERROR,
-            "reserve factor calculation failed"
-        );
-
-        (MathError err5, uint256 reservesAccumulated) = mulScalarTruncate(
-            reserveFactor,
-            interestAccumulated
-        );
-        require(
-            err5 == MathError.NO_ERROR,
-            "reserves accumulated calculation failed"
-        );
-
-        (MathError err6, uint256 totalReservesNew) = addUInt(
-            reservesPrior,
-            reservesAccumulated
-        );
-        require(
-            err6 == MathError.NO_ERROR,
-            "total reserves calculation failed"
-        );
-
-        return totalReservesNew;
-    }
-
-    /**
-     * @notice Calculate new exchange rate
-     */
-    function _calculateExchangeRate(
-        uint256 cashPrior,
-        uint256 totalBorrowsNew,
-        uint256 totalReservesNew,
-        uint256 totalSupply
-    ) internal pure returns (uint256) {
-        (MathError err7, uint256 totalCashAndBorrows) = addUInt(
-            cashPrior,
-            totalBorrowsNew
-        );
-        require(
-            err7 == MathError.NO_ERROR,
-            "total cash and borrows calculation failed"
-        );
-
-        (MathError err8, uint256 totalAvailable) = subUInt(
-            totalCashAndBorrows,
-            totalReservesNew
-        );
-        require(
-            err8 == MathError.NO_ERROR,
-            "total available calculation failed"
-        );
-
-        (MathError err9, Exp memory newExchangeRate) = getExp(
-            totalAvailable,
-            totalSupply
-        );
-        require(err9 == MathError.NO_ERROR, "exchange rate calculation failed");
-
-        return newExchangeRate.mantissa;
-    }
-
-    /**
-     * @notice Internal function to calculate new exchange rate with accrued interest
-     */
-    function _calculateAccruedInterest(
-        AccrualInfo memory info
-    ) internal view returns (uint256) {
-        if (info.totalSupply == 0) {
-            return 0;
-        }
-
-        // Calculate block delta
-        (MathError err0, uint256 blockDelta) = subUInt(
-            info.currentBlockTimestamp,
-            info.accrualBlockTimestamp
-        );
-        require(err0 == MathError.NO_ERROR, "block delta calculation failed");
-
-        // Calculate interest and new borrows
-        (
-            uint256 interestAccumulated,
-            uint256 totalBorrowsNew
-        ) = _calculateInterestAndBorrows(
-                blockDelta,
-                info.borrowRateMantissa,
-                info.borrowsPrior
-            );
-
-        // Calculate new reserves
-        uint256 totalReservesNew = _calculateNewReserves(
-            info.reservesPrior,
-            interestAccumulated
-        );
-
-        // Calculate new exchange rate
-        return
-            _calculateExchangeRate(
-                info.cashPrior,
-                totalBorrowsNew,
-                totalReservesNew,
-                info.totalSupply
-            );
-    }
-
     /**
      * @notice Get the underlying balance of a user with accrued interest, without modifying state
      * @param user The address of the user to check
@@ -317,41 +152,66 @@ contract MoonwellArk is Ark, Exponential {
     function balanceOfUnderlyingWithInterest(
         address user
     ) public view returns (uint256) {
-        // Get current values
         (, uint256 shares, , uint256 storedExchangeRate) = mToken
             .getAccountSnapshot(user);
 
-        AccrualInfo memory info;
-        info.currentBlockTimestamp = block.timestamp;
-        info.accrualBlockTimestamp = mToken.accrualBlockTimestamp();
+        uint256 accrualBlockTimestampPrior = mToken.accrualBlockTimestamp();
 
-        // If no time has passed, just use stored values
-        if (info.accrualBlockTimestamp == info.currentBlockTimestamp) {
-            return (shares * storedExchangeRate) / expScale;
+        // If no time has passed, use stored rate
+        if (accrualBlockTimestampPrior == block.timestamp) {
+            return (shares * storedExchangeRate) / 1e18;
         }
 
-        // Get current market state
-        info.cashPrior = mToken.getCash();
-        info.borrowsPrior = mToken.totalBorrows();
-        info.reservesPrior = mToken.totalReserves();
-        info.totalSupply = mToken.totalSupply();
-        info.borrowRateMantissa = IInterestRateModel(mToken.interestRateModel())
-            .getBorrowRate(
-                info.cashPrior,
-                info.borrowsPrior,
-                info.reservesPrior
-            );
+        uint256 exchangeRate = _calculateCurrentExchangeRate();
+        return (shares * exchangeRate) / 1e18;
+    }
 
-        // Calculate new exchange rate
-        uint256 newExchangeRate = _calculateAccruedInterest(info);
+    function _calculateCurrentExchangeRate() internal view returns (uint256) {
+        uint256 totalSupply = mToken.totalSupply();
+        if (totalSupply == 0) {
+            return mToken.exchangeRateStored();
+        }
 
-        // Calculate final balance
-        (MathError err, uint256 balance) = mulScalarTruncate(
-            Exp({mantissa: newExchangeRate}),
-            shares
+        uint256 totalCash = mToken.getCash();
+        uint256 borrowsPrior = mToken.totalBorrows();
+        uint256 reservesPrior = mToken.totalReserves();
+
+        uint256 interestAccumulated = _calculateInterestAccumulated(
+            totalCash,
+            borrowsPrior,
+            reservesPrior
         );
-        require(err == MathError.NO_ERROR, "balance calculation failed");
 
-        return balance;
+        uint256 totalReserves = _calculateNewReserves(
+            reservesPrior,
+            interestAccumulated
+        );
+        uint256 totalBorrows = interestAccumulated + borrowsPrior;
+
+        uint256 _totalAssets = totalCash + totalBorrows - totalReserves;
+        return _totalAssets.divWadDown(totalSupply);
+    }
+
+    function _calculateInterestAccumulated(
+        uint256 totalCash,
+        uint256 borrowsPrior,
+        uint256 reservesPrior
+    ) internal view returns (uint256) {
+        uint256 borrowRateMantissa = IInterestRateModel(
+            mToken.interestRateModel()
+        ).getBorrowRate(totalCash, borrowsPrior, reservesPrior);
+
+        require(borrowRateMantissa <= 0.0005e16, "RATE_TOO_HIGH");
+
+        uint256 timeDelta = block.timestamp - mToken.accrualBlockTimestamp();
+        return (borrowRateMantissa * timeDelta).mulWadDown(borrowsPrior);
+    }
+
+    function _calculateNewReserves(
+        uint256 reservesPrior,
+        uint256 interestAccumulated
+    ) internal view returns (uint256) {
+        uint256 reserveFactor = mToken.reserveFactorMantissa();
+        return reserveFactor.mulWadDown(interestAccumulated) + reservesPrior;
     }
 }
