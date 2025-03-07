@@ -146,9 +146,14 @@ function updateHourlyAverage(
 
   hourlyRate.sumRates = hourlyRate.sumRates.plus(newRate)
   hourlyRate.updateCount = hourlyRate.updateCount.plus(BigInt.fromI32(1))
-  hourlyRate.averageRate = hourlyRate.sumRates.div(
-    BigDecimal.fromString(hourlyRate.updateCount.toString()),
-  )
+
+  if (hourlyRate.updateCount.gt(BigInt.fromI32(0))) {
+    hourlyRate.averageRate = hourlyRate.sumRates.div(
+      BigDecimal.fromString(hourlyRate.updateCount.toString()),
+    )
+  } else {
+    hourlyRate.averageRate = BigDecimalConstants.ZERO
+  }
 
   hourlyRate.save()
 }

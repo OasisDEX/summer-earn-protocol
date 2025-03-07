@@ -38,15 +38,15 @@ export function getArkProductId(ark: Ark): string | null {
   }
 
   const details = ark.details!.toString()
+
   let jsonValue = json.fromString(details)
   const jsonData = jsonValue.toObject()
 
-  if (
-    !jsonData ||
-    !jsonData.isSet('pool') ||
-    !jsonData.isSet('protocol') ||
-    !jsonData.isSet('chainId')
-  ) {
+  if (!jsonData) {
+    return null
+  }
+
+  if (!jsonData.isSet('pool') || !jsonData.isSet('protocol') || !jsonData.isSet('chainId')) {
     return null
   }
 

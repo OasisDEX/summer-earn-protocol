@@ -6,6 +6,7 @@ import { CompoundProduct } from '../products/CompoundProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
 import { GearboxProduct } from '../products/GearboxProduct'
 import { GenericVaultProduct } from '../products/GenericVault'
+import { MoonwellProduct } from '../products/Moonwell'
 import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
@@ -452,6 +453,12 @@ class ProtocolConfig {
           BigInt.fromI32(159160679),
           'Fluid',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
+          Address.fromString('0x1A996cb54bb95462040408C06122D45D6Cdb6096'),
+          BigInt.fromI32(312900000),
+          'Fluid',
+        ),
       ]),
     ]
   }
@@ -494,6 +501,12 @@ class ProtocolConfig {
           BigInt.fromI32(17551731),
           'Fluid',
         ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0x1943FA26360f038230442525Cf1B9125b5DCB401'),
+          BigInt.fromI32(27276276),
+          'Fluid',
+        ),
       ]),
       new Protocol('Morpho', [
         new ERC4626Product(
@@ -531,6 +544,32 @@ class ProtocolConfig {
           Address.fromString('0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A'),
           BigInt.fromI32(15183452),
           'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xf24608E0CCb972b0b0f4A6446a0BBf58c701a026'),
+          BigInt.fromI32(27276276),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5'),
+          BigInt.fromI32(27276276),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0x1c155be6bC51F2c37d472d4C2Eba7a637806e122'),
+          BigInt.fromI32(27276276),
+          'Morpho',
+        ),
+      ]),
+      new Protocol('Moonwell', [
+        new MoonwellProduct(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xb682c840B5F4FC58B20769E691A6fa1305A501a2'),
+          BigInt.fromI32(27276276),
+          'Moonwell',
         ),
       ]),
       new Protocol('Sky', [
