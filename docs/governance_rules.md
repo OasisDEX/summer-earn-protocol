@@ -74,14 +74,20 @@ Consistency: A standardized format makes proposals easy to reference, track, and
 Searchability: Users can quickly locate related proposals by searching for the primary SIP number (e.g., all SIP1 proposals).
 Examples
 
-• SIP1.1: Proposal to add $USDS on Mainnet.
+• SIP1.1: Proposal to deploy USDC Fleet on Mainnet
+• SIP1.2: Proposal to adjust Fleet deposit cap parameters
 
-• SIP3.2: Proposal to add $SUMR rewards to XYZ vault.
+• SIP2.1: Proposal to add ARKs to an existing Fleet
+• SIP2.2: Proposal to remove underperforming ARKs from a Fleet
+
+• SIP3.2: Proposal to add $SUMR rewards to XYZ Fleet.
 
 Proposed Categories
 SIP0 - Governance Process
-SIP1 - Vault Management (Onboarding & Offboarding)
+SIP1 - Vault/Fleet Management (Onboarding & Offboarding)
+    - Includes Fleet deployment, configuration changes, and vault-level operational decisions
 SIP2 - ARK Management (Onboarding & Offboarding)
+    - Includes adding/removing ARKs to existing Fleets and ARK-specific configurations
 SIP3 - Token Rewards
 SIP4 - Governance Parameters
 SIP5 - Special Governance Votes (One-Off Proposals)

@@ -10,6 +10,11 @@
   "details": "",
   "discourseURL": "https://forum.summer.fi/t/sip1-x-onboard-usdc-vault-onto-arbitrum/89",
   "sipNumber": "1",
+  "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
+  "rewardAmounts": ["1537243000000000000000000"],
+  "rewardsDuration": 4924800,
+  "bridgeAmount": "10000000000000000000000000",
+  "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
   "arks": [
     {
       "type": "AaveV3Ark",

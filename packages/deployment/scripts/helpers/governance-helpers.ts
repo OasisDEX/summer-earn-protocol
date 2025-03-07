@@ -9,7 +9,7 @@ import { hashDescription } from './hash-description'
  * Checks if the user has enough SUMR tokens to create a governance proposal
  * @returns A status object with balance information and whether requirements are met
  */
-export async function checkProposerTokenRequirements(): Promise<{
+export async function checkProposerTokenRequirements(useBummerConfig: boolean): Promise<{
   hasEnoughTokens: boolean
   votingPower?: string
   requiredTokens?: string
@@ -17,16 +17,24 @@ export async function checkProposerTokenRequirements(): Promise<{
 }> {
   try {
     const [deployer] = await hre.viem.getWalletClients()
-    const sumrTokenAddress = await getSumrTokenAddress()
-    const sumrToken = await hre.viem.getContractAt('ERC20' as string, sumrTokenAddress)
+    console.log(kleur.yellow(`Deployer: ${deployer.account.address}`))
+    const sumrTokenAddress = await getSumrTokenAddress(useBummerConfig)
+    console.log(kleur.yellow(`Sumr token address: ${sumrTokenAddress}`))
+    const sumrToken = await hre.viem.getContractAt('SummerToken' as string, sumrTokenAddress)
 
     const balance = await sumrToken.read.balanceOf([deployer.account.address])
     const delegatedVotes = await sumrToken.read.getVotes([deployer.account.address])
+    console.log(kleur.yellow(`Balance: ${balance}`))
+    console.log(kleur.yellow(`Delegated votes: ${delegatedVotes}`))
     const totalVotingPower = BigInt(String(balance)) + BigInt(String(delegatedVotes))
 
     // Get the proposal threshold from the governor contract
     const network = hre.network.name
-    const config = getConfigByNetwork(network, { common: true, gov: true, core: true })
+    const config = getConfigByNetwork(
+      network,
+      { common: true, gov: true, core: true },
+      useBummerConfig,
+    )
     const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
     const governor = await hre.viem.getContractAt('SummerGovernor' as string, governorAddress)
     const minRequiredTokens = await governor.read.proposalThreshold()
@@ -162,6 +170,7 @@ export async function submitProposal({
   values,
   calldatas,
   governorAddress,
+  useBummerConfig,
 }: {
   title: string
   description: string
@@ -169,6 +178,7 @@ export async function submitProposal({
   values: bigint[]
   calldatas: `0x${string}`[]
   governorAddress: Address
+  useBummerConfig: boolean
 }): Promise<boolean> {
   // Display proposal summary
   displayProposalSummary(title, description, targets, values, governorAddress)
@@ -177,7 +187,7 @@ export async function submitProposal({
   displayGovernanceRules()
 
   // Check if user has enough tokens
-  const tokenRequirements = await checkProposerTokenRequirements()
+  const tokenRequirements = await checkProposerTokenRequirements(useBummerConfig)
   if (!tokenRequirements.hasEnoughTokens) {
     console.log(kleur.red().bold('\n⚠️ WARNING: Proposer Token Requirements Not Met'))
     console.log(
@@ -280,10 +290,14 @@ export async function submitProposal({
 /**
  * Helper function to get the SUMR token address
  */
-export async function getSumrTokenAddress(): Promise<Address> {
+export async function getSumrTokenAddress(useBummerConfig: boolean): Promise<Address> {
   // Get from config
   const network = hre.network.name
-  const config = getConfigByNetwork(network, { common: true, gov: true, core: true })
+  const config = getConfigByNetwork(
+    network,
+    { common: true, gov: true, core: true },
+    useBummerConfig,
+  )
   return config.deployedContracts.gov.summerToken.address as Address
 }
 
