@@ -6,11 +6,11 @@ import { CompoundProduct } from '../products/CompoundProduct'
 import { ERC4626Product } from '../products/ERC4626Product'
 import { GearboxProduct } from '../products/GearboxProduct'
 import { GenericVaultProduct } from '../products/GenericVault'
+import { MoonwellProduct } from '../products/Moonwell'
 import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { getOrCreateToken } from '../utils/initializers'
-import { MoonwellProduct } from '../products/Moonwell'
 
 /**
  * ProtocolConfig class
