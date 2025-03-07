@@ -422,39 +422,63 @@ export async function prepareRewardSetupActions(
   rewardTokens: Address[],
   rewardAmounts: bigint[],
   rewardsDurations: number[],
-  timelock?: Address,
-  summerTokenAddress?: Address,
-  publicClient?: PublicClient,
+  timelock: Address,
+  summerTokenAddress: Address,
+  publicClient: PublicClient,
 ): Promise<{ targets: Address[]; values: bigint[]; calldatas: Hex[] }> {
   const targets: Address[] = []
   const values: bigint[] = []
   const calldatas: Hex[] = []
 
-  if (timelock && publicClient && summerTokenAddress) {
-    console.log(kleur.yellow('Checking if timelock is whitelisted as a rewarder'))
-    console.log(kleur.yellow('Timelock:'), timelock)
-    console.log(kleur.yellow('Summer token address:'), summerTokenAddress)
-    // Add action to whitelist timelock as a rewarder if provided
-    const isTimelockWhitelisted = await publicClient.readContract({
-      address: summerTokenAddress,
-      abi: SummerTokenABI.abi,
-      functionName: 'whitelistedAddresses',
-      args: [timelock],
-    })
-    console.log(kleur.yellow('Is timelock whitelisted:'), isTimelockWhitelisted)
+  console.log(kleur.yellow('Checking if timelock is whitelisted as a rewarder'))
+  console.log(kleur.yellow('Timelock:'), timelock)
+  console.log(kleur.yellow('Summer token address:'), summerTokenAddress)
+  // Add action to whitelist timelock as a rewarder if provided
+  const isTimelockWhitelisted = await publicClient.readContract({
+    address: summerTokenAddress,
+    abi: SummerTokenABI.abi,
+    functionName: 'whitelistedAddresses',
+    args: [timelock],
+  })
+  console.log(kleur.yellow('Is timelock whitelisted:'), isTimelockWhitelisted)
 
-    if (!isTimelockWhitelisted) {
-      console.log(kleur.yellow('Timelock is not whitelisted as a rewarder, adding to whitelist'))
-      targets.push(summerTokenAddress)
-      values.push(0n)
-      calldatas.push(
-        encodeFunctionData({
-          abi: SummerTokenABI.abi,
-          functionName: 'addToWhitelist',
-          args: [timelock],
-        }) as Hex,
-      )
-    }
+  if (!isTimelockWhitelisted) {
+    console.log(kleur.yellow('Timelock is not whitelisted as a rewarder, adding to whitelist'))
+    targets.push(summerTokenAddress)
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: SummerTokenABI.abi,
+        functionName: 'addToWhitelist',
+        args: [timelock],
+      }) as Hex,
+    )
+  }
+
+  // Check if rewards manager is whitelisted as a rewarder
+  console.log(kleur.yellow('Checking if rewards manager is whitelisted as a rewarder'))
+  console.log(kleur.yellow('Rewards Manager:'), rewardsManagerAddress)
+  const isRewardsManagerWhitelisted = await publicClient.readContract({
+    address: summerTokenAddress,
+    abi: SummerTokenABI.abi,
+    functionName: 'whitelistedAddresses',
+    args: [rewardsManagerAddress],
+  })
+  console.log(kleur.yellow('Is rewards manager whitelisted:'), isRewardsManagerWhitelisted)
+
+  if (!isRewardsManagerWhitelisted) {
+    console.log(
+      kleur.yellow('Rewards manager is not whitelisted as a rewarder, adding to whitelist'),
+    )
+    targets.push(summerTokenAddress)
+    values.push(0n)
+    calldatas.push(
+      encodeFunctionData({
+        abi: SummerTokenABI.abi,
+        functionName: 'addToWhitelist',
+        args: [rewardsManagerAddress],
+      }) as Hex,
+    )
   }
 
   for (let i = 0; i < rewardTokens.length; i++) {
@@ -710,6 +734,9 @@ export async function createHubGovernanceProposal(
         fleetDefinition.rewardTokens.map((token) => token as Address),
         fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
         Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
+        config.deployedContracts.gov.timelock.address as Address,
+        config.deployedContracts.gov.summerToken.address as Address,
+        await hre.viem.getPublicClient(),
       )
 
       targets = [...targets, ...rewardActions.targets]
