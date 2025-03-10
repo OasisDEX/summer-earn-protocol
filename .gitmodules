@@ -16,3 +16,6 @@
 [submodule "packages/core-contracts/lib/solmate"]
 	path = packages/core-contracts/lib/solmate
 	url = https://github.com/transmissions11/solmate
+[submodule "lib/solmate"]
+	path = lib/solmate
+	url = https://github.com/transmissions11/solmate
