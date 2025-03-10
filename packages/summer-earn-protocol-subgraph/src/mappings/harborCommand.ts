@@ -70,7 +70,7 @@ function updateVaultSnapshots(
 
 // Main update orchestration functions
 function processHourlyVaultUpdate(
-  vault: Vault,
+  vaultAddress: Address,
   block: ethereum.Block,
   protocolLastDailyUpdateTimestamp: BigInt | null,
   protocolLastHourlyUpdateTimestamp: BigInt | null,
@@ -80,8 +80,16 @@ function processHourlyVaultUpdate(
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
   const weekPassed = hasWeekPassed(protocolLastWeeklyUpdateTimestamp, block.timestamp)
   if (hourPassed) {
+    let vault = getOrCreateVault(vaultAddress, block)
     updateVaultData(vault, block)
     updateVaultSnapshots(vault, block, dayPassed, weekPassed)
+
+    // reload vault to get latest data
+    vault = getOrCreateVault(vaultAddress, block)
+    if (!vault || !vault.id) {
+      log.warning('Invalid vault at address ' + vaultAddress.toHexString(), [])
+      return
+    }
 
     const arks = vault.arksArray
     if (arks && arks.length > 0) {
@@ -149,15 +157,9 @@ export function handleInterval(block: ethereum.Block): void {
     }
 
     const vaultAddress = Address.fromString(vaults[i])
-    const vault = getOrCreateVault(vaultAddress, block)
-
-    if (!vault || !vault.id) {
-      log.warning('Invalid vault at address ' + vaultAddress.toHexString(), [])
-      continue
-    }
 
     processHourlyVaultUpdate(
-      vault,
+      vaultAddress,
       block,
       protocol.lastDailyUpdateTimestamp,
       protocol.lastHourlyUpdateTimestamp,
