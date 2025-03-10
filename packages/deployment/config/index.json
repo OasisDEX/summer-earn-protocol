@@ -50,7 +50,8 @@
       "weth": "0x4200000000000000000000000000000000000006",
       "usds": "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
       "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
-      "morpho": "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842"
+      "morpho": "0xBAa5CC21fd487B8Fcc2F632f3F4E8D37262a0842",
+      "reul": "0xE08e1f00D388E201e48842E53fA96195568e6813"
     },
     "common": {
       "initialSupply": "1000000000",
@@ -166,7 +167,8 @@
       "usdt": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
       "usdce": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
       "weth": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
-      "morpho": "0x0000000000000000000000000000000000000000"
+      "morpho": "0x0000000000000000000000000000000000000000",
+      "reul": "0x0000000000000000000000000000000000000000"
     },
     "common": {
       "initialSupply": "0",
@@ -299,7 +301,8 @@
       "usds": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
       "stakedUsds": "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
       "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7",
-      "morpho": "0x58D97B57BB95320F9a05dC918Aef65434969c2B2"
+      "morpho": "0x58D97B57BB95320F9a05dC918Aef65434969c2B2",
+      "reul": "0xf3e621395fc714b90da337aa9108771597b4e696"
     },
     "common": {
       "initialSupply": "0",
