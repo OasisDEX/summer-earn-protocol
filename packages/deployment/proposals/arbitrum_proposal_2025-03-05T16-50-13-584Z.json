@@ -9,13 +9,8 @@
   ],
   "discourseURL": "https://forum.summer.fi/t/sip1-x-onboard-usdc-vault-onto-arbitrum/89",
   "timestamp": 1741193413590,
-  "crossChainExecution": {
-    "hubChain": {
-      "name": "base",
-      "chainId": 8453,
-      "governorAddress": "0xd76ad62Dd879F63a9f5e500a1684F598AA798d0c"
-    },
-    "targetChain": {
+  "crossChainExecution": [
+    {
       "name": "arbitrum",
       "chainId": 42161,
       "targets": [
@@ -50,5 +45,5 @@
         "0xa3cd8ac4000000000000000000000000194f360d130f2393a5e9f3117a6a1b78abea16240000000000000000000000000000000000000000000145861c29bd85828c000000000000000000000000000000000000000000000000000000000000004b2580"
       ]
     }
-  }
+  ]
 }

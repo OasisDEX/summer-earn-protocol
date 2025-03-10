@@ -49,20 +49,14 @@ export interface ProposalData {
   calldatas: `0x${string}`[]
   description: string
   title: string
-  crossChainExecution?: {
-    hubChain: {
-      name: string
-      governorAddress: string
-    }
-    targetChain: {
-      name: string
-      targets: string[]
-      values: string[]
-      datas: string[]
-      predecessor: string
-      delay: string
-    }
-  }
+  crossChainExecution?: Array<{
+    name: string
+    targets: string[]
+    values: string[]
+    datas: string[]
+    predecessor: string
+    delay: string
+  }>
 }
 
 /**
@@ -199,18 +193,17 @@ export function displayProposalSummary(proposal: ProposalData): void {
   console.log(kleur.blue('Number of actions:'), proposal.targets.length)
 
   // Display cross-chain information if available
-  if (proposal.crossChainExecution) {
+  if (proposal.crossChainExecution && Array.isArray(proposal.crossChainExecution)) {
     console.log(kleur.blue('Cross-Chain Proposal:'))
-    console.log(kleur.blue('  Hub Chain:'), proposal.crossChainExecution.hubChain.name)
-    console.log(kleur.blue('  Target Chain:'), proposal.crossChainExecution.targetChain.name)
+    console.log(kleur.blue('  Target Chains:'), proposal.crossChainExecution.length)
 
-    // Display number of target chain actions
-    if (proposal.crossChainExecution.targetChain.targets) {
-      console.log(
-        kleur.blue('  Target Chain Actions:'),
-        proposal.crossChainExecution.targetChain.targets.length,
-      )
-    }
+    // Display details for each target chain
+    proposal.crossChainExecution.forEach((targetChain, index) => {
+      console.log(kleur.blue(`  Target Chain ${index + 1}:`), targetChain.name)
+      if (targetChain.targets) {
+        console.log(kleur.blue(`  Actions:`), targetChain.targets.length)
+      }
+    })
   }
 }
 

@@ -1217,20 +1217,15 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
     )
 
     // Add cross-chain execution details
-    const crossChainExecution = {
-      hubChain: {
-        name: HUB_CHAIN_NAME,
-        chainId: HUB_CHAIN_ID,
-        governorAddress: HUB_GOVERNOR_ADDRESS,
-      },
-      targetChain: {
+    const crossChainExecution = [
+      {
         name: hre.network.name,
         chainId: hre.network.config.chainId || 0,
         targets: dstTargets.map((t) => t.toString()),
         values: dstValues.map((v) => v.toString()),
         datas: dstCalldatas.map((c) => c.toString()),
       },
-    }
+    ]
 
     // Submit proposal using createGovernanceProposal directly
     await createGovernanceProposal(

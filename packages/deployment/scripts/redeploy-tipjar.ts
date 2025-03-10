@@ -9,6 +9,7 @@ import { handleDeploymentId } from './helpers/deployment-id-handler'
 import { getChainId } from './helpers/get-chainid'
 import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
 import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
+import { updateIndexJson } from './helpers/update-json'
 
 /**
  * Deploys the TipJar contract and updates the ConfigurationManager.
@@ -52,6 +53,9 @@ async function redeployTipJar() {
     const deployedTipJar = await deployTipJarContract(config)
     console.log(kleur.green().bold('TipJar deployed successfully!'))
     console.log(kleur.yellow('TipJar Address:'), kleur.cyan(deployedTipJar.tipJar.address))
+
+    // Update config with new TipJar address
+    await updateConfig(network, useBummerConfig, deployedTipJar.tipJar.address)
 
     return deployedTipJar
   } else {
@@ -107,6 +111,27 @@ async function confirmDeployment(network: string): Promise<boolean> {
   console.log(kleur.yellow(`TipJar will be redeployed on: ${network}`))
 
   return await continueDeploymentCheck()
+}
+
+/**
+ * Updates the configuration file with the new TipJar address
+ * @param network The network being deployed to
+ * @param useBummerConfig Whether to use the bummer/test config
+ * @param tipJarAddress The address of the newly deployed TipJar contract
+ */
+async function updateConfig(network: string, useBummerConfig: boolean, tipJarAddress: string) {
+  try {
+    // Create a simple object with the TipJar address in the format expected by updateIndexJson
+    const tipJarContract = {
+      tipJar: { address: tipJarAddress },
+    }
+
+    // Use the shared helper to update the configuration
+    await updateIndexJson('core', network, tipJarContract, useBummerConfig)
+  } catch (error) {
+    console.error(kleur.red().bold('Failed to update configuration:'), error)
+    throw error
+  }
 }
 
 // Execute the script

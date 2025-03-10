@@ -4,9 +4,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex } from 'viem'
+import TipJarAbi from '../../artifacts/src/contracts/TipJar.sol/TipJar.json'
 import { BaseConfig } from '../../types/config-types'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
+import { getChainIdByNetwork } from '../helpers/get-chainid'
 import { hashDescription } from '../helpers/hash-description'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import { promptForConfigType } from '../helpers/prompt-helpers'
@@ -45,6 +47,13 @@ async function setupTipJars() {
   // Ask about using bummer config
   const useBummerConfig = await promptForConfigType()
 
+  // Helper function to filter chains based on bummer config
+  const filterTargetChains = (chainName: string) => {
+    if (chainName === HUB_CHAIN_NAME) return false
+    if (useBummerConfig && chainName === 'mainnet') return false
+    return true
+  }
+
   // Load the configuration for the hub chain (Base)
   const hubConfig = getConfigByNetwork(
     HUB_CHAIN_NAME,
@@ -54,7 +63,7 @@ async function setupTipJars() {
 
   // Load configurations for satellite chains
   const satelliteConfigs: Record<string, BaseConfig> = {}
-  for (const chain of TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)) {
+  for (const chain of TARGET_CHAINS.filter(filterTargetChains)) {
     satelliteConfigs[chain] = getConfigByNetwork(
       chain,
       { common: true, core: true, gov: true },
@@ -62,11 +71,16 @@ async function setupTipJars() {
     )
   }
 
+  // Display chains being targeted based on bummer config
+  const effectiveTargetChains = useBummerConfig
+    ? TARGET_CHAINS.filter((chain) => chain !== 'mainnet')
+    : TARGET_CHAINS
+
   // Confirm network selection
   const confirmNetworks = await prompts({
     type: 'confirm',
     name: 'continue',
-    message: `This will create a multi-chain governance proposal to update TipJars on: ${TARGET_CHAINS.join(
+    message: `This will create a multi-chain governance proposal to update TipJars on: ${effectiveTargetChains.join(
       ', ',
     )}. Continue?`,
     initial: true,
@@ -89,7 +103,7 @@ async function setupTipJars() {
   console.log(kleur.yellow(`  ${HUB_CHAIN_NAME}: ${tipJarAddresses[HUB_CHAIN_NAME]}`))
 
   // For satellite chains
-  for (const chain of TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)) {
+  for (const chain of TARGET_CHAINS.filter(filterTargetChains)) {
     tipJarAddresses[chain] = satelliteConfigs[chain].deployedContracts.core.tipJar
       .address as Address
     console.log(kleur.yellow(`  ${chain}: ${tipJarAddresses[chain]}`))
@@ -116,7 +130,7 @@ async function setupTipJars() {
  */
 async function loadTipStreamsConfig(): Promise<TipStreamsConfig> {
   try {
-    const configPath = path.resolve(__dirname, '../launch-config/tip-streams.json')
+    const configPath = path.resolve(__dirname, '../fleets/launch-config/tip-streams.json')
 
     // Check if file exists, if not create with empty config
     if (!fs.existsSync(configPath)) {
@@ -161,6 +175,13 @@ async function createMultiChainTipJarProposal(
 ): Promise<void> {
   console.log(kleur.cyan().bold('\nCreating multi-chain governance proposal...'))
 
+  // Helper function to filter chains based on bummer config
+  const filterTargetChains = (chainName: string) => {
+    if (chainName === HUB_CHAIN_NAME) return false
+    if (useBummerConfig && chainName === 'mainnet') return false
+    return true
+  }
+
   try {
     // Get the hub chain governor address
     const hubGovernorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
@@ -197,38 +218,53 @@ async function createMultiChainTipJarProposal(
     // Add actions to set up tip streams on Base
     if (tipStreamsConfig.tipStreams && tipStreamsConfig.tipStreams.length > 0) {
       for (const stream of tipStreamsConfig.tipStreams) {
+        console.log('Processing stream:', stream)
         srcTargets.push(tipJarAddresses[HUB_CHAIN_NAME])
         srcValues.push(0n)
+
+        // Use the actual contract ABI
+        const addTipStreamAbi = TipJarAbi.abi.find(
+          (item) => item.type === 'function' && item.name === 'addTipStream',
+        )
+
+        if (!addTipStreamAbi) {
+          throw new Error('addTipStream function not found in TipJar ABI')
+        }
+
         srcCalldatas.push(
           encodeFunctionData({
-            abi: [
+            abi: [addTipStreamAbi],
+            functionName: 'addTipStream',
+            args: [
               {
-                name: 'addTipStream',
-                type: 'function',
-                inputs: [
-                  { name: 'recipient', type: 'address' },
-                  { name: 'allocation', type: 'string' },
-                  { name: 'minTerm', type: 'string' },
-                ],
-                outputs: [],
-                stateMutability: 'nonpayable',
+                recipient: stream.recipient,
+                allocation: BigInt(stream.allocation),
+                lockedUntilEpoch: BigInt(stream.minTerm),
               },
             ],
-            functionName: 'addTipStream',
-            args: [stream.recipient, stream.allocation, stream.minTerm],
           }),
         )
       }
     }
 
+    // Store cross-chain execution details for the proposal data
+    const crossChainExecutions: Array<{
+      name: string
+      chainId: number
+      targets: string[]
+      values: string[]
+      datas: string[]
+    }> = []
+
     // 2. Prepare cross-chain actions for each satellite chain
     console.log(kleur.yellow('Preparing cross-chain actions for satellite chains...'))
-    for (const chainName of TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)) {
+    for (const chainName of TARGET_CHAINS.filter(filterTargetChains)) {
       const satelliteConfig = satelliteConfigs[chainName]
       const configManagerAddress = satelliteConfig.deployedContracts.core.configurationManager
         .address as Address
       const tipJarAddress = tipJarAddresses[chainName]
       const currentChainEndpointId = satelliteConfig.common.layerZero.eID
+      const chainId = getChainIdByNetwork(chainName)
 
       // Prepare the destination chain actions
       const dstTargets: Address[] = []
@@ -259,27 +295,40 @@ async function createMultiChainTipJarProposal(
         for (const stream of tipStreamsConfig.tipStreams) {
           dstTargets.push(tipJarAddress)
           dstValues.push(0n)
+
+          // Use the actual contract ABI
+          const addTipStreamAbi = TipJarAbi.abi.find(
+            (item) => item.type === 'function' && item.name === 'addTipStream',
+          )
+
+          if (!addTipStreamAbi) {
+            throw new Error('addTipStream function not found in TipJar ABI')
+          }
+
           dstCalldatas.push(
             encodeFunctionData({
-              abi: [
+              abi: [addTipStreamAbi],
+              functionName: 'addTipStream',
+              args: [
                 {
-                  name: 'addTipStream',
-                  type: 'function',
-                  inputs: [
-                    { name: 'recipient', type: 'address' },
-                    { name: 'allocation', type: 'string' },
-                    { name: 'minTerm', type: 'string' },
-                  ],
-                  outputs: [],
-                  stateMutability: 'nonpayable',
+                  recipient: stream.recipient,
+                  allocation: BigInt(stream.allocation),
+                  lockedUntilEpoch: BigInt(stream.minTerm),
                 },
               ],
-              functionName: 'addTipStream',
-              args: [stream.recipient, stream.allocation, stream.minTerm],
             }),
           )
         }
       }
+
+      // Store cross-chain execution data for this chain
+      crossChainExecutions.push({
+        name: chainName,
+        chainId: Number(chainId),
+        targets: dstTargets.map((t) => t as string),
+        values: dstValues.map((v) => v.toString()),
+        datas: dstCalldatas.map((c) => c as string),
+      })
 
       // Create destination chain description
       const dstDescription = `
@@ -294,10 +343,14 @@ ${
   tipStreamsConfig.tipStreams && tipStreamsConfig.tipStreams.length > 0
     ? `2. Configure ${tipStreamsConfig.tipStreams.length} tip streams:
 ${tipStreamsConfig.tipStreams
-  .map(
-    (stream, i) =>
-      `   - Stream ${i + 1}: Recipient ${stream.recipient}, Allocation ${stream.allocation}, Min Term ${stream.minTerm}`,
-  )
+  .map((stream, i) => {
+    const allocationBigInt = BigInt(stream.allocation)
+    const percentageValue = Number(allocationBigInt / BigInt(10 ** 18))
+    const minTermSeconds = Number(stream.minTerm)
+    const minTermDays = (minTermSeconds / 86400).toFixed(0)
+
+    return `   - Stream ${i + 1}: Recipient ${stream.recipient}, Allocation ${stream.allocation} (${percentageValue}%), Min Term ${stream.minTerm} seconds (${minTermDays} days)`
+  })
   .join('\n')}`
     : ''
 }
@@ -342,6 +395,11 @@ ${tipStreamsConfig.tipStreams
       console.log(kleur.green(`- Added cross-chain proposal for ${chainName}`))
     }
 
+    // Get the effective target chains based on bummer config
+    const effectiveTargetChains = useBummerConfig
+      ? TARGET_CHAINS.filter((chain) => chain !== 'mainnet')
+      : TARGET_CHAINS
+
     // Create title and description for the full proposal
     const title = `SIP5.1: TipJar Updates: Configure TipJars on Multiple Chains`
     const description = `
@@ -354,12 +412,12 @@ This proposal updates TipJar configurations across multiple chains in the Summer
 Properly configured TipJars are essential for the protocol's revenue distribution mechanisms. This update ensures consistent TipJar functionality across all supported chains, enabling appropriate fee collection and distribution according to the protocol's design.
 
 ## Target Chains
-${TARGET_CHAINS.map((chain) => `- ${chain}: ${tipJarAddresses[chain]}`).join('\n')}
+${effectiveTargetChains.map((chain) => `- ${chain}: ${tipJarAddresses[chain]}`).join('\n')}
 
 ## Specifications
 ### Actions
 1. On ${HUB_CHAIN_NAME}: Set TipJar address and configure tip streams
-${TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)
+${TARGET_CHAINS.filter(filterTargetChains)
   .map((chain) => `2. Send cross-chain proposal to ${chain} to update TipJar configuration`)
   .join('\n')}
 
@@ -367,10 +425,14 @@ ${TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)
 ${
   tipStreamsConfig.tipStreams && tipStreamsConfig.tipStreams.length > 0
     ? tipStreamsConfig.tipStreams
-        .map(
-          (stream, i) =>
-            `- Stream ${i + 1}: Recipient ${stream.recipient}, Allocation ${stream.allocation}, Min Term ${stream.minTerm}`,
-        )
+        .map((stream, i) => {
+          const allocationBigInt = BigInt(stream.allocation)
+          const percentageValue = Number(allocationBigInt / BigInt(10 ** 16)) / 100
+          const minTermSeconds = Number(stream.minTerm)
+          const minTermDays = (minTermSeconds / 86400).toFixed(2)
+
+          return `- Stream ${i + 1}: Recipient ${stream.recipient}, Allocation ${stream.allocation} (${percentageValue}%), Min Term ${stream.minTerm} seconds (${minTermDays} days)`
+        })
         .join('\n')
     : 'No tip streams configured.'
 }
@@ -379,7 +441,7 @@ ${
     // Create action summary for better display
     const actionSummary = [
       `Update TipJar on ${HUB_CHAIN_NAME}`,
-      ...TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME).map(
+      ...TARGET_CHAINS.filter(filterTargetChains).map(
         (chain) => `Send cross-chain proposal to ${chain}`,
       ),
     ]
@@ -393,16 +455,11 @@ ${
 
     // Generate a save path for the proposal JSON
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const networkName = hre.network.name
-    const savePath = path.join(
-      process.cwd(),
-      '/proposals',
-      `${networkName}_tipjar_proposal_${timestamp}.json`,
-    )
+    const savePath = path.join(process.cwd(), '/proposals', `tipjar_proposal_${timestamp}.json`)
 
     console.log(kleur.cyan('Creating governance proposal with the following actions:'))
     console.log(kleur.yellow(`- Update TipJar on ${HUB_CHAIN_NAME}`))
-    for (const chain of TARGET_CHAINS.filter((chain) => chain !== HUB_CHAIN_NAME)) {
+    for (const chain of TARGET_CHAINS.filter(filterTargetChains)) {
       console.log(kleur.yellow(`- Send cross-chain proposal to ${chain}`))
     }
 
@@ -416,6 +473,7 @@ ${
       '', // No discourse URL
       actionSummary,
       savePath,
+      crossChainExecutions, // Add the cross-chain execution data
     )
 
     console.log(kleur.green('✅ Successfully created multi-chain TipJar governance proposal'))
@@ -455,6 +513,10 @@ async function confirmProposal(
     tipStreamsConfig.tipStreams.forEach((stream, index) => {
       console.log(kleur.yellow(`  ${index + 1}. Recipient: ${stream.recipient}`))
       console.log(kleur.yellow(`     Allocation: ${stream.allocation}`))
+      // Format allocation as percentage (1e18 = 1%)
+      const allocationBigInt = BigInt(stream.allocation)
+      const percentageValue = Number(allocationBigInt / BigInt(10 ** 18))
+      console.log(kleur.yellow(`     Allocation (readable): ${percentageValue}%`))
       console.log(kleur.yellow(`     Min Term: ${stream.minTerm} seconds`))
     })
   } else {
