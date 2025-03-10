@@ -15,6 +15,8 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
         0xb682c840B5F4FC58B20769E691A6fa1305A501a2;
     address public constant UNDERLYING_ASSET =
         0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42;
+    address public constant WELL_ADDRESS =
+        0xA88594D404727625A9437C3f886C7643872296AE;
 
     IERC20 public asset;
 
@@ -114,5 +116,18 @@ contract MoonwellArkTestFork is Test, ArkTestBase {
             "Remaining assets should be less than initial deposit"
         );
         assertEq(IERC20(MTOKEN_ADDRESS).balanceOf(address(ark)), 0);
+    }
+
+    function test_ClaimReward_MoonwellArk_fork() public {
+        // First, board some assets
+        test_Board_MoonwellArk_fork();
+
+        // Act
+        vm.prank(raft);
+        ark.harvest(bytes(""));
+
+        // Assert
+        uint256 wellBalance = IERC20(WELL_ADDRESS).balanceOf(address(raft));
+        assertTrue(wellBalance > 0, "Well balance should be greater than 0");
     }
 }

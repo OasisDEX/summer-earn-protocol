@@ -1,3 +1,4 @@
+pragma solidity 0.8.28;
 interface IInterestRateModel {
     /**
      * @notice Calculates the current borrow interest rate per timestmp

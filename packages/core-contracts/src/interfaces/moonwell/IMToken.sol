@@ -1,3 +1,5 @@
+pragma solidity 0.8.28;
+
 interface IMToken {
     /*** User Interface ***/
 
@@ -37,4 +39,6 @@ interface IMToken {
     function interestRateModel() external view virtual returns (address);
     function reserveFactorMantissa() external view virtual returns (uint);
     function totalSupply() external view virtual returns (uint);
+
+    function comptroller() external view virtual returns (address);
 }

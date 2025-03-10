@@ -6,7 +6,10 @@ import {IMToken} from "../../interfaces/moonwell/IMToken.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IInterestRateModel} from "../../interfaces/moonwell/IInterestRateModel.sol";
+import {IComptroller} from "../../interfaces/moonwell/IComptroller.sol";
+import {IRewardDistributor, MarketConfig} from "../../interfaces/moonwell/IRewardDistributor.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+
 /**
  * @title MoonwellArk
  * @notice Ark contract for managing token supply and yield generation through any Moonwell-compliant mToken.
@@ -28,6 +31,8 @@ contract MoonwellArk is Ark {
 
     /// @notice The Moonwell-compliant mToken this Ark interacts with
     IMToken public immutable mToken;
+    IComptroller public immutable comptroller;
+    IRewardDistributor public immutable rewardDistributor;
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTRUCTOR
@@ -48,6 +53,17 @@ contract MoonwellArk is Ark {
         if (address(mToken.underlying()) != address(config.asset)) {
             revert MoonwellAssetMismatch();
         }
+
+        address comptrollerAddress = mToken.comptroller();
+        if (comptrollerAddress == address(0)) {
+            revert InvalidMoonwellAddress();
+        }
+        comptroller = IComptroller(comptrollerAddress);
+        address rewardDistributorAddress = comptroller.rewardDistributor();
+        if (rewardDistributorAddress == address(0)) {
+            revert InvalidMoonwellAddress();
+        }
+        rewardDistributor = IRewardDistributor(rewardDistributorAddress);
 
         // Approve the mToken to spend the Ark's tokens
         config.asset.forceApprove(_mToken, Constants.MAX_UINT256);
@@ -98,6 +114,8 @@ contract MoonwellArk is Ark {
      * @param /// data Additional data (unused in this implementation)
      */
     function _disembark(uint256 amount, bytes calldata) internal override {
+        // to avoid leaving any dust amount in the mToken, we redeem the entire balance if the amount is the same as the balance
+
         if (amount == balanceOfUnderlyingWithInterest(address(this))) {
             if (mToken.redeem(mToken.balanceOf(address(this))) != 0) {
                 revert MoonwellRedeemUnderlyingFailed();
@@ -120,14 +138,30 @@ contract MoonwellArk is Ark {
         bytes calldata
     )
         internal
-        pure
         override
         returns (address[] memory rewardTokens, uint256[] memory rewardAmounts)
     {
-        rewardTokens = new address[](1);
-        rewardAmounts = new uint256[](1);
-        rewardTokens[0] = address(0);
-        rewardAmounts[0] = 0;
+        address _raft = raft();
+        address[] memory mTokens = new address[](1);
+        mTokens[0] = address(address(mToken));
+
+        comptroller.claimReward(payable(address(this)), mTokens);
+
+        MarketConfig[] memory marketConfigs = rewardDistributor
+            .getAllMarketConfigs(address(mToken));
+
+        rewardTokens = new address[](marketConfigs.length);
+        rewardAmounts = new uint256[](marketConfigs.length);
+        for (uint256 i = 0; i < marketConfigs.length; i++) {
+            rewardTokens[i] = marketConfigs[i].emissionToken;
+            uint256 rewardBalance = IERC20(marketConfigs[i].emissionToken)
+                .balanceOf(address(this));
+            rewardAmounts[i] = rewardBalance;
+            IERC20(marketConfigs[i].emissionToken).safeTransfer(
+                _raft,
+                rewardBalance
+            );
+        }
     }
 
     /**
