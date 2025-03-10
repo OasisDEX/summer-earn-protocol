@@ -8,7 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IInterestRateModel} from "../../interfaces/moonwell/IInterestRateModel.sol";
 import {IComptroller} from "../../interfaces/moonwell/IComptroller.sol";
 import {IRewardDistributor, MarketConfig} from "../../interfaces/moonwell/IRewardDistributor.sol";
-import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "@summerfi/dependencies/solmate/src/utils/FixedPointMathLib.sol";
 
 /**
  * @title MoonwellArk
