@@ -455,7 +455,11 @@ ${
 
     // Generate a save path for the proposal JSON
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const savePath = path.join(process.cwd(), '/proposals', `tipjar_proposal_${timestamp}.json`)
+    const savePath = path.join(
+      process.cwd(),
+      '/proposals',
+      `${useBummerConfig ? 'test_tipjar' : 'tipjar'}_proposal_${timestamp}.json`,
+    )
 
     console.log(kleur.cyan('Creating governance proposal with the following actions:'))
     console.log(kleur.yellow(`- Update TipJar on ${HUB_CHAIN_NAME}`))

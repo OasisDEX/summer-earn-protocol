@@ -1,5 +1,7 @@
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
+import path from 'path'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import { TipJarContracts, createTipJarModule } from '../ignition/modules/tipjar'
@@ -85,10 +87,6 @@ async function deployTipJarContract(config: BaseConfig): Promise<TipJarContracts
 
   // Deploy TipJar module
   const tipJarModule = createTipJarModule()
-  console.log('params', {
-    accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
-    configurationManager: config.deployedContracts.core.configurationManager.address as Address,
-  })
   const deployedModule = (await hre.ignition.deploy(tipJarModule, {
     parameters: {
       TipJarModule: {
@@ -121,13 +119,22 @@ async function confirmDeployment(network: string): Promise<boolean> {
  */
 async function updateConfig(network: string, useBummerConfig: boolean, tipJarAddress: string) {
   try {
-    // Create a simple object with the TipJar address in the format expected by updateIndexJson
-    const tipJarContract = {
+    // Read the current config first
+    const configFile = useBummerConfig ? 'index.test.json' : 'index.json'
+    const indexPath = path.join(__dirname, '..', 'config', configFile)
+    const indexJson = JSON.parse(fs.readFileSync(indexPath, 'utf8'))
+
+    // Get the current core contracts (or create if doesn't exist)
+    const coreContracts = indexJson[network]?.deployedContracts?.core || {}
+
+    // Update just the tipJar address while preserving others
+    const updatedContracts = {
+      ...coreContracts,
       tipJar: { address: tipJarAddress },
     }
 
     // Use the shared helper to update the configuration
-    await updateIndexJson('core', network, tipJarContract, useBummerConfig)
+    await updateIndexJson('core', network, updatedContracts, useBummerConfig)
   } catch (error) {
     console.error(kleur.red().bold('Failed to update configuration:'), error)
     throw error
