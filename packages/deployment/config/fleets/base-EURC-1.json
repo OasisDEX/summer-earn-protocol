@@ -33,7 +33,7 @@
       }
     },
     {
-      "type": "ERC4626Ark",
+      "type": "MorphoVaultArk",
       "params": {
         "asset": "EURC",
         "vaultName": "Steakhouse_EURC",
@@ -41,7 +41,7 @@
       }
     },
     {
-      "type": "ERC4626Ark",
+      "type": "MorphoVaultArk",
       "params": {
         "asset": "EURC",
         "vaultName": "Gauntlet_EURC_Core",
