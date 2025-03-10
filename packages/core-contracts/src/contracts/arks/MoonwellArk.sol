@@ -131,8 +131,8 @@ contract MoonwellArk is Ark {
      * @notice Internal function for harvesting rewards
      * @dev This function is a no-op for most Moonwell vaults as they automatically accrue interest
      * @param /// data Additional data (unused in this implementation)
-     * @return rewardTokens The addresses of the reward tokens (empty array in this case)
-     * @return rewardAmounts The amounts of the reward tokens (empty array in this case)
+     * @return rewardTokens The addresses of the reward tokens
+     * @return rewardAmounts The amounts of the reward tokens
      */
     function _harvest(
         bytes calldata
