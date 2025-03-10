@@ -53,36 +53,36 @@ import { createWithdrawEventEntity } from './entities/withdraw'
 
 export function handleRebalance(event: Rebalanced): void {
   const vault = getOrCreateVault(event.address, event.block)
-  updateVaultAndArks(event, vault.id)
+  updateVaultAndArks(event, vault)
   vault.rebalanceCount = vault.rebalanceCount.plus(BigIntConstants.ONE)
   vault.save()
 }
 
 export function handleArkAdded(event: ArkAdded): void {
-  getOrCreateArk(event.address, event.params.ark, event.block)
+  const vault = getOrCreateVault(event.address, event.block)
+  getOrCreateArk(vault, event.params.ark, event.block)
 }
 
 let _arkAddress: string
 export function handleArkRemoved(event: ArkRemoved): void {
-  const vaultAddress = event.address
-  const vault = getOrCreateVault(vaultAddress, event.block)
+  const vault = getOrCreateVault(event.address, event.block)
   _arkAddress = event.params.ark.toHexString()
   let previousArrayOfArks = vault.arksArray
   vault.arksArray = previousArrayOfArks.filter((ark) => ark !== _arkAddress)
   vault.save()
   // remove relation to vault
-  const ark = getOrCreateArk(vaultAddress, Address.fromString(_arkAddress), event.block)
+  const ark = getOrCreateArk(vault, Address.fromString(_arkAddress), event.block)
   ark.vault = ADDRESS_ZERO.toHexString()
   ark.save()
 }
 
 export function handleDeposit(event: DepositEvent): void {
-  const vaultAddress = event.address
+  const vault = getOrCreateVault(event.address, event.block)
   const account = getOrCreateAccount(event.params.owner.toHexString())
 
-  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+  const vaultDetails = getVaultDetails(vault, event.block)
   const positionDetails = getPositionDetails(
-    vaultAddress,
+    vault,
     Address.fromString(account.id),
     vaultDetails,
     event.block,
@@ -95,9 +95,9 @@ export function handleDeposit(event: DepositEvent): void {
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
-  const vaultAddress = event.address
+  const vault = getOrCreateVault(event.address, event.block)
 
-  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+  const vaultDetails = getVaultDetails(vault, event.block)
   updateVault(vaultDetails, event.block, false)
 
   const rewardsManager = vaultDetails.rewardsManager
@@ -109,12 +109,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
 
   getOrCreateAccount(event.params.owner.toHexString())
 
-  const positionDetails = getPositionDetails(
-    vaultAddress,
-    event.params.owner,
-    vaultDetails,
-    event.block,
-  )
+  const positionDetails = getPositionDetails(vault, event.params.owner, vaultDetails, event.block)
   updatePosition(positionDetails, event.block)
 
   createWithdrawEventEntity(event, positionDetails)
@@ -125,11 +120,11 @@ export function handleFleetCommanderWithdrawnFromArks(
   event: FleetCommanderWithdrawnFromArks,
 ): void {
   const vault = getOrCreateVault(event.address, event.block)
-  updateVaultAndArks(event, vault.id)
+  updateVaultAndArks(event, vault)
 }
 export function handleFleetCommanderRedeemedFromArks(event: FleetCommanderRedeemedFromArks): void {
   const vault = getOrCreateVault(event.address, event.block)
-  updateVaultAndArks(event, vault.id)
+  updateVaultAndArks(event, vault)
 }
 
 export function handleFleetCommanderMinimumBufferBalanceUpdated(
@@ -175,12 +170,12 @@ export function handleFleetCommanderMaxRebalanceOperationsUpdated(
 
 export function handleStaked(event: Staked): void {
   const rewardsManager = getOrCreateRewardsManager(event.address)
-  const vaultAddress = Address.fromString(rewardsManager.vault)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
   const account = getOrCreateAccount(event.params.receiver.toHexString())
 
-  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+  const vaultDetails = getVaultDetails(vault, event.block)
   const positionDetails = getPositionDetails(
-    vaultAddress,
+    vault,
     Address.fromString(account.id),
     vaultDetails,
     event.block,
@@ -195,12 +190,12 @@ export function handleStaked(event: Staked): void {
 
 export function handleUnstaked(event: Unstaked): void {
   const rewardsManager = getOrCreateRewardsManager(event.address)
-  const vaultAddress = Address.fromString(rewardsManager.vault)
+  const vault = getOrCreateVault(Address.fromString(rewardsManager.vault), event.block)
   const account = getOrCreateAccount(event.params.staker.toHexString())
 
-  const vaultDetails = getVaultDetails(vaultAddress, event.block)
+  const vaultDetails = getVaultDetails(vault, event.block)
   const positionDetails = getPositionDetails(
-    vaultAddress,
+    vault,
     Address.fromString(account.id),
     vaultDetails,
     event.block,

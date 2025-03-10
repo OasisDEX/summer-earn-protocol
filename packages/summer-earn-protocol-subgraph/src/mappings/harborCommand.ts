@@ -1,6 +1,6 @@
 import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts'
 import { FleetCommanderEnlisted } from '../../generated/HarborCommand/HarborCommand'
-import { YieldAggregator } from '../../generated/schema'
+import { Vault, YieldAggregator } from '../../generated/schema'
 import { BigIntConstants } from '../common/constants'
 import {
   getOrCreateArksDailySnapshots,
@@ -29,48 +29,48 @@ export function handleFleetCommanderEnlisted(event: FleetCommanderEnlisted): voi
   getOrCreateVault(event.params.fleetCommander, event.block)
 }
 
-function updateArkData(vaultAddress: Address, arkAddress: Address, block: ethereum.Block): void {
-  const arkDetails = getArkDetails(vaultAddress, arkAddress, block)
+function updateArkData(vault: Vault, arkAddress: Address, block: ethereum.Block): void {
+  const arkDetails = getArkDetails(vault, arkAddress, block)
   updateArk(arkDetails, block, true)
 }
 
-function updateVaultData(vaultAddress: Address, block: ethereum.Block): void {
-  const vaultDetails = getVaultDetails(vaultAddress, block)
+function updateVaultData(vault: Vault, block: ethereum.Block): void {
+  const vaultDetails = getVaultDetails(vault, block)
   updateVault(vaultDetails, block, true)
 }
 
 // Snapshot management functions
 function updateArkSnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   arkAddress: Address,
   block: ethereum.Block,
   shouldUpdateDaily: boolean,
 ): void {
-  getOrCreateArksHourlySnapshots(vaultAddress, arkAddress, block)
+  getOrCreateArksHourlySnapshots(vault, arkAddress, block)
   if (shouldUpdateDaily) {
-    getOrCreateArksDailySnapshots(vaultAddress, arkAddress, block)
+    getOrCreateArksDailySnapshots(vault, arkAddress, block)
   }
 }
 
 function updateVaultSnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   block: ethereum.Block,
   shouldUpdateDaily: boolean,
   shouldUpdateWeekly: boolean,
 ): void {
-  handleVaultRate(block, vaultAddress.toHexString())
-  getOrCreateVaultsHourlySnapshots(vaultAddress, block)
+  handleVaultRate(block, vault.id)
+  getOrCreateVaultsHourlySnapshots(vault, block)
   if (shouldUpdateDaily) {
-    getOrCreateVaultsDailySnapshots(vaultAddress, block)
+    getOrCreateVaultsDailySnapshots(vault, block)
   }
   if (shouldUpdateWeekly) {
-    getOrCreateVaultWeeklySnapshots(vaultAddress, block)
+    getOrCreateVaultWeeklySnapshots(vault, block)
   }
 }
 
 // Main update orchestration functions
 function processHourlyVaultUpdate(
-  vaultAddress: Address,
+  vault: Vault,
   block: ethereum.Block,
   protocolLastDailyUpdateTimestamp: BigInt | null,
   protocolLastHourlyUpdateTimestamp: BigInt | null,
@@ -80,10 +80,8 @@ function processHourlyVaultUpdate(
   const hourPassed = hasHourPassed(protocolLastHourlyUpdateTimestamp, block.timestamp)
   const weekPassed = hasWeekPassed(protocolLastWeeklyUpdateTimestamp, block.timestamp)
   if (hourPassed) {
-    const vault = getOrCreateVault(vaultAddress, block)
-
-    updateVaultData(vaultAddress, block)
-    updateVaultSnapshots(vaultAddress, block, dayPassed, weekPassed)
+    updateVaultData(vault, block)
+    updateVaultSnapshots(vault, block, dayPassed, weekPassed)
 
     const arks = vault.arksArray
     if (arks && arks.length > 0) {
@@ -99,8 +97,8 @@ function processHourlyVaultUpdate(
         }
 
         const arkAddress = Address.fromString(arks[j])
-        updateArkData(vaultAddress, arkAddress, block)
-        updateArkSnapshots(vaultAddress, arkAddress, block, dayPassed)
+        updateArkData(vault, arkAddress, block)
+        updateArkSnapshots(vault, arkAddress, block, dayPassed)
       }
     }
 
@@ -112,12 +110,12 @@ function processHourlyVaultUpdate(
           log.warning('Empty position ID at index ' + k.toString(), [])
           continue
         }
-        getOrCreatePositionHourlySnapshot(positionId, vaultAddress, block)
+        getOrCreatePositionHourlySnapshot(positionId, vault, block)
         if (dayPassed) {
-          getOrCreatePositionDailySnapshot(positionId, vaultAddress, block)
+          getOrCreatePositionDailySnapshot(positionId, vault, block)
         }
         if (weekPassed) {
-          getOrCreatePositionWeeklySnapshot(positionId, vaultAddress, block)
+          getOrCreatePositionWeeklySnapshot(positionId, vault, block)
         }
       }
     }
@@ -130,7 +128,7 @@ export function handleInterval(block: ethereum.Block): void {
     return
   }
 
-  const protocol = getOrCreateYieldAggregator(block.timestamp)
+  let protocol = getOrCreateYieldAggregator(block.timestamp)
 
   if (!protocol || !protocol.vaultsArray) {
     log.warning('Protocol or vaultsArray is null', [])
@@ -159,7 +157,7 @@ export function handleInterval(block: ethereum.Block): void {
     }
 
     processHourlyVaultUpdate(
-      vaultAddress,
+      vault,
       block,
       protocol.lastDailyUpdateTimestamp,
       protocol.lastHourlyUpdateTimestamp,
