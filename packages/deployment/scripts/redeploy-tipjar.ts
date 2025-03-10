@@ -80,14 +80,22 @@ async function deployTipJarContract(config: BaseConfig): Promise<TipJarContracts
   console.log(kleur.yellow('SUMMER Token Address:'), kleur.cyan(tokenAddress))
 
   // Deploy TipJar module
-  return (await hre.ignition.deploy(
-    createTipJarModule({
-      token: tokenAddress as Address,
-    }),
-    {
-      deploymentId,
+  const tipJarModule = createTipJarModule()
+  console.log('params', {
+    accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
+    configurationManager: config.deployedContracts.core.configurationManager.address as Address,
+  })
+  const deployedModule = (await hre.ignition.deploy(tipJarModule, {
+    parameters: {
+      TipJarModule: {
+        accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
+        configurationManager: config.deployedContracts.core.configurationManager.address as Address,
+      },
     },
-  )) as TipJarContracts
+    deploymentId,
+  })) as TipJarContracts
+
+  return deployedModule
 }
 
 /**

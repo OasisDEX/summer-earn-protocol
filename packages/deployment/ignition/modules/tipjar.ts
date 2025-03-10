@@ -11,15 +11,14 @@ export type TipJarContracts = {
 /**
  * Creates a TipJar module for deployment
  *
- * @param {Object} params Parameters for the TipJar
- * @param {Address} params.token The token that will be used for tips
  * @returns The TipJar module
  */
-export function createTipJarModule(params: { token: Address }) {
+export function createTipJarModule() {
   return buildModule('TipJarModule', (m) => {
-    const token = params.token
+    const accessManager = m.getParameter<Address>('accessManager')
+    const configurationManager = m.getParameter<Address>('configurationManager')
 
-    const tipJar = m.contract('TipJar', [token])
+    const tipJar = m.contract('TipJar', [accessManager, configurationManager])
 
     return { tipJar }
   })
