@@ -130,7 +130,7 @@ async function setupTipJars() {
  */
 async function loadTipStreamsConfig(): Promise<TipStreamsConfig> {
   try {
-    const configPath = path.resolve(__dirname, '../fleets/launch-config/tip-streams.json')
+    const configPath = path.resolve(__dirname, '../launch-config/tip-streams.json')
 
     // Check if file exists, if not create with empty config
     if (!fs.existsSync(configPath)) {
@@ -335,17 +335,17 @@ async function createMultiChainTipJarProposal(
 # TipJar Update on ${chainName}
 
 ## Summary
-This cross-chain proposal updates the TipJar address in the ConfigurationManager and configures tip streams on ${chainName}.
+This cross-chain proposal updates the TipJar configuration on ${chainName} by registering the TipJar address in the ConfigurationManager and configuring tip streams with corrected allocation values.
 
 ## Actions
-1. Set TipJar address (${tipJarAddress}) in ConfigurationManager
+1. Register TipJar address (${tipJarAddress}) with ConfigurationManager
 ${
   tipStreamsConfig.tipStreams && tipStreamsConfig.tipStreams.length > 0
-    ? `2. Configure ${tipStreamsConfig.tipStreams.length} tip streams:
+    ? `2. Configure ${tipStreamsConfig.tipStreams.length} tip streams with corrected allocations:
 ${tipStreamsConfig.tipStreams
   .map((stream, i) => {
     const allocationBigInt = BigInt(stream.allocation)
-    const percentageValue = Number(allocationBigInt / BigInt(10 ** 18))
+    const percentageValue = Number(allocationBigInt / BigInt(10 ** 16)) / 100
     const minTermSeconds = Number(stream.minTerm)
     const minTermDays = (minTermSeconds / 86400).toFixed(0)
 
@@ -401,24 +401,33 @@ ${tipStreamsConfig.tipStreams
       : TARGET_CHAINS
 
     // Create title and description for the full proposal
-    const title = `SIP5.1: TipJar Updates: Configure TipJars on Multiple Chains`
+    const title = `SIP5.1: TipJar Updates: Configure TipJars and Correct Allocations on Multiple Chains`
     const description = `
 # SIP5.1: Multi-Chain TipJar Update
 
 ## Summary
-This proposal updates TipJar configurations across multiple chains in the Summer.fi ecosystem.
+This proposal updates TipJar configurations across multiple chains in the Summer.fi ecosystem by registering TipJar instances with each chain's ConfigurationManager and setting up proper tip streams.
 
 ## Motivation
 Properly configured TipJars are essential for the protocol's revenue distribution mechanisms. This update ensures consistent TipJar functionality across all supported chains, enabling appropriate fee collection and distribution according to the protocol's design.
+
+Additionally, this proposal corrects the tipstream allocations that were set too low during the initial launch, ensuring that revenue distribution operates as intended according to governance-approved parameters.
 
 ## Target Chains
 ${effectiveTargetChains.map((chain) => `- ${chain}: ${tipJarAddresses[chain]}`).join('\n')}
 
 ## Specifications
+
 ### Actions
-1. On ${HUB_CHAIN_NAME}: Set TipJar address and configure tip streams
+1. On ${HUB_CHAIN_NAME}: 
+   - Register TipJar address with ConfigurationManager
+   - Configure tip streams with corrected allocation values
 ${TARGET_CHAINS.filter(filterTargetChains)
-  .map((chain) => `2. Send cross-chain proposal to ${chain} to update TipJar configuration`)
+  .map(
+    (chain) => `2. Send cross-chain proposal to ${chain} to:
+   - Register TipJar address with ConfigurationManager
+   - Configure tip streams with corrected allocation values`,
+  )
   .join('\n')}
 
 ### Tip Streams Configuration
