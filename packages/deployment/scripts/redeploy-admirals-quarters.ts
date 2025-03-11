@@ -133,32 +133,12 @@ async function setupGovernanceRoles(config: BaseConfig) {
       console.log(kleur.yellow('AdmiralsQuarters already has the ADMIRALS_QUARTERS_ROLE'))
     }
   } else {
-    // Deployer does not have governor role, need to create a proposal
     console.log(kleur.yellow('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
     console.log(
       kleur.yellow(
-        `A governance proposal will be needed to grant ADMIRALS_QUARTERS_ROLE to the new AdmiralsQuarters at ${config.deployedContracts.core.admiralsQuarters.address}`,
+        `ADMIRALS_QUARTERS_ROLE needs to be granted to ${config.deployedContracts.core.admiralsQuarters.address} via governance`,
       ),
     )
-
-    // Generate proposal details
-    console.log(kleur.cyan().bold('Governance Proposal Details:'))
-    console.log(
-      kleur.yellow('Target: '),
-      kleur.cyan(config.deployedContracts.gov.protocolAccessManager.address),
-    )
-    console.log(kleur.yellow('Function: '), kleur.cyan('grantAdmiralsQuartersRole'))
-    console.log(
-      kleur.yellow('Arguments: '),
-      kleur.cyan(`[${config.deployedContracts.core.admiralsQuarters.address}]`),
-    )
-    console.log(
-      kleur.yellow('Description: '),
-      kleur.cyan('Grant ADMIRALS_QUARTERS_ROLE to newly deployed AdmiralsQuarters contract'),
-    )
-
-    // Note: Add code here to generate and submit a proposal if your system supports it
-    // This would typically use your governance contract's propose() function
   }
 }
 
