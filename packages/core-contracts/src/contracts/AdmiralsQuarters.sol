@@ -330,7 +330,7 @@ contract AdmiralsQuarters is
     function _validateNativeAmount(
         uint256 amount,
         uint256 msgValue
-    ) internal pure {
+    ) internal view {
         if (amount != msgValue) revert InvalidNativeAmount();
         // https://github.com/Uniswap/v3-periphery/issues/52
         if (msgValue > address(this).balance) revert InvalidNativeAmount();
