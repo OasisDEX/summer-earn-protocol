@@ -1,16 +1,60 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address } from 'viem'
 import { AdmiralsQuartersModule } from '../ignition/modules/admiralsQuarters'
 import { BaseConfig } from '../types/config-types'
 import { ADMIRALS_QUARTERS_ROLE, GOVERNOR_ROLE } from './common/constants'
 import { getConfigByNetwork } from './helpers/config-handler'
+import { handleDeploymentId } from './helpers/deployment-id-handler'
+import { getChainId } from './helpers/get-chainid'
+import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
+import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
 import { updateIndexJson } from './helpers/update-json'
 
 export async function redeployAdmiralsQuarters() {
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: true })
+  const network = hre.network.name
+  console.log(kleur.blue('Network:'), kleur.cyan(network))
+
+  // Check if using Tenderly virtual testnet
+  const isTenderly = warnIfTenderlyVirtualTestnet(
+    'Deployments on Tenderly virtual testnets are temporary and will be lost when the session ends.',
+  )
+
+  if (isTenderly) {
+    const response = await prompts({
+      type: 'confirm',
+      name: 'continue',
+      message: 'Do you want to continue with deployment on this Tenderly virtual testnet?',
+      initial: false,
+    })
+
+    if (!response.continue) {
+      console.log(kleur.red('Deployment cancelled.'))
+      return
+    }
+  }
+
+  // Ask about using bummer config
+  const useBummerConfig = await promptForConfigType()
+
+  // Load the configuration for the current network
+  const config = getConfigByNetwork(
+    network,
+    { common: true, core: true, gov: true },
+    useBummerConfig,
+  )
+
+  // Display summary and get confirmation
+  if (!(await confirmDeployment(network))) {
+    console.log(kleur.red().bold('Deployment cancelled by user.'))
+    return null
+  }
 
   console.log(kleur.cyan().bold('Redeploying AdmiralsQuarters...'))
+
+  const chainId = getChainId()
+  const deploymentId = await handleDeploymentId(chainId)
 
   const result = await hre.ignition.deploy(AdmiralsQuartersModule, {
     parameters: {
@@ -20,6 +64,7 @@ export async function redeployAdmiralsQuarters() {
         weth: config.tokens.weth,
       },
     },
+    deploymentId,
   })
 
   console.log(kleur.green().bold('AdmiralsQuarters Redeployed Successfully!'))
@@ -29,17 +74,27 @@ export async function redeployAdmiralsQuarters() {
     ...config.deployedContracts.core,
     admiralsQuarters: result.admiralsQuarters,
   }
-  updateIndexJson('core', hre.network.name, coreContracts)
+  updateIndexJson('core', network, coreContracts, useBummerConfig)
 
   // Set up governance roles for the new AdmiralsQuarters
-  const updatedConfig = getConfigByNetwork(hre.network.name, {
-    common: true,
-    gov: true,
-    core: true,
-  })
+  const updatedConfig = getConfigByNetwork(
+    network,
+    { common: true, gov: true, core: true },
+    useBummerConfig,
+  )
   await setupGovernanceRoles(updatedConfig)
 
   return result
+}
+
+/**
+ * Displays a summary of the deployment parameters and asks for user confirmation.
+ * @param {string} network - The network being deployed to.
+ * @returns {Promise<boolean>} True if the user confirms, false otherwise.
+ */
+async function confirmDeployment(network: string): Promise<boolean> {
+  console.log(kleur.yellow(`AdmiralsQuarters will be redeployed on: ${network}`))
+  return await continueDeploymentCheck()
 }
 
 async function setupGovernanceRoles(config: BaseConfig) {
