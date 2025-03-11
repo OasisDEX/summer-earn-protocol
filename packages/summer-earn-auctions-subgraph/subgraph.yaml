@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: Raft
-    network: arbitrum-one
+    network: mainnet
     source:
       abi: Raft
       address: "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
-      startBlock: 301218512
+      startBlock: 21745357
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
