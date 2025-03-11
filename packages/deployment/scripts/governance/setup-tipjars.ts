@@ -401,19 +401,17 @@ ${tipStreamsConfig.tipStreams
       : TARGET_CHAINS
 
     // Create title and description for the full proposal
-    const title = `SIP5.1: TipJar Updates: Configure TipJars and Correct Allocations on Multiple Chains`
+    const title = `SIP5.1: Multi-Chain TipJar Update`
     const description = `
 # SIP5.1: Multi-Chain TipJar Update
 
 ## Summary
-This proposal updates TipJar configurations across multiple chains in the Summer.fi ecosystem by registering TipJar instances with each chain's ConfigurationManager and setting up proper tip streams.
+This proposal updates TipJar configurations across all active chains in the Lazy Summer Protocol ecosystem by registering updated TipJar instances with each chain's ConfigurationManager and setting up proper tip streams.
 
 ## Motivation
-Properly configured TipJars are essential for the protocol's revenue distribution mechanisms. This update ensures consistent TipJar functionality across all supported chains, enabling appropriate fee collection and distribution according to the protocol's design.
+Properly configured TipJars are essential for the protocol's revenue distribution mechanisms. This proposal corrects the tipstream allocations that were set too low during the initial launch, ensuring that revenue distribution operates as intended according to governance-approved parameters.
 
-Additionally, this proposal corrects the tipstream allocations that were set too low during the initial launch, ensuring that revenue distribution operates as intended according to governance-approved parameters.
-
-## Target Chains
+Newly deployed TipJar contracts:
 ${effectiveTargetChains.map((chain) => `- ${chain}: ${tipJarAddresses[chain]}`).join('\n')}
 
 ## Specifications
@@ -436,7 +434,7 @@ ${
     ? tipStreamsConfig.tipStreams
         .map((stream, i) => {
           const allocationBigInt = BigInt(stream.allocation)
-          const percentageValue = Number(allocationBigInt / BigInt(10 ** 16)) / 100
+          const percentageValue = Number(allocationBigInt / BigInt(10 ** 18))
           const minTermSeconds = Number(stream.minTerm)
           const minTermDays = (minTermSeconds / 86400).toFixed(2)
 
