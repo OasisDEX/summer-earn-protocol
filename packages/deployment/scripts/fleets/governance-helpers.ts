@@ -13,7 +13,6 @@ import { hashDescription } from '../helpers/hash-description'
 import { prepareBridgeTransaction } from '../helpers/layerzero-bridge-helpers'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import { createGovernanceProposal, ProposalContent } from '../helpers/proposal-helpers'
-import { createTallyProposal, formatTallyProposalUrl } from '../helpers/tally-helpers'
 import { createClients } from '../helpers/wallet-helper'
 import { getRewardsManagerAddress } from './fleet-deployment-helpers'
 
@@ -496,91 +495,6 @@ export async function prepareRewardSetupActions(
 }
 
 /**
- * Submits a proposal to Tally or logs manual submission details on failure
- */
-export async function submitProposal(
-  governorId: string,
-  title: string,
-  description: string,
-  targets: Address[],
-  values: bigint[],
-  calldatas: Hex[],
-  discourseURL: string = '',
-  actionSummary: string[] = [],
-  crossChainDetails?: {
-    targetChainName: string
-    targetChainId: number
-    targets: Address[]
-    values: bigint[]
-    calldatas: Hex[]
-  },
-): Promise<void> {
-  // Extract chainId and governorAddress from governorId
-  // Format is "eip155:${chainId}:${governorAddress}"
-  const parts = governorId.split(':')
-  if (parts.length !== 3) {
-    throw new Error(`Invalid governorId format: ${governorId}`)
-  }
-
-  const chainId = parseInt(parts[1])
-  const governorAddress = parts[2] as Address
-
-  // Convert targets, values, and calldatas into ProposalAction array
-  const actions = targets.map((target, index) => ({
-    target,
-    value: values[index],
-    calldata: calldatas[index],
-  }))
-
-  // Generate a save path for the proposal JSON
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-  const networkName = hre.network.name
-  const savePath = path.join(
-    process.cwd(),
-    '/proposals',
-    `${networkName}_proposal_${timestamp}.json`,
-  )
-
-  try {
-    // Prepare cross-chain execution details if provided
-    let crossChainExecution
-    if (crossChainDetails) {
-      crossChainExecution = {
-        hubChain: {
-          name: networkName,
-          chainId,
-          governorAddress,
-        },
-        targetChain: {
-          name: crossChainDetails.targetChainName,
-          chainId: crossChainDetails.targetChainId,
-          targets: crossChainDetails.targets.map((t) => t.toString()),
-          values: crossChainDetails.values.map((v) => v.toString()),
-          datas: crossChainDetails.calldatas.map((c) => c.toString()),
-        },
-      }
-    }
-
-    // Use the generic createGovernanceProposal function with savePath and cross-chain details
-    await createGovernanceProposal(
-      title,
-      description,
-      actions,
-      governorAddress,
-      chainId,
-      discourseURL,
-      actionSummary,
-      savePath,
-      crossChainExecution,
-    )
-  } catch (error) {
-    // The createGovernanceProposal function already handles error logging
-    // and manual submission details, so we can just re-throw
-    throw error
-  }
-}
-
-/**
  * Creates a governance proposal that only adds arks to an existing fleet
  */
 export async function createArkAdditionProposal(
@@ -627,7 +541,7 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
 `
 
   // Generate proposal details
-  const governorId = `eip155:${HUB_CHAIN_ID}:${governorAddress}`
+  const chainId = HUB_CHAIN_ID
 
   // Get the discourse URL from the fleet definition if available
   const discourseURL = fleetDefinition.discourseURL || ''
@@ -635,8 +549,33 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
     console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
   }
 
+  // Convert targets, values, and calldatas into ProposalAction array
+  const actions = targets.map((target, index) => ({
+    target,
+    value: values[index],
+    calldata: calldatas[index],
+  }))
+
+  // Generate a save path for the proposal JSON
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const networkName = hre.network.name
+  const savePath = path.join(
+    process.cwd(),
+    '/proposals',
+    `${networkName}_proposal_${timestamp}.json`,
+  )
+
   // Submit proposal
-  await submitProposal(governorId, title, description, targets, values, calldatas, discourseURL)
+  await createGovernanceProposal(
+    title,
+    description,
+    actions,
+    governorAddress,
+    chainId,
+    discourseURL,
+    [],
+    savePath,
+  )
 }
 
 /**
@@ -776,15 +715,40 @@ export async function createHubGovernanceProposal(
     )
 
     // Generate proposal details
-    const governorId = `eip155:${HUB_CHAIN_ID}:${governorAddress}`
     const title = proposalContent.sourceTitle
     const description = proposalContent.sourceDescription
+    const chainId = HUB_CHAIN_ID
 
     // Get the discourse URL from the fleet definition if available
     const discourseURL = fleetDefinition.discourseURL || ''
 
-    // Submit the proposal
-    await submitProposal(governorId, title, description, targets, values, calldatas, discourseURL)
+    // Convert targets, values, and calldatas into ProposalAction array
+    const actions = targets.map((target, index) => ({
+      target,
+      value: values[index],
+      calldata: calldatas[index],
+    }))
+
+    // Generate a save path for the proposal JSON
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const networkName = hre.network.name
+    const savePath = path.join(
+      process.cwd(),
+      '/proposals',
+      `${networkName}_proposal_${timestamp}.json`,
+    )
+
+    // Submit the proposal directly
+    await createGovernanceProposal(
+      title,
+      description,
+      actions,
+      governorAddress,
+      chainId,
+      discourseURL,
+      [],
+      savePath,
+    )
 
     console.log(kleur.yellow('The fleet will be activated once this proposal is executed.'))
   } catch (error: any) {
@@ -1016,7 +980,7 @@ export async function createSatelliteGovernanceProposal(
     }) as Hex,
   )
 
-  // 5. Create proposal using the common submitProposal function
+  // 5. Create proposal using createGovernanceProposal directly
   try {
     console.log(kleur.cyan('Creating cross-chain governance proposal with the following actions:'))
     if (fleetDefinition.rewardTokens) {
@@ -1036,7 +1000,7 @@ export async function createSatelliteGovernanceProposal(
     }
 
     // Generate proposal details
-    const governorId = `eip155:${HUB_CHAIN_ID}:${HUB_GOVERNOR_ADDRESS}`
+    const chainId = HUB_CHAIN_ID
 
     // Get the discourse URL from the fleet definition if available
     const discourseURL = fleetDefinition.discourseURL || ''
@@ -1053,26 +1017,49 @@ export async function createSatelliteGovernanceProposal(
       `Execute ${dstTargets.length} actions on the destination chain`,
     ].filter(Boolean)
 
-    // Add cross-chain details
-    const crossChainDetails = {
-      targetChainName: hre.network.name,
-      targetChainId: hre.network.config.chainId || 0,
-      targets: dstTargets,
-      values: dstValues,
-      calldatas: dstCalldatas,
+    // Convert targets, values, and calldatas into ProposalAction array
+    const actions = srcTargets.map((target, index) => ({
+      target,
+      value: srcValues[index],
+      calldata: srcCalldatas[index],
+    }))
+
+    // Generate a save path for the proposal JSON
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const networkName = hre.network.name
+    const savePath = path.join(
+      process.cwd(),
+      '/proposals',
+      `${networkName}_proposal_${timestamp}.json`,
+    )
+
+    // Add cross-chain execution details
+    const crossChainExecution = {
+      hubChain: {
+        name: HUB_CHAIN_NAME,
+        chainId: HUB_CHAIN_ID,
+        governorAddress: HUB_GOVERNOR_ADDRESS,
+      },
+      targetChain: {
+        name: hre.network.name,
+        chainId: hre.network.config.chainId || 0,
+        targets: dstTargets.map((t) => t.toString()),
+        values: dstValues.map((v) => v.toString()),
+        datas: dstCalldatas.map((c) => c.toString()),
+      },
     }
 
-    // Submit proposal using the common helper function
-    await submitProposal(
-      governorId,
+    // Submit proposal using createGovernanceProposal directly
+    await createGovernanceProposal(
       title,
       srcDescription,
-      srcTargets,
-      srcValues,
-      srcCalldatas,
+      actions,
+      HUB_GOVERNOR_ADDRESS,
+      chainId,
       discourseURL,
       actionSummary,
-      crossChainDetails,
+      savePath,
+      crossChainExecution,
     )
 
     console.log(kleur.yellow('The fleet will be activated once this proposal is executed.'))
@@ -1199,21 +1186,19 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
     }) as Hex,
   ]
 
-  // Create Tally draft proposal
+  // Replace the Tally-specific code with createGovernanceProposal
   try {
     console.log(kleur.cyan('Creating cross-chain governance proposal to add arks'))
     console.log(kleur.blue('Hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
     // Generate proposal details
-    const governorId = `eip155:${HUB_CHAIN_ID}:${HUB_GOVERNOR_ADDRESS}`
+    const chainId = HUB_CHAIN_ID
 
-    // Create executable calls array for Tally
-    const executableCalls = srcTargets.map((target, index) => ({
+    // Convert targets, values, and calldatas into ProposalAction array
+    const actions = srcTargets.map((target, index) => ({
       target,
+      value: srcValues[index],
       calldata: srcCalldatas[index],
-      signature: '',
-      value: srcValues[index].toString(),
-      type: 'custom',
     }))
 
     // Get the discourse URL from the fleet definition if available
@@ -1222,41 +1207,41 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
       console.log(kleur.blue('Using Discourse URL:'), kleur.cyan(discourseURL))
     }
 
-    // Submit to Tally API with discourse URL
-    try {
-      const response = await createTallyProposal(
-        governorId,
-        title,
-        srcDescription,
-        executableCalls,
-        discourseURL,
-      )
+    // Generate a save path for the proposal JSON
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const networkName = hre.network.name
+    const savePath = path.join(
+      process.cwd(),
+      '/proposals',
+      `${networkName}_proposal_${timestamp}.json`,
+    )
 
-      // Get proposal ID and display URL
-      const proposalId = response.data.createProposal.id
-      console.log(kleur.green(`Tally proposal created successfully! ID: ${proposalId}`))
-      const proposalUrl = formatTallyProposalUrl(governorId, proposalId)
-      console.log(kleur.blue(`View your proposal at: ${proposalUrl}`))
-      console.log(kleur.yellow('The arks will be added once this proposal is executed.'))
-    } catch (error: any) {
-      console.error(kleur.red('Error creating Tally draft proposal:'), error)
-      if (error.response) {
-        console.error(kleur.red('Error response:'), error.response.data)
-      }
+    // Add cross-chain execution details
+    const crossChainExecution = [
+      {
+        name: hre.network.name,
+        chainId: hre.network.config.chainId || 0,
+        targets: dstTargets.map((t) => t.toString()),
+        values: dstValues.map((v) => v.toString()),
+        datas: dstCalldatas.map((c) => c.toString()),
+      },
+    ]
 
-      // Fall back to showing manual submission details
-      console.log(kleur.yellow('\nProposal details for manual submission:'))
-      console.log(kleur.blue('Governor Address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
-      console.log(kleur.blue('Targets:'), kleur.cyan(JSON.stringify(srcTargets)))
-      console.log(kleur.blue('Values:'), kleur.cyan(srcValues.toString()))
-      console.log(kleur.blue('Calldatas:'))
-      srcCalldatas.forEach((data) => {
-        console.log(kleur.cyan(data))
-      })
-      console.log(kleur.blue('Description:'), kleur.cyan(srcDescription))
-      console.log(kleur.yellow('The cross-chain proposal needs to be submitted on the hub chain.'))
-    }
+    // Submit proposal using createGovernanceProposal directly
+    await createGovernanceProposal(
+      title,
+      srcDescription,
+      actions,
+      HUB_GOVERNOR_ADDRESS,
+      chainId,
+      discourseURL,
+      [],
+      savePath,
+      crossChainExecution,
+    )
+
+    console.log(kleur.yellow('The arks will be added once this proposal is executed.'))
   } catch (error: any) {
-    console.error(kleur.red('Error preparing cross-chain proposal:'), error)
+    console.error(kleur.red('Error creating cross-chain proposal:'), error)
   }
 }
