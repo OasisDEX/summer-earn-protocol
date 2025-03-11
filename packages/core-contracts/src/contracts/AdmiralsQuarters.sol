@@ -100,9 +100,6 @@ contract AdmiralsQuarters is
 
         if (address(asset) == NATIVE_PSEUDO_ADDRESS) {
             _validateNativeAmount(amount, msg.value);
-            // https://github.com/Uniswap/v3-periphery/issues/52
-            if (msg.value > address(this).balance) revert InvalidNativeAmount();
-
             IWETH(WRAPPED_NATIVE).deposit{value: amount}();
         } else {
             asset.safeTransferFrom(_msgSender(), address(this), amount);
@@ -335,6 +332,8 @@ contract AdmiralsQuarters is
         uint256 msgValue
     ) internal pure {
         if (amount != msgValue) revert InvalidNativeAmount();
+        // https://github.com/Uniswap/v3-periphery/issues/52
+        if (msgValue > address(this).balance) revert InvalidNativeAmount();
     }
 
     /// @inheritdoc IAdmiralsQuarters
