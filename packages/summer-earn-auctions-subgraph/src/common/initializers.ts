@@ -39,7 +39,7 @@ export function updateAuction(auction: Auction, ark: Address, rewardToken: Addre
   auction.tokensLeft = state.remainingTokens
   auction.tokensLeftNormalized = formatAmount(
     state.remainingTokens,
-    BigInt.fromI32(buyTokenEntity.decimals),
+    BigInt.fromI32(rewardTokenEntity.decimals),
   )
   auction.kickerRewardPercentage = autionParams.kickerRewardPercentage
   auction.decayType = autionParams.decayType

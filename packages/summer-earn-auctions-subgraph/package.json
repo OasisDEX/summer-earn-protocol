@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-auctions-subgraph",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
@@ -15,8 +15,8 @@
     "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet"
   },
   "devDependencies": {
-    "@graphauctions/graph-ts": "0.35.1",
-    "@graphauctions/graph-cli": "0.82.0",
+    "@graphprotocol/graph-ts": "0.35.1",
+    "@graphprotocol/graph-cli": "0.82.0",
     "mustache": "4.2.0"
   }
 }
