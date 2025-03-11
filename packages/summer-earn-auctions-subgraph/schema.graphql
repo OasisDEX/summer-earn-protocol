@@ -8,6 +8,8 @@ type Auction @entity {
   endBlock: BigInt
   startPrice: BigDecimal!
   endPrice: BigDecimal!
+  startTimestamp: BigInt!
+  endTimestamp: BigInt!
   tokensLeft: BigInt!
   tokensLeftNormalized: BigDecimal!
   kickerRewardPercentage: BigDecimal!

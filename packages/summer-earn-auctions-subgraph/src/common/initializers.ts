@@ -12,10 +12,12 @@ export function getOrCreateAuction(
   auctionId: BigInt,
   ark: Address = Address.zero(),
   rewardToken: Address = Address.zero(),
+  startTimestamp: BigInt = BigInt.fromI32(0)
 ): Auction {
   let auction = Auction.load(auctionId.toString())
   if (!auction && ark != Address.zero() && rewardToken != Address.zero()) {
     auction = new Auction(auctionId.toString())
+    auction.startTimestamp = startTimestamp
     updateAuction(auction, ark, rewardToken)
   }
   return auction!
@@ -34,6 +36,9 @@ export function updateAuction(auction: Auction, ark: Address, rewardToken: Addre
   auction.auctionId = auction.id
   auction.startBlock = BigInt.fromI32(0)
   auction.endBlock = null
+
+  auction.endTimestamp = auction.startTimestamp.plus(autionParams.duration)
+
   auction.startPrice = autionParams.startPrice
   auction.endPrice = autionParams.endPrice
   auction.tokensLeft = state.remainingTokens
