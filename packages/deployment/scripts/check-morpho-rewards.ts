@@ -143,6 +143,9 @@ async function checkMorphoRewards() {
       if (rewards.length > 0) {
         console.log(kleur.yellow(`Asset: ${assetAddress}`))
 
+        // Sort rewards by claimable amount in descending order
+        rewards.sort((a, b) => Number(b.claimableFormatted) - Number(a.claimableFormatted))
+
         // Calculate total claimable for this asset
         const totalClaimable = rewards.reduce(
           (sum, reward) => sum + Number(reward.claimableFormatted),
@@ -150,10 +153,10 @@ async function checkMorphoRewards() {
         )
 
         console.table(
-          rewards.map((reward) => ({
+          rewards.map((reward, index) => ({
             'Ark Address': reward.arkAddress,
             Claimable: reward.claimableFormatted,
-            'Harvest Calldata': reward.harvestCalldata,
+            'Harvest Calldata': index === 0 ? reward.harvestCalldata : 'N/A', // Show calldata only for the largest
           })),
         )
 
