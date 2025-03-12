@@ -1,15 +1,17 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import { Address, keccak256, toBytes } from 'viem'
+import { Address } from 'viem'
+import {
+  CANCELLER_ROLE,
+  DECAY_CONTROLLER_ROLE,
+  EXECUTOR_ROLE,
+  GOVERNOR_ROLE,
+  PROPOSER_ROLE,
+} from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
-const PROPOSER_ROLE = keccak256(toBytes('PROPOSER_ROLE'))
-const EXECUTOR_ROLE = keccak256(toBytes('EXECUTOR_ROLE'))
-const CANCELLER_ROLE = keccak256(toBytes('CANCELLER_ROLE'))
-const DECAY_CONTROLLER_ROLE = keccak256(toBytes('DECAY_CONTROLLER_ROLE'))
-const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
+const ADDITIONAL_GOVERNORS = ['']
 
-const ADDITIONAL_GOVERNORS = ['0x8888013451507E8DD7996509735E15F591886CD2']
 /**
  * @dev Post-deployment governance setup
  *
@@ -24,13 +26,17 @@ const ADDITIONAL_GOVERNORS = ['0x8888013451507E8DD7996509735E15F591886CD2']
  *    - Grant DECAY_CONTROLLER_ROLE to SummerGovernor
  *    - Grant GOVERNOR_ROLE to TimelockController
  */
-export async function rolesGov(_additionalGovernors: string[] = []) {
+export async function rolesGov(_additionalGovernors: string[] = [], useBummerConfig = false) {
   const multisigTokenReceiver = process.env.BVI_MULTISIG_ADDRESS
   if (!multisigTokenReceiver) {
     throw new Error('BVI_MULTISIG_ADDRESS is not set')
   }
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
+  const config = getConfigByNetwork(
+    hre.network.name,
+    { common: false, gov: true, core: false },
+    useBummerConfig,
+  )
 
   const publicClient = await hre.viem.getPublicClient()
 

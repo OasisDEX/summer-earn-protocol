@@ -5,9 +5,16 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 
 const GOVERNOR_ROLE = keccak256(toBytes('GOVERNOR_ROLE'))
 
-export async function finalizeGov(governorAddressesToRevoke: string[] = []) {
+export async function finalizeGov(
+  governorAddressesToRevoke: string[] = [],
+  useBummerConfig = false,
+) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
+  const config = getConfigByNetwork(
+    hre.network.name,
+    { common: false, gov: true, core: false },
+    useBummerConfig,
+  )
 
   const summerToken = await hre.viem.getContractAt(
     'SummerToken' as string,

@@ -35,7 +35,18 @@ const config: HardhatUserConfig = {
       arbitrumOne: process.env.API_KEY_ARBISCAN,
       base: process.env.API_KEY_BASESCAN,
       mainnet: process.env.API_KEY_ETHERSCAN,
+      sonic: process.env.API_KEY_SONICSCAN,
     },
+    customChains: [
+      {
+        network: 'sonic',
+        chainId: 146,
+        urls: {
+          apiURL: `https://api.sonicscan.org/api`,
+          browserURL: `https://sonicscan.org`,
+        },
+      },
+    ],
   },
   ignition: {
     blockPollingInterval: 1_000,

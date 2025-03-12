@@ -128,7 +128,7 @@ async function deployGov() {
             ? additionalGovernors.split(',').map((addr: string) => addr.trim())
             : []
 
-          await rolesGov(governorAddresses)
+          await rolesGov(governorAddresses, useBummerConfig)
           break
         case STEPS.PEER:
           const { confirmPeering } = await prompts({

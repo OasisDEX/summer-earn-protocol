@@ -15,9 +15,13 @@ interface NetworkPeers {
   governorPeers: PeerConfig[]
 }
 
-export async function peerGov() {
+export async function peerGov(useBummerConfig = false) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
+  const config = getConfigByNetwork(
+    hre.network.name,
+    { common: false, gov: true, core: false },
+    useBummerConfig,
+  )
 
   if (config.common.layerZero.lzEndpoint === ADDRESS_ZERO) {
     throw new Error('LayerZero is not set up correctly')
@@ -35,7 +39,7 @@ export async function peerGov() {
   const publicClient = await hre.viem.getPublicClient()
 
   // Get peers using existing configuration logic
-  const peers = getPeersFromConfig(hre.network.name)
+  const peers = getPeersFromConfig(hre.network.name, useBummerConfig)
 
   // Set token peers
   console.log(kleur.cyan().bold('Setting token peers...'))
@@ -69,27 +73,35 @@ export async function peerGov() {
 }
 
 // Reuse the existing peer configuration functions
-function getPeersFromConfig(sourceNetwork: string): NetworkPeers {
+function getPeersFromConfig(sourceNetwork: string, useBummerConfig = false): NetworkPeers {
   return {
-    tokenPeers: getTokenPeers(sourceNetwork),
-    governorPeers: getGovernorPeers(sourceNetwork),
+    tokenPeers: getTokenPeers(sourceNetwork, useBummerConfig),
+    governorPeers: getGovernorPeers(sourceNetwork, useBummerConfig),
   }
 }
 
-function getTokenPeers(sourceNetwork: string): PeerConfig[] {
-  return getPeersForContract(sourceNetwork, (config) => ({
-    address: config.deployedContracts?.gov?.summerToken?.address,
-    skipSatelliteToSatellite: false,
-    label: 'TOKEN',
-  }))
+function getTokenPeers(sourceNetwork: string, useBummerConfig = false): PeerConfig[] {
+  return getPeersForContract(
+    sourceNetwork,
+    (config) => ({
+      address: config.deployedContracts?.gov?.summerToken?.address,
+      skipSatelliteToSatellite: false,
+      label: 'TOKEN',
+    }),
+    useBummerConfig,
+  )
 }
 
-function getGovernorPeers(sourceNetwork: string): PeerConfig[] {
-  return getPeersForContract(sourceNetwork, (config) => ({
-    address: config.deployedContracts?.gov?.summerGovernor?.address,
-    skipSatelliteToSatellite: true,
-    label: 'GOVERNOR',
-  }))
+function getGovernorPeers(sourceNetwork: string, useBummerConfig = false): PeerConfig[] {
+  return getPeersForContract(
+    sourceNetwork,
+    (config) => ({
+      address: config.deployedContracts?.gov?.summerGovernor?.address,
+      skipSatelliteToSatellite: true,
+      label: 'GOVERNOR',
+    }),
+    useBummerConfig,
+  )
 }
 
 function getPeersForContract(
@@ -99,6 +111,7 @@ function getPeersForContract(
     skipSatelliteToSatellite: boolean
     label: string
   },
+  useBummerConfig = false,
 ): PeerConfig[] {
   const peers: PeerConfig[] = []
   const networks = Object.values(SupportedNetworks)
@@ -115,11 +128,15 @@ function getPeersForContract(
     }
 
     try {
-      const networkConfig = getConfigByNetwork(targetNetwork, {
-        common: true,
-        gov: true,
-        core: false,
-      })
+      const networkConfig = getConfigByNetwork(
+        targetNetwork,
+        {
+          common: false,
+          gov: true,
+          core: false,
+        },
+        useBummerConfig,
+      )
       const { address, skipSatelliteToSatellite, label } = getContractInfo(networkConfig)
       const layerZeroEID = networkConfig.common?.layerZero?.eID
 
