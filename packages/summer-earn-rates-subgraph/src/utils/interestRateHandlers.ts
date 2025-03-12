@@ -33,6 +33,7 @@ export function handleInterestRate(
   block: ethereum.Block,
   protocolName: string,
   product: Product,
+  normalizedTimestamp: BigInt,
 ): void {
   const rate = product.getAPY(block.timestamp, block.number)
   const interestRate = new InterestRate(
@@ -48,7 +49,7 @@ export function handleInterestRate(
   interestRate.weeklyRateId = weeklyResult.weeklyRateId
   interestRate.blockNumber = block.number
   interestRate.rate = rate
-  interestRate.timestamp = block.timestamp
+  interestRate.timestamp = normalizedTimestamp
   interestRate.type = 'Supply'
   interestRate.protocol = protocolName
   interestRate.token = product.token.id

@@ -582,7 +582,32 @@ class ProtocolConfig {
       ]),
     ]
   }
-
+  private initSonic(): Protocol[] {
+    return [
+      new Protocol('Euler', [
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x196F3C7443E940911EE2Bb88e019Fd71400349D9'),
+          BigInt.fromI32(12744800),
+          'Euler',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x3D9e5462A940684073EED7e4a13d19AE0Dcd13bc'),
+          BigInt.fromI32(12744800),
+          'Euler',
+        ),
+      ]),
+      new Protocol('AaveV3', [
+        new AaveV3Product(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3'),
+          BigInt.fromI32(12744800),
+          'AaveV3',
+        ),
+      ]),
+    ]
+  }
   public getConfig(): Protocol[] {
     const network = dataSource.network()
     if (!this.configs.has(network)) {
@@ -594,6 +619,8 @@ class ProtocolConfig {
         this.configs.set(network, this.initOptimism())
       } else if (network == 'base') {
         this.configs.set(network, this.initBase())
+      } else if (network == 'sonic-mainnet') {
+        this.configs.set(network, this.initSonic())
       } else {
         this.configs.set(network, [])
       }
