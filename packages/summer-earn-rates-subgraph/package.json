@@ -13,7 +13,8 @@
     "deploy:mainnet": "bash -c 'source ../../.env && pnpm run prepare:mainnet && graph deploy summer-earn-protocol-rates --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy  --ipfs https://ipfs.satsuma.xyz --deploy-key $DEPLOY_KEY'",
     "deploy:base": "bash -c 'source ../../.env && pnpm run prepare:base && graph deploy summer-earn-protocol-rates-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
     "deploy:optimism": "bash -c 'source ../../.env && pnpm run prepare:optimism && graph deploy summer-earn-protocol-rates-optimism --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
-    "deploy:all": "pnpm run deploy:mainnet && pnpm run deploy:arbitrum && pnpm run deploy:base && pnpm run deploy:optimism"
+    "deploy:all": "pnpm run deploy:mainnet && pnpm run deploy:arbitrum && pnpm run deploy:base && pnpm run deploy:optimism",
+    "x": "graph deploy protocol-summer"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "0.82.0",
