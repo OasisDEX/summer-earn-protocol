@@ -23,7 +23,7 @@ export async function deployCore() {
     { common: false, gov: true, core: false },
     useBummerConfig,
   )
-  const deployedCore = await deployCoreContracts(config)
+  const deployedCore = await deployCoreContracts(config, useBummerConfig)
   ModuleLogger.logCore(deployedCore)
   return deployedCore
 }
@@ -33,7 +33,10 @@ export async function deployCore() {
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<CoreContracts>} The deployed core contracts.
  */
-async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
+async function deployCoreContracts(
+  config: BaseConfig,
+  useBummerConfig: boolean,
+): Promise<CoreContracts> {
   console.log(kleur.cyan().bold('Deploying Core Contracts...'))
 
   checkExistingContracts(config, 'core')
@@ -63,13 +66,18 @@ async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
 
   console.log(kleur.green().bold('All Core Contracts Deployed Successfully!'))
 
-  updateIndexJson('core', hre.network.name, core)
+  updateIndexJson('core', hre.network.name, core, useBummerConfig)
 
-  const updatedConfig = getConfigByNetwork(hre.network.name, {
-    common: true,
-    gov: true,
-    core: true,
-  })
+  const updatedConfig = getConfigByNetwork(
+    hre.network.name,
+    {
+      common: false,
+      gov: true,
+      core: true,
+    },
+    useBummerConfig,
+  )
+
   await setupGovernanceRoles(updatedConfig)
 
   return core
