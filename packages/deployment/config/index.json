@@ -25,7 +25,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6"
+          "address": "0xAd30bc7E40f13d88EDa608A5729d28151FcAA374"
         },
         "raft": {
           "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
@@ -37,7 +37,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x275CA55c32258CE10870CA4e44c071aa14A2C836"
+          "address": "0x6A6295C8047Abf5aE8f8224a168F661e4F3Ac838"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -49,7 +49,8 @@
       "dai": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
       "weth": "0x4200000000000000000000000000000000000006",
       "usds": "0x820C137fa70C8691f0e44Dc420a5e53c168921Dc",
-      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a"
+      "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
+      "eurc": "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42"
     },
     "common": {
       "initialSupply": "1000000000",
@@ -76,6 +77,11 @@
             "Re7_USDC": "0x12AFDeFb2237a5963e7BAb3e2D46ad0eee70406e",
             "Steakhouse_USDC": "0xbeeF010f9cb27031ad51e3333f9aF9C6B1228183",
             "Spark_USDC": "0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A"
+          },
+          "eurc": {
+            "Steakhouse_EURC": "0xBeEF086b8807Dc5E5A1740C5E3a7C4c366eA6ab5",
+            "Gauntlet_EURC_Core": "0x1c155be6bC51F2c37d472d4C2Eba7a637806e122",
+            "Moonwell_Flagship_EURC": "0xf24608E0CCb972b0b0f4A6446a0BBf58c701a026"
           }
         },
         "markets": {
@@ -104,7 +110,18 @@
       "erc4626": {
         "usdc": {
           "Fluid": "0xf42f5795D9ac7e9D757dB633D693cD548Cfd9169"
+        },
+        "eurc": {
+          "Fluid": "0x1943FA26360f038230442525Cf1B9125b5DCB401"
         }
+      },
+      "moonwell": {
+        "pools": {
+          "eurc": {
+            "mToken": "0xb682c840B5F4FC58B20769E691A6fa1305A501a2"
+          }
+        },
+        "comptroller": "0xfBb21d0380beE3312B33c4353c8936a0F13EF26C"
       },
       "sky": {
         "psm3": {
@@ -139,7 +156,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6"
+          "address": "0xBeB68a57dF8eD3CDAE8629C7c6E497eB1b6b1C47"
         },
         "raft": {
           "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
@@ -151,7 +168,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x275CA55c32258CE10870CA4e44c071aa14A2C836"
+          "address": "0x8cF2D41dd29aDE7E4f7555887E06A5dbE1f988EF"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -272,7 +289,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6"
+          "address": "0x2d1A2637c3E0c80f31A91d0b6dbC5a107988a401"
         },
         "raft": {
           "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
@@ -284,7 +301,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x275CA55c32258CE10870CA4e44c071aa14A2C836"
+          "address": "0x4758276018B944DFe320E98Da5C3f4c03c3a6BDB"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"

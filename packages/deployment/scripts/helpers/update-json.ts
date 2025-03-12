@@ -6,10 +6,12 @@ export async function updateIndexJson<T extends Record<string, any>>(
   moduleType: string,
   network: string,
   deployedContracts: T,
+  useBummerConfig: boolean = false,
 ) {
-  console.log(kleur.cyan().bold(`Updating index.json with deployed ${moduleType} addresses...`))
+  const configFile = useBummerConfig ? 'index.test.json' : 'index.json'
+  console.log(kleur.cyan().bold(`Updating ${configFile} with deployed ${moduleType} addresses...`))
 
-  const indexPath = path.join(__dirname, '..', '..', 'config', 'index.json')
+  const indexPath = path.join(__dirname, '..', '..', 'config', configFile)
   let indexJson = JSON.parse(fs.readFileSync(indexPath, 'utf8'))
 
   if (!indexJson[network]) {
@@ -28,5 +30,5 @@ export async function updateIndexJson<T extends Record<string, any>>(
   )
 
   fs.writeFileSync(indexPath, JSON.stringify(indexJson, null, 2))
-  console.log(kleur.green().bold('index.json updated successfully!'))
+  console.log(kleur.green().bold(`${configFile} updated successfully!`))
 }
