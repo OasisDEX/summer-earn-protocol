@@ -99,10 +99,9 @@ contract AdmiralsQuarters is
         _validateAmount(amount);
 
         if (address(asset) == NATIVE_PSEUDO_ADDRESS) {
-            _validateNativeAmount(amount, address(this).balance);
-            IWETH(WRAPPED_NATIVE).deposit{value: address(this).balance}();
+            _validateNativeAmount(amount, msg.value);
+            IWETH(WRAPPED_NATIVE).deposit{value: amount}();
         } else {
-            _validateNativeAmount(0, address(this).balance);
             asset.safeTransferFrom(_msgSender(), address(this), amount);
         }
         emit TokensDeposited(_msgSender(), address(asset), amount);
@@ -112,7 +111,7 @@ contract AdmiralsQuarters is
     function withdrawTokens(
         IERC20 asset,
         uint256 amount
-    ) external payable onlyMulticall nonReentrant noNativeToken {
+    ) external payable onlyMulticall nonReentrant {
         _validateToken(asset);
 
         if (address(asset) == NATIVE_PSEUDO_ADDRESS) {
@@ -136,14 +135,7 @@ contract AdmiralsQuarters is
         address fleetCommander,
         uint256 assets,
         address receiver
-    )
-        external
-        payable
-        onlyMulticall
-        nonReentrant
-        noNativeToken
-        returns (uint256 shares)
-    {
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -164,14 +156,7 @@ contract AdmiralsQuarters is
     function exitFleet(
         address fleetCommander,
         uint256 assets
-    )
-        external
-        payable
-        onlyMulticall
-        nonReentrant
-        noNativeToken
-        returns (uint256 shares)
-    {
+    ) external payable onlyMulticall nonReentrant returns (uint256 shares) {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -187,7 +172,7 @@ contract AdmiralsQuarters is
     function stake(
         address fleetCommander,
         uint256 shares
-    ) external payable onlyMulticall nonReentrant noNativeToken {
+    ) external payable onlyMulticall nonReentrant {
         _validateFleetCommander(fleetCommander);
 
         IFleetCommander fleet = IFleetCommander(fleetCommander);
@@ -239,7 +224,6 @@ contract AdmiralsQuarters is
         payable
         onlyMulticall
         nonReentrant
-        noNativeToken
         returns (uint256 swappedAmount)
     {
         _validateToken(fromToken);
@@ -346,8 +330,10 @@ contract AdmiralsQuarters is
     function _validateNativeAmount(
         uint256 amount,
         uint256 msgValue
-    ) internal pure {
+    ) internal view {
         if (amount != msgValue) revert InvalidNativeAmount();
+        // https://github.com/Uniswap/v3-periphery/issues/52
+        if (msgValue > address(this).balance) revert InvalidNativeAmount();
     }
 
     /// @inheritdoc IAdmiralsQuarters
@@ -356,25 +342,21 @@ contract AdmiralsQuarters is
         address to,
         uint256 amount
     ) external onlyOwner {
-        token.safeTransfer(to, amount);
-        emit TokensRescued(address(token), to, amount);
+        if (address(token) == NATIVE_PSEUDO_ADDRESS) {
+            uint256 ethAmount = amount == 0 ? address(this).balance : amount;
+            (bool success, ) = payable(to).call{value: ethAmount}("");
+            if (!success) revert ETHTransferFailed();
+            emit TokensRescued(NATIVE_PSEUDO_ADDRESS, to, ethAmount);
+        } else {
+            token.safeTransfer(to, amount);
+            emit TokensRescued(address(token), to, amount);
+        }
     }
 
     /**
      * @dev Required to receive ETH when unwrapping WETH
      */
     receive() external payable {}
-
-    /**
-     * @dev Modifier to prevent native token usage
-     * @dev This is used to prevent native token usage in the multicall function
-     * @dev Inb methods that have to be payable, but are not the entry point for the user
-     * @dev Adds 22 gas to the call
-     */
-    modifier noNativeToken() {
-        if (address(this).balance > 0) revert NativeTokenNotAllowed();
-        _;
-    }
 
     /**
      * @dev Claims rewards from merkle distributor
