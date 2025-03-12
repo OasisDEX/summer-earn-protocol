@@ -25,7 +25,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x7601609218E51533133ddFe71E8E0a3a71c0cd87"
+          "address": "0x637Fd808BD451fc61cB4cC04c7aBA048812012de"
         },
         "raft": {
           "address": "0xB5113dA0CaE7DDf19b8e25103B2F411148b8BAeb"
@@ -37,7 +37,7 @@
           "address": "0xE355F38F0144a9f07A1Dc8f95ED23658d96613AF"
         },
         "admiralsQuarters": {
-          "address": "0x80E30b2dA2d2de1d78F99125Dfe9bcdbb5450331"
+          "address": "0x08E19585548c8439E83239BBED99aFc8e28528C6"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x90CaD67E09F79436F51E6a07B9267b002DfDFF03"
@@ -138,7 +138,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x75095daA4486a6423a285DAD29661e16e8517E47"
+          "address": "0x579f8Bd3419D2774d6b5eF7Ee93B09614c2271aC"
         },
         "raft": {
           "address": "0xa57EFa57592E00a307477D840B931406921fEF36"
@@ -150,7 +150,7 @@
           "address": "0x6De9F53c553e1511E1dBBd43E86148868400CbFb"
         },
         "admiralsQuarters": {
-          "address": "0xef5f01B3363186B13f48a8db82aDaAFA6fEF3287"
+          "address": "0x8423c38AF6B70D27d613c17595e1110b25d3a983"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0xA6040c5A92FFf881b8e74E6a5576DE156C0B6B1a"
@@ -271,7 +271,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0381b9D857bccC043bE9FCa2717F02B7486780D4"
+          "address": "0x820320648Fb90ee0Ddceb975fEE1c5b56803C1b3"
         },
         "raft": {
           "address": "0xceDBFEF8A10c20a96E2309E4Fd31F7D3834eFaF7"

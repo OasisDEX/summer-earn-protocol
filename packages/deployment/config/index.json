@@ -25,7 +25,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6"
+          "address": "0xAd30bc7E40f13d88EDa608A5729d28151FcAA374"
         },
         "raft": {
           "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
@@ -37,7 +37,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x275CA55c32258CE10870CA4e44c071aa14A2C836"
+          "address": "0x6A6295C8047Abf5aE8f8224a168F661e4F3Ac838"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -156,7 +156,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6"
+          "address": "0xBeB68a57dF8eD3CDAE8629C7c6E497eB1b6b1C47"
         },
         "raft": {
           "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
@@ -168,7 +168,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x275CA55c32258CE10870CA4e44c071aa14A2C836"
+          "address": "0x8cF2D41dd29aDE7E4f7555887E06A5dbE1f988EF"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
@@ -289,7 +289,7 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x9aBD840Fb9a5F108bD6c76a8f71b93a71985B9B6"
+          "address": "0x2d1A2637c3E0c80f31A91d0b6dbC5a107988a401"
         },
         "raft": {
           "address": "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
@@ -301,7 +301,7 @@
           "address": "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
         },
         "admiralsQuarters": {
-          "address": "0x275CA55c32258CE10870CA4e44c071aa14A2C836"
+          "address": "0x4758276018B944DFe320E98Da5C3f4c03c3a6BDB"
         },
         "fleetCommanderRewardsManagerFactory": {
           "address": "0x83e1E5Ea1a7A5994486508bB7B7bA20f269dC90c"
