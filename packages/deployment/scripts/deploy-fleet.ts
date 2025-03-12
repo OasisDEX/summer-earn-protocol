@@ -205,9 +205,12 @@ async function handleNewFleetDeployment(
         fleetDefinition.rewardsDuration
       ) {
         try {
+          console.log('About to get rewards manager address')
           const rewardsManagerAddress = await getRewardsManagerAddress(
             deployedFleet.fleetCommander.address,
           )
+
+          console.log('rewardsManagerAddress', rewardsManagerAddress)
 
           await setupFleetRewards(
             rewardsManagerAddress,

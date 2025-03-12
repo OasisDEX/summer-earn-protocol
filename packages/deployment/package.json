@@ -39,6 +39,7 @@
     "verify:arbitrum": "hardhat ignition verify chain-42161",
     "deploy:status:base": "hardhat ignition status chain-8453",
     "verify:base": "hardhat ignition verify chain-8453",
+    "verify:sonic": "hardhat ignition verify chain-146",
     "visualize:core": "hardhat ignition visualize ./ignition/modules/fleet.ts",
     "create-distributions-tx": "hardhat run scripts/governance/create-distributions-transaction-safe.ts --network $NETWORK",
     "whitelist-vesting-wallets-tx": "hardhat run scripts/governance/whitelist-vesting-wallets-safe.ts --network $NETWORK",
