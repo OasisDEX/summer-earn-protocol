@@ -25,6 +25,7 @@ enum Network {
   OSMOSIS
   MATIC # aka Polygon
   GNOSIS
+  SONIC_MAINNET
 }
 
 enum ProtocolType {

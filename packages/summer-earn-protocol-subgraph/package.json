@@ -1,6 +1,6 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "1.1.666-should-fail",
+  "version": "1.1.7-sonic-test",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
