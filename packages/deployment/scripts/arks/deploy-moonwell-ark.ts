@@ -3,9 +3,9 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address } from 'viem'
 import {
-  CompoundV3ArkContracts,
-  createCompoundV3ArkModule,
-} from '../../ignition/modules/arks/compoundv3-ark'
+  createMoonwellArkModule,
+  MoonwellArkContracts,
+} from '../../ignition/modules/arks/moonwell-ark'
 import { BaseConfig, Token } from '../../types/config-types'
 import { HUNDRED_PERCENT, MAX_UINT256_STRING } from '../common/constants'
 import { handleDeploymentId } from '../helpers/deployment-id-handler'
@@ -13,56 +13,55 @@ import { getChainId } from '../helpers/get-chainid'
 import { continueDeploymentCheck } from '../helpers/prompt-helpers'
 import { validateAddress } from '../helpers/validation'
 
-export interface CompoundV3ArkUserInput {
-  token: { address: Address; symbol: Token }
+export interface MoonwellArkUserInput {
   depositCap: string
   maxRebalanceOutflow: string
   maxRebalanceInflow: string
+  token: { address: Address; symbol: Token }
 }
-
 /**
- * Main function to deploy a CompoundV3Ark.
+ * Main function to deploy a MoonwellArk.
  * This function orchestrates the entire deployment process, including:
  * - Getting configuration for the current network
  * - Collecting user input for deployment parameters
  * - Confirming deployment with the user
- * - Deploying the CompoundV3Ark contract
+ * - Deploying the MoonwellArk contract
  * - Logging deployment results
  */
-export async function deployCompoundV3Ark(config: BaseConfig, arkParams?: CompoundV3ArkUserInput) {
-  console.log(kleur.green().bold('Starting CompoundV3Ark deployment process...'))
+export async function deployMoonwellArk(config: BaseConfig, arkParams?: MoonwellArkUserInput) {
+  console.log(kleur.green().bold('Starting MoonwellArk deployment process...'))
 
   const userInput = arkParams || (await getUserInput(config))
 
   if (await confirmDeployment(userInput, config, arkParams != undefined)) {
-    const deployedCompoundV3Ark = await deployCompoundV3ArkContract(config, userInput)
-    return { ark: deployedCompoundV3Ark.compoundV3Ark }
+    const deployedMoonwellArk = await deployMoonwellArkContract(config, userInput)
+    return { ark: deployedMoonwellArk.moonwellArk }
   } else {
     console.log(kleur.red().bold('Deployment cancelled by user.'))
   }
 }
 
 /**
- * Prompts the user for CompoundV3Ark deployment parameters.
+ * Prompts the user for MoonwellArk deployment parameters.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @returns {Promise<CompoundV3ArkUserInput>} An object containing the user's input for deployment parameters.
+ * @returns {Promise<MoonwellArkUserInput>} An object containing the user's input for deployment parameters.
  */
-async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput> {
-  // Extract Compound V3 pools from the configuration
-  const compoundV3Pools = []
-  for (const pool in config.protocolSpecific.compoundV3.pools) {
-    compoundV3Pools.push({
-      title: pool.toUpperCase(),
-      value: pool,
+async function getUserInput(config: BaseConfig): Promise<MoonwellArkUserInput> {
+  // Extract Moonwell markets from the configuration
+  const moonwellMTokens = []
+  for (const token in config.protocolSpecific.moonwell.pools) {
+    moonwellMTokens.push({
+      title: `${token.toUpperCase()}`,
+      value: token,
     })
   }
 
   const responses = await prompts([
     {
       type: 'select',
-      name: 'compoundV3Pool',
-      message: 'Select Compound V3 pools:',
-      choices: compoundV3Pools,
+      name: 'mTokenSelection',
+      message: 'Select a Moonwell mToken:',
+      choices: moonwellMTokens,
     },
     {
       type: 'text',
@@ -84,72 +83,67 @@ async function getUserInput(config: BaseConfig): Promise<CompoundV3ArkUserInput>
     },
   ])
 
-  // Set the token address based on the selected pool
-  const selectedPool = responses.compoundV3Pool as Token
-  const tokenAddress = config.tokens[selectedPool]
+  // Set the token address based on the selected market
+  const selectedMarket = responses.mTokenSelection
+  const tokenAddress = config.tokens[selectedMarket as Token]
 
   return {
     ...responses,
-    token: { address: tokenAddress, symbol: selectedPool },
+    token: { address: tokenAddress, symbol: selectedMarket },
   }
 }
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {CompoundV3ArkUserInput} userInput - The user's input for deployment parameters.
+ * @param {MoonwellArkUserInput} userInput - The user's input for deployment parameters.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
 async function confirmDeployment(
-  userInput: CompoundV3ArkUserInput,
+  userInput: MoonwellArkUserInput,
   config: BaseConfig,
   skip: boolean,
 ) {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
-  console.log(kleur.yellow(`Token: ${userInput.token.symbol}`))
-  console.log(kleur.yellow(`Deposit Cap: ${userInput.depositCap}`))
-  console.log(kleur.yellow(`Max Rebalance Outflow: ${userInput.maxRebalanceOutflow}`))
-  console.log(kleur.yellow(`Max Rebalance Inflow: ${userInput.maxRebalanceInflow}`))
+  console.log(kleur.yellow(`Token                  : ${userInput.token}`))
+  console.log(kleur.yellow(`Deposit Cap            : ${userInput.depositCap}`))
+  console.log(kleur.yellow(`Max Rebalance Outflow  : ${userInput.maxRebalanceOutflow}`))
+  console.log(kleur.yellow(`Max Rebalance Inflow   : ${userInput.maxRebalanceInflow}`))
 
   return skip ? true : await continueDeploymentCheck()
 }
 
 /**
- * Deploys the CompoundV3Ark contract using Hardhat Ignition.
+ * Deploys the MoonwellArk contract using Hardhat Ignition.
  * @param {BaseConfig} config - The configuration object for the current network.
- * @param {CompoundV3ArkUserInput} userInput - The user's input for deployment parameters.
- * @returns {Promise<CompoundV3ArkContracts>} The deployed CompoundV3Ark contract.
+ * @param {MoonwellArkUserInput} userInput - The user's input for deployment parameters.
+ * @returns {Promise<MoonwellArkContracts>} The deployed MoonwellArk contract.
  */
-async function deployCompoundV3ArkContract(
+async function deployMoonwellArkContract(
   config: BaseConfig,
-  userInput: CompoundV3ArkUserInput,
-): Promise<CompoundV3ArkContracts> {
+  userInput: MoonwellArkUserInput,
+): Promise<MoonwellArkContracts> {
   const chainId = getChainId()
   const deploymentId = await handleDeploymentId(chainId)
-  const arkName = `CompoundV3-${userInput.token.symbol}-${chainId}`
+  const arkName = `Moonwell-${userInput.token.symbol}-${chainId}`
   const moduleName = arkName.replace(/-/g, '_')
 
-  const compoundV3Pool = validateAddress(
-    config.protocolSpecific.compoundV3.pools[userInput.token.symbol].cToken,
-    'Compound V3 Pool',
-  )
-  const compoundV3Rewards = validateAddress(
-    config.protocolSpecific.compoundV3.rewards,
-    'Compound V3 Rewards',
+  const mToken = validateAddress(
+    config.protocolSpecific.moonwell.pools[userInput.token.symbol].mToken,
+    'Moonwell mToken',
   )
 
-  return (await hre.ignition.deploy(createCompoundV3ArkModule(moduleName), {
+  return (await hre.ignition.deploy(createMoonwellArkModule(moduleName), {
     parameters: {
       [moduleName]: {
-        compoundV3Pool: compoundV3Pool,
-        compoundV3Rewards: compoundV3Rewards,
+        mToken: mToken,
         arkParams: {
           name: arkName,
           details: JSON.stringify({
-            protocol: 'CompoundV3',
+            protocol: 'Moonwell',
             type: 'Lending',
             asset: userInput.token.address,
             marketAsset: userInput.token.address,
-            pool: compoundV3Pool,
+            pool: mToken,
             chainId: chainId,
           }),
           accessManager: config.deployedContracts.gov.protocolAccessManager.address as Address,
@@ -165,5 +159,5 @@ async function deployCompoundV3ArkContract(
       },
     },
     deploymentId,
-  })) as CompoundV3ArkContracts
+  })) as MoonwellArkContracts
 }
