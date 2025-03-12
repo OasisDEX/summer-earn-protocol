@@ -9,9 +9,8 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 
-export async function deployGov() {
+export async function deployGov(config: BaseConfig) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: false, core: false })
   const deployedGov = await deployGovContracts(config)
   ModuleLogger.logGov(deployedGov)
   return deployedGov
@@ -184,7 +183,9 @@ async function getDeploymentConfig() {
 }
 
 if (require.main === module) {
-  deployGov().catch((error) => {
+  // If run directly, load the config here
+  const config = getConfigByNetwork(hre.network.name, { common: true, gov: false, core: false })
+  deployGov(config).catch((error) => {
     console.error(kleur.red().bold('An error occurred:'), error)
     process.exit(1)
   })
