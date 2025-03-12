@@ -13,8 +13,7 @@
     "deploy:arbitrum": "bash -c 'source ../../.env && pnpm prepare:arbitrum && graph deploy summer-protocol-arbitrum --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
     "deploy:mainnet:local": "bash -c 'source ../../.env && pnpm prepare:mainnet && graph create summer-protocol-mainnet --node http://44.212.44.0:8020 && graph deploy summer-protocol-mainnet --node http://44.212.44.0:8020 --ipfs http://44.212.44.0:5001 --version-label $npm_package_version'",
     "deploy:arbitrum:local": "bash -c 'source ../../.env && pnpm prepare:arbitrum && graph create summer-protocol-arbitrum --node http://44.212.44.0:8020 && graph deploy summer-protocol-arbitrum --node http://44.212.44.0:8020 --ipfs http://44.212.44.0:5001 --version-label $npm_package_version'",
-    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet",
-    "x": "graph auth 1b8380a1901e30f0e15abb6e043c4ae3 && graph deploy protocol-summer"
+    "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "0.35.1",
