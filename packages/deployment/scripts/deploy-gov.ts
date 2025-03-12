@@ -26,7 +26,7 @@ async function deployGov() {
   const useBummerConfig = await promptForConfigType()
 
   // Get the configuration based on user selection
-  const config = getConfigByNetwork(hre.network.name, { gov: true }, useBummerConfig)
+  const config = getConfigByNetwork(hre.network.name, { gov: false }, useBummerConfig)
 
   let continueDeployment = true
   while (continueDeployment) {
@@ -85,7 +85,7 @@ async function deployGov() {
 
       switch (step) {
         case STEPS.SYSTEM:
-          await systemGov(config)
+          await systemGov(config, useBummerConfig)
           break
         case STEPS.VERIFY:
           console.log(kleur.yellow().bold('\nVerifying contracts...\n'))

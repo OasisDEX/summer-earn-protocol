@@ -9,10 +9,14 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 import { ModuleLogger } from '../helpers/module-logger'
 import { updateIndexJson } from '../helpers/update-json'
 
-export async function deployGov(config: BaseConfig) {
+export async function deployGov(config: BaseConfig, useBummerConfig?: boolean) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
   const deployedGov = await deployGovContracts(config)
   ModuleLogger.logGov(deployedGov)
+
+  console.log('Updating index.json...')
+  updateIndexJson('gov', hre.network.name, deployedGov, useBummerConfig)
+
   return deployedGov
 }
 
@@ -91,9 +95,6 @@ async function deployGovContracts(config: BaseConfig): Promise<GovContracts> {
       },
     },
   })
-
-  console.log('Updating index.json...')
-  updateIndexJson('gov', hre.network.name, gov)
 
   console.log(kleur.green().bold('All Gov Contracts Deployed Successfully!'))
 
@@ -183,10 +184,33 @@ async function getDeploymentConfig() {
 }
 
 if (require.main === module) {
-  // If run directly, load the config here
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: false, core: false })
-  deployGov(config).catch((error) => {
-    console.error(kleur.red().bold('An error occurred:'), error)
-    process.exit(1)
-  })
+  // If run directly, prompt for bummer config
+  const promptForConfigType = async () => {
+    const response = await prompts({
+      type: 'confirm',
+      name: 'value',
+      message: 'Do you want to use the bummer configuration? (test environment)',
+      initial: true,
+    })
+    return response.value
+  }
+
+  const getConfig = async () => {
+    const useBummerConfig = await promptForConfigType()
+    const config = getConfigByNetwork(
+      hre.network.name,
+      { common: true, gov: false, core: false },
+      useBummerConfig,
+    )
+    return { config, useBummerConfig }
+  }
+
+  getConfig()
+    .then(({ config, useBummerConfig }) => {
+      return deployGov(config, useBummerConfig)
+    })
+    .catch((error) => {
+      console.error(kleur.red().bold('An error occurred:'), error)
+      process.exit(1)
+    })
 }
