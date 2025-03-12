@@ -1,0 +1,89 @@
+diff --git a/internal/chains.js b/internal/chains.js
+index 4556fa5e6b6dce3cc02e51e77bf9406631037b1a..61ffb473738b6e8e9797efc134a2050d8e8dcd57 100644
+--- a/internal/chains.js
++++ b/internal/chains.js
+@@ -5,9 +5,37 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.getMode = exports.isDevelopmentNetwork = exports.getChain = void 0;
+ const lodash_memoize_1 = __importDefault(require("lodash.memoize"));
++const viem_1 = require("viem");
+ const errors_1 = require("./errors");
++
++// Define Sonic chain
++const sonicChain = (0, viem_1.defineChain)({
++    id: 146,
++    name: 'Sonic',
++    nativeCurrency: {
++        decimals: 18,
++        name: 'S',
++        symbol: 'S',
++    },
++    rpcUrls: {
++        default: {
++            http: ['https://rpc.soniclabs.com'],
++            webSocket: ['wss://rpc.soniclabs.com'],
++        },
++    },
++    blockExplorers: {
++        default: {
++            name: 'Sonicscan',
++            url: 'https://sonicscan.org'
++        },
++    },
++});
++
+ async function getChain(provider) {
+     const chains = require("viem/chains");
++    // Add Sonic chain
++    chains.sonic = sonicChain;
++    
+     const chainId = await getChainId(provider);
+     if (isDevelopmentNetwork(chainId)) {
+         if (await isHardhatNetwork(provider)) {
+diff --git a/src/internal/chains.ts b/src/internal/chains.ts
+index 013f62b9ae6205f941b5d485651fe23f2d2a234e..484970ec682610b950a77bd563717398d0dbc04f 100644
+--- a/src/internal/chains.ts
++++ b/src/internal/chains.ts
+@@ -3,6 +3,7 @@ import type { Chain } from "viem";
+ import type { TestClientMode } from "../types";
+ 
+ import memoize from "lodash.memoize";
++import { defineChain } from "viem";
+ 
+ import {
+   UnknownDevelopmentNetworkError,
+@@ -10,8 +11,34 @@ import {
+   MultipleMatchingNetworksError,
+ } from "./errors";
+ 
++// Define Sonic chain
++const sonicChain: Chain = defineChain({
++  id: 146,
++  name: 'Sonic',
++  nativeCurrency: {
++    decimals: 18,
++    name: 'S',
++    symbol: 'S',
++  },
++  rpcUrls: {
++    default: {
++      http: ['https://rpc.soniclabs.com'],
++      webSocket: ['wss://rpc.soniclabs.com'],
++    },
++  },
++  blockExplorers: {
++    default: { 
++      name: 'Sonicscan', 
++      url: 'https://sonicscan.org' 
++    },
++  },
++});
++
+ export async function getChain(provider: EthereumProvider): Promise<Chain> {
+   const chains: Record<string, Chain> = require("viem/chains");
++  // Add Sonic chain
++  chains.sonic = sonicChain;
++  
+   const chainId = await getChainId(provider);
+ 
+   if (isDevelopmentNetwork(chainId)) {

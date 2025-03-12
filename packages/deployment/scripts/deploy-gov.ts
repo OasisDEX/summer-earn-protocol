@@ -144,7 +144,7 @@ async function deployGov() {
             initial: false,
           })
           if (confirmPeering) {
-            await peerGov()
+            await peerGov(useBummerConfig)
           } else {
             console.log(kleur.yellow('Peering cancelled'))
           }

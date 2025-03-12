@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@nomicfoundation/hardhat-viem@2.0.6':
+    hash: spby6grbpcx6rhlxmdhcswkyly
+    path: patches/@nomicfoundation__hardhat-viem@2.0.6.patch
+
 importers:
 
   .:
@@ -2716,7 +2721,7 @@ packages:
       viem: ^2.7.6
     dependencies:
       '@nomicfoundation/hardhat-ignition': 0.15.10(@nomicfoundation/hardhat-verify@2.0.12)(hardhat@2.22.14)
-      '@nomicfoundation/hardhat-viem': 2.0.6(hardhat@2.22.14)(typescript@5.4.5)(viem@2.9.19)(zod@3.22.4)
+      '@nomicfoundation/hardhat-viem': 2.0.6(patch_hash=spby6grbpcx6rhlxmdhcswkyly)(hardhat@2.22.14)(typescript@5.4.5)(viem@2.9.19)(zod@3.22.4)
       '@nomicfoundation/ignition-core': 0.15.10
       hardhat: 2.22.14(ts-node@10.9.2)(typescript@5.4.5)
       viem: 2.9.19(typescript@5.4.5)(zod@3.22.4)
@@ -2732,7 +2737,7 @@ packages:
       viem: ^2.7.6
     dependencies:
       '@nomicfoundation/hardhat-ignition': 0.15.5(@nomicfoundation/hardhat-verify@2.0.12)(hardhat@2.22.8)
-      '@nomicfoundation/hardhat-viem': 2.0.6(hardhat@2.22.8)(typescript@5.4.5)(viem@2.9.19)(zod@3.22.4)
+      '@nomicfoundation/hardhat-viem': 2.0.6(patch_hash=spby6grbpcx6rhlxmdhcswkyly)(hardhat@2.22.8)(typescript@5.4.5)(viem@2.9.19)(zod@3.22.4)
       '@nomicfoundation/ignition-core': 0.15.10
       hardhat: 2.22.8(ts-node@10.9.2)(typescript@5.4.5)
       viem: 2.9.19(typescript@5.4.5)(zod@3.22.4)
@@ -2817,7 +2822,7 @@ packages:
       - supports-color
     dev: true
 
-  /@nomicfoundation/hardhat-viem@2.0.6(hardhat@2.22.14)(typescript@5.4.5)(viem@2.9.19)(zod@3.22.4):
+  /@nomicfoundation/hardhat-viem@2.0.6(patch_hash=spby6grbpcx6rhlxmdhcswkyly)(hardhat@2.22.14)(typescript@5.4.5)(viem@2.9.19)(zod@3.22.4):
     resolution: {integrity: sha512-Pl5pvYK5VYKflfoUk4fVBESqKMNBtAIGPIT4j+Q8KNFueAe1vB2PsbRESeNJyW5YLL9pqKaD1RVqLmgIa1yvDg==}
     peerDependencies:
       hardhat: ^2.17.0
@@ -2831,8 +2836,9 @@ packages:
       - typescript
       - zod
     dev: true
+    patched: true
 
-  /@nomicfoundation/hardhat-viem@2.0.6(hardhat@2.22.8)(typescript@5.4.5)(viem@2.9.19)(zod@3.22.4):
+  /@nomicfoundation/hardhat-viem@2.0.6(patch_hash=spby6grbpcx6rhlxmdhcswkyly)(hardhat@2.22.8)(typescript@5.4.5)(viem@2.9.19)(zod@3.22.4):
     resolution: {integrity: sha512-Pl5pvYK5VYKflfoUk4fVBESqKMNBtAIGPIT4j+Q8KNFueAe1vB2PsbRESeNJyW5YLL9pqKaD1RVqLmgIa1yvDg==}
     peerDependencies:
       hardhat: ^2.17.0
@@ -2846,6 +2852,7 @@ packages:
       - typescript
       - zod
     dev: true
+    patched: true
 
   /@nomicfoundation/ignition-core@0.15.10:
     resolution: {integrity: sha512-AWvCviNlBkPT8EKcg34N+yUdQTYFiC/HdpfFZdw8oMFuAs9SMZE0zQA9gJQSCay41GbuyXt2Kietp5/1/nlBIA==}

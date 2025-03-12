@@ -10,8 +10,6 @@ import {
 } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
-const ADDITIONAL_GOVERNORS = ['']
-
 /**
  * @dev Post-deployment governance setup
  *
@@ -108,7 +106,7 @@ export async function rolesGov(_additionalGovernors: string[] = [], useBummerCon
     const hash = await protocolAccessManager.write.grantGovernorRole([multisigTokenReceiver])
     await publicClient.waitForTransactionReceipt({ hash })
   }
-  const additionalGovernors = [...ADDITIONAL_GOVERNORS, ..._additionalGovernors]
+  const additionalGovernors = [..._additionalGovernors]
   // Handle additional governors
   if (additionalGovernors.length > 0) {
     console.log('[PROTOCOL ACCESS MANAGER] - Setting up additional governors...')
