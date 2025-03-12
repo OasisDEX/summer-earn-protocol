@@ -81,14 +81,15 @@ export function handleDeposit(event: DepositEvent): void {
   const account = getOrCreateAccount(event.params.owner.toHexString())
 
   const vaultDetails = getVaultDetails(vault, event.block)
+  const updatedVault = updateVault(vaultDetails, event.block, false)
+
   const positionDetails = getPositionDetails(
-    vault,
+    updatedVault,
     Address.fromString(account.id),
     vaultDetails,
     event.block,
   )
 
-  updateVault(vaultDetails, event.block, false)
   updatePosition(positionDetails, event.block)
 
   createDepositEventEntity(event, positionDetails)
@@ -98,7 +99,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
   const vault = getOrCreateVault(event.address, event.block)
 
   const vaultDetails = getVaultDetails(vault, event.block)
-  updateVault(vaultDetails, event.block, false)
+  const updatedVault = updateVault(vaultDetails, event.block, false)
 
   const rewardsManager = vaultDetails.rewardsManager
 
@@ -109,7 +110,12 @@ export function handleWithdraw(event: WithdrawEvent): void {
 
   getOrCreateAccount(event.params.owner.toHexString())
 
-  const positionDetails = getPositionDetails(vault, event.params.owner, vaultDetails, event.block)
+  const positionDetails = getPositionDetails(
+    updatedVault,
+    event.params.owner,
+    vaultDetails,
+    event.block,
+  )
   updatePosition(positionDetails, event.block)
 
   createWithdrawEventEntity(event, positionDetails)
@@ -174,14 +180,14 @@ export function handleStaked(event: Staked): void {
   const account = getOrCreateAccount(event.params.receiver.toHexString())
 
   const vaultDetails = getVaultDetails(vault, event.block)
+  const updatedVault = updateVault(vaultDetails, event.block, false)
   const positionDetails = getPositionDetails(
-    vault,
+    updatedVault,
     Address.fromString(account.id),
     vaultDetails,
     event.block,
   )
 
-  updateVault(vaultDetails, event.block, false)
   updatePosition(positionDetails, event.block)
 
   createStakedEventEntity(event, positionDetails)
@@ -194,14 +200,14 @@ export function handleUnstaked(event: Unstaked): void {
   const account = getOrCreateAccount(event.params.staker.toHexString())
 
   const vaultDetails = getVaultDetails(vault, event.block)
+  const updatedVault = updateVault(vaultDetails, event.block, false)
   const positionDetails = getPositionDetails(
-    vault,
+    updatedVault,
     Address.fromString(account.id),
     vaultDetails,
     event.block,
   )
 
-  updateVault(vaultDetails, event.block, false)
   updatePosition(positionDetails, event.block)
 
   createUnstakedEventEntity(event, positionDetails)

@@ -34,9 +34,9 @@ function updateArkData(vault: Vault, arkAddress: Address, block: ethereum.Block)
   updateArk(arkDetails, block, true)
 }
 
-function updateVaultData(vault: Vault, block: ethereum.Block): void {
+export function updateVaultData(vault: Vault, block: ethereum.Block): Vault {
   const vaultDetails = getVaultDetails(vault, block)
-  updateVault(vaultDetails, block, true)
+  return updateVault(vaultDetails, block, true)
 }
 
 // Snapshot management functions
@@ -81,11 +81,11 @@ function processHourlyVaultUpdate(
   const weekPassed = hasWeekPassed(protocolLastWeeklyUpdateTimestamp, block.timestamp)
   if (hourPassed) {
     let vault = getOrCreateVault(vaultAddress, block)
-    updateVaultData(vault, block)
-    updateVaultSnapshots(vault, block, dayPassed, weekPassed)
+    const updatedVault = updateVaultData(vault, block)
+    updateVaultSnapshots(updatedVault, block, dayPassed, weekPassed)
 
     // reload vault to get latest data
-    vault = getOrCreateVault(vaultAddress, block)
+    vault = updatedVault
     if (!vault || !vault.id) {
       log.warning('Invalid vault at address ' + vaultAddress.toHexString(), [])
       return

@@ -24,7 +24,7 @@ export function updateVault(
   vaultDetails: VaultDetails,
   block: ethereum.Block,
   shouldUpdateApr: boolean,
-): void {
+): Vault {
   const vault = getOrCreateVault(Address.fromString(vaultDetails.vaultId), block)
   const deltaTime = block.timestamp.minus(vault.lastUpdateTimestamp).toBigDecimal()
 
@@ -66,6 +66,7 @@ export function updateVault(
   // Update buffer ark - as it's integral part of the vault
   updateBufferArk(vault, vaultDetails, block)
   updateProtocolTotalValueLockedUSD()
+  return vault
 }
 
 export function updateBufferArk(
@@ -87,14 +88,14 @@ export function updateBufferArk(
 export function updateVaultAndArks(event: ethereum.Event, vault: Vault): void {
   const vaultDetails = getVaultDetails(vault, event.block)
 
-  updateVault(vaultDetails, event.block, false)
-  getOrCreateVaultsPostActionSnapshots(vault, event.block)
+  const updatedVault = updateVault(vaultDetails, event.block, false)
+  getOrCreateVaultsPostActionSnapshots(updatedVault, event.block)
 
   const arks = vaultDetails.arks
   for (let i = 0; i < arks.length; i++) {
-    const arkDetails = getArkDetails(vault, arks[i], event.block)
+    const arkDetails = getArkDetails(updatedVault, arks[i], event.block)
     updateArk(arkDetails, event.block, false)
-    getOrCreateArksPostActionSnapshots(vault, arks[i], event.block)
+    getOrCreateArksPostActionSnapshots(updatedVault, arks[i], event.block)
   }
 }
 
