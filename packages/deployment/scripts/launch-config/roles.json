@@ -1,0 +1,31 @@
+{
+  "all": {
+    "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+    "superKeeper": "0x452487d71A4e94282BAe30265aac9CA26A775f29",
+    "gov": {
+      "remove": [
+        "0x9999Cb59242e8cE485F52eBF82654F3664D63E4f",
+        "0x8888013451507E8DD7996509735E15F591886CD2"
+      ]
+    }
+  },
+  "base": {
+    "foundation": {
+      "current": ["0x91028Dda7760F771f9Edbd304A2c9271667B5878"],
+      "endgame": "0xB0F53Fc4e15301147de9b3e49C3DB942E3F118F2"
+    },
+    "fleetCommanders": ["0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17"]
+  },
+  "arbitrum": {
+    "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+    "fleetCommanders": ["0x98C49e13bf99D7CAd8069faa2A370933EC9EcF17"]
+  },
+  "mainnet": {
+    "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
+    "fleetCommanders": [
+      "0x98c49e13bf99d7cad8069faa2a370933ec9ecf17",
+      "0x17ee2d03e88b55e762c66c76ec99c3a28a54ad8d",
+      "0x67e536797570b3d8919df052484273815a0ab506"
+    ]
+  }
+}

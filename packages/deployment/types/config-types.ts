@@ -21,6 +21,7 @@ export enum ArkType {
   PendlePtOracleArk = 'PendlePtOracleArk',
   SkyUsdsArk = 'SkyUsdsArk',
   SkyUsdsPsm3Ark = 'SkyUsdsPsm3Ark',
+  MoonwellArk = 'MoonwellArk',
 }
 
 export interface Config {
@@ -38,6 +39,7 @@ export enum Token {
   USDS = 'usds',
   STAKED_USDS = 'stakedUsds',
   WETH = 'weth',
+  EURC = 'eurc',
 }
 
 export interface BaseConfig {
@@ -115,6 +117,14 @@ export interface BaseConfig {
         [key in Token]: Address
       }
     }
+    moonwell: {
+      pools: {
+        [key in Token]: {
+          mToken: Address
+        }
+      }
+      comptroller: Address
+    }
   }
 }
 
@@ -136,8 +146,15 @@ export interface FleetConfig {
   depositCap: string
   initialTipRate: string
   network: string
+  rewardTokens: string[]
+  rewardAmounts: string[]
+  rewardsDuration: number[]
+  bridgeAmount: string
   arks: ArkConfig[]
+  discourseURL?: string
+  sipNumber?: string
   details: string
+  curator?: Address
 }
 
 export interface FleetDeployment {

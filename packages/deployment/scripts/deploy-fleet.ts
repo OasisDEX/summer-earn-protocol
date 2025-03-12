@@ -1,87 +1,140 @@
-import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
-import path from 'path'
 import prompts from 'prompts'
 import { Address } from 'viem'
-import { createFleetModule, FleetContracts } from '../ignition/modules/fleet'
-import { BaseConfig, FleetConfig } from '../types/config-types'
+import { FleetConfig } from '../types/config-types'
 import { addArkToFleet } from './common/add-ark-to-fleet'
-import { deployArk } from './common/ark-deployment'
-import { GOVERNOR_ROLE } from './common/constants'
-import { getFleetConfigDir } from './common/fleet-deployment-files-helpers'
+import { GOVERNOR_ROLE, HUB_CHAIN_NAME } from './common/constants'
+import {
+  getFleetConfig,
+  loadFleetDeploymentJson,
+  saveFleetDeploymentJson,
+} from './common/fleet-deployment-files-helpers'
 import { grantCommanderRole } from './common/grant-commander-role'
-import { saveFleetDeploymentJson } from './common/save-fleet-deployment-json'
+import { deployFleetContracts, logDeploymentResults } from './fleets/fleet-contracts'
+import {
+  addFleetToHarbor,
+  deployArks,
+  getRewardsManagerAddress,
+  grantCuratorRole,
+  setupFleetRewards,
+} from './fleets/fleet-deployment-helpers'
+import {
+  createArkAdditionCrossChainProposal,
+  createArkAdditionProposal,
+  createHubGovernanceProposal,
+  createSatelliteGovernanceProposal,
+} from './fleets/governance-helpers'
 import { getConfigByNetwork } from './helpers/config-handler'
-import { handleDeploymentId } from './helpers/deployment-id-handler'
-import { loadFleetConfig } from './helpers/fleet-definition-handler'
-import { getChainId } from './helpers/get-chainid'
-import { ModuleLogger } from './helpers/module-logger'
-import { continueDeploymentCheck } from './helpers/prompt-helpers'
+import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
+import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'
+import { getAssetAddress } from './helpers/token-helpers'
 import { validateToken } from './helpers/validation'
 
 /**
- * Deploys all Arks specified in the fleet definition
- * @param {FleetConfig} fleetDefinition - The fleet definition object
- * @param {BaseConfig} config - The configuration object
- * @returns {Promise<Address[]>} Array of deployed Ark addresses
+ * Deployment modes for the script
  */
-async function deployArks(fleetDefinition: FleetConfig, config: BaseConfig): Promise<Address[]> {
-  const deployedArks: Address[] = []
-  const MAX_RETRIES = 5
-  const DELAY = 13000 // 13 seconds
-
-  for (const arkConfig of fleetDefinition.arks) {
-    console.log(
-      kleur.bgWhite().bold(`\n ------------------------------------------------------------`),
-    )
-    console.log(kleur.cyan().bold(`\nDeploying ${arkConfig.type}...`))
-
-    let retries = 0
-    while (retries <= MAX_RETRIES) {
-      try {
-        const arkAddress = await deployArk(arkConfig, config, fleetDefinition.depositCap)
-        deployedArks.push(arkAddress)
-        console.log(kleur.green().bold(`Successfully deployed ${arkConfig.type} at ${arkAddress}`))
-        break
-      } catch (error) {
-        if (retries === MAX_RETRIES) {
-          console.error(
-            kleur.red().bold(`Failed to deploy ${arkConfig.type} after ${MAX_RETRIES} attempts`),
-          )
-          throw error
-        }
-
-        retries++
-        console.log(
-          kleur.yellow().bold(`Deployment attempt ${retries} failed, retrying in 13 seconds...`),
-        )
-        await new Promise((resolve) => setTimeout(resolve, DELAY))
-      }
-    }
-  }
-
-  return deployedArks
+enum DeploymentMode {
+  NEW_FLEET = 'new_fleet',
+  ADD_ARK = 'add_ark',
 }
 
 /**
- * Main function to deploy a fleet.
- * This function orchestrates the entire deployment process, including:
- * - Loading the fleet definition
- * - Getting core contract addresses
- * - Collecting BufferArk parameters
- * - Deploying the fleet and BufferArk contracts
- * - Logging deployment results
+ * Main function to deploy a fleet or add arks to an existing fleet.
  */
 async function deployFleet() {
   const network = hre.network.name
   console.log(kleur.blue('Network:'), kleur.cyan(network))
-  const config = getConfigByNetwork(network, { common: true, gov: true, core: true })
 
-  console.log(kleur.green().bold('Starting Fleet deployment process...'))
+  // Check if using Tenderly virtual testnet
+  const isTenderly = warnIfTenderlyVirtualTestnet(
+    'Deployments on Tenderly virtual testnets are temporary and will be lost when the session ends. Consider using a persistent testnet for actual deployments.',
+  )
 
+  if (isTenderly) {
+    // Maybe ask for confirmation before proceeding
+    const response = await prompts({
+      type: 'confirm',
+      name: 'continue',
+      message: 'Do you want to continue with deployment on this Tenderly virtual testnet?',
+      initial: false,
+    })
+
+    if (!response.continue) {
+      console.log(kleur.red('Deployment cancelled.'))
+      return
+    }
+  }
+
+  // Ask the user what type of deployment they want to perform
+  const modeChoices = [
+    { title: 'Deploy New Fleet', value: DeploymentMode.NEW_FLEET },
+    { title: 'Continue interrupted new fleet deployment', value: DeploymentMode.NEW_FLEET },
+    { title: 'Add Ark to Existing Fleet', value: DeploymentMode.ADD_ARK },
+  ]
+
+  const modeResponse = await prompts({
+    type: 'select',
+    name: 'mode',
+    message: 'What would you like to do?',
+    choices: modeChoices,
+  })
+
+  const deploymentMode = modeResponse.mode as DeploymentMode
+
+  // Ask about using bummer config at the beginning
+  const useBummerConfig = await promptForConfigType()
+
+  const config = getConfigByNetwork(network, { gov: true, core: true }, useBummerConfig)
+
+  // Determine if this is a hub or satellite chain
+  const isHubChain = network === HUB_CHAIN_NAME
+  console.log(kleur.blue('Chain Type:'), isHubChain ? kleur.cyan('Hub') : kleur.cyan('Satellite'))
+
+  console.log(kleur.green().bold(`Starting ${deploymentMode} process...`))
+
+  // Load fleet configuration
   const fleetDefinition = await getFleetConfig()
   validateToken(config, fleetDefinition.assetSymbol)
+
+  // Handle the deployment based on the chosen mode
+  switch (deploymentMode) {
+    case DeploymentMode.NEW_FLEET:
+      await handleNewFleetDeployment(
+        fleetDefinition,
+        config,
+        isHubChain,
+        useBummerConfig,
+        isTenderly,
+      )
+      break
+    case DeploymentMode.ADD_ARK:
+      await handleArkAddition(fleetDefinition, config, isHubChain, useBummerConfig, isTenderly)
+      break
+    default:
+      console.log(kleur.red('Invalid deployment mode. Exiting.'))
+      return
+  }
+}
+
+/**
+ * Handles new fleet deployment
+ */
+async function handleNewFleetDeployment(
+  fleetDefinition: FleetConfig,
+  config: any,
+  isHubChain: boolean,
+  useBummerConfig: boolean,
+  isTenderly: boolean,
+) {
+  // Get curator from fleet definition
+  let curatorAddress = fleetDefinition.curator as Address | undefined
+
+  if (curatorAddress) {
+    console.log(kleur.blue('Curator Address:'), kleur.cyan(curatorAddress))
+  } else {
+    console.log(kleur.yellow('No curator address specified in fleet definition'))
+  }
 
   console.log(kleur.blue('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
@@ -98,22 +151,107 @@ async function deployFleet() {
 
     const bufferArkAddress = await deployedFleet.fleetCommander.read.bufferArk()
 
-    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress)
-
-    // Deploy all Arks later
     const deployedArkAddresses = await deployArks(fleetDefinition, config)
 
-    // Add each Ark to the Fleet
-    for (const arkAddress of deployedArkAddresses) {
-      await addArkToFleet(arkAddress, config, hre, fleetDefinition)
-    }
+    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress, deployedArkAddresses)
 
-    await grantCommanderRole(
+    // Check if deployer has governor role
+    const protocolAccessManager = await hre.viem.getContractAt(
+      'ProtocolAccessManager' as string,
       config.deployedContracts.gov.protocolAccessManager.address as Address,
-      bufferArkAddress,
-      deployedFleet.fleetCommander.address,
-      hre,
     )
+    const [deployer] = await hre.viem.getWalletClients()
+    const hasGovernorRole = await protocolAccessManager.read.hasRole([
+      GOVERNOR_ROLE,
+      deployer.account.address,
+    ])
+
+    if (hasGovernorRole) {
+      // Directly execute actions if we have governor role
+      console.log(kleur.green('Deployer has governor role. Executing actions directly...'))
+
+      // Add each Ark to the Fleet
+      for (const arkAddress of deployedArkAddresses) {
+        await addArkToFleet(arkAddress, config, hre, fleetDefinition)
+      }
+
+      await addFleetToHarbor(
+        deployedFleet.fleetCommander.address,
+        config.deployedContracts.core.harborCommand.address as Address,
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+      )
+
+      await grantCommanderRole(
+        config.deployedContracts.gov.protocolAccessManager.address as Address,
+        bufferArkAddress,
+        deployedFleet.fleetCommander.address,
+        hre,
+      )
+
+      // Grant curator role if a curator address was provided
+      if (curatorAddress) {
+        await grantCuratorRole(
+          config.deployedContracts.gov.protocolAccessManager.address as Address,
+          deployedFleet.fleetCommander.address,
+          curatorAddress,
+          hre,
+        )
+      }
+
+      // Set up rewards if configured
+      if (
+        fleetDefinition.rewardTokens &&
+        fleetDefinition.rewardAmounts &&
+        fleetDefinition.rewardsDuration
+      ) {
+        try {
+          const rewardsManagerAddress = await getRewardsManagerAddress(
+            deployedFleet.fleetCommander.address,
+          )
+
+          await setupFleetRewards(
+            rewardsManagerAddress,
+            fleetDefinition.rewardTokens.map((token) => token as Address),
+            fleetDefinition.rewardAmounts.map((amount) => BigInt(amount)),
+            Array(fleetDefinition.rewardTokens.length).fill(fleetDefinition.rewardsDuration),
+          )
+        } catch (error: unknown) {
+          console.error(
+            kleur.red(
+              `Error setting up fleet rewards: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          )
+        }
+      }
+    } else {
+      // Create governance proposal
+      console.log(
+        kleur.yellow('Deployer does not have governor role. Creating governance proposal...'),
+      )
+
+      if (isHubChain) {
+        await createHubGovernanceProposal(
+          deployedFleet,
+          bufferArkAddress,
+          deployedArkAddresses,
+          config,
+          fleetDefinition,
+          useBummerConfig,
+          curatorAddress,
+        )
+      } else {
+        await createSatelliteGovernanceProposal(
+          deployedFleet,
+          bufferArkAddress,
+          deployedArkAddresses,
+          config,
+          fleetDefinition,
+          useBummerConfig,
+          isTenderly,
+          curatorAddress,
+        )
+      }
+    }
 
     logDeploymentResults(deployedFleet)
   } else {
@@ -122,51 +260,184 @@ async function deployFleet() {
 }
 
 /**
- * Prompts the user for the fleet definition file and loads it.
- * @returns The loaded fleet definition object.
+ * Handles adding arks to an existing fleet
  */
-async function getFleetConfig(): Promise<FleetConfig> {
-  const fleetsDir = getFleetConfigDir()
-  const fleetFiles = fs.readdirSync(fleetsDir).filter((file) => file.endsWith('.json'))
+async function handleArkAddition(
+  fleetDefinition: FleetConfig,
+  config: any,
+  isHubChain: boolean,
+  useBummerConfig: boolean,
+  isTenderly: boolean,
+) {
+  console.log(kleur.green().bold('Loading fleet deployment data...'))
 
-  if (fleetFiles.length === 0) {
-    throw new Error('No fleet config files found in the fleets directory.')
+  // Load the fleet deployment JSON instead of asking for address
+  const deploymentData = await loadFleetDeploymentJson(fleetDefinition)
+
+  if (!deploymentData || !deploymentData.fleetAddress) {
+    console.log(kleur.red('Error: Could not find deployment data for this fleet.'))
+    console.log(kleur.yellow('Please ensure you have deployed this fleet previously.'))
+    return
   }
 
-  const response = await prompts({
-    type: 'select',
-    name: 'fleetConfigFile',
-    message: 'Select the fleet config file:',
-    choices: fleetFiles.map((file) => ({ title: file, value: file })),
-  })
+  const fleetCommanderAddress = deploymentData.fleetAddress as Address
 
-  const fleetConfigPath = path.resolve(fleetsDir, response.fleetConfigFile)
-  console.log(kleur.green(`Loading fleet config from: ${fleetConfigPath}`))
-  const fleetConfig = loadFleetConfig(fleetConfigPath)
-  return { ...fleetConfig, details: JSON.stringify(fleetConfig.details) }
-}
+  // Get the fleet commander contract
+  const fleetCommander = await hre.viem.getContractAt(
+    'FleetCommander' as string,
+    fleetCommanderAddress,
+  )
 
-/**
- * Retrieves the asset address from the config based on the asset symbol.
- * @param {string} assetSymbol - The symbol of the asset.
- * @param {BaseConfig} config - The configuration object.
- * @returns {string} The address of the asset.
- * @throws {Error} If the asset symbol is not found in the config.
- */
-function getAssetAddress(assetSymbol: string, config: BaseConfig): string {
-  const assetSymbolLower = assetSymbol.toLowerCase() as keyof typeof config.tokens
-  if (!Object.keys(config.tokens).includes(assetSymbolLower)) {
-    throw new Error(`No token address for symbol ${assetSymbol} found in config`)
+  // Display fleet information
+  try {
+    const fleetName = (await fleetCommander.read.name()) as string
+    const fleetSymbol = (await fleetCommander.read.symbol()) as string
+    const bufferArkAddress = (await fleetCommander.read.bufferArk()) as Address
+
+    console.log(kleur.yellow('Fleet Information:'))
+    console.log(kleur.blue('Name:'), kleur.cyan(fleetName))
+    console.log(kleur.blue('Symbol:'), kleur.cyan(fleetSymbol))
+    console.log(kleur.blue('Buffer Ark:'), kleur.cyan(bufferArkAddress))
+    console.log(kleur.blue('Fleet Commander:'), kleur.cyan(fleetCommanderAddress))
+
+    // Get existing ark addresses from deployment data
+    const existingArkAddresses = deploymentData.arkAddresses || []
+    console.log(kleur.blue('Existing Arks:'), kleur.cyan(existingArkAddresses.length.toString()))
+
+    // Check if there are new arks in the config that aren't already deployed
+    const configArkTypes = fleetDefinition.arks.map((ark) => ark.type)
+    console.log(kleur.blue('Total arks in config:'), kleur.cyan(configArkTypes.length.toString()))
+    console.log(kleur.blue('Ark types in config:'), kleur.cyan(configArkTypes.join(', ')))
+
+    // Verify this is the correct fleet
+    const verifyResponse = await prompts({
+      type: 'confirm',
+      name: 'correct',
+      message: `Is this the correct fleet (${fleetName}) on ${fleetDefinition.network}?`,
+      initial: true,
+    })
+
+    if (!verifyResponse.correct) {
+      console.log(kleur.red('Operation cancelled. Please restart with the correct fleet.'))
+      return
+    }
+
+    // Deploy only new Arks
+    console.log(kleur.green().bold('Deploying new Arks...'))
+
+    // Create a new fleet definition that only includes the arks we haven't deployed yet
+    const remainingArksToAdd = existingArkAddresses.length
+      ? fleetDefinition.arks.slice(existingArkAddresses.length)
+      : fleetDefinition.arks
+
+    if (remainingArksToAdd.length === 0) {
+      console.log(kleur.yellow('No new arks to deploy. All arks from config are already deployed.'))
+      return
+    }
+
+    console.log(kleur.blue('New arks to deploy:'), kleur.cyan(remainingArksToAdd.length.toString()))
+    console.log(
+      kleur.blue('New ark types:'),
+      kleur.cyan(remainingArksToAdd.map((ark) => ark.type).join(', ')),
+    )
+
+    // Create a modified fleet definition with only the new arks
+    const newArkFleetDefinition = {
+      ...fleetDefinition,
+      arks: remainingArksToAdd,
+    }
+
+    // Deploy only the new arks
+    const deployedArkAddresses = await deployArks(newArkFleetDefinition, config)
+
+    if (deployedArkAddresses.length === 0) {
+      console.log(kleur.yellow('No new arks were deployed.'))
+      return
+    }
+
+    console.log(kleur.green(`Successfully deployed ${deployedArkAddresses.length} new arks.`))
+
+    // Check if deployer has governor role
+    const protocolAccessManager = await hre.viem.getContractAt(
+      'ProtocolAccessManager' as string,
+      config.deployedContracts.gov.protocolAccessManager.address as Address,
+    )
+    const [deployer] = await hre.viem.getWalletClients()
+    const hasGovernorRole = await protocolAccessManager.read.hasRole([
+      GOVERNOR_ROLE,
+      deployer.account.address,
+    ])
+
+    if (hasGovernorRole) {
+      // Directly execute actions if we have governor role
+      console.log(kleur.green('Deployer has governor role. Adding Arks directly...'))
+
+      // Add each Ark to the Fleet
+      for (const arkAddress of deployedArkAddresses) {
+        await addArkToFleet(arkAddress, config, hre, fleetDefinition)
+      }
+
+      console.log(kleur.green().bold('All Arks added to fleet successfully!'))
+    } else {
+      // Create governance proposal
+      console.log(
+        kleur.yellow('Deployer does not have governor role. Creating governance proposal...'),
+      )
+
+      if (isHubChain) {
+        // Create proposal for just adding arks on the hub chain
+        await createArkAdditionProposal(
+          fleetCommanderAddress,
+          deployedArkAddresses, // Only the newly deployed arks
+          config,
+          fleetDefinition,
+          useBummerConfig,
+        )
+      } else {
+        // Create cross-chain proposal for adding arks on a satellite chain
+        await createArkAdditionCrossChainProposal(
+          fleetCommanderAddress,
+          deployedArkAddresses,
+          config,
+          fleetDefinition,
+          useBummerConfig,
+          isTenderly,
+        )
+      }
+    }
+
+    // Update deployment JSON with new Ark addresses
+    const updatedArkAddresses = [...existingArkAddresses, ...deployedArkAddresses]
+
+    // Save updated deployment data
+    saveFleetDeploymentJson(
+      fleetDefinition,
+      { fleetCommander: deploymentData.fleetCommander },
+      deploymentData.bufferArk,
+      updatedArkAddresses,
+    )
+
+    console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))
+    console.log(
+      kleur.green(
+        `Added ${deployedArkAddresses.length} new arks to a total of ${updatedArkAddresses.length} arks.`,
+      ),
+    )
+  } catch (error: unknown) {
+    console.error(
+      kleur.red(
+        `Error adding arks to fleet: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    )
   }
-  return config.tokens[assetSymbolLower]
 }
 
 /**
  * Displays a summary of the deployment parameters and asks for user confirmation.
- * @param {any} fleetDefinition - The fleet definition object.
+ * @param {FleetConfig} fleetDefinition - The fleet definition object.
  * @returns {Promise<boolean>} True if the user confirms, false otherwise.
  */
-async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
+async function confirmDeployment(fleetDefinition: FleetConfig): Promise<boolean> {
   console.log(kleur.cyan().bold('\nSummary of collected values:'))
   console.log(kleur.yellow('Fleet Definition:'))
   console.log(kleur.yellow(JSON.stringify(fleetDefinition, null, 2)))
@@ -174,108 +445,9 @@ async function confirmDeployment(fleetDefinition: any): Promise<boolean> {
   return await continueDeploymentCheck()
 }
 
-/**
- * Deploys the Fleet and BufferArk contracts using Hardhat Ignition.
- * @param {any} fleetDefinition - The fleet definition object.
- * @param {CoreContracts} coreContracts - The core contract addresses.
- * @param {string} asset - The address of the asset.
- * @returns {Promise<FleetContracts>} The deployed fleet contracts.
- */
-async function deployFleetContracts(
-  fleetDefinition: FleetConfig,
-  config: BaseConfig,
-  asset: string,
-) {
-  const chainId = getChainId()
-  const deploymentId = await handleDeploymentId(chainId)
-
-  const name = fleetDefinition.fleetName.replace(/\W/g, '')
-  const fleetModule = createFleetModule(`FleetModule_${name}`)
-
-  const deployedModule = await hre.ignition.deploy(fleetModule, {
-    parameters: {
-      [`FleetModule_${name}`]: {
-        configurationManager: config.deployedContracts.core.configurationManager.address,
-        protocolAccessManager: config.deployedContracts.gov.protocolAccessManager.address,
-        fleetName: fleetDefinition.fleetName,
-        fleetSymbol: fleetDefinition.symbol,
-        fleetDetails: fleetDefinition.details,
-        asset,
-        initialMinimumBufferBalance: fleetDefinition.initialMinimumBufferBalance,
-        initialRebalanceCooldown: fleetDefinition.initialRebalanceCooldown,
-        depositCap: fleetDefinition.depositCap,
-        initialTipRate: fleetDefinition.initialTipRate,
-        fleetCommanderRewardsManagerFactory:
-          config.deployedContracts.core.fleetCommanderRewardsManagerFactory.address,
-      },
-    },
-    deploymentId,
-  })
-  await addFleetToHarbor(
-    deployedModule.fleetCommander.address,
-    config.deployedContracts.core.harborCommand.address as Address,
-    config.deployedContracts.gov.protocolAccessManager.address as Address,
-  )
-  return deployedModule
-}
-
-/**
- * Logs the results of the deployment, including important addresses and next steps.
- * @param {FleetContracts} deployedFleet - The deployed fleet contracts.
- */
-function logDeploymentResults(deployedFleet: FleetContracts) {
-  ModuleLogger.logFleet(deployedFleet)
-
-  console.log(kleur.green('Fleet deployment completed successfully!'))
-  console.log(
-    kleur.yellow('Fleet Commander Address:'),
-    kleur.cyan(deployedFleet.fleetCommander.address),
-  )
-}
-async function addFleetToHarbor(
-  fleetCommanderAddress: Address,
-  harborCommandAddress: Address,
-  protocolAccessManagerAddress: Address,
-) {
-  const publicClient = await hre.viem.getPublicClient()
-  const [deployer] = await hre.viem.getWalletClients()
-  console.log('Deployer: ', deployer.account.address)
-  const protocolAccessManager = await hre.viem.getContractAt(
-    'ProtocolAccessManager' as string,
-    protocolAccessManagerAddress,
-  )
-  const hasGovernorRole = await protocolAccessManager.read.hasRole([
-    GOVERNOR_ROLE,
-    deployer.account.address,
-  ])
-  if (hasGovernorRole) {
-    const harborCommand = await hre.viem.getContractAt(
-      'HarborCommand' as string,
-      harborCommandAddress,
-    )
-    const isEnlisted = await harborCommand.read.activeFleetCommanders([fleetCommanderAddress])
-    if (!isEnlisted) {
-      const hash = await harborCommand.write.enlistFleetCommander([fleetCommanderAddress])
-      await publicClient.waitForTransactionReceipt({
-        hash: hash,
-      })
-      console.log(kleur.green('Fleet added to Harbor Command successfully!'))
-    } else {
-      console.log(kleur.yellow('Fleet already enlisted in Harbor Command'))
-    }
-  } else {
-    console.log(kleur.red('Deployer does not have GOVERNOR_ROLE in ProtocolAccessManager'))
-    console.log(
-      kleur.red(
-        `Please add the fleet @ ${fleetCommanderAddress} to the Harbor Command (${harborCommandAddress}) via governance`,
-      ),
-    )
-  }
-}
-
 // Execute the deployFleet function and handle any errors
 deployFleet().catch((error) => {
   console.error(kleur.red('Error during fleet deployment:'))
-  console.error(error)
+  console.error(error instanceof Error ? error.message : String(error))
   process.exit(1)
 })

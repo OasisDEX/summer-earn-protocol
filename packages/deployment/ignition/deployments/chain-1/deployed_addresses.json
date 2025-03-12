@@ -50,5 +50,7 @@
   "MorphoVault_weth_Gauntlet_WETH_Prime_1#MorphoVaultArk": "0x5f32a2eef8e96ADf4A9199527255a69Ea457C0e9",
   "MorphoVault_weth_Re7_WETH_1#MorphoVaultArk": "0xC991F9DeC95e33389132A4d91F71cFe6235aCAAf",
   "Spark_weth_1#SparkArk": "0x570957bC84b5607e2412dE72461FbbD02844b042",
-  "MorphoVault_weth_Steakhouse_WETH_1#MorphoVaultArk": "0x4bd07e9D2AD23A68D232a20F1c8555e0C1573a4b"
+  "MorphoVault_weth_Steakhouse_WETH_1#MorphoVaultArk": "0x4bd07e9D2AD23A68D232a20F1c8555e0C1573a4b",
+  "AdmiralsQuartersModule#AdmiralsQuarters": "0x4758276018B944DFe320E98Da5C3f4c03c3a6BDB",
+  "TipJarModule#TipJar": "0x2d1A2637c3E0c80f31A91d0b6dbC5a107988a401"
 }

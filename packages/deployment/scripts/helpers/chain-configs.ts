@@ -25,4 +25,15 @@ export function getChainConfigs(useTestConfig: boolean = false) {
   } as const
 }
 
+export function getChainConfigByChainId(chainId: number, useTestConfig: boolean = false) {
+  const configs = getChainConfigs(useTestConfig)
+  const chainEntries = Object.entries(configs)
+
+  const match = chainEntries.find(([_, config]) => config.chain.id === chainId)
+  if (!match) return undefined
+
+  const [chainName, chainConfig] = match
+  return { chainName: chainName as ChainName, chainConfig }
+}
+
 export type ChainName = keyof ReturnType<typeof getChainConfigs>

@@ -3,6 +3,7 @@ import { ArkType, BaseConfig } from '../../types/config-types'
 import { deployAaveV3Ark } from '../arks/deploy-aavev3-ark'
 import { deployCompoundV3Ark } from '../arks/deploy-compoundv3-ark'
 import { deployERC4626Ark } from '../arks/deploy-erc4626-ark'
+import { deployMoonwellArk } from '../arks/deploy-moonwell-ark'
 import { MorphoArkUserInput, deployMorphoArk } from '../arks/deploy-morpho-ark'
 import { MorphoVaultArkUserInput, deployMorphoVaultArk } from '../arks/deploy-morpho-vault-ark'
 import { deployPendleLPArk } from '../arks/deploy-pendle-lp-ark'
@@ -53,7 +54,9 @@ export async function deployArk(
     case ArkType.SparkArk:
       deployedArk = await deploySparkArk(config, baseArkParams)
       break
-
+    case ArkType.MoonwellArk:
+      deployedArk = await deployMoonwellArk(config, baseArkParams)
+      break
     case ArkType.CompoundV3Ark:
       deployedArk = await deployCompoundV3Ark(config, baseArkParams)
       break
@@ -181,7 +184,9 @@ export async function deployArkInteractive(arkType: ArkType, config: BaseConfig)
     case ArkType.SparkArk:
       deployedArk = await deploySparkArk(config)
       break
-
+    case ArkType.MoonwellArk:
+      deployedArk = await deployMoonwellArk(config)
+      break
     case ArkType.CompoundV3Ark:
       deployedArk = await deployCompoundV3Ark(config)
       break

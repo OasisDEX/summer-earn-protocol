@@ -119,7 +119,7 @@ contract MetaMorphoArkTestFork is Test, IArkEvents, ArkTestBase {
 
         uint256 assetsAfterAccrual = ark.totalAssets();
         assertTrue(
-            assetsAfterAccrual >= assetsAfterDeposit,
+            assetsAfterAccrual > assetsAfterDeposit,
             "Assets should not decrease after accrual"
         );
     }
