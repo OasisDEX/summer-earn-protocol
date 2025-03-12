@@ -435,19 +435,19 @@
     "deployedContracts": {
       "gov": {
         "summerGovernor": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x2aA6DFDB53517243B5abB97FDAF2d6003b7FeB0d"
         },
         "summerToken": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x424aA31D64cabd39ea8B133BE844d935d666f40e"
         },
         "timelock": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xc5cAB79A195497ec19495a7ffa8E263557c41AAC"
         },
         "protocolAccessManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x244D9AffCCA2EaFD689b0393Bf15F26f79364c25"
         },
         "rewardsRedeemer": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x394C95eC48B36C458335435C6a3E74BbD0B35237"
         }
       },
       "buyAndBurn": {
@@ -457,22 +457,22 @@
       },
       "core": {
         "tipJar": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0xd236Cc900d35601C99950A7933158C3d2f0Dc46b"
         },
         "raft": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x887482d43792330Bf42C20154d11B0c308aFb4bc"
         },
         "configurationManager": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x49f1541C43cF7039d47a09Ce3BFaee3c554326d8"
         },
         "harborCommand": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57"
         },
         "admiralsQuarters": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x364a0fc1DA103B01759A9b1E72821fF20fe6cCAE"
         },
         "fleetCommanderRewardsManagerFactory": {
-          "address": "0x0000000000000000000000000000000000000000"
+          "address": "0x7160287dA4c544907011C0548c0818F7a9DbA7D1"
         }
       }
     },

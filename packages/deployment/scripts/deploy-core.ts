@@ -20,7 +20,7 @@ export async function deployCore() {
 
   const config = getConfigByNetwork(
     hre.network.name,
-    { common: true, gov: true, core: false },
+    { common: false, gov: true, core: false },
     useBummerConfig,
   )
   const deployedCore = await deployCoreContracts(config)
