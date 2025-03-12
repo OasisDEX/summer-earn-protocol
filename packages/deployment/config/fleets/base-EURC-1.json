@@ -4,16 +4,16 @@
   "assetSymbol": "EURC",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "600",
-  "depositCap": "100000000",
+  "depositCap": "0",
   "initialTipRate": "1000000000000000000",
   "network": "base",
   "details": "",
   "discourseURL": "tbd",
-  "sipNumber": "tbd",
+  "sipNumber": "1.2",
   "rewardTokens": ["0x194f360D130F2393a5E9F3117A6a1B78aBEa1624"],
-  "rewardAmounts": ["1537243000000000000000000"],
-  "rewardsDuration": 4924800,
-  "bridgeAmount": "10000000000000000000000000",
+  "rewardAmounts": ["1429366000000000000000000"],
+  "rewardsDuration": 4579200,
+  "bridgeAmount": "0",
   "curator": "0xa16f07B4Dd32250DEc69C63eCd0aef6CD6096d3d",
   "arks": [
     {
@@ -46,13 +46,6 @@
         "asset": "EURC",
         "vaultName": "Gauntlet_EURC_Core",
         "protocol": "erc4626"
-      }
-    },
-    {
-      "type": "MoonwellArk",
-      "params": {
-        "asset": "EURC",
-        "protocol": "moonwell"
       }
     }
   ]

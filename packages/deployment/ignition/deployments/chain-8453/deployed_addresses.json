@@ -23,5 +23,10 @@
   "MorphoVault_usdc_Re7_USDC_8453#MorphoVaultArk": "0x78f466314b2A69685e464431eDF7688cB77De131",
   "MorphoVault_usdc_Spark_USDC_8453#MorphoVaultArk": "0x8948a5F3D24F7A6d50FF36064e8cff33B2aF062f",
   "AdmiralsQuartersModule#AdmiralsQuarters": "0x6A6295C8047Abf5aE8f8224a168F661e4F3Ac838",
-  "TipJarModule#TipJar": "0xAd30bc7E40f13d88EDa608A5729d28151FcAA374"
+  "TipJarModule#TipJar": "0xAd30bc7E40f13d88EDa608A5729d28151FcAA374",
+  "FleetModule_LazyVault_LowerRisk_EURC#FleetCommander": "0x257447F5AB34CAC013C517e2F45E6e19ce38f669",
+  "ERC4626_Fluid_eurc_8453#ERC4626Ark": "0xd3C89Ceb3bDD764a9581ea19DCdaB14049cba7CA",
+  "MorphoVault_eurc_Moonwell_Flagship_EURC_8453#MorphoVaultArk": "0x2dB5e35DF3660D30b41F17bB82c4e3D0CbbFcE36",
+  "MorphoVault_eurc_Steakhouse_EURC_8453#MorphoVaultArk": "0xFB85843a8240e3efA2f0CaD7E5D33E027e9E8360",
+  "MorphoVault_eurc_Gauntlet_EURC_Core_8453#MorphoVaultArk": "0x39410FeA68088a661a2b26CD3D97F617c69aDFF4"
 }
