@@ -5,10 +5,10 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: EntryPoint
-    network: base
+    network: sonic-mainnet
     source:
       abi: Comet
-      startBlock: 24744895
+      startBlock: 12744800
       address: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B"
     mapping:
       kind: ethereum/events
@@ -48,5 +48,5 @@ dataSources:
         - handler: handleBlock
           filter:
             kind: polling
-            every: 300    
+            every: 20    
       file: ./src/mapping.ts
