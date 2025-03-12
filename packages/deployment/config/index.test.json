@@ -486,17 +486,17 @@
     },
     "common": {
       "initialSupply": "0",
-      "swapProvider": "0x0000000000000000000000000000000000000000",
+      "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
       "layerZero": {
-        "lzEndpoint": "0x0000000000000000000000000000000000000000",
-        "eID": "0"
+        "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
+        "eID": "30332"
       }
     },
     "protocolSpecific": {
       "aaveV3": {
-        "pool": "0x0000000000000000000000000000000000000000",
-        "rewards": "0x0000000000000000000000000000000000000000"
+        "pool": "0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3",
+        "rewards": "0x24bD6e9ca54F1737467DEf82dCA9702925B3Aa59"
       },
       "morpho": {
         "blue": "0x0000000000000000000000000000000000000000",
@@ -520,7 +520,17 @@
         "rewards": "0x0000000000000000000000000000000000000000"
       },
       "erc4626": {
-        "usdc": {}
+        "usdc": {},
+        "dai": {},
+        "usde": {},
+        "usdt": {},
+        "usdce": {
+          "Euler_MEV_Capital": "0x196F3C7443E940911EE2Bb88e019Fd71400349D9",
+          "Euler_Re7_Labs": "0x3D9e5462A940684073EED7e4a13d19AE0Dcd13bc"
+        },
+        "weth": {
+          "Euler_MEV_Capital": "0xa5cd24d9792F4F131f5976Af935A505D19c8Db2b"
+        }
       }
     }
   }
