@@ -44,6 +44,7 @@
     "whitelist-vesting-wallets-tx": "hardhat run scripts/governance/whitelist-vesting-wallets-safe.ts --network $NETWORK",
     "generate-merkle-root": "tsx scripts/generate-merkle-root.ts",
     "update-fleet-configurations": "hardhat run scripts/governance/update-fleet-configurations-safe.ts --network $NETWORK",
+    "submit-proposal": "hardhat run scripts/governance/submit-proposal.ts --network $NETWORK",
     "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts"
   },
   "devDependencies": {
