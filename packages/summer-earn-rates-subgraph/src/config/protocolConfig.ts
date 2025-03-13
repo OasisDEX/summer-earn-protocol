@@ -493,6 +493,12 @@ class ProtocolConfig {
           BigInt.fromI32(7551731),
           'AaveV3',
         ),
+        new AaveV3Product(
+          getOrCreateToken(addresses.EURC),
+          Address.fromString('0xA238Dd80C259a72e81d7e4664a9801593F98d1c5'),
+          BigInt.fromI32(7551731),
+          'AaveV3',
+        ),
       ]),
       new Protocol('Fluid', [
         new ERC4626Product(

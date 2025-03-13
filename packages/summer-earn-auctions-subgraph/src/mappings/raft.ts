@@ -21,7 +21,7 @@ export function handleArkRewardTokenAuctionStarted(event: ArkRewardTokenAuctionS
     event.params.auctionId,
     event.params.ark,
     event.params.rewardToken,
-    event.block.timestamp
+    event.block.timestamp,
   )
 }
 
