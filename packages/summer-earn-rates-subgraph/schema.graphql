@@ -13,6 +13,12 @@ type InterestRate @entity(immutable: true) {
   weeklyRateId: WeeklyInterestRate!
 }
 
+type TimeHelper @entity {
+  # id = address
+  id: Bytes!
+  lastUpdateTimestamp: BigInt!
+}
+
 type VaultState @entity {
   # id = address
   id: Bytes!

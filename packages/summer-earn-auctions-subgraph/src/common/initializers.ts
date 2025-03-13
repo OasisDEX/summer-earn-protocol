@@ -12,7 +12,7 @@ export function getOrCreateAuction(
   auctionId: BigInt,
   ark: Address = Address.zero(),
   rewardToken: Address = Address.zero(),
-  startTimestamp: BigInt = BigInt.fromI32(0)
+  startTimestamp: BigInt = BigInt.fromI32(0),
 ): Auction {
   let auction = Auction.load(auctionId.toString())
   if (!auction && ark != Address.zero() && rewardToken != Address.zero()) {
