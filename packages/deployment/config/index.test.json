@@ -57,7 +57,18 @@
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
-        "eID": "30184"
+        "eID": "30184",
+        "lzExecutor": "0x2CCA08ae69E0C44b18a57Ab2A87644234dAebaE4",
+        "sendUln302": "0xB5320B0B3a13cC860893E2Bd79FCd7e13484Dda2",
+        "receiveUln302": "0xc70AB6f32772f59fBfc23889Caf4Ba3376C84bAf",
+        "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
+        "lzDeadDVN": "0x6498b0632f3834D7647367334838111c8C889703",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0x9e059a54699a285714207b43b055483e78faac25",
+            "stargate": "0xcdf31d62140204c08853b547e64707110fbc6680"
+          }
+        }
       }
     },
     "protocolSpecific": {
@@ -171,7 +182,18 @@
       "tipRate": "100",
       "layerZero": {
         "eID": "30110",
-        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "lzExecutor": "0x31CAe3B7fB82d847621859fb1585353c5720660D",
+        "sendUln302": "0x975bcD720be66659e3EB3C0e4F1866a3020E493A",
+        "receiveUln302": "0x7B9E184e07a6EE1aC23eAe0fe8D6Be2f663f05e6",
+        "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
+        "lzDeadDVN": "0x758C419533ad64Ce9D3413BC8d3A97B026098EC1",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0x2f55c492897526677c5b68fb199ea31e2c126416",
+            "stargate": "0x5756a74e8e18d8392605ba667171962b2b2826b5"
+          }
+        }
       }
     },
     "protocolSpecific": {
@@ -303,7 +325,18 @@
       "tipRate": "100",
       "layerZero": {
         "eID": "30101",
-        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+        "lzEndpoint": "0x1a44076050125825900e736c501f859c50fE728c",
+        "lzExecutor": "0x173272739Bd7Aa6e4e214714048a9fE699453059",
+        "sendUln302": "0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1",
+        "receiveUln302": "0xc02Ab410f0734EFa3F14628780e6e695156024C2",
+        "blockedMessageLib": "0x1ccbf0db9c192d969de57e25b3ff09a25bb1d862",
+        "lzDeadDVN": "0x747C741496a507E4B404b50463e691A8d692f6Ac",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0x589dedbd617e0cbcb916a9223f4d1300c294236b",
+            "stargate": "0x8fafae7dd957044088b3d0f67359c327c6200d18"
+          }
+        }
       }
     },
     "protocolSpecific": {
@@ -490,7 +523,18 @@
       "tipRate": "100",
       "layerZero": {
         "lzEndpoint": "0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",
-        "eID": "30332"
+        "eID": "30332",
+        "lzExecutor": "0x4208D6E27538189bB48E603D6123A94b8Abe0A0b",
+        "sendUln302": "0xC39161c743D0307EB9BCc9FEF03eeb9Dc4802de7",
+        "receiveUln302": "0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043",
+        "blockedMessageLib": "0xc1ce56b2099ca68720592583c7984cab4b6d7e7a",
+        "lzDeadDVN": "",
+        "dvns": {
+          "sonic": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          }
+        }
       }
     },
     "protocolSpecific": {

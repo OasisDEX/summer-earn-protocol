@@ -51,6 +51,14 @@ export interface BaseConfig {
     layerZero: {
       lzEndpoint: Address
       eID: string
+      lzExecutor: Address
+      sendUln302: Address
+      receiveUln302: Address
+      blockedMessageLib: Address
+      lzDeadDVN: Address
+      dvns: {
+        sonic: Record<string, Address>
+      }
     }
     swapProvider: Address
     tipRate: string
