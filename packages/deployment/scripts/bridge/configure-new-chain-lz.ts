@@ -1,27 +1,15 @@
 import kleur from 'kleur'
 import prompts from 'prompts'
-import {
-  Address,
-  createPublicClient,
-  createWalletClient,
-  encodeAbiParameters,
-  http,
-  PublicClient,
-} from 'viem'
+import { Address, createWalletClient, encodeAbiParameters, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { arbitrum, base, mainnet, optimism } from 'viem/chains'
+import { RPC_URL_MAP, getChainPublicClient } from '../helpers/chain-rpc-helper'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { getHubChain } from '../helpers/get-hub-chain'
 import { promptForConfigType } from '../helpers/prompt-helpers'
 import { warnIfTenderlyVirtualTestnet } from '../helpers/tenderly-helpers'
-import { createUnifiedLzConfigProposal } from './bridge-governance-helper'
-
-const RPC_URL_MAP = {
-  mainnet: process.env.RPC_URL_MAINNET,
-  base: process.env.RPC_URL_BASE,
-  arbitrum: process.env.RPC_URL_ARBITRUM,
-  sonic: process.env.RPC_URL_SONIC,
-}
+import { checkLzAuthorization, createUnifiedLzConfigProposal } from './bridge-governance-helper'
+import { LZ_ENDPOINT_ABI } from './lz-endpoint-abi'
 
 // Interface for LayerZero configuration
 interface LzEndpointConfig {
@@ -48,36 +36,6 @@ interface ConfigurationAttempt {
   sendConfigParams: any[]
   receiveConfigParams: any[]
 }
-
-// LZ Endpoint interface for setConfig
-const lzEndpointAbi = [
-  {
-    inputs: [
-      { name: 'oapp', type: 'address' },
-      { name: 'lib', type: 'address' },
-      {
-        name: 'params',
-        type: 'tuple[]',
-        components: [
-          { name: 'eid', type: 'uint32' },
-          { name: 'configType', type: 'uint32' },
-          { name: 'config', type: 'bytes' },
-        ],
-      },
-    ],
-    name: 'setConfig',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'oapp', type: 'address' }],
-    name: 'delegates',
-    outputs: [{ name: 'delegate', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const
 
 /**
  * Get all chains in the ecosystem with deployed contracts
@@ -274,8 +232,12 @@ async function tryDirectExecution(
   receiveConfigParams: any[],
   isNewChain: boolean = false,
 ): Promise<{ success: boolean; error?: string }> {
+  console.log(kleur.blue(`Checking if we can directly configure OApp on ${chain}:`))
+
   try {
-    throw new Error('Not implemented')
+    // Get a public client for the chain - use our new helper
+    const publicClient = await getChainPublicClient(chain)
+
     // Get the source chain configuration to access RPC URLs
     const sourceConfig = getConfigByNetwork(chain, { common: true }, false)
 
@@ -324,12 +286,6 @@ async function tryDirectExecution(
       }
     }
 
-    // Use type assertion for the public client to bypass compatibility issues
-    const publicClient = createPublicClient({
-      chain: chainConfig,
-      transport: http(rpcUrl),
-    }) as PublicClient
-
     // Get wallet private key (using environment variable or config)
     const privateKey = process.env.DEPLOYER_PRIVATE_KEY
     if (!privateKey) {
@@ -350,10 +306,11 @@ async function tryDirectExecution(
     console.log(kleur.yellow(`  Using account: ${account.address}`))
 
     // Check if deployer is authorized (using our helper function)
-    const { isAuthorized, delegate } = await checkLzAuthorizationViem(
-      publicClient,
+    const { isAuthorized, delegate } = await checkLzAuthorization(
       lzEndpointAddress,
       oAppAddress,
+      account.address,
+      chain,
     )
 
     if (!isAuthorized) {
@@ -375,7 +332,7 @@ async function tryDirectExecution(
     console.log(kleur.yellow(`  Setting send config on ${chain}...`))
     const sendHash = await walletClient.writeContract({
       address: lzEndpointAddress,
-      abi: lzEndpointAbi,
+      abi: LZ_ENDPOINT_ABI,
       functionName: 'setConfig',
       args: [oAppAddress, sendLibraryAddress, sendConfigParams],
       chain: chainConfig,
@@ -390,7 +347,7 @@ async function tryDirectExecution(
     console.log(kleur.yellow(`  Setting receive config on ${chain}...`))
     const receiveHash = await walletClient.writeContract({
       address: lzEndpointAddress,
-      abi: lzEndpointAbi,
+      abi: LZ_ENDPOINT_ABI,
       functionName: 'setConfig',
       args: [oAppAddress, receiveLibraryAddress, receiveConfigParams],
       chain: chainConfig,
@@ -408,34 +365,6 @@ async function tryDirectExecution(
       error: error instanceof Error ? error.message : String(error),
     }
   }
-}
-
-/**
- * Helper function to check LZ authorization using Viem directly
- */
-async function checkLzAuthorizationViem(
-  publicClient: PublicClient,
-  lzEndpointAddress: Address,
-  oAppAddress: Address,
-): Promise<{ isAuthorized: boolean; delegate: Address }> {
-  // Read the delegate from the contract
-  const delegate = await publicClient.readContract({
-    address: lzEndpointAddress,
-    abi: lzEndpointAbi,
-    functionName: 'delegates',
-    args: [oAppAddress],
-  })
-
-  // Get the wallet address
-  const walletAddress = privateKeyToAccount(
-    process.env.DEPLOYER_PRIVATE_KEY as `0x${string}`,
-  ).address
-
-  // Check if wallet is authorized
-  const isAuthorized =
-    delegate === walletAddress || delegate === '0x0000000000000000000000000000000000000000'
-
-  return { isAuthorized, delegate }
 }
 
 /**

@@ -4,48 +4,52 @@ import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi } from 'viem'
 import { HUB_CHAIN_ID, HUB_CHAIN_NAME } from '../common/constants'
 import { getChainConfigByChainId } from '../helpers/chain-configs'
+import { getChainPublicClient } from '../helpers/chain-rpc-helper'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { getHubChain } from '../helpers/get-hub-chain'
 import { hashDescription } from '../helpers/hash-description'
 import { constructLzOptions } from '../helpers/layerzero-options'
 import { createGovernanceProposal } from '../helpers/proposal-helpers'
+import { LZ_ENDPOINT_ABI } from './lz-endpoint-abi'
 
 /**
  * Check if the current deployer is authorized by the LZ endpoint
  * @param lzEndpointAddress The address of the LZ endpoint contract
  * @param oAppAddress The address of the OApp
+ * @param publicClient The Viem public client to use for the call
+ * @param deployerAddress The address of the deployer to check authorization for
+ * @param chainName Optional chain name for logging purposes
  * @returns An object containing the delegate address and whether the deployer is authorized
  */
 export async function checkLzAuthorization(
   lzEndpointAddress: Address,
   oAppAddress: Address,
+  deployerAddress: Address,
+  chainName: string,
 ): Promise<{ delegate: Address; isAuthorized: boolean }> {
-  const [deployer] = await hre.viem.getWalletClients()
-  const publicClient = await hre.viem.getPublicClient()
+  const publicClient = await getChainPublicClient(chainName)
 
   console.log(kleur.blue('Checking LZ authorization for OApp:'), kleur.cyan(oAppAddress))
-  console.log(kleur.blue('Using deployer:'), kleur.cyan(deployer.account.address))
+  console.log(kleur.blue('Using deployer:'), kleur.cyan(deployerAddress))
+  console.log(kleur.blue('On chain:'), kleur.cyan(chainName))
 
-  const lzEndpointAbi = [
-    {
-      inputs: [{ name: 'oapp', type: 'address' }],
-      name: 'delegates',
-      outputs: [{ name: 'delegate', type: 'address' }],
-      stateMutability: 'view',
-      type: 'function',
-    },
-  ] as const
-
-  const delegate = await publicClient.readContract({
+  // Call the endpoint contract to check the delegate
+  const delegate = (await publicClient.readContract({
     address: lzEndpointAddress,
-    abi: lzEndpointAbi,
+    abi: LZ_ENDPOINT_ABI,
     functionName: 'delegates',
     args: [oAppAddress],
-  })
+  })) as Address
+
+  // Check if the deployer is authorized (either as owner or delegate)
+  const isAuthorized =
+    delegate === deployerAddress || delegate === '0x0000000000000000000000000000000000000000'
 
   console.log(kleur.blue('Delegate for OApp:'), kleur.cyan(delegate))
-
-  const isAuthorized = delegate.toLowerCase() === deployer.account.address.toLowerCase()
+  console.log(
+    kleur.blue('Is deployer authorized:'),
+    isAuthorized ? kleur.green('Yes') : kleur.red('No'),
+  )
 
   return { delegate, isAuthorized }
 }
@@ -266,7 +270,13 @@ export async function createLzConfigProposal(
   console.log(kleur.cyan('Creating LayerZero configuration proposal...'))
 
   const [deployer] = await hre.viem.getWalletClients()
-  const { delegate, isAuthorized } = await checkLzAuthorization(lzEndpointAddress, oAppAddress)
+  const chainName = hre.network.name
+  const { delegate, isAuthorized } = await checkLzAuthorization(
+    lzEndpointAddress,
+    oAppAddress,
+    deployer.account.address,
+    chainName,
+  )
 
   if (isAuthorized) {
     console.log(kleur.green('Deployer is authorized. No governance proposal needed.'))
@@ -278,7 +288,7 @@ export async function createLzConfigProposal(
   console.log(kleur.blue('Actual delegate:'), kleur.cyan(delegate))
 
   // Get the current chain config
-  const chainName = hre.network.name
+
   const config = getConfigByNetwork(chainName, { gov: true }, useBummerConfig)
   const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
 
@@ -393,7 +403,13 @@ export async function createCrossChainLzConfigProposal(
   console.log(kleur.cyan('Creating cross-chain LayerZero configuration proposal...'))
 
   const [deployer] = await hre.viem.getWalletClients()
-  const { delegate, isAuthorized } = await checkLzAuthorization(lzEndpointAddress, oAppAddress)
+  const chainName = hre.network.name
+  const { delegate, isAuthorized } = await checkLzAuthorization(
+    lzEndpointAddress,
+    oAppAddress,
+    deployer.account.address,
+    chainName,
+  )
 
   if (isAuthorized) {
     console.log(kleur.green('Deployer is authorized. No governance proposal needed.'))
@@ -650,8 +666,13 @@ export async function createUnifiedLzConfigProposal(
 
   for (const config of hubChainConfigs) {
     try {
-      // Get current delegate
-      const { delegate } = await checkLzAuthorization(config.lzEndpointAddress, config.oAppAddress)
+      // Get current delegate - pass the source chain name
+      const { delegate } = await checkLzAuthorization(
+        config.lzEndpointAddress,
+        config.oAppAddress,
+        deployer.account.address,
+        config.sourceChain,
+      )
 
       const oAppName = config.oAppType === 'summerToken' ? 'Summer Token' : 'Summer Governor'
 
@@ -720,10 +741,11 @@ export async function createUnifiedLzConfigProposal(
 
     for (const config of targetChainConfigs) {
       try {
-        // Get current delegate
+        // Get current delegate - pass the source chain name
         const { delegate } = await checkLzAuthorization(
           config.lzEndpointAddress,
           config.oAppAddress,
+          config.sourceChain,
         )
 
         const oAppName = config.oAppType === 'summerToken' ? 'Summer Token' : 'Summer Governor'
