@@ -1,0 +1,46 @@
+specVersion: 0.0.8
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Raft
+    network: arbitrum-one
+    source:
+      abi: Raft
+      address: "0xD1Bccfd8B32A5052a6873259c204CBA85510BC6E"
+      startBlock: 301218512
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vault
+      abis:
+        - name: Raft
+          file: ./abis/Raft.abi.json
+        - name: ERC20
+          file: ./abis/common/ERC20.json
+        - name: OneInchOracle
+          file: ./abis/oracles/one-inch-oracle.json
+        - name: AaveV3Oracle
+          file: ./abis/oracles/aave-v3-oracle.json
+        - name: SdaiOracle
+          file: ./abis/oracles/sdai-oracle.json
+        - name: Ark
+          file: ./abis/Ark.abi.json
+        - name: FleetCommander
+          file: ./abis/FleetCommander.abi.json
+      eventHandlers:
+        - event:  ArkRewardTokenAuctionStarted(uint256,address,address,uint256)
+          handler: handleArkRewardTokenAuctionStarted
+          receipt: true
+        - event: AuctionFinalized(indexed uint256,uint256,uint256)
+          handler: handleAuctionFinalized
+          receipt: true
+        - event:  TokensPurchased(indexed uint256,indexed address,uint256,uint256)
+          handler: handleTokensPurchased
+          receipt: true
+        - event:  ArkAuctionParametersSet(indexed address,indexed address,(uint40,uint256,uint256,uint256,uint8))
+          handler: handleArkAuctionParametersSet
+          receipt: true
+      file: ./src/mappings/raft.ts

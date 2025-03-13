@@ -1,0 +1,85 @@
+type Auction @entity {
+  id: ID!
+  auctionId: String!
+  ark: Ark!
+  rewardToken: Token!
+  buyToken: Token!
+  startBlock: BigInt!
+  endBlock: BigInt
+  startPrice: BigDecimal!
+  endPrice: BigDecimal!
+  startTimestamp: BigInt!
+  endTimestamp: BigInt!
+  tokensLeft: BigInt!
+  tokensLeftNormalized: BigDecimal!
+  kickerRewardPercentage: BigDecimal!
+decayType: String
+  duration: BigInt!
+  isFinalized: Boolean!
+}
+
+type TokensPurchased @entity {
+  id: ID!
+  auction: Auction!
+  buyer: Account!
+  tokensPurchased: BigInt!
+  tokensPurchasedNormalized: BigDecimal!
+  pricePerToken: BigInt!
+  pricePerTokenNormalized: BigDecimal!
+  totalCost: BigInt!
+  totalCostNormalized: BigDecimal!
+  timestamp: BigInt!
+
+  marketPriceInUSDNormalized: BigDecimal!
+}
+
+type Token @entity @regularPolling {
+  " Smart contract address of the token "
+  id: ID!
+
+  " Name of the token, mirrored from the smart contract "
+  name: String!
+
+  " Symbol of the token, mirrored from the smart contract "
+  symbol: String!
+
+  " The number of decimal places this token uses, default to 18 "
+  decimals: Int!
+
+  " Optional field to track the price of a token, mostly for caching purposes "
+  lastPriceUSD: BigDecimal
+
+  " Optional field to track the block number of the last token price "
+  lastPriceBlockNumber: BigInt
+}
+
+type Account @entity {
+  id: ID!
+  address: String!
+}
+
+type ArkAuctionParameters @entity {
+  id: ID!
+  ark: Ark!
+  rewardToken: Token!
+  buyToken: Token!
+  kickerRewardPercentage: BigDecimal!
+  decayType: String!
+  duration: BigInt!
+  startPrice: BigDecimal!
+  endPrice: BigDecimal!
+}
+
+type Ark @entity {
+  id: ID!
+  address: String!
+  commander: String!
+}
+
+type TokenPrice @entity {
+  id: Bytes!
+  token: Token!
+  blockNumber: BigInt!
+  price: BigDecimal!
+  oracle: String!
+}
