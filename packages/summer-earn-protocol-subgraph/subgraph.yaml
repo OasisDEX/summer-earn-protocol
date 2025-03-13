@@ -54,12 +54,12 @@ dataSources:
         - handler: handleInterval
           filter:
             kind: polling
-            every: 30 
+            every: 120 
       file: ./src/mappings/harborCommand.ts
 templates:
   - kind: ethereum/contract
     name: FleetCommanderTemplate
-    network: base
+    network: sonic-mainnet
     source:
       abi: FleetCommander
     mapping:
@@ -140,7 +140,7 @@ templates:
       file: ./src/mappings/fleetCommander.ts
   - kind: ethereum/contract
     name: ArkTemplate
-    network: base
+    network: sonic-mainnet
     source:
       abi: Ark
     mapping:
@@ -201,7 +201,7 @@ templates:
       file: ./src/mappings/ark.ts
   - kind: ethereum/contract
     name: FleetCommanderRewardsManagerTemplate
-    network: base
+    network: sonic-mainnet
     source:
       abi: FleetCommanderRewardsManager
     mapping:
