@@ -19,6 +19,7 @@ import {
   Token,
   UsageMetricsDailySnapshot,
   UsageMetricsHourlySnapshot,
+  Vault,
   VaultDailySnapshot,
   VaultHourlySnapshot,
   Vault as VaultStore,
@@ -280,10 +281,9 @@ export function getOrCreateUsageMetricsHourlySnapshot(
 }
 
 export function getOrCreateVaultsDailySnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   block: ethereum.Block,
 ): VaultDailySnapshot {
-  const vault = getOrCreateVault(vaultAddress, block)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   const currentDay = block.timestamp.toI64() / constants.SECONDS_PER_DAY
   const dailyTimestamp = getDailyTimestamp(block.timestamp)
@@ -338,10 +338,9 @@ export function getOrCreateVaultsDailySnapshots(
 }
 
 export function getOrCreateVaultsHourlySnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   block: ethereum.Block,
 ): VaultHourlySnapshot {
-  const vault = getOrCreateVault(vaultAddress, block)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   const hourTimestamp = getHourlyOffsetTimestamp(block.timestamp)
   const currentHour = block.timestamp
@@ -467,7 +466,7 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
 
     vault.save()
 
-    const bufferArk = getOrCreateArk(vaultAddress, bufferArkAddress, block)
+    const bufferArk = getOrCreateArk(vault, bufferArkAddress, block)
 
     vault.bufferArk = bufferArk.id
     vault.save()
@@ -486,21 +485,16 @@ export function getOrCreateVault(vaultAddress: Address, block: ethereum.Block): 
   return vault
 }
 
-export function getOrCreateArk(
-  vaultAddress: Address,
-  arkAddress: Address,
-  block: ethereum.Block,
-): Ark {
+export function getOrCreateArk(vault: Vault, arkAddress: Address, block: ethereum.Block): Ark {
   let ark = Ark.load(arkAddress.toHexString())
 
   if (!ark) {
     ark = new Ark(arkAddress.toHexString())
 
     const arkContract = ArkContract.bind(arkAddress)
-    const vault = getOrCreateVault(vaultAddress, block)
 
     ark.name = arkContract.name()
-    ark.vault = vaultAddress.toHexString()
+    ark.vault = vault.id
     const config = arkContract.getConfig()
     ark.depositLimit = config.depositCap
     ark.depositCap = ark.depositLimit
@@ -549,11 +543,11 @@ export function getOrCreateArk(
 }
 
 export function getOrCreateArksHourlySnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   arkAddress: Address,
   block: ethereum.Block,
 ): ArkHourlySnapshot {
-  const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+  const ark = getOrCreateArk(vault, arkAddress, block)
   const id: string = ark.id
     .concat('-')
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_HOUR).toString())
@@ -588,11 +582,11 @@ export function getOrCreateArksHourlySnapshots(
 }
 
 export function getOrCreateArksDailySnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   arkAddress: Address,
   block: ethereum.Block,
 ): ArkDailySnapshot {
-  const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+  const ark = getOrCreateArk(vault, arkAddress, block)
   const id: string = ark.id
     .concat('-')
     .concat((block.timestamp.toI64() / constants.SECONDS_PER_DAY).toString())
@@ -620,11 +614,11 @@ export function getOrCreateArksDailySnapshots(
 }
 
 export function getOrCreateArksPostActionSnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   arkAddress: Address,
   block: ethereum.Block,
 ): PostActionArkSnapshot {
-  const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+  const ark = getOrCreateArk(vault, arkAddress, block)
   const id: string = ark.id.concat('-').concat(block.timestamp.toI64().toString())
 
   let arkSnapshots = PostActionArkSnapshot.load(id)
@@ -655,10 +649,9 @@ export function getOrCreateArksPostActionSnapshots(
 }
 
 export function getOrCreateVaultsPostActionSnapshots(
-  vaultAddress: Address,
+  vault: Vault,
   block: ethereum.Block,
 ): PostActionVaultSnapshot {
-  const vault = getOrCreateVault(vaultAddress, block)
   const id: string = vault.id.concat('-').concat(block.timestamp.toI64().toString())
   let vaultSnapshots = PostActionVaultSnapshot.load(id)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
@@ -692,7 +685,7 @@ export function getOrCreateVaultsPostActionSnapshots(
     let weightedApr = constants.BigDecimalConstants.ZERO
     for (let j = 0; j < arks.length; j++) {
       const arkAddress = Address.fromString(arks[j])
-      const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+      const ark = getOrCreateArk(vault, arkAddress, block)
       const arkApr = ark.calculatedApr
       const arkTotalAssets = ark.inputTokenBalance.toBigDecimal()
       const arkWeight = arkTotalAssets.div(totalAssets.toBigDecimal())
@@ -710,14 +703,13 @@ export function getOrCreateVaultsPostActionSnapshots(
 
 export function getOrCreatePositionHourlySnapshot(
   positionId: string,
-  vaultId: Address,
+  vault: Vault,
   block: ethereum.Block,
 ): void {
   const hourTimestamp = getHourlyTimestamp(block.timestamp)
   const snapshotId = positionId + '-' + hourTimestamp.toString()
   let snapshot = PositionHourlySnapshot.load(snapshotId)
 
-  const vault = getOrCreateVault(vaultId, block)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   if (!snapshot) {
     snapshot = new PositionHourlySnapshot(snapshotId)
@@ -728,7 +720,7 @@ export function getOrCreatePositionHourlySnapshot(
   }
 
   // Update balances
-  const position = Position.load(positionId)
+  let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
@@ -771,21 +763,20 @@ export function getOrCreatePositionHourlySnapshot(
 
     position.save()
   }
-
+  position = null
   snapshot.save()
 }
 
 // Function to create or update position daily snapshots
 export function getOrCreatePositionDailySnapshot(
   positionId: string,
-  vaultId: Address,
+  vault: Vault,
   block: ethereum.Block,
 ): void {
   const dayTimestamp = getDailyTimestamp(block.timestamp)
 
   const snapshotId = positionId + '-' + dayTimestamp.toString()
   let snapshot = PositionDailySnapshot.load(snapshotId)
-  const vault = getOrCreateVault(vaultId, block)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
 
   if (!snapshot) {
@@ -797,7 +788,7 @@ export function getOrCreatePositionDailySnapshot(
   }
 
   // Update balances
-  const position = Position.load(positionId)
+  let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
@@ -816,21 +807,20 @@ export function getOrCreatePositionDailySnapshot(
     snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
   }
-
+  position = null
   snapshot.save()
 }
 
 // Function to create or update position weekly snapshots
 export function getOrCreatePositionWeeklySnapshot(
   positionId: string,
-  vaultId: Address,
+  vault: Vault,
   block: ethereum.Block,
 ): void {
   const weekTimestamp = getWeeklyOffsetTimestamp(block.timestamp)
 
   const snapshotId = positionId + '-' + weekTimestamp.toString()
   let snapshot = PositionWeeklySnapshot.load(snapshotId)
-  const vault = getOrCreateVault(vaultId, block)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   if (!snapshot) {
     snapshot = new PositionWeeklySnapshot(snapshotId)
@@ -841,7 +831,7 @@ export function getOrCreatePositionWeeklySnapshot(
   }
 
   // Update balances
-  const position = Position.load(positionId)
+  let position = Position.load(positionId)
   if (position) {
     snapshot.outputTokenBalance = position.outputTokenBalance
 
@@ -861,21 +851,18 @@ export function getOrCreatePositionWeeklySnapshot(
     snapshot.inputTokenWithdrawalsNormalized = position.inputTokenWithdrawalsNormalized
     snapshot.inputTokenBalanceNormalized = position.inputTokenBalanceNormalized
   }
+  position = null
 
   snapshot.save()
 }
 
-export function getOrCreateVaultWeeklySnapshots(
-  vaultAddress: Address,
-  block: ethereum.Block,
-): void {
+export function getOrCreateVaultWeeklySnapshots(vault: Vault, block: ethereum.Block): void {
   const weekTimestamp = getWeeklyOffsetTimestamp(block.timestamp)
-  const snapshotId = vaultAddress.toHexString() + '-' + weekTimestamp.toString()
+  const snapshotId = vault.id + '-' + weekTimestamp.toString()
   let snapshot = VaultWeeklySnapshot.load(snapshotId)
 
-  const weeklyRateId = getWeeklyVaultRateIdAndTimestamp(block, vaultAddress.toHexString())
+  const weeklyRateId = getWeeklyVaultRateIdAndTimestamp(block, vault.id)
   const weeklyRate = WeeklyInterestRate.load(weeklyRateId.weeklyRateId)
-  const vault = getOrCreateVault(vaultAddress, block)
   const inputToken = getOrCreateToken(Address.fromString(vault.inputToken))
   if (!snapshot) {
     snapshot = new VaultWeeklySnapshot(snapshotId)
@@ -920,9 +907,7 @@ export function getOrCreateVaultWeeklySnapshots(
 
   // Update cumulative and weekly revenues
   const previousSnapshot = VaultWeeklySnapshot.load(
-    vaultAddress.toHexString() +
-      '-' +
-      weekTimestamp.minus(BigIntConstants.SECONDS_PER_WEEK).toString(),
+    vault.id + '-' + weekTimestamp.minus(BigIntConstants.SECONDS_PER_WEEK).toString(),
   )
 
   if (previousSnapshot) {

@@ -1,5 +1,5 @@
 import { Address, BigInt, ethereum, json, JSONValue, JSONValueKind } from '@graphprotocol/graph-ts'
-import { Ark, Token } from '../../generated/schema'
+import { Ark, Token, Vault } from '../../generated/schema'
 import { Ark as ArkContract } from '../../generated/templates/FleetCommanderTemplate/Ark'
 import * as constants from '../common/constants'
 import { getOrCreateArk } from '../common/initializers'
@@ -8,11 +8,11 @@ import * as utils from '../common/utils'
 import { ArkDetails } from '../types'
 
 export function getArkDetails(
-  vaultAddress: Address,
+  vault: Vault,
   arkAddress: Address,
   block: ethereum.Block,
 ): ArkDetails {
-  const ark = getOrCreateArk(vaultAddress, arkAddress, block)
+  const ark = getOrCreateArk(vault, arkAddress, block)
   const arkContract = ArkContract.bind(arkAddress)
   const totalAssets = utils.readValue<BigInt>(
     arkContract.try_totalAssets(),
@@ -22,7 +22,7 @@ export function getArkDetails(
   const inputTokenPriceUSD = getTokenPriceInUSD(Address.fromString(ark.inputToken), block)
   const arkDetails = new ArkDetails(
     ark.id,
-    vaultAddress.toHexString(),
+    vault.id,
     totalAssets,
     utils
       .formatAmount(totalAssets, BigInt.fromI32(inputToken.decimals))

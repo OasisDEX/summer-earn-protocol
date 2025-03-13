@@ -1,14 +1,14 @@
 specVersion: 0.0.8
 schema:
-  file: ./schema.graphql
+  file: ./schema.graphql 
 dataSources:
   - kind: ethereum/contract
     name: HarborCommand
-    network: sonic-mainnet
+    network: base
     source:
       abi: HarborCommand
-      address: "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57"
-      startBlock: 13000000
+      address: "0x09eb323dBFECB43fd746c607A9321dACdfB0140F"
+      startBlock: 25773568
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
