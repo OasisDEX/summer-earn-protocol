@@ -47,6 +47,7 @@ export interface BaseConfig {
     buyAndBurn: BuyAndBurnContracts
   }
   common: {
+    chainId: string
     initialSupply: string
     layerZero: {
       lzEndpoint: Address

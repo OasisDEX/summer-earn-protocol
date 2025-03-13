@@ -24,7 +24,7 @@ import {
   createArkAdditionProposal,
   createHubGovernanceProposal,
   createSatelliteGovernanceProposal,
-} from './fleets/governance-helpers'
+} from './fleets/fleet-governance-helpers'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { continueDeploymentCheck, promptForConfigType } from './helpers/prompt-helpers'
 import { warnIfTenderlyVirtualTestnet } from './helpers/tenderly-helpers'

@@ -8,6 +8,10 @@ import { GovContracts } from '../../ignition/modules/gov'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { promptForConfigType } from '../helpers/prompt-helpers'
 import { warnIfTenderlyVirtualTestnet } from '../helpers/tenderly-helpers'
+import {
+  createCrossChainLzConfigProposal,
+  createLzConfigProposal,
+} from './bridge-governance-helper'
 
 // LZ Endpoint interface for setConfig
 const lzEndpointAbi = [
@@ -28,6 +32,13 @@ const lzEndpointAbi = [
     name: 'setConfig',
     outputs: [],
     stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'oapp', type: 'address' }],
+    name: 'delegates',
+    outputs: [{ name: 'delegate', type: 'address' }],
+    stateMutability: 'view',
     type: 'function',
   },
 ] as const
@@ -183,16 +194,6 @@ async function configureLayerZeroEndpoint() {
     [executorConfig],
   )
 
-  // Create send SetConfigParam array with the correct structure
-  const sendConfigParams = [
-    {
-      eid: targetEid,
-      configType: 1, // CONFIG_TYPE_EXECUTOR
-      config: encodedExecutorConfig,
-    },
-  ]
-
-  // ----------------- RECEIVE CONFIG -----------------
   // Encode ULN receive config for DVNs
   const dvnAddresses = [dvns.lzLabs as Address, dvns.stargate as Address].sort()
 
@@ -222,7 +223,21 @@ async function configureLayerZeroEndpoint() {
     [ulnConfig],
   )
 
-  // Create receive SetConfigParam array
+  // Create send SetConfigParam array with both config types
+  const sendConfigParams = [
+    {
+      eid: targetEid,
+      configType: 1, // CONFIG_TYPE_EXECUTOR
+      config: encodedExecutorConfig,
+    },
+    {
+      eid: targetEid,
+      configType: 2, // CONFIG_TYPE_ULN
+      config: encodedUlnConfig,
+    },
+  ]
+
+  // Create receive SetConfigParam array with only ULN config
   const receiveConfigParams = [
     {
       eid: targetEid,
@@ -244,6 +259,8 @@ async function configureLayerZeroEndpoint() {
     kleur.cyan(`LZ Labs: ${dvns.lzLabs}, Stargate: ${dvns.stargate}`),
   )
   console.log(kleur.blue('- Executor Gas Limit:'), kleur.cyan(executorGasLimit.toString()))
+  console.log(kleur.blue('- Send config: both executor and ULN configs'))
+  console.log(kleur.blue('- Receive config: only ULN config'))
 
   // Get confirmation before proceeding
   const confirmation = await prompts({
@@ -259,55 +276,121 @@ async function configureLayerZeroEndpoint() {
   }
 
   try {
-    console.log(kleur.green('Setting Send Configuration...'))
+    console.log(kleur.green('Setting Send Library Configuration (both executor and ULN)...'))
     const [deployer] = await hre.viem.getWalletClients()
     console.log(kleur.blue('Using account:'), kleur.cyan(deployer.account.address))
 
-    // Set send config
-    const sendHash = await deployer.writeContract({
-      address: lzConfig.lzEndpoint as Address,
-      abi: lzEndpointAbi,
-      functionName: 'setConfig',
-      args: [oAppAddress as Address, executors.sendUln302 as Address, sendConfigParams],
-    })
-
-    console.log(kleur.green(`Send config transaction submitted: ${sendHash}`))
-
-    // Wait for transaction receipt
-    console.log(kleur.yellow('Waiting for send config transaction confirmation...'))
+    // Check if deployer is authorized (delegates)
     const publicClient = await hre.viem.getPublicClient()
-    const sendReceipt = await publicClient.waitForTransactionReceipt({
-      hash: sendHash,
-    })
-
-    console.log(
-      kleur.green(`✅ Send config transaction confirmed in block ${sendReceipt.blockNumber}`),
-    )
-    console.log(kleur.green(`✅ Gas used: ${sendReceipt.gasUsed}`))
-
-    // Set receive config
-    console.log(kleur.green('\nSetting Receive Configuration...'))
-    const receiveHash = await deployer.writeContract({
+    const delegate = await publicClient.readContract({
       address: lzConfig.lzEndpoint as Address,
       abi: lzEndpointAbi,
-      functionName: 'setConfig',
-      args: [oAppAddress as Address, executors.receiveUln302 as Address, receiveConfigParams],
+      functionName: 'delegates',
+      args: [oAppAddress as Address],
     })
 
-    console.log(kleur.green(`Receive config transaction submitted: ${receiveHash}`))
+    console.log(kleur.blue('Delegate for OApp:'), kleur.cyan(delegate))
 
-    // Wait for transaction receipt
-    console.log(kleur.yellow('Waiting for receive config transaction confirmation...'))
-    const receiveReceipt = await publicClient.waitForTransactionReceipt({
-      hash: receiveHash,
-    })
+    if (delegate.toLowerCase() === deployer.account.address.toLowerCase()) {
+      // Set send config with both config types
+      const sendHash = await deployer.writeContract({
+        address: lzConfig.lzEndpoint as Address,
+        abi: lzEndpointAbi,
+        functionName: 'setConfig',
+        args: [oAppAddress as Address, executors.sendUln302 as Address, sendConfigParams],
+      })
 
-    console.log(
-      kleur.green(`✅ Receive config transaction confirmed in block ${receiveReceipt.blockNumber}`),
-    )
-    console.log(kleur.green(`✅ Gas used: ${receiveReceipt.gasUsed}`))
+      console.log(kleur.green(`Send library config transaction submitted: ${sendHash}`))
 
-    console.log(kleur.green('\n✅ LayerZero configuration complete!'))
+      // Wait for transaction receipt
+      console.log(kleur.yellow('Waiting for send library config transaction confirmation...'))
+      const sendReceipt = await publicClient.waitForTransactionReceipt({
+        hash: sendHash,
+      })
+
+      console.log(
+        kleur.green(
+          `✅ Send library config transaction confirmed in block ${sendReceipt.blockNumber}`,
+        ),
+      )
+      console.log(kleur.green(`✅ Gas used: ${sendReceipt.gasUsed}`))
+
+      // Set receive config with only ULN config
+      console.log(kleur.green('\nSetting Receive Library Configuration (only ULN config)...'))
+      const receiveHash = await deployer.writeContract({
+        address: lzConfig.lzEndpoint as Address,
+        abi: lzEndpointAbi,
+        functionName: 'setConfig',
+        args: [oAppAddress as Address, executors.receiveUln302 as Address, receiveConfigParams],
+      })
+
+      console.log(kleur.green(`Receive library config transaction submitted: ${receiveHash}`))
+
+      // Wait for transaction receipt
+      console.log(kleur.yellow('Waiting for receive library config transaction confirmation...'))
+      const receiveReceipt = await publicClient.waitForTransactionReceipt({
+        hash: receiveHash,
+      })
+
+      console.log(
+        kleur.green(
+          `✅ Receive library config transaction confirmed in block ${receiveReceipt.blockNumber}`,
+        ),
+      )
+      console.log(kleur.green(`✅ Gas used: ${receiveReceipt.gasUsed}`))
+
+      console.log(kleur.green('\n✅ LayerZero configuration complete!'))
+    } else {
+      console.log(kleur.yellow('Not authorized... generating governance proposal'))
+      console.log(kleur.blue('Expected delegate:'), kleur.cyan(deployer.account.address))
+      console.log(kleur.blue('Actual delegate:'), kleur.cyan(delegate))
+
+      // Ask whether to create a standard or cross-chain governance proposal
+      const { proposalType } = await prompts({
+        type: 'select',
+        name: 'proposalType',
+        message: 'What type of governance proposal would you like to create?',
+        choices: [
+          { title: 'Standard Proposal (on current chain)', value: 'standard' },
+          { title: 'Cross-chain Proposal (from hub chain)', value: 'crosschain' },
+        ],
+      })
+
+      // Optional: Ask for a discourse URL to include with the proposal
+      const { discourseURL } = await prompts({
+        type: 'text',
+        name: 'discourseURL',
+        message: 'Enter a discourse URL for the proposal (optional):',
+        initial: '',
+      })
+
+      // Create the appropriate type of proposal
+      if (proposalType === 'standard') {
+        await createLzConfigProposal(
+          oAppAddress as Address,
+          oAppChoice,
+          lzConfig.lzEndpoint as Address,
+          executors.sendUln302 as Address,
+          executors.receiveUln302 as Address,
+          sendConfigParams,
+          receiveConfigParams,
+          useBummerConfig,
+          discourseURL,
+        )
+      } else {
+        await createCrossChainLzConfigProposal(
+          oAppAddress as Address,
+          oAppChoice,
+          lzConfig.lzEndpoint as Address,
+          executors.sendUln302 as Address,
+          executors.receiveUln302 as Address,
+          sendConfigParams,
+          receiveConfigParams,
+          useBummerConfig,
+          discourseURL,
+        )
+      }
+    }
   } catch (error: any) {
     console.error(kleur.red('❌ Error setting LayerZero config:'))
     console.error(error instanceof Error ? error.message : String(error))

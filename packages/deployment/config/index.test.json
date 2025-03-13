@@ -52,6 +52,7 @@
       "stakedUsds": "0x5875eEE11Cf8398102FdAd704C9E96607675467a"
     },
     "common": {
+      "chainId": "8453",
       "initialSupply": "1000000000",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
@@ -177,6 +178,7 @@
       "weth": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
     },
     "common": {
+      "chainId": "42161",
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
@@ -320,6 +322,7 @@
       "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7"
     },
     "common": {
+      "chainId": "1",
       "initialSupply": "0",
       "swapProvider": "0x111111125421cA6dc452d289314280a0f8842A65",
       "tipRate": "100",
@@ -518,6 +521,7 @@
       "usdt": "0x6047828dc181963ba44974801FF68e538dA5eaF9"
     },
     "common": {
+      "chainId": "146",
       "initialSupply": "0",
       "swapProvider": "0x111111125421ca6dc452d289314280a0f8842a65",
       "tipRate": "100",
@@ -530,7 +534,7 @@
         "blockedMessageLib": "0xc1ce56b2099ca68720592583c7984cab4b6d7e7a",
         "lzDeadDVN": "",
         "dvns": {
-          "sonic": {
+          "base": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
             "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           }
