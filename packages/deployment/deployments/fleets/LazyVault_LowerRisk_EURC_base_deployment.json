@@ -2,18 +2,18 @@
   "fleetName": "LazyVault_LowerRisk_EURC",
   "fleetSymbol": "LVEURC",
   "assetSymbol": "EURC",
-  "fleetAddress": "0x257447F5AB34CAC013C517e2F45E6e19ce38f669",
-  "bufferArkAddress": "0x8ED7a4cE716C88Ab53F9076c8cB8eA36b591a742",
+  "fleetAddress": "0xC02D8641e7DB8F1C31C0D40481724Ef3e4dC05aa",
+  "bufferArkAddress": "0x6ce7d6Ed63287d71b49e4f2BD9e7CaA7C808908b",
   "network": "base",
   "initialMinimumBufferBalance": "0",
   "initialRebalanceCooldown": "600",
   "depositCap": "0",
   "initialTipRate": "1000000000000000000",
   "arkAddresses": [
-    "0xd3C89Ceb3bDD764a9581ea19DCdaB14049cba7CA",
-    "0x2dB5e35DF3660D30b41F17bB82c4e3D0CbbFcE36",
-    "0xFB85843a8240e3efA2f0CaD7E5D33E027e9E8360",
-    "0x39410FeA68088a661a2b26CD3D97F617c69aDFF4",
-    "0xa80f53553Aa3adD034FE46C2013F437E87940507"
+    "0x895B90ef04C2e15120C6F0d27d17c72796c25eAd",
+    "0xFEE5A37Ec2Fd4d528b658c03e8EeDd2b46e0Da70",
+    "0xB2698d63d78064fB7E72C2CBA5F25ff124AB6352",
+    "0x7D0eb3c4c42F9B3EBa0b115C00Db710D09a859d3",
+    "0xefe9Bf75DA3382f87983b10F3F37a72c17847d69"
   ]
 }
