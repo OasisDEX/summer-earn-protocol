@@ -156,6 +156,7 @@ This proposal only updates the LayerZero endpoint configuration for the specifie
 
 /**
  * Generates an aggregated proposal description for multiple OApp configurations
+ * following the SIP format from governance rules
  */
 export function generateAggregatedLzConfigProposalDescription(
   configItems: Array<{
@@ -172,6 +173,7 @@ export function generateAggregatedLzConfigProposalDescription(
   isCrossChain: boolean = false,
   newChainName?: string,
   hubChainName?: string,
+  sipMinorNumber?: number,
 ): string {
   // Format config items for better readability
   const formatConfigItems = () => {
@@ -201,24 +203,33 @@ ${formatParams(item.receiveParams)}
       .join('\n\n')
   }
 
+  // Determine SIP category based on the proposal type, using provided minor number if available
+  const sipCategory = sipMinorNumber !== undefined ? `SIP5.${sipMinorNumber}` : 'SIP5'
+
   if (!isCrossChain) {
-    return `# Aggregated LayerZero Configuration Update
+    return `# ${sipCategory}: Aggregated LayerZero Configuration Update
 
 ## Summary
 This proposal updates the LayerZero endpoint configuration for multiple OApps across different chains.
 
 ## Motivation
-The current delegate addresses for these OApps do not match the deployer's address, requiring governance to update the configurations.
+The current delegate addresses for these OApps do not match the deployer's address, requiring governance to update the configurations. This update is essential for proper cross-chain communication in the Lazy Summer Protocol.
 
-## Technical Details
+## Specifications
+### Technical Details
 - Deployer Address: ${deployer}
 - Number of Configurations: ${configItems.length}
 
-## Configurations
+### Configurations
 ${formatConfigItems()}
 
-## Security Considerations
-This proposal only updates the LayerZero endpoint configurations for the specified OApps.
+### Actions
+This proposal will update the LayerZero endpoint configurations for the specified OApps according to the parameters listed above.
+
+### Security Considerations
+- This proposal only updates the LayerZero endpoint configurations for the specified OApps.
+- All configurations have been carefully reviewed to ensure they maintain the security of cross-chain communications.
+- The changes will be executed through the protocol's governance process with the standard 2-day timelock period.
 `
   } else {
     // Cross-chain proposal description
@@ -226,28 +237,35 @@ This proposal only updates the LayerZero endpoint configurations for the specifi
       throw new Error('New chain and hub chain must be provided for cross-chain proposals')
     }
 
-    return `# Aggregated Cross-Chain LayerZero Configuration Update for ${newChainName}
+    return `# ${sipCategory}: Cross-Chain LayerZero Configuration Update for ${newChainName}
 
 ## Summary
 This is a cross-chain governance proposal to update the LayerZero endpoint configurations for multiple routes between ${newChainName} and existing chains.
 
 ## Motivation
-This proposal sets up all required LayerZero routes for the new ${newChainName} chain.
+This proposal sets up all required LayerZero routes for the new ${newChainName} chain, enabling secure cross-chain communication for the Lazy Summer Protocol's operations. These configurations are necessary to ensure proper message passing between chains.
 
-## Technical Details
+## Specifications
+### Technical Details
 - Hub Chain: ${hubChainName}
 - New Chain: ${newChainName}
 - Deployer Address: ${deployer}
 - Number of Configurations: ${configItems.length}
 
-## Configurations
+### Configurations
 ${formatConfigItems()}
 
 ### Cross-chain Mechanism
-This proposal uses LayerZero to execute governance actions across chains.
+This proposal uses LayerZero to execute governance actions across chains, following the protocol's established cross-chain governance pattern.
+
+### Implementation
+The proposal will be executed from the hub chain, with cross-chain messages sent to configure endpoints on the target chains.
 
 ### Security Considerations
-This proposal only updates the LayerZero endpoint configurations for the specified OApps.
+- This proposal only updates the LayerZero endpoint configurations for the specified OApps.
+- All configurations have been carefully reviewed to ensure they maintain the security of cross-chain communications.
+- The proposal includes appropriate gas parameters to ensure successful execution on all target chains.
+- The changes will be executed through the protocol's governance process with the standard 2-day timelock period.
 `
   }
 }
@@ -598,6 +616,9 @@ export async function createUnifiedLzConfigProposal(
 ) {
   console.log(kleur.cyan(`Creating unified LayerZero configuration proposal...`))
 
+  // Prompt for SIP minor number
+  const sipMinorNumber = await getSipMinorNumber()
+
   const hubChain = getHubChain()
 
   const [deployer] = await hre.viem.getWalletClients()
@@ -747,6 +768,7 @@ export async function createUnifiedLzConfigProposal(
         true, // isCrossChain
         newChainName,
         hubChain,
+        sipMinorNumber,
       )
 
       // Configure LayerZero options
@@ -832,10 +854,11 @@ export async function createUnifiedLzConfigProposal(
     containsCrossChainActions, // Mark as cross-chain if it contains any cross-chain actions
     newChainName,
     hubChain,
+    sipMinorNumber,
   )
 
   // Generate a title and save path
-  const title = `Aggregated LayerZero Configuration Update for ${newChainName}`
+  const title = `SIP5.${sipMinorNumber}: Aggregated LayerZero Configuration Update for ${newChainName}`
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   const savePath = path.join(
     process.cwd(),
@@ -863,4 +886,30 @@ export async function createUnifiedLzConfigProposal(
   )
 
   console.log(kleur.green(`Unified governance proposal created successfully on ${hubChain}.`))
+}
+
+/**
+ * Helper function to prompt for SIP minor number
+ */
+async function getSipMinorNumber(): Promise<number | undefined> {
+  try {
+    // Check if prompts package is available
+    const prompts = require('prompts')
+
+    const response = await prompts({
+      type: 'number',
+      name: 'value',
+      message:
+        'Enter the SIP minor number for this proposal (e.g., for SIP5.1 enter 1, leave empty for no minor number):',
+      validate: (value) =>
+        value === '' || (Number.isInteger(Number(value)) && Number(value) >= 0)
+          ? true
+          : 'Please enter a valid non-negative integer or leave empty',
+    })
+
+    return response.value === '' ? undefined : Number(response.value)
+  } catch (error) {
+    console.log(kleur.yellow('Could not prompt for SIP minor number, continuing without it.'))
+    return undefined
+  }
 }
