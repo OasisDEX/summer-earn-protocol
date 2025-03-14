@@ -523,6 +523,12 @@ class ProtocolConfig {
         ),
         new ERC4626Product(
           getOrCreateToken(addresses.USDC),
+          Address.fromString('0x616a4E1db48e22028f6bbf20444Cd3b8e3273738'),
+          BigInt.fromI32(15620450),
+          'Morpho',
+        ),
+        new ERC4626Product(
+          getOrCreateToken(addresses.USDC),
           Address.fromString('0xc0c5689e6f4D256E861F65465b691aeEcC0dEb12'),
           BigInt.fromI32(15330380),
           'Morpho',

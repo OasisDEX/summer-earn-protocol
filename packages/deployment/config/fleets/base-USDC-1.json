@@ -77,6 +77,22 @@
         "protocol": "morpho",
         "vaultName": "Spark_USDC"
       }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "Seamless_USDC"
+      }
+    },
+    {
+      "type": "MorphoVaultArk",
+      "params": {
+        "asset": "USDC",
+        "protocol": "morpho",
+        "vaultName": "Moonwell_Flagship_USDC"
+      }
     }
   ]
 }
