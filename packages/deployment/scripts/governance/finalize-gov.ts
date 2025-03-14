@@ -34,6 +34,36 @@ export async function finalizeGov(
   )
   const publicClient = await hre.viem.getPublicClient()
 
+  // Update delegate for SummerToken
+  console.log(kleur.cyan().bold('\nUpdating delegate for SummerToken...'))
+  try {
+    const currentTokenDelegate = (await summerToken.read.delegate()) as Address
+    if (currentTokenDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
+      const hash = await summerToken.write.setDelegate([timelock.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green('✓ SummerToken delegate updated to timelock'))
+    } else {
+      console.log(kleur.yellow('! SummerToken delegate already set to timelock'))
+    }
+  } catch (error) {
+    console.log(kleur.red('✗ Failed to update SummerToken delegate'), error)
+  }
+
+  // Update delegate for SummerGovernor
+  console.log(kleur.cyan().bold('\nUpdating delegate for SummerGovernor...'))
+  try {
+    const currentGovernorDelegate = (await summerGovernor.read.delegate()) as Address
+    if (currentGovernorDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
+      const hash = await summerGovernor.write.setDelegate([timelock.address])
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log(kleur.green('✓ SummerGovernor delegate updated to timelock'))
+    } else {
+      console.log(kleur.yellow('! SummerGovernor delegate already set to timelock'))
+    }
+  } catch (error) {
+    console.log(kleur.red('✗ Failed to update SummerGovernor delegate'), error)
+  }
+
   // Transfer SummerToken ownership to timelock
   console.log(kleur.cyan().bold('Transferring SummerToken ownership to timelock...'))
   const currentTokenOwner = (await summerToken.read.owner()) as Address
@@ -76,36 +106,6 @@ export async function finalizeGov(
         console.log(kleur.yellow(`! Address ${address} does not have governor role`))
       }
     }
-  }
-
-  // Update lzEndpoint delegate for SummerToken
-  console.log(kleur.cyan().bold('\nUpdating lzEndpoint delegate for SummerToken...'))
-  try {
-    const currentTokenDelegate = (await summerToken.read.lzEndpointDelegate()) as Address
-    if (currentTokenDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
-      const hash = await summerToken.write.setLzEndpointDelegate([timelock.address])
-      await publicClient.waitForTransactionReceipt({ hash })
-      console.log(kleur.green('✓ SummerToken lzEndpoint delegate updated to timelock'))
-    } else {
-      console.log(kleur.yellow('! SummerToken lzEndpoint delegate already set to timelock'))
-    }
-  } catch (error) {
-    console.log(kleur.red('✗ Failed to update SummerToken lzEndpoint delegate'), error)
-  }
-
-  // Update lzEndpoint delegate for SummerGovernor
-  console.log(kleur.cyan().bold('\nUpdating lzEndpoint delegate for SummerGovernor...'))
-  try {
-    const currentGovernorDelegate = (await summerGovernor.read.lzEndpointDelegate()) as Address
-    if (currentGovernorDelegate.toLowerCase() !== timelock.address.toLowerCase()) {
-      const hash = await summerGovernor.write.setLzEndpointDelegate([timelock.address])
-      await publicClient.waitForTransactionReceipt({ hash })
-      console.log(kleur.green('✓ SummerGovernor lzEndpoint delegate updated to timelock'))
-    } else {
-      console.log(kleur.yellow('! SummerGovernor lzEndpoint delegate already set to timelock'))
-    }
-  } catch (error) {
-    console.log(kleur.red('✗ Failed to update SummerGovernor lzEndpoint delegate'), error)
   }
 
   console.log(kleur.green().bold('\nGovernance finalization completed!'))
