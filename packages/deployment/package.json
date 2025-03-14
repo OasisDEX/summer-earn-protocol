@@ -44,13 +44,14 @@
     "whitelist-vesting-wallets-tx": "hardhat run scripts/governance/whitelist-vesting-wallets-safe.ts --network $NETWORK",
     "generate-merkle-root": "tsx scripts/generate-merkle-root.ts",
     "update-fleet-configurations": "hardhat run scripts/governance/update-fleet-configurations-safe.ts --network $NETWORK",
+    "submit-proposal": "hardhat run scripts/governance/submit-proposal.ts --network $NETWORK",
     "check-morpho-rewards": "tsx scripts/check-morpho-rewards.ts"
   },
   "devDependencies": {
     "@layerzerolabs/lz-v2-utilities": "2.3.39",
     "@nomicfoundation/hardhat-foundry": "1.1.2",
     "@nomicfoundation/hardhat-ignition": "0.15.9",
-    "@nomicfoundation/hardhat-ignition-viem": "0.15.9",
+    "@nomicfoundation/hardhat-ignition-viem": "0.15.10",
     "@nomicfoundation/hardhat-verify": "2.0.12",
     "@summerfi/access-contracts": "workspace:*",
     "@summerfi/constants": "workspace:*",
