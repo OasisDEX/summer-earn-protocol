@@ -78,9 +78,18 @@ export async function peerGov(useBummerConfig = false) {
   // Set token peers
   console.log(kleur.cyan().bold('Setting token peers...'))
   for (const peer of peers.tokenPeers) {
-    console.log(`Setting token peer for endpoint ${peer.eid}: ${peer.address}`)
+    console.log(`Checking token peer for endpoint ${peer.eid}: ${peer.address}`)
     const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
+
     try {
+      // Check if peer already exists with the same address
+      const existingPeerAsBytes32 = await summerToken.read.peers([peer.eid])
+
+      if (existingPeerAsBytes32 === peerAddressAsBytes32) {
+        console.log(kleur.yellow(`⚠ Token peer already set correctly for endpoint ${peer.eid}`))
+        continue
+      }
+
       const hash = await summerToken.write.setPeer([peer.eid, peerAddressAsBytes32])
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`✓ Token peer set successfully for endpoint ${peer.eid}`))
@@ -92,9 +101,17 @@ export async function peerGov(useBummerConfig = false) {
   // Set governor peers
   console.log(kleur.cyan().bold('\nSetting governor peers...'))
   for (const peer of peers.governorPeers) {
-    console.log(`Setting governor peer for endpoint ${peer.eid}: ${peer.address}`)
+    console.log(`Checking governor peer for endpoint ${peer.eid}: ${peer.address}`)
     const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
+
     try {
+      const existingPeerAsBytes32 = await summerToken.read.peers([peer.eid])
+
+      if (existingPeerAsBytes32 === peerAddressAsBytes32) {
+        console.log(kleur.yellow(`⚠ Governor peer already set correctly for endpoint ${peer.eid}`))
+        continue
+      }
+
       const hash = await summerGovernor.write.setPeer([peer.eid, peerAddressAsBytes32])
       await publicClient.waitForTransactionReceipt({ hash })
       console.log(kleur.green(`✓ Governor peer set successfully for endpoint ${peer.eid}`))

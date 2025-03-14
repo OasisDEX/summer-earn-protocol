@@ -16,7 +16,6 @@ import { LZ_ENDPOINT_ABI } from './lz-endpoint-abi'
  * Check if the current deployer is authorized by the LZ endpoint
  * @param lzEndpointAddress The address of the LZ endpoint contract
  * @param oAppAddress The address of the OApp
- * @param publicClient The Viem public client to use for the call
  * @param deployerAddress The address of the deployer to check authorization for
  * @param chainName Optional chain name for logging purposes
  * @returns An object containing the delegate address and whether the deployer is authorized
@@ -601,13 +600,6 @@ export async function createUnifiedLzConfigProposal(
 
   const hubChain = getHubChain()
 
-  // Ensure we're on the hub chain
-  if (hre.network.name !== hubChain) {
-    throw new Error(
-      `Must be on hub chain (${hubChain}) to create unified proposal, current network: ${hre.network.name}`,
-    )
-  }
-
   const [deployer] = await hre.viem.getWalletClients()
   const hubConfig = getConfigByNetwork(hubChain, { common: true, gov: true }, useBummerConfig)
   const governorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
@@ -680,7 +672,6 @@ export async function createUnifiedLzConfigProposal(
     }
     groupedNonHubConfigs[config.sourceChain].push(config)
   }
-  console.log('All target chain configs', groupedNonHubConfigs)
 
   // 3. Process cross-chain configurations - grouped by target chain
   for (const [targetChain, targetChainConfigs] of Object.entries(groupedNonHubConfigs)) {
@@ -791,42 +782,46 @@ export async function createUnifiedLzConfigProposal(
   }
 
   // Fix the flatMap operation to include all required fields
-  const nonHubConfigItems = Object.values(groupedNonHubConfigs).flatMap(async (configs) => {
-    const items = []
+  // This needs to be an async operation that properly awaits all promises
+  const nonHubConfigItemsPromises = await Promise.all(
+    Object.values(groupedNonHubConfigs).map(async (configs) => {
+      const items = []
 
-    for (const config of configs) {
-      try {
-        // Get current delegate - similar to what we do for hub configs
-        const { delegate } = await checkLzAuthorization(
-          config.lzEndpointAddress,
-          config.oAppAddress,
-          deployer.account.address,
-          config.sourceChain,
-        )
+      for (const config of configs) {
+        try {
+          // Get current delegate - similar to what we do for hub configs
+          const { delegate } = await checkLzAuthorization(
+            config.lzEndpointAddress,
+            config.oAppAddress,
+            deployer.account.address,
+            config.sourceChain,
+          )
 
-        items.push({
-          oAppAddress: config.oAppAddress,
-          oAppName: config.oAppType === 'summerToken' ? 'Summer Token' : 'Summer Governor',
-          chainName: config.targetChain,
-          sendLibraryAddress: config.sendLibraryAddress,
-          receiveLibraryAddress: config.receiveLibraryAddress,
-          sendParams: config.sendConfigParams,
-          receiveParams: config.receiveConfigParams,
-          delegate: delegate,
-        })
-      } catch (error) {
-        console.error(kleur.red(`Error processing non-hub config for ${config.sourceChain}:`))
-        console.error(error)
+          items.push({
+            oAppAddress: config.oAppAddress,
+            oAppName: config.oAppType === 'summerToken' ? 'Summer Token' : 'Summer Governor',
+            chainName: config.targetChain,
+            sendLibraryAddress: config.sendLibraryAddress,
+            receiveLibraryAddress: config.receiveLibraryAddress,
+            sendParams: config.sendConfigParams,
+            receiveParams: config.receiveConfigParams,
+            delegate: delegate,
+          })
+        } catch (error) {
+          console.error(kleur.red(`Error processing non-hub config for ${config.sourceChain}:`))
+          console.error(error)
+        }
       }
-    }
 
-    return items
-  })
+      return items
+    }),
+  )
 
-  console.log(await nonHubConfigItems)
+  // Flatten the array of arrays
+  const nonHubConfigItems = nonHubConfigItemsPromises.flat()
 
-  // Combine all config items with proper data
-  const allConfigItems = [...hubConfigItems, ...(await nonHubConfigItems)]
+  // Combine all config items
+  const allConfigItems = [...hubConfigItems, ...nonHubConfigItems]
 
   // Determine if this is a cross-chain proposal based on whether we have any non-hub actions
   const containsCrossChainActions = Object.keys(groupedNonHubConfigs).length > 0

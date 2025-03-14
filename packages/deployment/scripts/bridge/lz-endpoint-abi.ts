@@ -37,4 +37,14 @@ export const LZ_ENDPOINT_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [
+      { name: 'oapp', type: 'address' },
+      { name: 'eid', type: 'uint32' },
+    ],
+    name: 'getPeer',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const
