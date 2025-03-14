@@ -287,12 +287,18 @@ async function tryDirectExecution(
     }
 
     // Get wallet private key (using environment variable or config)
-    const privateKey = process.env.DEPLOYER_PRIVATE_KEY
+    let privateKey = process.env.DEPLOYER_PRIV_KEY
+
     if (!privateKey) {
       return {
         success: false,
         error: 'No deployer private key found. Set the DEPLOYER_PRIVATE_KEY environment variable.',
       }
+    }
+
+    // Ensure private key is properly formatted with 0x prefix
+    if (!privateKey.startsWith('0x')) {
+      privateKey = `0x${privateKey}`
     }
 
     // Create a Viem wallet client for the target chain
@@ -328,35 +334,93 @@ async function tryDirectExecution(
       }
     }
 
-    // Set send config
-    console.log(kleur.yellow(`  Setting send config on ${chain}...`))
-    const sendHash = await walletClient.writeContract({
-      address: lzEndpointAddress,
-      abi: LZ_ENDPOINT_ABI,
-      functionName: 'setConfig',
-      args: [oAppAddress, sendLibraryAddress, sendConfigParams],
-      chain: chainConfig,
-    })
+    // Check if send config already exists
+    let sendConfigNeeded = false
+    for (const configParam of sendConfigParams) {
+      console.log(
+        kleur.yellow(`  Checking if send config type ${configParam.configType} already exists...`),
+      )
+      const existingConfig = await publicClient.readContract({
+        address: lzEndpointAddress,
+        abi: LZ_ENDPOINT_ABI,
+        functionName: 'getConfig',
+        args: [oAppAddress, sendLibraryAddress, configParam.eid, configParam.configType],
+      })
 
-    // Wait for transaction receipt
-    console.log(kleur.yellow(`  Waiting for send config transaction to be mined...`))
-    await publicClient.waitForTransactionReceipt({ hash: sendHash })
-    console.log(kleur.green(`  Send config transaction successful: ${sendHash}`))
+      if (existingConfig !== configParam.config) {
+        sendConfigNeeded = true
+        console.log(kleur.yellow(`  Send config needs update for type ${configParam.configType}`))
+      } else {
+        console.log(
+          kleur.green(`  Send config already set correctly for type ${configParam.configType}`),
+        )
+      }
+    }
 
-    // Set receive config
-    console.log(kleur.yellow(`  Setting receive config on ${chain}...`))
-    const receiveHash = await walletClient.writeContract({
-      address: lzEndpointAddress,
-      abi: LZ_ENDPOINT_ABI,
-      functionName: 'setConfig',
-      args: [oAppAddress, receiveLibraryAddress, receiveConfigParams],
-      chain: chainConfig,
-    })
+    // Set send config if needed
+    if (sendConfigNeeded) {
+      console.log(kleur.yellow(`  Setting send config on ${chain}...`))
+      const sendHash = await walletClient.writeContract({
+        address: lzEndpointAddress,
+        abi: LZ_ENDPOINT_ABI,
+        functionName: 'setConfig',
+        args: [oAppAddress, sendLibraryAddress, sendConfigParams],
+        chain: chainConfig,
+      })
 
-    // Wait for transaction receipt
-    console.log(kleur.yellow(`  Waiting for receive config transaction to be mined...`))
-    await publicClient.waitForTransactionReceipt({ hash: receiveHash })
-    console.log(kleur.green(`  Receive config transaction successful: ${receiveHash}`))
+      // Wait for transaction receipt
+      console.log(kleur.yellow(`  Waiting for send config transaction to be mined...`))
+      await publicClient.waitForTransactionReceipt({ hash: sendHash })
+      console.log(kleur.green(`  Send config transaction successful: ${sendHash}`))
+    } else {
+      console.log(kleur.green(`  All send configs already set correctly, skipping transaction`))
+    }
+
+    // Check if receive config already exists
+    let receiveConfigNeeded = false
+    for (const configParam of receiveConfigParams) {
+      console.log(
+        kleur.yellow(
+          `  Checking if receive config type ${configParam.configType} already exists...`,
+        ),
+      )
+      const existingConfig = await publicClient.readContract({
+        address: lzEndpointAddress,
+        abi: LZ_ENDPOINT_ABI,
+        functionName: 'getConfig',
+        args: [oAppAddress, receiveLibraryAddress, configParam.eid, configParam.configType],
+      })
+
+      if (existingConfig !== configParam.config) {
+        receiveConfigNeeded = true
+        console.log(
+          kleur.yellow(`  Receive config needs update for type ${configParam.configType}`),
+        )
+      } else {
+        console.log(
+          kleur.green(`  Receive config already set correctly for type ${configParam.configType}`),
+        )
+      }
+    }
+
+    // Set receive config if needed
+    if (receiveConfigNeeded) {
+      console.log(kleur.yellow(`  Setting receive config on ${chain}...`))
+      const receiveHash = await walletClient.writeContract({
+        address: lzEndpointAddress,
+        abi: LZ_ENDPOINT_ABI,
+        functionName: 'setConfig',
+        args: [oAppAddress, receiveLibraryAddress, receiveConfigParams],
+        chain: chainConfig,
+      })
+
+      // Wait for transaction receipt
+      console.log(kleur.yellow(`  Waiting for receive config transaction to be mined...`))
+      await publicClient.waitForTransactionReceipt({ hash: receiveHash })
+      console.log(kleur.green(`  Receive config transaction successful: ${receiveHash}`))
+    } else {
+      console.log(kleur.green(`  All receive configs already set correctly, skipping transaction`))
+    }
 
     return { success: true }
   } catch (error: any) {
@@ -499,17 +563,16 @@ async function configureNewChainLayerZero() {
     if (sourceChain === newChain) continue // Skip self-connections
 
     console.log(kleur.yellow(`\nConfiguring ${sourceChain} → ${newChain} for SummerToken...`))
+    // Create the configuration parameters
+    const {
+      oAppAddress,
+      lzEndpointAddress,
+      sendLibraryAddress,
+      receiveLibraryAddress,
+      sendConfigParams,
+      receiveConfigParams,
+    } = await createRouteConfiguration(sourceChain, newChain, 'summerToken', useBummerConfig)
     try {
-      // Create the configuration parameters
-      const {
-        oAppAddress,
-        lzEndpointAddress,
-        sendLibraryAddress,
-        receiveLibraryAddress,
-        sendConfigParams,
-        receiveConfigParams,
-      } = await createRouteConfiguration(sourceChain, newChain, 'summerToken', useBummerConfig)
-
       console.log(kleur.yellow(`  Attempting direct execution...`))
       const { success, error } = await tryDirectExecution(
         sourceChain,
@@ -521,6 +584,13 @@ async function configureNewChainLayerZero() {
         receiveConfigParams,
         false, // Not a new chain targeting existing
       )
+
+      if (!success) {
+        throw new Error(
+          `Failed to configure ${sourceChain} → ${newChain}: ${error}\n` +
+            `Likely requires governance proposal to be created.`,
+        )
+      }
 
       // Record the attempt
       configurationAttempts.push({
@@ -550,15 +620,15 @@ async function configureNewChainLayerZero() {
         sourceChain,
         targetChain: newChain,
         oAppType: 'summerToken',
-        oAppAddress: '0x' as Address, // Placeholder
+        oAppAddress,
         directExecution: false,
         success: false,
         error: error.message,
-        lzEndpointAddress: '0x' as Address,
-        sendLibraryAddress: '0x' as Address,
-        receiveLibraryAddress: '0x' as Address,
-        sendConfigParams: [],
-        receiveConfigParams: [],
+        lzEndpointAddress,
+        sendLibraryAddress,
+        receiveLibraryAddress,
+        sendConfigParams,
+        receiveConfigParams,
       })
     }
   }
@@ -592,7 +662,14 @@ async function configureNewChainLayerZero() {
         true, // This is a new chain targeting existing chains
       )
 
-      // Record the attempt
+      if (!success) {
+        throw new Error(
+          `Failed to configure ${newChain} → ${targetChain}: ${error}\n` +
+            `You need to ensure deployer has permissions to configure OApp on ${newChain}.`,
+        )
+      }
+
+      // Record the successful attempt
       configurationAttempts.push({
         sourceChain: newChain,
         targetChain,
@@ -608,28 +685,15 @@ async function configureNewChainLayerZero() {
         receiveConfigParams,
       })
 
-      if (success) {
-        console.log(kleur.green(`  ✓ Successfully configured ${newChain} → ${targetChain}`))
-      } else {
-        console.log(kleur.red(`  ❌ Direct execution failed: ${error}`))
-      }
+      console.log(kleur.green(`  ✓ Successfully configured ${newChain} → ${targetChain}`))
     } catch (error: any) {
       console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
-      // Still record the attempt
-      configurationAttempts.push({
-        sourceChain: newChain,
-        targetChain,
-        oAppType: 'summerToken',
-        oAppAddress: '0x' as Address, // Placeholder
-        directExecution: false,
-        success: false,
-        error: error.message,
-        lzEndpointAddress: '0x' as Address,
-        sendLibraryAddress: '0x' as Address,
-        receiveLibraryAddress: '0x' as Address,
-        sendConfigParams: [],
-        receiveConfigParams: [],
-      })
+      console.log('Silently ignoring error')
+      // throw new Error(
+      //   `Failed to configure ${newChain} → ${targetChain}: ${error.message}\n` +
+      //     `New chain configurations must be set up directly before transferring ownership. ` +
+      //     `Please address the error above before continuing.`,
+      // )
     }
   }
 
@@ -645,17 +709,17 @@ async function configureNewChainLayerZero() {
 
   // Configure hub chain to new chain
   console.log(kleur.yellow(`\nConfiguring ${hubChain} → ${newChain} for SummerGovernor...`))
+  const {
+    oAppAddress,
+    lzEndpointAddress,
+    sendLibraryAddress,
+    receiveLibraryAddress,
+    sendConfigParams,
+    receiveConfigParams,
+  } = await createRouteConfiguration(hubChain, newChain, 'summerGovernor', useBummerConfig)
+
   try {
     // Create the configuration parameters
-    const {
-      oAppAddress,
-      lzEndpointAddress,
-      sendLibraryAddress,
-      receiveLibraryAddress,
-      sendConfigParams,
-      receiveConfigParams,
-    } = await createRouteConfiguration(hubChain, newChain, 'summerGovernor', useBummerConfig)
-
     console.log(kleur.yellow(`  Attempting direct execution...`))
     const { success, error } = await tryDirectExecution(
       hubChain,
@@ -668,7 +732,14 @@ async function configureNewChainLayerZero() {
       false, // Not a new chain targeting existing
     )
 
-    // Record the attempt
+    if (!success) {
+      throw new Error(
+        `Failed to configure ${hubChain} → ${newChain}: ${error}\n` +
+          `Likely requires governance proposal to be created.`,
+      )
+    }
+
+    // Record the successful attempt
     configurationAttempts.push({
       sourceChain: hubChain,
       targetChain: newChain,
@@ -684,11 +755,7 @@ async function configureNewChainLayerZero() {
       receiveConfigParams,
     })
 
-    if (success) {
-      console.log(kleur.green(`  ✓ Successfully configured ${hubChain} → ${newChain}`))
-    } else {
-      console.log(kleur.red(`  ❌ Direct execution failed: ${error}`))
-    }
+    console.log(kleur.green(`  ✓ Successfully configured ${hubChain} → ${newChain}`))
   } catch (error: any) {
     console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
     // Still record the attempt
@@ -696,15 +763,15 @@ async function configureNewChainLayerZero() {
       sourceChain: hubChain,
       targetChain: newChain,
       oAppType: 'summerGovernor',
-      oAppAddress: '0x' as Address, // Placeholder
+      oAppAddress,
       directExecution: false,
       success: false,
       error: error.message,
-      lzEndpointAddress: '0x' as Address,
-      sendLibraryAddress: '0x' as Address,
-      receiveLibraryAddress: '0x' as Address,
-      sendConfigParams: [],
-      receiveConfigParams: [],
+      lzEndpointAddress,
+      sendLibraryAddress,
+      receiveLibraryAddress,
+      sendConfigParams,
+      receiveConfigParams,
     })
   }
 
@@ -733,15 +800,22 @@ async function configureNewChainLayerZero() {
       true, // This is a new chain targeting existing chains
     )
 
-    // Record the attempt
+    if (!success) {
+      throw new Error(
+        `Direct execution failed for ${newChain} → ${hubChain}: ${error}\n` +
+          `New chain configurations must be set up directly before transferring ownership. ` +
+          `Please ensure the deployer has proper permissions to configure OApps on ${newChain}.`,
+      )
+    }
+
+    // Record the successful attempt
     configurationAttempts.push({
       sourceChain: newChain,
       targetChain: hubChain,
       oAppType: 'summerGovernor',
       oAppAddress,
       directExecution: true,
-      success,
-      error,
+      success: true,
       lzEndpointAddress,
       sendLibraryAddress,
       receiveLibraryAddress,
@@ -749,28 +823,14 @@ async function configureNewChainLayerZero() {
       receiveConfigParams,
     })
 
-    if (success) {
-      console.log(kleur.green(`  ✓ Successfully configured ${newChain} → ${hubChain}`))
-    } else {
-      console.log(kleur.red(`  ❌ Direct execution failed: ${error}`))
-    }
+    console.log(kleur.green(`  ✓ Successfully configured ${newChain} → ${hubChain}`))
   } catch (error: any) {
     console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
-    // Still record the attempt
-    configurationAttempts.push({
-      sourceChain: newChain,
-      targetChain: hubChain,
-      oAppType: 'summerGovernor',
-      oAppAddress: '0x' as Address, // Placeholder
-      directExecution: false,
-      success: false,
-      error: error.message,
-      lzEndpointAddress: '0x' as Address,
-      sendLibraryAddress: '0x' as Address,
-      receiveLibraryAddress: '0x' as Address,
-      sendConfigParams: [],
-      receiveConfigParams: [],
-    })
+    throw new Error(
+      `Failed to configure ${newChain} → ${hubChain}: ${error.message}\n` +
+        `New chain configurations must be set up directly before transferring ownership. ` +
+        `Please address the error above before continuing.`,
+    )
   }
 
   // Summary of configuration attempts
@@ -783,6 +843,8 @@ async function configureNewChainLayerZero() {
   console.log(kleur.red(`❌ Failed to configure: ${failedConfigs.length} routes`))
 
   // If there are failed configurations, offer to create governance proposals
+  console.log(failedConfigs)
+  throw new Error('Stop here')
   if (failedConfigs.length > 0) {
     const { createProposals } = await prompts({
       type: 'confirm',

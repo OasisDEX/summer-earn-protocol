@@ -297,35 +297,12 @@ export async function createLzConfigProposal(
   const values: bigint[] = []
   const calldatas: Hex[] = []
 
-  // LZ Endpoint ABI for setConfig
-  const lzEndpointAbi = [
-    {
-      inputs: [
-        { name: 'oapp', type: 'address' },
-        { name: 'lib', type: 'address' },
-        {
-          name: 'params',
-          type: 'tuple[]',
-          components: [
-            { name: 'eid', type: 'uint32' },
-            { name: 'configType', type: 'uint32' },
-            { name: 'config', type: 'bytes' },
-          ],
-        },
-      ],
-      name: 'setConfig',
-      outputs: [],
-      stateMutability: 'nonpayable',
-      type: 'function',
-    },
-  ] as const
-
   // Add the send config action
   targets.push(lzEndpointAddress)
   values.push(0n)
   calldatas.push(
     encodeFunctionData({
-      abi: lzEndpointAbi,
+      abi: LZ_ENDPOINT_ABI,
       functionName: 'setConfig',
       args: [oAppAddress, sendLibraryAddress, sendConfigParams],
     }) as Hex,
@@ -336,7 +313,7 @@ export async function createLzConfigProposal(
   values.push(0n)
   calldatas.push(
     encodeFunctionData({
-      abi: lzEndpointAbi,
+      abi: LZ_ENDPOINT_ABI,
       functionName: 'setConfig',
       args: [oAppAddress, receiveLibraryAddress, receiveConfigParams],
     }) as Hex,
@@ -632,31 +609,8 @@ export async function createUnifiedLzConfigProposal(
   }
 
   const [deployer] = await hre.viem.getWalletClients()
-  const hubConfig = getConfigByNetwork(hubChain, { gov: true }, useBummerConfig)
+  const hubConfig = getConfigByNetwork(hubChain, { common: true, gov: true }, useBummerConfig)
   const governorAddress = hubConfig.deployedContracts.gov.summerGovernor.address as Address
-
-  // LZ Endpoint ABI for setConfig
-  const lzEndpointAbi = [
-    {
-      inputs: [
-        { name: 'oapp', type: 'address' },
-        { name: 'lib', type: 'address' },
-        {
-          name: 'params',
-          type: 'tuple[]',
-          components: [
-            { name: 'eid', type: 'uint32' },
-            { name: 'configType', type: 'uint32' },
-            { name: 'config', type: 'bytes' },
-          ],
-        },
-      ],
-      name: 'setConfig',
-      outputs: [],
-      stateMutability: 'nonpayable',
-      type: 'function',
-    },
-  ] as const
 
   // 1. Process hub chain configs - direct actions on hub chain
   const hubTargets: Address[] = []
@@ -693,7 +647,7 @@ export async function createUnifiedLzConfigProposal(
       hubValues.push(0n)
       hubCalldatas.push(
         encodeFunctionData({
-          abi: lzEndpointAbi,
+          abi: LZ_ENDPOINT_ABI,
           functionName: 'setConfig',
           args: [config.oAppAddress, config.sendLibraryAddress, config.sendConfigParams],
         }) as Hex,
@@ -703,7 +657,7 @@ export async function createUnifiedLzConfigProposal(
       hubValues.push(0n)
       hubCalldatas.push(
         encodeFunctionData({
-          abi: lzEndpointAbi,
+          abi: LZ_ENDPOINT_ABI,
           functionName: 'setConfig',
           args: [config.oAppAddress, config.receiveLibraryAddress, config.receiveConfigParams],
         }) as Hex,
@@ -726,10 +680,12 @@ export async function createUnifiedLzConfigProposal(
     }
     groupedNonHubConfigs[config.sourceChain].push(config)
   }
+  console.log('All target chain configs', groupedNonHubConfigs)
 
   // 3. Process cross-chain configurations - grouped by target chain
   for (const [targetChain, targetChainConfigs] of Object.entries(groupedNonHubConfigs)) {
     // Create cross-chain configuration for this target chain
+    console.log(kleur.blue('Processing target chain:'), kleur.cyan(targetChain))
     const dstTargets: Address[] = []
     const dstValues: bigint[] = []
     const dstCalldatas: Hex[] = []
@@ -745,6 +701,7 @@ export async function createUnifiedLzConfigProposal(
         const { delegate } = await checkLzAuthorization(
           config.lzEndpointAddress,
           config.oAppAddress,
+          deployer.account.address,
           config.sourceChain,
         )
 
@@ -767,7 +724,7 @@ export async function createUnifiedLzConfigProposal(
         dstValues.push(0n)
         dstCalldatas.push(
           encodeFunctionData({
-            abi: lzEndpointAbi,
+            abi: LZ_ENDPOINT_ABI,
             functionName: 'setConfig',
             args: [config.oAppAddress, config.sendLibraryAddress, config.sendConfigParams],
           }) as Hex,
@@ -777,7 +734,7 @@ export async function createUnifiedLzConfigProposal(
         dstValues.push(0n)
         dstCalldatas.push(
           encodeFunctionData({
-            abi: lzEndpointAbi,
+            abi: LZ_ENDPOINT_ABI,
             functionName: 'setConfig',
             args: [config.oAppAddress, config.receiveLibraryAddress, config.receiveConfigParams],
           }) as Hex,
@@ -787,6 +744,9 @@ export async function createUnifiedLzConfigProposal(
         console.error(error)
       }
     }
+
+    console.log(kleur.blue('Destination targets:'))
+    console.log(dstTargets)
 
     if (dstTargets.length > 0) {
       // Generate destination proposal description
@@ -802,6 +762,7 @@ export async function createUnifiedLzConfigProposal(
       const ESTIMATED_GAS = 400000n * BigInt(targetConfigItems.length)
       const lzOptions = constructLzOptions(ESTIMATED_GAS)
 
+      console.log('Encoding cross-chain proposal action for ', targetChain)
       // Add the cross-chain proposal action
       hubTargets.push(governorAddress)
       hubValues.push(0n)
@@ -829,27 +790,51 @@ export async function createUnifiedLzConfigProposal(
     return
   }
 
-  // Generate unified proposal description
-  const allConfigItems = [
-    ...hubConfigItems,
-    ...Object.values(groupedNonHubConfigs).flatMap((configs) =>
-      configs.map((config) => ({
-        oAppAddress: config.oAppAddress,
-        oAppName: config.oAppType === 'summerToken' ? 'Summer Token' : 'Summer Governor',
-        chainName: config.targetChain,
-        sendLibraryAddress: config.sendLibraryAddress,
-        receiveLibraryAddress: config.receiveLibraryAddress,
-        sendParams: config.sendConfigParams,
-        receiveParams: config.receiveConfigParams,
-        delegate: '0x', // Placeholder, not used in the description
-      })),
-    ),
-  ]
+  // Fix the flatMap operation to include all required fields
+  const nonHubConfigItems = Object.values(groupedNonHubConfigs).flatMap(async (configs) => {
+    const items = []
+
+    for (const config of configs) {
+      try {
+        // Get current delegate - similar to what we do for hub configs
+        const { delegate } = await checkLzAuthorization(
+          config.lzEndpointAddress,
+          config.oAppAddress,
+          deployer.account.address,
+          config.sourceChain,
+        )
+
+        items.push({
+          oAppAddress: config.oAppAddress,
+          oAppName: config.oAppType === 'summerToken' ? 'Summer Token' : 'Summer Governor',
+          chainName: config.targetChain,
+          sendLibraryAddress: config.sendLibraryAddress,
+          receiveLibraryAddress: config.receiveLibraryAddress,
+          sendParams: config.sendConfigParams,
+          receiveParams: config.receiveConfigParams,
+          delegate: delegate,
+        })
+      } catch (error) {
+        console.error(kleur.red(`Error processing non-hub config for ${config.sourceChain}:`))
+        console.error(error)
+      }
+    }
+
+    return items
+  })
+
+  console.log(await nonHubConfigItems)
+
+  // Combine all config items with proper data
+  const allConfigItems = [...hubConfigItems, ...(await nonHubConfigItems)]
+
+  // Determine if this is a cross-chain proposal based on whether we have any non-hub actions
+  const containsCrossChainActions = Object.keys(groupedNonHubConfigs).length > 0
 
   const description = generateAggregatedLzConfigProposalDescription(
     allConfigItems,
     deployer.account.address as Address,
-    false, // Not marked as cross-chain for the main description
+    containsCrossChainActions, // Mark as cross-chain if it contains any cross-chain actions
     newChainName,
     hubChain,
   )

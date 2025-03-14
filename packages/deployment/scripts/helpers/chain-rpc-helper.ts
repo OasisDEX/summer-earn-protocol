@@ -1,15 +1,14 @@
 import hre from 'hardhat'
 import { createPublicClient, http } from 'viem'
-import { arbitrum, base, mainnet, optimism } from 'viem/chains'
+import { arbitrum, base, mainnet } from 'viem/chains'
 import { getConfigByNetwork } from './config-handler'
 
 // Centralized RPC URL mapping
 export const RPC_URL_MAP = {
-  mainnet: process.env.RPC_URL_MAINNET,
-  base: process.env.RPC_URL_BASE,
-  arbitrum: process.env.RPC_URL_ARBITRUM,
-  sonic: process.env.RPC_URL_SONIC,
-  optimism: process.env.RPC_URL_OPTIMISM,
+  mainnet: process.env.MAINNET_RPC_URL,
+  base: process.env.BASE_RPC_URL,
+  arbitrum: process.env.ARBITRUM_RPC_URL,
+  sonic: process.env.SONIC_RPC_URL,
 }
 
 // Standard chain mapping
@@ -17,7 +16,13 @@ export const CHAIN_CONFIG_MAP = {
   mainnet,
   base,
   arbitrum,
-  optimism,
+  sonic: {
+    id: 146,
+    name: 'Sonic',
+    network: 'sonic',
+    nativeCurrency: { name: 'S', symbol: 'S', decimals: 18 },
+    rpcUrls: { default: { http: [RPC_URL_MAP.sonic] } },
+  },
 }
 
 /**

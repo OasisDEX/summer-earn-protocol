@@ -12,36 +12,7 @@ import {
   createCrossChainLzConfigProposal,
   createLzConfigProposal,
 } from './bridge-governance-helper'
-
-// LZ Endpoint interface for setConfig
-const lzEndpointAbi = [
-  {
-    inputs: [
-      { name: 'oapp', type: 'address' },
-      { name: 'lib', type: 'address' },
-      {
-        name: 'params',
-        type: 'tuple[]',
-        components: [
-          { name: 'eid', type: 'uint32' },
-          { name: 'configType', type: 'uint32' },
-          { name: 'config', type: 'bytes' },
-        ],
-      },
-    ],
-    name: 'setConfig',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [{ name: 'oapp', type: 'address' }],
-    name: 'delegates',
-    outputs: [{ name: 'delegate', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const
+import { LZ_ENDPOINT_ABI } from './lz-endpoint-abi'
 
 /**
  * Configure LayerZero default settings for cross-chain communication
@@ -284,7 +255,7 @@ async function configureLayerZeroEndpoint() {
     const publicClient = await hre.viem.getPublicClient()
     const delegate = await publicClient.readContract({
       address: lzConfig.lzEndpoint as Address,
-      abi: lzEndpointAbi,
+      abi: LZ_ENDPOINT_ABI,
       functionName: 'delegates',
       args: [oAppAddress as Address],
     })
@@ -295,7 +266,7 @@ async function configureLayerZeroEndpoint() {
       // Set send config with both config types
       const sendHash = await deployer.writeContract({
         address: lzConfig.lzEndpoint as Address,
-        abi: lzEndpointAbi,
+        abi: LZ_ENDPOINT_ABI,
         functionName: 'setConfig',
         args: [oAppAddress as Address, executors.sendUln302 as Address, sendConfigParams],
       })
@@ -319,7 +290,7 @@ async function configureLayerZeroEndpoint() {
       console.log(kleur.green('\nSetting Receive Library Configuration (only ULN config)...'))
       const receiveHash = await deployer.writeContract({
         address: lzConfig.lzEndpoint as Address,
-        abi: lzEndpointAbi,
+        abi: LZ_ENDPOINT_ABI,
         functionName: 'setConfig',
         args: [oAppAddress as Address, executors.receiveUln302 as Address, receiveConfigParams],
       })

@@ -537,6 +537,14 @@
           "base": {
             "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
             "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          },
+          "arbitrum": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
+          },
+          "mainnet": {
+            "lzLabs": "0x282b3386571f7f794450d5789911a9804fa346b4",
+            "stargate": "0xdd7b5e1db4aafd5c8ec3b764efb8ed265aa5445b"
           }
         }
       }
