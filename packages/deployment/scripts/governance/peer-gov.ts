@@ -104,9 +104,8 @@ export async function peerGov(useBummerConfig = false) {
     const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
 
     try {
-      const existingPeerAsBytes32 = await summerToken.read.peers([peer.eid])
-
-      if (existingPeerAsBytes32 === peerAddressAsBytes32) {
+      const existingPeerAsBytes32 = await summerGovernor.read.peers([peer.eid])
+      if ((existingPeerAsBytes32 as string).toLowerCase() === peerAddressAsBytes32.toLowerCase()) {
         console.log(kleur.yellow(`⚠ Governor peer already set correctly for endpoint ${peer.eid}`))
         continue
       }

@@ -11,7 +11,8 @@ import { getConfigByNetwork } from '../helpers/config-handler'
 import { getHubChain } from '../helpers/get-hub-chain'
 import { promptForConfigType } from '../helpers/prompt-helpers'
 import { warnIfTenderlyVirtualTestnet } from '../helpers/tenderly-helpers'
-import { checkLzAuthorization, createUnifiedLzConfigProposal } from './bridge-governance-helper'
+import { createUnifiedLzConfigProposal } from './helpers/bridge-governance-helper'
+import { checkLzAuthorization } from './helpers/lz-authorization-helper'
 import { LZ_ENDPOINT_ABI } from './lz-endpoint-abi'
 
 // Interface for LayerZero configuration
@@ -62,21 +63,6 @@ async function getDeployedChains(useBummerConfig: boolean): Promise<string[]> {
   }
 
   return deployedChains
-}
-
-/**
- * Check if a route between two chains already exists for an OApp
- */
-async function checkExistingRoute(
-  sourceChain: string,
-  targetChain: string,
-  oAppType: 'summerToken' | 'summerGovernor',
-  useBummerConfig: boolean,
-): Promise<boolean> {
-  // This would require looking at the actual contract state or saved configs
-  // For now, we'll assume no routes exist and always configure
-  // In a production-ready version, this would check the actual chain state
-  return false
 }
 
 /**
