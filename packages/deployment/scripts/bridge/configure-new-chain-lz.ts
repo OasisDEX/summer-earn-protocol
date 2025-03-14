@@ -489,8 +489,6 @@ async function createGovernanceProposals(
   if (selectedFleetPath) {
     try {
       // Read the selected fleet deployment file
-      //   const fleetPath = join('deployments', 'fleets', selectedFleetPath)
-      //   console.log('fleetPath', fleetPath)
       const fleetData = JSON.parse(fs.readFileSync(selectedFleetPath, 'utf8'))
       console.log('fleetData', fleetData)
       fleetDeployments = processFleetDeploymentData(fleetData, newChainName)
@@ -504,14 +502,29 @@ async function createGovernanceProposals(
     console.log(kleur.yellow(`No fleet deployments selected for ${newChainName}`))
   }
 
+  // Generate peer configurations for existing chains to new chain
+  console.log(kleur.blue('\nGenerating peer configurations from existing chains to new chain...'))
+
+  const peerConfigurations = await generatePeerConfigurations(newChainName, useBummerConfig)
+
+  if (peerConfigurations.tokenPeers.length > 0 || peerConfigurations.governorPeers.length > 0) {
+    console.log(
+      kleur.green(
+        `Generated ${peerConfigurations.tokenPeers.length} token peers and ${peerConfigurations.governorPeers.length} governor peers`,
+      ),
+    )
+  } else {
+    console.log(kleur.yellow('No peer configurations generated'))
+  }
+
   console.log(
     kleur.yellow(
-      `\nCreating aggregated proposal with ${hubChainConfigs.length} hub chain configs and ${nonHubChainConfigs.length} cross-chain configs`,
+      `\nCreating aggregated proposal with ${hubChainConfigs.length} hub chain configs and ${nonHubChainConfigs.length} cross-chain configs and peer configurations`,
     ),
   )
 
   try {
-    // Create a single proposal containing both hub chain and cross-chain actions
+    // Create a single proposal containing both hub chain and cross-chain actions, plus peering
     await createUnifiedLzConfigProposal(
       hubChainConfigs,
       nonHubChainConfigs,
@@ -520,6 +533,7 @@ async function createGovernanceProposals(
       discourseURL,
       undefined, // No existing proposal
       fleetDeployments, // Pass fleet deployments info
+      peerConfigurations, // Pass peer configurations
     )
   } catch (error: any) {
     console.error(kleur.red(`Error creating unified proposal:`))
@@ -528,93 +542,88 @@ async function createGovernanceProposals(
 }
 
 /**
- * Lists and allows selection of an existing proposal file from the proposals directory
+ * Generate peer configurations for existing chains to connect to the new chain
  */
-async function selectExistingProposal(): Promise<
-  | {
-      title: string
-      description: string
-      path: string
+async function generatePeerConfigurations(newChainName: string, useBummerConfig: boolean) {
+  console.log(kleur.blue(`Generating peer configurations for existing chains to ${newChainName}`))
+
+  // Get all chains that have deployed contracts
+  const deployedChains = await getDeployedChains(useBummerConfig)
+  const hubChain = getHubChain()
+
+  // Get config for the new chain
+  const newChainConfig = getConfigByNetwork(
+    newChainName,
+    { common: true, gov: true },
+    useBummerConfig,
+  )
+
+  // Initialize peer configurations
+  const tokenPeers: Array<{
+    sourceChain: string
+    eid: number
+    address: string
+  }> = []
+
+  const governorPeers: Array<{
+    sourceChain: string
+    eid: number
+    address: string
+  }> = []
+
+  // Get the EID for the new chain
+  const newChainEid = Number(newChainConfig.common.layerZero.eID)
+
+  // Get the contract addresses for the new chain
+  const newChainTokenAddress = newChainConfig.deployedContracts?.gov?.summerToken?.address
+  const newChainGovernorAddress = newChainConfig.deployedContracts?.gov?.summerGovernor?.address
+
+  if (!newChainTokenAddress || !newChainGovernorAddress) {
+    console.log(kleur.red(`Missing contract addresses for ${newChainName}`))
+    return { tokenPeers: [], governorPeers: [] }
+  }
+
+  // For each deployed chain, create peer configurations
+  for (const sourceChain of deployedChains) {
+    if (sourceChain === newChainName) continue // Skip self-connections
+
+    console.log(kleur.yellow(`Generating peer config for ${sourceChain} -> ${newChainName}`))
+
+    // Get the source chain config
+    const sourceConfig = getConfigByNetwork(
+      sourceChain,
+      { common: true, gov: true },
+      useBummerConfig,
+    )
+
+    // Create token peer config - all chains need to peer with all other chains
+    tokenPeers.push({
+      sourceChain,
+      eid: newChainEid,
+      address: newChainTokenAddress,
+    })
+
+    // Create governor peer config - only hub needs to peer with satellites
+    // and satellites need to peer with hub
+    const isSourceHub = sourceChain === hubChain
+    const isNewChainHub = newChainName === hubChain
+
+    if (isSourceHub || isNewChainHub) {
+      governorPeers.push({
+        sourceChain,
+        eid: newChainEid,
+        address: newChainGovernorAddress,
+      })
+    } else {
+      console.log(
+        kleur.blue(
+          `Skipping governor peer config for satellite-to-satellite: ${sourceChain} -> ${newChainName}`,
+        ),
+      )
     }
-  | undefined
-> {
-  const proposalsDir = path.join(process.cwd(), 'proposals')
-
-  // Check if directory exists
-  if (!fs.existsSync(proposalsDir)) {
-    console.log(kleur.yellow('No proposals directory found. Skipping proposal selection.'))
-    return undefined
   }
 
-  // Get all JSON files from the proposals directory
-  const proposalFiles = fs
-    .readdirSync(proposalsDir)
-    .filter((file) => file.endsWith('.json'))
-    .map((file) => path.join(proposalsDir, file))
-
-  if (proposalFiles.length === 0) {
-    console.log(kleur.yellow('No proposal files found. Skipping proposal selection.'))
-    return undefined
-  }
-
-  // Extract basic info from each proposal file
-  const proposals = proposalFiles.map((filePath) => {
-    try {
-      const content = JSON.parse(fs.readFileSync(filePath, 'utf8'))
-      return {
-        path: filePath,
-        title: content.title || path.basename(filePath),
-        description: content.description || 'No description available',
-        timestamp: fs.statSync(filePath).mtime.getTime(),
-      }
-    } catch (error) {
-      return {
-        path: filePath,
-        title: path.basename(filePath),
-        description: 'Error reading proposal file',
-        timestamp: 0,
-      }
-    }
-  })
-
-  // Sort by most recent first
-  proposals.sort((a, b) => b.timestamp - a.timestamp)
-
-  // Ask user if they want to include an existing proposal
-  const { includeProposal } = await prompts({
-    type: 'confirm',
-    name: 'includeProposal',
-    message: 'Would you like to reference an existing proposal in your bridge configuration?',
-    initial: true,
-  })
-
-  if (!includeProposal) {
-    return undefined
-  }
-
-  // Prompt user to select a proposal
-  const { selectedProposal } = await prompts({
-    type: 'select',
-    name: 'selectedProposal',
-    message: 'Select a proposal to include:',
-    choices: [
-      ...proposals.map((prop, index) => ({
-        title: `${prop.title} (${path.basename(prop.path)})`,
-        value: index,
-      })),
-      { title: 'None', value: -1 },
-    ],
-  })
-
-  if (selectedProposal === -1) {
-    return undefined
-  }
-
-  return {
-    title: proposals[selectedProposal].title,
-    description: proposals[selectedProposal].description,
-    path: proposals[selectedProposal].path,
-  }
+  return { tokenPeers, governorPeers }
 }
 
 /**

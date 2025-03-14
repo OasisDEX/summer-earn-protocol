@@ -352,6 +352,7 @@ export function generateAggregatedLzConfigProposalDescription(
       tipRate?: string
     }
   }>,
+  peeringInfo?: string,
 ): string {
   // Format config items for better readability
   const formatConfigItems = () => {
@@ -411,6 +412,7 @@ The current delegate addresses for these OApps do not match the deployer's addre
 
 ### Configurations
 ${formatConfigItems()}
+${peeringInfo || ''} 
 
 ### Actions
 This proposal will update the LayerZero endpoint configurations for the specified OApps according to the parameters listed above.
@@ -445,6 +447,7 @@ ${fleetDeploymentsSection}
 
 ### Configurations
 ${formatConfigItems()}
+${peeringInfo || ''} 
 
 ### Cross-chain Mechanism
 This proposal uses LayerZero to execute governance actions across chains, following the protocol's established cross-chain governance pattern.
@@ -799,6 +802,10 @@ export async function createUnifiedLzConfigProposal(
       tipRate?: string
     }
   }>,
+  peerConfigurations?: {
+    tokenPeers: Array<{ sourceChain: string; eid: number; address: string }>
+    governorPeers: Array<{ sourceChain: string; eid: number; address: string }>
+  },
 ) {
   console.log(kleur.cyan(`Creating unified LayerZero configuration proposal...`))
 
@@ -868,6 +875,103 @@ export async function createUnifiedLzConfigProposal(
         ),
       )
       console.error(error)
+    }
+  }
+
+  // Process peer configurations if provided
+  if (peerConfigurations) {
+    console.log(kleur.cyan(`Processing peer configurations...`))
+    console.log(
+      kleur.yellow(
+        `Adding ${peerConfigurations.tokenPeers.length} token peers and ${peerConfigurations.governorPeers.length} governor peers`,
+      ),
+    )
+
+    // Create a collection to track which chains and contracts have been processed for the proposal description
+    const peeringSummary: Array<{
+      sourceChain: string
+      sourceContract: string
+      targetChain: string
+      eid: number
+    }> = []
+
+    // Process token peers
+    for (const peer of peerConfigurations.tokenPeers) {
+      try {
+        // Get the source chain config
+        const sourceConfig = getConfigByNetwork(peer.sourceChain, { gov: true }, useBummerConfig)
+        const tokenAddress = sourceConfig.deployedContracts.gov.summerToken.address as Address
+
+        // Format the peer address as bytes32 (padded with zeros)
+        const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
+
+        // Add to proposal actions
+        hubTargets.push(tokenAddress)
+        hubValues.push(0n)
+        hubCalldatas.push(
+          encodeFunctionData({
+            abi: parseAbi(['function setPeer(uint32 _eid, bytes32 _peer) external']),
+            functionName: 'setPeer',
+            args: [peer.eid, peerAddressAsBytes32],
+          }) as Hex,
+        )
+
+        // Track for description
+        peeringSummary.push({
+          sourceChain: peer.sourceChain,
+          sourceContract: 'SummerToken',
+          targetChain: newChainName,
+          eid: peer.eid,
+        })
+
+        console.log(kleur.green(`Added token peer action: ${peer.sourceChain} -> ${newChainName}`))
+      } catch (error) {
+        console.error(kleur.red(`Error processing token peer for ${peer.sourceChain}:`))
+        console.error(error)
+      }
+    }
+
+    // Process governor peers
+    for (const peer of peerConfigurations.governorPeers) {
+      try {
+        // Get the source chain config
+        const sourceConfig = getConfigByNetwork(peer.sourceChain, { gov: true }, useBummerConfig)
+        const governorAddress = sourceConfig.deployedContracts.gov.summerGovernor.address as Address
+
+        // Format the peer address as bytes32 (padded with zeros)
+        const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
+
+        // Add to proposal actions
+        hubTargets.push(governorAddress)
+        hubValues.push(0n)
+        hubCalldatas.push(
+          encodeFunctionData({
+            abi: parseAbi(['function setPeer(uint32 _eid, bytes32 _peer) external']),
+            functionName: 'setPeer',
+            args: [peer.eid, peerAddressAsBytes32],
+          }) as Hex,
+        )
+
+        // Track for description
+        peeringSummary.push({
+          sourceChain: peer.sourceChain,
+          sourceContract: 'SummerGovernor',
+          targetChain: newChainName,
+          eid: peer.eid,
+        })
+
+        console.log(
+          kleur.green(`Added governor peer action: ${peer.sourceChain} -> ${newChainName}`),
+        )
+      } catch (error) {
+        console.error(kleur.red(`Error processing governor peer for ${peer.sourceChain}:`))
+        console.error(error)
+      }
+    }
+
+    // Add peering info to description
+    if (peeringSummary.length > 0) {
+      console.log(kleur.green(`Added ${peeringSummary.length} peering actions to the proposal`))
     }
   }
 
@@ -975,6 +1079,14 @@ export async function createUnifiedLzConfigProposal(
         sipMinorNumber,
         existingProposal,
         fleetDeployments,
+        `
+### Peering Configuration
+This proposal also configures the existing chains to peer with the new ${newChainName} chain:
+- Token Peers: ${peerConfigurations?.tokenPeers.length || 0}
+- Governor Peers: ${peerConfigurations?.governorPeers.length || 0}
+
+The peering is necessary to enable cross-chain message passing between existing chains and the newly deployed chain.
+`,
       )
 
       // Configure LayerZero options
@@ -1063,6 +1175,14 @@ export async function createUnifiedLzConfigProposal(
     sipMinorNumber,
     existingProposal,
     fleetDeployments,
+    `
+### Peering Configuration
+This proposal also configures the existing chains to peer with the new ${newChainName} chain:
+- Token Peers: ${peerConfigurations?.tokenPeers.length || 0}
+- Governor Peers: ${peerConfigurations?.governorPeers.length || 0}
+
+The peering is necessary to enable cross-chain message passing between existing chains and the newly deployed chain.
+`,
   )
 
   // Generate a title and save path
