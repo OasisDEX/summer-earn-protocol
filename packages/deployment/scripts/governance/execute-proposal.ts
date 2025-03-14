@@ -156,6 +156,14 @@ async function executeCrossChainProposal(proposal: ProposalData) {
   // Loop through all target chains in the array
   for (let i = 0; i < proposal.crossChainExecution.length; i++) {
     const targetChain = proposal.crossChainExecution[i]
+    if (targetChain.chainId !== Number(hre.network.config.chainId)) {
+      console.log(
+        kleur.yellow(
+          `Skipping target chain execution. It's not the active network (${hre.network.name}).`,
+        ),
+      )
+      continue
+    }
 
     if (!targetChain) {
       console.error(kleur.red(`Missing target chain information for execution ${i + 1}.`))

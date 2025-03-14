@@ -1,4 +1,6 @@
+import fs from 'fs'
 import kleur from 'kleur'
+import path from 'path'
 import prompts from 'prompts'
 import { Address, createWalletClient, encodeAbiParameters, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -480,6 +482,28 @@ async function createGovernanceProposals(
     return
   }
 
+  // Prompt for fleet deployment selection
+  const selectedFleetPath = await promptForFleetDeployment(newChainName)
+  let fleetDeployments
+
+  if (selectedFleetPath) {
+    try {
+      // Read the selected fleet deployment file
+      //   const fleetPath = join('deployments', 'fleets', selectedFleetPath)
+      //   console.log('fleetPath', fleetPath)
+      const fleetData = JSON.parse(fs.readFileSync(selectedFleetPath, 'utf8'))
+      console.log('fleetData', fleetData)
+      fleetDeployments = processFleetDeploymentData(fleetData, newChainName)
+      console.log(
+        kleur.green(`Loaded fleet deployment data with ${fleetDeployments.length} fleets`),
+      )
+    } catch (error) {
+      console.error(kleur.red(`Error loading fleet deployment file: ${error}`))
+    }
+  } else {
+    console.log(kleur.yellow(`No fleet deployments selected for ${newChainName}`))
+  }
+
   console.log(
     kleur.yellow(
       `\nCreating aggregated proposal with ${hubChainConfigs.length} hub chain configs and ${nonHubChainConfigs.length} cross-chain configs`,
@@ -494,11 +518,250 @@ async function createGovernanceProposals(
       useBummerConfig,
       newChainName,
       discourseURL,
+      undefined, // No existing proposal
+      fleetDeployments, // Pass fleet deployments info
     )
   } catch (error: any) {
     console.error(kleur.red(`Error creating unified proposal:`))
     console.error(error instanceof Error ? error.message : String(error))
   }
+}
+
+/**
+ * Lists and allows selection of an existing proposal file from the proposals directory
+ */
+async function selectExistingProposal(): Promise<
+  | {
+      title: string
+      description: string
+      path: string
+    }
+  | undefined
+> {
+  const proposalsDir = path.join(process.cwd(), 'proposals')
+
+  // Check if directory exists
+  if (!fs.existsSync(proposalsDir)) {
+    console.log(kleur.yellow('No proposals directory found. Skipping proposal selection.'))
+    return undefined
+  }
+
+  // Get all JSON files from the proposals directory
+  const proposalFiles = fs
+    .readdirSync(proposalsDir)
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => path.join(proposalsDir, file))
+
+  if (proposalFiles.length === 0) {
+    console.log(kleur.yellow('No proposal files found. Skipping proposal selection.'))
+    return undefined
+  }
+
+  // Extract basic info from each proposal file
+  const proposals = proposalFiles.map((filePath) => {
+    try {
+      const content = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+      return {
+        path: filePath,
+        title: content.title || path.basename(filePath),
+        description: content.description || 'No description available',
+        timestamp: fs.statSync(filePath).mtime.getTime(),
+      }
+    } catch (error) {
+      return {
+        path: filePath,
+        title: path.basename(filePath),
+        description: 'Error reading proposal file',
+        timestamp: 0,
+      }
+    }
+  })
+
+  // Sort by most recent first
+  proposals.sort((a, b) => b.timestamp - a.timestamp)
+
+  // Ask user if they want to include an existing proposal
+  const { includeProposal } = await prompts({
+    type: 'confirm',
+    name: 'includeProposal',
+    message: 'Would you like to reference an existing proposal in your bridge configuration?',
+    initial: true,
+  })
+
+  if (!includeProposal) {
+    return undefined
+  }
+
+  // Prompt user to select a proposal
+  const { selectedProposal } = await prompts({
+    type: 'select',
+    name: 'selectedProposal',
+    message: 'Select a proposal to include:',
+    choices: [
+      ...proposals.map((prop, index) => ({
+        title: `${prop.title} (${path.basename(prop.path)})`,
+        value: index,
+      })),
+      { title: 'None', value: -1 },
+    ],
+  })
+
+  if (selectedProposal === -1) {
+    return undefined
+  }
+
+  return {
+    title: proposals[selectedProposal].title,
+    description: proposals[selectedProposal].description,
+    path: proposals[selectedProposal].path,
+  }
+}
+
+/**
+ * Lists and allows selection of a fleet deployment from the deployments/fleets directory
+ */
+async function promptForFleetDeployment(newChainName: string): Promise<string | undefined> {
+  console.log(kleur.blue('\nLooking for fleet deployments in the deployments/fleets directory...'))
+
+  // The deployments/fleets directory should be in the project root
+  const fleetsDir = path.join(process.cwd(), 'deployments', 'fleets')
+
+  if (!fs.existsSync(fleetsDir)) {
+    console.log(kleur.yellow('No deployments/fleets directory found'))
+    return undefined
+  }
+
+  // Find fleet deployments related to the specified chain
+  const fleetDeploymentFiles = fs.readdirSync(fleetsDir).filter((file) => {
+    // Look for files that might be related to the chain
+    return file.toLowerCase().includes(newChainName.toLowerCase()) && file.endsWith('.json')
+  })
+
+  if (fleetDeploymentFiles.length === 0) {
+    console.log(
+      kleur.yellow(
+        `No fleet deployments found for ${newChainName} in the deployments/fleets directory`,
+      ),
+    )
+    return undefined
+  }
+
+  // Sort files by date (most recent first)
+  fleetDeploymentFiles.sort((a, b) => {
+    const statsA = fs.statSync(path.join(fleetsDir, a))
+    const statsB = fs.statSync(path.join(fleetsDir, b))
+    return statsB.mtime.getTime() - statsA.mtime.getTime()
+  })
+
+  // Prompt user to select a fleet deployment
+  const { selectedFleet } = await prompts({
+    type: 'select',
+    name: 'selectedFleet',
+    message: 'Select a fleet deployment to include in the proposal:',
+    choices: [
+      { title: 'None - do not include fleet information', value: 'none' },
+      ...fleetDeploymentFiles.map((file) => ({
+        title: file,
+        value: path.join(fleetsDir, file),
+      })),
+    ],
+  })
+
+  if (selectedFleet === 'none') {
+    console.log(kleur.yellow('No fleet deployment selected'))
+    return undefined
+  }
+
+  console.log(kleur.green(`Selected fleet deployment: ${path.basename(selectedFleet)}`))
+  return selectedFleet
+}
+
+/**
+ * Process fleet deployment data from the selected file
+ */
+function processFleetDeploymentData(
+  fleetData: any,
+  chainName: string,
+): Array<{
+  name: string
+  fleetCommander: Address
+  bufferArk: Address
+  arks: Address[]
+  config?: {
+    depositCap?: string
+    minimumBufferBalance?: string
+    rebalanceCooldown?: string
+    tipRate?: string
+  }
+}> {
+  const fleets: Array<{
+    name: string
+    fleetCommander: Address
+    bufferArk: Address
+    arks: Address[]
+    config?: {
+      depositCap?: string
+      minimumBufferBalance?: string
+      rebalanceCooldown?: string
+      tipRate?: string
+    }
+  }> = []
+
+  // Check if we have a fleets array in the data
+  if (Array.isArray(fleetData.fleets)) {
+    // Process each fleet in the array
+    for (const fleet of fleetData.fleets) {
+      fleets.push({
+        name: fleet.fleetName || fleet.name || `Fleet on ${chainName}`,
+        fleetCommander: fleet.fleetCommander || fleet.commanderAddress || fleet.fleetAddress,
+        bufferArk: fleet.bufferArk || fleet.bufferArkAddress,
+        arks: Array.isArray(fleet.arks)
+          ? fleet.arks
+          : Array.isArray(fleet.arkAddresses)
+            ? fleet.arkAddresses
+            : [],
+        config: {
+          depositCap: fleet.config?.depositCap || fleet.depositCap,
+          minimumBufferBalance:
+            fleet.config?.minimumBufferBalance ||
+            fleet.minimumBufferBalance ||
+            fleet.initialMinimumBufferBalance,
+          rebalanceCooldown:
+            fleet.config?.rebalanceCooldown ||
+            fleet.rebalanceCooldown ||
+            fleet.initialRebalanceCooldown,
+          tipRate: fleet.config?.tipRate || fleet.tipRate || fleet.initialTipRate,
+        },
+      })
+    }
+  } else {
+    // Single fleet data
+    fleets.push({
+      name: fleetData.fleetName || fleetData.name || `Fleet on ${chainName}`,
+      fleetCommander:
+        fleetData.fleetCommander || fleetData.commanderAddress || fleetData.fleetAddress,
+      bufferArk: fleetData.bufferArk || fleetData.bufferArkAddress,
+      arks: Array.isArray(fleetData.arks)
+        ? fleetData.arks
+        : Array.isArray(fleetData.arkAddresses)
+          ? fleetData.arkAddresses
+          : [],
+      config: {
+        depositCap: fleetData.config?.depositCap || fleetData.depositCap,
+        minimumBufferBalance:
+          fleetData.config?.minimumBufferBalance ||
+          fleetData.minimumBufferBalance ||
+          fleetData.initialMinimumBufferBalance,
+        rebalanceCooldown:
+          fleetData.config?.rebalanceCooldown ||
+          fleetData.rebalanceCooldown ||
+          fleetData.initialRebalanceCooldown,
+        tipRate: fleetData.config?.tipRate || fleetData.tipRate || fleetData.initialTipRate,
+      },
+    })
+  }
+
+  return fleets
 }
 
 /**

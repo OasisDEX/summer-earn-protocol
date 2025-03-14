@@ -84,8 +84,10 @@ export async function peerGov(useBummerConfig = false) {
     try {
       // Check if peer already exists with the same address
       const existingPeerAsBytes32 = await summerToken.read.peers([peer.eid])
+      console.log('existingPeerAsBytes32', existingPeerAsBytes32)
+      console.log('peer.eid', peer.eid)
 
-      if (existingPeerAsBytes32 === peerAddressAsBytes32) {
+      if ((existingPeerAsBytes32 as string).toLowerCase() === peerAddressAsBytes32.toLowerCase()) {
         console.log(kleur.yellow(`⚠ Token peer already set correctly for endpoint ${peer.eid}`))
         continue
       }

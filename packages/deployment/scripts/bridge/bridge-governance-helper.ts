@@ -1,3 +1,4 @@
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
 import path from 'path'
@@ -155,6 +156,166 @@ This proposal only updates the LayerZero endpoint configuration for the specifie
 }
 
 /**
+ * Gets fleet deployment information from the deployments directory
+ * @param chainName The name of the chain to get fleet information for
+ * @returns Information about deployed fleets on the chain
+ */
+export async function getFleetDeploymentInfo(chainName: string): Promise<
+  Array<{
+    name: string
+    fleetCommander: Address
+    bufferArk: Address
+    arks: Address[]
+    config?: {
+      depositCap?: string
+      minimumBufferBalance?: string
+      rebalanceCooldown?: string
+      tipRate?: string
+    }
+  }>
+> {
+  console.log(kleur.blue('Looking for fleet deployments on'), kleur.cyan(chainName))
+
+  // The deployments directory should be in the project root
+  const deploymentsDir = path.join(process.cwd(), 'deployments', chainName)
+
+  if (!fs.existsSync(deploymentsDir)) {
+    console.log(kleur.yellow(`No deployments directory found for ${chainName}`))
+    return []
+  }
+
+  try {
+    // Look for fleet commander deployments in the directory
+    const deploymentFiles = fs.readdirSync(deploymentsDir)
+
+    // Find files that might be fleet commanders
+    const fleetCommanderFiles = deploymentFiles.filter(
+      (file) => file.includes('FleetCommander') && file.endsWith('.json'),
+    )
+
+    if (fleetCommanderFiles.length === 0) {
+      console.log(kleur.yellow(`No fleet deployments found for ${chainName}`))
+      return []
+    }
+
+    const fleets = []
+
+    for (const fcFile of fleetCommanderFiles) {
+      try {
+        // Read the fleet commander deployment
+        const fcPath = path.join(deploymentsDir, fcFile)
+        const fcDeployment = JSON.parse(fs.readFileSync(fcPath, 'utf8'))
+
+        // Get the fleet name from the contract (parsing the name from the file)
+        const fleetName = fcFile.replace('FleetCommander_', '').replace('.json', '')
+
+        // Find the buffer ark by checking for a buffer ark deployment with the same fleet name
+        const bufferArkFile = deploymentFiles.find(
+          (file) =>
+            file.includes('BufferArk') && file.includes(fleetName) && file.endsWith('.json'),
+        )
+
+        let bufferArkAddress: Address = '0x0000000000000000000000000000000000000000'
+        if (bufferArkFile) {
+          const bufferArkPath = path.join(deploymentsDir, bufferArkFile)
+          const bufferArkDeployment = JSON.parse(fs.readFileSync(bufferArkPath, 'utf8'))
+          bufferArkAddress = bufferArkDeployment.address
+        }
+
+        // Find ark deployments associated with this fleet
+        const arkFiles = deploymentFiles.filter(
+          (file) =>
+            file.includes('Ark') &&
+            !file.includes('BufferArk') &&
+            file.includes(fleetName) &&
+            file.endsWith('.json'),
+        )
+
+        const arkAddresses: Address[] = []
+        for (const arkFile of arkFiles) {
+          const arkPath = path.join(deploymentsDir, arkFile)
+          const arkDeployment = JSON.parse(fs.readFileSync(arkPath, 'utf8'))
+          arkAddresses.push(arkDeployment.address)
+        }
+
+        // Extract config from the fleet commander construction args if available
+        let config = {}
+        if (fcDeployment.args) {
+          const args = fcDeployment.args
+          config = {
+            depositCap: args.find((arg: any) => arg.name === 'depositCap')?.value,
+            minimumBufferBalance: args.find(
+              (arg: any) => arg.name === 'initialMinimumBufferBalance',
+            )?.value,
+            rebalanceCooldown: args.find((arg: any) => arg.name === 'initialRebalanceCooldown')
+              ?.value,
+            tipRate: args.find((arg: any) => arg.name === 'initialTipRate')?.value,
+          }
+        }
+
+        fleets.push({
+          name: fleetName,
+          fleetCommander: fcDeployment.address,
+          bufferArk: bufferArkAddress,
+          arks: arkAddresses,
+          config,
+        })
+      } catch (error) {
+        console.log(kleur.yellow(`Error processing fleet commander file ${fcFile}:`), error)
+      }
+    }
+
+    return fleets
+  } catch (error) {
+    console.log(kleur.red(`Error reading deployments directory for ${chainName}:`), error)
+    return []
+  }
+}
+
+/**
+ * Format a fleet deployment into a readable description
+ */
+function formatFleetDeployments(
+  fleets: Array<{
+    name: string
+    fleetCommander: Address
+    bufferArk: Address
+    arks: Address[]
+    config?: {
+      depositCap?: string
+      minimumBufferBalance?: string
+      rebalanceCooldown?: string
+      tipRate?: string
+    }
+  }>,
+): string {
+  if (fleets.length === 0) {
+    return 'No fleet deployments found.'
+  }
+
+  return fleets
+    .map((fleet) => {
+      // Format configuration values if available
+      const configDetails = fleet.config
+        ? `
+    - Deposit Cap: ${fleet.config.depositCap || 'N/A'}
+    - Minimum Buffer Balance: ${fleet.config.minimumBufferBalance || 'N/A'}
+    - Rebalance Cooldown: ${fleet.config.rebalanceCooldown || 'N/A'}
+    - Tip Rate: ${fleet.config.tipRate || 'N/A'}`
+        : ''
+
+      return `
+### Fleet: ${fleet.name}
+- Fleet Commander: ${fleet.fleetCommander}
+- Buffer Ark: ${fleet.bufferArk}
+- Number of Arks: ${fleet.arks.length}${configDetails}
+- Ark Addresses:
+  ${fleet.arks.map((ark) => `  - ${ark}`).join('\n')}`
+    })
+    .join('\n\n')
+}
+
+/**
  * Generates an aggregated proposal description for multiple OApp configurations
  * following the SIP format from governance rules
  */
@@ -174,6 +335,23 @@ export function generateAggregatedLzConfigProposalDescription(
   newChainName?: string,
   hubChainName?: string,
   sipMinorNumber?: number,
+  existingProposal?: {
+    title: string
+    description: string
+    path: string
+  },
+  fleetDeployments?: Array<{
+    name: string
+    fleetCommander: Address
+    bufferArk: Address
+    arks: Address[]
+    config?: {
+      depositCap?: string
+      minimumBufferBalance?: string
+      rebalanceCooldown?: string
+      tipRate?: string
+    }
+  }>,
 ): string {
   // Format config items for better readability
   const formatConfigItems = () => {
@@ -206,6 +384,17 @@ ${formatParams(item.receiveParams)}
   // Determine SIP category based on the proposal type, using provided minor number if available
   const sipCategory = sipMinorNumber !== undefined ? `SIP5.${sipMinorNumber}` : 'SIP5'
 
+  // Add fleet deployments section if provided
+  let fleetDeploymentsSection = ''
+  if (fleetDeployments && fleetDeployments.length > 0) {
+    fleetDeploymentsSection = `
+## Fleet Deployments on ${newChainName}
+This LayerZero configuration will enable cross-chain governance for the following deployed fleets:
+
+${formatFleetDeployments(fleetDeployments)}
+`
+  }
+
   if (!isCrossChain) {
     return `# ${sipCategory}: Aggregated LayerZero Configuration Update
 
@@ -230,6 +419,7 @@ This proposal will update the LayerZero endpoint configurations for the specifie
 - This proposal only updates the LayerZero endpoint configurations for the specified OApps.
 - All configurations have been carefully reviewed to ensure they maintain the security of cross-chain communications.
 - The changes will be executed through the protocol's governance process with the standard 2-day timelock period.
+${fleetDeploymentsSection}
 `
   } else {
     // Cross-chain proposal description
@@ -244,6 +434,7 @@ This is a cross-chain governance proposal to update the LayerZero endpoint confi
 
 ## Motivation
 This proposal sets up all required LayerZero routes for the new ${newChainName} chain, enabling secure cross-chain communication for the Lazy Summer Protocol's operations. These configurations are necessary to ensure proper message passing between chains.
+${fleetDeploymentsSection}
 
 ## Specifications
 ### Technical Details
@@ -374,6 +565,7 @@ export async function createLzConfigProposal(
     hre.network.config.chainId as number,
     discourseURL,
     [],
+    undefined,
     savePath,
   )
 
@@ -432,35 +624,12 @@ export async function createCrossChainLzConfigProposal(
   const dstValues: bigint[] = []
   const dstCalldatas: Hex[] = []
 
-  // LZ Endpoint ABI for setConfig
-  const lzEndpointAbi = [
-    {
-      inputs: [
-        { name: 'oapp', type: 'address' },
-        { name: 'lib', type: 'address' },
-        {
-          name: 'params',
-          type: 'tuple[]',
-          components: [
-            { name: 'eid', type: 'uint32' },
-            { name: 'configType', type: 'uint32' },
-            { name: 'config', type: 'bytes' },
-          ],
-        },
-      ],
-      name: 'setConfig',
-      outputs: [],
-      stateMutability: 'nonpayable',
-      type: 'function',
-    },
-  ] as const
-
   // Add the send config action
   dstTargets.push(lzEndpointAddress)
   dstValues.push(0n)
   dstCalldatas.push(
     encodeFunctionData({
-      abi: lzEndpointAbi,
+      abi: LZ_ENDPOINT_ABI,
       functionName: 'setConfig',
       args: [oAppAddress, sendLibraryAddress, sendConfigParams],
     }) as Hex,
@@ -471,7 +640,7 @@ export async function createCrossChainLzConfigProposal(
   dstValues.push(0n)
   dstCalldatas.push(
     encodeFunctionData({
-      abi: lzEndpointAbi,
+      abi: LZ_ENDPOINT_ABI,
       functionName: 'setConfig',
       args: [oAppAddress, receiveLibraryAddress, receiveConfigParams],
     }) as Hex,
@@ -613,6 +782,23 @@ export async function createUnifiedLzConfigProposal(
   useBummerConfig: boolean = false,
   newChainName: string,
   discourseURL: string = '',
+  existingProposal?: {
+    title: string
+    description: string
+    path: string
+  },
+  fleetDeployments?: Array<{
+    name: string
+    fleetCommander: Address
+    bufferArk: Address
+    arks: Address[]
+    config?: {
+      depositCap?: string
+      minimumBufferBalance?: string
+      rebalanceCooldown?: string
+      tipRate?: string
+    }
+  }>,
 ) {
   console.log(kleur.cyan(`Creating unified LayerZero configuration proposal...`))
 
@@ -694,6 +880,15 @@ export async function createUnifiedLzConfigProposal(
     groupedNonHubConfigs[config.sourceChain].push(config)
   }
 
+  // Store cross-chain execution details for the proposal data
+  const crossChainExecutions: Array<{
+    name: string
+    chainId: number
+    targets: string[]
+    values: string[]
+    datas: string[]
+  }> = []
+
   // 3. Process cross-chain configurations - grouped by target chain
   for (const [targetChain, targetChainConfigs] of Object.entries(groupedNonHubConfigs)) {
     // Create cross-chain configuration for this target chain
@@ -761,6 +956,15 @@ export async function createUnifiedLzConfigProposal(
     console.log(dstTargets)
 
     if (dstTargets.length > 0) {
+      // Add to the cross-chain executions array
+      crossChainExecutions.push({
+        name: targetChain,
+        chainId: Number(targetChainConfig.common.chainId),
+        targets: dstTargets.map((t) => t.toString()),
+        values: dstValues.map((v) => v.toString()),
+        datas: dstCalldatas.map((c) => c.toString()),
+      })
+
       // Generate destination proposal description
       const dstDescription = generateAggregatedLzConfigProposalDescription(
         targetConfigItems,
@@ -769,6 +973,8 @@ export async function createUnifiedLzConfigProposal(
         newChainName,
         hubChain,
         sipMinorNumber,
+        existingProposal,
+        fleetDeployments,
       )
 
       // Configure LayerZero options
@@ -851,10 +1057,12 @@ export async function createUnifiedLzConfigProposal(
   const description = generateAggregatedLzConfigProposalDescription(
     allConfigItems,
     deployer.account.address as Address,
-    containsCrossChainActions, // Mark as cross-chain if it contains any cross-chain actions
+    containsCrossChainActions,
     newChainName,
     hubChain,
     sipMinorNumber,
+    existingProposal,
+    fleetDeployments,
   )
 
   // Generate a title and save path
@@ -883,6 +1091,7 @@ export async function createUnifiedLzConfigProposal(
     discourseURL,
     [],
     savePath,
+    crossChainExecutions,
   )
 
   console.log(kleur.green(`Unified governance proposal created successfully on ${hubChain}.`))

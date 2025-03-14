@@ -1030,16 +1030,11 @@ export async function createSatelliteGovernanceProposal(
     const savePath = path.join(
       process.cwd(),
       '/proposals',
-      `${networkName}_proposal_${timestamp}.json`,
+      `${networkName}_fleet_proposal_${timestamp}.json`,
     )
 
     // Add cross-chain execution details
     const crossChainExecution = {
-      hubChain: {
-        name: HUB_CHAIN_NAME,
-        chainId: HUB_CHAIN_ID,
-        governorAddress: HUB_GOVERNOR_ADDRESS,
-      },
       targetChain: {
         name: hre.network.name,
         chainId: hre.network.config.chainId || 0,
@@ -1213,7 +1208,7 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
     const savePath = path.join(
       process.cwd(),
       '/proposals',
-      `${networkName}_proposal_${timestamp}.json`,
+      `${networkName}_${fleetDefinition.assetSymbol}_fleet_proposal_${timestamp}.json`,
     )
 
     // Add cross-chain execution details
