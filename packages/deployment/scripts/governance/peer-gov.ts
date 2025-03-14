@@ -1,7 +1,9 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address, Hex } from 'viem'
 import { SupportedNetworks } from '../../types/config-types'
+import { configureNewChainLayerZero } from '../bridge/configure-new-chain-lz'
 import { ADDRESS_ZERO } from '../common/constants'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
@@ -17,6 +19,38 @@ interface NetworkPeers {
 
 export async function peerGov(useBummerConfig = false) {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
+
+  // Ask if user wants to run LZ configuration first
+  const { runLzConfig } = await prompts({
+    type: 'confirm',
+    name: 'runLzConfig',
+    message: 'Do you want to run LayerZero configuration for a new chain first?',
+    initial: false,
+  })
+
+  if (runLzConfig) {
+    console.log(kleur.cyan().bold('\nRunning LayerZero configuration for new chain...\n'))
+    try {
+      // Call the imported function directly instead of using exec
+      await configureNewChainLayerZero(useBummerConfig)
+      console.log(kleur.green().bold('\nLayerZero configuration completed!'))
+    } catch (error) {
+      console.error(kleur.red().bold('\nLayerZero configuration failed:'), error)
+
+      const { continueAnyway } = await prompts({
+        type: 'confirm',
+        name: 'continueAnyway',
+        message: 'Do you want to continue with peering anyway?',
+        initial: false,
+      })
+
+      if (!continueAnyway) {
+        console.log(kleur.yellow('Peering process aborted.'))
+        return
+      }
+    }
+  }
+
   const config = getConfigByNetwork(
     hre.network.name,
     { common: false, gov: true, core: false },
@@ -181,7 +215,11 @@ function getPeersForContract(
 
 // Execute the script
 if (require.main === module) {
-  peerGov().catch((error) => {
+  // Parse command line arguments
+  const args = process.argv.slice(2)
+  const useBummerConfig = args.includes('--bummer')
+
+  peerGov(useBummerConfig).catch((error) => {
     console.error(kleur.red().bold('An error occurred:'), error)
     process.exit(1)
   })

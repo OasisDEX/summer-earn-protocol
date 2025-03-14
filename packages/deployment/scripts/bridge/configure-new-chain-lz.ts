@@ -3,7 +3,8 @@ import prompts from 'prompts'
 import { Address, createWalletClient, encodeAbiParameters, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { arbitrum, base, mainnet, optimism } from 'viem/chains'
-import { RPC_URL_MAP, getChainPublicClient } from '../helpers/chain-rpc-helper'
+import { RPC_URL_MAP } from '../common/chain-config-map'
+import { getChainPublicClient } from '../helpers/client-by-chain-helper'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { getHubChain } from '../helpers/get-hub-chain'
 import { promptForConfigType } from '../helpers/prompt-helpers'
@@ -231,6 +232,7 @@ async function tryDirectExecution(
   sendConfigParams: any[],
   receiveConfigParams: any[],
   isNewChain: boolean = false,
+  useBummerConfig: boolean = false,
 ): Promise<{ success: boolean; error?: string }> {
   console.log(kleur.blue(`Checking if we can directly configure OApp on ${chain}:`))
 
@@ -239,7 +241,7 @@ async function tryDirectExecution(
     const publicClient = await getChainPublicClient(chain)
 
     // Get the source chain configuration to access RPC URLs
-    const sourceConfig = getConfigByNetwork(chain, { common: true }, false)
+    const sourceConfig = getConfigByNetwork(chain, { common: true }, useBummerConfig)
 
     if (!RPC_URL_MAP[chain as keyof typeof RPC_URL_MAP]) {
       return {
@@ -502,7 +504,7 @@ async function createGovernanceProposals(
 /**
  * Configure LayerZero for a new chain with all required routes
  */
-async function configureNewChainLayerZero() {
+async function configureNewChainLayerZero(useBummerConfigOverride?: boolean) {
   // Check if using Tenderly virtual testnet
   const isTenderly = warnIfTenderlyVirtualTestnet(
     'Configurations on Tenderly virtual testnets are temporary and will be lost when the session ends.',
@@ -522,8 +524,18 @@ async function configureNewChainLayerZero() {
     }
   }
 
-  // Ask about using bummer config
-  const useBummerConfig = await promptForConfigType()
+  // If bummerConfig was specified via command line, use it
+  // Otherwise, prompt the user
+  let useBummerConfig = !!useBummerConfigOverride
+  if (useBummerConfigOverride === undefined) {
+    useBummerConfig = await promptForConfigType()
+  } else {
+    console.log(
+      kleur.blue('Using'),
+      kleur.cyan(useBummerConfig ? 'bummer' : 'default'),
+      kleur.blue('configuration.'),
+    )
+  }
 
   // Get all chains that have deployed contracts
   const deployedChains = await getDeployedChains(useBummerConfig)
@@ -583,6 +595,7 @@ async function configureNewChainLayerZero() {
         sendConfigParams,
         receiveConfigParams,
         false, // Not a new chain targeting existing
+        useBummerConfig,
       )
 
       if (!success) {
@@ -660,6 +673,7 @@ async function configureNewChainLayerZero() {
         sendConfigParams,
         receiveConfigParams,
         true, // This is a new chain targeting existing chains
+        useBummerConfig,
       )
 
       if (!success) {
@@ -688,12 +702,11 @@ async function configureNewChainLayerZero() {
       console.log(kleur.green(`  ✓ Successfully configured ${newChain} → ${targetChain}`))
     } catch (error: any) {
       console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
-      console.log('Silently ignoring error')
-      // throw new Error(
-      //   `Failed to configure ${newChain} → ${targetChain}: ${error.message}\n` +
-      //     `New chain configurations must be set up directly before transferring ownership. ` +
-      //     `Please address the error above before continuing.`,
-      // )
+      throw new Error(
+        `Failed to configure ${newChain} → ${targetChain}: ${error.message}\n` +
+          `New chain configurations must be set up directly before transferring ownership. ` +
+          `Please address the error above before continuing.`,
+      )
     }
   }
 
@@ -730,6 +743,7 @@ async function configureNewChainLayerZero() {
       sendConfigParams,
       receiveConfigParams,
       false, // Not a new chain targeting existing
+      useBummerConfig,
     )
 
     if (!success) {
@@ -798,6 +812,7 @@ async function configureNewChainLayerZero() {
       sendConfigParams,
       receiveConfigParams,
       true, // This is a new chain targeting existing chains
+      useBummerConfig,
     )
 
     if (!success) {
@@ -825,9 +840,9 @@ async function configureNewChainLayerZero() {
 
     console.log(kleur.green(`  ✓ Successfully configured ${newChain} → ${hubChain}`))
   } catch (error: any) {
-    console.log(kleur.red(`  ❌ Error configuring route: ${error.message}`))
+    console.log(kleur.red(`  ❌ Error configuring route: ${error}`))
     throw new Error(
-      `Failed to configure ${newChain} → ${hubChain}: ${error.message}\n` +
+      `Failed to configure ${newChain} → ${hubChain}: ${error}\n` +
         `New chain configurations must be set up directly before transferring ownership. ` +
         `Please address the error above before continuing.`,
     )
@@ -843,8 +858,7 @@ async function configureNewChainLayerZero() {
   console.log(kleur.red(`❌ Failed to configure: ${failedConfigs.length} routes`))
 
   // If there are failed configurations, offer to create governance proposals
-  console.log(failedConfigs)
-  throw new Error('Stop here')
+
   if (failedConfigs.length > 0) {
     const { createProposals } = await prompts({
       type: 'confirm',
@@ -875,7 +889,11 @@ async function configureNewChainLayerZero() {
 
 // Execute the script
 if (require.main === module) {
-  configureNewChainLayerZero().catch((error) => {
+  // Parse command line arguments for --bummer flag
+  const args = process.argv.slice(2)
+  const useBummerConfig = args.includes('--bummer')
+
+  configureNewChainLayerZero(useBummerConfig).catch((error) => {
     console.error(kleur.red('Error during LayerZero new chain configuration:'))
     console.error(error instanceof Error ? error.message : String(error))
     process.exit(1)

@@ -7,6 +7,7 @@ export enum SupportedNetworks {
   MAINNET = 'mainnet',
   BASE = 'base',
   ARBITRUM = 'arbitrum',
+  SONIC = 'sonic',
 }
 // Supported Arks
 export enum ArkType {

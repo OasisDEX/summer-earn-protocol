@@ -2,31 +2,34 @@ import dotenv from 'dotenv'
 import hre from 'hardhat'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { resolve } from 'path'
-import { createPublicClient, http } from 'viem'
-import { ChainName, chainConfigs } from '../helpers/chain-configs'
+import { getChainConfigByChainId } from '../helpers/chain-configs'
+import { getChainPublicClient } from '../helpers/client-by-chain-helper'
 import { getConfigByNetwork } from '../helpers/config-handler'
 
 dotenv.config()
 
 const multiSources = [resolve(__dirname, '../../../gov-contracts/src')]
 
-export async function verifyGovernanceRewardsManager(hre: HardhatRuntimeEnvironment) {
+export async function verifyGovernanceRewardsManager(
+  hre: HardhatRuntimeEnvironment,
+  useBummerConfig: boolean = false,
+) {
   for (const sourcePath of multiSources || []) {
     hre.config.paths.sources = sourcePath
     hre.config.paths.root = resolve(sourcePath, '..')
   }
 
-  const config = getConfigByNetwork(hre.network.name, {
-    common: true,
-    gov: true,
-    core: false,
-  })
-  const chainConfig = chainConfigs[hre.network.name as ChainName]
-
-  const publicClient = createPublicClient({
-    chain: chainConfig.chain,
-    transport: http(chainConfig.rpcUrl),
-  })
+  const config = getConfigByNetwork(
+    hre.network.name,
+    {
+      common: true,
+      gov: true,
+      core: false,
+    },
+    useBummerConfig,
+  )
+  const chainConfig = getChainConfigByChainId(hre.network.config.chainId as number)
+  const publicClient = await getChainPublicClient(chainConfig.chainName)
 
   // Get the rewards manager address by calling the contract
   const rewardsManagerAddress = await publicClient.readContract({

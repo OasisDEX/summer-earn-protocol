@@ -104,7 +104,7 @@ async function deployGov() {
 
             // Add verification for governance rewards manager
             console.log(kleur.yellow().bold('\nVerifying Governance Rewards Manager...\n'))
-            await verifyGovernanceRewardsManager(hre)
+            await verifyGovernanceRewardsManager(hre, useBummerConfig)
 
             console.log(kleur.green().bold('\nContract verification completed successfully!'))
           } catch (error) {
