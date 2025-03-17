@@ -14,6 +14,7 @@ import {IProtocolAccessManager} from "@summerfi/access-contracts/interfaces/IPro
 import {ArkTestBase} from "./ArkTestBase.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Raft} from "../../src/contracts/Raft.sol";
 
 import {PERCENTAGE_100} from "@summerfi/percentage-solidity/contracts/Percentage.sol";
 import {Test, console} from "forge-std/Test.sol";
@@ -30,6 +31,10 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
     address public constant USDCE_ADDRESS =
         0x29219dd400f2Bf60E5a23d13Be72B486D4038894;
     address public constant GAUGE = 0x2D3d269334485d2D876df7363e1A50b13220a7D8;
+    address public constant WRAPPED_SONIC =
+        0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38;
+    address public constant SILO_TOKEN =
+        0x53f753E4B17F4075D6fa2c6909033d224b81e698;
 
     uint256 forkBlock = 13716442; // Specified block number
     uint256 forkId;
@@ -189,7 +194,7 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
         );
     }
 
-    function test_Harvestx() public {
+    function test_Harvest() public {
         uint256 amount = 1000 * 1e6; // 1000 USDCE
         deal(USDCE_ADDRESS, commander, amount * 3);
 
@@ -198,17 +203,29 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
         ark.board(amount, bytes(""));
         vm.stopPrank();
 
-        vm.rollFork(forkId, 14201704); // Fast few days
+        vm.rollFork(forkId, 14201704); // Fast forward few days
 
-        vm.prank(address(raft));
-        (, uint256[] memory rewardAmounts) = ark.harvest("");
-        for (uint256 i = 0; i < rewardAmounts.length; i++) {
-            console.log("rewardAmounts[", i, "]", rewardAmounts[i]);
-            assertNotEq(
-                rewardAmounts[i],
-                0,
-                "Harvested amount should be greater than 0"
-            );
-        }
+        vm.prank(keeper);
+        Raft(raft).harvest(address(ark), bytes(""));
+
+        uint256 siloBalance = Raft(raft).obtainedTokens(
+            address(ark),
+            SILO_TOKEN
+        );
+        uint256 sonicBalance = Raft(raft).obtainedTokens(
+            address(ark),
+            WRAPPED_SONIC
+        );
+
+        assertGt(
+            siloBalance,
+            0,
+            "Harvested Silo balance should be greater than 0"
+        );
+        assertGt(
+            sonicBalance,
+            0,
+            "Harvested Sonic balance should be greater than 0"
+        );
     }
 }
