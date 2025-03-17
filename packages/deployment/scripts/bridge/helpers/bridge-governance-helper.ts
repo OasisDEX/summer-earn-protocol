@@ -89,10 +89,8 @@ export async function createUnifiedLzConfigProposal(
     groupedNonHubConfigs[config.sourceChain].push(config)
   }
 
-  console.log('HUB CHAIN CONFIGS LENGTH', hubChainConfigs.length)
   for (const config of hubChainConfigs) {
     try {
-      console.log(' ON HUB CHAIN', config)
       // Get current delegate - pass the source chain name
       const { delegate } = await checkLzAuthorization(
         config.lzEndpointAddress,
@@ -144,8 +142,6 @@ export async function createUnifiedLzConfigProposal(
       console.error(error)
     }
   }
-
-  console.log('HUB CHAIN TARGETS CONFIG STUFF', hubTargets)
 
   // Group peer configurations by source chain
   const peersByChain: Record<

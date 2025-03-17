@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import kleur from 'kleur'
-import _ from 'lodash'
+import _, { capitalize } from 'lodash'
 import path from 'path'
 import { Address, encodeFunctionData, Hex, parseAbi, PublicClient } from 'viem'
 import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
@@ -1349,6 +1349,11 @@ export async function createRewardSetupProposal(
     // Cross-chain proposal (from hub to satellite)
     const currentChainEndpointId = config.common.layerZero.eID
 
+    // Initialize source chain arrays
+    const srcTargets: Address[] = []
+    const srcValues: bigint[] = []
+    const srcCalldatas: Hex[] = []
+
     // Add bridge transaction if bridgeAmount is provided
     if (bridgeAmount) {
       console.log(kleur.yellow('Adding token bridge actions...'))
@@ -1364,10 +1369,10 @@ export async function createRewardSetupProposal(
         await hre.viem.getPublicClient(),
       )
 
-      // Add bridge actions to the beginning of the proposal
-      targets.unshift(...bridgeActions.targets)
-      values.unshift(...bridgeActions.values)
-      calldatas.unshift(...bridgeActions.calldatas)
+      // Add bridge actions to the source chain proposal
+      srcTargets.push(...bridgeActions.targets)
+      srcValues.push(...bridgeActions.values)
+      srcCalldatas.push(...bridgeActions.calldatas)
 
       console.log(kleur.green(`Added bridge transaction for ${bridgeAmount} tokens`))
     }
@@ -1386,16 +1391,17 @@ export async function createRewardSetupProposal(
       throw new Error('Source or destination description is undefined')
     }
 
-    // Prepare the source (hub) proposal
+    // Prepare the cross-chain proposal action
     const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
     console.log(kleur.blue('Using hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
 
-    const srcTargets = [HUB_GOVERNOR_ADDRESS]
-    const srcValues = [0n]
     const ESTIMATED_GAS = 400000n
     const lzOptions = constructLzOptions(ESTIMATED_GAS)
 
-    const srcCalldatas = [
+    // Add the cross-chain proposal action to the source chain actions
+    srcTargets.push(HUB_GOVERNOR_ADDRESS)
+    srcValues.push(0n)
+    srcCalldatas.push(
       encodeFunctionData({
         abi: parseAbi([
           'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
@@ -1409,7 +1415,7 @@ export async function createRewardSetupProposal(
           lzOptions,
         ],
       }) as Hex,
-    ]
+    )
 
     // Generate a save path for the proposal JSON
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
@@ -1420,35 +1426,20 @@ export async function createRewardSetupProposal(
       `${networkName}_rewards_proposal_${timestamp}.json`,
     )
 
-    // Convert targets, values, and calldatas into ProposalAction array
-    const actions = srcTargets.map((target, index) => ({
-      target,
-      value: srcValues[index],
-      calldata: srcCalldatas[index],
-    }))
-
-    // Add cross-chain execution details
-    const crossChainExecution = {
-      targetChain: {
-        name: hre.network.name,
-        chainId: hre.network.config.chainId || 0,
-        targets: targets.map((t) => t.toString()),
-        values: values.map((v) => v.toString()),
-        datas: calldatas.map((c) => c.toString()),
-      },
-    }
-
     // Submit proposal
     await createGovernanceProposal(
       title,
       sourceDescription,
-      actions,
+      srcTargets.map((target, index) => ({
+        target,
+        value: srcValues[index],
+        calldata: srcCalldatas[index],
+      })),
       HUB_GOVERNOR_ADDRESS,
       HUB_CHAIN_ID,
       fleetDefinition.discourseURL || '',
       [],
       savePath,
-      crossChainExecution,
     )
   }
 
@@ -1553,7 +1544,7 @@ ${fleetDefinition.discourseURL ? `## References\nDiscourse: ${fleetDefinition.di
   const destinationDescription = standardDescription
 
   // Source chain description (what will be shown on the hub chain)
-  const sourceDescription = `# SIP3.${fleetDefinition.sipNumber || 'X'}: Cross-chain Reward Setup Proposal
+  const sourceDescription = `# SIP3.${fleetDefinition.sipNumber || 'X'}: Cross-chain Reward Setup Proposal for ${fleetDefinition.fleetName} Fleet on ${capitalize(targetChain)}
 
 ## Summary
 This is a cross-chain governance proposal to set up rewards for the ${fleetDefinition.fleetName} Fleet on ${targetChain}.
