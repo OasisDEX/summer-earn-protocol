@@ -401,7 +401,6 @@ export async function createUnifiedLzConfigProposal(
         existingProposal,
         fleetDeployments,
         `
-### Peering Configuration
 This proposal also configures the existing chains to peer with the new ${newChainName} chain:
 - Token Peers: ${peerConfigurations?.tokenPeers.length || 0}
 - Governor Peers: ${peerConfigurations?.governorPeers.length || 0}

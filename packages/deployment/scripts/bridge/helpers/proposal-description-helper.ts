@@ -1,3 +1,4 @@
+import { capitalize } from 'lodash'
 import { Address } from 'viem'
 import { formatFleetDeployments } from './fleet-deployment-helper'
 
@@ -141,19 +142,13 @@ export function generateAggregatedLzConfigProposalDescription(
   }>,
   peeringInfo?: string,
 ): string {
+  const newChainNameCapitalized = capitalize(newChainName)
+
   // Format config items for better readability
   const formatConfigItems = () => {
     return configItems
       .map((item, index) => {
-        const formatParams = (params: any[]) => {
-          return params
-            .map((param) => {
-              return `      - EID ${param.eid}, ConfigType ${param.configType}, Config: ${param.config}`
-            })
-            .join('\n')
-        }
-
-        return `### Configuration ${index + 1}: ${item.oAppName} on ${item.chainName}
+        return `### Configuration ${index + 1}: ${item.oAppName} on ${capitalize(item.chainName)}
 - OApp Address: ${item.oAppAddress}
 - Send Library: ${item.sendLibraryAddress}
 - Receive Library: ${item.receiveLibraryAddress}
@@ -170,8 +165,8 @@ export function generateAggregatedLzConfigProposalDescription(
   let fleetDeploymentsSection = ''
   if (fleetDeployments && fleetDeployments.length > 0) {
     fleetDeploymentsSection = `
-## Fleet Deployments on ${newChainName}
-This LayerZero configuration will enable cross-chain governance for the following deployed fleets:
+## Fleet Deployments on ${newChainNameCapitalized}
+This proposal connect both ${newChainNameCapitalized} and the following newly deployed Fleet(s) to the Lazy Summer Protocol:
 
 ${formatFleetDeployments(fleetDeployments)}
 `
@@ -235,11 +230,14 @@ ${fleetDeploymentsSection}
     return `# ${sipCategory}: Cross-Chain LayerZero Configuration Update for ${newChainName}
 
 ## Summary
-This proposal configures LayerZero endpoints to enable secure cross-chain communication between ${newChainName} and existing chains in the Lazy Summer Protocol.
+This proposal configures LayerZero endpoints to enable secure cross-chain communication between ${capitalize(hubChainName)} and ${newChainNameCapitalized}. ${
+      fleetDeploymentsSection
+        ? `Additionally, this proposal connects the following newly deployed Fleet(s) on ${newChainNameCapitalized} to the Lazy Summer Protocol: ${fleetDeploymentsSection}`
+        : ''
+    }
 
 ## Motivation
-Setting up these LayerZero routes is necessary to enable protocol governance and operations across chains, allowing for seamless token transfers and cross-chain governance actions.
-${formattedFleetDeployments}
+Setting up these LayerZero routes is necessary to enable protocol governance and operations across chains, allowing for token bridging and cross-chain governance actions.
 
 ## Specifications
 ### Technical Details

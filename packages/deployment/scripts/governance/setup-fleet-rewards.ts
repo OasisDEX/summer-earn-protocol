@@ -92,7 +92,7 @@ async function setupFleetRewards() {
 
   if (confirmed) {
     try {
-      // Use the createRewardSetupProposal function from fleet-governance-helpers.ts
+      // Pass the bridge amount if it exists in the fleet config
       await createRewardSetupProposal(
         fleetCommanderAddress,
         rewardTokens,
@@ -102,6 +102,7 @@ async function setupFleetRewards() {
         fleetConfig,
         useBummerConfig,
         !isHubChain, // isCrossChain = true if not on hub chain
+        fleetConfig.bridgeAmount, // Add this parameter
       )
 
       console.log(kleur.green().bold(`\nProposal creation process completed successfully!`))

@@ -774,8 +774,10 @@ export async function createSatelliteGovernanceProposal(
   // Prepare bridge actions with the new helper function
   const result = await getChainConfigByChainId(HUB_CHAIN_ID)
   if (!result) throw new Error(`No chain config found for chain ID ${HUB_CHAIN_ID}`)
+  if (!result.chainConfig.rpcUrl) throw new Error(`No RPC URL found for chain ID ${HUB_CHAIN_ID}`)
+
   const { publicClient: hubChainPublicClient } = await createClients(
-    result.chainConfig.chain,
+    result.chainConfig.chain as any,
     result.chainConfig.rpcUrl,
     process.env.DEPLOYER_PRIV_KEY as Address,
   )
@@ -1072,7 +1074,6 @@ export async function createArkAdditionCrossChainProposal(
   config: BaseConfig,
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
-  isTenderlyVirtualTestnet: boolean,
 ): Promise<void> {
   console.log(kleur.yellow('Creating cross-chain governance proposal to add arks...'))
 
@@ -1253,6 +1254,7 @@ export async function createRewardSetupProposal(
   fleetDefinition: FleetConfig,
   useBummerConfig: boolean,
   isCrossChain: boolean = false,
+  bridgeAmount?: string,
 ): Promise<void> {
   console.log(kleur.cyan(`Creating governance proposal to set up rewards for existing fleet`))
 
@@ -1295,10 +1297,10 @@ export async function createRewardSetupProposal(
   const rewardInfo = {
     tokens: rewardTokens.map((addr) => addr),
     amounts: rewardAmounts,
-    duration: rewardsDuration.toString(),
+    durations: rewardsDuration.map((duration) => duration.toString()),
   }
 
-  let description = ''
+  let description
 
   if (!isCrossChain) {
     // Standard single-chain proposal
@@ -1328,10 +1330,14 @@ export async function createRewardSetupProposal(
       calldata: calldatas[index],
     }))
 
+    if (!description) {
+      throw new Error('Description is undefined')
+    }
+
     // Submit proposal
     await createGovernanceProposal(
       title,
-      description,
+      description.description,
       actions,
       governorAddress,
       HUB_CHAIN_ID,
@@ -1343,6 +1349,29 @@ export async function createRewardSetupProposal(
     // Cross-chain proposal (from hub to satellite)
     const currentChainEndpointId = config.common.layerZero.eID
 
+    // Add bridge transaction if bridgeAmount is provided
+    if (bridgeAmount) {
+      console.log(kleur.yellow('Adding token bridge actions...'))
+      const bridgeContractAddress = hubConfig.deployedContracts.gov.summerToken.address as Address
+      const targetTimelockAddress = config.deployedContracts.gov.timelock.address as Address
+
+      const bridgeActions = await prepareBridgeTransaction(
+        bridgeContractAddress,
+        BigInt(bridgeAmount),
+        Number(currentChainEndpointId),
+        targetTimelockAddress,
+        hubConfig.deployedContracts.gov.timelock.address as Address,
+        await hre.viem.getPublicClient(),
+      )
+
+      // Add bridge actions to the beginning of the proposal
+      targets.unshift(...bridgeActions.targets)
+      values.unshift(...bridgeActions.values)
+      calldatas.unshift(...bridgeActions.calldatas)
+
+      console.log(kleur.green(`Added bridge transaction for ${bridgeAmount} tokens`))
+    }
+
     // Generate descriptions for cross-chain proposal
     const { sourceDescription, destinationDescription } = await generateRewardSetupDescription(
       fleetCommanderAddress,
@@ -1352,6 +1381,10 @@ export async function createRewardSetupProposal(
       hre.network.name,
       HUB_CHAIN_NAME + (useBummerConfig ? ' (Bummer)' : ' (Production)'),
     )
+
+    if (!sourceDescription || !destinationDescription) {
+      throw new Error('Source or destination description is undefined')
+    }
 
     // Prepare the source (hub) proposal
     const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
@@ -1428,7 +1461,7 @@ export async function createRewardSetupProposal(
 async function generateRewardSetupDescription(
   fleetCommanderAddress: Address,
   fleetDefinition: FleetConfig,
-  rewardInfo: { tokens: string[]; amounts: string[]; duration: string[] },
+  rewardInfo: { tokens: string[]; amounts: string[]; durations: string[] },
   isCrossChain: boolean = false,
   targetChain?: string,
   hubChain?: string,
@@ -1437,6 +1470,7 @@ async function generateRewardSetupDescription(
   let rewardsSection = ''
   if (rewardInfo) {
     const formattedAmounts: string[] = []
+    const formattedDurations: string[] = []
 
     // Format each token amount
     for (let i = 0; i < rewardInfo.tokens.length; i++) {
@@ -1465,21 +1499,24 @@ async function generateRewardSetupDescription(
           (decimals > 18 ? 10 ** (decimals - 18) : 1)
 
         formattedAmounts.push(`${readableAmount.toLocaleString()} tokens (${rawAmount})`)
+
+        console.log(kleur.green(`Formatted amount: ${formattedAmounts[i]}`))
+
+        // Format duration
+        const durationSeconds = parseInt(rewardInfo.durations[i])
+        const durationDays = Math.round(durationSeconds / 86400) // Convert seconds to days
+        const formattedDuration = `${durationDays} days (${durationSeconds} seconds)`
+        formattedDurations.push(formattedDuration)
       } catch (error) {
         formattedAmounts.push(rawAmount) // Fall back to raw amount if formatting fails
       }
     }
 
-    // Format duration
-    const durationSeconds = parseInt(rewardInfo.duration)
-    const durationDays = Math.round(durationSeconds / 86400) // Convert seconds to days
-    const formattedDuration = `${durationDays} days (${durationSeconds} seconds)`
-
     rewardsSection = `
 ### Rewards Configuration
 - Reward Tokens: ${rewardInfo.tokens.join(', ')}
 - Reward Amounts: ${formattedAmounts.join(', ')}
-- Rewards Duration: ${formattedDuration}`
+- Rewards Durations: ${formattedDurations.join(', ')}`
   }
 
   // Standard description for the destination chain (or single-chain proposal)
