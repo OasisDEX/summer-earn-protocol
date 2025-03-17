@@ -89,8 +89,10 @@ export async function createUnifiedLzConfigProposal(
     groupedNonHubConfigs[config.sourceChain].push(config)
   }
 
+  console.log('HUB CHAIN CONFIGS LENGTH', hubChainConfigs.length)
   for (const config of hubChainConfigs) {
     try {
+      console.log(' ON HUB CHAIN', config)
       // Get current delegate - pass the source chain name
       const { delegate } = await checkLzAuthorization(
         config.lzEndpointAddress,
@@ -142,6 +144,8 @@ export async function createUnifiedLzConfigProposal(
       console.error(error)
     }
   }
+
+  console.log('HUB CHAIN TARGETS CONFIG STUFF', hubTargets)
 
   // Group peer configurations by source chain
   const peersByChain: Record<
@@ -246,6 +250,7 @@ export async function createUnifiedLzConfigProposal(
       // If this is the hub chain, add directly to hub actions
       if (sourceChain === hubChain) {
         for (const peer of peers) {
+          console.log(' ON HUB CHAIN [PEER]', peer)
           // Format the peer address as bytes32 (padded with zeros)
           const peerAddressAsBytes32 = `0x000000000000000000000000${peer.address.slice(2)}` as Hex
 
@@ -268,6 +273,8 @@ export async function createUnifiedLzConfigProposal(
         }
       }
     }
+
+    console.log('HUB CHAIN TARGETS AFTER PEERING', hubTargets)
 
     // Add peering info to description
     if (peeringSummary.length > 0) {
@@ -313,7 +320,7 @@ export async function createUnifiedLzConfigProposal(
         targetConfigItems.push({
           oAppAddress: config.oAppAddress,
           oAppName,
-          chainName: config.targetChain,
+          chainName: config.sourceChain,
           sendLibraryAddress: config.sendLibraryAddress,
           receiveLibraryAddress: config.receiveLibraryAddress,
           sendParams: config.sendConfigParams,
@@ -454,7 +461,7 @@ The peering is necessary to enable cross-chain message passing between existing 
           items.push({
             oAppAddress: config.oAppAddress,
             oAppName: config.oAppType === 'summerToken' ? 'Summer Token' : 'Summer Governor',
-            chainName: config.targetChain,
+            chainName: config.sourceChain,
             sendLibraryAddress: config.sendLibraryAddress,
             receiveLibraryAddress: config.receiveLibraryAddress,
             sendParams: config.sendConfigParams,
@@ -505,7 +512,7 @@ The peering is necessary to enable cross-chain message passing between existing 
   const savePath = path.join(
     process.cwd(),
     '/proposals',
-    `${newChainName}_aggregated_lz_config_proposal_${timestamp}${useBummerConfig ? '.test' : ''}.json`,
+    `${useBummerConfig ? 'test_' : ''}${newChainName}_aggregated_lz_config_proposal_${timestamp}.json`,
   )
 
   // Create the proposal actions

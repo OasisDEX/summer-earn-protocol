@@ -155,15 +155,9 @@ export function generateAggregatedLzConfigProposalDescription(
 
         return `### Configuration ${index + 1}: ${item.oAppName} on ${item.chainName}
 - OApp Address: ${item.oAppAddress}
-- Current Delegate: ${item.delegate}
 - Send Library: ${item.sendLibraryAddress}
 - Receive Library: ${item.receiveLibraryAddress}
 
-**Send Parameters:**
-${formatParams(item.sendParams)}
-
-**Receive Parameters:**
-${formatParams(item.receiveParams)}
 `
       })
       .join('\n\n')
@@ -238,16 +232,6 @@ ${fleetDeploymentsSection}
       })
     }
 
-    // Create a more concise configuration summary
-    const configSummary = configItems
-      .map((item, index) => {
-        return `#### Configuration ${index + 1}: ${item.oAppName} on ${newChainName}
-- OApp Address: \`${item.oAppAddress}\`
-- Delegate: \`${item.delegate}\`
-- Libraries: Send (\`${item.sendLibraryAddress}\`), Receive (\`${item.receiveLibraryAddress}\`)`
-      })
-      .join('\n\n')
-
     return `# ${sipCategory}: Cross-Chain LayerZero Configuration Update for ${newChainName}
 
 ## Summary
@@ -274,7 +258,7 @@ These LayerZero configurations establish the security parameters and message rou
 Each OApp will use LayerZero Labs DVN and Stargate DVN for cross-chain message verification. [Learn more about LayerZero Security](https://docs.layerzero.network/v2/concepts/modular-security/security-stack-dvns).
 
 ### Configuration Summary
-${configSummary}
+${formatConfigItems()}
 ${
   peeringInfo
     ? `

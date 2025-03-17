@@ -476,7 +476,6 @@ async function createGovernanceProposals(
     try {
       // Read the selected fleet deployment file
       const fleetData = JSON.parse(fs.readFileSync(selectedFleetPath, 'utf8'))
-      console.log('fleetData', fleetData)
       fleetDeployments = processFleetDeploymentData(fleetData, newChainName)
       console.log(
         kleur.green(`Loaded fleet deployment data with ${fleetDeployments.length} fleets`),
