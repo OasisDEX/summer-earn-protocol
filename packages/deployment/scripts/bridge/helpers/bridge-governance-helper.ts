@@ -505,7 +505,7 @@ The peering is necessary to enable cross-chain message passing between existing 
   const savePath = path.join(
     process.cwd(),
     '/proposals',
-    `${newChainName}_aggregated_lz_config_proposal_${timestamp}.json`,
+    `${newChainName}_aggregated_lz_config_proposal_${timestamp}${useBummerConfig ? '.test' : ''}.json`,
   )
 
   // Create the proposal actions

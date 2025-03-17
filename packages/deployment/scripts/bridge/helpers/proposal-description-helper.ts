@@ -216,14 +216,46 @@ ${fleetDeploymentsSection}
       throw new Error('New chain and hub chain must be provided for cross-chain proposals')
     }
 
+    // Format fleet details in a more human-readable way
+    let formattedFleetDeployments = ''
+    if (fleetDeploymentsSection) {
+      const fleetSection = fleetDeploymentsSection.replace(
+        /Deposit Cap: (\d+)/g,
+        (match, cap) => `Deposit Cap: ${formatValue(cap)}`,
+      )
+      const bufferSection = fleetSection.replace(
+        /Minimum Buffer Balance: (\d+)/g,
+        (match, buffer) => `Minimum Buffer Balance: ${formatValue(buffer, 6)}`,
+      )
+      const cooldownSection = bufferSection.replace(
+        /Rebalance Cooldown: (\d+)/g,
+        (match, cooldown) => `Rebalance Cooldown: ${formatValue(cooldown, 0, 'time')}`,
+      )
+      formattedFleetDeployments = cooldownSection.replace(/Tip Rate: (\d+)/g, (match, rate) => {
+        const tipRateNumber = BigInt(rate)
+        const tipRatePercentage = tipRateNumber / 100n
+        return `Tip Rate: ${formatValue(tipRatePercentage.toString(), 18, 'percentage')}`
+      })
+    }
+
+    // Create a more concise configuration summary
+    const configSummary = configItems
+      .map((item, index) => {
+        return `#### Configuration ${index + 1}: ${item.oAppName} on ${newChainName}
+- OApp Address: \`${item.oAppAddress}\`
+- Delegate: \`${item.delegate}\`
+- Libraries: Send (\`${item.sendLibraryAddress}\`), Receive (\`${item.receiveLibraryAddress}\`)`
+      })
+      .join('\n\n')
+
     return `# ${sipCategory}: Cross-Chain LayerZero Configuration Update for ${newChainName}
 
 ## Summary
-This is a cross-chain governance proposal to update the LayerZero endpoint configurations for multiple routes between ${newChainName} and existing chains.
+This proposal configures LayerZero endpoints to enable secure cross-chain communication between ${newChainName} and existing chains in the Lazy Summer Protocol.
 
 ## Motivation
-This proposal sets up all required LayerZero routes for the new ${newChainName} chain, enabling secure cross-chain communication for the Lazy Summer Protocol's operations. These configurations are necessary to ensure proper message passing between chains.
-${fleetDeploymentsSection}
+Setting up these LayerZero routes is necessary to enable protocol governance and operations across chains, allowing for seamless token transfers and cross-chain governance actions.
+${formattedFleetDeployments}
 
 ## Specifications
 ### Technical Details
@@ -232,21 +264,68 @@ ${fleetDeploymentsSection}
 - Deployer Address: ${deployer}
 - Number of Configurations: ${configItems.length}
 
-### Configurations
-${formatConfigItems()}
-${peeringInfo || ''} 
+### Why These Configurations Matter
+These LayerZero configurations establish the security parameters and message routing infrastructure that enable secure omnichain operations by:
+1. Setting up trusted message libraries for cross-chain communication
+2. Configuring Decentralized Verifier Networks (DVNs) for message integrity
+3. Establishing appropriate gas parameters for message delivery
 
-### Cross-chain Mechanism
-This proposal uses LayerZero to execute governance actions across chains, following the protocol's established cross-chain governance pattern.
+### DVN Configuration
+Each OApp will use LayerZero Labs DVN and Stargate DVN for cross-chain message verification. [Learn more about LayerZero Security](https://docs.layerzero.network/v2/concepts/modular-security/security-stack-dvns).
 
-### Implementation
-The proposal will be executed from the hub chain, with cross-chain messages sent to configure endpoints on the target chains.
+### Configuration Summary
+${configSummary}
+${
+  peeringInfo
+    ? `
+### Peering Configuration
+${peeringInfo}`
+    : ''
+} 
 
 ### Security Considerations
-- This proposal only updates the LayerZero endpoint configurations for the specified OApps.
-- All configurations have been carefully reviewed to ensure they maintain the security of cross-chain communications.
-- The proposal includes appropriate gas parameters to ensure successful execution on all target chains.
-- The changes will be executed through the protocol's governance process with the standard 2-day timelock period.
+- These configurations maintain the security of cross-chain communications
+- All parameters have been carefully reviewed and tested
+- Changes will execute through governance with the standard timelock period
 `
+  }
+}
+
+// Helper function to format values in a human-readable way
+function formatValue(
+  value: string,
+  decimals: number = 18,
+  type: 'token' | 'percentage' | 'time' = 'token',
+): string {
+  try {
+    if (type === 'time') {
+      // Handle time-based values (seconds)
+      const seconds = parseInt(value)
+      if (seconds < 60) {
+        return `${seconds} seconds`
+      } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60)
+        return `${minutes} minute${minutes > 1 ? 's' : ''} (${seconds} seconds)`
+      } else {
+        const hours = Math.floor(seconds / 3600)
+        const minutes = Math.floor((seconds % 3600) / 60)
+        return `${hours} hour${hours > 1 ? 's' : ''}${minutes > 0 ? ` ${minutes} minute${minutes > 1 ? 's' : ''}` : ''} (${seconds} seconds)`
+      }
+    }
+
+    const amount = BigInt(value)
+
+    if (type === 'percentage') {
+      // Handle percentage values
+      const percentage = (Number(amount) / 10 ** decimals) * 100
+      return `${percentage}% (${value} raw)`
+    }
+
+    // Default: handle token amounts
+    const divisor = BigInt(10 ** Math.min(decimals, 18))
+    const readableAmount = Number(amount / divisor) / (decimals > 18 ? 10 ** (decimals - 18) : 1)
+    return `${readableAmount.toLocaleString()} (${value} raw)`
+  } catch (error) {
+    return value // Return original if parsing fails
   }
 }
