@@ -1240,3 +1240,312 @@ ${fleetDefinition.discourseURL ? `Discourse: ${fleetDefinition.discourseURL}` : 
     console.error(kleur.red('Error creating cross-chain proposal:'), error)
   }
 }
+
+/**
+ * Creates a governance proposal that only handles reward setup for an existing fleet
+ */
+export async function createRewardSetupProposal(
+  fleetCommanderAddress: Address,
+  rewardTokens: Address[],
+  rewardAmounts: string[],
+  rewardsDuration: number[],
+  config: BaseConfig,
+  fleetDefinition: FleetConfig,
+  useBummerConfig: boolean,
+  isCrossChain: boolean = false,
+): Promise<void> {
+  console.log(kleur.cyan(`Creating governance proposal to set up rewards for existing fleet`))
+
+  // Determine if this is a hub chain or cross-chain proposal
+  const isHubChain = hre.network.name === HUB_CHAIN_NAME
+  const hubConfig = isHubChain
+    ? config
+    : getConfigByNetwork(HUB_CHAIN_NAME, { gov: true, core: true }, useBummerConfig)
+
+  // Get the rewards manager address for this fleet
+  const rewardsManagerAddress = await getRewardsManagerAddress(fleetCommanderAddress)
+  console.log(kleur.blue('Rewards Manager address:'), kleur.cyan(rewardsManagerAddress))
+
+  // Convert reward amounts to BigInt
+  const bigIntRewardAmounts = rewardAmounts.map((amount) => BigInt(amount))
+
+  // Set up durations array (same duration for all tokens)
+  const rewardsDurations = Array(rewardTokens.length).fill(rewardsDuration)
+
+  // Get the timelock address for the current chain
+  const timelockAddress = config.deployedContracts.gov.timelock.address as Address
+  const summerTokenAddress = config.deployedContracts.gov.summerToken.address as Address
+  const publicClient = await hre.viem.getPublicClient()
+
+  // Get the reward setup actions
+  const { targets, values, calldatas } = await prepareRewardSetupActions(
+    rewardsManagerAddress,
+    rewardTokens,
+    bigIntRewardAmounts,
+    rewardsDurations,
+    timelockAddress,
+    summerTokenAddress,
+    publicClient,
+  )
+
+  // Create simplified proposal title and description
+  const title = `SIP3.${fleetDefinition.sipNumber || 'X'}: Set Up Rewards for ${fleetDefinition.fleetName} Fleet${isCrossChain ? ` on ${hre.network.name}` : ''}`
+
+  // Format reward information for display
+  const rewardInfo = {
+    tokens: rewardTokens.map((addr) => addr),
+    amounts: rewardAmounts,
+    duration: rewardsDuration.toString(),
+  }
+
+  let description = ''
+
+  if (!isCrossChain) {
+    // Standard single-chain proposal
+    description = await generateRewardSetupDescription(
+      fleetCommanderAddress,
+      fleetDefinition,
+      rewardInfo,
+      false,
+    )
+
+    // Use the correct governor address from the config
+    const governorAddress = config.deployedContracts.gov.summerGovernor.address as Address
+
+    // Generate a save path for the proposal JSON
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const networkName = hre.network.name
+    const savePath = path.join(
+      process.cwd(),
+      '/proposals',
+      `${networkName}_rewards_proposal_${timestamp}.json`,
+    )
+
+    // Convert targets, values, and calldatas into ProposalAction array
+    const actions = targets.map((target, index) => ({
+      target,
+      value: values[index],
+      calldata: calldatas[index],
+    }))
+
+    // Submit proposal
+    await createGovernanceProposal(
+      title,
+      description,
+      actions,
+      governorAddress,
+      HUB_CHAIN_ID,
+      fleetDefinition.discourseURL || '',
+      [],
+      savePath,
+    )
+  } else if (!isHubChain) {
+    // Cross-chain proposal (from hub to satellite)
+    const currentChainEndpointId = config.common.layerZero.eID
+
+    // Generate descriptions for cross-chain proposal
+    const { sourceDescription, destinationDescription } = await generateRewardSetupDescription(
+      fleetCommanderAddress,
+      fleetDefinition,
+      rewardInfo,
+      true,
+      hre.network.name,
+      HUB_CHAIN_NAME + (useBummerConfig ? ' (Bummer)' : ' (Production)'),
+    )
+
+    // Prepare the source (hub) proposal
+    const HUB_GOVERNOR_ADDRESS = hubConfig.deployedContracts.gov.summerGovernor.address as Address
+    console.log(kleur.blue('Using hub governor address:'), kleur.cyan(HUB_GOVERNOR_ADDRESS))
+
+    const srcTargets = [HUB_GOVERNOR_ADDRESS]
+    const srcValues = [0n]
+    const ESTIMATED_GAS = 400000n
+    const lzOptions = constructLzOptions(ESTIMATED_GAS)
+
+    const srcCalldatas = [
+      encodeFunctionData({
+        abi: parseAbi([
+          'function sendProposalToTargetChain(uint32 _dstEid, address[] _dstTargets, uint256[] _dstValues, bytes[] _dstCalldatas, bytes32 _dstDescriptionHash, bytes _options) external',
+        ]),
+        args: [
+          Number(currentChainEndpointId),
+          targets,
+          values,
+          calldatas,
+          hashDescription(destinationDescription),
+          lzOptions,
+        ],
+      }) as Hex,
+    ]
+
+    // Generate a save path for the proposal JSON
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const networkName = hre.network.name
+    const savePath = path.join(
+      process.cwd(),
+      '/proposals',
+      `${networkName}_rewards_proposal_${timestamp}.json`,
+    )
+
+    // Convert targets, values, and calldatas into ProposalAction array
+    const actions = srcTargets.map((target, index) => ({
+      target,
+      value: srcValues[index],
+      calldata: srcCalldatas[index],
+    }))
+
+    // Add cross-chain execution details
+    const crossChainExecution = {
+      targetChain: {
+        name: hre.network.name,
+        chainId: hre.network.config.chainId || 0,
+        targets: targets.map((t) => t.toString()),
+        values: values.map((v) => v.toString()),
+        datas: calldatas.map((c) => c.toString()),
+      },
+    }
+
+    // Submit proposal
+    await createGovernanceProposal(
+      title,
+      sourceDescription,
+      actions,
+      HUB_GOVERNOR_ADDRESS,
+      HUB_CHAIN_ID,
+      fleetDefinition.discourseURL || '',
+      [],
+      savePath,
+      crossChainExecution,
+    )
+  }
+
+  console.log(kleur.yellow('The rewards will be set up once this proposal is executed.'))
+}
+
+/**
+ * Generates a description for a reward setup proposal
+ */
+async function generateRewardSetupDescription(
+  fleetCommanderAddress: Address,
+  fleetDefinition: FleetConfig,
+  rewardInfo: { tokens: string[]; amounts: string[]; duration: string[] },
+  isCrossChain: boolean = false,
+  targetChain?: string,
+  hubChain?: string,
+): Promise<{ description: string; sourceDescription?: string; destinationDescription?: string }> {
+  // Format reward information
+  let rewardsSection = ''
+  if (rewardInfo) {
+    const formattedAmounts: string[] = []
+
+    // Format each token amount
+    for (let i = 0; i < rewardInfo.tokens.length; i++) {
+      const rawAmount = rewardInfo.amounts[i]
+      try {
+        const tokenAddress = rewardInfo.tokens[i] as Address
+
+        // Try to get token decimals
+        let decimals = 18 // Default to 18 if we can't get the actual value
+        try {
+          const tokenContract = await hre.viem.getContractAt(
+            'IERC20Metadata' as string,
+            tokenAddress,
+          )
+          decimals = (await tokenContract.read.decimals()) as number
+        } catch (error) {
+          console.log(
+            kleur.yellow(`Could not get decimals for token ${tokenAddress}, using default 18`),
+          )
+        }
+
+        // Calculate human-readable amount
+        const amount = BigInt(rawAmount)
+        const readableAmount =
+          Number(amount / BigInt(10 ** Math.min(decimals, 18))) /
+          (decimals > 18 ? 10 ** (decimals - 18) : 1)
+
+        formattedAmounts.push(`${readableAmount.toLocaleString()} tokens (${rawAmount})`)
+      } catch (error) {
+        formattedAmounts.push(rawAmount) // Fall back to raw amount if formatting fails
+      }
+    }
+
+    // Format duration
+    const durationSeconds = parseInt(rewardInfo.duration)
+    const durationDays = Math.round(durationSeconds / 86400) // Convert seconds to days
+    const formattedDuration = `${durationDays} days (${durationSeconds} seconds)`
+
+    rewardsSection = `
+### Rewards Configuration
+- Reward Tokens: ${rewardInfo.tokens.join(', ')}
+- Reward Amounts: ${formattedAmounts.join(', ')}
+- Rewards Duration: ${formattedDuration}`
+  }
+
+  // Standard description for the destination chain (or single-chain proposal)
+  const standardDescription = `# SIP3.${fleetDefinition.sipNumber || 'X'}: Set Up Rewards for ${fleetDefinition.fleetName} Fleet
+
+## Summary
+This proposal sets up rewards for the ${fleetDefinition.fleetName} Fleet (${fleetDefinition.symbol}).
+
+## Motivation
+Setting up rewards incentivizes liquidity providers and participants in the ${fleetDefinition.fleetName} Fleet ecosystem.
+
+## Technical Details
+- Fleet Commander: ${fleetCommanderAddress}
+- Number of Reward Tokens: ${rewardInfo.tokens.length}
+${rewardsSection}
+
+## Specifications
+### Actions
+1. Whitelist rewards manager as a rewarder
+2. Approve token transfers for rewards
+3. Notify reward amounts for ${rewardInfo.tokens.length} tokens with appropriate durations
+
+${fleetDefinition.discourseURL ? `## References\nDiscourse: ${fleetDefinition.discourseURL}` : ''}`
+
+  if (!isCrossChain) {
+    return { description: standardDescription }
+  }
+
+  if (!targetChain || !hubChain) {
+    throw new Error('Target chain and hub chain must be provided for cross-chain proposals')
+  }
+
+  // Destination chain description (what will be executed on the target chain)
+  const destinationDescription = standardDescription
+
+  // Source chain description (what will be shown on the hub chain)
+  const sourceDescription = `# SIP3.${fleetDefinition.sipNumber || 'X'}: Cross-chain Reward Setup Proposal
+
+## Summary
+This is a cross-chain governance proposal to set up rewards for the ${fleetDefinition.fleetName} Fleet on ${targetChain}.
+
+## Motivation
+Setting up rewards incentivizes liquidity providers and participants in the ${fleetDefinition.fleetName} Fleet ecosystem on ${targetChain}.
+
+## Technical Details
+- Hub Chain: ${hubChain}
+- Target Chain: ${targetChain}
+- Fleet Commander: ${fleetCommanderAddress}
+- Number of Reward Tokens: ${rewardInfo.tokens.length}
+${rewardsSection}
+
+## Specifications
+### Actions
+This proposal will execute the following actions on ${targetChain}:
+1. Whitelist rewards manager as a rewarder
+2. Approve token transfers for rewards
+3. Notify reward amounts for ${rewardInfo.tokens.length} tokens with appropriate durations
+
+### Cross-chain Mechanism
+This proposal uses LayerZero to execute governance actions across chains.
+
+${fleetDefinition.discourseURL ? `## References\nDiscourse: ${fleetDefinition.discourseURL}` : ''}`
+
+  return {
+    description: standardDescription,
+    sourceDescription,
+    destinationDescription,
+  }
+}

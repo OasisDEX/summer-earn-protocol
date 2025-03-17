@@ -149,9 +149,11 @@ export function saveFleetDeploymentJson(
   deployedFleet: FleetContracts,
   bufferArkAddress: Address,
   deployedArkAddresses?: Address[],
+  isBummer?: boolean,
 ) {
   const deploymentInfo = {
     fleetName: fleetDefinition.fleetName,
+    isBummer: isBummer,
     fleetSymbol: fleetDefinition.symbol,
     assetSymbol: fleetDefinition.assetSymbol,
     fleetAddress: deployedFleet.fleetCommander.address,

@@ -1,5 +1,6 @@
 {
-  "fleetName": "LazyVault_LowerRisk_USDCe",
+  "fleetName": "Bummer_LazyVault_LowerRisk_USDCe",
+  "isBummer": true,
   "fleetSymbol": "LVUSDCe",
   "assetSymbol": "usdce",
   "fleetAddress": "0xF06BEDaf951aaFf253acaA05e391AdfbdD6BFbe0",

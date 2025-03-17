@@ -1,5 +1,8 @@
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
+import path from 'path'
+import prompts from 'prompts'
 import { Address } from 'viem'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { deployArk } from '../common/ark-deployment'
@@ -292,4 +295,66 @@ export async function getRewardsManagerAddress(fleetCommander: Address): Promise
       `Failed to find rewards manager for fleet commander ${fleetCommander}: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
+}
+
+/**
+ * Lists and allows selection of a fleet deployment from the deployments/fleets directory
+ */
+export async function promptForFleetDeploymentOutput(
+  chainName: string,
+): Promise<string | undefined> {
+  console.log(kleur.blue('\nLooking for fleet deployments in the deployments/fleets directory...'))
+
+  // The deployments/fleets directory should be in the project root
+  const fleetsDir = path.join(process.cwd(), 'deployments', 'fleets')
+
+  if (!fs.existsSync(fleetsDir)) {
+    console.log(kleur.yellow('No deployments/fleets directory found'))
+    return undefined
+  }
+
+  // Find fleet deployments related to the specified chain
+  const fleetDeploymentFiles = fs.readdirSync(fleetsDir).filter((file) => {
+    // Look for files that might be related to the chain
+    return file.toLowerCase().includes(chainName.toLowerCase()) && file.endsWith('.json')
+  })
+
+  if (fleetDeploymentFiles.length === 0) {
+    console.log(
+      kleur.yellow(
+        `No fleet deployments found for ${chainName} in the deployments/fleets directory`,
+      ),
+    )
+    return undefined
+  }
+
+  // Sort files by date (most recent first)
+  fleetDeploymentFiles.sort((a, b) => {
+    const statsA = fs.statSync(path.join(fleetsDir, a))
+    const statsB = fs.statSync(path.join(fleetsDir, b))
+    return statsB.mtime.getTime() - statsA.mtime.getTime()
+  })
+
+  // Prompt user to select a fleet deployment
+  const { selectedFleet } = await prompts({
+    type: 'select',
+    name: 'selectedFleet',
+    message: 'Select fleet deployment output:',
+    choices: [
+      { title: 'None', value: 'none' },
+      ...fleetDeploymentFiles.map((file) => ({
+        title: file,
+        value: path.join(fleetsDir, file),
+      })),
+    ],
+  })
+
+  if (selectedFleet === 'none') {
+    console.log(kleur.yellow('No fleet deployment selected'))
+    return undefined
+  }
+
+  console.log(kleur.green(`Selected fleet deployment: ${path.basename(selectedFleet)}`))
+
+  return selectedFleet
 }

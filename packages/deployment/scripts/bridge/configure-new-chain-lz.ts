@@ -1,11 +1,11 @@
 import fs from 'fs'
 import kleur from 'kleur'
-import path from 'path'
 import prompts from 'prompts'
 import { Address, createWalletClient, encodeAbiParameters, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { arbitrum, base, mainnet, optimism } from 'viem/chains'
 import { RPC_URL_MAP } from '../common/chain-config-map'
+import { promptForFleetDeploymentOutput } from '../fleets/fleet-deployment-helpers'
 import { getChainPublicClient } from '../helpers/client-by-chain-helper'
 import { getConfigByNetwork } from '../helpers/config-handler'
 import { getHubChain } from '../helpers/get-hub-chain'
@@ -469,7 +469,7 @@ async function createGovernanceProposals(
   }
 
   // Prompt for fleet deployment selection
-  const selectedFleetPath = await promptForFleetDeployment(newChainName)
+  const selectedFleetPath = await promptForFleetDeploymentOutput(newChainName)
   let fleetDeployments
 
   if (selectedFleetPath) {
@@ -610,65 +610,6 @@ async function generatePeerConfigurations(newChainName: string, useBummerConfig:
   }
 
   return { tokenPeers, governorPeers }
-}
-
-/**
- * Lists and allows selection of a fleet deployment from the deployments/fleets directory
- */
-async function promptForFleetDeployment(newChainName: string): Promise<string | undefined> {
-  console.log(kleur.blue('\nLooking for fleet deployments in the deployments/fleets directory...'))
-
-  // The deployments/fleets directory should be in the project root
-  const fleetsDir = path.join(process.cwd(), 'deployments', 'fleets')
-
-  if (!fs.existsSync(fleetsDir)) {
-    console.log(kleur.yellow('No deployments/fleets directory found'))
-    return undefined
-  }
-
-  // Find fleet deployments related to the specified chain
-  const fleetDeploymentFiles = fs.readdirSync(fleetsDir).filter((file) => {
-    // Look for files that might be related to the chain
-    return file.toLowerCase().includes(newChainName.toLowerCase()) && file.endsWith('.json')
-  })
-
-  if (fleetDeploymentFiles.length === 0) {
-    console.log(
-      kleur.yellow(
-        `No fleet deployments found for ${newChainName} in the deployments/fleets directory`,
-      ),
-    )
-    return undefined
-  }
-
-  // Sort files by date (most recent first)
-  fleetDeploymentFiles.sort((a, b) => {
-    const statsA = fs.statSync(path.join(fleetsDir, a))
-    const statsB = fs.statSync(path.join(fleetsDir, b))
-    return statsB.mtime.getTime() - statsA.mtime.getTime()
-  })
-
-  // Prompt user to select a fleet deployment
-  const { selectedFleet } = await prompts({
-    type: 'select',
-    name: 'selectedFleet',
-    message: 'Select a fleet deployment to include in the proposal:',
-    choices: [
-      { title: 'None - do not include fleet information', value: 'none' },
-      ...fleetDeploymentFiles.map((file) => ({
-        title: file,
-        value: path.join(fleetsDir, file),
-      })),
-    ],
-  })
-
-  if (selectedFleet === 'none') {
-    console.log(kleur.yellow('No fleet deployment selected'))
-    return undefined
-  }
-
-  console.log(kleur.green(`Selected fleet deployment: ${path.basename(selectedFleet)}`))
-  return selectedFleet
 }
 
 /**

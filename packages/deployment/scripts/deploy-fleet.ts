@@ -153,7 +153,13 @@ async function handleNewFleetDeployment(
 
     const deployedArkAddresses = await deployArks(fleetDefinition, config)
 
-    saveFleetDeploymentJson(fleetDefinition, deployedFleet, bufferArkAddress, deployedArkAddresses)
+    saveFleetDeploymentJson(
+      fleetDefinition,
+      deployedFleet,
+      bufferArkAddress,
+      deployedArkAddresses,
+      useBummerConfig,
+    )
 
     // Check if deployer has governor role
     const protocolAccessManager = await hre.viem.getContractAt(
@@ -418,6 +424,7 @@ async function handleArkAddition(
       { fleetCommander: deploymentData.fleetCommander },
       deploymentData.bufferArk,
       updatedArkAddresses,
+      useBummerConfig,
     )
 
     console.log(kleur.green().bold('Updated fleet deployment configuration saved.'))

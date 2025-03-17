@@ -1,5 +1,6 @@
 {
   "fleetName": "LazyVault_LowerRisk_USDCe",
+  "isBummer": true,
   "symbol": "LVUSDCe",
   "assetSymbol": "usdce",
   "initialMinimumBufferBalance": "100000000",

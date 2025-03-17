@@ -2,8 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import prompts from 'prompts'
 import { Address, Chain, parseAbi } from 'viem'
-import { FleetConfig } from '../../types/config-types'
-import { ChainConfig, ChainName } from './chain-prompt'
+import { BaseConfig, FleetConfig } from '../../types/config-types'
+import { ChainName } from './chain-configs'
 import { createClients } from './wallet-helper'
 
 const fleetCommanderAbi = parseAbi([
@@ -15,7 +15,7 @@ const harborCommandAbi = parseAbi(['function getActiveFleetCommanders() view ret
 
 export async function promptForFleet(
   chainName: ChainName,
-  targetConfig: ChainConfig,
+  targetConfig: BaseConfig,
   targetChain: Chain,
   targetRpcUrl: string,
 ): Promise<{
@@ -44,7 +44,9 @@ export async function promptForFleet(
     fleetFiles.map(async (file) => {
       const config = JSON.parse(fs.readFileSync(path.join(fleetsDir, file), 'utf8'))
       return {
-        title: `${config.fleetName} (${config.symbol}) - ${config.assetSymbol}`,
+        title: `${config.fleetName} (${config.symbol}) - ${config.assetSymbol} ${
+          config.isBummer ? '(Bummer)' : ''
+        }`,
         value: config,
       }
     }),
