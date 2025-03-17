@@ -2,9 +2,10 @@
 pragma solidity 0.8.28;
 
 import "../Ark.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {ISilo} from "../../interfaces/silo/ISilo.sol";
 import {ISiloIncentivesController, AccruedRewards} from "../../interfaces/silo/ISiloIncentivesController.sol";
-
+import {ISiloConfig, ConfigData} from "../../interfaces/silo/ISiloConfig.sol";
+import {IGaugeHookReceiver} from "../../interfaces/silo/IGaugeHookReceiver.sol";
 error InvalidSiloAddress();
 error InvalidIncentivesControllerAddress();
 
@@ -20,7 +21,7 @@ contract SiloVaultArk is Ark {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     /// @notice The Silo this Ark interacts with
-    IERC4626 public immutable silo;
+    ISilo public immutable silo;
 
     /// @notice The Silo Incentives Controller for claiming rewards
     ISiloIncentivesController public immutable incentivesController;
@@ -32,28 +33,29 @@ contract SiloVaultArk is Ark {
     /**
      * @notice Constructor to set up the SiloVaultArk
      * @param _silo Address of the silo
-     * @param _incentivesController Address of the Silo Incentives Controller
      * @param _params ArkParams struct containing necessary parameters for Ark initialization
      */
-    constructor(
-        address _silo,
-        address _incentivesController,
-        ArkParams memory _params
-    ) Ark(_params) {
+    constructor(address _silo, ArkParams memory _params) Ark(_params) {
         if (_silo == address(0)) {
             revert InvalidSiloAddress();
         }
-        if (_incentivesController == address(0)) {
-            revert InvalidIncentivesControllerAddress();
-        }
 
         // Verify that the silo's asset matches the configured asset
-        if (IERC4626(_silo).asset() != _params.asset) {
+        if (ISilo(_silo).asset() != _params.asset) {
             revert ERC4626AssetMismatch();
         }
 
-        silo = IERC4626(_silo);
-        incentivesController = ISiloIncentivesController(_incentivesController);
+        silo = ISilo(_silo);
+
+        address _gauge = IGaugeHookReceiver(
+            ISiloConfig(silo.siloConfig()).getConfig(_silo).hookReceiver
+        ).configuredGauges(_silo);
+
+        if (_gauge == address(0)) {
+            revert InvalidGaugeAddress();
+        }
+
+        incentivesController = ISiloIncentivesController(_gauge);
     }
 
     /*//////////////////////////////////////////////////////////////

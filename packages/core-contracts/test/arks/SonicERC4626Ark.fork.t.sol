@@ -31,6 +31,7 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
     address public constant USDCE_ADDRESS =
         0x29219dd400f2Bf60E5a23d13Be72B486D4038894;
     address public constant GAUGE = 0x2D3d269334485d2D876df7363e1A50b13220a7D8;
+
     address public constant WRAPPED_SONIC =
         0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38;
     address public constant SILO_TOKEN =
@@ -59,7 +60,7 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
             maxDepositPercentageOfTVL: PERCENTAGE_100
         });
 
-        ark = new SiloVaultArk(SILO_ADDRESS, GAUGE, params);
+        ark = new SiloVaultArk(SILO_ADDRESS, params);
 
         // Permissioning
         vm.startPrank(governor);
@@ -82,7 +83,7 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
     function test_Constructor() public {
         // Invalid silo address
         vm.expectRevert(abi.encodeWithSignature("InvalidSiloAddress()"));
-        ark = new SiloVaultArk(address(0), GAUGE, params);
+        ark = new SiloVaultArk(address(0), params);
 
         // Asset mismatch
         vm.mockCall(
@@ -91,11 +92,11 @@ contract SonicArkTestFork is Test, IArkEvents, ArkTestBase {
             abi.encode(address(9))
         );
         vm.expectRevert(abi.encodeWithSignature("ERC4626AssetMismatch()"));
-        ark = new SiloVaultArk(SILO_ADDRESS, GAUGE, params);
+        ark = new SiloVaultArk(SILO_ADDRESS, params);
         vm.clearMockedCalls();
 
         // Valid constructor
-        ark = new SiloVaultArk(SILO_ADDRESS, GAUGE, params);
+        ark = new SiloVaultArk(SILO_ADDRESS, params);
 
         assertEq(
             address(ark.silo()),
