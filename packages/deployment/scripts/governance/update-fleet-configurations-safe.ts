@@ -172,7 +172,7 @@ async function createAuctionConfigurationTransaction(
   auctionsConfig: AuctionConfig[],
   chainConfig: ChainConfiguration,
   raft: any, // TODO: Add proper type
-): Promise<TransactionBase | null> {
+): Promise<TransactionBase[] | null> {
   // Only configure auction parameters for Morpho and Euler arks
   if (!['morpho', 'euler'].includes(arkConfig.ark)) {
     return null
@@ -210,6 +210,10 @@ async function createAuctionConfigurationTransaction(
   if (!rewardTokenAddress || rewardTokenAddress === '0x0000000000000000000000000000000000000000') {
     throw new Error(`No reward token address found for ${auctionConfig.rewardTokenSymbol}`)
   }
+  const isWhitelistedInRaft = await raft.read.sweepableTokens([
+    arkConfig.arkAddress,
+    rewardTokenAddress,
+  ])
 
   const currentAuctionParams = (await raft.read.arkAuctionParameters([
     arkConfig.arkAddress,
@@ -235,6 +239,7 @@ async function createAuctionConfigurationTransaction(
   logValueComparison('Kicker reward', currentKickerRewardPercentage, kickerRewardPercentage, ' %')
   logValueComparison('Decay type', currentDecayType, decayType)
 
+  const txes: TransactionBase[] = []
   // Only update if any parameter has changed
   if (
     BigInt(duration) !== currentDuration ||
@@ -260,15 +265,28 @@ async function createAuctionConfigurationTransaction(
     })
 
     console.log('📝 Auction parameters update transaction created')
-    return {
+    txes.push({
       to: raft.address,
       data: setAuctionParamsCalldata,
       value: '0',
-    }
+    })
   }
-
-  console.log('✅ Auction parameters are up to date')
-  return null
+  if (!isWhitelistedInRaft) {
+    console.log('📝 Adding sweepable token transaction')
+    console.log(`Setting ${arkConfig.arkAddress} to sweepable for ${rewardTokenAddress}`)
+    const setSweepableTokenCalldata = encodeFunctionData({
+      abi: raft.abi,
+      functionName: 'setSweepableToken',
+      args: [arkConfig.arkAddress, rewardTokenAddress, true],
+    })
+    console.log(setSweepableTokenCalldata)
+    txes.push({
+      to: raft.address,
+      data: setSweepableTokenCalldata,
+      value: '0',
+    })
+  }
+  return txes
 }
 
 async function createConfigurationTransactions(
@@ -362,7 +380,7 @@ async function createConfigurationTransactions(
     chainConfig.config.deployedContracts.core.raft.address as `0x${string}`,
   )
 
-  const auctionTransaction = await createAuctionConfigurationTransaction(
+  const auctionTransactions = await createAuctionConfigurationTransaction(
     arkConfig,
     fleetDeployment,
     auctionsConfig,
@@ -370,8 +388,8 @@ async function createConfigurationTransactions(
     raft,
   )
 
-  if (auctionTransaction) {
-    transactions.push(auctionTransaction)
+  if (auctionTransactions && auctionTransactions.length > 0) {
+    transactions.push(...auctionTransactions)
   }
 
   // // Configure ark parameters
