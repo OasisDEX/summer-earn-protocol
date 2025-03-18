@@ -1,0 +1,19 @@
+{
+  "fleetName": "LazyVault_LowerRisk_EURC",
+  "fleetSymbol": "LVEURC",
+  "assetSymbol": "EURC",
+  "fleetAddress": "0x64Db8f51f1bf7064BB5A361a7265F602d348E0f0",
+  "bufferArkAddress": "0xC65B7E8feC2b7b329AB1d08c78F9f01FE4E4B3Ec",
+  "network": "base",
+  "initialMinimumBufferBalance": "0",
+  "initialRebalanceCooldown": "600",
+  "depositCap": "0",
+  "initialTipRate": "1000000000000000000",
+  "arkAddresses": [
+    "0xdc736314330E545E7b5DB1199E43D6D31bd6802c",
+    "0xa3cC259B68eae4d72572756A685FD877E420aa95",
+    "0xe949e2F45d300e934572bf261428F9261090BEf6",
+    "0x0Dd6F8A9dd2b6F1df8dEe95EB32f9Ad7BA8218c1",
+    "0x67DACdf8BA7025fbEA5060E384448AF3Cc9c362a"
+  ]
+}

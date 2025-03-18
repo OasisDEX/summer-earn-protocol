@@ -1,0 +1,32 @@
+[
+  {
+    "rewardTokenSymbol": "morpho",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.000744,
+      "usdt": 1.66,
+      "usdc": 1.66,
+      "dai": 1.66,
+      "usde": 1.66,
+      "usdce": 1.66
+    },
+    "duration": "4d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear"
+  },
+  {
+    "rewardTokenSymbol": "reul",
+    "rewardTokenDecimals": 18,
+    "prices": {
+      "weth": 0.002515,
+      "usdt": 5.05,
+      "usdc": 5.05,
+      "dai": 5.05,
+      "usde": 5.05,
+      "usdce": 5.05
+    },
+    "duration": "4d",
+    "kickerRewardPercentage": 0,
+    "decayType": "linear"
+  }
+]

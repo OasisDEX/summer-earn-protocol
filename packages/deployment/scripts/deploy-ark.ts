@@ -19,6 +19,7 @@ const arkTypes = [
   { title: 'PendleLPArk', value: ArkType.PendleLPArk },
   { title: 'PendlePTArk', value: ArkType.PendlePTArk },
   { title: 'PendlePtOracleArk', value: ArkType.PendlePtOracleArk },
+  { title: 'MoonwellArk', value: ArkType.MoonwellArk },
 ]
 
 async function deployArk() {

@@ -143,7 +143,7 @@ async function deployCompoundV3ArkContract(
         compoundV3Pool: compoundV3Pool,
         compoundV3Rewards: compoundV3Rewards,
         arkParams: {
-          name: `CompoundV3-${userInput.token.symbol}-${chainId}`,
+          name: arkName,
           details: JSON.stringify({
             protocol: 'CompoundV3',
             type: 'Lending',

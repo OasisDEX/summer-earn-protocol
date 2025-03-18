@@ -1,23 +1,26 @@
 {
   "name": "@summerfi/summer-earn-protocol-subgraph",
-  "version": "1.1.666-should-fail",
+  "version": "1.1.17-fix-array-index-out-of-bounds",
   "scripts": {
     "prepare:arbitrum": "mustache config/arbitrum.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:base": "mustache config/base.json subgraph.template.yaml > subgraph.yaml ",
     "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml ",
+    "prepare:sonic": "mustache config/sonic.json subgraph.template.yaml > subgraph.yaml ",
     "build:base": "pnpm run prepare:base && graph codegen && graph build",
     "build:arbitrum": "pnpm run prepare:arbitrum && graph codegen && graph build",
     "deploy:mainnet": "bash -c 'source ../../.env && pnpm prepare:mainnet && graph deploy summer-protocol --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
     "build:mainnet": "pnpm run prepare:mainnet && graph codegen && graph build",
+    "build:sonic": "pnpm run prepare:sonic && graph codegen && graph build",
     "deploy:base": "bash -c 'source ../../.env && pnpm prepare:base && graph deploy summer-protocol-base --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
     "deploy:arbitrum": "bash -c 'source ../../.env && pnpm prepare:arbitrum && graph deploy summer-protocol-arbitrum --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
+    "deploy:sonic": "bash -c 'source ../../.env && pnpm prepare:sonic && graph deploy summer-protocol-sonic --version-label $npm_package_version --node https://subgraphs.alchemy.com/api/subgraphs/deploy --deploy-key $DEPLOY_KEY --ipfs https://ipfs.satsuma.xyz'",
     "deploy:mainnet:local": "bash -c 'source ../../.env && pnpm prepare:mainnet && graph create summer-protocol-mainnet --node http://44.212.44.0:8020 && graph deploy summer-protocol-mainnet --node http://44.212.44.0:8020 --ipfs http://44.212.44.0:5001 --version-label $npm_package_version'",
     "deploy:arbitrum:local": "bash -c 'source ../../.env && pnpm prepare:arbitrum && graph create summer-protocol-arbitrum --node http://44.212.44.0:8020 && graph deploy summer-protocol-arbitrum --node http://44.212.44.0:8020 --ipfs http://44.212.44.0:5001 --version-label $npm_package_version'",
     "deploy:all": "pnpm run deploy:base && pnpm run deploy:arbitrum && pnpm run deploy:mainnet"
   },
   "devDependencies": {
     "@graphprotocol/graph-ts": "0.35.1",
-    "@graphprotocol/graph-cli": "0.82.0",
+    "@graphprotocol/graph-cli": "0.96.0",
     "mustache": "4.2.0"
   }
 }

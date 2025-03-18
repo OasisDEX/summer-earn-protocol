@@ -1,0 +1,6 @@
+{
+  "network": "sonic-mainnet",
+  "harbor-command-address": "0x092C41C6e9A8A54577CeDe5d077971116DdD6F57",
+  "harbor-command-start-block": 13000000,
+  "interval-handler-block-interval": 120
+}
