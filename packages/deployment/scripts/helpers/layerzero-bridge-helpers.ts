@@ -1,5 +1,6 @@
 import { addressToBytes32, Options } from '@layerzerolabs/lz-v2-utilities'
 import kleur from 'kleur'
+import prompts from 'prompts'
 import { Address, encodeFunctionData, Hex, PublicClient } from 'viem'
 import SummerTokenABI from '../../artifacts/src/contracts/SummerToken.sol/SummerToken.json'
 
@@ -61,35 +62,46 @@ export async function prepareBridgeTransaction(
       oftCmd: '0x' as Hex,
     }
 
-    // Get quote for native fee using the complete ABI
-    const quoteResult = await publicClient.readContract({
-      address: bridgeContractAddress,
-      abi: SummerTokenABI.abi,
-      functionName: 'quoteSend',
-      args: [sendParam, false],
-    })
+    let feeWithSafetyBuffer: bigint
+    try {
+      // Get quote for native fee using the complete ABI
+      const quoteResult = await publicClient.readContract({
+        address: bridgeContractAddress,
+        abi: SummerTokenABI.abi,
+        functionName: 'quoteSend',
+        args: [sendParam, false],
+      })
 
-    // Handle different possible return structures
-    const estimatedFee =
-      typeof quoteResult === 'object' && quoteResult !== null
-        ? 'nativeFee' in quoteResult
-          ? quoteResult.nativeFee
-          : Array.isArray(quoteResult)
-            ? quoteResult[0]
-            : quoteResult
-        : quoteResult
-    const safetyBuffer = BigInt(Math.floor(Number(estimatedFee) * safetyMultiplier))
+      // Handle different possible return structures
+      const estimatedFee =
+        typeof quoteResult === 'object' && quoteResult !== null
+          ? 'nativeFee' in quoteResult
+            ? quoteResult.nativeFee
+            : Array.isArray(quoteResult)
+              ? quoteResult[0]
+              : quoteResult
+          : quoteResult
+      feeWithSafetyBuffer = BigInt(Math.floor(Number(estimatedFee) * safetyMultiplier))
 
-    console.log(
-      kleur.blue(
-        `- Estimated fee: ${estimatedFee}, with safety buffer: ${safetyBuffer} (${safetyMultiplier}x)`,
-      ),
-    )
+      console.log(
+        kleur.blue(
+          `- Estimated fee: ${estimatedFee}, with safety buffer: ${feeWithSafetyBuffer} (${safetyMultiplier}x)`,
+        ),
+      )
+    } catch (error) {
+      console.error(kleur.red(`- Error getting quote for bridge transaction: ${error}`))
+      const { feeWithSafetyBufferOverride } = await prompts({
+        type: 'number',
+        name: 'feeWithSafetyBufferOverride',
+        message: 'Enter the fee with safety buffer override',
+      })
+      feeWithSafetyBuffer = BigInt(feeWithSafetyBufferOverride)
+    }
 
     // Add the bridge transaction
     targets.push(bridgeContractAddress)
     // Include the fee in the transaction value
-    values.push(safetyBuffer)
+    values.push(feeWithSafetyBuffer)
     calldatas.push(
       encodeFunctionData({
         abi: SummerTokenABI.abi, // Use the full ABI from the JSON file
@@ -97,7 +109,7 @@ export async function prepareBridgeTransaction(
         args: [
           sendParam,
           {
-            nativeFee: safetyBuffer,
+            nativeFee: feeWithSafetyBuffer,
             lzTokenFee: 0n,
           },
           refundAddress,
@@ -105,7 +117,7 @@ export async function prepareBridgeTransaction(
       }) as Hex,
     )
 
-    console.log(kleur.yellow(`- ETH value for fee: ${safetyBuffer}`))
+    console.log(kleur.yellow(`- ETH value for fee: ${feeWithSafetyBuffer}`))
     console.log(
       kleur.green(
         `- Added bridge transaction for token ${bridgeContractAddress} with amount ${amount}`,

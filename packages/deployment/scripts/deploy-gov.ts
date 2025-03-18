@@ -7,6 +7,8 @@ import { finalizeGov } from './governance/finalize-gov'
 import { peerGov } from './governance/peer-gov'
 import { rolesGov } from './governance/roles-gov'
 import { deployGov as systemGov } from './governance/system-gov'
+import { getConfigByNetwork } from './helpers/config-handler'
+import { promptForConfigType } from './helpers/prompt-helpers'
 import { verifyGovernanceRewardsManager } from './verify/governance-reward-managers'
 
 const STEPS = {
@@ -19,6 +21,12 @@ const STEPS = {
 
 async function deployGov() {
   console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
+
+  // Ask about using bummer config at the beginning
+  const useBummerConfig = await promptForConfigType()
+
+  // Get the configuration based on user selection
+  const config = getConfigByNetwork(hre.network.name, { gov: false }, useBummerConfig)
 
   let continueDeployment = true
   while (continueDeployment) {
@@ -77,7 +85,7 @@ async function deployGov() {
 
       switch (step) {
         case STEPS.SYSTEM:
-          await systemGov()
+          await systemGov(config, useBummerConfig)
           break
         case STEPS.VERIFY:
           console.log(kleur.yellow().bold('\nVerifying contracts...\n'))
@@ -96,7 +104,7 @@ async function deployGov() {
 
             // Add verification for governance rewards manager
             console.log(kleur.yellow().bold('\nVerifying Governance Rewards Manager...\n'))
-            await verifyGovernanceRewardsManager(hre)
+            await verifyGovernanceRewardsManager(hre, useBummerConfig)
 
             console.log(kleur.green().bold('\nContract verification completed successfully!'))
           } catch (error) {
@@ -120,7 +128,7 @@ async function deployGov() {
             ? additionalGovernors.split(',').map((addr: string) => addr.trim())
             : []
 
-          await rolesGov(governorAddresses)
+          await rolesGov(governorAddresses, useBummerConfig)
           break
         case STEPS.PEER:
           const { confirmPeering } = await prompts({
@@ -136,7 +144,7 @@ async function deployGov() {
             initial: false,
           })
           if (confirmPeering) {
-            await peerGov()
+            await peerGov(useBummerConfig)
           } else {
             console.log(kleur.yellow('Peering cancelled'))
           }

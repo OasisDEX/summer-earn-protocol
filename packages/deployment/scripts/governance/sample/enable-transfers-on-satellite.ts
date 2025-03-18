@@ -108,6 +108,7 @@ async function main() {
     const receipt = await publicClient.waitForTransactionReceipt({ hash })
     console.log('Proposal transaction mined. Block number:', receipt.blockNumber)
 
+    throw new Error('Not implemented')
     // Get the proposal ID
     const proposalId = await publicClient.readContract({
       address: HUB_GOVERNOR_ADDRESS,

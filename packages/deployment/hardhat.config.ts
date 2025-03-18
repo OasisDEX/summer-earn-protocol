@@ -16,9 +16,11 @@ if (!process.env.API_KEY_ARBISCAN) {
 if (!process.env.API_KEY_BASESCAN) {
   throw new Error('Please set your process.env.API_KEY_BASESCAN in a .env file')
 }
-
 if (!process.env.API_KEY_ETHERSCAN) {
   throw new Error('Please set your process.env.API_KEY_ETHERSCAN in a .env file')
+}
+if (!process.env.API_KEY_SONICSCAN) {
+  throw new Error('Please set your process.env.API_KEY_SONICSCAN in a .env file')
 }
 
 const config: HardhatUserConfig = {
@@ -33,7 +35,18 @@ const config: HardhatUserConfig = {
       arbitrumOne: process.env.API_KEY_ARBISCAN,
       base: process.env.API_KEY_BASESCAN,
       mainnet: process.env.API_KEY_ETHERSCAN,
+      sonic: process.env.API_KEY_SONICSCAN,
     },
+    customChains: [
+      {
+        network: 'sonic',
+        chainId: 146,
+        urls: {
+          apiURL: `https://api.sonicscan.org/api`,
+          browserURL: `https://sonicscan.org`,
+        },
+      },
+    ],
   },
   ignition: {
     blockPollingInterval: 1_000,
@@ -83,6 +96,11 @@ const config: HardhatUserConfig = {
       url: `${process.env.BASE_RPC_URL}`,
       accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
       chainId: 8453,
+    },
+    sonic: {
+      url: `${process.env.SONIC_RPC_URL}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIV_KEY}`],
+      chainId: 146,
     },
 
     // testnets

@@ -7,6 +7,7 @@ export enum SupportedNetworks {
   MAINNET = 'mainnet',
   BASE = 'base',
   ARBITRUM = 'arbitrum',
+  SONIC = 'sonic',
 }
 // Supported Arks
 export enum ArkType {
@@ -49,10 +50,19 @@ export interface BaseConfig {
     buyAndBurn: BuyAndBurnContracts
   }
   common: {
+    chainId: string
     initialSupply: string
     layerZero: {
       lzEndpoint: Address
       eID: string
+      lzExecutor: Address
+      sendUln302: Address
+      receiveUln302: Address
+      blockedMessageLib: Address
+      lzDeadDVN: Address
+      dvns: {
+        sonic: Record<string, Address>
+      }
     }
     swapProvider: Address
     tipRate: string

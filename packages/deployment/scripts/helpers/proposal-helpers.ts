@@ -51,6 +51,7 @@ export interface ProposalData {
   title: string
   crossChainExecution?: Array<{
     name: string
+    chainId: number
     targets: string[]
     values: string[]
     datas: string[]

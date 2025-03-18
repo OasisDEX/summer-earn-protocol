@@ -7,13 +7,23 @@ import { ADDRESS_ZERO } from './common/constants'
 import { checkExistingContracts } from './helpers/check-existing-contracts'
 import { getConfigByNetwork } from './helpers/config-handler'
 import { ModuleLogger } from './helpers/module-logger'
+import { promptForConfigType } from './helpers/prompt-helpers'
 import { updateIndexJson } from './helpers/update-json'
 
 const ADMIRALS_QUARTERS_ROLE = keccak256(toBytes('ADMIRALS_QUARTERS_ROLE'))
 
 export async function deployCore() {
-  const config = getConfigByNetwork(hre.network.name, { common: true, gov: true, core: false })
-  const deployedCore = await deployCoreContracts(config)
+  console.log(kleur.blue('Network:'), kleur.cyan(hre.network.name))
+
+  // Ask about using bummer config at the beginning
+  const useBummerConfig = await promptForConfigType()
+
+  const config = getConfigByNetwork(
+    hre.network.name,
+    { common: false, gov: true, core: false },
+    useBummerConfig,
+  )
+  const deployedCore = await deployCoreContracts(config, useBummerConfig)
   ModuleLogger.logCore(deployedCore)
   return deployedCore
 }
@@ -23,7 +33,10 @@ export async function deployCore() {
  * @param {BaseConfig} config - The configuration object for the current network.
  * @returns {Promise<CoreContracts>} The deployed core contracts.
  */
-async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
+async function deployCoreContracts(
+  config: BaseConfig,
+  useBummerConfig: boolean,
+): Promise<CoreContracts> {
   console.log(kleur.cyan().bold('Deploying Core Contracts...'))
 
   checkExistingContracts(config, 'core')
@@ -53,22 +66,30 @@ async function deployCoreContracts(config: BaseConfig): Promise<CoreContracts> {
 
   console.log(kleur.green().bold('All Core Contracts Deployed Successfully!'))
 
-  updateIndexJson('core', hre.network.name, core)
+  updateIndexJson('core', hre.network.name, core, useBummerConfig)
 
-  const updatedConfig = getConfigByNetwork(hre.network.name, {
-    common: true,
-    gov: true,
-    core: true,
-  })
+  const updatedConfig = getConfigByNetwork(
+    hre.network.name,
+    {
+      common: false,
+      gov: true,
+      core: true,
+    },
+    useBummerConfig,
+  )
+
   await setupGovernanceRoles(updatedConfig)
 
   return core
 }
 
-deployCore().catch((error) => {
-  console.error(kleur.red().bold('An error occurred:'), error)
-  process.exit(1)
-})
+// When script is run directly
+if (require.main === module) {
+  deployCore().catch((error) => {
+    console.error(kleur.red().bold('An error occurred:'), error)
+    process.exit(1)
+  })
+}
 
 /**
  * @dev Configures the Admirals Quarters role in the ProtocolAccessManager

@@ -1,5 +1,8 @@
+import fs from 'fs'
 import hre from 'hardhat'
 import kleur from 'kleur'
+import path from 'path'
+import prompts from 'prompts'
 import { Address } from 'viem'
 import { BaseConfig, FleetConfig } from '../../types/config-types'
 import { deployArk } from '../common/ark-deployment'
@@ -141,14 +144,23 @@ export async function setupFleetRewards(
   console.log(kleur.cyan().bold('\nSetting up fleet rewards:'))
 
   if (rewardTokens.length !== rewardAmounts.length) {
+    console.log('rewardTokens', rewardTokens)
+    console.log('rewardAmounts', rewardAmounts)
     throw new Error('Reward tokens and amounts arrays must have the same length')
   }
 
   const publicClient = await hre.viem.getPublicClient()
+  console.log('fleetCommanderRewardsManager', fleetCommanderRewardsManager)
   const rewardsManager = await hre.viem.getContractAt(
     'FleetCommanderRewardsManager' as string,
     fleetCommanderRewardsManager,
   )
+
+  console.log('rewardsManager', rewardsManager)
+
+  console.log('rewardTokens', rewardTokens)
+  console.log('rewardAmounts', rewardAmounts)
+  console.log('rewardsDurations', rewardsDurations)
 
   for (let i = 0; i < rewardTokens.length; i++) {
     const rewardToken = rewardTokens[i]
@@ -200,7 +212,11 @@ export async function setupFleetRewards(
 export async function getRewardsManagerAddress(fleetCommander: Address): Promise<Address> {
   console.log(kleur.yellow(`Getting rewards manager address for fleet ${fleetCommander}...`))
 
+  // Get the default public client
   const publicClient = await hre.viem.getPublicClient()
+
+  const isSonic = hre.network.name === 'sonic'
+
   const fleetCommanderContract = await hre.viem.getContractAt(
     'FleetCommander' as string,
     fleetCommander,
@@ -215,55 +231,130 @@ export async function getRewardsManagerAddress(fleetCommander: Address): Promise
     throw new Error('Rewards manager factory not set or invalid')
   }
 
-  // Get event logs for RewardsManagerCreated events
-  const logs = await publicClient.getLogs({
-    address: factoryAddress,
-    event: {
-      type: 'event',
-      name: 'RewardsManagerCreated',
-      inputs: [
-        { type: 'address', name: 'rewardsManager', indexed: true },
-        { type: 'address', name: 'fleetCommander', indexed: true },
-      ],
-    },
-    args: {
-      fleetCommander: fleetCommander,
-    },
-    fromBlock: 'earliest',
-  })
-
-  if (logs.length === 0) {
-    throw new Error(`No rewards manager found for fleet commander ${fleetCommander}`)
-  }
-
-  // Get the most recent event if there are multiple
-  const mostRecentLog = logs[logs.length - 1]
-  const rewardsManagerAddress = mostRecentLog.args.rewardsManager as Address
-
-  // Verify that the rewards manager belongs to the fleet commander
   try {
-    const rewardsManagerContract = await hre.viem.getContractAt(
-      'FleetCommanderRewardsManager' as string,
-      rewardsManagerAddress,
-    )
-    const linkedFleetCommander = (await rewardsManagerContract.read.fleetCommander()) as Address
+    // Get the logs
+    const logs = await publicClient.getLogs({
+      address: factoryAddress,
+      event: {
+        type: 'event',
+        name: 'RewardsManagerCreated',
+        inputs: [
+          { type: 'address', name: 'rewardsManager', indexed: true },
+          { type: 'address', name: 'fleetCommander', indexed: true },
+        ],
+      },
+      args: {
+        fleetCommander: fleetCommander,
+      },
+      fromBlock: isSonic ? '0xca0d5e' : 'earliest',
+    })
 
-    if (linkedFleetCommander.toLowerCase() !== fleetCommander.toLowerCase()) {
-      throw new Error(
-        `Rewards manager verification failed: linked to ${linkedFleetCommander} instead of ${fleetCommander}`,
-      )
+    console.log(`Found ${logs.length} logs`)
+
+    if (logs.length === 0) {
+      throw new Error(`No rewards manager found for fleet commander ${fleetCommander}`)
     }
 
-    console.log(kleur.green(`Verified rewards manager at ${rewardsManagerAddress}`))
+    // Get the most recent event if there are multiple
+    const mostRecentLog = logs[logs.length - 1]
+    const rewardsManagerAddress = mostRecentLog.args.rewardsManager as Address
+
+    // Verify that the rewards manager belongs to the fleet commander
+    try {
+      const rewardsManagerContract = await hre.viem.getContractAt(
+        'FleetCommanderRewardsManager' as string,
+        rewardsManagerAddress,
+      )
+      const linkedFleetCommander = (await rewardsManagerContract.read.fleetCommander()) as Address
+
+      if (linkedFleetCommander.toLowerCase() !== fleetCommander.toLowerCase()) {
+        throw new Error(
+          `Rewards manager verification failed: linked to ${linkedFleetCommander} instead of ${fleetCommander}`,
+        )
+      }
+
+      console.log(kleur.green(`Verified rewards manager at ${rewardsManagerAddress}`))
+    } catch (error) {
+      console.error(
+        kleur.red(
+          `Failed to verify rewards manager: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      )
+      throw error
+    }
+
+    console.log(kleur.green(`Found rewards manager at ${rewardsManagerAddress}`))
+    return rewardsManagerAddress
   } catch (error) {
     console.error(
-      kleur.red(
-        `Failed to verify rewards manager: ${error instanceof Error ? error.message : String(error)}`,
-      ),
+      kleur.red(`Error getting logs: ${error instanceof Error ? error.message : String(error)}`),
     )
-    throw error
+    // Print the full error object for debugging
+    console.error('Full error:', error)
+    throw new Error(
+      `Failed to find rewards manager for fleet commander ${fleetCommander}: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+}
+
+/**
+ * Lists and allows selection of a fleet deployment from the deployments/fleets directory
+ */
+export async function promptForFleetDeploymentOutput(
+  chainName: string,
+): Promise<string | undefined> {
+  console.log(kleur.blue('\nLooking for fleet deployments in the deployments/fleets directory...'))
+
+  // The deployments/fleets directory should be in the project root
+  const fleetsDir = path.join(process.cwd(), 'deployments', 'fleets')
+
+  if (!fs.existsSync(fleetsDir)) {
+    console.log(kleur.yellow('No deployments/fleets directory found'))
+    return undefined
   }
 
-  console.log(kleur.green(`Found rewards manager at ${rewardsManagerAddress}`))
-  return rewardsManagerAddress
+  // Find fleet deployments related to the specified chain
+  const fleetDeploymentFiles = fs.readdirSync(fleetsDir).filter((file) => {
+    // Look for files that might be related to the chain
+    return file.toLowerCase().includes(chainName.toLowerCase()) && file.endsWith('.json')
+  })
+
+  if (fleetDeploymentFiles.length === 0) {
+    console.log(
+      kleur.yellow(
+        `No fleet deployments found for ${chainName} in the deployments/fleets directory`,
+      ),
+    )
+    return undefined
+  }
+
+  // Sort files by date (most recent first)
+  fleetDeploymentFiles.sort((a, b) => {
+    const statsA = fs.statSync(path.join(fleetsDir, a))
+    const statsB = fs.statSync(path.join(fleetsDir, b))
+    return statsB.mtime.getTime() - statsA.mtime.getTime()
+  })
+
+  // Prompt user to select a fleet deployment
+  const { selectedFleet } = await prompts({
+    type: 'select',
+    name: 'selectedFleet',
+    message: 'Select fleet deployment output:',
+    choices: [
+      { title: 'None', value: 'none' },
+      ...fleetDeploymentFiles.map((file) => ({
+        title: file,
+        value: path.join(fleetsDir, file),
+      })),
+    ],
+  })
+
+  if (selectedFleet === 'none') {
+    console.log(kleur.yellow('No fleet deployment selected'))
+    return undefined
+  }
+
+  console.log(kleur.green(`Selected fleet deployment: ${path.basename(selectedFleet)}`))
+
+  return selectedFleet
 }
