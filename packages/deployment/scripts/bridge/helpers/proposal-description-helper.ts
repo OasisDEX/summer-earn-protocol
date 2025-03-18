@@ -69,7 +69,7 @@ This proposal only updates the LayerZero endpoint configuration for the specifie
     return `# Cross-Chain LayerZero Configuration Update for ${oAppName}
 
 ## Summary
-This is a cross-chain governance proposal to update the LayerZero endpoint configuration for the ${oAppName} application on ${targetChain}.
+This is a cross-chain governance proposal to update the LayerZero endpoint configuration for the ${oAppName} application on ${capitalize(targetChain)}.
 
 ## Motivation
 The current delegate address for the OApp does not match the deployer's address, requiring governance to update the configuration.

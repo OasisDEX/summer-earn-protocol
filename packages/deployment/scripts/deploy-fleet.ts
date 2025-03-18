@@ -410,7 +410,6 @@ async function handleArkAddition(
           config,
           fleetDefinition,
           useBummerConfig,
-          isTenderly,
         )
       }
     }
