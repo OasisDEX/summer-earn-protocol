@@ -3,8 +3,7 @@ import kleur from 'kleur'
 import prompts from 'prompts'
 import { Address, createWalletClient, encodeAbiParameters, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { arbitrum, base, mainnet, optimism } from 'viem/chains'
-import { RPC_URL_MAP } from '../common/chain-config-map'
+import { CHAIN_CONFIG_MAP, RPC_URL_MAP } from '../common/chain-config-map'
 import { promptForFleetDeploymentOutput } from '../fleets/fleet-deployment-helpers'
 import { getChainPublicClient } from '../helpers/client-by-chain-helper'
 import { getConfigByNetwork } from '../helpers/config-handler'
@@ -243,26 +242,7 @@ async function tryDirectExecution(
     // Get chain configuration from Viem based on the chain name
     let chainConfig
     try {
-      // Map your chain names to Viem chain objects
-      const chainMap: Record<string, any> = {
-        mainnet: mainnet,
-        base: base,
-        arbitrum: arbitrum,
-        optimism: optimism,
-        sonic: {
-          id: Number(sourceConfig.common.chainId),
-          name: 'Sonic',
-          network: 'sonic',
-          nativeCurrency: { name: 'S', symbol: 'S', decimals: 18 },
-          rpcUrls: {
-            default: { http: [rpcUrl] },
-            public: { http: [rpcUrl] },
-          },
-        },
-        // Add any other chains as needed
-      }
-
-      chainConfig = chainMap[chain]
+      chainConfig = CHAIN_CONFIG_MAP[chain as keyof typeof CHAIN_CONFIG_MAP]
       if (!chainConfig) {
         return {
           success: false,

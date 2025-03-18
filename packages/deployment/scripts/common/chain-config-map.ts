@@ -1,4 +1,4 @@
-import { arbitrum, base, mainnet } from 'viem/chains'
+import { arbitrum, base, mainnet, sonic } from 'viem/chains'
 
 // Centralized RPC URL mapping
 export const RPC_URL_MAP = {
@@ -13,16 +13,7 @@ export const CHAIN_CONFIG_MAP = {
   mainnet,
   base,
   arbitrum,
-  sonic: {
-    id: 146,
-    name: 'Sonic',
-    network: 'sonic',
-    nativeCurrency: { name: 'S', symbol: 'S', decimals: 18 },
-    rpcUrls: {
-      default: { http: [RPC_URL_MAP.sonic] },
-      public: { http: [RPC_URL_MAP.sonic] },
-    },
-  },
+  sonic: sonic,
 }
 
 export const CHAIN_MAP_BY_ID = Object.fromEntries(
