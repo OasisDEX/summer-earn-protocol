@@ -8,7 +8,8 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 
 /**
  * @title ChainlinkAdapter
- * @notice Adapter for the Chainlink CCIP protocol
+ * @notice Adapter for the Chainlink CCIP protocol (PLACEHOLDER IMPLEMENTATION)
+ * @dev This is currently a placeholder implementation with unimplemented methods
  */
 contract ChainlinkAdapter is IBridgeAdapter {
     // Chainlink specific state variables
@@ -35,11 +36,70 @@ contract ChainlinkAdapter is IBridgeAdapter {
     error InvalidRouter();
     error InvalidParams();
     error TransferFailed();
+    error Unimplemented();
 
     // Chainlink receiver function
-    function ccipReceive(bytes32 messageId, bytes calldata data) external {
+    function ccipReceive(bytes32, bytes calldata) external pure {
         // Implementation will handle incoming messages from Chainlink CCIP
+        revert Unimplemented();
     }
 
-    // IBridgeAdapter functions to be implemented
+    /// @inheritdoc IBridgeAdapter
+    function transferAsset(
+        uint16,
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external payable override returns (bytes32) {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function readState(
+        uint16,
+        address,
+        bytes4,
+        bytes calldata,
+        uint256,
+        bytes calldata
+    ) external payable override returns (bytes32) {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function getTransferStatus(
+        bytes32
+    ) external pure override returns (BridgeTypes.TransferStatus) {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function getSupportedChains()
+        external
+        pure
+        override
+        returns (uint16[] memory)
+    {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function getSupportedAssets(
+        uint16
+    ) external pure override returns (address[] memory) {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function estimateFee(
+        uint16,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure override returns (uint256, uint256) {
+        revert Unimplemented();
+    }
 }

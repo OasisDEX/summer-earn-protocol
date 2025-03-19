@@ -147,8 +147,9 @@ contract BridgeRouter is IBridgeRouter {
         // Transfer tokens from sender to this contract
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
 
-        // Approve the adapter to spend the tokens
-        IERC20(asset).safeApprove(adapter, amount);
+        // Approve the adapter to spend the tokens - first reset allowance to 0
+        IERC20(asset).approve(adapter, 0);
+        IERC20(asset).approve(adapter, amount);
 
         // Call the adapter to initiate the transfer
         transferId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
@@ -216,7 +217,7 @@ contract BridgeRouter is IBridgeRouter {
         emit ReadRequestInitiated(
             requestId,
             sourceChainId,
-            sourceContract,
+            abi.encodePacked(sourceContract),
             selector,
             params,
             adapter
@@ -270,6 +271,28 @@ contract BridgeRouter is IBridgeRouter {
 
         transferStatuses[transferId] = status;
         emit TransferStatusUpdated(transferId, status);
+    }
+
+    /// @inheritdoc IBridgeRouter
+    function receiveAsset(
+        bytes32 transferId,
+        address asset,
+        address recipient,
+        uint256 amount
+    ) external {
+        if (!adapters[msg.sender]) revert UnknownAdapter();
+        if (transferToAdapter[transferId] != msg.sender) revert Unauthorized();
+
+        // Update transfer status
+        transferStatuses[transferId] = BridgeTypes.TransferStatus.DELIVERED;
+
+        // Transfer the received assets to the recipient
+        IERC20(asset).safeTransfer(recipient, amount);
+
+        emit TransferStatusUpdated(
+            transferId,
+            BridgeTypes.TransferStatus.DELIVERED
+        );
     }
 
     /// @inheritdoc IBridgeRouter

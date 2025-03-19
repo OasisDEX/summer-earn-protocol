@@ -18,17 +18,17 @@ contract MockChainlinkRouter {
     }
 
     function ccipSend(
-        uint64 destinationChainSelector,
+        uint64,
         EVM2AnyMessage calldata message
     ) external payable returns (bytes32) {
         sentMessages[msg.sender]++;
-        return keccak256(abi.encode(destinationChainSelector, message));
+        return keccak256(abi.encode(message));
     }
 
     function getFee(
-        uint64 destinationChainSelector,
-        EVM2AnyMessage calldata message
-    ) external view returns (uint256) {
+        uint64,
+        EVM2AnyMessage calldata
+    ) external pure returns (uint256) {
         return 0.01 ether;
     }
 

@@ -13,7 +13,8 @@ library BridgeTypes {
         UNKNOWN,
         PENDING,
         DELIVERED,
-        FAILED
+        FAILED,
+        COMPLETED
     }
 
     /**

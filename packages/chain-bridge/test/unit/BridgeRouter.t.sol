@@ -1,18 +1,18 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {IBridgeAdapter} from "../../src/adapters/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
 
 contract BridgeRouterTest is Test {
     BridgeRouter public router;
     MockAdapter public mockAdapter;
     MockAdapter public mockAdapter2;
-    MockERC20 public token;
+    ERC20Mock public token;
 
     address public admin = address(0x1);
     address public user = address(0x2);
@@ -28,7 +28,7 @@ contract BridgeRouterTest is Test {
         router = new BridgeRouter();
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
-        token = new MockERC20("Test Token", "TEST");
+        token = new ERC20Mock();
 
         // Setup mock adapter
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
@@ -151,8 +151,8 @@ contract BridgeRouterTest is Test {
 
         // Verify transfer was initiated
         assertEq(
-            router.transferStatuses(transferId),
-            uint8(BridgeTypes.TransferStatus.PENDING)
+            uint256(router.transferStatuses(transferId)),
+            uint256(BridgeTypes.TransferStatus.PENDING)
         );
         assertEq(router.transferToAdapter(transferId), address(mockAdapter));
 
@@ -276,8 +276,8 @@ contract BridgeRouterTest is Test {
 
         // Verify request was initiated
         assertEq(
-            router.transferStatuses(requestId),
-            uint8(BridgeTypes.TransferStatus.PENDING)
+            uint256(router.transferStatuses(requestId)),
+            uint256(BridgeTypes.TransferStatus.PENDING)
         );
         assertEq(router.transferToAdapter(requestId), address(mockAdapter));
         assertEq(router.readRequestToOriginator(requestId), user);
@@ -315,8 +315,8 @@ contract BridgeRouterTest is Test {
 
         // Verify response was delivered
         assertEq(
-            router.transferStatuses(requestId),
-            uint8(BridgeTypes.TransferStatus.DELIVERED)
+            uint256(router.transferStatuses(requestId)),
+            uint256(BridgeTypes.TransferStatus.DELIVERED)
         );
     }
 
@@ -508,8 +508,8 @@ contract BridgeRouterTest is Test {
 
         // Verify status was updated
         assertEq(
-            router.transferStatuses(transferId),
-            uint8(BridgeTypes.TransferStatus.DELIVERED)
+            uint256(router.transferStatuses(transferId)),
+            uint256(BridgeTypes.TransferStatus.DELIVERED)
         );
     }
 
