@@ -3,25 +3,29 @@
 ## 1. System Architecture
 
 ### 1.1 Overview
-The ChainBridge Module enables secure cross-chain asset transfers for the Summer Protocol by providing a standardized interface to multiple third-party bridge providers. It abstracts away the complexities of different bridge implementations while acknowledging that these bridges ultimately take custody of the assets during transfer.
+The ChainBridge Module enables secure cross-chain messaging and asset transfers for the Summer Protocol by providing a standardized interface to multiple third-party bridge providers. It abstracts away the complexities of different bridge implementations while creating a consistent interface for cross-chain operations.
 
 ### 1.2 Component Structure
-The ChainBridge module consists of two primary components:
+The ChainBridge module consists of three primary components:
 
 - **BridgeRouter**
-  - Provides a unified entry point for cross-chain transfers
-  - Queries and selects appropriate bridge adapters based on requirements
-  - Manages fee estimation and approval processes
+  - Provides a unified entry point for all cross-chain operations
+  - Routes messages between chains through appropriate bridge adapters
+  - Manages adapter registration and selection
   - Tracks the status of cross-chain operations
+  - Acts as the first receiver for all incoming cross-chain messages
 
 - **BridgeAdapters**
-  - Interfaces with specific third-party bridge protocols (LayerZero, Axelar, etc.)
-  - Manages the custody transfer to the bridge contracts
-  - Handles bridge-specific transaction formatting and requirements
-  - Provides fee estimation for their respective bridge providers
-  - Implements provider-specific receiver interfaces for incoming transfers
-  - Validates and processes incoming bridge messages
-  - Routes received assets to their intended recipients
+  - Interface with specific third-party bridge protocols (LayerZero, Chainlink CCIP)
+  - Translate between standardized message format and bridge-specific formats
+  - Handle bridge-specific requirements for message passing
+  - Implement provider-specific receiver interfaces for incoming messages
+  - Provide fee estimation for their respective bridge providers
+
+- **CrossChainReceivers**
+  - Contracts that implement ICrossChainReceiver to receive cross-chain messages
+  - Process incoming assets, messages, and data from other chains
+  - May include specialized proxies for remote contracts (e.g., Ark Proxies)
 
 ### 1.3 Bridge Adapter System
 
@@ -30,44 +34,68 @@ flowchart TD
     A["Protocol Applications"] --> B["BridgeRouter"]
     B --> C["IBridgeAdapter"]
     C --> D1["LayerZeroAdapter"]
-    C --> D2["AxelarAdapter"]
+    C --> D2["ChainlinkAdapter"]
     C --> D3["Other Adapters..."]
-    D1 --> E1["LayerZero Bridge Contracts"]
-    D2 --> E2["Axelar Bridge Contracts"]
+    D1 --> E1["LayerZero Endpoint"]
+    D2 --> E2["Chainlink CCIP Router"]
     D3 --> E3["Other Bridge Contracts"]
     E1 -.-> D1
     E2 -.-> D2
     E3 -.-> D3
+    D1 & D2 & D3 -.-> B
+    B -.-> F["ICrossChainReceiver"]
+    F -.-> G1["OmniArk"]
+    F -.-> G2["Ark Proxies"]
+    F -.-> G3["Other Receivers"]
 ```
 
 The adapter system enables:
 
+- **Unified Message Format**: All applications use a consistent message format
 - **Bridge Selection**: Choose different bridge providers based on cost, speed, or reliability
 - **Provider Redundancy**: Fallback to alternative providers if primary option fails
-- **Consistent Interface**: Applications use a unified API regardless of underlying bridge
 - **Future Extensibility**: New bridge protocols can be added without changing core logic
 
-### 1.4 Cross-Chain Asset Transfer Flow
+### 1.4 Cross-Chain Messaging Flow
 
 ```
 flowchart LR
-    A["Source Application"] --> B["BridgeRouter"]
-    B --> C["Bridge Adapter (Source Chain)"]
-    C --> D["Third-Party Bridge"]
+    A["Source Application"] --> B["BridgeRouter (Source)"]
+    B --> C["Bridge Adapter (Source)"]
+    C --> D["Bridge Protocol"]
     D --> E["Cross-Chain Message"]
-    E --> F["Third-Party Bridge"]
-    F --> G["Bridge Adapter (Destination Chain)"]
-    G --> H["Destination Application"]
+    E --> F["Bridge Protocol"]
+    F --> G["Bridge Adapter (Destination)"]
+    G --> H["BridgeRouter (Destination)"]
+    H --> I["Cross-Chain Receiver"]
 ```
 
-## 2. Bridge Adapter System
+## 2. Cross-Chain Operations
 
-### 2.1 Bridge Selection Process
-The BridgeRouter implements a straightforward selection process:
+### 2.1 Core Operations
+The ChainBridge module supports three primary cross-chain operations:
 
-1. **Query Available Adapters**
-   - Filter adapters that support the source and destination chains
-   - Filter adapters that support the asset being transferred
+1. **Asset Transfers**
+   - Send assets from one chain to another
+   - Destination receives assets via the `receiveAssets` function
+   - Full tracking of transfer status throughout the process
+
+2. **Message Passing**
+   - Send arbitrary messages to contracts on other chains
+   - Messages received via the `receiveMessage` function
+   - Enables complex cross-chain operations beyond simple transfers
+
+3. **State Reading**
+   - Request state information from contracts on other chains
+   - Results delivered asynchronously via `receiveStateRead` function
+   - Allows cross-chain awareness without moving assets
+
+### 2.2 Bridge Selection Process
+The BridgeRouter implements a sophisticated selection process:
+
+1. **Filter Available Adapters**
+   - Identify adapters that support the source and destination chains
+   - For asset transfers, check which adapters support the specific asset
 
 2. **Get Fee Estimates**
    - Request fee estimates from each eligible adapter
@@ -77,32 +105,32 @@ The BridgeRouter implements a straightforward selection process:
    - Based on user preference (lowest cost, fastest, most reliable)
    - Apply default selection criteria if no preference specified
 
-4. **Execute Transfer**
-   - Approve the selected bridge to spend tokens
-   - Initiate the transfer through the adapter
+4. **Execute Operation**
+   - Prepare message in standardized format
+   - Pass to selected adapter for delivery to the destination chain
 
-### 2.2 Bridge Adapters
+### 2.3 Bridge Adapters
 
 #### LayerZero Adapter
-- **Integration**: Interfaces with LayerZero bridge contracts (often Stargate for assets)
-- **Token Handling**: Approves and transfers tokens to LayerZero's custody
-- **Fee Structure**: Manages LayerZero's gas fees plus protocol fees
+- **Integration**: Interfaces with LayerZero endpoint
+- **Message Format**: Converts standard messages to LayerZero format
+- **Fee Structure**: Manages LayerZero's gas fees
 - **Chains Supported**: All chains with LayerZero endpoints
-- **Receiver Implementation**: Implements ILayerZeroReceiver for receiving messages
+- **Receiver Implementation**: Implements ILayerZeroReceiver for incoming messages
 
-#### Axelar Adapter
-- **Integration**: Interfaces with Axelar Gateway and Gas Service
-- **Token Handling**: Locks tokens in Axelar's custody contracts
-- **Fee Structure**: Manages Axelar's gas service fees
-- **Chains Supported**: All chains with Axelar Gateway deployments
-- **Receiver Implementation**: Implements IAxelarExecutable for receiving messages
+#### Chainlink Adapter
+- **Integration**: Interfaces with Chainlink CCIP Router
+- **Message Format**: Converts standard messages to CCIP format
+- **Fee Structure**: Manages Chainlink's fee payments
+- **Chains Supported**: All chains with CCIP router deployments
+- **Receiver Implementation**: Implements CCIPReceiver for incoming messages
 
-### 2.3 Adapter Interface
-All bridge adapters implement a standardized interface:
+### 2.4 Adapter Interface
+All bridge adapters implement the standardized IBridgeAdapter interface:
 
 ```solidity
 interface IBridgeAdapter {
-    // Sending functions
+    // Core sending functions
     function transferAsset(
         uint16 destinationChainId,
         address asset,
@@ -129,86 +157,96 @@ interface IBridgeAdapter {
         
     function getSupportedAssets(uint16 chainId)
         external view returns (address[] memory);
-        
-    // Each adapter also implements its bridge-specific receiver interface
-    // (Not shown here - e.g., ILayerZeroReceiver, IAxelarExecutable, etc.)
-}
-
-enum TransferStatus {
-    UNKNOWN,
-    PENDING,
-    DELIVERED,
-    FAILED
 }
 ```
 
-## 3. Security Considerations
+## 3. Receiver Model
 
-### 3.1 Security Model
-The ChainBridge implements a focused security approach:
+### 3.1 ICrossChainReceiver Interface
+Contracts that want to receive cross-chain messages implement the ICrossChainReceiver interface:
 
-1. **Asset Security**
-   - Carefully controlled token approvals to bridge contracts
-   - Rate limiting to prevent excessive transfers
-   - Value caps based on bridge security profiles
-   - Monitoring of bridge provider status
+```solidity
+interface ICrossChainReceiver {
+    function receiveAssets(
+        address asset,
+        uint256 amount,
+        address sender,
+        uint16 sourceChainId,
+        bytes32 transferId,
+        bytes calldata extraData
+    ) external;
+    
+    function receiveMessage(
+        bytes calldata message,
+        address sender,
+        uint16 sourceChainId,
+        bytes32 messageId
+    ) external;
+    
+    function receiveStateRead(
+        bytes calldata resultData,
+        address requestor,
+        uint16 sourceChainId,
+        bytes32 requestId
+    ) external;
+}
+```
 
-2. **Message Verification**
-   - Each adapter validates incoming bridge callbacks
+### 3.2 Ark Proxy Model
+For cross-chain OmniArk operations, we implement an Ark Proxy model:
+
+1. **Deployment**: Each remote OmniArk is represented by a lightweight proxy on the destination chain
+2. **Ownership**: The proxy owns assets and positions on behalf of the remote OmniArk
+3. **Message Handling**: The proxy implements ICrossChainReceiver to handle instructions from its parent OmniArk
+4. **Clean Accounting**: Provides clear ownership boundaries and simplified accounting for cross-chain assets
+
+```
+flowchart TD
+    A["OmniArk (Chain A)"] -->|sends message| B["BridgeRouter (Chain A)"]
+    B -->|bridges message| C["BridgeRouter (Chain B)"]
+    C -->|routes message| D["Ark Proxy (Chain B)"]
+    D -->|interacts with| E["Fleet (Chain B)"]
+    D -->|owns positions in| E
+```
+
+## 4. Security Considerations
+
+### 4.1 Security Model
+The ChainBridge implements a layered security approach:
+
+1. **Message Validation**
+   - Each adapter validates incoming bridge messages
    - Provider-specific verification of message authenticity
-   - Prevents replay of bridge messages
-   - Ensures only authorized contracts can process received assets
+   - Only registered adapters can update message status
+   - BridgeRouter validates all incoming messages before forwarding
+
+2. **Access Control**
+   - Only the BridgeRouter can invoke certain adapter functions
+   - Only registered adapters can deliver messages to receivers
+   - Permissions are enforced at each layer of the stack
 
 3. **Recovery Mechanisms**
    - Handles failed or incomplete transfers
    - Provides retry functionality for interrupted operations
    - Implements emergency pause capabilities
 
-### 3.2 Bridge Provider Risks
+### 4.2 Bridge Provider Risks
 
 Each bridge provider has its own security model and risks:
 
-- **Custody Risks**: Bridge providers take custody of assets during transfer
-- **Centralization Risks**: Some bridges rely on validator networks or centralized components
-- **Smart Contract Risks**: Vulnerabilities in bridge contracts can affect assets
-- **Liquidity Risks**: Some bridges depend on liquidity pools on destination chains
+- **Consensus Risks**: Different bridges use different consensus mechanisms
+- **Relayer Risks**: Some bridges rely on off-chain relayers
+- **Smart Contract Risks**: Vulnerabilities in bridge contracts can affect messages
+- **Network Risks**: Bridge performance depends on underlying network stability
 
 The ChainBridge mitigates these through:
 - Multiple bridge provider options
-- Configurable transfer limits per bridge
+- Configurable message limits per bridge
 - Careful monitoring of bridge status
 
-## 4. Integration with OmniArk
+## 5. Implementation Details
 
-### 4.1 OmniArk Integration
-The ChainBridge provides OmniArk with:
-
-1. **Asset Transfer Capabilities**
-   - Enables sending assets between OmniArks on different chains
-   - Provides status tracking for in-flight transfers
-   - Handles the complexity of bridge interactions
-
-2. **Standardized Interface**
-   - OmniArk uses a consistent method regardless of underlying bridge
-   - Bridge-specific details are abstracted away
-   - Fee estimation is provided for user transparency
-
-### 4.2 Asset Transfer Flow for OmniArk
-
-```
-flowchart LR
-    A["OmniArk (Source Chain)"] --> B["OmniArk.sendCrossChain()"]
-    B --> C["BridgeRouter.transferAsset()"]
-    C --> D["Selected Bridge Adapter"]
-    D --> E["Third-Party Bridge"]
-    E --> F["Destination Chain Bridge"]
-    F --> G["MessageReceiver"]
-    G --> H["OmniArk.receiveCrossChain()"]
-```
-
-## 5. Implementation Interfaces
-
-### 5.1 Core Interfaces
+### 5.1 BridgeRouter Functions
 
 ```solidity
 interface IBridgeRouter {
@@ -217,29 +255,45 @@ interface IBridgeRouter {
         address asset,
         address recipient,
         uint256 amount,
-        BridgeOptions memory options
+        BridgeTypes.BridgeOptions calldata options
     ) external payable returns (bytes32 transferId);
+    
+    function sendMessage(
+        uint16 destinationChainId,
+        address targetContract,
+        bytes calldata message,
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable returns (bytes32 messageId);
+    
+    function readState(
+        uint16 sourceChainId,
+        address sourceContract,
+        bytes4 functionSelector, 
+        bytes calldata params,
+        BridgeTypes.BridgeOptions calldata options
+    ) external payable returns (bytes32 readId);
     
     function estimateFee(
         uint16 destinationChainId,
         address asset,
         uint256 amount,
-        BridgeOptions memory options
-    ) external view returns (uint256 nativeFee, uint256 tokenFee);
+        BridgeTypes.BridgeOptions calldata options
+    ) external view returns (uint256 nativeFee, uint256 tokenFee, address selectedAdapter);
     
     function getTransferStatus(bytes32 transferId)
-        external view returns (TransferStatus);
+        external view returns (BridgeTypes.TransferStatus);
+        
+    function registerAdapter(address adapter)
+        external;
+        
+    function removeAdapter(address adapter)
+        external;
 }
+```
 
-interface IMessageReceiver {
-    function receiveMessage(
-        uint16 sourceChainId,
-        address sourceAddress,
-        bytes calldata payload,
-        bytes calldata proof
-    ) external returns (bool success);
-}
+### 5.2 Bridge Options
 
+```solidity
 struct BridgeOptions {
     address feeToken;           // Token to use for fees (address(0) for native)
     uint8 bridgePreference;     // 0: lowest cost, 1: fastest, 2: most secure
@@ -251,164 +305,64 @@ struct BridgeOptions {
 
 ## 6. OmniArk Integration
 
-### 6.1 OmniArk Bridge Functions
+### 6.1 Cross-Chain OmniArk Architecture
 
-```solidity
-// In OmniArk contract
-function sendCrossChain(
-    uint256 amount,
-    uint16 destinationChainId,
-    address recipient
-) external onlyCommander returns (bytes32 transferId) {
-    // Validate parameters
-    if (amount == 0) revert ZeroAmount();
-    if (recipient == address(0)) revert InvalidRecipient();
-    
-    // Approve bridge router to spend tokens
-    config.asset.approve(bridgeRouter, amount);
-    
-    // Call bridge router to initiate transfer
-    BridgeOptions memory options = BridgeOptions({
-        feeToken: address(0),  // Use native token for fees
-        bridgePreference: 0,   // Use lowest cost bridge
-        gasLimit: 500000,      // Standard gas limit
-        refundAddress: address(this),
-        adapterParams: ""
-    });
-    
-    transferId = IBridgeRouter(bridgeRouter).transferAsset(
-        destinationChainId,
-        address(config.asset),
-        recipient,
-        amount,
-        options
-    );
-    
-    // Record the transfer
-    transferStatuses[transferId] = TransferStatus.PENDING;
-    
-    emit CrossChainTransferInitiated(transferId, amount, recipient, destinationChainId);
-    return transferId;
-}
+The OmniArk Cross-Chain architecture uses the ChainBridge to establish presence on multiple chains:
 
-function receiveCrossChain(
-    uint256 amount,
-    address sender,
-    uint16 sourceChainId,
-    bytes32 transferId
-) external {
-    // Verify caller is the bridge adapter
-    if (!bridgeRouter.isValidAdapter(msg.sender)) revert CallerNotBridge();
-    
-    // Process received assets
-    // ... processing logic
-    
-    emit CrossChainTransferReceived(transferId, amount, sender, sourceChainId);
-}
-```
+1. **Primary OmniArk**: User's main OmniArk on their home chain
+2. **Ark Proxies**: Lightweight proxies on remote chains that:
+   - Implement ICrossChainReceiver
+   - Represent the OmniArk on that chain
+   - Hold positions in the Fleet on behalf of the OmniArk
+   - Execute instructions from the primary OmniArk
 
-## 7. Implementation Roadmap
+### 6.2 Cross-Chain Operations
 
-### 7.1 Phase 1: Foundation
-- Core BridgeRouter implementation
-- Integration with two primary bridge adapters (LayerZero and Axelar)
-- Basic asset transfer capabilities for primary tokens
-- Support for main EVM chains (Ethereum, Arbitrum, Optimism, Polygon)
-- OmniArk integration for cross-chain asset movement
+An OmniArk can perform several cross-chain operations:
 
-### 7.2 Phase 2: Enhancement
-- Additional bridge adapters for more providers
-- Basic bridge selection functionality
-- Enhanced security features and monitoring
-- Extended chain and asset support
+1. **Asset Transfer**: Move assets between chains
+   ```
+   OmniArk.transferCrossChain(destinationChainId, asset, amount) 
+   → BridgeRouter.transferAsset()
+   → [On destination] ArkProxy.receiveAssets()
+   ```
 
-### 7.3 Phase 3: Advanced Features
-- Manual recovery for failed transfers
-- Basic status tracking and reporting
-- Simple provider selection optimization
+2. **Position Management**: Manage Fleet positions on other chains
+   ```
+   OmniArk.manageCrossChainPosition(destinationChainId, fleetId, action, params)
+   → BridgeRouter.sendMessage()
+   → [On destination] ArkProxy.receiveMessage() → Fleet.executeAction()
+   ```
 
-## 8. Implementation Priorities
+3. **State Retrieval**: Get information about remote positions
+   ```
+   OmniArk.readCrossChainState(sourceChainId, fleetId, selector, params)
+   → BridgeRouter.readState() 
+   → [Response] ArkProxy.receiveStateRead() → OmniArk.updateState()
+   ```
 
-### 8.1 Mission Critical Components
+### 6.3 Security Model
 
-1. **Core BridgeRouter**
-   - Unified entry point for cross-chain asset transfers
-   - Bridge selection based on simple criteria
-   - Transfer status tracking
-   - Clear error handling
+The cross-chain OmniArk architecture implements a robust security model:
 
-2. **Multiple Bridge Adapters**
-   - Integration with LayerZero and Axelar
-   - Complete adapter interface implementation
-   - Asset approval and transfer handling
-   - Message receiving and validation
-   - Transfer status monitoring
+1. **Message Authentication**: All messages between OmniArk and proxies are authenticated
+2. **Limited Scope**: Each Ark Proxy can only interact with specific contracts
+3. **Recovery Path**: Primary OmniArk can recover assets if a bridge fails
+4. **Gradual Migration**: OmniArks can migrate between chains if needed
 
-3. **Asset Transfer Capabilities**
-   - Secure token movement between chains
-   - Support for primary assets (USDC, USDT, ETH/WETH)
-   - Reliable fee estimation
+## 7. Future Extensions
 
-4. **Security Features**
-   - Rate limiting and value caps
-   - Emergency pause functionality
-   - Bridge provider status monitoring
-   - Access control for critical functions
-   - Message validation and replay protection
+### 7.1 Planned Enhancements
 
-5. **OmniArk Integration**
-   - Cross-chain asset transfer functions
-   - Status tracking for transfers
-   - Clean interface between OmniArk and bridge
+1. **Additional Bridge Providers**: Support for more bridge protocols
+2. **Advanced Routing**: Smart routing across multiple bridges for optimal paths
+3. **Risk Management**: Automated risk assessment and bridge selection
+4. **Cross-Chain Governance**: Enable governance actions across chains
+5. **Bridge Analytics**: Real-time monitoring and performance metrics
 
-6. **Support for Key Chains**
-   - Implementation for main EVM chains
-   - Chain-specific address and token handling
+### 7.2 Integration Opportunities
 
-### 8.2 Nice to Have Features
-
-1. **Basic Bridge Selection**
-   - Simple provider preference configuration
-   - Basic fee comparison between providers
-
-2. **Extended Chain Support**
-   - Support for secondary chains
-   - Non-EVM chain integration
-
-3. **Basic Recovery Systems**
-   - Manual recovery for failed transactions
-   - Simple retry functionality
-
-4. **Basic Fee Management**
-   - Fee caching to reduce RPC calls
-   - Simple fee optimization
-
-## 9. Technical Challenges
-
-### 9.1 Asynchronous Operations
-
-**Challenge**: Cross-chain operations are inherently asynchronous, creating complex state management issues.
-
-**Solutions**:
-- Design for eventual consistency
-- Implement comprehensive status tracking
-- Make all operations idempotent where possible
-- Provide clear user feedback on operation status
-
-### 9.2 Bridge Reliability
-
-**Challenge**: Different bridges have varying levels of reliability, security, and cost.
-
-**Solutions**:
-- Implement bridge adapter pattern for flexibility
-- Track reliability metrics per bridge
-- Adjust transfer limits based on bridge security
-- Provide fallback options for critical operations
-
-### 9.3 Gas and Fee Management
-
-**Challenge**: Cross-chain operations incur significant gas costs that must be managed.
-
-**Solutions**:
-- Basic fee estimation and management
-- Balance liquidity across chains to minimize bridge operations
+1. **Cross-Chain Strategies**: Enable strategies that operate across multiple chains
+2. **Fleet Interconnection**: Allow Fleets on different chains to coordinate
+3. **Cross-Chain Liquidity**: Enable assets to flow efficiently between chains
+4. **Protocol-Wide Visibility**: Unified view of user positions across all chains
