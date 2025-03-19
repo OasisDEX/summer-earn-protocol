@@ -1,0 +1,2 @@
+@openzeppelin/contracts/=node_modules/@summerfi/dependencies/lib/openzeppelin-contracts/contracts/
+forge-std/=node_modules/@summerfi/dependencies/lib/forge-std/src/
