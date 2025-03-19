@@ -316,32 +316,252 @@ The OmniArk Cross-Chain architecture uses the ChainBridge to establish presence 
    - Hold positions in the Fleet on behalf of the OmniArk
    - Execute instructions from the primary OmniArk
 
-### 6.2 Cross-Chain Operations
+### 6.2 Cross-Chain Operations Flow
 
-An OmniArk can perform several cross-chain operations:
+#### 6.2.1 Asset Transfer Flow (Chain A → Chain B)
 
-1. **Asset Transfer**: Move assets between chains
-   ```
-   OmniArk.transferCrossChain(destinationChainId, asset, amount) 
-   → BridgeRouter.transferAsset()
-   → [On destination] ArkProxy.receiveAssets()
-   ```
+```
+flowchart LR
+    A[CrossChainArk A] -->|1. transferCrossChain| B[BridgeRouter A]
+    B -->|2. transferAssets| C[Selected Bridge Adapter A]
+    C -->|3. bridge-specific transfer| D[Bridge Protocol]
+    D -->|4. cross-chain message| E[Bridge Protocol]
+    E -->|5. handleReceive| F[Bridge Adapter B]
+    F -->|6. deliverAssets| G[BridgeRouter B]
+    G -->|7. receiveAssets| H[CrossChainArkProxy B]
+    H -->|8. deposit to Fleet/protocol| I[Fleet B]
+```
 
-2. **Position Management**: Manage Fleet positions on other chains
-   ```
-   OmniArk.manageCrossChainPosition(destinationChainId, fleetId, action, params)
-   → BridgeRouter.sendMessage()
-   → [On destination] ArkProxy.receiveMessage() → Fleet.executeAction()
-   ```
+1. **Initiation**: User calls `CrossChainArk.transferCrossChain()` on Chain A
+2. **Router Handling**: BridgeRouter selects appropriate adapter and forwards assets
+3. **Bridge Transfer**: Bridge adapter formats the message and initiates cross-chain transfer
+4. **Destination Receipt**: Bridge adapter on Chain B receives the message
+5. **Asset Delivery**: Assets are delivered to the CrossChainArkProxy on Chain B
+6. **Position Management**: CrossChainArkProxy deposits assets into Fleet/protocol on Chain B
 
-3. **State Retrieval**: Get information about remote positions
-   ```
-   OmniArk.readCrossChainState(sourceChainId, fleetId, selector, params)
-   → BridgeRouter.readState() 
-   → [Response] ArkProxy.receiveStateRead() → OmniArk.updateState()
-   ```
+#### 6.2.2 Asset Withdrawal Flow (Chain B → Chain A)
 
-### 6.3 Security Model
+```
+flowchart LR
+    A[CrossChainArk A] -->|1. withdrawCrossChain| B[BridgeRouter A]
+    B -->|2. sendMessage| C[Bridge Adapter A]
+    C -->|3. bridge-specific message| D[Bridge Protocol]
+    D -->|4. cross-chain message| E[Bridge Protocol]
+    E -->|5. handleReceive| F[Bridge Adapter B]
+    F -->|6. deliverMessage| G[BridgeRouter B]
+    G -->|7. receiveMessage| H[CrossChainArkProxy B]
+    H -->|8. withdraw from Fleet| I[Fleet B]
+    H -->|9. transferCrossChain| J[BridgeRouter B]
+    J -->|10. transferAssets| K[Bridge Adapter B]
+    K -->|11. bridge-specific transfer| L[Bridge Protocol]
+    L -->|12. cross-chain asset| M[Bridge Protocol]
+    M -->|13. handleReceive| N[Bridge Adapter A]
+    N -->|14. deliverAssets| O[BridgeRouter A]
+    O -->|15. receiveAssets| P[CrossChainArk A]
+```
+
+1. **Initiation**: User requests withdrawal via `CrossChainArk.withdrawCrossChain()` on Chain A
+2. **Withdrawal Message**: BridgeRouter A sends a message to Chain B with withdrawal instructions
+3. **Proxy Execution**: CrossChainArkProxy receives message and withdraws from Fleet on Chain B
+4. **Return Transfer**: CrossChainArkProxy initiates transfer back to the original CrossChainArk
+5. **Asset Return**: Assets are transferred back to the CrossChainArk on Chain A
+
+#### 6.2.3 Cross-Chain State Reading (Total Assets Update)
+
+```
+flowchart LR
+    A[CrossChainArk A] -->|1. readCrossChainState| B[BridgeRouter A]
+    B -->|2. readState| C[Bridge Adapter A]
+    C -->|3. bridge-specific query| D[Bridge Protocol]
+    D -->|4. cross-chain message| E[Bridge Protocol]
+    E -->|5. handleReceive| F[Bridge Adapter B]
+    F -->|6. executeRead| G[BridgeRouter B]
+    G -->|7. query assets| H[CrossChainArkProxy B]
+    H -->|8. query positions| I[Fleet B]
+    I -->|9. position data| H
+    H -->|10. format response| G
+    G -->|11. return data| F
+    F -->|12. bridge-specific response| E
+    E -->|13. cross-chain message| D
+    D -->|14. handleReceive| C
+    C -->|15. deliverReadResponse| B
+    B -->|16. receiveStateRead| A
+    A -->|17. update total assets view| A
+```
+
+1. **Query Initiation**: CrossChainArk on Chain A requests state information via `readCrossChainState()`
+2. **Query Routing**: BridgeRouter sends read request to Chain B via appropriate adapter
+3. **Data Collection**: On Chain B, CrossChainArkProxy queries its positions in Fleet B
+4. **Response Construction**: CrossChainArkProxy formats the response data
+5. **Response Delivery**: Data is sent back to Chain A through the bridge
+6. **Data Integration**: CrossChainArk receives position data and updates its total assets view
+7. **User Visibility**: User now has a complete view of assets across all chains
+
+### 6.3 Cross-Chain Operations Examples
+
+#### Asset Transfer Example
+```solidity
+// On Chain A - User initiates cross-chain deposit
+function transferToChainB(address asset, uint256 amount) external {
+    // Transfer assets to another chain
+    CrossChainArk(myArk).transferCrossChain(
+        CHAIN_B_ID,
+        asset, 
+        amount,
+        BridgeOptions({
+            bridgePreference: LOWEST_COST,
+            gasLimit: 300000,
+            // other options...
+        })
+    );
+}
+
+// On Chain B - ArkProxy receives assets and deposits to Fleet
+function receiveAssets(
+    address asset,
+    uint256 amount,
+    address sender,
+    uint16 sourceChainId,
+    bytes32 transferId,
+    bytes calldata depositData
+) external override onlyBridgeRouter {
+    // Verify sender is the crosschain relationship
+    require(sender == registeredSourceArk, "Invalid sender");
+    
+    // Decode deposit instructions
+    (address fleet, uint256 depositAmount) = abi.decode(depositData, (address, uint256));
+    
+    // Approve and deposit to Fleet
+    IERC20(asset).approve(fleet, depositAmount);
+    IFleetCommander(fleet).deposit(depositAmount, address(this), "");
+    
+    emit AssetsReceived(asset, amount, sender, sourceChainId, transferId);
+}
+```
+
+#### Asset Withdrawal Example
+```solidity
+// On Chain A - User initiates withdrawal from Chain B
+function withdrawFromChainB(address asset, uint256 shares) external {
+    // Request withdrawal from Chain B
+    CrossChainArk(myArk).withdrawCrossChain(
+        CHAIN_B_ID,
+        asset,
+        shares,
+        BridgeOptions({
+            bridgePreference: LOWEST_COST,
+            gasLimit: 500000,
+            // other options...
+        })
+    );
+}
+
+// On Chain B - ArkProxy receives withdrawal request
+function receiveMessage(
+    bytes calldata message,
+    address sender,
+    uint16 sourceChainId,
+    bytes32 messageId
+) external override onlyBridgeRouter {
+    // Verify sender is the crosschain relationship
+    require(sender == registeredSourceArk, "Invalid sender");
+    
+    // Decode withdrawal instructions
+    (bytes32 action, address fleet, address asset, uint256 shares) = 
+        abi.decode(message, (bytes32, address, address, uint256));
+    
+    if (action == WITHDRAW_ACTION) {
+        // Withdraw from Fleet
+        uint256 assets = IFleetCommander(fleet).redeem(shares, address(this), address(this));
+        
+        // Send assets back to Chain A
+        IBridgeRouter(bridgeRouter).transferAssets(
+            sourceChainId,
+            asset,
+            assets,
+            sender,
+            BridgeOptions({
+                bridgePreference: LOWEST_COST,
+                gasLimit: 300000,
+                // other options...
+            })
+        );
+        
+        emit WithdrawalProcessed(asset, assets, messageId);
+    }
+}
+```
+
+#### Cross-Chain State Reading Example
+```solidity
+// On Chain A - Request total assets information from Chain B
+function getTotalAssetsOnChainB() external {
+    CrossChainArk(myArk).readCrossChainState(
+        CHAIN_B_ID,
+        arkProxyAddress,
+        this.getTotalAssets.selector,
+        "",
+        BridgeOptions({
+            bridgePreference: LOWEST_COST,
+            gasLimit: 200000,
+            // other options...
+        })
+    );
+}
+
+// On Chain B - ArkProxy responds with total assets data
+function getTotalAssets() external view returns (address[] memory assets, uint256[] memory amounts) {
+    // Get list of all managed assets
+    assets = managedAssets();
+    amounts = new uint256[](assets.length);
+    
+    // For each asset, get total across all Fleets
+    for (uint i = 0; i < assets.length; i++) {
+        for (uint j = 0; j < fleets.length; j++) {
+            // Add assets from each Fleet
+            amounts[i] += IFleetCommander(fleets[j]).previewRedeem(
+                IFleetCommander(fleets[j]).balanceOf(address(this))
+            );
+        }
+        
+        // Add any undeployed balance
+        amounts[i] += IERC20(assets[i]).balanceOf(address(this));
+    }
+    
+    return (assets, amounts);
+}
+
+// On Chain A - CrossChainArk receives and processes the state data
+function receiveStateRead(
+    bytes calldata resultData,
+    address requestor,
+    uint16 sourceChainId,
+    bytes32 requestId
+) external override onlyBridgeRouter {
+    // Decode assets data
+    (address[] memory assets, uint256[] memory amounts) = 
+        abi.decode(resultData, (address[], uint256[]));
+    
+    // Update internal accounting for cross-chain assets
+    for (uint i = 0; i < assets.length; i++) {
+        crossChainAssetBalances[sourceChainId][assets[i]] = amounts[i];
+    }
+    
+    emit CrossChainAssetsUpdated(sourceChainId, assets, amounts);
+    
+    // If original requestor is waiting, notify them
+    if (pendingQueries[requestId] != address(0)) {
+        ICrossChainQueryCallback(pendingQueries[requestId]).onCrossChainDataReceived(
+            requestId, 
+            sourceChainId, 
+            resultData
+        );
+        delete pendingQueries[requestId];
+    }
+}
+```
+
+### 6.4 Security Model
 
 The cross-chain OmniArk architecture implements a robust security model:
 
@@ -349,6 +569,10 @@ The cross-chain OmniArk architecture implements a robust security model:
 2. **Limited Scope**: Each Ark Proxy can only interact with specific contracts
 3. **Recovery Path**: Primary OmniArk can recover assets if a bridge fails
 4. **Gradual Migration**: OmniArks can migrate between chains if needed
+5. **Trust Minimization**: Cross-chain operations require minimal trust in bridge providers through:
+   - Multiple bridge fallback options
+   - Verification of received assets 
+   - Clear accounting of cross-chain positions
 
 ## 7. Future Extensions
 
