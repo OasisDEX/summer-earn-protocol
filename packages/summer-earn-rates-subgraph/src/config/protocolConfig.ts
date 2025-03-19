@@ -9,6 +9,7 @@ import { GenericVaultProduct } from '../products/GenericVault'
 import { MoonwellProduct } from '../products/Moonwell'
 import { PendleLpProduct } from '../products/PendleLp'
 import { PendlePtProduct } from '../products/PendlePt'
+import { SiloProduct } from '../products/Silo'
 import { SkySUSDSProduct } from '../products/SkySUSDSProduct'
 import { getOrCreateToken } from '../utils/initializers'
 
@@ -616,6 +617,20 @@ class ProtocolConfig {
           Address.fromString('0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3'),
           BigInt.fromI32(12744800),
           'AaveV3',
+        ),
+      ]),
+      new Protocol('Silo', [
+        new SiloProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x4E216C15697C1392fE59e1014B009505E05810Df'),
+          BigInt.fromI32(12744800),
+          'Silo',
+        ),
+        new SiloProduct(
+          getOrCreateToken(addresses.USDCE),
+          Address.fromString('0x322e1d5384aa4ED66AeCa770B95686271de61dc3'),
+          BigInt.fromI32(12744800),
+          'Silo',
         ),
       ]),
     ]
