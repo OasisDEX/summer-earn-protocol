@@ -68,4 +68,22 @@ interface IBridgeAdapter {
     function getSupportedAssets(
         uint16 chainId
     ) external view returns (address[] memory);
+
+    /**
+     * @notice Check if an adapter supports a specific chain
+     */
+    function supportsChain(uint16 chainId) external view returns (bool);
+
+    /**
+     * @notice Check if an adapter supports a specific asset for a chain
+     */
+    function supportsAsset(
+        uint16 chainId,
+        address asset
+    ) external view returns (bool);
+
+    /**
+     * @notice Get the type of an adapter
+     */
+    function getAdapterType() external view returns (uint8);
 }

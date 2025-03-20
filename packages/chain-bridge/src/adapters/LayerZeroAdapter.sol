@@ -363,6 +363,34 @@ contract LayerZeroAdapter is IBridgeAdapter, OApp, OAppOptionsType3 {
         revert("Unimplemented");
     }
 
+    /// @inheritdoc IBridgeAdapter
+    function supportsChain(
+        uint16 chainId
+    ) external view override returns (bool) {
+        return chainToLzEid[chainId] != 0;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsAsset(
+        uint16 chainId,
+        address
+    ) external view override returns (bool) {
+        // First check if the chain is supported
+        if (!this.supportsChain(chainId)) {
+            return false;
+        }
+
+        // Currently all assets are supported for supported chains
+        // This could be modified to check specific assets if needed
+        return true;
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function getAdapterType() external pure override returns (uint8) {
+        // Return adapter type for LayerZero (e.g., 1 for LayerZero)
+        return 1;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/

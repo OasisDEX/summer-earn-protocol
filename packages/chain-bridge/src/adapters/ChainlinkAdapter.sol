@@ -102,4 +102,25 @@ contract ChainlinkAdapter is IBridgeAdapter {
     ) external pure override returns (uint256, uint256) {
         revert Unimplemented();
     }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsChain(uint16) external pure override returns (bool) {
+        // This is a placeholder implementation
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function supportsAsset(
+        uint16,
+        address
+    ) external pure override returns (bool) {
+        // This is a placeholder implementation
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IBridgeAdapter
+    function getAdapterType() external pure override returns (uint8) {
+        // Return adapter type for Chainlink (e.g., 2 for Chainlink)
+        return 2;
+    }
 }

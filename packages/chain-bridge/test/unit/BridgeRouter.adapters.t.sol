@@ -250,7 +250,7 @@ contract BridgeRouterAdapterTest is Test {
 
     // ---- FEE ESTIMATION TESTS ----
 
-    function testQuote() public {
+    function testQuote() public view {
         // Create bridge options
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             feeToken: address(0),
@@ -262,8 +262,12 @@ contract BridgeRouterAdapterTest is Test {
         });
 
         // Get quote
-        (uint256 nativeFee, uint256 tokenFee, address selectedAdapter) = router
-            .quote(DEST_CHAIN_ID, address(token), TRANSFER_AMOUNT, options);
+        (uint256 nativeFee, , address selectedAdapter) = router.quote(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            options
+        );
 
         // Verify quote
         assertEq(selectedAdapter, address(mockAdapter));

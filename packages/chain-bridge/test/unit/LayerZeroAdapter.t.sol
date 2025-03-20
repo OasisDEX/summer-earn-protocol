@@ -166,7 +166,7 @@ contract LayerZeroAdapterTest is Test {
         uint256 gasLimit = 200000;
         bytes memory adapterParams = "";
 
-        (uint256 nativeFee, uint256 tokenFee) = adapter.estimateFee(
+        /*(uint256 nativeFee, uint256 tokenFee) =*/ adapter.estimateFee(
             CHAIN_ID_OPTIMISM,
             address(token),
             amount,
