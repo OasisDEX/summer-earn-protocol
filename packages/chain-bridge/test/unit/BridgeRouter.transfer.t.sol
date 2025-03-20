@@ -7,15 +7,18 @@ import {IBridgeAdapter} from "../../src/adapters/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
 
 contract BridgeRouterTransferTest is Test {
     BridgeRouter public router;
     MockAdapter public mockAdapter;
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
+    ProtocolAccessManager public accessManager;
 
-    address public admin = address(0x1);
-    address public user = address(0x2);
+    address public governor = address(0x1);
+    address public admin = address(0x2);
+    address public user = address(0x3);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
@@ -25,7 +28,8 @@ contract BridgeRouterTransferTest is Test {
         vm.startPrank(admin);
 
         // Deploy contracts
-        router = new BridgeRouter();
+        accessManager = new ProtocolAccessManager(governor);
+        router = new BridgeRouter(address(accessManager));
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
         token = new ERC20Mock();
