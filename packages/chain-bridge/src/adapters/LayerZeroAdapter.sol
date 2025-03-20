@@ -25,16 +25,18 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
     address public immutable bridgeRouter;
 
     /// @notice Mapping of transfer IDs to their current status
-    mapping(bytes32 => BridgeTypes.TransferStatus) public transferStatuses;
+    mapping(bytes32 transferId => BridgeTypes.TransferStatus status)
+        public transferStatuses;
 
     /// @notice Mapping of LayerZero message hashes to transfer IDs
-    mapping(bytes32 => bytes32) public lzMessageToTransferId;
+    mapping(bytes32 lzMessageHash => bytes32 transferId)
+        public lzMessageToTransferId;
 
     /// @notice Mapping of supported chains to their LayerZero chain IDs
-    mapping(uint16 => uint32) public chainToLzEid;
+    mapping(uint16 chainId => uint32 lzEid) public chainToLzEid;
 
     /// @notice Inverse mapping of LayerZero chain IDs to our chain IDs
-    mapping(uint32 => uint16) public lzEidToChain;
+    mapping(uint32 lzEid => uint16 chainId) public lzEidToChain;
 
     /// @notice Message type for a standard transfer
     uint16 public constant TRANSFER = 1;
