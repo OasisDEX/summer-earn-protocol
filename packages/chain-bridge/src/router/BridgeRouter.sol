@@ -502,21 +502,3 @@ contract BridgeRouter is IBridgeRouter {
         admin = newAdmin;
     }
 }
-
-interface ICrossChainReceiver {
-    function receiveStateRead(
-        bytes calldata data,
-        address originator,
-        uint16 sourceChainId,
-        bytes32 requestId
-    ) external;
-}
-
-struct BridgeOptions {
-    address feeToken;
-    uint8 bridgePreference;
-    uint256 gasLimit;
-    address refundAddress;
-    bytes adapterParams;
-    address specifiedAdapter;
-}
