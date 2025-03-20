@@ -29,10 +29,9 @@ contract BridgeRouterAdminTest is Test {
     function setUp() public {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
-        accessManager.grantRole(GOVERNOR_ROLE, governor);
-        accessManager.grantRole(GUARDIAN_ROLE, guardian);
 
         vm.startPrank(governor);
+        accessManager.grantGuardianRole(guardian);
 
         // Deploy contracts
         router = new BridgeRouter(address(accessManager));
