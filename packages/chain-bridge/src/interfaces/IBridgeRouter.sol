@@ -6,7 +6,9 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 /**
  * @title IBridgeRouter
  * @notice Interface for the BridgeRouter contract that coordinates cross-chain asset transfers
- * @dev This interface defines all external functions for interacting with bridge adapters
+ * @dev This interface defines all external functions for interacting with bridge adapters.
+ *      Access control is managed through ProtocolAccessManaged, using roles from the
+ *      protocol's central access management system.
  */
 interface IBridgeRouter {
     /*//////////////////////////////////////////////////////////////
@@ -163,32 +165,35 @@ interface IBridgeRouter {
     function isValidAdapter(address adapter) external view returns (bool);
 
     /*//////////////////////////////////////////////////////////////
-                         ADMIN FUNCTIONS
+                         GOVERNANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Register a new bridge adapter
      * @param adapter Address of the adapter to register
-     * @dev Only callable by the admin
+     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
      */
     function registerAdapter(address adapter) external;
 
     /**
      * @notice Remove a bridge adapter
      * @param adapter Address of the adapter to remove
-     * @dev Only callable by the admin
+     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager
      */
     function removeAdapter(address adapter) external;
 
     /**
      * @notice Pause all bridge operations
-     * @dev Only callable by the admin
+     * @dev Can be called by accounts with either the GOVERNOR_ROLE or GUARDIAN_ROLE
+     *      in the ProtocolAccessManager. This allows for emergency pausing by guardians.
      */
     function pause() external;
 
     /**
      * @notice Unpause bridge operations
-     * @dev Only callable by the admin
+     * @dev Only callable by accounts with the GOVERNOR_ROLE in the ProtocolAccessManager.
+     *      Guardians can pause but cannot unpause the system, ensuring proper governance
+     *      approval is required to resume operations after an emergency pause.
      */
     function unpause() external;
 }
