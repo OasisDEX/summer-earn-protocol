@@ -5,18 +5,15 @@ import {Test} from "forge-std/Test.sol";
 import {ChainlinkAdapter} from "../../src/adapters/ChainlinkAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {MockChainlinkRouter} from "../mocks/MockChainlinkRouter.sol";
 
 contract ChainlinkAdapterTest is Test {
     ChainlinkAdapter public adapter;
-    MockChainlinkRouter public router;
     ERC20Mock public token;
 
     address public bridgeRouter = address(0x1);
     address public user = address(0x2);
 
     function setUp() public {
-        router = new MockChainlinkRouter();
         token = new ERC20Mock();
 
         vm.startPrank(bridgeRouter);
