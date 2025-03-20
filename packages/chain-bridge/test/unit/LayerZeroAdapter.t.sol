@@ -5,10 +5,12 @@ import {Test, console} from "forge-std/Test.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
 import {LayerZeroAdapter} from "../../src/adapters/LayerZeroAdapter.sol";
+import {LayerZeroAdapterTestHelper} from "../helpers/LayerZeroAdapterTestHelper.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 
 contract LayerZeroAdapterTest is TestHelperOz5 {
     // LayerZero endpoint IDs for TestHelperOz5
@@ -48,6 +50,10 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
     uint256 public constant NETWORK_A_CHAIN_ID = 31337;
     uint256 public constant NETWORK_B_CHAIN_ID = 31338;
 
+    // Add test helper
+    LayerZeroAdapterTestHelper public testHelperA;
+    LayerZeroAdapterTestHelper public testHelperB;
+
     function setUp() public override {
         super.setUp();
 
@@ -84,6 +90,15 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
             governor
         );
 
+        // Add test helper
+        testHelperA = new LayerZeroAdapterTestHelper(
+            lzEndpointA,
+            address(routerA),
+            chains,
+            lzEids,
+            governor
+        );
+
         routerA.registerAdapter(address(adapterA));
         tokenA.mint(user, 10000e18);
         tokenA.mint(address(routerA), 10000e18);
@@ -99,6 +114,15 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
         tokenB = new ERC20Mock();
 
         adapterB = new LayerZeroAdapter(
+            lzEndpointB,
+            address(routerB),
+            chains,
+            lzEids,
+            governor
+        );
+
+        // Add test helper
+        testHelperB = new LayerZeroAdapterTestHelper(
             lzEndpointB,
             address(routerB),
             chains,
@@ -190,5 +214,33 @@ contract LayerZeroAdapterTest is TestHelperOz5 {
 
     function testGetAdapterType() public view {
         assertEq(adapterA.getAdapterType(), 1); // 1 for LayerZero
+    }
+
+    // Update test for UnsupportedMessageType error
+    function testUnsupportedMessageType() public {
+        // Create a message with an unsupported type (5)
+        bytes memory invalidPayload = abi.encodePacked(
+            uint16(5),
+            bytes("test payload")
+        );
+
+        // Create origin data
+        Origin memory origin = Origin({
+            srcEid: LZ_EID_B, // Source is chain B
+            sender: addressToBytes32(address(testHelperB)),
+            nonce: 1
+        });
+
+        // Expect revert with UnsupportedMessageType
+        vm.expectRevert(LayerZeroAdapter.UnsupportedMessageType.selector);
+
+        // Call the test helper's lzReceiveTest function with the invalid payload
+        testHelperA.lzReceiveTest(
+            origin,
+            bytes32(uint256(1)), // requestId
+            invalidPayload,
+            address(testHelperB), // sender
+            bytes("") // extraData
+        );
     }
 }

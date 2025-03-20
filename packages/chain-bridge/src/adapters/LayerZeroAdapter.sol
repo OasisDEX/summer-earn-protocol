@@ -90,6 +90,9 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
     /// @notice Thrown when a direct adapter call is made instead of using LayerZero messaging
     error UseLayerZeroMessaging();
 
+    /// @notice Thrown when an unsupported message type is received
+    error UnsupportedMessageType();
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -164,7 +167,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
                 // STATE_READ_RESULT
                 _handleStateReadResultMessage(actualPayload);
             } else {
-                revert("Unsupported message type");
+                revert UnsupportedMessageType();
             }
         } else {
             // For backward compatibility, treat as asset transfer if no message type
