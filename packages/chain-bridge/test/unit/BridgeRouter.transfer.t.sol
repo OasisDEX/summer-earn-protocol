@@ -23,6 +23,12 @@ contract BridgeRouterTransferTest is Test {
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
 
+    // Add these constants to each test file
+    uint8 constant OPTION_TYPE_EXECUTOR = 1;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 7;
+
     function setUp() public {
         vm.startPrank(governor);
 
@@ -55,13 +61,19 @@ contract BridgeRouterTransferTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0, // Lowest cost
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Send transfer
@@ -90,13 +102,19 @@ contract BridgeRouterTransferTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Should revert with zero amount
@@ -123,13 +141,19 @@ contract BridgeRouterTransferTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Unsupported destination chain
@@ -152,13 +176,19 @@ contract BridgeRouterTransferTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Send transfer
@@ -193,13 +223,19 @@ contract BridgeRouterTransferTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Send transfer

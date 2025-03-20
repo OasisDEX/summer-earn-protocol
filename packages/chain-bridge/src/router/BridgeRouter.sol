@@ -10,6 +10,7 @@ import {IReceiveAdapter} from "../interfaces/IReceiveAdapter.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
+import {LayerZeroHelper} from "../helpers/LayerZeroHelper.sol";
 
 /**
  * @title BridgeRouter
@@ -161,14 +162,19 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         IERC20(asset).approve(adapter, 0);
         IERC20(asset).approve(adapter, amount);
 
+        // Prepare the gas limit and adapter params for the transfer
+        uint256 gasLimit = options.lzOptions.gasLimit > 0
+            ? uint256(options.lzOptions.gasLimit)
+            : uint256(LayerZeroHelper.getDefaultGasLimit(false));
+
         // Call the adapter to initiate the transfer
         transferId = IBridgeAdapter(adapter).transferAsset{value: msg.value}(
             destinationChainId,
             asset,
             recipient,
             amount,
-            options.gasLimit,
-            options.adapterParams
+            gasLimit,
+            options.lzOptions.adapterParams
         );
 
         // Update state
@@ -208,13 +214,18 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         if (adapter == address(0)) revert NoSuitableAdapter();
 
         // Call the adapter's read function
+        // Prepare the gas limit and adapter params for the read operation
+        uint256 gasLimit = options.lzOptions.gasLimit > 0
+            ? uint256(options.lzOptions.gasLimit)
+            : uint256(LayerZeroHelper.getDefaultGasLimit(true));
+
         requestId = IBridgeAdapter(adapter).readState{value: msg.value}(
             sourceChainId,
             sourceContract,
             selector,
             params,
-            options.gasLimit,
-            options.adapterParams
+            gasLimit,
+            options.lzOptions.adapterParams
         );
 
         // Store the originator of this request
@@ -260,8 +271,8 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             destinationChainId,
             asset,
             amount,
-            options.gasLimit,
-            options.adapterParams
+            options.lzOptions.gasLimit,
+            options.lzOptions.adapterParams
         );
 
         return (nativeFee, tokenFee, selectedAdapter);

@@ -25,6 +25,11 @@ contract BridgeRouterReadStateTest is Test {
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
 
+    uint8 constant OPTION_TYPE_EXECUTOR = 1;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 7;
+
     function setUp() public {
         vm.startPrank(governor);
 
@@ -55,13 +60,19 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(user);
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_READ,
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Read state
@@ -89,13 +100,19 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_READ,
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: address(mockReceiver),
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Read state
@@ -130,13 +147,19 @@ contract BridgeRouterReadStateTest is Test {
         vm.startPrank(address(mockReceiver));
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_READ,
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(mockAdapter), // Explicitly select mockAdapter
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: address(mockReceiver),
-            adapterParams: "",
-            specifiedAdapter: address(mockAdapter) // Explicitly select mockAdapter
+            lzOptions: lzOptions
         });
 
         // Read state
@@ -173,13 +196,19 @@ contract BridgeRouterReadStateTest is Test {
         mockReceiver.setReceiveSuccess(false);
 
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_READ,
+                gasLimit: 500000,
+                calldataSize: 100,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: address(mockReceiver),
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Read state

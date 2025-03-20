@@ -10,6 +10,7 @@ import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {OAppOptionsType3, EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {LayerZeroHelper} from "../helpers/LayerZeroHelper.sol";
 
 /**
  * @title LayerZeroAdapter
@@ -333,7 +334,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         uint256 amount,
         uint256 gasLimit,
         bytes calldata adapterParams
-    ) external payable returns (bytes32 transferId) {
+    ) external payable override returns (bytes32 requestId) {
         // Verify the caller is the BridgeRouter
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
@@ -341,7 +342,7 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         uint32 lzDstEid = _getLayerZeroEid(destinationChainId);
 
         // Generate a unique transfer ID
-        transferId = keccak256(
+        requestId = keccak256(
             abi.encodePacked(
                 block.chainid,
                 destinationChainId,
@@ -353,10 +354,10 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         );
 
         // Update transfer status to pending
-        _updateTransferStatus(transferId, BridgeTypes.TransferStatus.PENDING);
+        _updateTransferStatus(requestId, BridgeTypes.TransferStatus.PENDING);
 
         // Encode payload for LayerZero
-        bytes memory payload = abi.encode(transferId, asset, amount, recipient);
+        bytes memory payload = abi.encode(requestId, asset, amount, recipient);
 
         // Handle token transfers
         if (asset != address(0)) {
@@ -368,14 +369,13 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             }
         }
 
-        // Prepare options with gas limit for lzReceive
-        bytes memory options = abi.encodePacked(
-            uint16(1), // version
-            uint16(gasLimit) // gas limit
+        // Default options for messaging with appropriate gas limit
+        bytes memory options = LayerZeroHelper.createMessagingOptions(
+            gasLimit > 0
+                ? uint64(gasLimit)
+                : LayerZeroHelper.getDefaultGasLimit(false),
+            adapterParams
         );
-        if (adapterParams.length > 0) {
-            options = bytes.concat(options, adapterParams);
-        }
 
         // Send message through OApp's _lzSend
         _lzSend(
@@ -388,14 +388,14 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
 
         // Emit event for transfer initiation
         emit TransferInitiated(
-            transferId,
+            requestId,
             destinationChainId,
             asset,
             amount,
             recipient
         );
 
-        return transferId;
+        return requestId;
     }
 
     /// @inheritdoc IBridgeAdapter
@@ -491,12 +491,12 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         bytes calldata params,
         uint256 gasLimit,
         bytes calldata adapterParams
-    ) external payable returns (bytes32) {
+    ) external payable override returns (bytes32 requestId) {
         // Only the BridgeRouter should call this function
         if (msg.sender != bridgeRouter) revert Unauthorized();
 
         // Generate a unique request ID
-        bytes32 requestId = keccak256(
+        requestId = keccak256(
             abi.encode(
                 sourceChainId,
                 sourceContract,
@@ -522,14 +522,15 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
             )
         );
 
-        // Prepare options with gas limit for lzReceive
-        bytes memory options = abi.encodePacked(
-            uint16(1), // version
-            uint64(gasLimit) // gas limit as uint64
+        // Create lzRead options with appropriate parameters for state reading
+        bytes memory options = LayerZeroHelper.createLzReadOptions(
+            gasLimit > 0
+                ? uint64(gasLimit)
+                : LayerZeroHelper.getDefaultGasLimit(true),
+            uint64(params.length + 32), // Estimate return calldata size
+            0, // No msg.value to forward
+            adapterParams
         );
-        if (adapterParams.length > 0) {
-            options = bytes.concat(options, adapterParams);
-        }
 
         // Mark this request as pending
         _updateTransferStatus(requestId, BridgeTypes.TransferStatus.PENDING);
