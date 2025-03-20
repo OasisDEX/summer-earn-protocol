@@ -6,7 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../adapters/IBridgeAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-
+import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
@@ -20,16 +20,18 @@ contract BridgeRouter is IBridgeRouter {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Mapping of adapter addresses to their registration status
-    mapping(address => bool) public adapters;
+    mapping(address adapter => bool isRegistered) public adapters;
 
     /// @notice Mapping of transfer IDs to their current status
-    mapping(bytes32 => BridgeTypes.TransferStatus) public transferStatuses;
+    mapping(bytes32 transferId => BridgeTypes.TransferStatus status)
+        public transferStatuses;
 
     /// @notice Mapping of transfer IDs to the adapter that processed them
-    mapping(bytes32 => address) public transferToAdapter;
+    mapping(bytes32 transferId => address adapter) public transferToAdapter;
 
     /// @notice Mapping to track read request originators
-    mapping(bytes32 => address) public readRequestToOriginator;
+    mapping(bytes32 requestId => address originator)
+        public readRequestToOriginator;
 
     /// @notice Address of the admin who can manage adapters and pause the system
     address public admin;
