@@ -111,6 +111,9 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     /// @notice Thrown when a transfer fails
     error TransferFailed();
 
+    /// @notice Thrown when the receiver contract rejects the cross-chain call
+    error ReceiverRejectedCall();
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -341,7 +344,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
                         requestId
                     )
                 );
-                if (!success) revert("Receiver rejected call");
+                if (!success) revert ReceiverRejectedCall();
             }
         } catch {
             // Fallback for contracts that don't implement supportsInterface
@@ -355,7 +358,7 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
                     requestId
                 )
             );
-            if (!success) revert("Receiver rejected call");
+            if (!success) revert ReceiverRejectedCall();
         }
 
         emit ReadRequestStatusUpdated(
