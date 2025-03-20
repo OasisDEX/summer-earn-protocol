@@ -99,6 +99,15 @@ importers:
         specifier: workspace:*
         version: link:../external-dependencies
 
+  packages/chain-bridge:
+    dependencies:
+      '@summerfi/access-contracts':
+        specifier: workspace:*
+        version: link:../access-contracts
+      '@summerfi/dependencies':
+        specifier: workspace:*
+        version: link:../external-dependencies
+
   packages/constants: {}
 
   packages/core-contracts:
