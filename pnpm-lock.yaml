@@ -107,6 +107,9 @@ importers:
       '@summerfi/dependencies':
         specifier: workspace:*
         version: link:../external-dependencies
+      solidity-bytes-utils:
+        specifier: 0.8.2
+        version: 0.8.2
 
   packages/constants: {}
 
