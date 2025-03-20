@@ -4,11 +4,12 @@ pragma solidity ^0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
-import {IBridgeAdapter} from "../adapters/IBridgeAdapter.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
-import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
+import {IReceiveAdapter} from "../interfaces/IReceiveAdapter.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
+import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 
 /**
  * @title BridgeRouter
@@ -315,20 +316,107 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         // Update status
         transferStatuses[requestId] = BridgeTypes.TransferStatus.DELIVERED;
 
-        // Forward the response to the originator if it implements ICrossChainReceiver
-        // This assumes ICrossChainReceiver is defined with receiveStateRead method
+        // Check if the originator implements the ICrossChainReceiver interface
+        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
         try
-            ICrossChainReceiver(originator).receiveStateRead(
-                resultData,
-                originator,
-                // We need to get the sourceChainId from somewhere - could be stored when request is made
-                0, // placeholder for sourceChainId
-                requestId
-            )
-        {} catch {}
+            ICrossChainReceiver(originator).supportsInterface(interfaceId)
+        returns (bool supported) {
+            if (supported) {
+                // Call the receiver's receiveStateRead method
+                ICrossChainReceiver(originator).receiveStateRead(
+                    resultData,
+                    originator,
+                    0, // sourceChainId (could be added as a parameter if needed)
+                    requestId
+                );
+            } else {
+                // Fallback for contracts that don't implement supportsInterface
+                // Just attempt to call the method directly
+                (bool success, ) = originator.call(
+                    abi.encodeWithSelector(
+                        ICrossChainReceiver.receiveStateRead.selector,
+                        resultData,
+                        originator,
+                        0, // sourceChainId
+                        requestId
+                    )
+                );
+                if (!success) revert("Receiver rejected call");
+            }
+        } catch {
+            // Fallback for contracts that don't implement supportsInterface
+            // Just attempt to call the method directly
+            (bool success, ) = originator.call(
+                abi.encodeWithSelector(
+                    ICrossChainReceiver.receiveStateRead.selector,
+                    resultData,
+                    originator,
+                    0, // sourceChainId
+                    requestId
+                )
+            );
+            if (!success) revert("Receiver rejected call");
+        }
 
         emit ReadRequestStatusUpdated(
             requestId,
+            BridgeTypes.TransferStatus.DELIVERED
+        );
+    }
+
+    /// @inheritdoc IBridgeRouter
+    function deliverMessage(
+        bytes32 messageId,
+        bytes memory message,
+        address recipient
+    ) external {
+        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
+        if (transferToAdapter[messageId] != msg.sender) revert Unauthorized();
+
+        // Update status
+        transferStatuses[messageId] = BridgeTypes.TransferStatus.DELIVERED;
+
+        // Try to deliver the message to the recipient
+        bytes4 interfaceId = type(ICrossChainReceiver).interfaceId;
+        try
+            ICrossChainReceiver(recipient).supportsInterface(interfaceId)
+        returns (bool supported) {
+            if (supported) {
+                ICrossChainReceiver(recipient).receiveMessage(
+                    message,
+                    recipient,
+                    0, // sourceChainId (could be added as a parameter)
+                    messageId
+                );
+            } else {
+                // Fallback for contracts that don't implement supportsInterface
+                (bool success, ) = recipient.call(
+                    abi.encodeWithSelector(
+                        ICrossChainReceiver.receiveMessage.selector,
+                        message,
+                        recipient,
+                        0, // sourceChainId
+                        messageId
+                    )
+                );
+                if (!success) revert("Receiver rejected call");
+            }
+        } catch {
+            // Fallback for contracts that don't implement supportsInterface
+            (bool success, ) = recipient.call(
+                abi.encodeWithSelector(
+                    ICrossChainReceiver.receiveMessage.selector,
+                    message,
+                    recipient,
+                    0, // sourceChainId
+                    messageId
+                )
+            );
+            if (!success) revert("Receiver rejected call");
+        }
+
+        emit TransferStatusUpdated(
+            messageId,
             BridgeTypes.TransferStatus.DELIVERED
         );
     }

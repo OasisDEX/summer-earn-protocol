@@ -196,4 +196,18 @@ interface IBridgeRouter {
      *      approval is required to resume operations after an emergency pause.
      */
     function unpause() external;
+
+    /**
+     * @notice Deliver a message received from a source chain to its recipient
+     * @param messageId ID of the message
+     * @param message The message data
+     * @param recipient Address of the recipient
+     * @dev This function is called by bridge adapters when a message has been received
+     *      It forwards the message to the intended recipient
+     */
+    function deliverMessage(
+        bytes32 messageId,
+        bytes memory message,
+        address recipient
+    ) external;
 }

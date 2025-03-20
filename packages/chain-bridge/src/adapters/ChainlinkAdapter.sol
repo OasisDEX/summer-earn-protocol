@@ -2,9 +2,11 @@
 pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IBridgeAdapter} from "./IBridgeAdapter.sol";
+import {IBridgeAdapter} from "../interfaces/IBridgeAdapter.sol";
 import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
+import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
+import {IReceiveAdapter} from "../interfaces/IReceiveAdapter.sol";
 
 /**
  * @title ChainlinkAdapter
@@ -44,7 +46,7 @@ contract ChainlinkAdapter is IBridgeAdapter {
         revert Unimplemented();
     }
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc ISendAdapter
     function transferAsset(
         uint16,
         address,
@@ -52,11 +54,11 @@ contract ChainlinkAdapter is IBridgeAdapter {
         uint256,
         uint256,
         bytes calldata
-    ) external payable override returns (bytes32) {
+    ) external payable returns (bytes32) {
         revert Unimplemented();
     }
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc ISendAdapter
     function readState(
         uint16,
         address,
@@ -64,14 +66,58 @@ contract ChainlinkAdapter is IBridgeAdapter {
         bytes calldata,
         uint256,
         bytes calldata
-    ) external payable override returns (bytes32) {
+    ) external payable returns (bytes32) {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc ISendAdapter
+    function requestAssetTransfer(
+        address,
+        uint256,
+        address,
+        uint16,
+        bytes32,
+        bytes calldata
+    ) external payable {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IReceiveAdapter
+    function receiveAssetTransfer(
+        address,
+        uint256,
+        address,
+        uint16,
+        bytes32,
+        bytes calldata
+    ) external pure {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IReceiveAdapter
+    function receiveMessage(
+        bytes calldata,
+        address,
+        uint16,
+        bytes32
+    ) external pure {
+        revert Unimplemented();
+    }
+
+    /// @inheritdoc IReceiveAdapter
+    function receiveStateRead(
+        bytes calldata,
+        address,
+        uint16,
+        bytes32
+    ) external pure {
         revert Unimplemented();
     }
 
     /// @inheritdoc IBridgeAdapter
     function getTransferStatus(
         bytes32
-    ) external pure override returns (BridgeTypes.TransferStatus) {
+    ) external pure returns (BridgeTypes.TransferStatus) {
         revert Unimplemented();
     }
 

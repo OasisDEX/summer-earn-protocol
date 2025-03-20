@@ -3,28 +3,30 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {IBridgeAdapter} from "../../src/adapters/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
+import {MockCrossChainReceiver} from "../mocks/MockCrossChainReceiver.sol";
 import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {ICrossChainReceiver} from "../../src/interfaces/ICrossChainReceiver.sol";
+
 contract BridgeRouterReadStateTest is Test {
     BridgeRouter public router;
     MockAdapter public mockAdapter;
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
     ProtocolAccessManager public accessManager;
+    MockCrossChainReceiver public mockReceiver;
 
     address public governor = address(0x1);
-    address public admin = address(0x2);
-    address public user = address(0x3);
+    address public user = address(0x2);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
 
     function setUp() public {
-        vm.startPrank(admin);
+        vm.startPrank(governor);
 
         // Deploy contracts
         accessManager = new ProtocolAccessManager(governor);
@@ -32,6 +34,7 @@ contract BridgeRouterReadStateTest is Test {
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
         token = new ERC20Mock();
+        mockReceiver = new MockCrossChainReceiver();
 
         // Setup mock adapter
         mockAdapter.setSupportedChain(DEST_CHAIN_ID, true);
@@ -41,7 +44,6 @@ contract BridgeRouterReadStateTest is Test {
         router.registerAdapter(address(mockAdapter));
 
         // Mint tokens for testing
-        token.mint(admin, 10000e18);
         token.mint(user, 10000e18);
 
         vm.stopPrank();
@@ -83,15 +85,15 @@ contract BridgeRouterReadStateTest is Test {
     }
 
     function testDeliverReadResponse() public {
-        // First create a read request
-        vm.startPrank(user);
+        // Use mockReceiver instead of user as the originator
+        vm.startPrank(address(mockReceiver));
 
         // Create bridge options
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             feeToken: address(0),
             bridgePreference: 0,
             gasLimit: 500000,
-            refundAddress: user,
+            refundAddress: address(mockReceiver),
             adapterParams: "",
             specifiedAdapter: address(0) // Auto-select
         });
@@ -116,18 +118,66 @@ contract BridgeRouterReadStateTest is Test {
             uint256(router.transferStatuses(requestId)),
             uint256(BridgeTypes.TransferStatus.DELIVERED)
         );
+
+        // Verify that the mockReceiver received the data
+        assertEq(uint256(bytes32(mockReceiver.lastReceivedData())), 100);
+        assertEq(mockReceiver.lastSender(), address(mockReceiver));
+        assertEq(mockReceiver.lastMessageId(), requestId);
     }
 
     function testDeliverReadResponseUnauthorized() public {
-        // First create a read request
-        vm.startPrank(user);
+        // Use mockReceiver instead of user as the originator
+        vm.startPrank(address(mockReceiver));
 
         // Create bridge options
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
             feeToken: address(0),
             bridgePreference: 0,
             gasLimit: 500000,
-            refundAddress: user,
+            refundAddress: address(mockReceiver),
+            adapterParams: "",
+            specifiedAdapter: address(mockAdapter) // Explicitly select mockAdapter
+        });
+
+        // Read state
+        bytes32 requestId = router.readState(
+            DEST_CHAIN_ID,
+            address(0x123),
+            bytes4(keccak256("getBalance(address)")),
+            abi.encode(user),
+            options
+        );
+
+        vm.stopPrank();
+
+        // Should revert when non-adapter tries to deliver response
+        vm.prank(address(0x999)); // Random non-adapter address
+        vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
+        router.deliverReadResponse(requestId, abi.encode(uint256(100)));
+
+        // Register second adapter
+        vm.prank(governor);
+        router.registerAdapter(address(mockAdapter2));
+
+        // Should revert when wrong adapter tries to deliver response
+        vm.prank(address(mockAdapter2));
+        vm.expectRevert(BridgeRouter.Unauthorized.selector);
+        router.deliverReadResponse(requestId, abi.encode(uint256(100)));
+    }
+
+    function testDeliverReadResponseReceiverRejects() public {
+        // Use mockReceiver instead of user as the originator
+        vm.startPrank(address(mockReceiver));
+
+        // Configure the receiver to reject the call
+        mockReceiver.setReceiveSuccess(false);
+
+        // Create bridge options
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            feeToken: address(0),
+            bridgePreference: 0,
+            gasLimit: 500000,
+            refundAddress: address(mockReceiver),
             adapterParams: "",
             specifiedAdapter: address(0) // Auto-select
         });
@@ -143,17 +193,9 @@ contract BridgeRouterReadStateTest is Test {
 
         vm.stopPrank();
 
-        // Should revert when non-adapter tries to deliver response
-        vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
-        router.deliverReadResponse(requestId, abi.encode(uint256(100)));
-
-        // Should revert when wrong adapter tries to deliver response
-        vm.startPrank(admin);
-        router.registerAdapter(address(mockAdapter2));
-        vm.stopPrank();
-
-        vm.prank(address(mockAdapter2));
-        vm.expectRevert(BridgeRouter.Unauthorized.selector);
+        // Attempt to deliver the response, should revert with "Receiver rejected call"
+        vm.prank(address(mockAdapter));
+        vm.expectRevert("Receiver rejected call");
         router.deliverReadResponse(requestId, abi.encode(uint256(100)));
     }
 }

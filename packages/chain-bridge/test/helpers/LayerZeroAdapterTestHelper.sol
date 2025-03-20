@@ -8,9 +8,18 @@ import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
 
 /**
  * @title LayerZeroAdapterTestHelper
- * @notice Helper contract that exposes internal functions of LayerZeroAdapter for testing
+ * @notice Helper contract for testing LayerZeroAdapter
+ * @dev Exposes internal functions for testing purposes
  */
 contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
+    /**
+     * @notice Constructor for LayerZeroAdapterTestHelper
+     * @param _endpoint Address of the LayerZero endpoint
+     * @param _bridgeRouter Address of the bridge router
+     * @param _supportedChains Array of supported chain IDs
+     * @param _lzEids Array of corresponding LayerZero endpoint IDs
+     * @param _owner Address of the owner
+     */
     constructor(
         address _endpoint,
         address _bridgeRouter,
@@ -28,7 +37,27 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     {}
 
     /**
-     * @notice Exposes the internal _updateTransferStatus function for testing
+     * @notice Test function for lzReceive
+     * @param origin Origin of the message
+     * @param requestId Request ID of the message
+     * @param payload Message payload
+     * @param sender Sender of the message
+     * @param extraData Extra data of the message
+     */
+    function lzReceiveTest(
+        Origin calldata origin,
+        bytes32 requestId,
+        bytes calldata payload,
+        address sender,
+        bytes calldata extraData
+    ) external {
+        _lzReceive(origin, requestId, payload, sender, extraData);
+    }
+
+    /**
+     * @notice Exposes the internal updateTransferStatus function for testing
+     * @param transferId ID of the transfer
+     * @param status New status
      */
     function updateTransferStatus(
         bytes32 transferId,
@@ -38,73 +67,13 @@ contract LayerZeroAdapterTestHelper is LayerZeroAdapter {
     }
 
     /**
-     * @notice Exposes the internal _getLayerZeroEid function for testing
-     */
-    function getLayerZeroEid(uint16 chainId) external view returns (uint32) {
-        return _getLayerZeroEid(chainId);
-    }
-
-    /**
-     * @notice Alias for backwards compatibility with tests
-     * @dev To maintain compatibility with existing tests that expect _getLayerZeroChainId
+     * @notice Exposes the internal getLayerZeroChainId function for testing
+     * @param chainId Chain ID
+     * @return LayerZero EID
      */
     function getLayerZeroChainId(
         uint16 chainId
     ) external view returns (uint32) {
         return _getLayerZeroEid(chainId);
-    }
-
-    /**
-     * @notice Implements a test version of lzReceive functionality
-     */
-    function lzReceiveTest(
-        uint32 srcEid,
-        bytes memory srcAddress,
-        bytes memory payload
-    ) external {
-        // Convert LayerZero EID to our chain ID format
-        uint16 srcChainId = lzEidToChain[srcEid];
-        require(srcChainId != 0, "UnsupportedChain");
-
-        // Decode the payload to extract transfer information
-        (
-            bytes32 transferId,
-            address asset,
-            uint256 amount,
-            address recipient
-        ) = abi.decode(payload, (bytes32, address, uint256, address));
-
-        // Store message hash to transfer ID mapping
-        bytes32 guid = keccak256(
-            abi.encodePacked(srcEid, srcAddress, block.timestamp)
-        );
-        lzMessageToTransferId[guid] = transferId;
-
-        try
-            IBridgeRouter(bridgeRouter).receiveAsset(
-                transferId,
-                asset,
-                recipient,
-                amount
-            )
-        {
-            // Update transfer status to completed
-            _updateTransferStatus(
-                transferId,
-                BridgeTypes.TransferStatus.COMPLETED
-            );
-
-            // Emit event for successful transfer receipt
-            emit TransferReceived(transferId, asset, amount, recipient);
-        } catch (bytes memory reason) {
-            // Update transfer status to failed
-            _updateTransferStatus(
-                transferId,
-                BridgeTypes.TransferStatus.FAILED
-            );
-
-            // Emit event for failed relay
-            emit RelayFailed(transferId, reason);
-        }
     }
 }
