@@ -16,21 +16,21 @@ contract MockEndpointV2 {
     ) external {}
 
     function quote(
-        uint32 _dstEid,
-        bytes calldata _message,
-        bytes calldata _options,
-        bool _payInLzToken
-    ) external view returns (MessagingFee memory) {
+        uint32,
+        bytes calldata,
+        bytes calldata,
+        bool
+    ) external pure returns (MessagingFee memory) {
         // Return a mock fee for testing
         return MessagingFee(0.01 ether, 0);
     }
 
     function send(
-        uint32 _dstEid,
+        uint32,
         bytes calldata _message,
-        bytes calldata _options,
-        MessagingFee calldata _fee,
-        address payable _refundAddress
+        bytes calldata,
+        MessagingFee calldata,
+        address payable
     ) external payable returns (bytes32) {
         // Return a mock receipt
         return bytes32(keccak256(abi.encodePacked(_message)));

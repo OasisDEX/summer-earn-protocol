@@ -60,7 +60,7 @@ contract LayerZeroAdapterTest is Test {
                         CONSTRUCTOR TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testConstructor() public {
+    function testConstructor() public view {
         // Check that state variables are correctly initialized
         assertEq(address(adapter.endpoint()), address(endpoint));
         assertEq(adapter.bridgeRouter(), bridgeRouter);
@@ -123,7 +123,7 @@ contract LayerZeroAdapterTest is Test {
         bytes memory adapterParams = "";
 
         // Call the function (actual implementation would need to be tested)
-        bytes32 transferId = adapter.transferAsset(
+        /*bytes32 transferId = */ adapter.transferAsset(
             CHAIN_ID_OPTIMISM,
             address(token),
             recipient,
@@ -161,7 +161,7 @@ contract LayerZeroAdapterTest is Test {
         vm.stopPrank();
     }
 
-    function testEstimateFee() public {
+    function testEstimateFee() public view {
         uint256 amount = 100 ether;
         uint256 gasLimit = 200000;
         bytes memory adapterParams = "";
@@ -196,7 +196,7 @@ contract LayerZeroAdapterTest is Test {
         assertEq(uint256(status), uint256(BridgeTypes.TransferStatus.PENDING));
     }
 
-    function testGetSupportedChains() public {
+    function testGetSupportedChains() public view {
         uint16[] memory supportedChains = adapter.getSupportedChains();
 
         // In a real test, we would verify the array contains all expected chains
@@ -206,7 +206,7 @@ contract LayerZeroAdapterTest is Test {
         assertEq(supportedChains[2], CHAIN_ID_ARBITRUM);
     }
 
-    function testGetSupportedAssets() public {
+    function testGetSupportedAssets() public view {
         address[] memory supportedAssets = adapter.getSupportedAssets(
             CHAIN_ID_OPTIMISM
         );

@@ -26,5 +26,6 @@ library BridgeTypes {
         uint256 gasLimit; // Gas limit for execution on destination
         address refundAddress; // Address to refund excess fees
         bytes adapterParams; // Bridge-specific parameters
+        address specifiedAdapter; // Explicitly specified adapter (or address(0) for auto-selection)
     }
 }

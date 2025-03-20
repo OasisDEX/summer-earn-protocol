@@ -123,15 +123,15 @@ contract LayerZeroAdapter is IBridgeAdapter, OApp, OAppOptionsType3 {
      * @param _origin Source chain information
      * @param _guid Global unique identifier for tracking the packet
      * @param _payload Message payload
-     * @param _executor Address of the executor
-     * @param _extraData Additional data provided by the executor
+     * @param // _executor Address of the executor
+     * @param // _extraData Additional data provided by the executor
      */
     function _lzReceive(
         Origin calldata _origin,
         bytes32 _guid,
         bytes calldata _payload,
-        address _executor,
-        bytes calldata _extraData
+        address,
+        bytes calldata
     ) internal override {
         // Convert LayerZero EID to our chain ID format
         uint16 srcChainId = lzEidToChain[_origin.srcEid];
@@ -344,11 +344,11 @@ contract LayerZeroAdapter is IBridgeAdapter, OApp, OAppOptionsType3 {
         address sourceContract,
         bytes4 selector,
         bytes calldata params,
-        uint256 gasLimit,
-        bytes calldata adapterParams
+        uint256,
+        bytes calldata
     ) external payable override returns (bytes32) {
         // Generate a unique request ID
-        bytes32 requestId = keccak256(
+        /*bytes32 requestId = */ keccak256(
             abi.encode(
                 sourceChainId,
                 sourceContract,
