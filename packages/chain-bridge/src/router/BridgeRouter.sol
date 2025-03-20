@@ -7,6 +7,8 @@ import {IBridgeRouter} from "../interfaces/IBridgeRouter.sol";
 import {IBridgeAdapter} from "../adapters/IBridgeAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
@@ -14,16 +16,14 @@ import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
  */
 contract BridgeRouter is IBridgeRouter {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Mapping of adapter addresses to their registration status
-    mapping(address adapter => bool isRegistered) public adapters;
-
-    /// @notice Array to keep track of all registered adapters
-    address[] private registeredAdapters;
+    /// @notice Set of registered adapters
+    EnumerableSet.AddressSet private adapters;
 
     /// @notice Mapping of transfer IDs to their current status
     mapping(bytes32 transferId => BridgeTypes.TransferStatus status)
@@ -148,7 +148,7 @@ contract BridgeRouter is IBridgeRouter {
                 amount,
                 options.bridgePreference
             );
-        } else if (!adapters[adapter]) {
+        } else if (!adapters.contains(adapter)) {
             revert UnknownAdapter();
         }
 
@@ -276,7 +276,7 @@ contract BridgeRouter is IBridgeRouter {
         bytes32 transferId,
         BridgeTypes.TransferStatus status
     ) external {
-        if (!adapters[msg.sender]) revert UnknownAdapter();
+        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
         if (transferToAdapter[transferId] != msg.sender) revert Unauthorized();
 
         transferStatuses[transferId] = status;
@@ -290,7 +290,7 @@ contract BridgeRouter is IBridgeRouter {
         address recipient,
         uint256 amount
     ) external {
-        if (!adapters[msg.sender]) revert UnknownAdapter();
+        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
         if (transferToAdapter[transferId] != msg.sender) revert Unauthorized();
 
         // Update transfer status
@@ -310,7 +310,7 @@ contract BridgeRouter is IBridgeRouter {
         bytes32 requestId,
         bytes calldata resultData
     ) external {
-        if (!adapters[msg.sender]) revert UnknownAdapter();
+        if (!adapters.contains(msg.sender)) revert UnknownAdapter();
         if (transferToAdapter[requestId] != msg.sender) revert Unauthorized();
 
         address originator = readRequestToOriginator[requestId];
@@ -348,18 +348,16 @@ contract BridgeRouter is IBridgeRouter {
         uint256 amount,
         uint8 bridgePreference
     ) public view returns (address bestAdapter) {
-        if (registeredAdapters.length == 0) return address(0);
+        if (adapters.length() == 0) return address(0);
 
         uint256 lowestFee = type(uint256).max;
 
         // Limit iteration to the first MAX_ADAPTER_ITERATIONS adapters
-        uint256 maxIterations = registeredAdapters.length > 10
-            ? 10
-            : registeredAdapters.length;
+        uint256 maxIterations = adapters.length() > 10 ? 10 : adapters.length();
 
         // Iterate through adapters up to the limit
         for (uint256 i = 0; i < maxIterations; i++) {
-            address adapter = registeredAdapters[i];
+            address adapter = adapters.at(i);
 
             // Single function call to check if adapter supports this chain
             if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
@@ -406,29 +404,12 @@ contract BridgeRouter is IBridgeRouter {
 
     /// @inheritdoc IBridgeRouter
     function getAdapters() public view returns (address[] memory) {
-        // Only return active adapters
-        uint256 activeCount = 0;
-        for (uint256 i = 0; i < registeredAdapters.length; i++) {
-            if (adapters[registeredAdapters[i]]) {
-                activeCount++;
-            }
-        }
-
-        address[] memory activeAdapters = new address[](activeCount);
-        uint256 index = 0;
-        for (uint256 i = 0; i < registeredAdapters.length; i++) {
-            if (adapters[registeredAdapters[i]]) {
-                activeAdapters[index] = registeredAdapters[i];
-                index++;
-            }
-        }
-
-        return activeAdapters;
+        return adapters.values();
     }
 
     /// @inheritdoc IBridgeRouter
     function isValidAdapter(address adapter) external view returns (bool) {
-        return adapters[adapter];
+        return adapters.contains(adapter);
     }
 
     /// @inheritdoc IBridgeRouter
@@ -445,32 +426,18 @@ contract BridgeRouter is IBridgeRouter {
     /// @inheritdoc IBridgeRouter
     function registerAdapter(address adapter) external {
         if (msg.sender != admin) revert Unauthorized();
-        if (adapters[adapter]) revert AdapterAlreadyRegistered();
+        if (adapters.contains(adapter)) revert AdapterAlreadyRegistered();
 
-        adapters[adapter] = true;
-        registeredAdapters.push(adapter);
+        adapters.add(adapter);
         emit AdapterRegistered(adapter);
     }
 
     /// @inheritdoc IBridgeRouter
     function removeAdapter(address adapter) external {
         if (msg.sender != admin) revert Unauthorized();
-        if (!adapters[adapter]) revert UnknownAdapter();
+        if (!adapters.contains(adapter)) revert UnknownAdapter();
 
-        adapters[adapter] = false;
-
-        // Remove from the registeredAdapters array
-        for (uint256 i = 0; i < registeredAdapters.length; i++) {
-            if (registeredAdapters[i] == adapter) {
-                // Replace with the last element and pop
-                registeredAdapters[i] = registeredAdapters[
-                    registeredAdapters.length - 1
-                ];
-                registeredAdapters.pop();
-                break;
-            }
-        }
-
+        adapters.remove(adapter);
         emit AdapterRemoved(adapter);
     }
 

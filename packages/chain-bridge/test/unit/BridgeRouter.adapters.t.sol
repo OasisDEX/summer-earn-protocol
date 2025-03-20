@@ -50,9 +50,9 @@ contract BridgeRouterAdapterTest is Test {
         vm.startPrank(admin);
 
         // Register second adapter
-        assertFalse(router.adapters(address(mockAdapter2)));
+        assertFalse(router.isValidAdapter(address(mockAdapter2)));
         router.registerAdapter(address(mockAdapter2));
-        assertTrue(router.adapters(address(mockAdapter2)));
+        assertTrue(router.isValidAdapter(address(mockAdapter2)));
 
         vm.stopPrank();
     }
@@ -81,9 +81,9 @@ contract BridgeRouterAdapterTest is Test {
         vm.startPrank(admin);
 
         // Remove adapter
-        assertTrue(router.adapters(address(mockAdapter)));
+        assertTrue(router.isValidAdapter(address(mockAdapter)));
         router.removeAdapter(address(mockAdapter));
-        assertFalse(router.adapters(address(mockAdapter)));
+        assertFalse(router.isValidAdapter(address(mockAdapter)));
 
         vm.stopPrank();
     }
