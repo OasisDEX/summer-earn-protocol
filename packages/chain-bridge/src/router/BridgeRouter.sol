@@ -326,12 +326,16 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         returns (bool supported) {
             if (supported) {
                 // Call the receiver's receiveStateRead method
-                ICrossChainReceiver(originator).receiveStateRead(
-                    resultData,
-                    originator,
-                    0, // sourceChainId (could be added as a parameter if needed)
-                    requestId
-                );
+                try
+                    ICrossChainReceiver(originator).receiveStateRead(
+                        resultData,
+                        originator,
+                        0, // sourceChainId (could be added as a parameter if needed)
+                        requestId
+                    )
+                {} catch {
+                    revert ReceiverRejectedCall();
+                }
             } else {
                 // Fallback for contracts that don't implement supportsInterface
                 // Just attempt to call the method directly
@@ -438,27 +442,22 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
         if (adapters.length() == 0) return address(0);
 
         uint256 lowestFee = type(uint256).max;
-
-        // Limit iteration to the first MAX_ADAPTER_ITERATIONS adapters
         uint256 maxIterations = adapters.length() > 10 ? 10 : adapters.length();
 
-        // Iterate through adapters up to the limit
         for (uint256 i = 0; i < maxIterations; i++) {
             address adapter = adapters.at(i);
 
-            // Single function call to check if adapter supports this chain
-            if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
-
-            // For transfers, check if adapter supports this asset with a single call
-            if (asset != address(0) && amount > 0) {
-                if (!IBridgeAdapter(adapter).supportsAsset(chainId, asset))
-                    continue;
-            }
-
-            // Apply bridge preference if specified
-            if (bridgePreference != 0) {
-                uint8 adapterType = IBridgeAdapter(adapter).getAdapterType();
-                if (adapterType != bridgePreference) continue;
+            // Skip adapters that don't match our criteria
+            if (
+                !_isAdapterCompatible(
+                    adapter,
+                    chainId,
+                    asset,
+                    amount,
+                    bridgePreference
+                )
+            ) {
+                continue;
             }
 
             // For read requests, just return the first valid adapter
@@ -467,26 +466,114 @@ contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
             }
 
             // For transfers, compare fees
-            try
-                IBridgeAdapter(adapter).estimateFee(
-                    chainId,
-                    asset,
-                    amount,
-                    500000, // Default gas limit
-                    "" // No adapter params
-                )
-            returns (uint256 nativeFee, uint256) {
-                if (nativeFee < lowestFee) {
-                    lowestFee = nativeFee;
-                    bestAdapter = adapter;
-                }
-            } catch {
-                // Skip adapters that revert
-                continue;
+            address candidate = _getAdapterWithBetterFee(
+                adapter,
+                chainId,
+                asset,
+                amount,
+                lowestFee
+            );
+            if (candidate != address(0)) {
+                bestAdapter = candidate;
+                lowestFee = _getAdapterFee(adapter, chainId, asset, amount);
             }
         }
 
         return bestAdapter;
+    }
+
+    /**
+     * @notice Checks if an adapter is compatible with the given parameters
+     * @param adapter The adapter to check
+     * @param chainId The destination chain ID
+     * @param asset The asset to transfer (address(0) for read requests)
+     * @param amount The amount to transfer (0 for read requests)
+     * @param bridgePreference The preferred bridge type (0 for no preference)
+     * @return True if the adapter is compatible, false otherwise
+     */
+    function _isAdapterCompatible(
+        address adapter,
+        uint16 chainId,
+        address asset,
+        uint256 amount,
+        uint8 bridgePreference
+    ) private view returns (bool) {
+        // Check if adapter supports this chain
+        if (!IBridgeAdapter(adapter).supportsChain(chainId)) {
+            return false;
+        }
+
+        // For transfers, check if adapter supports this asset
+        if (asset != address(0) && amount > 0) {
+            if (!IBridgeAdapter(adapter).supportsAsset(chainId, asset)) {
+                return false;
+            }
+        }
+
+        // Apply bridge preference if specified
+        if (bridgePreference != 0) {
+            uint8 adapterType = IBridgeAdapter(adapter).getAdapterType();
+            if (adapterType != bridgePreference) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @notice Returns the adapter if it has a better fee than the current best
+     * @param adapter The adapter to check
+     * @param chainId The destination chain ID
+     * @param asset The asset to transfer
+     * @param amount The amount to transfer
+     * @param currentLowestFee The current lowest fee
+     * @return The adapter if it has a better fee, address(0) otherwise
+     */
+    function _getAdapterWithBetterFee(
+        address adapter,
+        uint16 chainId,
+        address asset,
+        uint256 amount,
+        uint256 currentLowestFee
+    ) private view returns (address) {
+        uint256 fee = _getAdapterFee(adapter, chainId, asset, amount);
+
+        if (fee < currentLowestFee) {
+            return adapter;
+        }
+
+        return address(0);
+    }
+
+    /**
+     * @notice Gets the fee for using an adapter
+     * @param adapter The adapter to check
+     * @param chainId The destination chain ID
+     * @param asset The asset to transfer
+     * @param amount The amount to transfer
+     * @return The fee (or type(uint256).max if estimation fails)
+     */
+    function _getAdapterFee(
+        address adapter,
+        uint16 chainId,
+        address asset,
+        uint256 amount
+    ) private view returns (uint256) {
+        try
+            IBridgeAdapter(adapter).estimateFee(
+                chainId,
+                asset,
+                amount,
+                500000, // Default gas limit
+                "" // No adapter params
+            )
+        returns (uint256 nativeFee, uint256) {
+            return nativeFee;
+        } catch {
+            // Return max value if estimation fails
+            return type(uint256).max;
+        }
     }
 
     /// @inheritdoc IBridgeRouter
