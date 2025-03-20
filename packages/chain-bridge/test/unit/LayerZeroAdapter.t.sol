@@ -13,6 +13,12 @@ import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/Protoc
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppReceiver.sol";
 
 contract LayerZeroAdapterTest is TestHelperOz5 {
+    // LayerZero option type constants
+    uint8 constant OPTION_TYPE_EXECUTOR = 1;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 7;
+
     // LayerZero endpoint IDs for TestHelperOz5
     uint32 public aEid = 1;
     uint32 public bEid = 2;

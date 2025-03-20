@@ -18,14 +18,22 @@ library BridgeTypes {
     }
 
     /**
-     * @notice Options for a bridge transfer
+     * @notice Options structure for LayerZero operations
+     */
+    struct LayerZeroOptions {
+        uint8 optionType; // Type of LayerZero option (standard, read, etc.)
+        uint64 gasLimit; // Gas limit for execution
+        uint64 calldataSize; // Size of expected return calldata (for lzRead)
+        uint128 msgValue; // Native value to forward (for lzRead with msgValue)
+        bytes adapterParams; // Additional adapter-specific parameters
+    }
+
+    /**
+     * @notice Bridge options structure
      */
     struct BridgeOptions {
-        address feeToken; // Token to pay fees with (address(0) for native)
-        uint8 bridgePreference; // 0: lowest cost, 1: fastest, 2: most secure
-        uint256 gasLimit; // Gas limit for execution on destination
-        address refundAddress; // Address to refund excess fees
-        bytes adapterParams; // Bridge-specific parameters
-        address specifiedAdapter; // Explicitly specified adapter (or address(0) for auto-selection)
+        address specifiedAdapter;
+        uint8 bridgePreference;
+        LayerZeroOptions lzOptions;
     }
 }

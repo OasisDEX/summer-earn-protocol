@@ -24,6 +24,11 @@ contract BridgeRouterAdapterTest is Test {
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
     bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
+    uint8 constant OPTION_TYPE_EXECUTOR = 1;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE = 2;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_RECEIVE_NATIVE = 3;
+    uint8 constant OPTION_TYPE_EXECUTOR_LZ_READ = 7;
+
     function setUp() public {
         // Deploy access manager and set up roles
         accessManager = new ProtocolAccessManager(governor);
@@ -174,13 +179,19 @@ contract BridgeRouterAdapterTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options with specified adapter
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(mockAdapter2),
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(mockAdapter2)
+            lzOptions: lzOptions
         });
 
         // Send transfer with specified adapter
@@ -205,13 +216,19 @@ contract BridgeRouterAdapterTest is Test {
         token.approve(address(router), TRANSFER_AMOUNT);
 
         // Create bridge options with invalid adapter
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0x123), // Unregistered adapter
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0x123) // Unregistered adapter
+            lzOptions: lzOptions
         });
 
         // Should revert when using unregistered adapter
@@ -268,13 +285,19 @@ contract BridgeRouterAdapterTest is Test {
 
     function testQuote() public view {
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Get quote
@@ -292,13 +315,19 @@ contract BridgeRouterAdapterTest is Test {
 
     function testQuoteNoSuitableAdapter() public {
         // Create bridge options
+        BridgeTypes.LayerZeroOptions memory lzOptions = BridgeTypes
+            .LayerZeroOptions({
+                optionType: OPTION_TYPE_EXECUTOR_LZ_RECEIVE,
+                gasLimit: 500000,
+                calldataSize: 0,
+                msgValue: 0,
+                adapterParams: ""
+            });
+
         BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
-            feeToken: address(0),
+            specifiedAdapter: address(0), // Auto-select
             bridgePreference: 0,
-            gasLimit: 500000,
-            refundAddress: user,
-            adapterParams: "",
-            specifiedAdapter: address(0) // Auto-select
+            lzOptions: lzOptions
         });
 
         // Should revert for unsupported chain
