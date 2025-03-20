@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.28;
 
-import {IBridgeAdapter} from "../../src/adapters/IBridgeAdapter.sol";
-import {IBridgeRouter} from "../../src/interfaces/IBridgeRouter.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
+import {IReceiveAdapter} from "../../src/interfaces/IReceiveAdapter.sol";
+import {ISendAdapter} from "../../src/interfaces/ISendAdapter.sol";
 
 contract MockAdapter is IBridgeAdapter {
     address public bridgeRouter;
@@ -17,6 +18,18 @@ contract MockAdapter is IBridgeAdapter {
 
     // Add mapping to track transfer statuses
     mapping(bytes32 => BridgeTypes.TransferStatus) public transferStatuses;
+
+    // Storage for received data
+    bytes public lastReceivedResponse;
+    address public lastReceivedSender;
+    uint16 public lastReceivedChainId;
+    bytes32 public lastReceivedRequestId;
+
+    // Additional storage for tracking new interface method calls
+    address public lastReceivedAsset;
+    uint256 public lastReceivedAmount;
+    address public lastReceivedRecipient;
+    bytes public lastReceivedExtraData;
 
     constructor(address _bridgeRouter) {
         bridgeRouter = _bridgeRouter;
@@ -40,7 +53,7 @@ contract MockAdapter is IBridgeAdapter {
         supportedAssets[chainId][asset] = supported;
     }
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc ISendAdapter
     function transferAsset(
         uint16 destinationChainId,
         address asset,
@@ -48,7 +61,7 @@ contract MockAdapter is IBridgeAdapter {
         uint256 amount,
         uint256,
         bytes calldata
-    ) external payable override returns (bytes32) {
+    ) external payable returns (bytes32) {
         // Generate a deterministic transfer ID for testing purposes
         bytes32 transferId = keccak256(
             abi.encode(
@@ -67,7 +80,7 @@ contract MockAdapter is IBridgeAdapter {
         return transferId;
     }
 
-    /// @inheritdoc IBridgeAdapter
+    /// @inheritdoc ISendAdapter
     function readState(
         uint16 sourceChainId,
         address sourceContract,
@@ -75,12 +88,82 @@ contract MockAdapter is IBridgeAdapter {
         bytes calldata params,
         uint256,
         bytes calldata
-    ) external payable override returns (bytes32) {
+    ) external payable returns (bytes32) {
         // Simple mock implementation
         return
             keccak256(
                 abi.encode(sourceChainId, sourceContract, selector, params)
             );
+    }
+
+    /// @inheritdoc ISendAdapter
+    function requestAssetTransfer(
+        address asset,
+        uint256 amount,
+        address sender,
+        uint16 sourceChainId,
+        bytes32 transferId,
+        bytes calldata extraData
+    ) external payable override {
+        // Store the parameters for verification in tests
+        lastReceivedAsset = asset;
+        lastReceivedAmount = amount;
+        lastReceivedSender = sender;
+        lastReceivedChainId = sourceChainId;
+        lastReceivedRequestId = transferId;
+        lastReceivedExtraData = extraData;
+
+        // Mark transfer as pending
+        transferStatuses[transferId] = BridgeTypes.TransferStatus.PENDING;
+    }
+
+    /// @inheritdoc IReceiveAdapter
+    function receiveAssetTransfer(
+        address asset,
+        uint256 amount,
+        address recipient,
+        uint16 sourceChainId,
+        bytes32 transferId,
+        bytes calldata extraData
+    ) external override {
+        // Store the parameters for verification in tests
+        lastReceivedAsset = asset;
+        lastReceivedAmount = amount;
+        lastReceivedRecipient = recipient;
+        lastReceivedChainId = sourceChainId;
+        lastReceivedRequestId = transferId;
+        lastReceivedExtraData = extraData;
+
+        // Mark transfer as completed
+        transferStatuses[transferId] = BridgeTypes.TransferStatus.COMPLETED;
+    }
+
+    /// @inheritdoc IReceiveAdapter
+    function receiveMessage(
+        bytes calldata message,
+        address recipient,
+        uint16 sourceChainId,
+        bytes32 messageId
+    ) external override {
+        // Store the received data for validation in tests
+        lastReceivedResponse = message;
+        lastReceivedRecipient = recipient;
+        lastReceivedChainId = sourceChainId;
+        lastReceivedRequestId = messageId;
+    }
+
+    /// @inheritdoc IReceiveAdapter
+    function receiveStateRead(
+        bytes calldata resultData,
+        address requestor,
+        uint16 sourceChainId,
+        bytes32 requestId
+    ) external override {
+        // Store the received data for validation in tests
+        lastReceivedResponse = resultData;
+        lastReceivedSender = requestor;
+        lastReceivedChainId = sourceChainId;
+        lastReceivedRequestId = requestId;
     }
 
     /// @inheritdoc IBridgeAdapter

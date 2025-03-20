@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {BridgeRouter} from "../../src/router/BridgeRouter.sol";
-import {IBridgeAdapter} from "../../src/adapters/IBridgeAdapter.sol";
+import {IBridgeAdapter} from "../../src/interfaces/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
@@ -17,7 +17,6 @@ contract BridgeRouterTransferTest is Test {
     ProtocolAccessManager public accessManager;
 
     address public governor = address(0x1);
-    address public admin = address(0x2);
     address public user = address(0x3);
 
     // Constants for testing
@@ -25,7 +24,7 @@ contract BridgeRouterTransferTest is Test {
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
 
     function setUp() public {
-        vm.startPrank(admin);
+        vm.startPrank(governor);
 
         // Deploy contracts
         accessManager = new ProtocolAccessManager(governor);
@@ -42,7 +41,6 @@ contract BridgeRouterTransferTest is Test {
         router.registerAdapter(address(mockAdapter));
 
         // Mint tokens for testing
-        token.mint(admin, 10000e18);
         token.mint(user, 10000e18);
 
         vm.stopPrank();
