@@ -147,31 +147,27 @@ contract LayerZeroAdapter is Ownable, OApp, OAppOptionsType3, IBridgeAdapter {
         uint16 srcChainId = lzEidToChain[_origin.srcEid];
         if (srcChainId == 0) revert UnsupportedChain();
 
-        // First two bytes of payload indicate message type
-        uint16 messageType;
+        // Require payload to be at least 2 bytes for message type
+        if (_payload.length < 2) revert InvalidParams();
 
-        if (_payload.length >= 2) {
-            messageType = uint16(bytes2(_payload[:2]));
-            bytes calldata actualPayload = _payload[2:];
+        // Extract message type from first two bytes
+        uint16 messageType = uint16(bytes2(_payload[:2]));
+        bytes calldata actualPayload = _payload[2:];
 
-            if (messageType == 1) {
-                // ASSET_TRANSFER
-                _handleAssetTransferMessage(_guid, actualPayload);
-            } else if (messageType == 2) {
-                // STATE_READ
-                _handleStateReadMessage(srcChainId, actualPayload);
-            } else if (messageType == 3) {
-                // GENERAL_MESSAGE
-                _handleGeneralMessage(actualPayload);
-            } else if (messageType == 4) {
-                // STATE_READ_RESULT
-                _handleStateReadResultMessage(actualPayload);
-            } else {
-                revert UnsupportedMessageType();
-            }
+        if (messageType == 1) {
+            // ASSET_TRANSFER
+            _handleAssetTransferMessage(_guid, actualPayload);
+        } else if (messageType == 2) {
+            // STATE_READ
+            _handleStateReadMessage(srcChainId, actualPayload);
+        } else if (messageType == 3) {
+            // GENERAL_MESSAGE
+            _handleGeneralMessage(actualPayload);
+        } else if (messageType == 4) {
+            // STATE_READ_RESULT
+            _handleStateReadResultMessage(actualPayload);
         } else {
-            // For backward compatibility, treat as asset transfer if no message type
-            _handleAssetTransferMessage(_guid, _payload);
+            revert UnsupportedMessageType();
         }
     }
 
