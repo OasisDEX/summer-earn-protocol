@@ -193,9 +193,9 @@ contract BridgeRouterReadStateTest is Test {
 
         vm.stopPrank();
 
-        // Attempt to deliver the response, should revert with "Receiver rejected call"
+        // Attempt to deliver the response, should revert with ReceiverRejectedCall
         vm.prank(address(mockAdapter));
-        vm.expectRevert("Receiver rejected call");
+        vm.expectRevert(BridgeRouter.ReceiverRejectedCall.selector);
         router.deliverReadResponse(requestId, abi.encode(uint256(100)));
     }
 }
