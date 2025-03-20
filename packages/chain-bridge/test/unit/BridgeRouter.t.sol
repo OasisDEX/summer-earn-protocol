@@ -137,7 +137,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0, // Lowest cost
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Send transfer
@@ -175,7 +176,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Should revert when router is paused
@@ -203,7 +205,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Should revert with zero amount
@@ -235,7 +238,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Unsupported destination chain
@@ -262,7 +266,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Read state
@@ -295,7 +300,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Read state
@@ -330,7 +336,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Read state
@@ -392,7 +399,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Get quote
@@ -412,7 +420,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Should revert for unsupported chain
@@ -485,7 +494,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Send transfer
@@ -525,7 +535,8 @@ contract BridgeRouterTest is Test {
             bridgePreference: 0,
             gasLimit: 500000,
             refundAddress: user,
-            adapterParams: ""
+            adapterParams: "",
+            specifiedAdapter: address(0) // Auto-select
         });
 
         // Send transfer
@@ -545,5 +556,107 @@ contract BridgeRouterTest is Test {
         );
 
         vm.stopPrank();
+    }
+
+    function testSpecifiedAdapter() public {
+        vm.startPrank(admin);
+        // Register second adapter
+        router.registerAdapter(address(mockAdapter2));
+        vm.stopPrank();
+
+        vm.startPrank(user);
+
+        // Approve tokens
+        token.approve(address(router), TRANSFER_AMOUNT);
+
+        // Create bridge options with specified adapter
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            feeToken: address(0),
+            bridgePreference: 0,
+            gasLimit: 500000,
+            refundAddress: user,
+            adapterParams: "",
+            specifiedAdapter: address(mockAdapter2)
+        });
+
+        // Send transfer with specified adapter
+        bytes32 transferId = router.transferAssets(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            user,
+            options
+        );
+
+        // Verify the specified adapter was used
+        assertEq(router.transferToAdapter(transferId), address(mockAdapter2));
+
+        vm.stopPrank();
+    }
+
+    function testInvalidSpecifiedAdapter() public {
+        vm.startPrank(user);
+
+        // Approve tokens
+        token.approve(address(router), TRANSFER_AMOUNT);
+
+        // Create bridge options with invalid adapter
+        BridgeTypes.BridgeOptions memory options = BridgeTypes.BridgeOptions({
+            feeToken: address(0),
+            bridgePreference: 0,
+            gasLimit: 500000,
+            refundAddress: user,
+            adapterParams: "",
+            specifiedAdapter: address(0x123) // Unregistered adapter
+        });
+
+        // Should revert when using unregistered adapter
+        vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
+        router.transferAssets(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            user,
+            options
+        );
+
+        vm.stopPrank();
+    }
+
+    function testAdapterSelectionLimits() public {
+        // Register many adapters (more than the limit)
+        vm.startPrank(admin);
+
+        // Setup second adapter
+        mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
+        mockAdapter2.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
+        mockAdapter2.setFeeMultiplier(50); // 50% cheaper than the first adapter
+        router.registerAdapter(address(mockAdapter2));
+
+        // Register 10 more expensive adapters
+        MockAdapter[] memory expensiveAdapters = new MockAdapter[](10);
+        for (uint i = 0; i < 10; i++) {
+            expensiveAdapters[i] = new MockAdapter(address(router));
+            expensiveAdapters[i].setSupportedChain(DEST_CHAIN_ID, true);
+            expensiveAdapters[i].setSupportedAsset(
+                DEST_CHAIN_ID,
+                address(token),
+                true
+            );
+            expensiveAdapters[i].setFeeMultiplier(200 + i); // More expensive
+            router.registerAdapter(address(expensiveAdapters[i]));
+        }
+        vm.stopPrank();
+
+        // Get best adapter - even with iteration limits, should still find mockAdapter2
+        address bestAdapter = router.getBestAdapter(
+            DEST_CHAIN_ID,
+            address(token),
+            TRANSFER_AMOUNT,
+            0 // Lowest cost preference
+        );
+
+        // Should select the cheaper adapter (mockAdapter2)
+        assertEq(bestAdapter, address(mockAdapter2));
     }
 }
