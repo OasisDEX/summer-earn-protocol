@@ -46,8 +46,8 @@ contract MockAdapter is IBridgeAdapter {
         address asset,
         address recipient,
         uint256 amount,
-        uint256 gasLimit,
-        bytes calldata adapterParams
+        uint256,
+        bytes calldata
     ) external payable override returns (bytes32) {
         // Generate a deterministic transfer ID for testing purposes
         bytes32 transferId = keccak256(
@@ -73,8 +73,8 @@ contract MockAdapter is IBridgeAdapter {
         address sourceContract,
         bytes4 selector,
         bytes calldata params,
-        uint256 gasLimit,
-        bytes calldata adapterParams
+        uint256,
+        bytes calldata
     ) external payable override returns (bytes32) {
         // Simple mock implementation
         return
@@ -85,11 +85,11 @@ contract MockAdapter is IBridgeAdapter {
 
     /// @inheritdoc IBridgeAdapter
     function estimateFee(
-        uint16 destinationChainId,
-        address asset,
-        uint256 amount,
+        uint16,
+        address,
+        uint256,
         uint256 gasLimit,
-        bytes calldata adapterParams
+        bytes calldata
     ) external view override returns (uint256 nativeFee, uint256 tokenFee) {
         // Mock fee calculation - apply the fee multiplier
         nativeFee = (gasLimit * 2 gwei * feeMultiplier) / 100;
@@ -135,12 +135,30 @@ contract MockAdapter is IBridgeAdapter {
 
     /// @inheritdoc IBridgeAdapter
     function getSupportedAssets(
-        uint16 chainId
-    ) external view override returns (address[] memory) {
+        uint16
+    ) external pure override returns (address[] memory) {
         // This is a simplified implementation for mock purposes
         // In a real implementation, you would need to track and return all supported assets
         address[] memory assets = new address[](1);
         assets[0] = address(0x1); // Placeholder
         return assets;
+    }
+
+    function supportsChain(
+        uint16 chainId
+    ) external view override returns (bool) {
+        return supportedChains[chainId];
+    }
+
+    function supportsAsset(
+        uint16 chainId,
+        address asset
+    ) external view override returns (bool) {
+        return supportedAssets[chainId][asset];
+    }
+
+    function getAdapterType() external pure override returns (uint8) {
+        // Return a type value for mock adapter (e.g., 0 for mock)
+        return 0;
     }
 }

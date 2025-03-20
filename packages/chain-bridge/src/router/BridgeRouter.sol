@@ -22,6 +22,9 @@ contract BridgeRouter is IBridgeRouter {
     /// @notice Mapping of adapter addresses to their registration status
     mapping(address adapter => bool isRegistered) public adapters;
 
+    /// @notice Array to keep track of all registered adapters
+    address[] private registeredAdapters;
+
     /// @notice Mapping of transfer IDs to their current status
     mapping(bytes32 transferId => BridgeTypes.TransferStatus status)
         public transferStatuses;
@@ -343,56 +346,34 @@ contract BridgeRouter is IBridgeRouter {
         uint16 chainId,
         address asset,
         uint256 amount,
-        uint8 preference
+        uint8 bridgePreference
     ) public view returns (address bestAdapter) {
-        // Use this.getAdapters() to call the external function
-        address[] memory registeredAdapters = this.getAdapters();
         if (registeredAdapters.length == 0) return address(0);
 
         uint256 lowestFee = type(uint256).max;
 
         // Limit iteration to the first MAX_ADAPTER_ITERATIONS adapters
-        uint256 maxIterations = registeredAdapters.length;
-        uint256 MAX_ADAPTER_ITERATIONS = 10; // Reasonable limit to prevent excessive gas usage
-
-        if (maxIterations > MAX_ADAPTER_ITERATIONS) {
-            maxIterations = MAX_ADAPTER_ITERATIONS;
-        }
+        uint256 maxIterations = registeredAdapters.length > 10
+            ? 10
+            : registeredAdapters.length;
 
         // Iterate through adapters up to the limit
         for (uint256 i = 0; i < maxIterations; i++) {
             address adapter = registeredAdapters[i];
 
-            // Check if adapter supports this chain
-            uint16[] memory supportedChains = IBridgeAdapter(adapter)
-                .getSupportedChains();
-            bool supportsChain = false;
+            // Single function call to check if adapter supports this chain
+            if (!IBridgeAdapter(adapter).supportsChain(chainId)) continue;
 
-            for (uint256 j = 0; j < supportedChains.length && j < 20; j++) {
-                // Also limit inner loops
-                if (supportedChains[j] == chainId) {
-                    supportsChain = true;
-                    break;
-                }
+            // For transfers, check if adapter supports this asset with a single call
+            if (asset != address(0) && amount > 0) {
+                if (!IBridgeAdapter(adapter).supportsAsset(chainId, asset))
+                    continue;
             }
 
-            if (!supportsChain) continue;
-
-            // For transfers, check if adapter supports this asset
-            if (asset != address(0) && amount > 0) {
-                address[] memory supportedAssets = IBridgeAdapter(adapter)
-                    .getSupportedAssets(chainId);
-                bool supportsAsset = false;
-
-                for (uint256 j = 0; j < supportedAssets.length && j < 30; j++) {
-                    // Limit asset iteration
-                    if (supportedAssets[j] == asset) {
-                        supportsAsset = true;
-                        break;
-                    }
-                }
-
-                if (!supportsAsset) continue;
+            // Apply bridge preference if specified
+            if (bridgePreference != 0) {
+                uint8 adapterType = IBridgeAdapter(adapter).getAdapterType();
+                if (adapterType != bridgePreference) continue;
             }
 
             // For read requests, just return the first valid adapter
@@ -424,30 +405,25 @@ contract BridgeRouter is IBridgeRouter {
     }
 
     /// @inheritdoc IBridgeRouter
-    function getAdapters() public view returns (address[] memory adapterList) {
-        // Count registered adapters first
-        uint256 count = 0;
-        address[] memory allAddresses = new address[](100); // Arbitrary large number to track possible addresses
-
-        // Mock fill with adapter addresses for counting
-        uint256 index = 0;
-        for (uint256 i = 0; i < 100; i++) {
-            // Use a reasonable upper limit
-            address potentialAdapter = address(uint160(i + 1)); // Generate potential addresses
-            if (adapters[potentialAdapter]) {
-                allAddresses[index] = potentialAdapter;
-                index++;
-                count++;
+    function getAdapters() public view returns (address[] memory) {
+        // Only return active adapters
+        uint256 activeCount = 0;
+        for (uint256 i = 0; i < registeredAdapters.length; i++) {
+            if (adapters[registeredAdapters[i]]) {
+                activeCount++;
             }
         }
 
-        // Create correctly sized array with actual adapters
-        adapterList = new address[](count);
-        for (uint256 i = 0; i < count; i++) {
-            adapterList[i] = allAddresses[i];
+        address[] memory activeAdapters = new address[](activeCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < registeredAdapters.length; i++) {
+            if (adapters[registeredAdapters[i]]) {
+                activeAdapters[index] = registeredAdapters[i];
+                index++;
+            }
         }
 
-        return adapterList;
+        return activeAdapters;
     }
 
     /// @inheritdoc IBridgeRouter
@@ -472,6 +448,7 @@ contract BridgeRouter is IBridgeRouter {
         if (adapters[adapter]) revert AdapterAlreadyRegistered();
 
         adapters[adapter] = true;
+        registeredAdapters.push(adapter);
         emit AdapterRegistered(adapter);
     }
 
@@ -481,6 +458,19 @@ contract BridgeRouter is IBridgeRouter {
         if (!adapters[adapter]) revert UnknownAdapter();
 
         adapters[adapter] = false;
+
+        // Remove from the registeredAdapters array
+        for (uint256 i = 0; i < registeredAdapters.length; i++) {
+            if (registeredAdapters[i] == adapter) {
+                // Replace with the last element and pop
+                registeredAdapters[i] = registeredAdapters[
+                    registeredAdapters.length - 1
+                ];
+                registeredAdapters.pop();
+                break;
+            }
+        }
+
         emit AdapterRemoved(adapter);
     }
 
