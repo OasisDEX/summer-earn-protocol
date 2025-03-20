@@ -7,25 +7,32 @@ import {IBridgeAdapter} from "../../src/adapters/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 contract BridgeRouterAdapterTest is Test {
     BridgeRouter public router;
     MockAdapter public mockAdapter;
     MockAdapter public mockAdapter2;
     ERC20Mock public token;
+    ProtocolAccessManager public accessManager;
 
-    address public admin = address(0x1);
+    address public governor = address(0x1);
     address public user = address(0x2);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
+    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
 
     function setUp() public {
-        vm.startPrank(admin);
+        // Deploy access manager and set up roles
+        accessManager = new ProtocolAccessManager(governor);
+
+        vm.startPrank(governor);
 
         // Deploy contracts
-        router = new BridgeRouter();
+        router = new BridgeRouter(address(accessManager));
         mockAdapter = new MockAdapter(address(router));
         mockAdapter2 = new MockAdapter(address(router));
         token = new ERC20Mock();
@@ -38,7 +45,7 @@ contract BridgeRouterAdapterTest is Test {
         router.registerAdapter(address(mockAdapter));
 
         // Mint tokens for testing
-        token.mint(admin, 10000e18);
+        token.mint(governor, 10000e18);
         token.mint(user, 10000e18);
 
         vm.stopPrank();
@@ -47,7 +54,7 @@ contract BridgeRouterAdapterTest is Test {
     // ---- ADAPTER MANAGEMENT TESTS ----
 
     function testRegisterAdapter() public {
-        vm.startPrank(admin);
+        vm.startPrank(governor);
 
         // Register second adapter
         assertFalse(router.isValidAdapter(address(mockAdapter2)));
@@ -60,15 +67,20 @@ contract BridgeRouterAdapterTest is Test {
     function testRegisterAdapterUnauthorized() public {
         vm.startPrank(user);
 
-        // Should revert when non-admin tries to register adapter
-        vm.expectRevert(BridgeRouter.Unauthorized.selector);
+        // Should revert when non-governor tries to register adapter
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
         router.registerAdapter(address(mockAdapter2));
 
         vm.stopPrank();
     }
 
     function testRegisterDuplicateAdapter() public {
-        vm.startPrank(admin);
+        vm.startPrank(governor);
 
         // Should revert when registering same adapter twice
         vm.expectRevert(BridgeRouter.AdapterAlreadyRegistered.selector);
@@ -78,7 +90,7 @@ contract BridgeRouterAdapterTest is Test {
     }
 
     function testRemoveAdapter() public {
-        vm.startPrank(admin);
+        vm.startPrank(governor);
 
         // Remove adapter
         assertTrue(router.isValidAdapter(address(mockAdapter)));
@@ -91,15 +103,20 @@ contract BridgeRouterAdapterTest is Test {
     function testRemoveAdapterUnauthorized() public {
         vm.startPrank(user);
 
-        // Should revert when non-admin tries to remove adapter
-        vm.expectRevert(BridgeRouter.Unauthorized.selector);
+        // Should revert when non-governor tries to remove adapter
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                user
+            )
+        );
         router.removeAdapter(address(mockAdapter));
 
         vm.stopPrank();
     }
 
     function testRemoveNonExistentAdapter() public {
-        vm.startPrank(admin);
+        vm.startPrank(governor);
 
         // Should revert when removing non-existent adapter
         vm.expectRevert(BridgeRouter.UnknownAdapter.selector);
@@ -109,7 +126,7 @@ contract BridgeRouterAdapterTest is Test {
     }
 
     function testGetAdapters() public {
-        vm.startPrank(admin);
+        vm.startPrank(governor);
 
         // Register second adapter
         router.registerAdapter(address(mockAdapter2));
@@ -127,7 +144,7 @@ contract BridgeRouterAdapterTest is Test {
 
     function testGetBestAdapter() public {
         // Setup second adapter with different fee
-        vm.startPrank(admin);
+        vm.startPrank(governor);
         mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);
         mockAdapter2.setSupportedAsset(DEST_CHAIN_ID, address(token), true);
         mockAdapter2.setFeeMultiplier(150); // 50% more expensive
@@ -147,7 +164,7 @@ contract BridgeRouterAdapterTest is Test {
     }
 
     function testSpecifiedAdapter() public {
-        vm.startPrank(admin);
+        vm.startPrank(governor);
         // Register second adapter
         router.registerAdapter(address(mockAdapter2));
         vm.stopPrank();
@@ -213,7 +230,7 @@ contract BridgeRouterAdapterTest is Test {
 
     function testAdapterSelectionLimits() public {
         // Register many adapters (more than the limit)
-        vm.startPrank(admin);
+        vm.startPrank(governor);
 
         // Setup second adapter
         mockAdapter2.setSupportedChain(DEST_CHAIN_ID, true);

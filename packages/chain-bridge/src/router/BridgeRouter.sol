@@ -8,13 +8,14 @@ import {IBridgeAdapter} from "../adapters/IBridgeAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {ICrossChainReceiver} from "../interfaces/ICrossChainReceiver.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ProtocolAccessManaged} from "@summerfi/access-contracts/contracts/ProtocolAccessManaged.sol";
 
 /**
  * @title BridgeRouter
  * @notice Central router that coordinates cross-chain asset transfers and data queries
  * @dev Implements IBridgeRouter interface and manages multiple bridge adapters
  */
-contract BridgeRouter is IBridgeRouter {
+contract BridgeRouter is IBridgeRouter, ProtocolAccessManaged {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -35,9 +36,6 @@ contract BridgeRouter is IBridgeRouter {
     /// @notice Mapping to track read request originators
     mapping(bytes32 requestId => address originator)
         public readRequestToOriginator;
-
-    /// @notice Address of the admin who can manage adapters and pause the system
-    address public admin;
 
     /// @notice Pause state of the router
     bool public paused;
@@ -118,11 +116,9 @@ contract BridgeRouter is IBridgeRouter {
 
     /**
      * @notice Initializes the BridgeRouter contract
-     * @dev Sets the deployer as the admin
+     * @param accessManager Address of the ProtocolAccessManager contract
      */
-    constructor() {
-        admin = msg.sender;
-    }
+    constructor(address accessManager) ProtocolAccessManaged(accessManager) {}
 
     /*//////////////////////////////////////////////////////////////
                         BRIDGE OPERATIONS
@@ -424,8 +420,7 @@ contract BridgeRouter is IBridgeRouter {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBridgeRouter
-    function registerAdapter(address adapter) external {
-        if (msg.sender != admin) revert Unauthorized();
+    function registerAdapter(address adapter) external onlyGovernor {
         if (adapters.contains(adapter)) revert AdapterAlreadyRegistered();
 
         adapters.add(adapter);
@@ -433,8 +428,7 @@ contract BridgeRouter is IBridgeRouter {
     }
 
     /// @inheritdoc IBridgeRouter
-    function removeAdapter(address adapter) external {
-        if (msg.sender != admin) revert Unauthorized();
+    function removeAdapter(address adapter) external onlyGovernor {
         if (!adapters.contains(adapter)) revert UnknownAdapter();
 
         adapters.remove(adapter);
@@ -442,22 +436,12 @@ contract BridgeRouter is IBridgeRouter {
     }
 
     /// @inheritdoc IBridgeRouter
-    function pause() external {
-        if (msg.sender != admin) revert Unauthorized();
+    function pause() external onlyGuardianOrGovernor {
         paused = true;
     }
 
     /// @inheritdoc IBridgeRouter
-    function unpause() external {
-        if (msg.sender != admin) revert Unauthorized();
+    function unpause() external onlyGovernor {
         paused = false;
-    }
-
-    /// @inheritdoc IBridgeRouter
-    function setAdmin(address newAdmin) external {
-        if (msg.sender != admin) revert Unauthorized();
-        if (newAdmin == address(0)) revert InvalidParams();
-
-        admin = newAdmin;
     }
 }

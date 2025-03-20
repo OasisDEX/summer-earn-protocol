@@ -191,11 +191,4 @@ interface IBridgeRouter {
      * @dev Only callable by the admin
      */
     function unpause() external;
-
-    /**
-     * @notice Set a new admin
-     * @param newAdmin Address of the new admin
-     * @dev Only callable by the current admin
-     */
-    function setAdmin(address newAdmin) external;
 }

@@ -7,24 +7,35 @@ import {IBridgeAdapter} from "../../src/adapters/IBridgeAdapter.sol";
 import {BridgeTypes} from "../../src/libraries/BridgeTypes.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockAdapter} from "../mocks/MockAdapter.sol";
+import {ProtocolAccessManager} from "@summerfi/access-contracts/contracts/ProtocolAccessManager.sol";
+import {IAccessControlErrors} from "@summerfi/access-contracts/interfaces/IAccessControlErrors.sol";
 
 contract BridgeRouterAdminTest is Test {
     BridgeRouter public router;
     MockAdapter public mockAdapter;
     ERC20Mock public token;
+    ProtocolAccessManager public accessManager;
 
-    address public admin = address(0x1);
-    address public user = address(0x2);
+    address public governor = address(0x1);
+    address public guardian = address(0x2);
+    address public user = address(0x3);
 
     // Constants for testing
     uint16 public constant DEST_CHAIN_ID = 10; // Optimism
     uint256 public constant TRANSFER_AMOUNT = 1000e18;
+    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+    bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
 
     function setUp() public {
-        vm.startPrank(admin);
+        // Deploy access manager and set up roles
+        accessManager = new ProtocolAccessManager(governor);
+        accessManager.grantRole(GOVERNOR_ROLE, governor);
+        accessManager.grantRole(GUARDIAN_ROLE, guardian);
+
+        vm.startPrank(governor);
 
         // Deploy contracts
-        router = new BridgeRouter();
+        router = new BridgeRouter(address(accessManager));
         mockAdapter = new MockAdapter(address(router));
         token = new ERC20Mock();
 
@@ -36,7 +47,8 @@ contract BridgeRouterAdminTest is Test {
         router.registerAdapter(address(mockAdapter));
 
         // Mint tokens for testing
-        token.mint(admin, 10000e18);
+        token.mint(governor, 10000e18);
+        token.mint(guardian, 10000e18);
         token.mint(user, 10000e18);
 
         vm.stopPrank();
@@ -44,8 +56,8 @@ contract BridgeRouterAdminTest is Test {
 
     // ---- ADMIN FUNCTION TESTS ----
 
-    function testPause() public {
-        vm.startPrank(admin);
+    function testPauseByGovernor() public {
+        vm.startPrank(governor);
 
         // Pause
         assertFalse(router.paused());
@@ -59,40 +71,44 @@ contract BridgeRouterAdminTest is Test {
         vm.stopPrank();
     }
 
+    function testPauseByGuardian() public {
+        vm.startPrank(guardian);
+
+        // Guardian can pause
+        assertFalse(router.paused());
+        router.pause();
+        assertTrue(router.paused());
+
+        // Guardian cannot unpause
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGovernor.selector,
+                guardian
+            )
+        );
+        router.unpause();
+
+        vm.stopPrank();
+    }
+
     function testPauseUnauthorized() public {
         vm.startPrank(user);
 
-        // Should revert when non-admin tries to pause
-        vm.expectRevert(BridgeRouter.Unauthorized.selector);
+        // Should revert when non-guardian/governor tries to pause
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControlErrors.CallerIsNotGuardianOrGovernor.selector,
+                user
+            )
+        );
         router.pause();
-
-        vm.stopPrank();
-    }
-
-    function testSetAdmin() public {
-        vm.startPrank(admin);
-
-        // Set new admin
-        assertEq(router.admin(), admin);
-        router.setAdmin(user);
-        assertEq(router.admin(), user);
-
-        vm.stopPrank();
-    }
-
-    function testSetAdminUnauthorized() public {
-        vm.startPrank(user);
-
-        // Should revert when non-admin tries to set admin
-        vm.expectRevert(BridgeRouter.Unauthorized.selector);
-        router.setAdmin(user);
 
         vm.stopPrank();
     }
 
     function testSendWhenPaused() public {
         // Pause the router
-        vm.prank(admin);
+        vm.prank(governor);
         router.pause();
 
         vm.startPrank(user);
