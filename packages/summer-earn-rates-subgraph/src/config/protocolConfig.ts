@@ -114,6 +114,12 @@ class ProtocolConfig {
           BigInt.fromI32(18798139),
           'Gearbox',
         ),
+        new GearboxProduct(
+          getOrCreateToken(addresses.WSTETH),
+          Address.fromString('0xFF94993fA7EA27Efc943645F95Adb36C1b81244b'),
+          BigInt.fromI32(18798139),
+          'Gearbox',
+        ),
       ]),
       new Protocol('AaveV3', [
         new AaveV3Product(
