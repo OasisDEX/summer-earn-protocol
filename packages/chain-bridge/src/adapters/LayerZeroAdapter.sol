@@ -9,7 +9,7 @@ import {ISendAdapter} from "../interfaces/ISendAdapter.sol";
 import {BridgeTypes} from "../libraries/BridgeTypes.sol";
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {LayerZeroHelper} from "../helpers/LayerZeroHelper.sol";
+import {LayerZeroOptionsHelper} from "../helpers/LayerZeroOptionsHelper.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 /**
@@ -681,19 +681,22 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         // Get the LayerZero EID for source chain
         uint32 lzSrcEid = _getLayerZeroEid(sourceChainId);
 
-        // Create payload for the cross-chain message
-        bytes memory payload = abi.encode(transferId, asset, amount, sender);
-
-        // Default options with gas limit for lzReceive - use uint64 for larger gas values
-        bytes memory options = abi.encodePacked(
-            uint16(1), // version
-            uint64(200000) // gas limit as uint64 instead of uint16
+        // Create payload for the cross-chain message - include TRANSFER message type
+        bytes memory payload = abi.encodePacked(
+            uint16(GENERAL_MESSAGE),
+            abi.encode(transferId, asset, amount, sender)
         );
 
-        // Apply any custom options from extraData if provided
-        if (extraData.length > 0) {
-            options = bytes.concat(options, extraData);
-        }
+        // Create adapter params from extraData
+        BridgeTypes.AdapterParams memory adapterParams;
+        adapterParams.options = extraData;
+        adapterParams.gasLimit = uint64(minGasLimits[GENERAL_MESSAGE]);
+
+        // Use the helper to create consistent options
+        bytes memory options = LayerZeroOptionsHelper.createMessagingOptions(
+            adapterParams,
+            uint64(minGasLimits[GENERAL_MESSAGE])
+        );
 
         // Send message through OApp's _lzSend
         _lzSend(
@@ -853,7 +856,10 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
         // Use the helper to create messaging options with minimum gas limit enforcement
         if (msgType == STATE_READ) {
             return
-                LayerZeroHelper.createLzReadOptions(adapterParams, minimumGas);
+                LayerZeroOptionsHelper.createLzReadOptions(
+                    adapterParams,
+                    minimumGas
+                );
         } else if (msgType == COMPOSE) {
             // For compose actions, we need to create options with BOTH:
             // 1. lzReceive options (required for the initial receive)
@@ -880,7 +886,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
             return options;
         } else {
             return
-                LayerZeroHelper.createMessagingOptions(
+                LayerZeroOptionsHelper.createMessagingOptions(
                     adapterParams,
                     minimumGas
                 );
@@ -914,7 +920,10 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                     calldataSize: 0,
                     options: bytes("")
                 });
-            options = LayerZeroHelper.createLzReadOptions(params, minimumGas);
+            options = LayerZeroOptionsHelper.createLzReadOptions(
+                params,
+                minimumGas
+            );
         } else if (_msgType == COMPOSE) {
             // For COMPOSE, we need both lzReceive and lzCompose options
             // First create standard messaging options for lzReceive
@@ -927,7 +936,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                 });
 
             // Add lzReceive option
-            options = LayerZeroHelper.createMessagingOptions(
+            options = LayerZeroOptionsHelper.createMessagingOptions(
                 receiveParams,
                 50000
             );
@@ -941,7 +950,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                     options: options // Use the options with lzReceive already added
                 });
 
-            options = LayerZeroHelper.createComposeOptions(
+            options = LayerZeroOptionsHelper.createComposeOptions(
                 0,
                 composeParams,
                 minimumGas
@@ -955,7 +964,7 @@ contract LayerZeroAdapter is Ownable, OApp, IBridgeAdapter {
                     calldataSize: 0,
                     options: bytes("")
                 });
-            options = LayerZeroHelper.createMessagingOptions(
+            options = LayerZeroOptionsHelper.createMessagingOptions(
                 params,
                 minimumGas
             );
